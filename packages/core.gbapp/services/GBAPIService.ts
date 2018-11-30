@@ -47,13 +47,14 @@ export class DialogClass {
     this.min = min;
     }
 
-  public async hear(text: string): Promise<any> {
-    // await this.context.beginDialog('textPrompt', text);
+  public hear(text: string) {
+     // TODO: await this.context.beginDialog('textPrompt', text);
   }
 
   public talk(text: string) {
     this.context.sendActivity(text);
   }
+
 
   /**
    * Generic function to call any REST API.
@@ -66,5 +67,7 @@ export class DialogClass {
   /**
    * Generic function to call any REST API.
    */
-  public post(url: string, data) {}
+  public post(url: string, data) {
+
+  }
 }
