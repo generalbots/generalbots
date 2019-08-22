@@ -81,6 +81,9 @@ export class GuaribasUser extends Model<GuaribasUser> {
   @Column
   phone: string
 
+  @Column
+  currentBotId: string
+
   @Column(DataType.TEXT)
   @Column
   conversationReference: string
