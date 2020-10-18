@@ -42,6 +42,7 @@ import { GBDialogStep, GBLog, GBMinInstance, IGBCoreService, IGBPackage } from '
 import {ProfileDialog} from './dialogs/ProfileDialog'
 import { Sequelize } from 'sequelize-typescript';
 import { GuaribasGroup, GuaribasUser, GuaribasUserGroup } from './models';
+import { OAuthDialog } from './dialogs/OAuthDialog';
 
 /**
  * Package for the security module.
@@ -54,8 +55,9 @@ export class GBSecurityPackage implements IGBPackage {
       ProfileDialog.getEmailDialog(min),
       ProfileDialog.getMobileDialog(min),
       ProfileDialog.getMobileConfirmDialog(min),
+      OAuthDialog.getOAuthDialog(min),
     ];
-    GBLog.verbose(`getDialogs called.`);
+    
   }
   public async unloadPackage(core: IGBCoreService): Promise<void> {
     GBLog.verbose(`unloadPackage called.`);
@@ -72,8 +74,7 @@ export class GBSecurityPackage implements IGBPackage {
   public async onExchangeData(min: GBMinInstance, kind: string, data: any) {
     GBLog.verbose(`onExchangeData called.`);
   }
-
-
+  
   public async loadPackage(core: IGBCoreService, sequelize: Sequelize): Promise<void> {
     core.sequelize.addModels([GuaribasGroup, GuaribasUser, GuaribasUserGroup]);
   }
