@@ -50,11 +50,10 @@ class SideBarMenu extends React.Component {
     return (
       <div>
         <div className="tittleSideBarMenu">
-        <img
-        className="pragmatismoLogo"
-        src={"/themes/" + this.props.instance.theme + "/images/logo.png"}
-        alt="General Bots Logo"
-      />
+          <img
+            className="pragmatismoLogo"
+            src={"/themes/" + this.props.instance.theme + "/images/logo.png"}
+            alt="General Bots Logo" />
 
         </div>
         <div className="SidebarMenu">
@@ -72,16 +71,14 @@ class SideBarMenu extends React.Component {
             <div className="iconMenu">
               <span
                 className="iconText"
-                onClick={() => this.send("showSubjects")}
-              >
+                onClick={() => this.send("showSubjects")}>
                 Subjects
               </span>
             </div>
             <div className="iconMenu">
               <span
                 className="iconText"
-                onClick={() => this.send("giveFeedback")}
-              >
+                onClick={() => this.send("giveFeedback")}>
                 Suggestions
               </span>
             </div>
