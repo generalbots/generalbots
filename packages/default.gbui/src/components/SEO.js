@@ -33,26 +33,37 @@
 import React from "react"
 import { SuperSEO } from 'react-super-seo';
 
-const footer = () => (
-  <SuperSEO
-    title={this.props.instance.title}
-    description={this.props.instance.description}
-    lang="en"
-    openGraph={{
-      ogImage: {
-        ogImage: this.props.instance.paramLogoImageUrl,
-        ogImageAlt: this.props.instance.paramLogoImageAlt,
-        ogImageWidth: this.props.instance.paramLogoImageWidth,
-        ogImageHeight: this.props.instance.paramLogoImageHeight,
-        ogImageType: this.props.instance.paramLogoImageType,
-      },
-    }}
-    twitter={{
-      twitterSummaryCard: {
-        summaryCardImage: this.props.instance.paramLogoImageUrl,
-        summaryCardImageAlt: this.props.instance.paramLogoImageAlt,
-        summaryCardSiteUsername: this.props.instance.paramTwitterUsername,
-      },
-    }}
-  />);
-export default footer
+class SEO extends React.Component {
+  render() {
+    let output = "";
+    if (this.props.instance) {
+      output = (
+        <SuperSEO
+          title={this.props.instance.title}
+          description={this.props.instance.description}
+          lang="en"
+          openGraph={{
+            ogImage: {
+              ogImage: this.props.instance.paramLogoImageUrl,
+              ogImageAlt: this.props.instance.paramLogoImageAlt,
+              ogImageWidth: this.props.instance.paramLogoImageWidth,
+              ogImageHeight: this.props.instance.paramLogoImageHeight,
+              ogImageType: this.props.instance.paramLogoImageType,
+            },
+          }}
+          twitter={{
+            twitterSummaryCard: {
+              summaryCardImage: this.props.instance.paramLogoImageUrl,
+              summaryCardImageAlt: this.props.instance.paramLogoImageAlt,
+              summaryCardSiteUsername: this.props.instance.paramTwitterUsername,
+            },
+          }}
+        />);
+    } else {
+      output = <div />;
+    }
+    return output;
+  }
+}
+
+export default SEO
