@@ -46,7 +46,9 @@ import { WhatsappDirectLine } from './services/WhatsappDirectLine.js';
 export class GBWhatsappPackage implements IGBPackage {
   public sysPackages: IGBPackage[];
 
-  public async loadBot (min: GBMinInstance): Promise<void> {}
+  public async loadBot (min: GBMinInstance): Promise<void> {
+    GBLog.verbose(`loadBot called.`);
+  }
 
   public async getDialogs (min: GBMinInstance) {
     GBLog.verbose(`getDialogs called.`);
