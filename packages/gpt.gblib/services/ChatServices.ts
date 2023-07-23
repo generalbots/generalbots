@@ -34,7 +34,7 @@
 
 import { GBSSR }from '../../core.gbapp/services/GBSSR.js';
 
-export class ChartServices {
+export class ChatServices {
 
   /**
    * Generate text
