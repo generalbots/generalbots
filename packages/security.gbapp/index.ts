@@ -39,6 +39,7 @@ import { Sequelize } from 'sequelize-typescript';
 import { OAuthDialog } from './dialogs/OAuthDialog.js';
 import { ProfileDialog } from './dialogs/ProfileDialog.js';
 import { GuaribasGroup, GuaribasUser, GuaribasUserGroup } from './models/index.js';
+import { SMSAuthDialog } from './dialogs/SMSAuthDialog.js';
 
 /**
  * Package for the security module.
@@ -50,9 +51,10 @@ export class GBSecurityPackage implements IGBPackage {
       ProfileDialog.getNameDialog(min),
       ProfileDialog.getEmailDialog(min),
       ProfileDialog.getMobileDialog(min),
-      ProfileDialog.getMobileConfirmDialog(min)
+      ProfileDialog.getMobileConfirmDialog(min),
+      SMSAuthDialog.getSMSAuthDialog(min)
     ];
-
+    
     if (process.env.ENABLE_AUTH) {
       out.push(OAuthDialog.getOAuthDialog(min));
     }
