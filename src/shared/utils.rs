@@ -1,4 +1,4 @@
-use log::debug;
+use log::{debug, trace};
 use rhai::{Array, Dynamic};
 use serde_json::Value;
 use smartstring::SmartString;
@@ -7,17 +7,14 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use tokio::fs::File as TokioFile;
-
 use zip::ZipArchive;
-
 use crate::config::AIConfig;
 use reqwest::Client;
 use tokio::io::AsyncWriteExt;
+use indicatif::{ProgressBar, ProgressStyle};
+use futures_util::StreamExt;
 
-pub fn extract_zip_recursive(
-    zip_path: &Path,
-    destination_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub fn extract_zip_recursive(zip_path: &Path, destination_path: &Path) -> Result<(), Box<dyn std::error::Error>> {
     let file = File::open(zip_path)?;
     let buf_reader = BufReader::new(file);
     let mut archive = ZipArchive::new(buf_reader)?;
@@ -38,7 +35,6 @@ pub fn extract_zip_recursive(
             std::io::copy(&mut file, &mut outfile)?;
         }
     }
-
     Ok(())
 }
 
@@ -79,21 +75,36 @@ pub fn to_array(value: Dynamic) -> Array {
     }
 }
 
-pub async fn download_file(
-    url: &str,
-    output_path: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let url = url.to_string();
     let output_path = output_path.to_string();
+    
     let download_handle = tokio::spawn(async move {
         let client = Client::new();
         let response = client.get(&url).send().await?;
-
+        
         if response.status().is_success() {
+            let total_size = response.content_length().unwrap_or(0);
+            let pb = ProgressBar::new(total_size);
+            pb.set_style(ProgressStyle::default_bar()
+                .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                .unwrap()
+                .progress_chars("#>-"));
+            pb.set_message(format!("Downloading {}", url));
+
             let mut file = TokioFile::create(&output_path).await?;
-            let bytes = response.bytes().await?;
-            file.write_all(&bytes).await?;
-            debug!("File downloaded successfully to {}", output_path);
+            let mut downloaded: u64 = 0;
+            let mut stream = response.bytes_stream();
+
+            while let Some(chunk_result) = stream.next().await {
+                let chunk = chunk_result?;
+                file.write_all(&chunk).await?;
+                downloaded += chunk.len() as u64;
+                pb.set_position(downloaded);
+            }
+
+            pb.finish_with_message(format!("Downloaded {}", output_path));
+            trace!("Download completed: {} -> {}", url, output_path);
             Ok(())
         } else {
             Err(format!("HTTP {}: {}", response.status(), url).into())
@@ -112,20 +123,14 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn E
     let column = parts[0].trim();
     let value = parts[1].trim();
 
-    if !column
-        .chars()
-        .all(|c| c.is_ascii_alphanumeric() || c == '_')
-    {
+    if !column.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
         return Err("Invalid column name in filter".into());
     }
 
     Ok((format!("{} = $1", column), vec![value.to_string()]))
 }
 
-pub fn parse_filter_with_offset(
-    filter_str: &str,
-    offset: usize,
-) -> Result<(String, Vec<String>), Box<dyn Error>> {
+pub fn parse_filter_with_offset(filter_str: &str, offset: usize) -> Result<(String, Vec<String>), Box<dyn Error>> {
     let mut clauses = Vec::new();
     let mut params = Vec::new();
 
@@ -138,10 +143,7 @@ pub fn parse_filter_with_offset(
         let column = parts[0].trim();
         let value = parts[1].trim();
 
-        if !column
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
+        if !column.chars().all(|c| c.is_ascii_alphanumeric() || c == '_') {
             return Err("Invalid column name".into());
         }
 
@@ -152,9 +154,6 @@ pub fn parse_filter_with_offset(
     Ok((clauses.join(" AND "), params))
 }
 
-pub async fn call_llm(
-    prompt: &str,
-    _ai_config: &AIConfig,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+pub async fn call_llm(prompt: &str, _ai_config: &AIConfig) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     Ok(format!("Generated response for: {}", prompt))
 }

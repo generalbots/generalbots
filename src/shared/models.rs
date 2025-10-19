@@ -219,6 +219,12 @@ pub struct SessionToolAssociation {
     pub added_at: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SystemCredentials {
+    pub encrypted_db_password: String,
+    pub encrypted_drive_password: String,
+}
+
 pub mod schema {
     diesel::table! {
         organizations (org_id) {
@@ -384,5 +390,4 @@ pub mod schema {
     }
 }
 
-// Re-export all tables at the module level for backward compatibility
 pub use schema::*;

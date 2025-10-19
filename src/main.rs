@@ -104,7 +104,6 @@ async fn main() -> std::io::Result<()> {
     };
 
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
-    let _ = bootstrap.start_all();
     let cfg = match bootstrap.bootstrap() {
         Ok(config) => {
             info!("Bootstrap completed successfully, configuration loaded from database");
@@ -113,8 +112,7 @@ async fn main() -> std::io::Result<()> {
         Err(e) => {
             log::error!("Bootstrap failed: {}", e);
             info!("Attempting to load configuration from database");
-            match diesel::Connection::establish(&format!("postgres://localhost:5432/botserver_db"))
-            {
+            match diesel::Connection::establish("postgres://botserver:botserver@localhost:5432/botserver") {
                 Ok(mut conn) => AppConfig::from_database(&mut conn),
                 Err(_) => {
                     info!("Database not available, using environment variables as fallback");
@@ -124,6 +122,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
+    let _ = bootstrap.start_all();
     let config = std::sync::Arc::new(cfg.clone());
 
     info!("Establishing database connection to {}", cfg.database_url());

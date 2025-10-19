@@ -1,7 +1,6 @@
 let resume = GET_BOT_MEMORY ("resume")
-
 TALK resume
 
-let text = GET "default.gbdrive/default.pdf"
-SET_CONTEXT "Este é o documento que você deve usar para responder dúvidas: " + text
+ADD_KB "weekly" 
+
 TALK "Olá, pode me perguntar sobre qualquer coisa destas circulares..."
