@@ -2,9 +2,10 @@ use anyhow::{Context, Result};
 use log::{debug, info, trace, warn};
 use reqwest::Client;
 use std::collections::HashMap;
-use std::io::Write;
 use std::path::PathBuf;
 use std::process::Command;
+
+use crate::shared::utils; // Adjust based on your actual module structure
 
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::installer::PackageManager;
@@ -79,11 +80,6 @@ impl PackageManager {
                 .await?;
             self.run_commands(post_cmds, "local", &component.name)?;
         }
-
-        if self.os_type == OsType::Linux && !component.exec_cmd.is_empty() {
-            self.create_service_file(&component.name, &component.exec_cmd, &component.env_vars)?;
-        }
-
         info!("Local installation of '{}' completed", component.name);
         Ok(())
     }
@@ -342,7 +338,11 @@ impl PackageManager {
         std::fs::create_dir_all(&bin_path)?;
 
         let filename = url.split('/').last().unwrap_or("download.tmp");
-        let temp_file = bin_path.join(filename);
+        let temp_file = if filename.starts_with('/') {
+            PathBuf::from(filename)
+        } else {
+            bin_path.join(filename)
+        };
 
         info!("Downloading from: {} to {:?}", url, temp_file);
 
@@ -406,24 +406,23 @@ impl PackageManager {
 
     pub async fn attempt_reqwest_download(
         &self,
-        client: &Client,
+        _client: &Client, // We won't use this if using shared utils
         url: &str,
         temp_file: &PathBuf,
     ) -> Result<u64> {
-        let response = client
-            .get(url)
-            .send()
-            .await
-            .context("Failed to send request")?;
+        info!("Downloading from: {} to {:?}", url, temp_file);
 
-        let mut file = std::fs::File::create(temp_file).context("Failed to create output file")?;
-        let bytes = response
-            .bytes()
+        // Convert PathBuf to string for the shared function
+        let output_path = temp_file.to_str().context("Invalid temp file path")?;
+
+        // Use the shared download_file utility
+        utils::download_file(url, output_path)
             .await
-            .context("Failed to read response bytes")?;
-        let size = bytes.len() as u64;
-        file.write_all(&bytes)
-            .context("Failed to write response to file")?;
+            .map_err(|e| anyhow::anyhow!("Failed to download file using shared utility: {}", e))?;
+
+        // Get file size to return
+        let metadata = std::fs::metadata(temp_file).context("Failed to get file metadata")?;
+        let size = metadata.len();
 
         info!("Downloaded {} bytes", size);
         Ok(size)
@@ -470,10 +469,9 @@ impl PackageManager {
 
     pub fn extract_tar_gz(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
         info!("Extracting tar.gz archive to {:?}", bin_path);
-
         let output = Command::new("tar")
             .current_dir(bin_path)
-            .args(&["-xzf", temp_file.to_str().unwrap()])
+            .args(&["-xzf", temp_file.to_str().unwrap(), "--strip-components=1"])
             .output()?;
 
         if !output.status.success() {

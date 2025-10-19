@@ -25,9 +25,10 @@ impl BootstrapManager {
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
-        let required_components = vec!["drive", "cache", "tables", "llm"];
+        let required_components = vec!["tables", "cache", "drive", "llm"];
 
         for component in required_components {
+            info!("Checking component: {}", component);
             if !pm.is_installed(component) {
                 info!("Installing required component: {}", component);
                 futures::executor::block_on(pm.install(component))?;

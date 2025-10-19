@@ -7,7 +7,7 @@ use std::fs::File;
 use std::io::BufReader;
 use std::path::Path;
 use tokio::fs::File as TokioFile;
-use tokio_stream::StreamExt;
+
 use zip::ZipArchive;
 
 use crate::config::AIConfig;
@@ -79,24 +79,28 @@ pub fn to_array(value: Dynamic) -> Array {
     }
 }
 
-pub async fn download_file(url: &str, output_path: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let client = Client::new();
-    let response = client.get(url).send().await?;
+pub async fn download_file(
+    url: &str,
+    output_path: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let url = url.to_string();
+    let output_path = output_path.to_string();
+    let download_handle = tokio::spawn(async move {
+        let client = Client::new();
+        let response = client.get(&url).send().await?;
 
-    if response.status().is_success() {
-        let mut file = TokioFile::create(output_path).await?;
-
-        let mut stream = response.bytes_stream();
-
-        while let Some(chunk) = stream.next().await {
-            file.write_all(&chunk?).await?;
+        if response.status().is_success() {
+            let mut file = TokioFile::create(&output_path).await?;
+            let bytes = response.bytes().await?;
+            file.write_all(&bytes).await?;
+            debug!("File downloaded successfully to {}", output_path);
+            Ok(())
+        } else {
+            Err(format!("HTTP {}: {}", response.status(), url).into())
         }
-        debug!("File downloaded successfully to {}", output_path);
-    } else {
-        return Err("Failed to download file".into());
-    }
+    });
 
-    Ok(())
+    download_handle.await?
 }
 
 pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn Error>> {

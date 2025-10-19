@@ -11,7 +11,8 @@ MOST IMPORTANT CODE GENERATION RULES:
 - Every part must be executable and self-contained, with real implementations - only.
 - DO NOT WRITE ANY ERROR HANDLING CODE LET IT CRASH.
 - Never generate two ore more trace mensages that are equal!
-- Return *only the modified* files as a single `.sh` script using `cat`, so the code can be restored directly.
+- Return *only the modified* files as a single `.sh` script using `cat`, so the code can be - restored directly.
+- Pay attention to shared::utils and shared::models to reuse shared things.
 - NEVER return a untouched file in output. Just files that need to be updated.
 
 - You MUST return exactly this example format:

@@ -21,7 +21,7 @@ impl PackageManager {
         let base_path = if mode == InstallMode::Container {
             PathBuf::from("/opt/gbo")
         } else {
-            PathBuf::from("./botserver-stack")
+            std::env::current_dir()?.join("botserver-stack")
         };
 
         let tenant = tenant.unwrap_or_else(|| "default".to_string());
@@ -45,9 +45,9 @@ impl PackageManager {
     }
 
     fn register_components(&mut self) {
-        self.register_drive();
-        self.register_cache();
         self.register_tables();
+        self.register_cache();
+        self.register_drive();
         self.register_llm();
         self.register_email();
         self.register_proxy();
@@ -110,9 +110,9 @@ impl PackageManager {
             download_url: None,
             binary_name: Some("valkey-server".to_string()),
             pre_install_cmds_linux: vec![
-                "curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg".to_string(),
-                "echo 'deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/valkey.list".to_string(),
-                "apt-get update && apt-get install -y valkey".to_string()
+                    "if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi".to_string(),
+                    "if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo 'deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/valkey.list; fi".to_string(),
+                                "apt-get update && apt-get install -y valkey".to_string()
             ],
             post_install_cmds_linux: vec![],
             pre_install_cmds_macos: vec![],
@@ -137,9 +137,7 @@ impl PackageManager {
             binary_name: Some("postgres".to_string()),
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
-                "tar -xzf postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
-                "mv pgsql/* . && rm -rf pgsql".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"hba_file = '{{CONF_PATH}}/pg_hba.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
@@ -149,18 +147,16 @@ impl PackageManager {
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./psql -p 5432 -d postgres -c \"CREATE USER default WITH PASSWORD 'defaultpass'\"; ./psql -p 5432 -d postgres -c \"CREATE DATABASE default_db OWNER default\"; ./psql -p 5432 -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE default_db TO default\"; ./pg_ctl -D {{DATA_PATH}}/pgdata stop; fi".to_string()
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/psql -p 5432 -d postgres -c \" CREATE USER default WITH PASSWORD 'defaultpass'\"; ./bin/psql -p 5432 -d postgres -c \"CREATE DATABASE default_db OWNER default\"; ./bin/psql -p 5432 -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE default_db TO default\"; pkill postgres; fi".to_string()
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
-                "tar -xzf postgresql-18.0-1-linux-x64-binaries.tar.gz".to_string(),
-                "mv pgsql/* . && rm -rf pgsql".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
             ],
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
-            exec_cmd: "./pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start".to_string(),
+            exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start".to_string(),
         });
     }
 
