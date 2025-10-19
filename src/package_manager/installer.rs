@@ -147,7 +147,7 @@ impl PackageManager {
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/psql -p 5432 -d postgres -c \" CREATE USER default WITH PASSWORD 'defaultpass'\"; ./bin/psql -p 5432 -d postgres -c \"CREATE DATABASE default_db OWNER default\"; ./bin/psql -p 5432 -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE default_db TO default\"; pkill postgres; fi".to_string()
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/psql -p 5432 -d postgres -c \" CREATE USER default WITH PASSWORD 'defaultpass'\"; ./bin/psql -p 5432 -d postgres -c \"CREATE DATABASE default_db OWNER default\"; ./bin/psql -p 5432 -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE default_db TO default\"; pkill; fi".to_string()
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
@@ -599,5 +599,16 @@ impl PackageManager {
                 exec_cmd: "".to_string(),
             },
         );
+    }
+
+    pub(crate) fn start(&self, component: &str) -> Result<std::process::Child> {
+        if let Some(component) = self.components.get(component) {
+            Ok(std::process::Command::new("sh")
+                .arg("-c")
+                .arg(&component.exec_cmd)
+                .spawn()?)
+        } else {
+            Err(anyhow::anyhow!("Component {} not found", component))
+        }
     }
 }

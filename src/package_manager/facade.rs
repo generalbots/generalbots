@@ -193,27 +193,6 @@ impl PackageManager {
     }
 
     pub fn remove_local(&self, component: &ComponentConfig) -> Result<()> {
-        if component.name == "tables" {
-            let bin_path = self.base_path.join("bin").join(&component.name);
-            let data_path = self.base_path.join("data").join(&component.name);
-
-            let _ = Command::new(bin_path.join("pg_ctl"))
-                .args(&["-D", data_path.join("pgdata").to_str().unwrap(), "stop"])
-                .output();
-        }
-
-        if self.os_type == OsType::Linux {
-            let _ = Command::new("systemctl")
-                .args(&["stop", &format!("{}.service", component.name)])
-                .output();
-            let _ = Command::new("systemctl")
-                .args(&["disable", &format!("{}.service", component.name)])
-                .output();
-            let service_path = format!("/etc/systemd/system/{}.service", component.name);
-            let _ = std::fs::remove_file(service_path);
-            let _ = Command::new("systemctl").args(&["daemon-reload"]).output();
-        }
-
         let bin_path = self.base_path.join("bin").join(&component.name);
         let _ = std::fs::remove_dir_all(bin_path);
 

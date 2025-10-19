@@ -20,6 +20,43 @@ impl BootstrapManager {
         }
     }
 
+    pub fn start_all(&mut self) -> Result<()> {
+        info!("Starting all components");
+        let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+
+        let components = vec![
+            "tables",
+            "cache",
+            "drive",
+            "llm",
+            "email",
+            "proxy",
+            "directory",
+            "alm",
+            "alm_ci",
+            "dns",
+            "webmail",
+            "meeting",
+            "table_editor",
+            "doc_editor",
+            "desktop",
+            "devtools",
+            "bot",
+            "system",
+            "vector_db",
+            "host",
+        ];
+
+        for component in components {
+            info!("Starting component: {}", component);
+            pm.start(component)?;
+            trace!("Successfully started component: {}", component);
+        }
+
+        info!("All components started successfully");
+        Ok(())
+    }
+
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
         info!("Starting bootstrap process");
 
