@@ -104,6 +104,7 @@ async fn main() -> std::io::Result<()> {
     };
 
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
+    let _ = bootstrap.start_all();
     let cfg = match bootstrap.bootstrap() {
         Ok(config) => {
             info!("Bootstrap completed successfully, configuration loaded from database");
