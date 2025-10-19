@@ -4,3 +4,4 @@ target
 work
 *.out
 bin
+botserver-stack
