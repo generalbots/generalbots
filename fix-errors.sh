@@ -3,13 +3,13 @@
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 OUTPUT_FILE="/tmp/prompt.out"
-rm $OUTPUT_FILE
+
 echo "Please, fix this consolidated LLM Context" > "$OUTPUT_FILE"
 
 prompts=(
+    "./prompts/dev/platform/fix-errors.md"
     "./prompts/dev/platform/shared.md"
     "./Cargo.toml"
-    "./prompts/dev/platform/fix-errors.md"
 )
 
 for file in "${prompts[@]}"; do
@@ -22,17 +22,18 @@ dirs=(
     #"automation"
     #"basic"
     #"bot"
-    "bootstrap"
+    #"bootstrap"
     #"channels"
-    #"config"
+    "config"
     #"context"
     #"email"
     #"file"
     #"llm"
     #"llm_legacy"
     #"org"
-    "session"
-    "shared"
+    "package_manager"
+    #"session"
+    #"shared"
     #"tests"
     #"tools"
     #"web_automation"

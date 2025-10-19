@@ -35,15 +35,19 @@ mod whatsapp;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
-use crate::bot::{start_session, websocket_handler};
 use crate::bootstrap::BootstrapManager;
+use crate::bot::{start_session, websocket_handler};
 use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
 use crate::drive_monitor::DriveMonitor;
 #[cfg(feature = "email")]
-use crate::email::{get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email};
+use crate::email::{
+    get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
+};
 use crate::file::{init_drive, upload_file};
-use crate::llm_legacy::llm_local::{chat_completions_local, embeddings_local, ensure_llama_servers_running};
+use crate::llm_legacy::llm_local::{
+    chat_completions_local, embeddings_local, ensure_llama_servers_running,
+};
 use crate::meet::{voice_start, voice_stop};
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions};
@@ -55,23 +59,29 @@ use crate::whatsapp::WhatsAppAdapter;
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
-    
+
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
             "install" | "remove" | "list" | "status" | "--help" | "-h" => {
-                match package_manager::cli::run() {
+                match package_manager::cli::run().await {
                     Ok(_) => return Ok(()),
                     Err(e) => {
                         eprintln!("CLI error: {}", e);
-                        return Err(std::io::Error::new(std::io::ErrorKind::Other, format!("CLI command failed: {}", e)));
+                        return Err(std::io::Error::new(
+                            std::io::ErrorKind::Other,
+                            format!("CLI command failed: {}", e),
+                        ));
                     }
                 }
             }
             _ => {
                 eprintln!("Unknown command: {}", command);
                 eprintln!("Run 'botserver --help' for usage information");
-                return Err(std::io::Error::new(std::io::ErrorKind::InvalidInput, format!("Unknown command: {}", command)));
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!("Unknown command: {}", command),
+                ));
             }
         }
     }
@@ -80,13 +90,13 @@ async fn main() -> std::io::Result<()> {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("Starting BotServer bootstrap process");
-    
+
     let install_mode = if args.contains(&"--container".to_string()) {
         InstallMode::Container
     } else {
         InstallMode::Local
     };
-    
+
     let tenant = if let Some(idx) = args.iter().position(|a| a == "--tenant") {
         args.get(idx + 1).cloned()
     } else {
@@ -102,7 +112,8 @@ async fn main() -> std::io::Result<()> {
         Err(e) => {
             log::error!("Bootstrap failed: {}", e);
             info!("Attempting to load configuration from database");
-            match diesel::Connection::establish(&format!("postgres://localhost:5432/botserver_db")) {
+            match diesel::Connection::establish(&format!("postgres://localhost:5432/botserver_db"))
+            {
                 Ok(mut conn) => AppConfig::from_database(&mut conn),
                 Err(_) => {
                     info!("Database not available, using environment variables as fallback");
@@ -113,22 +124,31 @@ async fn main() -> std::io::Result<()> {
     };
 
     let config = std::sync::Arc::new(cfg.clone());
-    
+
     info!("Establishing database connection to {}", cfg.database_url());
     let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
         Ok(conn) => Arc::new(Mutex::new(conn)),
         Err(e) => {
             log::error!("Failed to connect to main database: {}", e);
-            return Err(std::io::Error::new(std::io::ErrorKind::ConnectionRefused, format!("Database connection failed: {}", e)));
+            return Err(std::io::Error::new(
+                std::io::ErrorKind::ConnectionRefused,
+                format!("Database connection failed: {}", e),
+            ));
         }
     };
 
     let db_custom_pool = db_pool.clone();
 
     info!("Initializing LLM server at {}", cfg.ai.endpoint);
-    ensure_llama_servers_running().await.expect("Failed to initialize LLM local server");
+    ensure_llama_servers_running()
+        .await
+        .expect("Failed to initialize LLM local server");
 
-    let cache_url = cfg.config_path("cache").join("redis.conf").display().to_string();
+    let cache_url = cfg
+        .config_path("cache")
+        .join("redis.conf")
+        .display()
+        .to_string();
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -138,18 +158,37 @@ async fn main() -> std::io::Result<()> {
     };
 
     let tool_manager = Arc::new(tools::ToolManager::new());
-    let llm_provider = Arc::new(crate::llm::OpenAIClient::new("empty".to_string(), Some(cfg.ai.endpoint.clone())));
-    
+    let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
+        "empty".to_string(),
+        Some(cfg.ai.endpoint.clone()),
+    ));
+
     let web_adapter = Arc::new(WebChannelAdapter::new());
-    let voice_adapter = Arc::new(VoiceAdapter::new("https://livekit.example.com".to_string(), "api_key".to_string(), "api_secret".to_string()));
-    let whatsapp_adapter = Arc::new(WhatsAppAdapter::new("whatsapp_token".to_string(), "phone_number_id".to_string(), "verify_token".to_string()));
+    let voice_adapter = Arc::new(VoiceAdapter::new(
+        "https://livekit.example.com".to_string(),
+        "api_key".to_string(),
+        "api_secret".to_string(),
+    ));
+    let whatsapp_adapter = Arc::new(WhatsAppAdapter::new(
+        "whatsapp_token".to_string(),
+        "phone_number_id".to_string(),
+        "verify_token".to_string(),
+    ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
     info!("Initializing MinIO drive at {}", cfg.minio.server);
-    let drive = init_drive(&config.minio).await.expect("Failed to initialize Drive");
+    let drive = init_drive(&config.minio)
+        .await
+        .expect("Failed to initialize Drive");
 
-    let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(diesel::Connection::establish(&cfg.database_url()).unwrap(), redis_client.clone())));
-    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(diesel::Connection::establish(&cfg.database_url()).unwrap(), redis_client.clone())));
+    let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
+        diesel::Connection::establish(&cfg.database_url()).unwrap(),
+        redis_client.clone(),
+    )));
+    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
+        diesel::Connection::establish(&cfg.database_url()).unwrap(),
+        redis_client.clone(),
+    )));
 
     let app_state = Arc::new(AppState {
         s3_client: Some(drive.clone()),
@@ -163,7 +202,10 @@ async fn main() -> std::io::Result<()> {
         auth_service: auth_service.clone(),
         channels: Arc::new(Mutex::new({
             let mut map = HashMap::new();
-            map.insert("web".to_string(), web_adapter.clone() as Arc<dyn crate::channels::ChannelAdapter>);
+            map.insert(
+                "web".to_string(),
+                web_adapter.clone() as Arc<dyn crate::channels::ChannelAdapter>,
+            );
             map
         })),
         response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
@@ -173,12 +215,20 @@ async fn main() -> std::io::Result<()> {
         tool_api: tool_api.clone(),
     });
 
-    info!("Starting HTTP server on {}:{}", config.server.host, config.server.port);
+    info!(
+        "Starting HTTP server on {}:{}",
+        config.server.host, config.server.port
+    );
 
-    let worker_count = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(4);
+    let worker_count = std::thread::available_parallelism()
+        .map(|n| n.get())
+        .unwrap_or(4);
 
     let automation_state = app_state.clone();
-    let automation = AutomationService::new(automation_state, "templates/announcements.gbai/announcements.gbdialog");
+    let automation = AutomationService::new(
+        automation_state,
+        "templates/announcements.gbai/announcements.gbdialog",
+    );
     let _automation_handle = automation.spawn();
 
     let drive_state = app_state.clone();
@@ -187,9 +237,13 @@ async fn main() -> std::io::Result<()> {
     let _drive_handle = drive_monitor.spawn();
 
     HttpServer::new(move || {
-        let cors = Cors::default().allow_any_origin().allow_any_method().allow_any_header().max_age(3600);
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .max_age(3600);
         let app_state_clone = app_state.clone();
-        
+
         let mut app = App::new()
             .wrap(cors)
             .wrap(Logger::default())
