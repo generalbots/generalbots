@@ -38,3 +38,41 @@ valkey-cli -p 6379 monitor
 
 - Prompt add-ons: Fill the file with info!, trace! and debug! macros.
 -
+
+
+# Zed Agents
+```
+  "language_models": {
+    "openai_compatible": {
+      "Groq GPT 120b": {
+        "api_url": "https://api.groq.com/openai/v1",
+        "available_models": [
+          {
+            "name": "meta-llama/llama-4-scout-17b-16e-instruct",
+            "max_tokens": 30000,
+            "capabilities": {
+              "tools": true,
+              "images": false,
+              "parallel_tool_calls": false,
+              "prompt_cache_key": false
+            }
+          },
+          {
+            "name": "groq/compound",
+            "max_tokens": 70000
+          },
+          {
+            "name": "openai/gpt-oss-120b",
+            "max_tokens": 8000,
+            "capabilities": {
+              "tools": true,
+              "images": false,
+              "parallel_tool_calls": false,
+              "prompt_cache_key": false
+            }
+          }
+        ]
+      }
+    }
+  },
+```

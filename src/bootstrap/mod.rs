@@ -424,10 +424,10 @@ impl BootstrapManager {
     fn generate_password(&self) -> String {
         use rand::Rng;
         const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-        let mut rng = rand::rng();
+        let mut rng = rand::thread_rng();
         (0..16)
             .map(|_| {
-                let idx = rng.random_range(0..CHARSET.len());
+                let idx = rng.gen_range(0..CHARSET.len());
                 CHARSET[idx] as char
             })
             .collect()
@@ -479,9 +479,14 @@ impl BootstrapManager {
 
         let start = std::time::Instant::now();
         while start.elapsed().as_secs() < timeout_secs {
-            if TcpListener::bind((host, port)).is_err() {
-                info!("Service {}:{} is ready", host, port);
-                return Ok(());
+            match TcpListener::bind((host, port)) {
+                Ok(_) => {
+                    thread::sleep(Duration::from_secs(1));
+                }
+                Err(_) => {
+                    info!("Service {}:{} is ready", host, port);
+                    return Ok(());
+                }
             }
             thread::sleep(Duration::from_secs(1));
         }
