@@ -1164,7 +1164,7 @@ impl PackageManager {
         &self,
         container: &str,
         url: &str,
-        component: &str,
+        _component: &str,
         binary_name: Option<&str>,
     ) -> Result<()> {
         let download_cmd = format!("wget -O /tmp/download.tmp {}", url);
