@@ -6,7 +6,6 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
-/// Application configuration - reads from database instead of .env
 #[derive(Clone)]
 pub struct AppConfig {
     pub minio: DriveConfig,
@@ -18,7 +17,7 @@ pub struct AppConfig {
     pub site_path: String,
     pub s3_bucket: String,
     pub stack_path: PathBuf,
-    pub(crate) db_conn: Option<Arc<Mutex<PgConnection>>>,
+    pub db_conn: Option<Arc<Mutex<PgConnection>>>,
 }
 
 #[derive(Clone)]
@@ -99,55 +98,40 @@ impl AppConfig {
         )
     }
 
-    /// Get stack path for a specific component
     pub fn component_path(&self, component: &str) -> PathBuf {
         self.stack_path.join(component)
     }
 
-    /// Get binary path for a component
     pub fn bin_path(&self, component: &str) -> PathBuf {
         self.stack_path.join("bin").join(component)
     }
 
-    /// Get data path for a component
     pub fn data_path(&self, component: &str) -> PathBuf {
         self.stack_path.join("data").join(component)
     }
 
-    /// Get config path for a component
     pub fn config_path(&self, component: &str) -> PathBuf {
         self.stack_path.join("conf").join(component)
     }
 
-    /// Get log path for a component
     pub fn log_path(&self, component: &str) -> PathBuf {
         self.stack_path.join("logs").join(component)
     }
 
-    /// Load configuration from database
-    /// Falls back to defaults if database is not yet initialized
     pub fn from_database(conn: &mut PgConnection) -> Self {
-        info!("Loading configuration from database...");
+        info!("Loading configuration from database");
 
-        // Load all configuration from database
         let config_map = match Self::load_config_from_db(conn) {
             Ok(map) => {
-                info!(
-                    "Successfully loaded {} config values from database",
-                    map.len()
-                );
+                info!("Loaded {} config values from database", map.len());
                 map
             }
             Err(e) => {
-                warn!(
-                    "Failed to load config from database: {}. Using defaults.",
-                    e
-                );
+                warn!("Failed to load config from database: {}. Using defaults", e);
                 HashMap::new()
             }
         };
 
-        // Helper to get config value with fallback
         let get_str = |key: &str, default: &str| -> String {
             config_map
                 .get(key)
@@ -234,10 +218,8 @@ impl AppConfig {
         }
     }
 
-    /// Legacy method - reads from .env for backward compatibility
-    /// Will be deprecated once database setup is complete
     pub fn from_env() -> Self {
-        warn!("Loading configuration from environment variables (legacy mode)");
+        warn!("Loading configuration from environment variables");
 
         let stack_path =
             std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
@@ -319,11 +301,9 @@ impl AppConfig {
         }
     }
 
-    /// Load all configuration from database into a HashMap
     fn load_config_from_db(
         conn: &mut PgConnection,
     ) -> Result<HashMap<String, ServerConfigRow>, diesel::result::Error> {
-        // Try to query the server_configuration table
         let results = diesel::sql_query(
             "SELECT id, config_key, config_value, config_type, is_encrypted
              FROM server_configuration",
@@ -338,7 +318,6 @@ impl AppConfig {
         Ok(map)
     }
 
-    /// Update a configuration value in the database
     pub fn set_config(
         &self,
         conn: &mut PgConnection,
@@ -354,24 +333,20 @@ impl AppConfig {
         Ok(())
     }
 
-    /// Get a configuration value from the database
     pub fn get_config(
         &self,
         conn: &mut PgConnection,
         key: &str,
         fallback: Option<&str>,
     ) -> Result<String, diesel::result::Error> {
-        // Use empty string when no fallback is supplied
         let fallback_str = fallback.unwrap_or("");
 
-        // Define a temporary struct that matches the shape of the query result.
         #[derive(Debug, QueryableByName)]
         struct ConfigValue {
             #[diesel(sql_type = Text)]
             value: String,
         }
 
-        // Execute the query and map the resulting row to the inner string.
         let result = diesel::sql_query("SELECT get_config($1, $2) as value")
             .bind::<Text, _>(key)
             .bind::<Text, _>(fallback_str)
@@ -382,7 +357,6 @@ impl AppConfig {
     }
 }
 
-/// Configuration manager for handling .gbot/config.csv files
 pub struct ConfigManager {
     conn: Arc<Mutex<PgConnection>>,
 }
@@ -392,21 +366,17 @@ impl ConfigManager {
         Self { conn }
     }
 
-    /// Watch and sync .gbot/config.csv file for a bot
     pub fn sync_gbot_config(
         &self,
         bot_id: &uuid::Uuid,
         config_path: &str,
     ) -> Result<usize, String> {
-        // Import necessary crates for hashing and file handling
         use sha2::{Digest, Sha256};
         use std::fs;
 
-        // Read the config.csv file
         let content = fs::read_to_string(config_path)
             .map_err(|e| format!("Failed to read config file: {}", e))?;
 
-        // Calculate file hash
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         let file_hash = format!("{:x}", hasher.finalize());
@@ -416,7 +386,6 @@ impl ConfigManager {
             .lock()
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
-        // Check if file has changed
         #[derive(QueryableByName)]
         struct SyncHash {
             #[diesel(sql_type = Text)]
@@ -436,16 +405,13 @@ impl ConfigManager {
             return Ok(0);
         }
 
-        // Parse CSV and update bot configuration
         let mut updated = 0;
         for line in content.lines().skip(1) {
-            // Skip header
             let parts: Vec<&str> = line.split(',').collect();
             if parts.len() >= 2 {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
 
-                // Insert or update bot configuration
                 diesel::sql_query(
                     "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type)
                      VALUES (gen_random_uuid()::text, $1, $2, $3, 'string')
@@ -462,7 +428,6 @@ impl ConfigManager {
             }
         }
 
-        // Update sync record
         diesel::sql_query(
             "INSERT INTO gbot_config_sync (id, bot_id, config_file_path, file_hash, sync_count)
              VALUES (gen_random_uuid()::text, $1, $2, $3, 1)
@@ -476,10 +441,7 @@ impl ConfigManager {
         .execute(&mut *conn)
         .map_err(|e| format!("Failed to update sync record: {}", e))?;
 
-        info!(
-            "Synced {} config values for bot {} from {}",
-            updated, bot_id, config_path
-        );
+        info!("Synced {} config values for bot {} from {}", updated, bot_id, config_path);
         Ok(updated)
     }
 }

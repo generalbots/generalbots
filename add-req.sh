@@ -4,7 +4,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 OUTPUT_FILE="/tmp/prompt.out"
 
-rm -f "$OUTPUT_FILE"
 echo "Consolidated LLM Context" > "$OUTPUT_FILE"
 
 prompts=(

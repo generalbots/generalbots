@@ -2,6 +2,7 @@ MOST IMPORTANT CODE GENERATION RULES:
 - No placeholders, never comment/uncomment code, no explanations, no filler text.
 - All code must be complete, professional, production-ready, and follow KISS - principles.
 - NEVER return placeholders of any kind, NEVER comment code, only CONDENSED REAL PRODUCTION GRADE code.
+- REMOTE ALL COMMENTS FROM GENERATED CODE. DO NOT COMMENT AT ALL, NO TALK!
 - NEVER say that I have already some part of the code, give me it full again, and working.
 - Always increment logging with (all-in-one-line) info!, debug!, trace! to give birth to the console.
 - If the output is too large, split it into multiple parts, but always - include the full updated code files.
