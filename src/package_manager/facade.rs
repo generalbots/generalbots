@@ -1,16 +1,14 @@
+use crate::package_manager::component::ComponentConfig;
+use crate::package_manager::installer::PackageManager;
+use crate::package_manager::OsType;
+use crate::shared::utils;
+use crate::InstallMode;
 use anyhow::{Context, Result};
-use log::{debug, info, trace, warn};
+use log::{trace, warn};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
-
-use crate::shared::utils; // Adjust based on your actual module structure
-
-use crate::package_manager::component::ComponentConfig;
-use crate::package_manager::installer::PackageManager;
-use crate::package_manager::OsType;
-use crate::InstallMode;
 
 impl PackageManager {
     pub async fn install(&self, component_name: &str) -> Result<()> {
@@ -19,9 +17,10 @@ impl PackageManager {
             .get(component_name)
             .context(format!("Component '{}' not found", component_name))?;
 
-        info!(
+        trace!(
             "Starting installation of component '{}' in {:?} mode",
-            component_name, self.mode
+            component_name,
+            self.mode
         );
 
         for dep in &component.dependencies {
@@ -36,16 +35,15 @@ impl PackageManager {
             InstallMode::Container => self.install_container(component)?,
         }
 
-        info!(
+        trace!(
             "Component '{}' installation completed successfully",
             component_name
         );
         Ok(())
     }
 
-    // ... rest of the implementation remains exactly the same ...
     pub async fn install_local(&self, component: &ComponentConfig) -> Result<()> {
-        info!(
+        trace!(
             "Installing component '{}' locally to {}",
             component.name,
             self.base_path.display()
@@ -75,18 +73,19 @@ impl PackageManager {
             let url = url.clone();
             let name = component.name.clone();
             let binary_name = component.binary_name.clone();
-
             self.download_and_install(&url, &name, binary_name.as_deref())
                 .await?;
-            self.run_commands(post_cmds, "local", &component.name)?;
         }
-        info!("Local installation of '{}' completed", component.name);
+
+        self.run_commands(post_cmds, "local", &component.name)?;
+        trace!("Starting component after installation: {}", component.name);
+        self.start(&component.name)?;
+
         Ok(())
     }
 
     pub fn install_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        info!("Creating LXC container: {}", container_name);
 
         let output = Command::new("lxc")
             .args(&[
@@ -106,7 +105,6 @@ impl PackageManager {
         }
 
         std::thread::sleep(std::time::Duration::from_secs(15));
-
         self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
 
         let (pre_cmds, post_cmds) = match self.os_type {
@@ -134,10 +132,7 @@ impl PackageManager {
 
         if !packages.is_empty() {
             let pkg_list = packages.join(" ");
-            self.exec_in_container(
-                &container_name,
-                &format!("apt-get update && apt-get install -y {}", pkg_list),
-            )?;
+            self.exec_in_container(&container_name, &format!("apt-get update && apt-get install -y {}", pkg_list))?;
         }
 
         if let Some(url) = &component.download_url {
@@ -167,11 +162,12 @@ impl PackageManager {
         }
 
         self.setup_port_forwarding(&container_name, &component.ports)?;
-
-        info!(
+        trace!(
             "Container installation of '{}' completed in {}",
-            component.name, container_name
+            component.name,
+            container_name
         );
+
         Ok(())
     }
 
@@ -181,27 +177,22 @@ impl PackageManager {
             .get(component_name)
             .context(format!("Component '{}' not found", component_name))?;
 
-        info!("Removing component: {}", component_name);
-
         match self.mode {
             InstallMode::Local => self.remove_local(component)?,
             InstallMode::Container => self.remove_container(component)?,
         }
 
-        info!("Component '{}' removed successfully", component_name);
         Ok(())
     }
 
     pub fn remove_local(&self, component: &ComponentConfig) -> Result<()> {
         let bin_path = self.base_path.join("bin").join(&component.name);
         let _ = std::fs::remove_dir_all(bin_path);
-
         Ok(())
     }
 
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-
         let _ = Command::new("lxc")
             .args(&["stop", &container_name])
             .output();
@@ -252,7 +243,6 @@ impl PackageManager {
             let path = self.base_path.join(dir).join(component);
             std::fs::create_dir_all(&path)
                 .context(format!("Failed to create directory: {:?}", path))?;
-            trace!("Created directory: {:?}", path);
         }
         Ok(())
     }
@@ -268,7 +258,7 @@ impl PackageManager {
             return Ok(());
         }
 
-        info!(
+        trace!(
             "Installing {} system packages for component '{}'",
             packages.len(),
             component.name
@@ -276,8 +266,10 @@ impl PackageManager {
 
         match self.os_type {
             OsType::Linux => {
-                let output = Command::new("apt-get").args(&["update"]).output()?;
-
+                let output = Command::new("apt-get")
+                    .args(&["update"])
+                    .output()?;
+                
                 if !output.status.success() {
                     warn!("apt-get update had issues");
                 }
@@ -286,6 +278,7 @@ impl PackageManager {
                     .args(&["install", "-y"])
                     .args(packages)
                     .output()?;
+
                 if !output.status.success() {
                     warn!("Some packages may have failed to install");
                 }
@@ -295,6 +288,7 @@ impl PackageManager {
                     .args(&["install"])
                     .args(packages)
                     .output()?;
+
                 if !output.status.success() {
                     warn!("Homebrew installation had warnings");
                 }
@@ -323,11 +317,8 @@ impl PackageManager {
             bin_path.join(filename)
         };
 
-        info!("Downloading from: {} to {:?}", url, temp_file);
-
         self.download_with_reqwest(url, &temp_file, component)
             .await?;
-
         self.handle_downloaded_file(&temp_file, &bin_path, binary_name)?;
 
         Ok(())
@@ -351,25 +342,25 @@ impl PackageManager {
 
         for attempt in 0..=MAX_RETRIES {
             if attempt > 0 {
-                info!(
+                trace!(
                     "Retry attempt {}/{} for {}",
-                    attempt, MAX_RETRIES, component
+                    attempt,
+                    MAX_RETRIES,
+                    component
                 );
                 std::thread::sleep(RETRY_DELAY * attempt);
             }
 
             match self.attempt_reqwest_download(&client, url, temp_file).await {
-                Ok(size) => {
-                    info!("Downloaded {} bytes for {}", size, component);
+                Ok(_size) => {
                     if attempt > 0 {
-                        info!("Download succeeded on attempt {}", attempt + 1);
+                        trace!("Download succeeded on retry attempt {}", attempt);
                     }
                     return Ok(());
                 }
                 Err(e) => {
                     warn!("Download attempt {} failed: {}", attempt + 1, e);
                     last_error = Some(e);
-
                     let _ = std::fs::remove_file(temp_file);
                 }
             }
@@ -385,25 +376,17 @@ impl PackageManager {
 
     pub async fn attempt_reqwest_download(
         &self,
-        _client: &Client, // We won't use this if using shared utils
+        _client: &Client,
         url: &str,
         temp_file: &PathBuf,
     ) -> Result<u64> {
-        info!("Downloading from: {} to {:?}", url, temp_file);
-
-        // Convert PathBuf to string for the shared function
         let output_path = temp_file.to_str().context("Invalid temp file path")?;
-
-        // Use the shared download_file utility
         utils::download_file(url, output_path)
             .await
             .map_err(|e| anyhow::anyhow!("Failed to download file using shared utility: {}", e))?;
 
-        // Get file size to return
         let metadata = std::fs::metadata(temp_file).context("Failed to get file metadata")?;
         let size = metadata.len();
-
-        info!("Downloaded {} bytes", size);
         Ok(size)
     }
 
@@ -417,8 +400,6 @@ impl PackageManager {
         if metadata.len() == 0 {
             return Err(anyhow::anyhow!("Downloaded file is empty"));
         }
-
-        info!("Final file size: {} bytes", metadata.len());
 
         let file_extension = temp_file
             .extension()
@@ -447,7 +428,6 @@ impl PackageManager {
     }
 
     pub fn extract_tar_gz(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
-        info!("Extracting tar.gz archive to {:?}", bin_path);
         let output = Command::new("tar")
             .current_dir(bin_path)
             .args(&["-xzf", temp_file.to_str().unwrap(), "--strip-components=1"])
@@ -465,8 +445,6 @@ impl PackageManager {
     }
 
     pub fn extract_zip(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
-        info!("Extracting zip archive to {:?}", bin_path);
-
         let output = Command::new("unzip")
             .current_dir(bin_path)
             .args(&["-o", "-q", temp_file.to_str().unwrap()])
@@ -490,12 +468,8 @@ impl PackageManager {
         name: &str,
     ) -> Result<()> {
         let final_path = bin_path.join(name);
-
         std::fs::rename(temp_file, &final_path)?;
-
         self.make_executable(&final_path)?;
-
-        info!("Installed binary: {:?}", final_path);
         Ok(())
     }
 
@@ -517,7 +491,6 @@ impl PackageManager {
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
         let service_path = format!("/etc/systemd/system/{}.service", component);
-
         let bin_path = self.base_path.join("bin").join(component);
         let data_path = self.base_path.join("data").join(component);
         let conf_path = self.base_path.join("conf").join(component);
@@ -545,12 +518,11 @@ impl PackageManager {
         }
 
         let service_content = format!(
-        "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory={}\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
-        component, env_section, rendered_cmd, data_path.to_string_lossy()
-    );
+            "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory={}\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
+            component, env_section, rendered_cmd, data_path.to_string_lossy()
+        );
 
         std::fs::write(&service_path, service_content)?;
-
         Command::new("systemctl")
             .args(&["daemon-reload"])
             .output()?;
@@ -561,7 +533,6 @@ impl PackageManager {
             .args(&["start", &format!("{}.service", component)])
             .output()?;
 
-        info!("Created and started systemd service: {}.service", component);
         Ok(())
     }
 
@@ -597,13 +568,12 @@ impl PackageManager {
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            trace!("Executing command: {}", rendered_cmd);
-
             if target == "local" {
                 let output = Command::new("bash")
                     .current_dir(&bin_path)
                     .args(&["-c", &rendered_cmd])
                     .output()?;
+
                 if !output.status.success() {
                     warn!(
                         "Command had non-zero exit: {}",
@@ -614,11 +584,11 @@ impl PackageManager {
                 self.exec_in_container(target, &rendered_cmd)?;
             }
         }
+
         Ok(())
     }
 
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
-        debug!("Executing in container {}: {}", container, command);
         let output = Command::new("lxc")
             .args(&["exec", container, "--", "bash", "-c", command])
             .output()?;
@@ -629,6 +599,7 @@ impl PackageManager {
                 String::from_utf8_lossy(&output.stderr)
             );
         }
+
         Ok(())
     }
 
@@ -696,6 +667,7 @@ impl PackageManager {
                 container
             );
         }
+
         Ok(())
     }
 
@@ -723,9 +695,9 @@ impl PackageManager {
         }
 
         let service_content = format!(
-        "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
-        component, env_section, rendered_cmd
-    );
+            "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
+            component, env_section, rendered_cmd
+        );
 
         let service_file = format!("/tmp/{}.service", component);
         std::fs::write(&service_file, &service_content)?;
@@ -748,11 +720,12 @@ impl PackageManager {
         self.exec_in_container(container, &format!("systemctl start {}", component))?;
 
         std::fs::remove_file(&service_file)?;
-
-        info!(
+        trace!(
             "Created and started service in container {}: {}",
-            container, component
+            container,
+            component
         );
+
         Ok(())
     }
 
@@ -777,16 +750,17 @@ impl PackageManager {
                 ])
                 .output()?;
 
-            if !output.status.success() {
-                warn!("Failed to setup port forwarding for port {}", port);
-            }
-
-            trace!(
-                "Port forwarding configured: {} -> container {}",
-                port,
-                container
-            );
+        if !output.status.success() {
+            warn!("Failed to setup port forwarding for port {}", port);
         }
-        Ok(())
+
+        trace!(
+            "Port forwarding configured: {} -> container {}",
+            port,
+            container
+        );
     }
+
+    Ok(())
+}
 }

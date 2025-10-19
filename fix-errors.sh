@@ -22,9 +22,9 @@ dirs=(
     #"automation"
     #"basic"
     #"bot"
-    #"bootstrap"
+    "bootstrap"
     #"channels"
-    "config"
+    #"config"
     #"context"
     #"email"
     #"file"
@@ -33,7 +33,7 @@ dirs=(
     #"org"
     "package_manager"
     #"session"
-    #"shared"
+    "shared"
     #"tests"
     #"tools"
     #"web_automation"
@@ -53,7 +53,7 @@ cat "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 
 
 echo "" >> "$OUTPUT_FILE"
-
+echo "Compiling..." 
 cargo build --message-format=short 2>&1 | grep -E 'error' >> "$OUTPUT_FILE"
 
 

@@ -1,11 +1,14 @@
-use anyhow::Result;
-use log::info;
-use std::collections::HashMap;
-use std::path::PathBuf;
-
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
+use anyhow::Result;
+use log::trace;
+use rand::distr::Alphanumeric;
+use rand::rngs::ThreadRng;
+use rand::Rng;
+use sha2::{Digest, Sha256};
+use std::collections::HashMap;
+use std::path::PathBuf;
 
 pub struct PackageManager {
     pub mode: InstallMode,
@@ -23,7 +26,6 @@ impl PackageManager {
         } else {
             std::env::current_dir()?.join("botserver-stack")
         };
-
         let tenant = tenant.unwrap_or_else(|| "default".to_string());
 
         let mut pm = PackageManager {
@@ -33,14 +35,7 @@ impl PackageManager {
             tenant,
             components: HashMap::new(),
         };
-
         pm.register_components();
-        info!(
-            "PackageManager initialized with {} components in {:?} mode for tenant {}",
-            pm.components.len(),
-            pm.mode,
-            pm.tenant
-        );
         Ok(pm)
     }
 
@@ -68,20 +63,29 @@ impl PackageManager {
     }
 
     fn register_drive(&mut self) {
+        let drive_password = self.generate_secure_password(16);
+        let farm_password =
+            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
+        let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
+
         self.components.insert("drive".to_string(), ComponentConfig {
             name: "drive".to_string(),
             required: true,
             ports: vec![9000, 9001],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string()],
-            macos_packages: vec!["wget".to_string()],
+            linux_packages: vec![],
+            macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://dl.min.io/server/minio/release/linux-amd64/minio".to_string()),
             binary_name: Some("minio".to_string()),
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
                 "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
-                "chmod +x {{BIN_PATH}}/mc".to_string()
+                "chmod +x {{BIN_PATH}}/mc".to_string(),
+                format!("{{BIN_PATH}}/mc alias set mc http://localhost:9000 gbdriveuser {}", drive_password).to_string(),
+                "{{BIN_PATH}}/mc mb mc/default.gbai".to_string(),
+                format!("{{BIN_PATH}}/mc admin user add mc gbdriveuser {}", drive_password).to_string(),
+                "{{BIN_PATH}}/mc admin policy attach mc readwrite --user=gbdriveuser".to_string()
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
@@ -91,10 +95,73 @@ impl PackageManager {
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::from([
-                ("MINIO_ROOT_USER".to_string(), "minioadmin".to_string()),
-                ("MINIO_ROOT_PASSWORD".to_string(), "minioadmin".to_string())
+                ("MINIO_ROOT_USER".to_string(), "gbdriveuser".to_string()),
+                ("MINIO_ROOT_PASSWORD".to_string(), drive_password)
             ]),
             exec_cmd: "{{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001".to_string(),
+        });
+
+        self.update_drive_credentials_in_database(&encrypted_drive_password)
+            .ok();
+    }
+
+    fn update_drive_credentials_in_database(&self, encrypted_drive_password: &str) -> Result<()> {
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::pg::PgConnection;
+        use diesel::prelude::*;
+        use uuid::Uuid;
+
+        if let Ok(mut conn) =
+            PgConnection::establish("postgres://botserver:botserver@localhost:5432/botserver")
+        {
+            let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
+            diesel::update(bots)
+                .filter(bot_id.eq(system_bot_id))
+                .set(config.eq(serde_json::json!({
+                    "encrypted_drive_password": encrypted_drive_password,
+                })))
+                .execute(&mut conn)?;
+        }
+        Ok(())
+    }
+
+    fn register_tables(&mut self) {
+        self.components.insert("tables".to_string(), ComponentConfig {
+            name: "tables".to_string(),
+            required: true,
+            ports: vec![5432],
+            dependencies: vec![],
+            linux_packages: vec![],
+            macos_packages: vec![],
+            windows_packages: vec![],
+            download_url: Some("https://github.com/theseus-rs/postgresql-binaries/releases/download/18.0.0/postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz".to_string()),
+            binary_name: None,
+            pre_install_cmds_linux: vec![],
+            post_install_cmds_linux: vec![
+                "tar -xzf postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz --strip-components=1".to_string(),
+                "chmod +x bin/*".to_string(),
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"hba_file = '{{CONF_PATH}}/pg_hba.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi".to_string(),
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/createdb -p 5432 -h localhost botserver; ./bin/createuser -p 5432 -h localhost gbuser; fi".to_string()
+            ],
+            pre_install_cmds_macos: vec![],
+            post_install_cmds_macos: vec![
+                "tar -xzf postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz --strip-components=1".to_string(),
+                "chmod +x bin/*".to_string(),
+                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
+            ],
+            pre_install_cmds_windows: vec![],
+            post_install_cmds_windows: vec![],
+            env_vars: HashMap::new(),
+            exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start".to_string(),
         });
     }
 
@@ -104,15 +171,15 @@ impl PackageManager {
             required: true,
             ports: vec![6379],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "curl".to_string(), "gnupg".to_string(), "lsb-release".to_string()],
+            linux_packages: vec!["curl".to_string(), "gnupg".to_string(), "lsb-release".to_string()],
             macos_packages: vec!["redis".to_string()],
             windows_packages: vec![],
             download_url: None,
             binary_name: Some("valkey-server".to_string()),
             pre_install_cmds_linux: vec![
-                    "if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi".to_string(),
-                    "if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo 'deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/valkey.list; fi".to_string(),
-                                "apt-get update && apt-get install -y valkey".to_string()
+                "if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi".to_string(),
+                "if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo 'deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/valkey.list; fi".to_string(),
+                "apt-get update && apt-get install -y valkey".to_string()
             ],
             post_install_cmds_linux: vec![],
             pre_install_cmds_macos: vec![],
@@ -124,62 +191,26 @@ impl PackageManager {
         });
     }
 
-    fn register_tables(&mut self) {
-        self.components.insert("tables".to_string(), ComponentConfig {
-            name: "tables".to_string(),
-            required: true,
-            ports: vec![5432],
-            dependencies: vec![],
-            linux_packages: vec!["wget".to_string()],
-            macos_packages: vec!["wget".to_string()],
-            windows_packages: vec![],
-            download_url: Some("https://github.com/theseus-rs/postgresql-binaries/releases/download/18.0.0/postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz".to_string()),
-            binary_name: Some("postgres".to_string()),
-            pre_install_cmds_linux: vec![],
-            post_install_cmds_linux: vec![
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"hba_file = '{{CONF_PATH}}/pg_hba.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/psql -p 5432 -d postgres -c \" CREATE USER default WITH PASSWORD 'defaultpass'\"; ./bin/psql -p 5432 -d postgres -c \"CREATE DATABASE default_db OWNER default\"; ./bin/psql -p 5432 -d postgres -c \"GRANT ALL PRIVILEGES ON DATABASE default_db TO default\"; pkill; fi".to_string()
-            ],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
-            ],
-            pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
-            env_vars: HashMap::new(),
-            exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start".to_string(),
-        });
-    }
-
     fn register_llm(&mut self) {
         self.components.insert("llm".to_string(), ComponentConfig {
             name: "llm".to_string(),
             required: true,
             ports: vec![8081],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "unzip".to_string()],
-            macos_packages: vec!["wget".to_string(), "unzip".to_string()],
+            linux_packages: vec!["unzip".to_string()],
+            macos_packages: vec!["unzip".to_string()],
             windows_packages: vec![],
             download_url: Some("https://github.com/ggml-org/llama.cpp/releases/download/b6148/llama-b6148-bin-ubuntu-x64.zip".to_string()),
             binary_name: Some("llama-server".to_string()),
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
-                "wget https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf -P {{DATA_PATH}}".to_string(),
-                "wget https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf -P {{DATA_PATH}}".to_string()
+                "wget -q https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf -P {{DATA_PATH}}".to_string(),
+                "wget -q https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf -P {{DATA_PATH}}".to_string()
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
-                "wget https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf -P {{DATA_PATH}}".to_string(),
-                "wget https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf -P {{DATA_PATH}}".to_string()
+                "wget -q https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf -P {{DATA_PATH}}".to_string(),
+                "wget -q https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf -P {{DATA_PATH}}".to_string()
             ],
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
@@ -194,7 +225,7 @@ impl PackageManager {
             required: false,
             ports: vec![25, 80, 110, 143, 465, 587, 993, 995, 4190],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "libcap2-bin".to_string(), "resolvconf".to_string()],
+            linux_packages: vec!["libcap2-bin".to_string(), "resolvconf".to_string()],
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/stalwartlabs/stalwart/releases/download/v0.13.1/stalwart-x86_64-unknown-linux-gnu.tar.gz".to_string()),
@@ -218,8 +249,8 @@ impl PackageManager {
             required: false,
             ports: vec![80, 443],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "libcap2-bin".to_string()],
-            macos_packages: vec!["wget".to_string()],
+            linux_packages: vec!["libcap2-bin".to_string()],
+            macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/caddyserver/caddy/releases/download/v2.10.0-beta.3/caddy_2.10.0-beta.3_linux_amd64.tar.gz".to_string()),
             binary_name: Some("caddy".to_string()),
@@ -244,7 +275,7 @@ impl PackageManager {
             required: false,
             ports: vec![8080],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "libcap2-bin".to_string()],
+            linux_packages: vec!["libcap2-bin".to_string()],
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/zitadel/zitadel/releases/download/v2.71.2/zitadel-linux-amd64.tar.gz".to_string()),
@@ -268,7 +299,7 @@ impl PackageManager {
             required: false,
             ports: vec![3000],
             dependencies: vec![],
-            linux_packages: vec!["git".to_string(), "git-lfs".to_string(), "wget".to_string()],
+            linux_packages: vec!["git".to_string(), "git-lfs".to_string()],
             macos_packages: vec!["git".to_string(), "git-lfs".to_string()],
             windows_packages: vec![],
             download_url: Some("https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-linux-amd64".to_string()),
@@ -293,14 +324,14 @@ impl PackageManager {
             required: false,
             ports: vec![],
             dependencies: vec!["alm".to_string()],
-            linux_packages: vec!["wget".to_string(), "git".to_string(), "curl".to_string(), "gnupg".to_string(), "ca-certificates".to_string(), "build-essential".to_string()],
+            linux_packages: vec!["git".to_string(), "curl".to_string(), "gnupg".to_string(), "ca-certificates".to_string(), "build-essential".to_string()],
             macos_packages: vec!["git".to_string(), "node".to_string()],
             windows_packages: vec![],
             download_url: Some("https://code.forgejo.org/forgejo/runner/releases/download/v6.3.1/forgejo-runner-6.3.1-linux-amd64".to_string()),
             binary_name: Some("forgejo-runner".to_string()),
             pre_install_cmds_linux: vec![
                 "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -".to_string(),
-                "apt-get update && apt-get install -y nodejs".to_string()
+                "apt-get install -y nodejs".to_string()
             ],
             post_install_cmds_linux: vec![
                 "npm install -g pnpm@latest".to_string()
@@ -322,7 +353,7 @@ impl PackageManager {
             required: false,
             ports: vec![53],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string()],
+            linux_packages: vec![],
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/coredns/coredns/releases/download/v1.12.4/coredns_1.12.4_linux_amd64.tgz".to_string()),
@@ -368,7 +399,7 @@ impl PackageManager {
             required: false,
             ports: vec![7880, 3478],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string(), "coturn".to_string()],
+            linux_packages: vec!["coturn".to_string()],
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/livekit/livekit/releases/download/v1.8.4/livekit_1.8.4_linux_amd64.tar.gz".to_string()),
@@ -386,13 +417,13 @@ impl PackageManager {
 
     fn register_table_editor(&mut self) {
         self.components.insert(
-            "table-editor".to_string(),
+            "table_editor".to_string(),
             ComponentConfig {
-                name: "table-editor".to_string(),
+                name: "table_editor".to_string(),
                 required: false,
                 ports: vec![5757],
                 dependencies: vec!["tables".to_string()],
-                linux_packages: vec!["wget".to_string(), "curl".to_string()],
+                linux_packages: vec!["curl".to_string()],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some("http://get.nocodb.com/linux-x64".to_string()),
@@ -411,13 +442,13 @@ impl PackageManager {
 
     fn register_doc_editor(&mut self) {
         self.components.insert(
-            "doc-editor".to_string(),
+            "doc_editor".to_string(),
             ComponentConfig {
-                name: "doc-editor".to_string(),
+                name: "doc_editor".to_string(),
                 required: false,
                 ports: vec![9980],
                 dependencies: vec![],
-                linux_packages: vec!["wget".to_string(), "gnupg".to_string()],
+                linux_packages: vec!["gnupg".to_string()],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: None,
@@ -504,7 +535,7 @@ impl PackageManager {
                 binary_name: None,
                 pre_install_cmds_linux: vec![
                     "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -".to_string(),
-                    "apt-get update && apt-get install -y nodejs".to_string(),
+                    "apt-get install -y nodejs".to_string(),
                 ],
                 post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
@@ -525,12 +556,7 @@ impl PackageManager {
                 required: false,
                 ports: vec![8000],
                 dependencies: vec![],
-                linux_packages: vec![
-                    "wget".to_string(),
-                    "curl".to_string(),
-                    "unzip".to_string(),
-                    "git".to_string(),
-                ],
+                linux_packages: vec!["curl".to_string(), "unzip".to_string(), "git".to_string()],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: None,
@@ -548,13 +574,13 @@ impl PackageManager {
     }
 
     fn register_vector_db(&mut self) {
-        self.components.insert("vector-db".to_string(), ComponentConfig {
-            name: "vector-db".to_string(),
+        self.components.insert("vector_db".to_string(), ComponentConfig {
+            name: "vector_db".to_string(),
             required: false,
             ports: vec![6333],
             dependencies: vec![],
-            linux_packages: vec!["wget".to_string()],
-            macos_packages: vec!["wget".to_string()],
+            linux_packages: vec![],
+            macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz".to_string()),
             binary_name: Some("qdrant".to_string()),
@@ -601,14 +627,47 @@ impl PackageManager {
         );
     }
 
-    pub(crate) fn start(&self, component: &str) -> Result<std::process::Child> {
+    pub fn start(&self, component: &str) -> Result<std::process::Child> {
         if let Some(component) = self.components.get(component) {
+            let bin_path = self.base_path.join("bin").join(&component.name);
+            let data_path = self.base_path.join("data").join(&component.name);
+            let conf_path = self.base_path.join("conf").join(&component.name);
+            let logs_path = self.base_path.join("logs").join(&component.name);
+
+            let rendered_cmd = component
+                .exec_cmd
+                .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
+                .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
+                .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
+                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+
+            trace!(
+                "Starting component {} with command: {}",
+                component.name,
+                rendered_cmd
+            );
+
             Ok(std::process::Command::new("sh")
                 .arg("-c")
-                .arg(&component.exec_cmd)
+                .arg(&rendered_cmd)
                 .spawn()?)
         } else {
             Err(anyhow::anyhow!("Component {} not found", component))
         }
+    }
+
+    fn generate_secure_password(&self, length: usize) -> String {
+        let mut rng: ThreadRng = rand::thread_rng();
+        rng.sample_iter(&Alphanumeric)
+            .take(length)
+            .map(char::from)
+            .collect()
+    }
+
+    fn encrypt_password(&self, password: &str, key: &str) -> String {
+        let mut hasher = Sha256::new();
+        hasher.update(key.as_bytes());
+        hasher.update(password.as_bytes());
+        format!("{:x}", hasher.finalize())
     }
 }
