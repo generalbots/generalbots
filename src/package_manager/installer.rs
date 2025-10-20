@@ -80,9 +80,9 @@ impl PackageManager {
             post_install_cmds_linux: vec![
                 "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
                 "chmod +x {{BIN_PATH}}/mc".to_string(),
-                format!("{{BIN_PATH}}/mc alias set mc http://localhost:9000 gbdriveuser {}", drive_password).to_string(),
+                format!("{{{{BIN_PATH}}}}/mc alias set mc http://localhost:9000 gbdriveuser {}", drive_password),
                 "{{BIN_PATH}}/mc mb mc/default.gbai".to_string(),
-                format!("{{BIN_PATH}}/mc admin user add mc gbdriveuser {}", drive_password).to_string(),
+                format!("{{{{BIN_PATH}}}}/mc admin user add mc gbdriveuser {}", drive_password),
                 "{{BIN_PATH}}/mc admin policy attach mc readwrite --user=gbdriveuser".to_string()
             ],
             pre_install_cmds_macos: vec![],
@@ -192,9 +192,9 @@ impl PackageManager {
             download_url: None,
             binary_name: Some("valkey-server".to_string()),
             pre_install_cmds_linux: vec![
-                "if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi".to_string(),
-                "if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo 'deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main' | tee /etc/apt/sources.list.d/valkey.list; fi".to_string(),
-                "apt-get update && apt-get install -y valkey".to_string()
+                "sudo bash -c 'if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi'".to_string(),
+                "sudo bash -c 'if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo \"deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/valkey.list; fi'".to_string(),
+                "sudo apt-get update && sudo apt-get install -y valkey".to_string()
             ],
             post_install_cmds_linux: vec![],
             pre_install_cmds_macos: vec![],

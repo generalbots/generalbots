@@ -63,6 +63,45 @@ impl BootstrapManager {
     }
 
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
+        // Check for legacy mode - if TABLES_SERVER is present, skip bootstrap
+        if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
+            if !tables_server.is_empty() {
+                trace!(
+                    "Legacy mode detected (TABLES_SERVER present), skipping bootstrap installation"
+                );
+                info!("Running in legacy mode with existing database configuration");
+
+                // Try to connect to the database and load config
+                let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+                    let username =
+                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "postgres".to_string());
+                    let password =
+                        std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
+                    let server =
+                        std::env::var("TABLES_SERVER").unwrap_or_else(|_| "localhost".to_string());
+                    let port = std::env::var("TABLES_PORT").unwrap_or_else(|_| "5432".to_string());
+                    let database =
+                        std::env::var("TABLES_DATABASE").unwrap_or_else(|_| "gbserver".to_string());
+                    format!(
+                        "postgres://{}:{}@{}:{}/{}",
+                        username, password, server, port, database
+                    )
+                });
+
+                match diesel::PgConnection::establish(&database_url) {
+                    Ok(mut conn) => {
+                        info!("Successfully connected to legacy database, loading configuration");
+                        return Ok(AppConfig::from_database(&mut conn));
+                    }
+                    Err(e) => {
+                        log::warn!("Failed to connect to legacy database: {}", e);
+                        info!("Using environment variables as fallback");
+                        return Ok(AppConfig::from_env());
+                    }
+                }
+            }
+        }
+
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
         let required_components = vec!["tables", "drive", "cache", "llm"];
         let mut config = AppConfig::from_env();
