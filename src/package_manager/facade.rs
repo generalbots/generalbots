@@ -4,7 +4,7 @@ use crate::package_manager::OsType;
 use crate::shared::utils;
 use crate::InstallMode;
 use anyhow::{Context, Result};
-use log::{trace, warn};
+use log::{error, trace, warn};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -543,19 +543,16 @@ impl PackageManager {
         } else {
             PathBuf::from("/opt/gbo/bin")
         };
-
         let data_path = if target == "local" {
             self.base_path.join("data").join(component)
         } else {
             PathBuf::from("/opt/gbo/data")
         };
-
         let conf_path = if target == "local" {
             self.base_path.join("conf").join(component)
         } else {
             PathBuf::from("/opt/gbo/conf")
         };
-
         let logs_path = if target == "local" {
             self.base_path.join("logs").join(component)
         } else {
@@ -571,13 +568,23 @@ impl PackageManager {
 
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let output = Command::new("bash")
+                let mut child = Command::new("bash")
                     .current_dir(&bin_path)
                     .args(&["-c", &rendered_cmd])
-                    .output()?;
+                    .spawn()
+                    .with_context(|| {
+                        format!("Failed to spawn command for component '{}'", component)
+                    })?;
+
+                let output = child.wait_with_output().with_context(|| {
+                    format!(
+                        "Failed while waiting for command to finish for component '{}'",
+                        component
+                    )
+                })?;
 
                 if !output.status.success() {
-                    warn!(
+                    error!(
                         "Command had non-zero exit: {}",
                         String::from_utf8_lossy(&output.stderr)
                     );

@@ -2,9 +2,10 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
 use diesel::{Connection, RunQueryDsl};
-use log::trace;
+use dotenvy::dotenv;
+use log::{info, trace};
 use rand::distr::Alphanumeric;
-use rand::Rng;
+use rand::rng;
 use sha2::{Digest, Sha256};
 
 pub struct BootstrapManager {
@@ -68,26 +69,33 @@ impl BootstrapManager {
 
         for component in required_components {
             if !pm.is_installed(component) {
-                trace!("Installing required component: {}", component);
-                futures::executor::block_on(pm.install(component))?;
-                trace!("Starting component after install: {}", component);
-                pm.start(component)?;
-
                 if component == "tables" {
                     let db_password = self.generate_secure_password(16);
                     let farm_password = self.generate_secure_password(32);
-                    let encrypted_db_password = self.encrypt_password(&db_password, &farm_password);
 
                     let env_contents = format!(
                         "FARM_PASSWORD={}\nDATABASE_URL=postgres://gbuser:{}@localhost:5432/botserver",
                         farm_password, db_password
                     );
 
-                    std::fs::write(".env", env_contents)
+                    std::fs::write(".env", &env_contents)
                         .map_err(|e| anyhow::anyhow!("Failed to write .env file: {}", e))?;
+                    dotenv().ok();
+                    trace!("Generated database credentials and wrote to .env file");
+                }
 
-                    trace!("Waiting 5 seconds for database to start...");
-                    std::thread::sleep(std::time::Duration::from_secs(5));
+                trace!("Installing required component: {}", component);
+                futures::executor::block_on(pm.install(component))?;
+
+                trace!("Starting component after install: {}", component);
+                pm.start(component)?;
+
+                if component == "tables" {
+                    trace!("Starting component after install: {}", component);
+
+                    let database_url = std::env::var("DATABASE_URL").unwrap();
+                    let mut conn = diesel::PgConnection::establish(&database_url)
+                        .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
 
                     let migration_dir = include_dir::include_dir!("./migrations");
                     let mut migration_files: Vec<_> = migration_dir
@@ -103,10 +111,6 @@ impl BootstrapManager {
                         .collect();
 
                     migration_files.sort();
-                    let mut conn = diesel::PgConnection::establish(&format!(
-                        "postgres://gbuser:{}@localhost:5432/botserver",
-                        db_password
-                    ))?;
 
                     for migration_file in migration_files {
                         let migration = std::fs::read_to_string(&migration_file)?;
@@ -114,42 +118,22 @@ impl BootstrapManager {
                         diesel::sql_query(&migration).execute(&mut conn)?;
                     }
 
-                    self.setup_secure_credentials(&mut conn, &encrypted_db_password)?;
                     config = AppConfig::from_database(&mut conn);
+                    info!("Database migrations completed and configuration loaded");
                 }
-            } else {
-                trace!("Required component {} already installed", component);
             }
         }
 
         Ok(config)
     }
 
-    fn setup_secure_credentials(
-        &self,
-        conn: &mut diesel::PgConnection,
-        encrypted_db_password: &str,
-    ) -> Result<()> {
-        use crate::shared::models::schema::bots::dsl::*;
-        use diesel::prelude::*;
-        use uuid::Uuid;
-
-        let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
-        diesel::update(bots)
-            .filter(bot_id.eq(system_bot_id))
-            .set(config.eq(serde_json::json!({
-                "encrypted_db_password": encrypted_db_password,
-            })))
-            .execute(conn)?;
-
-        Ok(())
-    }
-
     fn generate_secure_password(&self, length: usize) -> String {
-        let rng = rand::rng();
-        rng.sample_iter(&Alphanumeric)
+        // Ensure the Rng trait is in scope for `sample`
+        use rand::Rng;
+        let mut rng = rand::thread_rng();
+
+        std::iter::repeat_with(|| rng.sample(Alphanumeric) as char)
             .take(length)
-            .map(char::from)
             .collect()
     }
 

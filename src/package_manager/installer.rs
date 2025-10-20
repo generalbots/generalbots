@@ -4,7 +4,7 @@ use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
 use log::trace;
 use rand::distr::Alphanumeric;
-use rand::Rng;
+use rand::rng;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -63,7 +63,8 @@ impl PackageManager {
 
     fn register_drive(&mut self) {
         let drive_password = self.generate_secure_password(16);
-        let farm_password = std::env::var("FARM_PASSWORD").unwrap();
+        let farm_password =
+            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
         let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
 
         self.components.insert("drive".to_string(), ComponentConfig {
@@ -108,7 +109,11 @@ impl PackageManager {
         use diesel::pg::PgConnection;
         use diesel::prelude::*;
         use uuid::Uuid;
-        if let Ok(mut conn) = PgConnection::establish(&std::env::var("DATABASE_URL")?) {
+
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+
+        if let Ok(mut conn) = PgConnection::establish(&database_url) {
             let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
             diesel::update(bots)
                 .filter(bot_id.eq(system_bot_id))
@@ -116,11 +121,27 @@ impl PackageManager {
                     "encrypted_drive_password": encrypted_drive_password,
                 })))
                 .execute(&mut conn)?;
+            trace!("Updated drive credentials in database for system bot");
         }
         Ok(())
     }
 
     fn register_tables(&mut self) {
+        let db_password = std::env::var("DATABASE_URL")
+            .ok()
+            .and_then(|url| {
+                if let Some(stripped) = url.strip_prefix("postgres://gbuser:") {
+                    if let Some(at_pos) = stripped.find('@') {
+                        Some(stripped[..at_pos].to_string())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .unwrap_or_else(|| self.generate_secure_password(16));
+
         self.components.insert("tables".to_string(), ComponentConfig {
             name: "tables".to_string(),
             required: true,
@@ -134,17 +155,19 @@ impl PackageManager {
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
                 "chmod +x ./bin/*".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"hba_file = '{{CONF_PATH}}/pg_hba.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi ".to_string(),
-                "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/createdb -p 5432 -h localhost botserver; ./bin/createuser -p 5432 -h localhost gbuser; fi".to_string()
+
+                format!("if [ ! -d \"{{{{DATA_PATH}}}}/pgdata\" ]; then PG_PASSWORD={} ./bin/initdb -D {{{{DATA_PATH}}}}/pgdata -U gbuser --pwfile=<(echo $PG_PASSWORD); fi", db_password).to_string(),
+                "echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                "echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
+                "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
+
+                "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; while ! ./bin/pg_isready -d {{DATA_PATH}}/pgdata >/dev/null 2>&1; do sleep 15; done;".to_string(),
+                "./bin/psql -U gbuser -c \"CREATE DATABASE botserver WITH OWNER gbuser\" || true    ".to_string()
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
@@ -651,10 +674,17 @@ impl PackageManager {
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
-        let rng = rand::rng();
-        rng.sample_iter(&Alphanumeric)
-            .take(length)
-            .map(char::from)
+        // Use the non-deprecated `rng` function to obtain a thread-local RNG.
+        let mut rng = rand::rng();
+
+        // Generate `length` alphanumeric characters.
+        (0..length)
+            .map(|_| {
+                // `Alphanumeric` implements the `Distribution<u8>` trait.
+                // Use the fully qualified `rand::Rng::sample` method to avoid needing an explicit import.
+                let byte = rand::Rng::sample(&mut rng, Alphanumeric);
+                char::from(byte)
+            })
             .collect()
     }
 
