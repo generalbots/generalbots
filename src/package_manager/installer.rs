@@ -4,7 +4,6 @@ use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
 use log::trace;
 use rand::distr::Alphanumeric;
-use rand::rngs::ThreadRng;
 use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
@@ -64,8 +63,7 @@ impl PackageManager {
 
     fn register_drive(&mut self) {
         let drive_password = self.generate_secure_password(16);
-        let farm_password =
-            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
+        let farm_password = std::env::var("FARM_PASSWORD").unwrap();
         let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
 
         self.components.insert("drive".to_string(), ComponentConfig {
@@ -110,10 +108,7 @@ impl PackageManager {
         use diesel::pg::PgConnection;
         use diesel::prelude::*;
         use uuid::Uuid;
-
-        if let Ok(mut conn) =
-            PgConnection::establish("postgres://botserver:botserver@localhost:5432/botserver")
-        {
+        if let Ok(mut conn) = PgConnection::establish(&std::env::var("DATABASE_URL")?) {
             let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
             diesel::update(bots)
                 .filter(bot_id.eq(system_bot_id))
@@ -148,7 +143,7 @@ impl PackageManager {
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/pg_hba.conf\" ]; then echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf; fi".to_string(),
-                "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi".to_string(),
+                "if [ ! -f \"{{CONF_PATH}}/pg_ident.conf\" ]; then touch {{CONF_PATH}}/pg_ident.conf; fi ".to_string(),
                 "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; sleep 5; ./bin/createdb -p 5432 -h localhost botserver; ./bin/createuser -p 5432 -h localhost gbuser; fi".to_string()
             ],
             pre_install_cmds_macos: vec![],
@@ -193,7 +188,7 @@ impl PackageManager {
         self.components.insert("llm".to_string(), ComponentConfig {
             name: "llm".to_string(),
             required: true,
-            ports: vec![8081],
+            ports: vec![8081, 8082],
             dependencies: vec![],
             linux_packages: vec!["unzip".to_string()],
             macos_packages: vec!["unzip".to_string()],
@@ -213,7 +208,7 @@ impl PackageManager {
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
-            exec_cmd: "{{BIN_PATH}}/llama-server -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --port 8081".to_string(),
+            exec_cmd: "{{BIN_PATH}}/llama-server -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --port 8081 & {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --port 8082 --embedding".to_string(),
         });
     }
 
@@ -656,7 +651,7 @@ impl PackageManager {
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
-        let rng: ThreadRng = rand::rng();
+        let rng = rand::rng();
         rng.sample_iter(&Alphanumeric)
             .take(length)
             .map(char::from)

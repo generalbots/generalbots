@@ -132,7 +132,10 @@ impl PackageManager {
 
         if !packages.is_empty() {
             let pkg_list = packages.join(" ");
-            self.exec_in_container(&container_name, &format!("apt-get update && apt-get install -y {}", pkg_list))?;
+            self.exec_in_container(
+                &container_name,
+                &format!("apt-get update && apt-get install -y {}", pkg_list),
+            )?;
         }
 
         if let Some(url) = &component.download_url {
@@ -266,10 +269,8 @@ impl PackageManager {
 
         match self.os_type {
             OsType::Linux => {
-                let output = Command::new("apt-get")
-                    .args(&["update"])
-                    .output()?;
-                
+                let output = Command::new("apt-get").args(&["update"]).output()?;
+
                 if !output.status.success() {
                     warn!("apt-get update had issues");
                 }
@@ -569,6 +570,7 @@ impl PackageManager {
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
             if target == "local" {
+                trace!("Executing command: {}", rendered_cmd);
                 let output = Command::new("bash")
                     .current_dir(&bin_path)
                     .args(&["-c", &rendered_cmd])
@@ -750,17 +752,17 @@ impl PackageManager {
                 ])
                 .output()?;
 
-        if !output.status.success() {
-            warn!("Failed to setup port forwarding for port {}", port);
+            if !output.status.success() {
+                warn!("Failed to setup port forwarding for port {}", port);
+            }
+
+            trace!(
+                "Port forwarding configured: {} -> container {}",
+                port,
+                container
+            );
         }
 
-        trace!(
-            "Port forwarding configured: {} -> container {}",
-            port,
-            container
-        );
+        Ok(())
     }
-
-    Ok(())
-}
 }

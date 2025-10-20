@@ -63,6 +63,7 @@ futures = "0.3"
 futures-util = "0.3"
 lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"] }
 livekit = "0.7"
+include_dir = "0.7"
 log = "0.4"
 mailparse = "0.15"
 native-tls = "0.2"

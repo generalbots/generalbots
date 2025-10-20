@@ -1,4 +1,6 @@
 MOST IMPORTANT CODE GENERATION RULES:
+- Use rustc 1.90.0 (1159e78c4 2025-09-14).
+- Check for warnings related to use of mut where is dispensable.
 - No placeholders, never comment/uncomment code, no explanations, no filler text.
 - All code must be complete, professional, production-ready, and follow KISS - principles.
 - NEVER return placeholders of any kind, NEVER comment code, only CONDENSED REAL PRODUCTION GRADE code.
@@ -14,7 +16,8 @@ MOST IMPORTANT CODE GENERATION RULES:
 - Return *only the modified* files as a single `.sh` script using `cat`, so the code can be - restored directly.
 - Pay attention to shared::utils and shared::models to reuse shared things.
 - NEVER return a untouched file in output. Just files that need to be updated.
-
+- Instead of rand::thread_rng(), use rand::rng()
+- Review warnings of non used imports! Give me 0 warnings, please.
 - You MUST return exactly this example format:
 ```sh
 #!/bin/bash
