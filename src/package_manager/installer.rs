@@ -648,6 +648,7 @@ impl PackageManager {
             );
 
             Ok(std::process::Command::new("sh")
+                .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&rendered_cmd)
                 .spawn()?)
@@ -657,7 +658,7 @@ impl PackageManager {
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
-        let mut rng: ThreadRng = rand::thread_rng();
+        let rng: ThreadRng = rand::rng();
         rng.sample_iter(&Alphanumeric)
             .take(length)
             .map(char::from)
