@@ -138,8 +138,7 @@ impl PackageManager {
             binary_name: None,
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
-                "tar -xzf postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz --strip-components=1".to_string(),
-                "chmod +x bin/*".to_string(),
+                "chmod +x ./bin/*".to_string(),
                 "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf; fi".to_string(),
                 "if [ ! -f \"{{CONF_PATH}}/postgresql.conf\" ]; then echo \"hba_file = '{{CONF_PATH}}/pg_hba.conf'\" >> {{CONF_PATH}}/postgresql.conf; fi".to_string(),
@@ -154,8 +153,7 @@ impl PackageManager {
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
-                "tar -xzf postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz --strip-components=1".to_string(),
-                "chmod +x bin/*".to_string(),
+                "chmod +x ./bin/*".to_string(),
                 "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then ./bin/initdb -D {{DATA_PATH}}/pgdata -U postgres; fi".to_string(),
             ],
             pre_install_cmds_windows: vec![],
