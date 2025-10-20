@@ -17,7 +17,10 @@ pub struct AutomationService {
 
 impl AutomationService {
     pub fn new(state: Arc<AppState>, scripts_dir: &str) -> Self {
-        trace!("Creating AutomationService with scripts_dir='{}'", scripts_dir);
+        trace!(
+            "Creating AutomationService with scripts_dir='{}'",
+            scripts_dir
+        );
         Self {
             state,
             scripts_dir: scripts_dir.to_string(),
@@ -61,10 +64,12 @@ impl AutomationService {
     async fn load_active_automations(&self) -> Result<Vec<Automation>, diesel::result::Error> {
         trace!("Loading active automations from database");
         use crate::shared::models::system_automations::dsl::*;
-        let mut conn = self.state.conn.lock().unwrap();
-        let result = system_automations
-            .filter(is_active.eq(true))
-            .load::<Automation>(&mut *conn);
+        let result = {
+            let mut conn = self.state.conn.lock().unwrap();
+            system_automations
+                .filter(is_active.eq(true))
+                .load::<Automation>(&mut *conn)
+        }; // conn is dropped here
         trace!("Database query for active automations completed");
         result.map_err(Into::into)
     }
@@ -123,18 +128,20 @@ impl AutomationService {
                 table, column
             );
 
-            let mut conn_guard = self.state.conn.lock().unwrap();
-            let conn = &mut *conn_guard;
-
             #[derive(diesel::QueryableByName)]
             struct CountResult {
                 #[diesel(sql_type = diesel::sql_types::BigInt)]
                 count: i64,
             }
 
-            let count_result = diesel::sql_query(&query)
-                .bind::<diesel::sql_types::Timestamp, _>(since.naive_utc())
-                .get_result::<CountResult>(conn);
+            let count_result = {
+                let mut conn_guard = self.state.conn.lock().unwrap();
+                let conn = &mut *conn_guard;
+
+                diesel::sql_query(&query)
+                    .bind::<diesel::sql_types::Timestamp, _>(since.naive_utc())
+                    .get_result::<CountResult>(conn)
+            }; // conn_guard is dropped here
 
             match count_result {
                 Ok(result) if result.count > 0 => {
@@ -144,7 +151,6 @@ impl AutomationService {
                         table,
                         automation.id
                     );
-                    drop(conn_guard);
                     self.execute_action(&automation.param).await;
                     self.update_last_triggered(automation.id).await;
                 }
@@ -185,10 +191,7 @@ impl AutomationService {
                         self.execute_action(&automation.param).await;
                         self.update_last_triggered(automation.id).await;
                     } else {
-                        trace!(
-                            "Pattern did not match for automation {}",
-                            automation.id
-                        );
+                        trace!("Pattern did not match for automation {}", automation.id);
                     }
                 }
             }
@@ -196,14 +199,20 @@ impl AutomationService {
     }
 
     async fn update_last_triggered(&self, automation_id: Uuid) {
-        trace!("Updating last_triggered for automation_id={}", automation_id);
+        trace!(
+            "Updating last_triggered for automation_id={}",
+            automation_id
+        );
         use crate::shared::models::system_automations::dsl::*;
-        let mut conn = self.state.conn.lock().unwrap();
         let now = Utc::now();
-        if let Err(e) = diesel::update(system_automations.filter(id.eq(automation_id)))
-            .set(last_triggered.eq(now.naive_utc()))
-            .execute(&mut *conn)
-        {
+        let result = {
+            let mut conn = self.state.conn.lock().unwrap();
+            diesel::update(system_automations.filter(id.eq(automation_id)))
+                .set(last_triggered.eq(now.naive_utc()))
+                .execute(&mut *conn)
+        }; // conn is dropped here
+
+        if let Err(e) = result {
             error!(
                 "Failed to update last_triggered for automation {}: {}",
                 automation_id, e
@@ -214,7 +223,11 @@ impl AutomationService {
     }
 
     fn should_run_cron(pattern: &str, timestamp: i64) -> bool {
-        trace!("Evaluating cron pattern='{}' at timestamp={}", pattern, timestamp);
+        trace!(
+            "Evaluating cron pattern='{}' at timestamp={}",
+            pattern,
+            timestamp
+        );
         let parts: Vec<&str> = pattern.split_whitespace().collect();
         if parts.len() != 5 {
             trace!("Invalid cron pattern '{}'", pattern);
@@ -335,21 +348,25 @@ impl AutomationService {
             bot_id
         );
 
-        let script_service = ScriptService::new(Arc::clone(&self.state), user_session);
-        let ast = match script_service.compile(&script_content) {
-            Ok(ast) => {
-                trace!("Compilation successful for script '{}'", param);
-                ast
-            }
-            Err(e) => {
-                error!("Error compiling script '{}': {}", param, e);
-                self.cleanup_job_flag(&bot_id, param).await;
-                return;
-            }
-        };
+        let result = {
+            let script_service = ScriptService::new(Arc::clone(&self.state), user_session);
+            let ast = match script_service.compile(&script_content) {
+                Ok(ast) => {
+                    trace!("Compilation successful for script '{}'", param);
+                    ast
+                }
+                Err(e) => {
+                    error!("Error compiling script '{}': {}", param, e);
+                    self.cleanup_job_flag(&bot_id, param).await;
+                    return;
+                }
+            };
 
-        trace!("Running compiled script '{}'", param);
-        match script_service.run(&ast) {
+            trace!("Running compiled script '{}'", param);
+            script_service.run(&ast)
+        }; // script_service and ast are dropped here
+
+        match result {
             Ok(_) => {
                 info!("Script '{}' executed successfully", param);
             }
