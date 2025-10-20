@@ -78,8 +78,10 @@ impl PackageManager {
         }
 
         self.run_commands(post_cmds, "local", &component.name)?;
-        trace!("Starting component after installation: {}", component.name);
-        self.start(&component.name)?;
+        trace!(
+            "Component '{}' installation completed successfully",
+            component.name
+        );
 
         Ok(())
     }
@@ -568,7 +570,7 @@ impl PackageManager {
 
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let mut child = Command::new("bash")
+                let child = Command::new("bash")
                     .current_dir(&bin_path)
                     .args(&["-c", &rendered_cmd])
                     .spawn()

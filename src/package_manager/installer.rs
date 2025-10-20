@@ -4,7 +4,6 @@ use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
 use log::trace;
 use rand::distr::Alphanumeric;
-use rand::rng;
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -166,8 +165,8 @@ impl PackageManager {
                 "echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
                 "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
 
-                "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start; while ! ./bin/pg_isready -d {{DATA_PATH}}/pgdata >/dev/null 2>&1; do sleep 15; done;".to_string(),
-                "./bin/psql -U gbuser -c \"CREATE DATABASE botserver WITH OWNER gbuser\" || true    ".to_string()
+                format!("./bin/pg_ctl -D {{{{DATA_PATH}}}}/pgdata -l {{{{LOGS_PATH}}}}/postgres.log start; for i in 1 2 3 4 5 6 7 8 9 10; do ./bin/pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break; echo 'Waiting for PostgreSQL to start...' >&2; sleep 1; done; ./bin/pg_isready -h localhost -p 5432"),
+                format!("PGPASSWORD={} ./bin/psql -h localhost -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true", db_password)
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
@@ -650,6 +649,33 @@ impl PackageManager {
             let conf_path = self.base_path.join("conf").join(&component.name);
             let logs_path = self.base_path.join("logs").join(&component.name);
 
+            // For PostgreSQL, check if it's already running
+            if component.name == "tables" {
+                let check_cmd = format!(
+                    "./bin/pg_ctl -D {} status",
+                    data_path.join("pgdata").display()
+                );
+                let check_output = std::process::Command::new("sh")
+                    .current_dir(&bin_path)
+                    .arg("-c")
+                    .arg(&check_cmd)
+                    .output();
+
+                if let Ok(output) = check_output {
+                    if output.status.success() {
+                        trace!(
+                            "Component {} is already running, skipping start",
+                            component.name
+                        );
+                        // Return a dummy child process handle - PostgreSQL is already running
+                        return Ok(std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg("echo 'Already running'")
+                            .spawn()?);
+                    }
+                }
+            }
+
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -663,11 +689,31 @@ impl PackageManager {
                 rendered_cmd
             );
 
-            Ok(std::process::Command::new("sh")
+            let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&rendered_cmd)
-                .spawn()?)
+                .spawn();
+
+            // Handle "already running" errors gracefully
+            match child {
+                Ok(c) => Ok(c),
+                Err(e) => {
+                    let err_msg = e.to_string();
+                    if err_msg.contains("already running") || component.name == "tables" {
+                        trace!(
+                            "Component {} may already be running, continuing anyway",
+                            component.name
+                        );
+                        Ok(std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg("echo 'Already running'")
+                            .spawn()?)
+                    } else {
+                        Err(e.into())
+                    }
+                }
+            }
         } else {
             Err(anyhow::anyhow!("Component {} not found", component))
         }

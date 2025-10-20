@@ -1,11 +1,11 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
-use diesel::{Connection, RunQueryDsl};
+use diesel::connection::SimpleConnection;
+use diesel::Connection;
 use dotenvy::dotenv;
 use log::{info, trace};
 use rand::distr::Alphanumeric;
-use rand::rng;
 use sha2::{Digest, Sha256};
 
 pub struct BootstrapManager {
@@ -64,7 +64,7 @@ impl BootstrapManager {
 
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-        let required_components = vec!["tables"];
+        let required_components = vec!["tables", "drive", "cache", "llm"];
         let mut config = AppConfig::from_env();
 
         for component in required_components {
@@ -87,11 +87,8 @@ impl BootstrapManager {
                 trace!("Installing required component: {}", component);
                 futures::executor::block_on(pm.install(component))?;
 
-                trace!("Starting component after install: {}", component);
-                pm.start(component)?;
-
                 if component == "tables" {
-                    trace!("Starting component after install: {}", component);
+                    trace!("Component {} installed successfully", component);
 
                     let database_url = std::env::var("DATABASE_URL").unwrap();
                     let mut conn = diesel::PgConnection::establish(&database_url)
@@ -102,20 +99,39 @@ impl BootstrapManager {
                         .files()
                         .filter_map(|file| {
                             let path = file.path();
+                            trace!("Found file: {:?}", path);
                             if path.extension()? == "sql" {
-                                Some(path.to_path_buf())
+                                trace!("  -> SQL file included");
+                                Some(file)
                             } else {
+                                trace!("  -> Not a SQL file, skipping");
                                 None
                             }
                         })
                         .collect();
 
-                    migration_files.sort();
+                    trace!("Total migration files found: {}", migration_files.len());
+                    migration_files.sort_by_key(|f| f.path());
 
                     for migration_file in migration_files {
-                        let migration = std::fs::read_to_string(&migration_file)?;
-                        trace!("Executing migration: {}", migration_file.display());
-                        diesel::sql_query(&migration).execute(&mut conn)?;
+                        let migration = migration_file
+                            .contents_utf8()
+                            .ok_or_else(|| anyhow::anyhow!("Migration file is not valid UTF-8"))?;
+                        trace!("Executing migration: {}", migration_file.path().display());
+
+                        // Use batch_execute to handle multiple statements including those with dollar-quoted strings
+                        if let Err(e) = conn.batch_execute(migration) {
+                            log::error!(
+                                "Failed to execute migration {}: {}",
+                                migration_file.path().display(),
+                                e
+                            );
+                            return Err(e.into());
+                        }
+                        trace!(
+                            "Successfully executed migration: {}",
+                            migration_file.path().display()
+                        );
                     }
 
                     config = AppConfig::from_database(&mut conn);
@@ -130,7 +146,7 @@ impl BootstrapManager {
     fn generate_secure_password(&self, length: usize) -> String {
         // Ensure the Rng trait is in scope for `sample`
         use rand::Rng;
-        let mut rng = rand::thread_rng();
+        let mut rng = rand::rng();
 
         std::iter::repeat_with(|| rng.sample(Alphanumeric) as char)
             .take(length)

@@ -273,21 +273,21 @@ WHERE status = 'running'
 ORDER BY component_name;
 
 -- View: Bot with all configurations
-CREATE OR REPLACE VIEW v_bot_full_config AS
-SELECT
-    b.bot_id,
-    b.name as bot_name,
-    b.status,
-    t.name as tenant_name,
-    t.slug as tenant_slug,
-    bc.config_key,
-    bc.config_value,
-    bc.config_type,
-    bc.is_encrypted
-FROM bots b
-LEFT JOIN tenants t ON b.tenant_id = t.id
-LEFT JOIN bot_configuration bc ON b.bot_id = bc.bot_id
-ORDER BY b.bot_id, bc.config_key;
+-- CREATE OR REPLACE VIEW v_bot_full_config AS
+-- SELECT
+--     b.id,
+--     b.name as bot_name,
+--     b.status,
+--     t.name as tenant_name,
+--     t.slug as tenant_slug,
+--     bc.config_key,
+--     bc.config_value,
+--     bc.config_type,
+--     bc.is_encrypted
+-- FROM bots b
+-- LEFT JOIN tenants t ON b.tenant_id = t.id
+-- LEFT JOIN bot_configuration bc ON b.id = bc.bot_id
+-- ORDER BY b.id, bc.config_key;
 
 -- View: Active models by type
 CREATE OR REPLACE VIEW v_active_models AS
