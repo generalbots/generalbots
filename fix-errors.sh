@@ -24,7 +24,7 @@ dirs=(
     #"bot"
     "bootstrap"
     #"channels"
-    #"config"
+    "config"
     #"context"
     #"email"
     #"file"
@@ -53,7 +53,7 @@ cat "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 
 
 echo "" >> "$OUTPUT_FILE"
-echo "Compiling..." 
+echo "Compiling..."
 cargo build --message-format=short 2>&1 | grep -E 'error' >> "$OUTPUT_FILE"
 
 
