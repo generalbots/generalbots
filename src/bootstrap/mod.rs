@@ -1,7 +1,7 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
-use log::{debug, trace, warn};
+use log::{trace, warn};
 use rand::distr::Alphanumeric;
 use rand::rngs::ThreadRng;
 use rand::Rng;
@@ -14,7 +14,11 @@ pub struct BootstrapManager {
 
 impl BootstrapManager {
     pub fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
-        trace!("Initializing BootstrapManager with mode {:?} and tenant {:?}", install_mode, tenant);
+        trace!(
+            "Initializing BootstrapManager with mode {:?} and tenant {:?}",
+            install_mode,
+            tenant
+        );
         Self {
             install_mode,
             tenant,
@@ -24,9 +28,26 @@ impl BootstrapManager {
     pub fn start_all(&mut self) -> Result<()> {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
         let components = vec![
-            "tables", "cache", "drive", "llm", "email", "proxy", "directory", 
-            "alm", "alm_ci", "dns", "webmail", "meeting", "table_editor", 
-            "doc_editor", "desktop", "devtools", "bot", "system", "vector_db", "host"
+            "tables",
+            "cache",
+            "drive",
+            "llm",
+            "email",
+            "proxy",
+            "directory",
+            "alm",
+            "alm_ci",
+            "dns",
+            "webmail",
+            "meeting",
+            "table_editor",
+            "doc_editor",
+            "desktop",
+            "devtools",
+            "bot",
+            "system",
+            "vector_db",
+            "host",
         ];
 
         for component in components {
@@ -42,8 +63,8 @@ impl BootstrapManager {
 
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-        let required_components = vec!["tables", "cache", "drive", "llm"];
-        
+        let required_components = vec!["tables"]; // , "cache", "drive", "llm"];
+
         for component in required_components {
             if !pm.is_installed(component) {
                 trace!("Installing required component: {}", component);
@@ -55,7 +76,9 @@ impl BootstrapManager {
             }
         }
 
-        let config = match diesel::Connection::establish("postgres://botserver:botserver@localhost:5432/botserver") {
+        let config = match diesel::Connection::establish(
+            "postgres://botserver:botserver@localhost:5432/botserver",
+        ) {
             Ok(mut conn) => {
                 self.setup_secure_credentials(&mut conn)?;
                 AppConfig::from_database(&mut conn)
@@ -74,16 +97,17 @@ impl BootstrapManager {
         use diesel::prelude::*;
         use uuid::Uuid;
 
-        let farm_password = std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
+        let farm_password =
+            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
         let db_password = self.generate_secure_password(16);
-        
+
         let encrypted_db_password = self.encrypt_password(&db_password, &farm_password);
 
         let env_contents = format!(
             "FARM_PASSWORD={}\nDATABASE_URL=postgres://gbuser:{}@localhost:5432/botserver",
             farm_password, db_password
         );
-        
+
         std::fs::write(".env", env_contents)
             .map_err(|e| anyhow::anyhow!("Failed to write .env file: {}", e))?;
 
@@ -99,7 +123,7 @@ impl BootstrapManager {
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
-        let mut rng: ThreadRng = rand::thread_rng();
+        let rng: ThreadRng = rand::rng();
         rng.sample_iter(&Alphanumeric)
             .take(length)
             .map(char::from)
