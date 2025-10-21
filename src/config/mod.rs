@@ -79,14 +79,22 @@ impl AppConfig {
     pub fn database_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
-            self.database.username, self.database.password, self.database.server, self.database.port, self.database.database
+            self.database.username,
+            self.database.password,
+            self.database.server,
+            self.database.port,
+            self.database.database
         )
     }
 
     pub fn database_custom_url(&self) -> String {
         format!(
             "postgres://{}:{}@{}:{}/{}",
-            self.database_custom.username, self.database_custom.password, self.database_custom.server, self.database_custom.port, self.database_custom.database
+            self.database_custom.username,
+            self.database_custom.password,
+            self.database_custom.server,
+            self.database_custom.port,
+            self.database_custom.database
         )
     }
 
@@ -125,41 +133,69 @@ impl AppConfig {
         };
 
         let get_str = |key: &str, default: &str| -> String {
-            config_map.get(key).map(|v| v.config_value.clone()).unwrap_or_else(|| default.to_string())
+            config_map
+                .get(key)
+                .map(|v| v.config_value.clone())
+                .unwrap_or_else(|| default.to_string())
         };
 
         let get_u32 = |key: &str, default: u32| -> u32 {
-            config_map.get(key).and_then(|v| v.config_value.parse().ok()).unwrap_or(default)
+            config_map
+                .get(key)
+                .and_then(|v| v.config_value.parse().ok())
+                .unwrap_or(default)
         };
 
         let get_u16 = |key: &str, default: u16| -> u16 {
-            config_map.get(key).and_then(|v| v.config_value.parse().ok()).unwrap_or(default)
+            config_map
+                .get(key)
+                .and_then(|v| v.config_value.parse().ok())
+                .unwrap_or(default)
         };
 
         let get_bool = |key: &str, default: bool| -> bool {
-            config_map.get(key).map(|v| v.config_value.to_lowercase() == "true").unwrap_or(default)
+            config_map
+                .get(key)
+                .map(|v| v.config_value.to_lowercase() == "true")
+                .unwrap_or(default)
         };
 
         let stack_path = PathBuf::from(get_str("STACK_PATH", "./botserver-stack"));
 
+        // For database credentials, prioritize environment variables over database values
+        // because we need the correct credentials to connect to the database in the first place
         let database = DatabaseConfig {
-            username: get_str("TABLES_USERNAME", "gbuser"),
-            password: get_str("TABLES_PASSWORD", ""),
-            server: get_str("TABLES_SERVER", "localhost"),
-            port: get_u32("TABLES_PORT", 5432),
-            database: get_str("TABLES_DATABASE", "botserver"),
+            username: std::env::var("TABLES_USERNAME")
+                .unwrap_or_else(|_| get_str("TABLES_USERNAME", "gbuser")),
+            password: std::env::var("TABLES_PASSWORD")
+                .unwrap_or_else(|_| get_str("TABLES_PASSWORD", "")),
+            server: std::env::var("TABLES_SERVER")
+                .unwrap_or_else(|_| get_str("TABLES_SERVER", "localhost")),
+            port: std::env::var("TABLES_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
+            database: std::env::var("TABLES_DATABASE")
+                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
         };
 
         let database_custom = DatabaseConfig {
-            username: get_str("CUSTOM_USERNAME", "gbuser"),
-            password: get_str("CUSTOM_PASSWORD", ""),
-            server: get_str("CUSTOM_SERVER", "localhost"),
-            port: get_u32("CUSTOM_PORT", 5432),
-            database: get_str("CUSTOM_DATABASE", "botserver"),
+            username: std::env::var("CUSTOM_USERNAME")
+                .unwrap_or_else(|_| get_str("CUSTOM_USERNAME", "gbuser")),
+            password: std::env::var("CUSTOM_PASSWORD")
+                .unwrap_or_else(|_| get_str("CUSTOM_PASSWORD", "")),
+            server: std::env::var("CUSTOM_SERVER")
+                .unwrap_or_else(|_| get_str("CUSTOM_SERVER", "localhost")),
+            port: std::env::var("CUSTOM_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or_else(|| get_u32("CUSTOM_PORT", 5432)),
+            database: std::env::var("CUSTOM_DATABASE")
+                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "botserver")),
         };
 
         let minio = DriveConfig {
-            server: get_str("DRIVE_SERVER", "localhost:9000"),
+            server: get_str("DRIVE_SERVER", "http://localhost:9000"),
             access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
             secret_key: get_str("DRIVE_SECRET", "minioadmin"),
             use_ssl: get_bool("DRIVE_USE_SSL", false),
@@ -183,7 +219,10 @@ impl AppConfig {
 
         AppConfig {
             minio,
-            server: ServerConfig { host: get_str("SERVER_HOST", "127.0.0.1"), port: get_u16("SERVER_PORT", 8080) },
+            server: ServerConfig {
+                host: get_str("SERVER_HOST", "127.0.0.1"),
+                port: get_u16("SERVER_PORT", 8080),
+            },
             database,
             database_custom,
             email,
@@ -198,10 +237,13 @@ impl AppConfig {
     pub fn from_env() -> Self {
         warn!("Loading configuration from environment variables");
 
-        let stack_path = std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_path =
+            std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
 
-        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
-        let (db_username, db_password, db_server, db_port, db_name) = parse_database_url(&database_url);
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+        let (db_username, db_password, db_server, db_port, db_name) =
+            parse_database_url(&database_url);
 
         let database = DatabaseConfig {
             username: db_username,
@@ -215,22 +257,35 @@ impl AppConfig {
             username: std::env::var("CUSTOM_USERNAME").unwrap_or_else(|_| "gbuser".to_string()),
             password: std::env::var("CUSTOM_PASSWORD").unwrap_or_else(|_| "".to_string()),
             server: std::env::var("CUSTOM_SERVER").unwrap_or_else(|_| "localhost".to_string()),
-            port: std::env::var("CUSTOM_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(5432),
+            port: std::env::var("CUSTOM_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(5432),
             database: std::env::var("CUSTOM_DATABASE").unwrap_or_else(|_| "botserver".to_string()),
         };
 
         let minio = DriveConfig {
-            server: std::env::var("DRIVE_SERVER").unwrap_or_else(|_| "localhost:9000".to_string()),
-            access_key: std::env::var("DRIVE_ACCESSKEY").unwrap_or_else(|_| "minioadmin".to_string()),
+            server: std::env::var("DRIVE_SERVER")
+                .unwrap_or_else(|_| "http://localhost:9000".to_string()),
+            access_key: std::env::var("DRIVE_ACCESSKEY")
+                .unwrap_or_else(|_| "minioadmin".to_string()),
             secret_key: std::env::var("DRIVE_SECRET").unwrap_or_else(|_| "minioadmin".to_string()),
-            use_ssl: std::env::var("DRIVE_USE_SSL").unwrap_or_else(|_| "false".to_string()).parse().unwrap_or(false),
-            org_prefix: std::env::var("DRIVE_ORG_PREFIX").unwrap_or_else(|_| "botserver".to_string()),
+            use_ssl: std::env::var("DRIVE_USE_SSL")
+                .unwrap_or_else(|_| "false".to_string())
+                .parse()
+                .unwrap_or(false),
+            org_prefix: std::env::var("DRIVE_ORG_PREFIX")
+                .unwrap_or_else(|_| "botserver".to_string()),
         };
 
         let email = EmailConfig {
             from: std::env::var("EMAIL_FROM").unwrap_or_else(|_| "noreply@example.com".to_string()),
-            server: std::env::var("EMAIL_SERVER").unwrap_or_else(|_| "smtp.example.com".to_string()),
-            port: std::env::var("EMAIL_PORT").unwrap_or_else(|_| "587".to_string()).parse().unwrap_or(587),
+            server: std::env::var("EMAIL_SERVER")
+                .unwrap_or_else(|_| "smtp.example.com".to_string()),
+            port: std::env::var("EMAIL_PORT")
+                .unwrap_or_else(|_| "587".to_string())
+                .parse()
+                .unwrap_or(587),
             username: std::env::var("EMAIL_USER").unwrap_or_else(|_| "user".to_string()),
             password: std::env::var("EMAIL_PASS").unwrap_or_else(|_| "pass".to_string()),
         };
@@ -238,28 +293,36 @@ impl AppConfig {
         let ai = AIConfig {
             instance: std::env::var("AI_INSTANCE").unwrap_or_else(|_| "gpt-4".to_string()),
             key: std::env::var("AI_KEY").unwrap_or_else(|_| "".to_string()),
-            version: std::env::var("AI_VERSION").unwrap_or_else(|_| "2023-12-01-preview".to_string()),
-            endpoint: std::env::var("AI_ENDPOINT").unwrap_or_else(|_| "https://api.openai.com".to_string()),
+            version: std::env::var("AI_VERSION")
+                .unwrap_or_else(|_| "2023-12-01-preview".to_string()),
+            endpoint: std::env::var("AI_ENDPOINT")
+                .unwrap_or_else(|_| "https://api.openai.com".to_string()),
         };
 
         AppConfig {
             minio,
             server: ServerConfig {
                 host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
-                port: std::env::var("SERVER_PORT").ok().and_then(|p| p.parse().ok()).unwrap_or(8080),
+                port: std::env::var("SERVER_PORT")
+                    .ok()
+                    .and_then(|p| p.parse().ok())
+                    .unwrap_or(8080),
             },
             database,
             database_custom,
             email,
             ai,
             s3_bucket: std::env::var("DRIVE_BUCKET").unwrap_or_else(|_| "default".to_string()),
-            site_path: std::env::var("SITES_ROOT").unwrap_or_else(|_| "./botserver-stack/sites".to_string()),
+            site_path: std::env::var("SITES_ROOT")
+                .unwrap_or_else(|_| "./botserver-stack/sites".to_string()),
             stack_path: PathBuf::from(stack_path),
             db_conn: None,
         }
     }
 
-    fn load_config_from_db(conn: &mut PgConnection) -> Result<HashMap<String, ServerConfigRow>, diesel::result::Error> {
+    fn load_config_from_db(
+        conn: &mut PgConnection,
+    ) -> Result<HashMap<String, ServerConfigRow>, diesel::result::Error> {
         let results = diesel::sql_query("SELECT id, config_key, config_value, config_type, is_encrypted FROM server_configuration").load::<ServerConfigRow>(conn)?;
 
         let mut map = HashMap::new();
@@ -270,13 +333,26 @@ impl AppConfig {
         Ok(map)
     }
 
-    pub fn set_config(&self, conn: &mut PgConnection, key: &str, value: &str) -> Result<(), diesel::result::Error> {
-        diesel::sql_query("SELECT set_config($1, $2)").bind::<Text, _>(key).bind::<Text, _>(value).execute(conn)?;
+    pub fn set_config(
+        &self,
+        conn: &mut PgConnection,
+        key: &str,
+        value: &str,
+    ) -> Result<(), diesel::result::Error> {
+        diesel::sql_query("SELECT set_config($1, $2)")
+            .bind::<Text, _>(key)
+            .bind::<Text, _>(value)
+            .execute(conn)?;
         info!("Updated configuration: {} = {}", key, value);
         Ok(())
     }
 
-    pub fn get_config(&self, conn: &mut PgConnection, key: &str, fallback: Option<&str>) -> Result<String, diesel::result::Error> {
+    pub fn get_config(
+        &self,
+        conn: &mut PgConnection,
+        key: &str,
+        fallback: Option<&str>,
+    ) -> Result<String, diesel::result::Error> {
         let fallback_str = fallback.unwrap_or("");
 
         #[derive(Debug, QueryableByName)]
@@ -285,7 +361,11 @@ impl AppConfig {
             value: String,
         }
 
-        let result = diesel::sql_query("SELECT get_config($1, $2) as value").bind::<Text, _>(key).bind::<Text, _>(fallback_str).get_result::<ConfigValue>(conn).map(|row| row.value)?;
+        let result = diesel::sql_query("SELECT get_config($1, $2) as value")
+            .bind::<Text, _>(key)
+            .bind::<Text, _>(fallback_str)
+            .get_result::<ConfigValue>(conn)
+            .map(|row| row.value)?;
         Ok(result)
     }
 }
@@ -296,22 +376,31 @@ fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
         if parts.len() == 2 {
             let user_pass: Vec<&str> = parts[0].split(':').collect();
             let host_db: Vec<&str> = parts[1].split('/').collect();
-            
+
             if user_pass.len() >= 2 && host_db.len() >= 2 {
                 let username = user_pass[0].to_string();
                 let password = user_pass[1].to_string();
-                
+
                 let host_port: Vec<&str> = host_db[0].split(':').collect();
                 let server = host_port[0].to_string();
-                let port = host_port.get(1).and_then(|p| p.parse().ok()).unwrap_or(5432);
+                let port = host_port
+                    .get(1)
+                    .and_then(|p| p.parse().ok())
+                    .unwrap_or(5432);
                 let database = host_db[1].to_string();
-                
+
                 return (username, password, server, port, database);
             }
         }
     }
-    
-    ("gbuser".to_string(), "".to_string(), "localhost".to_string(), 5432, "botserver".to_string())
+
+    (
+        "gbuser".to_string(),
+        "".to_string(),
+        "localhost".to_string(),
+        5432,
+        "botserver".to_string(),
+    )
 }
 
 pub struct ConfigManager {
@@ -323,17 +412,25 @@ impl ConfigManager {
         Self { conn }
     }
 
-    pub fn sync_gbot_config(&self, bot_id: &uuid::Uuid, config_path: &str) -> Result<usize, String> {
+    pub fn sync_gbot_config(
+        &self,
+        bot_id: &uuid::Uuid,
+        config_path: &str,
+    ) -> Result<usize, String> {
         use sha2::{Digest, Sha256};
         use std::fs;
 
-        let content = fs::read_to_string(config_path).map_err(|e| format!("Failed to read config file: {}", e))?;
+        let content = fs::read_to_string(config_path)
+            .map_err(|e| format!("Failed to read config file: {}", e))?;
 
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         let file_hash = format!("{:x}", hasher.finalize());
 
-        let mut conn = self.conn.lock().map_err(|e| format!("Failed to acquire lock: {}", e))?;
+        let mut conn = self
+            .conn
+            .lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
         #[derive(QueryableByName)]
         struct SyncHash {
@@ -341,12 +438,13 @@ impl ConfigManager {
             file_hash: String,
         }
 
-        let last_hash: Option<String> = diesel::sql_query("SELECT file_hash FROM gbot_config_sync WHERE bot_id = $1")
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .get_result::<SyncHash>(&mut *conn)
-            .optional()
-            .map_err(|e| format!("Database error: {}", e))?
-            .map(|row| row.file_hash);
+        let last_hash: Option<String> =
+            diesel::sql_query("SELECT file_hash FROM gbot_config_sync WHERE bot_id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                .get_result::<SyncHash>(&mut *conn)
+                .optional()
+                .map_err(|e| format!("Database error: {}", e))?
+                .map(|row| row.file_hash);
 
         if last_hash.as_ref() == Some(&file_hash) {
             info!("Config file unchanged for bot {}", bot_id);
@@ -378,7 +476,10 @@ impl ConfigManager {
             .execute(&mut *conn)
             .map_err(|e| format!("Failed to update sync record: {}", e))?;
 
-        info!("Synced {} config values for bot {} from {}", updated, bot_id, config_path);
+        info!(
+            "Synced {} config values for bot {} from {}",
+            updated, bot_id, config_path
+        );
         Ok(updated)
     }
 }

@@ -52,10 +52,13 @@ editor). LLM and BASIC can be mixed used to build custom dialogs so Bot can be e
 
 Before you embark on your General Bots journey, ensure you have the following tools installed:
 
-- **Node.js (version 20 or later)**: General Bots leverages the latest features of Node.js to provide a robust and efficient runtime environment. Download it from [nodejs.org](https://nodejs.org/en/download/).
+- **Rust (latest stable version)**: General Bots server is built with Rust for performance and safety. Install from [rustup.rs](https://rustup.rs/).
 - **Git (latest stable version)**: Essential for version control and collaborating on bot projects. Get it from [git-scm.com](https://git-scm.com/downloads).
 
-### Quick Start Guide
+**Optional (for Node.js bots):**
+- **Node.js (version 20 or later)**: For Node.js-based bot packages. Download from [nodejs.org](https://nodejs.org/en/download/).
+
+### Quick Start Guide (Rust Version)
 
 Follow these steps to get your General Bots server up and running:
 
@@ -71,24 +74,115 @@ Follow these steps to get your General Bots server up and running:
    ```
    This changes your current directory to the newly cloned BotServer folder.
 
-3. Install dependencies and start the server:
+3. Create your configuration file:
    ```bash
-   npm install
-   npm run start
+   cp .env.example .env
    ```
-   The `npm install` command installs all necessary dependencies for the project. `npm run start` builds your bot server locally and serves it through a development server.
+   Edit `.env` with your actual configuration values. See [Configuration](#configuration) section below.
+
+4. Run the server:
+   ```bash
+   cargo run
+   ```
+   On first run, BotServer will automatically:
+   - Install required components (PostgreSQL, MinIO, Redis, LLM)
+   - Set up the database with migrations
+   - Download AI models
+   - Upload template bots from `templates/` folder
+   - Start the HTTP server on `http://127.0.0.1:8080` (or your configured port)
+
+**Alternative - Build release version:**
+```bash
+cargo build --release
+./target/release/botserver
+```
+
+**Management Commands:**
+```bash
+botserver start              # Start all components
+botserver stop               # Stop all components
+botserver restart            # Restart all components
+botserver list               # List available components
+botserver status <component> # Check component status
+botserver install <component> # Install optional component
+```
 
 ### Accessing Your Bot
 
-Once the server is running, you can access your bot at `http://localhost:4242/`. This local server allows you to interact with your bot and test its functionality in real-time. If you want to publish
-without password, define [ADMIN_OPEN_PUBLISH](https://github.com/GeneralBots/BotBook/master/docs/chapter-07-gbot-reference#enviroment-variables-reference) as true in BotServer .env file.
+Once the server is running, you can access your bot at `http://localhost:8080/` (or your configured `SERVER_PORT`). This local server allows you to interact with your bot and test its functionality in real-time.
 
-To publish bot packages and initiate a conversation with the bot, use the command:
+**Anonymous Access:** Every visitor automatically gets a unique session tracked by cookie. No login required to start chatting!
 
+**Authentication:** Users can optionally register/login at `/static/auth/login.html` to save conversations across devices.
+
+**About Page:** Visit `/static/about/index.html` to learn more about BotServer and its maintainers.
+
+### Configuration
+
+BotServer uses environment variables for configuration. Copy `.env.example` to `.env` and customize:
+
+#### Required Settings (Auto-installed on first run)
+```bash
+# Database (PostgreSQL - auto-installed)
+TABLES_SERVER=localhost
+TABLES_PORT=5432
+TABLES_DATABASE=botserver
+TABLES_USERNAME=gbuser
+TABLES_PASSWORD=changeme
+
+# Storage (MinIO - auto-installed)
+DRIVE_SERVER=http://localhost:9000
+DRIVE_ACCESSKEY=minioadmin
+DRIVE_SECRET=minioadmin
+DRIVE_ORG_PREFIX=botserver-
+
+# Cache (Redis - auto-installed)
+CACHE_URL=redis://localhost:6379
+
+# LLM (llama.cpp - auto-installed with models)
+LLM_LOCAL=false
+LLM_URL=http://localhost:8081/v1
+EMBEDDING_URL=http://localhost:8082
 ```
-/publish
+
+#### Optional Settings
+```bash
+# Server Configuration
+SERVER_HOST=127.0.0.1
+SERVER_PORT=8080
+
+# External AI API (Groq, OpenAI, Azure, etc.)
+AI_KEY=your-api-key-here
+AI_ENDPOINT=https://api.groq.com/openai/v1/chat/completions
+AI_LLM_MODEL=openai/gpt-4
+
+# Email (for notifications)
+EMAIL_FROM=bot@example.com
+EMAIL_SERVER=smtp.example.com
+EMAIL_PORT=587
+EMAIL_USER=your-email@example.com
+EMAIL_PASS=your-password
 ```
-This command prepares your bot packages for use and allows you to start interacting with your bot immediately.
+
+#### Legacy Mode (Use existing infrastructure)
+If you already have PostgreSQL, MinIO, etc. running, set these in `.env`:
+```bash
+# Existing database
+TABLES_SERVER=your-db-host
+TABLES_USERNAME=your-username
+TABLES_PASSWORD=your-password
+
+# Existing MinIO/S3
+DRIVE_SERVER=https://your-minio-host
+DRIVE_ACCESSKEY=your-access-key
+DRIVE_SECRET=your-secret-key
+
+# Existing AI endpoint
+AI_ENDPOINT=https://your-llm-endpoint
+AI_KEY=your-api-key
+```
+
+BotServer will detect existing infrastructure and skip auto-installation.
 
 ## Development Workflow
 

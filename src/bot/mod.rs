@@ -556,10 +556,14 @@ impl BotOrchestrator {
             "Running start script for session: {} with token: {:?}",
             session.id, token
         );
-        let start_script_path = "./templates/announcements.gbai/announcements.gbdialog/start.bas";
-        let start_script = match std::fs::read_to_string(start_script_path) {
+        let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+        let start_script_path = format!("./{}.gbai/.gbdialog/start.bas", bot_guid);
+        let start_script = match std::fs::read_to_string(&start_script_path) {
             Ok(content) => content,
-            Err(_) => r#"TALK "Error loading script file.""#.to_string(),
+            Err(_) => {
+                warn!("start.bas not found at {}, skipping", start_script_path);
+                return Ok(true);
+            }
         };
         debug!(
             "Start script content for session {}: {}",
@@ -706,7 +710,8 @@ async fn websocket_handler(
     let user_id = query
         .get("user_id")
         .cloned()
-        .unwrap_or_else(|| "default_user".to_string());
+        .unwrap_or_else(|| Uuid::new_v4().to_string())
+        .replace("undefined", &Uuid::new_v4().to_string());
 
     let (res, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
     let (tx, mut rx) = mpsc::channel::<BotResponse>(100);
@@ -746,6 +751,20 @@ async fn websocket_handler(
         "WebSocket connection established for session: {}, user: {}",
         session_id, user_id
     );
+
+    // Trigger auto welcome (start.bas)
+    let orchestrator_clone = BotOrchestrator::new(Arc::clone(&data));
+    let user_id_welcome = user_id.clone();
+    let session_id_welcome = session_id.clone();
+    let bot_id_welcome = bot_id.clone();
+    actix_web::rt::spawn(async move {
+        if let Err(e) = orchestrator_clone
+            .trigger_auto_welcome(&session_id_welcome, &user_id_welcome, &bot_id_welcome, None)
+            .await
+        {
+            warn!("Failed to trigger auto welcome: {}", e);
+        }
+    });
 
     let web_adapter = data.web_adapter.clone();
     let session_id_clone1 = session_id.clone();

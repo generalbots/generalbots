@@ -7,6 +7,7 @@ use dotenvy::dotenv;
 use log::{info, trace};
 use rand::distr::Alphanumeric;
 use sha2::{Digest, Sha256};
+use std::path::Path;
 
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
@@ -91,6 +92,12 @@ impl BootstrapManager {
                 match diesel::PgConnection::establish(&database_url) {
                     Ok(mut conn) => {
                         info!("Successfully connected to legacy database, loading configuration");
+
+                        // Apply migrations
+                        if let Err(e) = self.apply_migrations(&mut conn) {
+                            log::warn!("Failed to apply migrations: {}", e);
+                        }
+
                         return Ok(AppConfig::from_database(&mut conn));
                     }
                     Err(e) => {
@@ -197,5 +204,174 @@ impl BootstrapManager {
         hasher.update(key.as_bytes());
         hasher.update(password.as_bytes());
         format!("{:x}", hasher.finalize())
+    }
+
+    pub async fn upload_templates_to_minio(&self, config: &AppConfig) -> Result<()> {
+        use aws_sdk_s3::config::Credentials;
+        use aws_sdk_s3::config::Region;
+
+        info!("Uploading template bots to MinIO...");
+
+        let creds = Credentials::new(
+            &config.minio.access_key,
+            &config.minio.secret_key,
+            None,
+            None,
+            "minio",
+        );
+
+        let s3_config = aws_sdk_s3::Config::builder()
+            .credentials_provider(creds)
+            .endpoint_url(&config.minio.server)
+            .region(Region::new("us-east-1"))
+            .force_path_style(true)
+            .behavior_version(aws_sdk_s3::config::BehaviorVersion::latest())
+            .build();
+
+        let client = aws_sdk_s3::Client::from_conf(s3_config);
+
+        // Upload templates from templates/ directory
+        let templates_dir = Path::new("templates");
+        if !templates_dir.exists() {
+            trace!("Templates directory not found, skipping upload");
+            return Ok(());
+        }
+
+        // Walk through each .gbai folder in templates/
+        for entry in std::fs::read_dir(templates_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
+                let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
+                let bucket_name = format!("{}{}", config.minio.org_prefix, bot_name);
+
+                trace!("Creating bucket: {}", bucket_name);
+
+                // Create bucket if it doesn't exist
+                match client.create_bucket().bucket(&bucket_name).send().await {
+                    Ok(_) => info!("Created bucket: {}", bucket_name),
+                    Err(e) => {
+                        let err_str = e.to_string();
+                        if err_str.contains("BucketAlreadyOwnedByYou")
+                            || err_str.contains("BucketAlreadyExists")
+                        {
+                            trace!("Bucket {} already exists", bucket_name);
+                        } else {
+                            log::warn!("Failed to create bucket {}: {}", bucket_name, e);
+                        }
+                    }
+                }
+
+                // Upload all files recursively
+                self.upload_directory_recursive(&client, &path, &bucket_name, "")
+                    .await?;
+                info!("Uploaded template bot: {}", bot_name);
+            }
+        }
+
+        info!("Template bots uploaded successfully");
+        Ok(())
+    }
+
+    fn upload_directory_recursive<'a>(
+        &'a self,
+        client: &'a aws_sdk_s3::Client,
+        local_path: &'a Path,
+        bucket: &'a str,
+        prefix: &'a str,
+    ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
+        Box::pin(async move {
+            use aws_sdk_s3::primitives::ByteStream;
+
+            for entry in std::fs::read_dir(local_path)? {
+                let entry = entry?;
+                let path = entry.path();
+                let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+                let key = if prefix.is_empty() {
+                    file_name.clone()
+                } else {
+                    format!("{}/{}", prefix, file_name)
+                };
+
+                if path.is_file() {
+                    trace!(
+                        "Uploading file: {} to bucket: {} with key: {}",
+                        path.display(),
+                        bucket,
+                        key
+                    );
+
+                    let body = ByteStream::from_path(&path).await?;
+
+                    client
+                        .put_object()
+                        .bucket(bucket)
+                        .key(&key)
+                        .body(body)
+                        .send()
+                        .await?;
+
+                    trace!("Uploaded: {}", key);
+                } else if path.is_dir() {
+                    self.upload_directory_recursive(client, &path, bucket, &key)
+                        .await?;
+                }
+            }
+
+            Ok(())
+        })
+    }
+
+    fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
+        use diesel::prelude::*;
+
+        info!("Applying database migrations...");
+
+        let migrations_dir = std::path::Path::new("migrations");
+        if !migrations_dir.exists() {
+            trace!("No migrations directory found, skipping");
+            return Ok(());
+        }
+
+        // Get all .sql files sorted
+        let mut sql_files: Vec<_> = std::fs::read_dir(migrations_dir)?
+            .filter_map(|entry| entry.ok())
+            .filter(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s == "sql")
+                    .unwrap_or(false)
+            })
+            .collect();
+
+        sql_files.sort_by_key(|entry| entry.path());
+
+        for entry in sql_files {
+            let path = entry.path();
+            let filename = path.file_name().unwrap().to_string_lossy();
+
+            trace!("Reading migration: {}", filename);
+            match std::fs::read_to_string(&path) {
+                Ok(sql) => {
+                    trace!("Applying migration: {}", filename);
+                    match diesel::sql_query(&sql).execute(conn) {
+                        Ok(_) => info!("Applied migration: {}", filename),
+                        Err(e) => {
+                            // Ignore errors for already applied migrations
+                            trace!("Migration {} result: {}", filename, e);
+                        }
+                    }
+                }
+                Err(e) => {
+                    log::warn!("Failed to read migration {}: {}", filename, e);
+                }
+            }
+        }
+
+        info!("Migrations check completed");
+        Ok(())
     }
 }
