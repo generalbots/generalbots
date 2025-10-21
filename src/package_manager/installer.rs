@@ -96,7 +96,7 @@ impl PackageManager {
                 ("MINIO_ROOT_USER".to_string(), "gbdriveuser".to_string()),
                 ("MINIO_ROOT_PASSWORD".to_string(), drive_password)
             ]),
-            exec_cmd: "{{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001".to_string(),
+            exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
         });
 
         self.update_drive_credentials_in_database(&encrypted_drive_password)
@@ -230,7 +230,7 @@ impl PackageManager {
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
-            exec_cmd: "{{BIN_PATH}}/llama-server -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --port 8081 & {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --port 8082 --embedding".to_string(),
+            exec_cmd: "nohup {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --port 8081 > {{LOGS_PATH}}/llm-main.log 2>&1 & nohup {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --port 8082 --embedding > {{LOGS_PATH}}/llm-embed.log 2>&1 &".to_string(),
         });
     }
 

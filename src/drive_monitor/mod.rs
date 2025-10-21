@@ -296,9 +296,13 @@ impl DriveMonitor {
         // Calculate file hash for change detection
         let _file_hash = format!("{:x}", source_content.len());
 
-        // Create work directory
-        let work_dir = "./work/default.gbai/default.gbdialog";
-        std::fs::create_dir_all(work_dir)?;
+        // Create work directory using bot from bucket name
+        let bot_name = self
+            .bucket_name
+            .strip_suffix(".gbai")
+            .unwrap_or(&self.bucket_name);
+        let work_dir = format!("./work/{}.gbai/.gbdialog", bot_name);
+        std::fs::create_dir_all(&work_dir)?;
 
         // Write source to local file
         let local_source_path = format!("{}/{}.bas", work_dir, tool_name);
@@ -306,7 +310,7 @@ impl DriveMonitor {
 
         // Compile using BasicCompiler
         let compiler = BasicCompiler::new(Arc::clone(&self.state));
-        let result = compiler.compile_file(&local_source_path, work_dir)?;
+        let result = compiler.compile_file(&local_source_path, &work_dir)?;
 
         info!("Tool compiled successfully: {}", tool_name);
         info!("  AST: {}", result.ast_path);

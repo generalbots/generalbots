@@ -1,6 +1,16 @@
-let resume = GET_BOT_MEMORY ("resume")
-TALK resume
+REM start.bas - Runs automatically when user connects via web
+REM This is the entry point for each session
 
-ADD_KB "weekly" 
+LET resume = GET_BOT_MEMORY("resume")
 
-TALK "Olá, pode me perguntar sobre qualquer coisa destas circulares..."
+IF resume <> "" THEN
+    TALK resume
+ELSE
+    TALK "Welcome! I'm loading the latest information..."
+END IF
+
+REM Add knowledge base for weekly announcements
+ADD_KB "weekly"
+
+TALK "You can ask me about any of the announcements or circulars."
+TALK "If you'd like to login or signup, just type 'auth'."

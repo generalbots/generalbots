@@ -689,7 +689,9 @@
                 height: 100%;
                 background: #90ee90;
                 border-radius: 3px;
-                transition: width 0.3s ease, background-color 0.3s ease;
+                transition:
+                    width 0.3s ease,
+                    background-color 0.3s ease;
             }
 
             .context-progress-bar.warning {
@@ -880,15 +882,27 @@
         </div>
 
         <!-- New elements for improvements -->
-        <button class="scroll-to-bottom" id="scrollToBottom" style="display: none">
+        <button
+            class="scroll-to-bottom"
+            id="scrollToBottom"
+            style="display: none"
+        >
             ↓
         </button>
 
-        <div class="context-indicator" id="contextIndicator" style="display: none">
+        <div
+            class="context-indicator"
+            id="contextIndicator"
+            style="display: none"
+        >
             <div>Contexto</div>
             <div id="contextPercentage">0%</div>
             <div class="context-progress">
-                <div class="context-progress-bar" id="contextProgressBar" style="width: 0%"></div>
+                <div
+                    class="context-progress-bar"
+                    id="contextProgressBar"
+                    style="width: 0%"
+                ></div>
             </div>
         </div>
 
@@ -918,11 +932,15 @@
             const input = document.getElementById("messageInput");
             const sendBtn = document.getElementById("sendBtn");
             const newChatBtn = document.getElementById("newChatBtn");
-            const connectionStatus = document.getElementById("connectionStatus");
+            const connectionStatus =
+                document.getElementById("connectionStatus");
             const scrollToBottomBtn = document.getElementById("scrollToBottom");
-            const contextIndicator = document.getElementById("contextIndicator");
-            const contextPercentage = document.getElementById("contextPercentage");
-            const contextProgressBar = document.getElementById("contextProgressBar");
+            const contextIndicator =
+                document.getElementById("contextIndicator");
+            const contextPercentage =
+                document.getElementById("contextPercentage");
+            const contextProgressBar =
+                document.getElementById("contextProgressBar");
 
             marked.setOptions({
                 breaks: true,
@@ -940,7 +958,10 @@
             function getWebSocketUrl() {
                 const protocol =
                     window.location.protocol === "https:" ? "wss:" : "ws:";
-                return `${protocol}//${window.location.host}/ws?session_id=${currentSessionId}&user_id=${currentUserId}`;
+                // Generate UUIDs if not set yet
+                const sessionId = currentSessionId || crypto.randomUUID();
+                const userId = currentUserId || crypto.randomUUID();
+                return `${protocol}//${window.location.host}/ws?session_id=${sessionId}&user_id=${userId}`;
             }
 
             // Auto-focus on input when page loads
@@ -964,10 +985,12 @@
             });
 
             // Scroll management
-            messagesDiv.addEventListener("scroll", function() {
+            messagesDiv.addEventListener("scroll", function () {
                 // Check if user is scrolling manually
-                const isAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop <= messagesDiv.clientHeight + 100;
-                
+                const isAtBottom =
+                    messagesDiv.scrollHeight - messagesDiv.scrollTop <=
+                    messagesDiv.clientHeight + 100;
+
                 if (!isAtBottom) {
                     isUserScrolling = true;
                     showScrollToBottomButton();
@@ -997,19 +1020,21 @@
             function updateContextUsage(usage) {
                 contextUsage = usage;
                 const percentage = Math.min(100, Math.round(usage * 100));
-                
+
                 contextPercentage.textContent = `${percentage}%`;
                 contextProgressBar.style.width = `${percentage}%`;
-                
+
                 // Update color based on usage
                 if (percentage >= 90) {
-                    contextProgressBar.className = "context-progress-bar danger";
+                    contextProgressBar.className =
+                        "context-progress-bar danger";
                 } else if (percentage >= 70) {
-                    contextProgressBar.className = "context-progress-bar warning";
+                    contextProgressBar.className =
+                        "context-progress-bar warning";
                 } else {
                     contextProgressBar.className = "context-progress-bar";
                 }
-                
+
                 // Show indicator if usage is above 50%
                 if (percentage >= 50) {
                     contextIndicator.style.display = "block";
@@ -1308,16 +1333,19 @@
                 thinkingTimeout = setTimeout(() => {
                     if (isThinking) {
                         hideThinkingIndicator();
-                        showWarning("O servidor pode estar ocupado. A resposta está demorando demais.");
+                        showWarning(
+                            "O servidor pode estar ocupado. A resposta está demorando demais.",
+                        );
                     }
                 }, 60000);
-                
+
                 isThinking = true;
             }
 
             function hideThinkingIndicator() {
                 if (!isThinking) return;
-                const thinkingDiv = document.getElementById("thinking-indicator");
+                const thinkingDiv =
+                    document.getElementById("thinking-indicator");
                 if (thinkingDiv) {
                     gsap.to(thinkingDiv, {
                         opacity: 0,
@@ -1399,7 +1427,7 @@
                 if (!ws || ws.readyState !== WebSocket.OPEN) {
                     connectWebSocket();
                 }
-                
+
                 // Send a continue request to the server
                 if (ws && ws.readyState === WebSocket.OPEN) {
                     const continueData = {
@@ -1412,13 +1440,14 @@
                         media_url: null,
                         timestamp: new Date().toISOString(),
                     };
-                    
+
                     ws.send(JSON.stringify(continueData));
                 }
-                
+
                 // Remove the continue button
-                const continueButtons = document.querySelectorAll('.continue-button');
-                continueButtons.forEach(button => {
+                const continueButtons =
+                    document.querySelectorAll(".continue-button");
+                continueButtons.forEach((button) => {
                     button.parentElement.parentElement.parentElement.remove();
                 });
             }
@@ -1498,7 +1527,7 @@
                 const msgElement = document.getElementById(streamingMessageId);
                 if (msgElement) {
                     msgElement.innerHTML = marked.parse(content);
-                    
+
                     // Auto-scroll to bottom if user isn't manually scrolling
                     if (!isUserScrolling) {
                         scrollToBottom();
@@ -1515,7 +1544,7 @@
                         currentStreamingContent,
                     );
                     msgElement.removeAttribute("id");
-                    
+
                     // Auto-scroll to bottom if user isn't manually scrolling
                     if (!isUserScrolling) {
                         scrollToBottom();

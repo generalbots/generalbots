@@ -52,7 +52,7 @@ use crate::meet::{voice_start, voice_stop};
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions};
 use crate::shared::state::AppState;
-use crate::web_server::{index, static_files};
+use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
 
@@ -63,18 +63,17 @@ async fn main() -> std::io::Result<()> {
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
-            "install" | "remove" | "list" | "status" | "--help" | "-h" => {
-                match package_manager::cli::run().await {
-                    Ok(_) => return Ok(()),
-                    Err(e) => {
-                        eprintln!("CLI error: {}", e);
-                        return Err(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            format!("CLI command failed: {}", e),
-                        ));
-                    }
+            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
+            | "-h" => match package_manager::cli::run().await {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    eprintln!("CLI error: {}", e);
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("CLI command failed: {}", e),
+                    ));
                 }
-            }
+            },
             _ => {
                 eprintln!("Unknown command: {}", command);
                 eprintln!("Run 'botserver --help' for usage information");
@@ -126,6 +125,12 @@ async fn main() -> std::io::Result<()> {
     };
 
     let _ = bootstrap.start_all();
+
+    // Upload template bots to MinIO on first startup
+    if let Err(e) = bootstrap.upload_templates_to_minio(&cfg).await {
+        log::warn!("Failed to upload templates to MinIO: {}", e);
+    }
+
     let config = std::sync::Arc::new(cfg.clone());
 
     info!("Establishing database connection to {}", cfg.database_url());
@@ -237,16 +242,16 @@ async fn main() -> std::io::Result<()> {
 
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
-            let automation = AutomationService::new(
-                automation_state,
-                "templates/announcements.gbai/announcements.gbdialog",
-            );
+            let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+            let scripts_dir = format!("work/{}.gbai/.gbdialog", bot_guid);
+            let automation = AutomationService::new(automation_state, &scripts_dir);
             automation.spawn().await.ok();
         });
     });
 
     let drive_state = app_state.clone();
-    let bucket_name = format!("{}default.gbai", cfg.minio.org_prefix);
+    let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+    let bucket_name = format!("{}{}.gbai", cfg.minio.org_prefix, bot_guid);
     let drive_monitor = Arc::new(DriveMonitor::new(drive_state, bucket_name));
     let _drive_handle = drive_monitor.spawn();
 
@@ -267,6 +272,7 @@ async fn main() -> std::io::Result<()> {
         app = app
             .service(upload_file)
             .service(index)
+            .service(bot_index)
             .service(static_files)
             .service(websocket_handler)
             .service(auth_handler)

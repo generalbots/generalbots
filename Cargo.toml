@@ -1,39 +1,41 @@
 [package]
 name = "botserver"
-version = "6.0.4"
+version = "6.0.5"
 edition = "2021"
 authors = [
-    "@AlanPerdomo",
-    "@AnaPaulaGil",
-    "@arenasio",
-    "@AtyllaL",
-    "@christopherdecastilho",
-    "@danielolima96",
-    "@Dariojunior3",
-    "@davidlerner26",
-    "@ExperimentationGarage",
-    "@flavioandrade91",
-    "@HeraldoAlmeida",
-    "@joao-parana",
-    "@jonathasc",
-    "@jramos-br",
-    "@lpicanco",
-    "@marcosvelasco",
-    "@matheus39x",
-    "@oerlabshenrique",
-    "@othonlima",
-    "@PH-Nascimento",
-    "@phpussente",
-    "@RobsonDantasE",
-    "@rodrigorodriguez",
-    "@SarahLourenco",
-    "@thipatriota",
-    "@webgus",
-    "@ZuilhoSe",
+    "Pragmatismo.com.br <contact@pragmatismo.com.br>",
+    "General Bots Community <https://github.com/GeneralBots>",
+    "Rodrigo Rodriguez <rodrigorodriguez@pragmatismo.com.br>",
+    "Alan Perdomo",
+    "Ana Paula Gil",
+    "Arenas.io",
+    "Atylla L",
+    "Christopher de Castilho",
+    "Dario Lima",
+    "Dario Junior",
+    "David Lerner",
+    "Experimentation Garage",
+    "Flavio Andrade",
+    "Heraldo Almeida",
+    "Joao Parana",
+    "Jonathas C",
+    "J Ramos",
+    "Lucas Picanco",
+    "Marcos Velasco",
+    "Matheus 39x",
+    "Oerlabs Henrique",
+    "Othon Lima",
+    "PH Nascimento",
+    "Phpussente",
+    "Robson Dantas",
+    "Sarah Lourenco",
+    "Thi Patriota",
+    "Webgus",
+    "Zuilho Se",
 ]
-description = "General Bots Server"
+description = "General Bots Server - Open-source bot platform by Pragmatismo.com.br"
 license = "AGPL-3.0"
-repository = "https://alm.pragmatismo.com.br/generalbots/botserver"
+repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
 default = ["vectordb"]

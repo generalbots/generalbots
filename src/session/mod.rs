@@ -109,33 +109,32 @@ impl SessionManager {
         self.create_session(uid, bid, session_title).map(Some)
     }
 
-    pub fn create_session(
+    pub fn get_or_create_anonymous_user(
         &mut self,
-        uid: Uuid,
-        bid: Uuid,
-        session_title: &str,
-    ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
+        uid: Option<Uuid>,
+    ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::users::dsl as users_dsl;
 
-        let now = Utc::now();
+        let user_id = uid.unwrap_or_else(Uuid::new_v4);
+
         let user_exists: Option<Uuid> = users_dsl::users
-            .filter(users_dsl::id.eq(uid))
+            .filter(users_dsl::id.eq(user_id))
             .select(users_dsl::id)
             .first(&mut self.conn)
             .optional()?;
 
         if user_exists.is_none() {
-            warn!(
-                "User {} does not exist in database, creating placeholder user",
-                uid
-            );
+            let now = Utc::now();
+            info!("Creating anonymous user with ID {}", user_id);
             diesel::insert_into(users_dsl::users)
                 .values((
-                    users_dsl::id.eq(uid),
-                    users_dsl::username.eq(format!("anonymous_{}", rand::random::<u32>())),
-                    users_dsl::email.eq(format!("anonymous_{}@local", rand::random::<u32>())),
-                    users_dsl::password_hash.eq("placeholder"),
+                    users_dsl::id.eq(user_id),
+                    users_dsl::username.eq(format!("guest_{}", &user_id.to_string()[..8])),
+                    users_dsl::email.eq(format!(
+                        "guest_{}@anonymous.local",
+                        &user_id.to_string()[..8]
+                    )),
+                    users_dsl::password_hash.eq(""),
                     users_dsl::is_active.eq(true),
                     users_dsl::created_at.eq(now),
                     users_dsl::updated_at.eq(now),
@@ -143,10 +142,25 @@ impl SessionManager {
                 .execute(&mut self.conn)?;
         }
 
+        Ok(user_id)
+    }
+
+    pub fn create_session(
+        &mut self,
+        uid: Uuid,
+        bid: Uuid,
+        session_title: &str,
+    ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
+        use crate::shared::models::user_sessions::dsl::*;
+
+        // Ensure user exists (create anonymous if needed)
+        let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
+        let now = Utc::now();
+
         let inserted: UserSession = diesel::insert_into(user_sessions)
             .values((
                 id.eq(Uuid::new_v4()),
-                user_id.eq(uid),
+                user_id.eq(verified_uid),
                 bot_id.eq(bid),
                 title.eq(session_title),
                 context_data.eq(serde_json::json!({})),
