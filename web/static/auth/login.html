@@ -1,0 +1,445 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>BotServer - Login</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family:
+                    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+                    Oxygen, Ubuntu, Cantarell, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 20px;
+            }
+
+            .container {
+                background: white;
+                border-radius: 16px;
+                box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+                width: 100%;
+                max-width: 400px;
+                overflow: hidden;
+            }
+
+            .header {
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 30px;
+                text-align: center;
+            }
+
+            .header h1 {
+                font-size: 28px;
+                margin-bottom: 5px;
+            }
+
+            .header p {
+                font-size: 14px;
+                opacity: 0.9;
+            }
+
+            .form-container {
+                padding: 30px;
+            }
+
+            .tabs {
+                display: flex;
+                margin-bottom: 30px;
+                border-bottom: 2px solid #e5e7eb;
+            }
+
+            .tab {
+                flex: 1;
+                padding: 12px;
+                text-align: center;
+                cursor: pointer;
+                font-weight: 600;
+                color: #6b7280;
+                transition: all 0.3s;
+                border-bottom: 3px solid transparent;
+                margin-bottom: -2px;
+            }
+
+            .tab.active {
+                color: #667eea;
+                border-bottom-color: #667eea;
+            }
+
+            .form-group {
+                margin-bottom: 20px;
+            }
+
+            .form-group label {
+                display: block;
+                margin-bottom: 8px;
+                font-weight: 500;
+                color: #374151;
+                font-size: 14px;
+            }
+
+            .form-group input {
+                width: 100%;
+                padding: 12px 16px;
+                border: 2px solid #e5e7eb;
+                border-radius: 8px;
+                font-size: 14px;
+                transition: border-color 0.3s;
+            }
+
+            .form-group input:focus {
+                outline: none;
+                border-color: #667eea;
+            }
+
+            .btn {
+                width: 100%;
+                padding: 14px;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 16px;
+                font-weight: 600;
+                cursor: pointer;
+                transition:
+                    transform 0.2s,
+                    box-shadow 0.2s;
+            }
+
+            .btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+            }
+
+            .form-section {
+                display: none;
+            }
+
+            .form-section.active {
+                display: block;
+            }
+
+            .message {
+                padding: 12px;
+                border-radius: 8px;
+                margin-bottom: 20px;
+                font-size: 14px;
+                display: none;
+            }
+
+            .message.error {
+                background-color: #fee2e2;
+                color: #991b1b;
+                border: 1px solid #fecaca;
+            }
+
+            .message.success {
+                background-color: #d1fae5;
+                color: #065f46;
+                border: 1px solid #a7f3d0;
+            }
+
+            .footer {
+                text-align: center;
+                padding: 20px;
+                color: #6b7280;
+                font-size: 12px;
+                background: #f9fafb;
+            }
+
+            .footer a {
+                color: #667eea;
+                text-decoration: none;
+            }
+
+            .footer a:hover {
+                text-decoration: underline;
+            }
+
+            .anonymous-link {
+                text-align: center;
+                margin-top: 20px;
+            }
+
+            .anonymous-link a {
+                color: #667eea;
+                text-decoration: none;
+                font-size: 14px;
+            }
+
+            .anonymous-link a:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>BotServer</h1>
+                <p>by Pragmatismo.com.br</p>
+            </div>
+
+            <div class="form-container">
+                <div id="message" class="message"></div>
+
+                <div
+                    style="
+                        background: #f0f9ff;
+                        border-left: 4px solid #3b82f6;
+                        padding: 15px;
+                        margin-bottom: 20px;
+                        border-radius: 8px;
+                    "
+                >
+                    <p
+                        style="
+                            margin: 0;
+                            color: #1e40af;
+                            font-size: 14px;
+                            line-height: 1.6;
+                        "
+                    >
+                        💡 <strong>Anonymous Sessions:</strong> Each visitor
+                        automatically gets a unique session. Register to save
+                        your conversations and access them across devices!
+                    </p>
+                </div>
+
+                <div class="tabs">
+                    <div class="tab active" onclick="switchTab('signin')">
+                        Sign In
+                    </div>
+                    <div class="tab" onclick="switchTab('signup')">Sign Up</div>
+                </div>
+
+                <!-- Sign In Form -->
+                <div id="signin-form" class="form-section active">
+                    <form onsubmit="handleSignIn(event)">
+                        <div class="form-group">
+                            <label for="signin-email">Email</label>
+                            <input
+                                type="email"
+                                id="signin-email"
+                                required
+                                placeholder="your@email.com"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="signin-password">Password</label>
+                            <input
+                                type="password"
+                                id="signin-password"
+                                required
+                                placeholder="••••••••"
+                            />
+                        </div>
+                        <button type="submit" class="btn">Sign In</button>
+                    </form>
+                </div>
+
+                <!-- Sign Up Form -->
+                <div id="signup-form" class="form-section">
+                    <form onsubmit="handleSignUp(event)">
+                        <div class="form-group">
+                            <label for="signup-name">Full Name</label>
+                            <input
+                                type="text"
+                                id="signup-name"
+                                required
+                                placeholder="John Doe"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-email">Email</label>
+                            <input
+                                type="email"
+                                id="signup-email"
+                                required
+                                placeholder="your@email.com"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-password">Password</label>
+                            <input
+                                type="password"
+                                id="signup-password"
+                                required
+                                placeholder="••••••••"
+                                minlength="6"
+                            />
+                        </div>
+                        <div class="form-group">
+                            <label for="signup-confirm">Confirm Password</label>
+                            <input
+                                type="password"
+                                id="signup-confirm"
+                                required
+                                placeholder="••••••••"
+                                minlength="6"
+                            />
+                        </div>
+                        <button type="submit" class="btn">Sign Up</button>
+                    </form>
+                </div>
+
+                <div class="anonymous-link">
+                    <a href="/">← Continue with anonymous session</a>
+                </div>
+            </div>
+
+            <div class="footer">
+                Maintained by
+                <a href="https://pragmatismo.com.br" target="_blank"
+                    >Pragmatismo.com.br</a
+                ><br />
+                Open source at
+                <a href="https://github.com/GeneralBots" target="_blank"
+                    >github.com/GeneralBots</a
+                >
+            </div>
+        </div>
+
+        <script>
+            function switchTab(tab) {
+                // Update tabs
+                document
+                    .querySelectorAll(".tab")
+                    .forEach((t) => t.classList.remove("active"));
+                event.target.classList.add("active");
+
+                // Update forms
+                document
+                    .querySelectorAll(".form-section")
+                    .forEach((f) => f.classList.remove("active"));
+                document.getElementById(tab + "-form").classList.add("active");
+
+                // Clear message
+                hideMessage();
+            }
+
+            function showMessage(text, type) {
+                const messageEl = document.getElementById("message");
+                messageEl.textContent = text;
+                messageEl.className = "message " + type;
+                messageEl.style.display = "block";
+            }
+
+            function hideMessage() {
+                const messageEl = document.getElementById("message");
+                messageEl.style.display = "none";
+            }
+
+            async function handleSignIn(event) {
+                event.preventDefault();
+                hideMessage();
+
+                const email = document.getElementById("signin-email").value;
+                const password =
+                    document.getElementById("signin-password").value;
+
+                try {
+                    const response = await fetch("/api/auth/login", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ email, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(
+                            "Login successful! Redirecting...",
+                            "success",
+                        );
+                        localStorage.setItem("token", data.token);
+                        setTimeout(() => {
+                            window.location.href = "/";
+                        }, 1000);
+                    } else {
+                        showMessage(
+                            data.error || "Login failed. Please try again.",
+                            "error",
+                        );
+                    }
+                } catch (error) {
+                    showMessage("Network error. Please try again.", "error");
+                    console.error("Login error:", error);
+                }
+            }
+
+            async function handleSignUp(event) {
+                event.preventDefault();
+                hideMessage();
+
+                const name = document.getElementById("signup-name").value;
+                const email = document.getElementById("signup-email").value;
+                const password =
+                    document.getElementById("signup-password").value;
+                const confirm = document.getElementById("signup-confirm").value;
+
+                if (password !== confirm) {
+                    showMessage("Passwords do not match!", "error");
+                    return;
+                }
+
+                if (password.length < 6) {
+                    showMessage(
+                        "Password must be at least 6 characters long.",
+                        "error",
+                    );
+                    return;
+                }
+
+                try {
+                    const response = await fetch("/api/auth/register", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                        },
+                        body: JSON.stringify({ name, email, password }),
+                    });
+
+                    const data = await response.json();
+
+                    if (response.ok) {
+                        showMessage(
+                            "Registration successful! Please sign in.",
+                            "success",
+                        );
+                        setTimeout(() => {
+                            switchTab("signin");
+                            document.getElementById("signin-email").value =
+                                email;
+                        }, 1500);
+                    } else {
+                        showMessage(
+                            data.error ||
+                                "Registration failed. Please try again.",
+                            "error",
+                        );
+                    }
+                } catch (error) {
+                    showMessage("Network error. Please try again.", "error");
+                    console.error("Registration error:", error);
+                }
+            }
+        </script>
+    </body>
+</html>
