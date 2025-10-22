@@ -193,29 +193,42 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
-        self.components.insert("cache".to_string(), ComponentConfig {
-            name: "cache".to_string(),
-            required: true,
-            ports: vec![6379],
-            dependencies: vec![],
-            linux_packages: vec!["curl".to_string(), "gnupg".to_string(), "lsb-release".to_string()],
-            macos_packages: vec!["redis".to_string()],
-            windows_packages: vec![],
-            download_url: None,
-            binary_name: Some("valkey-server".to_string()),
-            pre_install_cmds_linux: vec![
-                "sudo bash -c 'if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi'".to_string(),
-                "sudo bash -c 'if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo \"deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/valkey.list; fi'".to_string(),
-                "sudo apt-get update && sudo apt-get install -y valkey".to_string()
-            ],
-            post_install_cmds_linux: vec![],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
-            env_vars: HashMap::new(),
-            exec_cmd: "valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
-        });
+        self.components.insert(
+            "cache".to_string(),
+            ComponentConfig {
+                name: "cache".to_string(),
+                required: true,
+                ports: vec![6379],
+                dependencies: vec![],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some("https://download.redis.io/redis-stable.tar.gz".to_string()),
+                binary_name: Some("redis-server".to_string()),
+                pre_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    "tar -xzf redis-stable.tar.gz".to_string(),
+                    "cd redis-stable && make -j4".to_string(),
+                    "cp redis-stable/src/redis-server .".to_string(),
+                    "cp redis-stable/src/redis-cli .".to_string(),
+                    "chmod +x redis-server redis-cli".to_string(),
+                    "rm -rf redis-stable redis-stable.tar.gz".to_string(),
+                ],
+                pre_install_cmds_macos: vec![],
+                post_install_cmds_macos: vec![
+                    "tar -xzf redis-stable.tar.gz".to_string(),
+                    "cd redis-stable && make -j4".to_string(),
+                    "cp redis-stable/src/redis-server .".to_string(),
+                    "cp redis-stable/src/redis-cli .".to_string(),
+                    "chmod +x redis-server redis-cli".to_string(),
+                    "rm -rf redis-stable redis-stable.tar.gz".to_string(),
+                ],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: HashMap::new(),
+                exec_cmd: "./redis-server --port 6379 --dir {{DATA_PATH}}".to_string(),
+            },
+        );
     }
 
     fn register_llm(&mut self) {
