@@ -115,8 +115,8 @@ impl PackageManager {
         if let Ok(mut conn) = PgConnection::establish(&database_url) {
             let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
             diesel::update(bots)
-                .filter(bot_id.eq(system_bot_id))
-                .set(config.eq(serde_json::json!({
+                .filter(id.eq(system_bot_id))
+                .set(llm_config.eq(serde_json::json!({
                     "encrypted_drive_password": encrypted_drive_password,
                 })))
                 .execute(&mut conn)?;
@@ -165,8 +165,20 @@ impl PackageManager {
                 "echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
                 "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
 
-                format!("./bin/pg_ctl -D {{{{DATA_PATH}}}}/pgdata -l {{{{LOGS_PATH}}}}/postgres.log start; for i in 1 2 3 4 5 6 7 8 9 10; do ./bin/pg_isready -h localhost -p 5432 >/dev/null 2>&1 && break; echo 'Waiting for PostgreSQL to start...' >&2; sleep 1; done; ./bin/pg_isready -h localhost -p 5432"),
-                format!("PGPASSWORD={} ./bin/psql -h localhost -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true", db_password)
+                // Start PostgreSQL with wait flag
+                "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30".to_string(),
+
+                // Wait for PostgreSQL to be fully ready
+                "sleep 5".to_string(),
+
+                // Check if PostgreSQL is accepting connections with retries
+                "for i in $(seq 1 30); do ./bin/pg_isready -h localhost -p 5432 -U gbuser >/dev/null 2>&1 && echo 'PostgreSQL is ready' && break || echo \"Waiting for PostgreSQL... attempt $i/30\" >&2; sleep 2; done".to_string(),
+
+                // Final verification
+                "./bin/pg_isready -h localhost -p 5432 -U gbuser || { echo 'ERROR: PostgreSQL failed to start properly' >&2; cat {{LOGS_PATH}}/postgres.log >&2; exit 1; }".to_string(),
+
+                // Create database (separate command to ensure previous steps completed)
+                format!("PGPASSWORD={} ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true", db_password)
             ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![

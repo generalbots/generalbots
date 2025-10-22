@@ -152,15 +152,13 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to initialize LLM local server");
 
-    let cache_url = cfg
-        .config_path("cache")
-        .join("redis.conf")
-        .display()
-        .to_string();
+    let cache_url = std::env::var("CACHE_URL")
+        .or_else(|_| std::env::var("REDIS_URL"))
+        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
-            log::warn!("Failed to connect to Redis: {}", e);
+            log::warn!("Failed to connect to Redis: Redis URL did not parse- {}", e);
             None
         }
     };
@@ -272,7 +270,6 @@ async fn main() -> std::io::Result<()> {
         app = app
             .service(upload_file)
             .service(index)
-            .service(bot_index)
             .service(static_files)
             .service(websocket_handler)
             .service(auth_handler)
@@ -284,7 +281,8 @@ async fn main() -> std::io::Result<()> {
             .service(start_session)
             .service(get_session_history)
             .service(chat_completions_local)
-            .service(embeddings_local);
+            .service(embeddings_local)
+            .service(bot_index); // Must be last - catches all remaining paths
 
         #[cfg(feature = "email")]
         {

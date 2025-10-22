@@ -707,11 +707,24 @@ async fn websocket_handler(
 ) -> Result<HttpResponse, actix_web::Error> {
     let query = web::Query::<HashMap<String, String>>::from_query(req.query_string()).unwrap();
     let session_id = query.get("session_id").cloned().unwrap();
-    let user_id = query
+    let user_id_string = query
         .get("user_id")
         .cloned()
         .unwrap_or_else(|| Uuid::new_v4().to_string())
         .replace("undefined", &Uuid::new_v4().to_string());
+
+    // Ensure user exists in database before proceeding
+    let user_id = {
+        let user_uuid = Uuid::parse_str(&user_id_string).unwrap_or_else(|_| Uuid::new_v4());
+        let mut sm = data.session_manager.lock().await;
+        match sm.get_or_create_anonymous_user(Some(user_uuid)) {
+            Ok(uid) => uid.to_string(),
+            Err(e) => {
+                error!("Failed to ensure user exists for WebSocket: {}", e);
+                user_id_string
+            }
+        }
+    };
 
     let (res, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
     let (tx, mut rx) = mpsc::channel::<BotResponse>(100);
@@ -729,7 +742,31 @@ async fn websocket_handler(
         .add_connection(session_id.clone(), tx.clone())
         .await;
 
-    let bot_id = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+    // Get first available bot from database
+    let bot_id = {
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        let mut db_conn = data.conn.lock().unwrap();
+        match bots
+            .filter(is_active.eq(true))
+            .select(id)
+            .first::<Uuid>(&mut *db_conn)
+            .optional()
+        {
+            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+            Ok(None) => {
+                error!("No active bots found in database for WebSocket");
+                return Err(actix_web::error::ErrorServiceUnavailable(
+                    "No bots available",
+                ));
+            }
+            Err(e) => {
+                error!("Failed to query bots for WebSocket: {}", e);
+                return Err(actix_web::error::ErrorInternalServerError("Database error"));
+            }
+        }
+    };
 
     orchestrator
         .send_event(
@@ -802,8 +839,29 @@ async fn websocket_handler(
             match msg {
                 WsMessage::Text(text) => {
                     message_count += 1;
-                    let bot_id =
-                        std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+                    // Get first available bot from database
+                    let bot_id = {
+                        use crate::shared::models::schema::bots::dsl::*;
+                        use diesel::prelude::*;
+
+                        let mut db_conn = data.conn.lock().unwrap();
+                        match bots
+                            .filter(is_active.eq(true))
+                            .select(id)
+                            .first::<Uuid>(&mut *db_conn)
+                            .optional()
+                        {
+                            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+                            Ok(None) => {
+                                error!("No active bots found");
+                                continue;
+                            }
+                            Err(e) => {
+                                error!("Failed to query bots: {}", e);
+                                continue;
+                            }
+                        }
+                    };
 
                     // Parse the text as JSON to extract the content field
                     let json_value: serde_json::Value = match serde_json::from_str(&text) {
@@ -840,8 +898,29 @@ async fn websocket_handler(
                 }
 
                 WsMessage::Close(_) => {
-                    let bot_id =
-                        std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+                    // Get first available bot from database
+                    let bot_id = {
+                        use crate::shared::models::schema::bots::dsl::*;
+                        use diesel::prelude::*;
+
+                        let mut db_conn = data.conn.lock().unwrap();
+                        match bots
+                            .filter(is_active.eq(true))
+                            .select(id)
+                            .first::<Uuid>(&mut *db_conn)
+                            .optional()
+                        {
+                            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+                            Ok(None) => {
+                                error!("No active bots found");
+                                "".to_string()
+                            }
+                            Err(e) => {
+                                error!("Failed to query bots: {}", e);
+                                "".to_string()
+                            }
+                        }
+                    };
                     orchestrator
                         .send_event(
                             &user_id_clone,
