@@ -91,7 +91,13 @@ impl PackageManager {
                 "chmod +x {{BIN_PATH}}/mc".to_string()
             ],
             pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![],
+            post_install_cmds_windows: vec![
+                "curl https://dl.min.io/client/mc/release/windows-amd64/mc.exe -O {{BIN_PATH}}\\mc.exe".to_string(),
+                "cmd /c {{BIN_PATH}}\\mc.exe alias set mc http://localhost:9000 gbdriveuser {}".to_string(),
+                "cmd /c {{BIN_PATH}}\\mc.exe mb mc\\default.gbai".to_string(),
+                "cmd /c {{BIN_PATH}}\\mc.exe admin user add mc gbdriveuser {}".to_string(),
+                "cmd /c {{BIN_PATH}}\\mc.exe admin policy attach mc readwrite --user=gbdriveuser".to_string()
+            ],
             env_vars: HashMap::from([
                 ("MINIO_ROOT_USER".to_string(), "gbdriveuser".to_string()),
                 ("MINIO_ROOT_PASSWORD".to_string(), drive_password)
@@ -199,7 +205,12 @@ impl PackageManager {
             post_install_cmds_linux: vec![],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![],
+            pre_install_cmds_windows: vec![
+
+                "powershell -Command \"if (!(Test-Path -Path 'C:\\ProgramData\\valkey\\keyrings\\valkey.gpg')) { Invoke-WebRequest -Uri 'https://packages.redis.io/gpg' -OutFile C:\\ProgramData\\valkey\\keyrings\\valkey.gpg }\"".to_string(),
+                "powershell -Command \"if (!(Test-Path -Path 'C:\\ProgramData\\valkey\\sources.list')) { Add-Content -Path 'C:\\ProgramData\\valkey\\sources.list' -Value 'deb [signed-by=C:\\ProgramData\\valkey\\keyrings\\valkey.gpg] https://packages.redis.io/windows valkey main' }\"".to_string(),
+                "powershell -Command \"winget install -e --id Valkey valkey-server\"".to_string()
+            ],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
             exec_cmd: "valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
