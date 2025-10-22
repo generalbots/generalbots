@@ -236,13 +236,18 @@ pub mod schema {
     }
 
     diesel::table! {
-        bots (bot_id) {
-            bot_id -> Uuid,
-            name -> Text,
-            status -> Int4,
-            config -> Jsonb,
+        bots (id) {
+            id -> Uuid,
+            name -> Varchar,
+            description -> Nullable<Text>,
+            llm_provider -> Varchar,
+            llm_config -> Jsonb,
+            context_provider -> Varchar,
+            context_config -> Jsonb,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
+            is_active -> Nullable<Bool>,
+            tenant_id -> Nullable<Uuid>,
         }
     }
 

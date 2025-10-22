@@ -152,7 +152,20 @@ async fn auth_handler(
     web::Query(params): web::Query<HashMap<String, String>>,
 ) -> Result<HttpResponse> {
     let _token = params.get("token").cloned().unwrap_or_default();
-    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
+
+    // Create or get anonymous user with proper UUID
+    let user_id = {
+        let mut sm = data.session_manager.lock().await;
+        match sm.get_or_create_anonymous_user(None) {
+            Ok(uid) => uid,
+            Err(e) => {
+                error!("Failed to create anonymous user: {}", e);
+                return Ok(HttpResponse::InternalServerError()
+                    .json(serde_json::json!({"error": "Failed to create user"})));
+            }
+        }
+    };
+
     let bot_id = if let Ok(bot_guid) = std::env::var("BOT_GUID") {
         match Uuid::parse_str(&bot_guid) {
             Ok(uuid) => uuid,
@@ -163,8 +176,35 @@ async fn auth_handler(
             }
         }
     } else {
-        warn!("BOT_GUID not set in environment, using nil UUID");
-        Uuid::nil()
+        // BOT_GUID not set, get first available bot from database
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        let mut db_conn = data.conn.lock().unwrap();
+        match bots
+            .filter(is_active.eq(true))
+            .select(id)
+            .first::<Uuid>(&mut *db_conn)
+            .optional()
+        {
+            Ok(Some(first_bot_id)) => {
+                log::info!(
+                    "BOT_GUID not set, using first available bot: {}",
+                    first_bot_id
+                );
+                first_bot_id
+            }
+            Ok(None) => {
+                error!("No active bots found in database");
+                return Ok(HttpResponse::ServiceUnavailable()
+                    .json(serde_json::json!({"error": "No bots available"})));
+            }
+            Err(e) => {
+                error!("Failed to query bots: {}", e);
+                return Ok(HttpResponse::InternalServerError()
+                    .json(serde_json::json!({"error": "Failed to query bots"})));
+            }
+        }
     };
 
     let session = {

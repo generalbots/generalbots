@@ -210,7 +210,12 @@ impl BootstrapManager {
         use aws_sdk_s3::config::Credentials;
         use aws_sdk_s3::config::Region;
 
-        info!("Uploading template bots to MinIO...");
+        info!("Uploading template bots to MinIO and creating bot entries...");
+
+        // First, create bot entries in database for each template
+        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| config.database_url());
+        let mut conn = diesel::PgConnection::establish(&database_url)?;
+        self.create_bots_from_templates(&mut conn)?;
 
         let creds = Credentials::new(
             &config.minio.access_key,
@@ -274,6 +279,71 @@ impl BootstrapManager {
         Ok(())
     }
 
+    fn create_bots_from_templates(&self, conn: &mut diesel::PgConnection) -> Result<()> {
+        use crate::shared::models::schema::bots;
+        use diesel::prelude::*;
+
+        info!("Creating bot entries from template folders...");
+
+        let templates_dir = Path::new("templates");
+        if !templates_dir.exists() {
+            trace!("Templates directory not found, skipping bot creation");
+            return Ok(());
+        }
+
+        // Walk through each .gbai folder in templates/
+        for entry in std::fs::read_dir(templates_dir)? {
+            let entry = entry?;
+            let path = entry.path();
+
+            if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
+                let bot_folder = path.file_name().unwrap().to_string_lossy().to_string();
+                // Remove .gbai extension to get bot name
+                let bot_name = bot_folder.trim_end_matches(".gbai");
+
+                // Format the name nicely (capitalize first letter of each word)
+                let formatted_name = bot_name
+                    .split('_')
+                    .map(|word| {
+                        let mut chars = word.chars();
+                        match chars.next() {
+                            None => String::new(),
+                            Some(first) => {
+                                first.to_uppercase().collect::<String>() + chars.as_str()
+                            }
+                        }
+                    })
+                    .collect::<Vec<_>>()
+                    .join(" ");
+
+                // Check if bot already exists
+                let existing: Option<String> = bots::table
+                    .filter(bots::name.eq(&formatted_name))
+                    .select(bots::name)
+                    .first(conn)
+                    .optional()?;
+
+                if existing.is_none() {
+                    // Insert new bot
+                    diesel::sql_query(
+                        "INSERT INTO bots (id, name, description, llm_provider, llm_config, context_provider, context_config, is_active) \
+                         VALUES (gen_random_uuid(), $1, $2, 'openai', '{\"model\": \"gpt-4\", \"temperature\": 0.7}', 'database', '{}', true)"
+                    )
+                    .bind::<diesel::sql_types::Text, _>(&formatted_name)
+                    .bind::<diesel::sql_types::Text, _>(format!("Bot for {} template", bot_name))
+                    .execute(conn)?;
+
+                    info!("Created bot entry: {}", formatted_name);
+                } else {
+                    trace!("Bot already exists: {}", formatted_name);
+                }
+            }
+        }
+
+        info!("Bot creation from templates completed");
+        Ok(())
+    }
+
     fn upload_directory_recursive<'a>(
         &'a self,
         client: &'a aws_sdk_s3::Client,
@@ -324,8 +394,6 @@ impl BootstrapManager {
     }
 
     fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
-        use diesel::prelude::*;
-
         info!("Applying database migrations...");
 
         let migrations_dir = std::path::Path::new("migrations");
@@ -357,7 +425,7 @@ impl BootstrapManager {
             match std::fs::read_to_string(&path) {
                 Ok(sql) => {
                     trace!("Applying migration: {}", filename);
-                    match diesel::sql_query(&sql).execute(conn) {
+                    match conn.batch_execute(&sql) {
                         Ok(_) => info!("Applied migration: {}", filename),
                         Err(e) => {
                             // Ignore errors for already applied migrations
