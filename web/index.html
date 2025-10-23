@@ -924,7 +924,9 @@
             let reconnectTimeout = null;
             let thinkingTimeout = null;
             let lastMessageLength = 0;
-            let contextUsage = 0;
+            let totalTokens = 0;
+            const MAX_TOKENS = 5000;
+            const MIN_DISPLAY_PERCENTAGE = 20;
             let isUserScrolling = false;
             let autoScrollEnabled = true;
 
@@ -947,843 +949,872 @@
                 gfm: true,
             });
 
+            // Token estimation function (roughly 4 characters per token)
+            function estimateTokens(text) {
+                return Math.ceil(text.length / 4);
+            }
+
             function toggleSidebar() {
-                document.getElementById("sidebar").classList.toggle("open");
-            }
-
-            function updateConnectionStatus(status) {
-                connectionStatus.className = `connection-status ${status}`;
-            }
-
-            function getWebSocketUrl() {
-                const protocol =
-                    window.location.protocol === "https:" ? "wss:" : "ws:";
-                // Generate UUIDs if not set yet
-                const sessionId = currentSessionId || crypto.randomUUID();
-                const userId = currentUserId || crypto.randomUUID();
-                return `${protocol}//${window.location.host}/ws?session_id=${sessionId}&user_id=${userId}`;
-            }
-
-            // Auto-focus on input when page loads
-            window.addEventListener("load", function () {
-                input.focus();
-            });
-
-            // Close sidebar when clicking outside on mobile
-            document.addEventListener("click", function (event) {
-                const sidebar = document.getElementById("sidebar");
-                const sidebarToggle = document.querySelector(".sidebar-toggle");
-
-                if (
-                    window.innerWidth <= 768 &&
-                    sidebar.classList.contains("open") &&
-                    !sidebar.contains(event.target) &&
-                    !sidebarToggle.contains(event.target)
-                ) {
-                    sidebar.classList.remove("open");
-                }
-            });
-
-            // Scroll management
-            messagesDiv.addEventListener("scroll", function () {
-                // Check if user is scrolling manually
-                const isAtBottom =
-                    messagesDiv.scrollHeight - messagesDiv.scrollTop <=
-                    messagesDiv.clientHeight + 100;
-
-                if (!isAtBottom) {
-                    isUserScrolling = true;
-                    showScrollToBottomButton();
-                } else {
-                    isUserScrolling = false;
-                    hideScrollToBottomButton();
-                }
-            });
-
-            function scrollToBottom() {
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-                isUserScrolling = false;
-                hideScrollToBottomButton();
-            }
-
-            function showScrollToBottomButton() {
-                scrollToBottomBtn.style.display = "flex";
-            }
-
-            function hideScrollToBottomButton() {
-                scrollToBottomBtn.style.display = "none";
-            }
-
-            scrollToBottomBtn.addEventListener("click", scrollToBottom);
-
-            // Context usage management
-            function updateContextUsage(usage) {
-                contextUsage = usage;
-                const percentage = Math.min(100, Math.round(usage * 100));
-
-                contextPercentage.textContent = `${percentage}%`;
-                contextProgressBar.style.width = `${percentage}%`;
-
-                // Update color based on usage
-                if (percentage >= 90) {
-                    contextProgressBar.className =
-                        "context-progress-bar danger";
-                } else if (percentage >= 70) {
-                    contextProgressBar.className =
-                        "context-progress-bar warning";
-                } else {
-                    contextProgressBar.className = "context-progress-bar";
-                }
-
-                // Show indicator if usage is above 50%
-                if (percentage >= 50) {
-                    contextIndicator.style.display = "block";
-                } else {
-                    contextIndicator.style.display = "none";
-                }
-            }
-
-            async function initializeAuth() {
-                try {
-                    updateConnectionStatus("connecting");
-                    const response = await fetch("/api/auth");
-                    const authData = await response.json();
-                    currentUserId = authData.user_id;
-                    currentSessionId = authData.session_id;
-                    connectWebSocket();
-                    loadSessions();
-                    await triggerStartScript();
-                } catch (error) {
-                    console.error("Failed to initialize auth:", error);
-                    updateConnectionStatus("disconnected");
-                    setTimeout(initializeAuth, 3000);
-                }
-            }
-
-            async function triggerStartScript() {
-                if (!currentSessionId) return;
-                try {
-                    await fetch("/api/start", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            session_id: currentSessionId,
-                        }),
-                    });
-                } catch (error) {
-                    console.error("Failed to trigger start script:", error);
-                }
-            }
-
-            async function loadSessions() {
-                try {
-                    const response = await fetch("/api/sessions");
-                    const sessions = await response.json();
-                    const history = document.getElementById("history");
-                    history.innerHTML = "";
-                } catch (error) {
-                    console.error("Failed to load sessions:", error);
-                }
-            }
-
-            async function createNewSession() {
-                try {
-                    const response = await fetch("/api/sessions", {
-                        method: "POST",
-                    });
-                    const session = await response.json();
-                    currentSessionId = session.session_id;
-                    hasReceivedInitialMessage = false;
-                    connectWebSocket();
-                    loadSessions();
-                    document.getElementById("messages").innerHTML = `
-                        <div id="emptyState">
-                            <div class="empty-icon">D</div>
-                            <h2 class="empty-title neon-text">Bem-vindo ao General Bots</h2>
-                            <p class="empty-subtitle">Seu assistente de IA avançado</p>
-                        </div>
-                    `;
-                    // Reset context usage for new session
-                    updateContextUsage(0);
-                    if (isVoiceMode) {
-                        await startVoiceSession();
-                    }
-                    await triggerStartScript();
-
-                    // Close sidebar on mobile after creating new chat
-                    if (window.innerWidth <= 768) {
-                        document
-                            .getElementById("sidebar")
-                            .classList.remove("open");
-                    }
-                } catch (error) {
-                    console.error("Failed to create session:", error);
-                }
-            }
-
-            function switchSession(sessionId) {
-                currentSessionId = sessionId;
-                hasReceivedInitialMessage = false;
-                loadSessionHistory(sessionId);
-                connectWebSocket();
-                if (isVoiceMode) {
-                    startVoiceSession();
-                }
-
-                // Close sidebar on mobile after switching session
-                if (window.innerWidth <= 768) {
-                    document.getElementById("sidebar").classList.remove("open");
-                }
-            }
-
-            async function loadSessionHistory(sessionId) {
-                try {
-                    const response = await fetch("/api/sessions/" + sessionId);
-                    const history = await response.json();
-                    const messages = document.getElementById("messages");
-                    messages.innerHTML = "";
-
-                    if (history.length === 0) {
-                        // Show empty state if no history
-                        messages.innerHTML = `
-                            <div id="emptyState">
-                                <div class="empty-icon">D</div>
-                                <h2 class="empty-title neon-text">Bem-vindo ao General Bots</h2>
-                                <p class="empty-subtitle">Seu assistente de IA avançado</p>
-                            </div>
-                        `;
-                        updateContextUsage(0);
-                    } else {
-                        // Display existing history
-                        history.forEach(([role, content]) => {
-                            addMessage(role, content, false);
-                        });
-                        // Estimate context usage based on message count
-                        updateContextUsage(history.length / 2); // Assuming 20 messages is 100% context
-                    }
-                } catch (error) {
-                    console.error("Failed to load session history:", error);
-                }
-            }
-
-            function connectWebSocket() {
-                if (ws) {
-                    ws.close();
-                }
-
-                clearTimeout(reconnectTimeout);
-
-                const wsUrl = getWebSocketUrl();
-                ws = new WebSocket(wsUrl);
-
-                ws.onmessage = function (event) {
-                    const response = JSON.parse(event.data);
-
-                    if (response.message_type === 2) {
-                        const eventData = JSON.parse(response.content);
-                        handleEvent(eventData.event, eventData.data);
-                        return;
-                    }
-
-                    processMessageContent(response);
-                };
-
-                ws.onopen = function () {
-                    console.log("Connected to WebSocket");
-                    updateConnectionStatus("connected");
-                    reconnectAttempts = 0;
-                    // Reset the flag when connection is established
-                    hasReceivedInitialMessage = false;
-                };
-
-                ws.onclose = function (event) {
-                    console.log(
-                        "WebSocket disconnected:",
-                        event.code,
-                        event.reason,
-                    );
-                    updateConnectionStatus("disconnected");
-
-                    // If we were streaming and connection was lost, show continue button
-                    if (isStreaming) {
-                        showContinueButton();
-                    }
-
-                    if (reconnectAttempts < maxReconnectAttempts) {
-                        reconnectAttempts++;
-                        const delay = Math.min(1000 * reconnectAttempts, 10000);
-                        console.log(
-                            `Reconnecting in ${delay}ms... (attempt ${reconnectAttempts})`,
-                        );
-
-                        reconnectTimeout = setTimeout(() => {
-                            updateConnectionStatus("connecting");
-                            connectWebSocket();
-                        }, delay);
-                    } else {
-                        updateConnectionStatus("disconnected");
-                    }
-                };
-
-                ws.onerror = function (error) {
-                    console.error("WebSocket error:", error);
-                    updateConnectionStatus("disconnected");
-                };
-            }
-
-            function processMessageContent(response) {
-                // Clear empty state when we receive any message
-                const emptyState = document.getElementById("emptyState");
-                if (emptyState) {
-                    emptyState.remove();
-                }
-
-                // Handle context usage if provided
-                if (response.context_usage !== undefined) {
-                    updateContextUsage(response.context_usage);
-                }
-
-                // Handle complete messages
-                if (response.is_complete) {
-                    if (isStreaming) {
-                        finalizeStreamingMessage();
-                        isStreaming = false;
-                        streamingMessageId = null;
-                        currentStreamingContent = "";
-                    } else {
-                        // This is a complete message that wasn't being streamed
-                        addMessage("assistant", response.content, false);
-                    }
-                } else {
-                    // Handle streaming messages
-                    if (!isStreaming) {
-                        isStreaming = true;
-                        streamingMessageId = "streaming-" + Date.now();
-                        currentStreamingContent = response.content || "";
-                        addMessage(
-                            "assistant",
-                            currentStreamingContent,
-                            true,
-                            streamingMessageId,
-                        );
-                    } else {
-                        currentStreamingContent += response.content || "";
-                        updateStreamingMessage(currentStreamingContent);
-                    }
-                }
-            }
-
-            function handleEvent(eventType, eventData) {
-                console.log("Event received:", eventType, eventData);
-                switch (eventType) {
-                    case "thinking_start":
-                        showThinkingIndicator();
-                        break;
-                    case "thinking_end":
-                        hideThinkingIndicator();
-                        break;
-                    case "warn":
-                        showWarning(eventData.message);
-                        break;
-                    case "context_usage":
-                        updateContextUsage(eventData.usage);
-                        break;
-                }
-            }
-
-            function showThinkingIndicator() {
-                if (isThinking) return;
-                const emptyState = document.getElementById("emptyState");
-                if (emptyState) emptyState.remove();
-
-                const thinkingDiv = document.createElement("div");
-                thinkingDiv.id = "thinking-indicator";
-                thinkingDiv.className = "message-container";
-                thinkingDiv.innerHTML = `
-                    <div class="assistant-message">
-                        <div class="assistant-avatar">D</div>
-                        <div class="thinking-indicator">
-                            <div class="typing-dots">
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                                <div class="typing-dot"></div>
-                            </div>
-                            <span>Pensando...</span>
-                        </div>
-                    </div>
-                `;
-                messagesDiv.appendChild(thinkingDiv);
-
-                gsap.to(thinkingDiv, {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.4,
-                    ease: "power2.out",
-                });
-
-                // Auto-scroll to show thinking indicator
-                if (!isUserScrolling) {
-                    scrollToBottom();
-                } else {
-                    showScrollToBottomButton();
-                }
-
-                // Set timeout to automatically hide thinking indicator after 30 seconds
-                // This handles cases where the server restarts and doesn't send thinking_end
-                thinkingTimeout = setTimeout(() => {
-                    if (isThinking) {
-                        hideThinkingIndicator();
-                        showWarning(
-                            "O servidor pode estar ocupado. A resposta está demorando demais.",
-                        );
-                    }
-                }, 60000);
-
-                isThinking = true;
-            }
-
-            function hideThinkingIndicator() {
-                if (!isThinking) return;
-                const thinkingDiv =
-                    document.getElementById("thinking-indicator");
-                if (thinkingDiv) {
-                    gsap.to(thinkingDiv, {
-                        opacity: 0,
-                        duration: 0.2,
-                        onComplete: () => {
-                            if (thinkingDiv.parentNode) {
-                                thinkingDiv.remove();
-                            }
-                        },
-                    });
-                }
-                // Clear the timeout if thinking ends normally
-                if (thinkingTimeout) {
-                    clearTimeout(thinkingTimeout);
-                    thinkingTimeout = null;
-                }
-                isThinking = false;
-            }
-
-            function showWarning(message) {
-                const warningDiv = document.createElement("div");
-                warningDiv.className = "warning-message";
-                warningDiv.innerHTML = `⚠️ ${message}`;
-                messagesDiv.appendChild(warningDiv);
-
-                gsap.from(warningDiv, {
-                    opacity: 0,
-                    y: 20,
-                    duration: 0.4,
-                    ease: "power2.out",
-                });
-
-                if (!isUserScrolling) {
-                    scrollToBottom();
-                } else {
-                    showScrollToBottomButton();
-                }
-
-                setTimeout(() => {
-                    if (warningDiv.parentNode) {
-                        gsap.to(warningDiv, {
-                            opacity: 0,
-                            duration: 0.3,
-                            onComplete: () => warningDiv.remove(),
-                        });
-                    }
-                }, 5000);
-            }
-
-            function showContinueButton() {
-                const continueDiv = document.createElement("div");
-                continueDiv.className = "message-container";
-                continueDiv.innerHTML = `
-                    <div class="assistant-message">
-                        <div class="assistant-avatar">D</div>
-                        <div class="assistant-message-content">
-                            <p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p>
-                            <button class="continue-button" onclick="continueInterruptedResponse()">Continuar</button>
-                        </div>
-                    </div>
-                `;
-                messagesDiv.appendChild(continueDiv);
-
-                gsap.to(continueDiv, {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.5,
-                    ease: "power2.out",
-                });
-
-                if (!isUserScrolling) {
-                    scrollToBottom();
-                } else {
-                    showScrollToBottomButton();
-                }
-            }
-
-            function continueInterruptedResponse() {
-                if (!ws || ws.readyState !== WebSocket.OPEN) {
-                    connectWebSocket();
-                }
-
-                // Send a continue request to the server
-                if (ws && ws.readyState === WebSocket.OPEN) {
-                    const continueData = {
-                        bot_id: "default_bot",
-                        user_id: currentUserId,
-                        session_id: currentSessionId,
-                        channel: "web",
-                        content: "continue",
-                        message_type: 3, // Special message type for continue requests
-                        media_url: null,
-                        timestamp: new Date().toISOString(),
-                    };
-
-                    ws.send(JSON.stringify(continueData));
-                }
-
-                // Remove the continue button
-                const continueButtons =
-                    document.querySelectorAll(".continue-button");
-                continueButtons.forEach((button) => {
-                    button.parentElement.parentElement.parentElement.remove();
-                });
-            }
-
-            function addMessage(
-                role,
-                content,
-                streaming = false,
-                msgId = null,
-            ) {
-                const emptyState = document.getElementById("emptyState");
-                if (emptyState) {
-                    gsap.to(emptyState, {
-                        opacity: 0,
-                        y: -20,
-                        duration: 0.3,
-                        onComplete: () => emptyState.remove(),
-                    });
-                }
-
-                const msg = document.createElement("div");
-                msg.className = "message-container";
-
-                if (role === "user") {
-                    msg.innerHTML = `
-                        <div class="user-message">
-                            <div class="user-message-content">${escapeHtml(content)}</div>
-                        </div>
-                    `;
-                    // Update context usage when user sends a message
-                    updateContextUsage(contextUsage + 0.05); // Simulate 5% increase per message
-                } else if (role === "assistant") {
-                    msg.innerHTML = `
-                        <div class="assistant-message">
-                            <div class="assistant-avatar">D</div>
-                            <div class="assistant-message-content markdown-content" id="${msgId || ""}">
-                                ${streaming ? "" : marked.parse(content)}
-                            </div>
-                        </div>
-                    `;
-                    // Update context usage when assistant responds
-                    updateContextUsage(contextUsage + 0.03); // Simulate 3% increase per response
-                } else if (role === "voice") {
-                    msg.innerHTML = `
-                        <div class="assistant-message">
-                            <div class="assistant-avatar">🎤</div>
-                            <div class="assistant-message-content">${content}</div>
-                        </div>
-                    `;
-                } else {
-                    msg.innerHTML = `
-                        <div class="assistant-message">
-                            <div class="assistant-avatar">D</div>
-                            <div class="assistant-message-content">${content}</div>
-                        </div>
-                    `;
-                }
-
-                messagesDiv.appendChild(msg);
-
-                gsap.to(msg, {
-                    opacity: 1,
-                    y: 0,
-                    duration: 0.5,
-                    ease: "power2.out",
-                });
-
-                // Auto-scroll to bottom if user isn't manually scrolling
-                if (!isUserScrolling) {
-                    scrollToBottom();
-                } else {
-                    showScrollToBottomButton();
-                }
-            }
-
-            function updateStreamingMessage(content) {
-                const msgElement = document.getElementById(streamingMessageId);
-                if (msgElement) {
-                    msgElement.innerHTML = marked.parse(content);
-
-                    // Auto-scroll to bottom if user isn't manually scrolling
-                    if (!isUserScrolling) {
-                        scrollToBottom();
-                    } else {
-                        showScrollToBottomButton();
-                    }
-                }
-            }
-
-            function finalizeStreamingMessage() {
-                const msgElement = document.getElementById(streamingMessageId);
-                if (msgElement) {
-                    msgElement.innerHTML = marked.parse(
-                        currentStreamingContent,
-                    );
-                    msgElement.removeAttribute("id");
-
-                    // Auto-scroll to bottom if user isn't manually scrolling
-                    if (!isUserScrolling) {
-                        scrollToBottom();
-                    } else {
-                        showScrollToBottomButton();
-                    }
-                }
-            }
-
-            function escapeHtml(text) {
-                const div = document.createElement("div");
-                div.textContent = text;
-                return div.innerHTML;
-            }
-
-            function sendMessage() {
-                const message = input.value.trim();
-                if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
-                    if (!ws || ws.readyState !== WebSocket.OPEN) {
-                        showWarning(
-                            "Conexão não disponível. Tentando reconectar...",
-                        );
-                        connectWebSocket();
-                    }
-                    return;
-                }
-
-                if (isThinking) {
-                    hideThinkingIndicator();
-                }
-
-                addMessage("user", message);
-
-                const messageData = {
-                    bot_id: "default_bot",
-                    user_id: currentUserId,
-                    session_id: currentSessionId,
-                    channel: "web",
-                    content: message,
-                    message_type: 1,
-                    media_url: null,
-                    timestamp: new Date().toISOString(),
-                };
-
-                ws.send(JSON.stringify(messageData));
-                input.value = "";
-                input.focus(); // Keep focus on input after sending
-            }
-
-            sendBtn.onclick = sendMessage;
-            input.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") sendMessage();
-            });
-            newChatBtn.onclick = () => createNewSession();
-
-            async function toggleVoiceMode() {
-                isVoiceMode = !isVoiceMode;
-                const voiceToggle = document.getElementById("voiceToggle");
-                const voiceStatus = document.getElementById("voiceStatus");
-
-                if (isVoiceMode) {
-                    voiceToggle.textContent = "🔴 Parar Voz";
-                    voiceToggle.classList.add("recording");
-                    voiceStatus.style.display = "block";
-                    await startVoiceSession();
-                } else {
-                    voiceToggle.textContent = "🎤 Modo Voz";
-                    voiceToggle.classList.remove("recording");
-                    voiceStatus.style.display = "none";
-                    await stopVoiceSession();
-                }
-
-                // Close sidebar on mobile after toggling voice mode
-                if (window.innerWidth <= 768) {
-                    document.getElementById("sidebar").classList.remove("open");
-                }
-            }
-
-            async function startVoiceSession() {
-                if (!currentSessionId) return;
-                try {
-                    const response = await fetch("/api/voice/start", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            session_id: currentSessionId,
-                            user_id: currentUserId,
-                        }),
-                    });
-                    const data = await response.json();
-                    if (data.token) {
-                        await connectToVoiceRoom(data.token);
-                        startVoiceRecording();
-                    }
-                } catch (error) {
-                    console.error("Failed to start voice session:", error);
-                    showWarning("Falha ao iniciar modo de voz");
-                }
-            }
-
-            async function stopVoiceSession() {
-                if (!currentSessionId) return;
-                try {
-                    await fetch("/api/voice/stop", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            session_id: currentSessionId,
-                        }),
-                    });
-                    if (voiceRoom) {
-                        voiceRoom.disconnect();
-                        voiceRoom = null;
-                    }
-                    if (mediaRecorder && mediaRecorder.state === "recording") {
-                        mediaRecorder.stop();
-                    }
-                } catch (error) {
-                    console.error("Failed to stop voice session:", error);
-                }
-            }
-
-            async function connectToVoiceRoom(token) {
-                try {
-                    const room = new LiveKitClient.Room();
-                    // Use o mesmo esquema (ws/wss) do WebSocket principal
-                    const protocol =
-                        window.location.protocol === "https:" ? "wss:" : "ws:";
-                    const voiceUrl = `${protocol}//${window.location.host}/voice`;
-                    await room.connect(voiceUrl, token);
-                    voiceRoom = room;
-
-                    room.on("dataReceived", (data) => {
-                        const decoder = new TextDecoder();
-                        const message = decoder.decode(data);
-                        try {
-                            const parsed = JSON.parse(message);
-                            if (parsed.type === "voice_response") {
-                                addMessage("assistant", parsed.text);
-                            }
-                        } catch (e) {
-                            console.log("Voice data:", message);
+              
+              
+              document.getElementById("sidebar").classList.toggle("open");
                         }
-                    });
-
-                    const localTracks = await LiveKitClient.createLocalTracks({
-                        audio: true,
-                        video: false,
-                    });
-                    for (const track of localTracks) {
-                        await room.localParticipant.publishTrack(track);
-                    }
-                } catch (error) {
-                    console.error("Failed to connect to voice room:", error);
-                    showWarning("Falha na conexão de voz");
-                }
-            }
-
-            function startVoiceRecording() {
-                if (!navigator.mediaDevices) {
-                    console.log("Media devices not supported");
-                    return;
-                }
-
-                navigator.mediaDevices
-                    .getUserMedia({ audio: true })
-                    .then((stream) => {
-                        mediaRecorder = new MediaRecorder(stream);
-                        audioChunks = [];
-
-                        mediaRecorder.ondataavailable = (event) => {
-                            audioChunks.push(event.data);
-                        };
-
-                        mediaRecorder.onstop = () => {
-                            const audioBlob = new Blob(audioChunks, {
-                                type: "audio/wav",
-                            });
-                            simulateVoiceTranscription();
-                        };
-
-                        mediaRecorder.start();
-                        setTimeout(() => {
+            
+                        function updateConnectionStatus(status) {
+                            connectionStatus.className = `connection-status ${status}`;
+                        }
+            
+                        function getWebSocketUrl() {
+                            const protocol =
+                                window.location.protocol === "https:" ? "wss:" : "ws:";
+                            // Generate UUIDs if not set yet
+                            const sessionId = currentSessionId || crypto.randomUUID();
+                            const userId = currentUserId || crypto.randomUUID();
+                            return `${protocol}//${window.location.host}/ws?session_id=${sessionId}&user_id=${userId}`;
+                        }
+            
+                        // Auto-focus on input when page loads
+                        window.addEventListener("load", function () {
+                            input.focus();
+                        });
+            
+                        // Close sidebar when clicking outside on mobile
+                        document.addEventListener("click", function (event) {
+                            const sidebar = document.getElementById("sidebar");
+                            const sidebarToggle = document.querySelector(".sidebar-toggle");
+            
                             if (
-                                mediaRecorder &&
-                                mediaRecorder.state === "recording"
+                                window.innerWidth <= 768 &&
+                                sidebar.classList.contains("open") &&
+                                !sidebar.contains(event.target) &&
+                                !sidebarToggle.contains(event.target)
                             ) {
-                                mediaRecorder.stop();
-                                setTimeout(() => {
-                                    if (isVoiceMode) {
-                                        startVoiceRecording();
-                                    }
-                                }, 1000);
+                                sidebar.classList.remove("open");
                             }
-                        }, 5000);
-                    })
-                    .catch((error) => {
-                        console.error("Error accessing microphone:", error);
-                        showWarning("Erro ao acessar microfone");
-                    });
-            }
-
-            function simulateVoiceTranscription() {
-                const phrases = [
-                    "Olá, como posso ajudá-lo hoje?",
-                    "Entendo o que você está dizendo",
-                    "Esse é um ponto interessante",
-                    "Deixe-me pensar sobre isso",
-                    "Posso ajudá-lo com isso",
-                    "O que você gostaria de saber?",
-                    "Isso parece ótimo",
-                    "Estou ouvindo sua voz",
-                ];
-                const randomPhrase =
-                    phrases[Math.floor(Math.random() * phrases.length)];
-
-                if (voiceRoom) {
-                    const message = {
-                        type: "voice_input",
-                        content: randomPhrase,
-                        timestamp: new Date().toISOString(),
-                    };
-                    voiceRoom.localParticipant.publishData(
-                        new TextEncoder().encode(JSON.stringify(message)),
-                        LiveKitClient.DataPacketKind.RELIABLE,
-                    );
-                }
-                addMessage("voice", `🎤 ${randomPhrase}`);
-            }
-
-            // Inicializar quando a página carregar
-            window.addEventListener("load", initializeAuth);
-
-            // Tentar reconectar quando a página ganhar foco
-            window.addEventListener("focus", function () {
-                if (!ws || ws.readyState !== WebSocket.OPEN) {
-                    connectWebSocket();
-                }
-            });
-        </script>
-    </body>
-</html>
+                        });
+            
+                        // Scroll management
+                        messagesDiv.addEventListener("scroll", function () {
+                            // Check if user is scrolling manually
+                            const isAtBottom =
+                                messagesDiv.scrollHeight - messagesDiv.scrollTop <=
+                                messagesDiv.clientHeight + 100;
+            
+                            if (!isAtBottom) {
+                                isUserScrolling = true;
+                                showScrollToBottomButton();
+                            } else {
+                                isUserScrolling = false;
+                                hideScrollToBottomButton();
+                            }
+                        });
+            
+                        function scrollToBottom() {
+                            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+                            isUserScrolling = false;
+                            hideScrollToBottomButton();
+                        }
+            
+                        function showScrollToBottomButton() {
+                            scrollToBottomBtn.style.display = "flex";
+                        }
+            
+                        function hideScrollToBottomButton() {
+                            scrollToBottomBtn.style.display = "none";
+                        }
+            
+                        scrollToBottomBtn.addEventListener("click", scrollToBottom);
+            
+                        // Context usage management with token-based calculation
+                        function updateContextUsage(tokens) {
+                            totalTokens = tokens;
+                            const percentage = Math.min(100, Math.round((tokens / MAX_TOKENS) * 100));
+            
+                            contextPercentage.textContent = `${percentage}%`;
+                            contextProgressBar.style.width = `${percentage}%`;
+            
+                            // Update color based on usage
+                            if (percentage >= 90) {
+                                contextProgressBar.className =
+                                    "context-progress-bar danger";
+                            } else if (percentage >= 70) {
+                                contextProgressBar.className =
+                                    "context-progress-bar warning";
+                            } else {
+                                contextProgressBar.className = "context-progress-bar";
+                            }
+            
+                            // Show indicator if usage is above minimum display percentage
+                            if (percentage >= MIN_DISPLAY_PERCENTAGE) {
+                                contextIndicator.style.display = "block";
+                            } else {
+                                contextIndicator.style.display = "none";
+                            }
+                        }
+            
+                        // Add tokens to the total count
+                        function addToTokenCount(text) {
+                            const tokens = estimateTokens(text);
+                            totalTokens += tokens;
+                            updateContextUsage(totalTokens);
+                        }
+            
+                        async function initializeAuth() {
+                            try {
+                                updateConnectionStatus("connecting");
+                                const response = await fetch("/api/auth");
+                                const authData = await response.json();
+                                currentUserId = authData.user_id;
+                                currentSessionId = authData.session_id;
+                                connectWebSocket();
+                                loadSessions();
+                                await triggerStartScript();
+                            } catch (error) {
+                                console.error("Failed to initialize auth:", error);
+                                updateConnectionStatus("disconnected");
+                                setTimeout(initializeAuth, 3000);
+                            }
+                        }
+            
+                        async function triggerStartScript() {
+                            if (!currentSessionId) return;
+                            try {
+                                await fetch("/api/start", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        session_id: currentSessionId,
+                                    }),
+                                });
+                            } catch (error) {
+                                console.error("Failed to trigger start script:", error);
+                            }
+                        }
+            
+                        async function loadSessions() {
+                            try {
+                                const response = await fetch("/api/sessions");
+                                const sessions = await response.json();
+                                const history = document.getElementById("history");
+                                history.innerHTML = "";
+                            } catch (error) {
+                                console.error("Failed to load sessions:", error);
+                            }
+                        }
+            
+                        async function createNewSession() {
+                            try {
+                                const response = await fetch("/api/sessions", {
+                                    method: "POST",
+                                });
+                                const session = await response.json();
+                                currentSessionId = session.session_id;
+                                hasReceivedInitialMessage = false;
+                                connectWebSocket();
+                                loadSessions();
+                                document.getElementById("messages").innerHTML = `
+                                    <div id="emptyState">
+                                        <div class="empty-icon">D</div>
+                                        <h2 class="empty-title neon-text">Bem-vindo ao General Bots</h2>
+                                        <p class="empty-subtitle">Seu assistente de IA avançado</p>
+                                    </div>
+                                `;
+                                // Reset token count for new session
+                                totalTokens = 0;
+                                updateContextUsage(0);
+                                if (isVoiceMode) {
+                                    await startVoiceSession();
+                                }
+                                await triggerStartScript();
+            
+                                // Close sidebar on mobile after creating new chat
+                                if (window.innerWidth <= 768) {
+                                    document
+                                        .getElementById("sidebar")
+                                        .classList.remove("open");
+                                }
+                            } catch (error) {
+                                console.error("Failed to create session:", error);
+                            }
+                        }
+            
+                        function switchSession(sessionId) {
+                            currentSessionId = sessionId;
+                            hasReceivedInitialMessage = false;
+                            loadSessionHistory(sessionId);
+                            connectWebSocket();
+                            if (isVoiceMode) {
+                                startVoiceSession();
+                            }
+            
+                            // Close sidebar on mobile after switching session
+                            if (window.innerWidth <= 768) {
+                                document.getElementById("sidebar").classList.remove("open");
+                            }
+                        }
+            
+                        async function loadSessionHistory(sessionId) {
+                            try {
+                                const response = await fetch("/api/sessions/" + sessionId);
+                                const history = await response.json();
+                                const messages = document.getElementById("messages");
+                                messages.innerHTML = "";
+            
+                                if (history.length === 0) {
+                                    // Show empty state if no history
+                                    messages.innerHTML = `
+                                        <div id="emptyState">
+                                            <div class="empty-icon">D</div>
+                                            <h2 class="empty-title neon-text">Bem-vindo ao General Bots</h2>
+                                            <p class="empty-subtitle">Seu assistente de IA avançado</p>
+                                        </div>
+                                    `;
+                                    totalTokens = 0;
+                                    updateContextUsage(0);
+                                } else {
+                                    // Calculate token count from history
+                                    totalTokens = 0;
+                                    history.forEach(([role, content]) => {
+                                        addMessage(role, content, false);
+                                        totalTokens += estimateTokens(content);
+                                    });
+                                    updateContextUsage(totalTokens);
+                                }
+                            } catch (error) {
+                                console.error("Failed to load session history:", error);
+                            }
+                        }
+            
+                        function connectWebSocket() {
+                            if (ws) {
+                                ws.close();
+                            }
+            
+                            clearTimeout(reconnectTimeout);
+            
+                            const wsUrl = getWebSocketUrl();
+                            ws = new WebSocket(wsUrl);
+            
+                            ws.onmessage = function (event) {
+                                const response = JSON.parse(event.data);
+            
+                                if (response.message_type === 2) {
+                                    const eventData = JSON.parse(response.content);
+                                    handleEvent(eventData.event, eventData.data);
+                                    return;
+                                }
+            
+                                processMessageContent(response);
+                            };
+            
+                            ws.onopen = function () {
+                                console.log("Connected to WebSocket");
+                                updateConnectionStatus("connected");
+                                reconnectAttempts = 0;
+                                // Reset the flag when connection is established
+                                hasReceivedInitialMessage = false;
+                            };
+            
+                            ws.onclose = function (event) {
+                                console.log(
+                                    "WebSocket disconnected:",
+                                    event.code,
+                                    event.reason,
+                                );
+                                updateConnectionStatus("disconnected");
+            
+                                // If we were streaming and connection was lost, show continue button
+                                if (isStreaming) {
+                                    showContinueButton();
+                                }
+            
+                                if (reconnectAttempts < maxReconnectAttempts) {
+                                    reconnectAttempts++;
+                                    const delay = Math.min(1000 * reconnectAttempts, 10000);
+                                    console.log(
+                                        `Reconnecting in ${delay}ms... (attempt ${reconnectAttempts})`,
+                                    );
+            
+                                    reconnectTimeout = setTimeout(() => {
+                                        updateConnectionStatus("connecting");
+                                        connectWebSocket();
+                                    }, delay);
+                                } else {
+                                    updateConnectionStatus("disconnected");
+                                }
+                            };
+            
+                            ws.onerror = function (error) {
+                                console.error("WebSocket error:", error);
+                                updateConnectionStatus("disconnected");
+                            };
+                        }
+            
+                        function processMessageContent(response) {
+                            // Clear empty state when we receive any message
+                            const emptyState = document.getElementById("emptyState");
+                            if (emptyState) {
+                                emptyState.remove();
+                            }
+            
+                            // Handle context usage if provided by server
+                            if (response.context_usage !== undefined) {
+                                // Server provides usage as a ratio (0-1)
+                                const tokens = Math.round(response.context_usage * MAX_TOKENS);
+                                updateContextUsage(tokens);
+                            }
+            
+                            // Handle complete messages
+                            if (response.is_complete) {
+                                if (isStreaming) {
+                                    finalizeStreamingMessage();
+                                    isStreaming = false;
+                                    streamingMessageId = null;
+                                    currentStreamingContent = "";
+                                } else {
+                                    // This is a complete message that wasn't being streamed
+                                    addMessage("assistant", response.content, false);
+                                    addToTokenCount(response.content);
+                                }
+                            } else {
+                                // Handle streaming messages
+                                if (!isStreaming) {
+                                    isStreaming = true;
+                                    streamingMessageId = "streaming-" + Date.now();
+                                    currentStreamingContent = response.content || "";
+                                    addMessage(
+                                        "assistant",
+                                        currentStreamingContent,
+                                        true,
+                                        streamingMessageId,
+                                    );
+                                } else {
+                                    currentStreamingContent += response.content || "";
+                                    updateStreamingMessage(currentStreamingContent);
+                                }
+                            }
+                        }
+            
+                        function handleEvent(eventType, eventData) {
+                            console.log("Event received:", eventType, eventData);
+                            switch (eventType) {
+                                case "thinking_start":
+                                    showThinkingIndicator();
+                                    break;
+                                case "thinking_end":
+                                    hideThinkingIndicator();
+                                    break;
+                                case "warn":
+                                    showWarning(eventData.message);
+                                    break;
+                                case "context_usage":
+                                    // Server provides usage as a ratio (0-1)
+                                    const tokens = Math.round(eventData.usage * MAX_TOKENS);
+                                    updateContextUsage(tokens);
+                                    break;
+                            }
+                        }
+            
+                        function showThinkingIndicator() {
+                            if (isThinking) return;
+                            const emptyState = document.getElementById("emptyState");
+                            if (emptyState) emptyState.remove();
+            
+                            const thinkingDiv = document.createElement("div");
+                            thinkingDiv.id = "thinking-indicator";
+                            thinkingDiv.className = "message-container";
+                            thinkingDiv.innerHTML = `
+                                <div class="assistant-message">
+                                    <div class="assistant-avatar">D</div>
+                                    <div class="thinking-indicator">
+                                        <div class="typing-dots">
+                                            <div class="typing-dot"></div>
+                                            <div class="typing-dot"></div>
+                                            <div class="typing-dot"></div>
+                                        </div>
+                                        <span>Pensando...</span>
+                                    </div>
+                                </div>
+                            `;
+                            messagesDiv.appendChild(thinkingDiv);
+            
+                            gsap.to(thinkingDiv, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.4,
+                                ease: "power2.out",
+                            });
+            
+                            // Auto-scroll to show thinking indicator
+                            if (!isUserScrolling) {
+                                scrollToBottom();
+                            } else {
+                                showScrollToBottomButton();
+                            }
+            
+                            // Set timeout to automatically hide thinking indicator after 30 seconds
+                            // This handles cases where the server restarts and doesn't send thinking_end
+                            thinkingTimeout = setTimeout(() => {
+                                if (isThinking) {
+                                    hideThinkingIndicator();
+                                    showWarning(
+                                        "O servidor pode estar ocupado. A resposta está demorando demais.",
+                                    );
+                                }
+                            }, 60000);
+            
+                            isThinking = true;
+                        }
+            
+                        function hideThinkingIndicator() {
+                            if (!isThinking) return;
+                            const thinkingDiv =
+                                document.getElementById("thinking-indicator");
+                            if (thinkingDiv) {
+                                gsap.to(thinkingDiv, {
+                                    opacity: 0,
+                                    duration: 0.2,
+                                    onComplete: () => {
+                                        if (thinkingDiv.parentNode) {
+                                            thinkingDiv.remove();
+                                        }
+                                    },
+                                });
+                            }
+                            // Clear the timeout if thinking ends normally
+                            if (thinkingTimeout) {
+                                clearTimeout(thinkingTimeout);
+                                thinkingTimeout = null;
+                            }
+                            isThinking = false;
+                        }
+            
+                        function showWarning(message) {
+                            const warningDiv = document.createElement("div");
+                            warningDiv.className = "warning-message";
+                            warningDiv.innerHTML = `⚠️ ${message}`;
+                            messagesDiv.appendChild(warningDiv);
+            
+                            gsap.from(warningDiv, {
+                                opacity: 0,
+                                y: 20,
+                                duration: 0.4,
+                                ease: "power2.out",
+                            });
+            
+                            if (!isUserScrolling) {
+                                scrollToBottom();
+                            } else {
+                                showScrollToBottomButton();
+                            }
+            
+                            setTimeout(() => {
+                                if (warningDiv.parentNode) {
+                                    gsap.to(warningDiv, {
+                                        opacity: 0,
+                                        duration: 0.3,
+                                        onComplete: () => warningDiv.remove(),
+                                    });
+                                }
+                            }, 5000);
+                        }
+            
+                        function showContinueButton() {
+                            const continueDiv = document.createElement("div");
+                            continueDiv.className = "message-container";
+                            continueDiv.innerHTML = `
+                                <div class="assistant-message">
+                                    <div class="assistant-avatar">D</div>
+                                    <div class="assistant-message-content">
+                                        <p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p>
+                                        <button class="continue-button" onclick="continueInterruptedResponse()">Continuar</button>
+                                    </div>
+                                </div>
+                            `;
+                            messagesDiv.appendChild(continueDiv);
+            
+                            gsap.to(continueDiv, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.5,
+                                ease: "power2.out",
+                            });
+            
+                            if (!isUserScrolling) {
+                                scrollToBottom();
+                            } else {
+                                showScrollToBottomButton();
+                            }
+                        }
+            
+                        function continueInterruptedResponse() {
+                            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                                connectWebSocket();
+                            }
+            
+                            // Send a continue request to the server
+                            if (ws && ws.readyState === WebSocket.OPEN) {
+                                const continueData = {
+                                    bot_id: "default_bot",
+                                    user_id: currentUserId,
+                                    session_id: currentSessionId,
+                                    channel: "web",
+                                    content: "continue",
+                                    message_type: 3, // Special message type for continue requests
+                                    media_url: null,
+                                    timestamp: new Date().toISOString(),
+                                };
+            
+                                ws.send(JSON.stringify(continueData));
+                            }
+            
+                            // Remove the continue button
+                            const continueButtons =
+                                document.querySelectorAll(".continue-button");
+                            continueButtons.forEach((button) => {
+                                button.parentElement.parentElement.parentElement.remove();
+                            });
+                        }
+            
+                        function addMessage(
+                            role,
+                            content,
+                            streaming = false,
+                            msgId = null,
+                        ) {
+                            const emptyState = document.getElementById("emptyState");
+                            if (emptyState) {
+                                gsap.to(emptyState, {
+                                    opacity: 0,
+                                    y: -20,
+                                    duration: 0.3,
+                                    onComplete: () => emptyState.remove(),
+                                });
+                            }
+            
+                            const msg = document.createElement("div");
+                            msg.className = "message-container";
+            
+                            if (role === "user") {
+                                msg.innerHTML = `
+                                    <div class="user-message">
+                                        <div class="user-message-content">${escapeHtml(content)}</div>
+                                    </div>
+                                `;
+                                // Add tokens for user message
+                                if (!streaming) {
+                                    addToTokenCount(content);
+                                }
+                            } else if (role === "assistant") {
+                                msg.innerHTML = `
+                                    <div class="assistant-message">
+                                        <div class="assistant-avatar">D</div>
+                                        <div class="assistant-message-content markdown-content" id="${msgId || ""}">
+                                            ${streaming ? "" : marked.parse(content)}
+                                        </div>
+                                    </div>
+                                `;
+                                // Add tokens for assistant message (only if not streaming)
+                                if (!streaming) {
+                                    addToTokenCount(content);
+                                }
+                            } else if (role === "voice") {
+                                msg.innerHTML = `
+                                    <div class="assistant-message">
+                                        <div class="assistant-avatar">🎤</div>
+                                        <div class="assistant-message-content">${content}</div>
+                                    </div>
+                                `;
+                            } else {
+                                msg.innerHTML = `
+                                    <div class="assistant-message">
+                                        <div class="assistant-avatar">D</div>
+                                        <div class="assistant-message-content">${content}</div>
+                                    </div>
+                                `;
+                            }
+            
+                            messagesDiv.appendChild(msg);
+            
+                            gsap.to(msg, {
+                                opacity: 1,
+                                y: 0,
+                                duration: 0.5,
+                                ease: "power2.out",
+                            });
+            
+                            // Auto-scroll to bottom if user isn't manually scrolling
+                            if (!isUserScrolling) {
+                                scrollToBottom();
+                            } else {
+                                showScrollToBottomButton();
+                            }
+                        }
+            
+                        function updateStreamingMessage(content) {
+                            const msgElement = document.getElementById(streamingMessageId);
+                            if (msgElement) {
+                                msgElement.innerHTML = marked.parse(content);
+            
+                                // Auto-scroll to bottom if user isn't manually scrolling
+                                if (!isUserScrolling) {
+                                    scrollToBottom();
+                                } else {
+                                    showScrollToBottomButton();
+                                }
+                            }
+                        }
+            
+                        function finalizeStreamingMessage() {
+                            const msgElement = document.getElementById(streamingMessageId);
+                            if (msgElement) {
+                                msgElement.innerHTML = marked.parse(
+                                    currentStreamingContent,
+                                );
+                                msgElement.removeAttribute("id");
+            
+                                // Add tokens for completed streaming message
+                                addToTokenCount(currentStreamingContent);
+            
+                                // Auto-scroll to bottom if user isn't manually scrolling
+                                if (!isUserScrolling) {
+                                    scrollToBottom();
+                                } else {
+                                    showScrollToBottomButton();
+                                }
+                            }
+                        }
+            
+                        function escapeHtml(text) {
+                            const div = document.createElement("div");
+                            div.textContent = text;
+                            return div.innerHTML;
+                        }
+            
+                        function sendMessage() {
+                            const message = input.value.trim();
+                            if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
+                                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                                    showWarning(
+                                        "Conexão não disponível. Tentando reconectar...",
+                                    );
+                                    connectWebSocket();
+                                }
+                                return;
+                            }
+            
+                            if (isThinking) {
+                                hideThinkingIndicator();
+                            }
+            
+                            addMessage("user", message);
+            
+                            const messageData = {
+                                bot_id: "default_bot",
+                                user_id: currentUserId,
+                                session_id: currentSessionId,
+                                channel: "web",
+                                content: message,
+                                message_type: 1,
+                                media_url: null,
+                                timestamp: new Date().toISOString(),
+                            };
+            
+                            ws.send(JSON.stringify(messageData));
+                            input.value = "";
+                            input.focus(); // Keep focus on input after sending
+                        }
+            
+                        sendBtn.onclick = sendMessage;
+                        input.addEventListener("keypress", (e) => {
+                            if (e.key === "Enter") sendMessage();
+                        });
+                        newChatBtn.onclick = () => createNewSession();
+            
+                        async function toggleVoiceMode() {
+                            isVoiceMode = !isVoiceMode;
+                            const voiceToggle = document.getElementById("voiceToggle");
+                            const voiceStatus = document.getElementById("voiceStatus");
+            
+                            if (isVoiceMode) {
+                                voiceToggle.textContent = "🔴 Parar Voz";
+                                voiceToggle.classList.add("recording");
+                                voiceStatus.style.display = "block";
+                                await startVoiceSession();
+                            } else {
+                                voiceToggle.textContent = "🎤 Modo Voz";
+                                voiceToggle.classList.remove("recording");
+                                voiceStatus.style.display = "none";
+                                await stopVoiceSession();
+                            }
+            
+                            // Close sidebar on mobile after toggling voice mode
+                            if (window.innerWidth <= 768) {
+                                document.getElementById("sidebar").classList.remove("open");
+                            }
+                        }
+            
+                        async function startVoiceSession() {
+                            if (!currentSessionId) return;
+                            try {
+                                const response = await fetch("/api/voice/start", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        session_id: currentSessionId,
+                                        user_id: currentUserId,
+                                    }),
+                                });
+                                const data = await response.json();
+                                if (data.token) {
+                                    await connectToVoiceRoom(data.token);
+                                    startVoiceRecording();
+                                }
+                            } catch (error) {
+                                console.error("Failed to start voice session:", error);
+                                showWarning("Falha ao iniciar modo de voz");
+                            }
+                        }
+            
+                        async function stopVoiceSession() {
+                            if (!currentSessionId) return;
+                            try {
+                                await fetch("/api/voice/stop", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({
+                                        session_id: currentSessionId,
+                                    }),
+                                });
+                                if (voiceRoom) {
+                                    voiceRoom.disconnect();
+                                    voiceRoom = null;
+                                }
+                                if (mediaRecorder && mediaRecorder.state === "recording") {
+                                    mediaRecorder.stop();
+                                }
+                            } catch (error) {
+                                console.error("Failed to stop voice session:", error);
+                            }
+                        }
+            
+                        async function connectToVoiceRoom(token) {
+                            try {
+                                const room = new LiveKitClient.Room();
+                                // Use o mesmo esquema (ws/wss) do WebSocket principal
+                                const protocol =
+                                    window.location.protocol === "https:" ? "wss:" : "ws:";
+                                const voiceUrl = `${protocol}//${window.location.host}/voice`;
+                                await room.connect(voiceUrl, token);
+                                voiceRoom = room;
+            
+                                room.on("dataReceived", (data) => {
+                                    const decoder = new TextDecoder();
+                                    const message = decoder.decode(data);
+                                    try {
+                                        const parsed = JSON.parse(message);
+                                        if (parsed.type === "voice_response") {
+                                            addMessage("assistant", parsed.text);
+                                        }
+                                    } catch (e) {
+                                        console.log("Voice data:", message);
+                                    }
+                                });
+            
+                                const localTracks = await LiveKitClient.createLocalTracks({
+                                    audio: true,
+                                    video: false,
+                                });
+                                for (const track of localTracks) {
+                                    await room.localParticipant.publishTrack(track);
+                                }
+                            } catch (error) {
+                                console.error("Failed to connect to voice room:", error);
+                                showWarning("Falha na conexão de voz");
+                            }
+                        }
+            
+                        function startVoiceRecording() {
+                            if (!navigator.mediaDevices) {
+                                console.log("Media devices not supported");
+                                return;
+                            }
+            
+                            navigator.mediaDevices
+                                .getUserMedia({ audio: true })
+                                .then((stream) => {
+                                    mediaRecorder = new MediaRecorder(stream);
+                                    audioChunks = [];
+            
+                                    mediaRecorder.ondataavailable = (event) => {
+                                        audioChunks.push(event.data);
+                                    };
+            
+                                    mediaRecorder.onstop = () => {
+                                        const audioBlob = new Blob(audioChunks, {
+                                            type: "audio/wav",
+                                        });
+                                        simulateVoiceTranscription();
+                                    };
+            
+                                    mediaRecorder.start();
+                                    setTimeout(() => {
+                                        if (
+                                            mediaRecorder &&
+                                            mediaRecorder.state === "recording"
+                                        ) {
+                                            mediaRecorder.stop();
+                                            setTimeout(() => {
+                                                if (isVoiceMode) {
+                                                    startVoiceRecording();
+                                                }
+                                            }, 1000);
+                                        }
+                                    }, 5000);
+                                })
+                                .catch((error) => {
+                                    console.error("Error accessing microphone:", error);
+                                    showWarning("Erro ao acessar microfone");
+                                });
+                        }
+            
+                        function simulateVoiceTranscription() {
+                            const phrases = [
+                                "Olá, como posso ajudá-lo hoje?",
+                                "Entendo o que você está dizendo",
+                                "Esse é um ponto interessante",
+                                "Deixe-me pensar sobre isso",
+                                "Posso ajudá-lo com isso",
+                                "O que você gostaria de saber?",
+                                "Isso parece ótimo",
+                                "Estou ouvindo sua voz",
+                            ];
+                            const randomPhrase =
+                                phrases[Math.floor(Math.random() * phrases.length)];
+            
+                            if (voiceRoom) {
+                                const message = {
+                                    type: "voice_input",
+                                    content: randomPhrase,
+                                    timestamp: new Date().toISOString(),
+                                };
+                                voiceRoom.localParticipant.publishData(
+                                    new TextEncoder().encode(JSON.stringify(message)),
+                                    LiveKitClient.DataPacketKind.RELIABLE,
+                                );
+                            }
+                            addMessage("voice", `🎤 ${randomPhrase}`);
+                        }
+            
+                        // Inicializar quando a página carregar
+                        window.addEventListener("load", initializeAuth);
+            
+                        // Tentar reconectar quando a página ganhar foco
+                        window.addEventListener("focus", function () {
+                            if (!ws || ws.readyState !== WebSocket.OPEN) {
+                                connectWebSocket();
+                            }
+                        });
+                    </script>
+                </body>
+            </html>
