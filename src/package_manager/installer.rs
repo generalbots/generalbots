@@ -61,10 +61,24 @@ impl PackageManager {
     }
 
     fn register_drive(&mut self) {
+        // Generate a random password for the drive user
         let drive_password = self.generate_secure_password(16);
+        let drive_user = "gbdriveuser".to_string();
+        // FARM_PASSWORD may already exist; otherwise generate a new one
         let farm_password =
             std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
+        // Encrypt the drive password for optional storage in the DB
         let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
+
+        // Write credentials to a .env file at the base path
+        let env_path = self.base_path.join(".env");
+let app_user = "gbdriveapp".to_string();
+let app_password = self.generate_secure_password(16);
+let env_content = format!(
+    "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nMINIO_ROOT_USER={}\nMINIO_ROOT_PASSWORD={}\nAPP_USER={}\nAPP_PASSWORD={}\n",
+    drive_user, drive_password, farm_password, drive_user, drive_password, app_user, app_password
+);
+        let _ = std::fs::write(&env_path, env_content);
 
         self.components.insert("drive".to_string(), ComponentConfig {
             name: "drive".to_string(),
@@ -77,14 +91,18 @@ impl PackageManager {
             download_url: Some("https://dl.min.io/server/minio/release/linux-amd64/minio".to_string()),
             binary_name: Some("minio".to_string()),
             pre_install_cmds_linux: vec![],
-            post_install_cmds_linux: vec![
-                "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
-                "chmod +x {{BIN_PATH}}/mc".to_string(),
-                format!("{{{{BIN_PATH}}}}/mc alias set mc http://localhost:9000 gbdriveuser {}", drive_password),
-                "{{BIN_PATH}}/mc mb mc/default.gbai".to_string(),
-                format!("{{{{BIN_PATH}}}}/mc admin user add mc gbdriveuser {}", drive_password),
-                "{{BIN_PATH}}/mc admin policy attach mc readwrite --user=gbdriveuser".to_string()
-            ],
+post_install_cmds_linux: vec![
+    "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
+    "chmod +x {{BIN_PATH}}/mc".to_string(),
+    // Use generated credentials for root alias
+    format!("{{{{BIN_PATH}}}}/mc alias set minio http://localhost:9000 {} {}", drive_user, drive_password),
+    // Create bucket
+    "{{BIN_PATH}}/mc mb minio/default.gbai".to_string(),
+    // Add separate app user
+    format!("{{{{BIN_PATH}}}}/mc admin user add minio {} {}", app_user, app_password),
+    // Attach policy to app user
+    format!("{{{{BIN_PATH}}}}/mc admin policy attach minio readwrite --user={}", app_user)
+],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
                 "wget https://dl.min.io/client/mc/release/darwin-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
@@ -92,10 +110,12 @@ impl PackageManager {
             ],
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
-            env_vars: HashMap::from([
-                ("MINIO_ROOT_USER".to_string(), "gbdriveuser".to_string()),
-                ("MINIO_ROOT_PASSWORD".to_string(), drive_password)
-            ]),
+            // No env vars here; credentials are read from .env at runtime
+            // Provide MinIO root credentials via environment variables
+        env_vars: HashMap::from([
+            ("MINIO_ROOT_USER".to_string(), drive_user.clone()),
+            ("MINIO_ROOT_PASSWORD".to_string(), drive_password.clone())
+        ]),
             exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
         });
 
