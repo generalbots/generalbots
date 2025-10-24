@@ -56,93 +56,7 @@ use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
 
-if args.len() > 1 {
-let command = &args[1];
-match command.as_str() {
-async fn main() -> std::io::Result<()> {
-trace!("Application starting");
-let args: Vec<String> = std::env::args().collect();
-trace!("Command line arguments: {:?}", args);
-
-if args.len() > 1 {
-let command = &args[1];
-trace!("Processing command: {}", command);
-match command.as_str() {
-let args: Vec<String> = std::env::args().collect();
-
-if args.len() > 1 {
-let command = &args[1];
-match command.as_str() {
 #[tokio::main]
-async fn main() -> std::io::Result<()> {
-trace!("Application starting");
-let args: Vec<String> = std::env::args().collect();
-trace!("Command line arguments: {:?}", args);
-
-if args.len() > 1 {
-let command = &args[1];
-trace!("Processing command: {}", command);
-match command.as_str() {
-"install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help" | "-h" => {
-match package_manager::cli::run().expect("Failed to initialize Drive");
-let drive = init_drive(&config.minio)
-.await
-.expect("Failed to initialize Drive");
-trace!("MinIO drive initialized successfully");
-.await
-.expect("Failed to initialize Drive");
-let drive = init_drive(&config.minio)
-.await
-.expect("Failed to initialize Drive");
-trace!("MinIO drive initialized successfully"); {
-Ok(_) => return Ok(()),
-Err(e) => {
-eprintln!("CLI error: {}", e);
-return Err(std::io::Error::new(
-std::io::ErrorKind::Other,
-format!("CLI command failed: {}", e),
-));
-}
-}
-}
-_ => {
-eprintln!("Unknown command: {}", command);
-eprintln!("Run 'botserver --help' for usage information");
-return Err(std::io::Error::new(
-std::io::ErrorKind::InvalidInput,
-format!("Unknown command: {}", command),
-));
-}
-}
-}
-
-if args.len() > 1 {
-let command = &args[1];
-match command.as_str() {
-async fn main() -> std::io::Result<()> {
-trace!("Application starting");
-let args: Vec<String> = std::env::args().collect();
-trace!("Command line arguments: {:?}", args);
-
-if args.len() > 1 {
-let command = &args[1];
-trace!("Processing command: {}", command);
-match command.as_str() {
-let args: Vec<String> = std::env::args().collect();
-
-if args.len() > 1 {
-let command = &args[1];
-match command.as_str() {
-#[tokio::main]
-async fn main() -> std::io::Result<()> {
-trace!("Starting main function");
-let args: Vec<String> = std::env::args().collect();
-trace!("Command line arguments: {:?}", args);
-
-if args.len() > 1 {
-let command = &args[1];
-trace!("Processing command: {}", command);
-match command.as_str() {
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
 
@@ -171,60 +85,12 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    info!("Starting BotServer bootstrap process");
-dotenv().ok();
-env_logger::Builder::from_env(env_logger::Env::default_filter_or("info")).init();
-trace!("Environment variables loaded and logger initialized");
-
-info!("Starting BotServer bootstrap process");
-trace!("Initializing bootstrap manager");
-env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-
-info!("Starting BotServer bootstrap process");
-dotenv().ok();
-env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-trace!("Environment variables loaded and logger initialized");
-
-info!("Starting BotServer bootstrap process");
-trace!("Initializing bootstrap manager");
-
-info!("Starting BotServer bootstrap process");
-dotenv().ok();
-env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
-trace!("Environment variables loaded and logger initialized");
-
-info!("Starting BotServer bootstrap process");
-trace!("Initializing bootstrap manager");
+    dotenv().ok();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
 
     info!("Starting BotServer bootstrap process");
 
-    InstallMode::Container
-} else {
-InstallMode::Local
-};
-
-let tenant = if let Some(idx) = args.iter().position(|a| a == "--tenant") {
-args.get(idx + 1).cloned()
-} else {
-None
-};
-let install_mode = if args.contains(&"--container".to_string()) {
-trace!("Running in container mode");
-InstallMode::Container
-} else {
-trace!("Running in local mode");
-InstallMode::Local
-};
-
-let tenant = if let Some(idx) = args.iter().position(|a| a == "--tenant") {
-let tenant = args.get(idx + 1).cloned();
-trace!("Tenant specified: {:?}", tenant);
-tenant
-} else {
-trace!("No tenant specified");
-None
-};
+    let install_mode = if args.contains(&"--container".to_string()) {
         InstallMode::Container
     } else {
         InstallMode::Local
@@ -237,28 +103,7 @@ None
     };
 
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
-    info!("Bootstrap completed successfully, configuration loaded from database");
-config
-let cfg = match bootstrap.bootstrap() {
-Ok(config) => {
-info!("Bootstrap completed successfully, configuration loaded from database");
-trace!("Bootstrap config: {:?}", config);
-config
-Ok(config) => {
-info!("Bootstrap completed successfully, configuration loaded from database");
-config
-let cfg = match bootstrap.bootstrap() {
-Ok(config) => {
-info!("Bootstrap completed successfully, configuration loaded from database");
-trace!("Bootstrap config: {:?}", config);
-config
-info!("Bootstrap completed successfully, configuration loaded from database");
-config
-let cfg = match bootstrap.bootstrap() {
-Ok(config) => {
-info!("Bootstrap completed successfully, configuration loaded from database");
-trace!("Bootstrap config: {:?}", config);
-config
+    let cfg = match bootstrap.bootstrap() {
         Ok(config) => {
             info!("Bootstrap completed successfully, configuration loaded from database");
             config
@@ -286,30 +131,10 @@ config
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
-    info!("Establishing database connection to {}", cfg.database_url());
-let config = std::sync::Arc::new(cfg.clone());
-trace!("Configuration loaded: {:?}", cfg);
-
-info!("Establishing database connection to {}", cfg.database_url());
-trace!("Database URL: {}", cfg.database_url());
+    let config = std::sync::Arc::new(cfg.clone());
 
     info!("Establishing database connection to {}", cfg.database_url());
     let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
-Ok(conn) => {
-trace!("Database connection established successfully");
-Arc::new(Mutex::new(conn))
-}
-Ok(conn) => Arc::new(Mutex::new(conn)),
-let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
-Ok(conn) => {
-trace!("Database connection established successfully");
-Arc::new(Mutex::new(conn))
-}
-let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
-Ok(conn) => {
-trace!("Database connection established successfully");
-Arc::new(Mutex::new(conn))
-}
         Ok(conn) => Arc::new(Mutex::new(conn)),
         Err(e) => {
             log::error!("Failed to connect to main database: {}", e);
@@ -331,21 +156,6 @@ Arc::new(Mutex::new(conn))
         .or_else(|_| std::env::var("REDIS_URL"))
         .unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
-Ok(client) => {
-trace!("Redis client created successfully");
-Some(Arc::new(client))
-}
-Ok(client) => Some(Arc::new(client)),
-let redis_client = match redis::Client::open(cache_url.as_str()) {
-Ok(client) => {
-trace!("Redis client created successfully");
-Some(Arc::new(client))
-}
-let redis_client = match redis::Client::open(cache_url.as_str()) {
-Ok(client) => {
-trace!("Redis client created successfully");
-Some(Arc::new(client))
-}
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
             log::warn!("Failed to connect to Redis: Redis URL did not parse- {}", e);
@@ -373,12 +183,7 @@ Some(Arc::new(client))
     let tool_api = Arc::new(tools::ToolApi::new());
 
     info!("Initializing MinIO drive at {}", cfg.minio.server);
-    .await
-.expect("Failed to initialize Drive");
-let drive = init_drive(&config.minio)
-.await
-.expect("Failed to initialize Drive");
-trace!("MinIO drive initialized successfully");
+    let drive = init_drive(&config.minio)
         .await
         .expect("Failed to initialize Drive");
 
@@ -421,30 +226,12 @@ trace!("MinIO drive initialized successfully");
         config.server.host, config.server.port
     );
 
-    .unwrap_or(4);
-let worker_count = std::thread::available_parallelism()
-.map(|n| n.get())
-.unwrap_or(4);
-trace!("Configured worker threads: {}", worker_count);
-.map(|n| n.get())
-.unwrap_or(4);
-let worker_count = std::thread::available_parallelism()
-.map(|n| n.get())
-.unwrap_or(4);
-trace!("Configured worker threads: {}", worker_count);
-.unwrap_or(4);
-let worker_count = std::thread::available_parallelism()
-.map(|n| n.get())
-.unwrap_or(4);
-trace!("Configured worker threads: {}", worker_count);
+    let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
 
     // Spawn AutomationService in a LocalSet on a separate thread
-    std::thread::spawn(move || {
-let automation_state = app_state.clone();
-trace!("Spawning automation service thread");
-std::thread::spawn(move || {
+    let automation_state = app_state.clone();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
@@ -467,15 +254,6 @@ std::thread::spawn(move || {
     let _drive_handle = drive_monitor.spawn();
 
     HttpServer::new(move || {
-trace!("Creating new HTTP server instance");
-let cors = Cors::default()
-let cors = Cors::default()
-HttpServer::new(move || {
-trace!("Creating new HTTP server instance");
-let cors = Cors::default()
-HttpServer::new(move || {
-trace!("Creating new HTTP server instance");
-let cors = Cors::default()
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
