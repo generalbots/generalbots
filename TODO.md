@@ -1,0 +1,9 @@
+- [x] Analyze errors from previous installation attempts
+- [ ] Download redis-stable.tar.gz
+- [ ] Extract and build Redis binaries
+- [ ] Clean up Redis source files
+- [x] Update drive component alias from "mc" to "minio" in installer.rs
+- [x] Re-run package manager installation for drive and cache components
+- [x] Verify MinIO client works and bucket creation succeeds
+- [x] Verify Redis server starts correctly
+- [x] Run overall package manager setup to ensure all components install without errors
