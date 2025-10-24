@@ -208,7 +208,7 @@ post_install_cmds_linux: vec![
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             env_vars: HashMap::new(),
-            exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start".to_string(),
+            exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30".to_string(),
         });
     }
 
