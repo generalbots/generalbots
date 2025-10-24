@@ -1,7 +1,9 @@
-target
+target*
 .env
 *.env
 work
 *.out
 bin
 botserver-stack
+*logfile*
+*-log*
