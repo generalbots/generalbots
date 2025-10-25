@@ -24,7 +24,7 @@ cache_max_entries,500
 
 ```basic
 SET_KB "company-policies"
-FIND "vacation policy" INTO RESULT   ' first call hits Qdrant
+FIND "vacation policy" INTO RESULT   ' first call hits VectorDB
 FIND "vacation policy" INTO RESULT   ' second call hits cache
 TALK RESULT
 ```
@@ -39,5 +39,5 @@ The second call returns instantly from the cache.
 ## Benefits
 
 - Reduces latency for hot queries.
-- Lowers load on Qdrant.
+- Lowers load on VectorDB.
 - Transparent to the script author; caching is automatic.
