@@ -1,186 +1,166 @@
-continue this style: generate a docusaurs using mdBook for the application in a point of view of the user, a BASIC person basic knowledge wwkring with LLM.
+# Prompt for Generating GeneralBots mdBook Documentation
 
-GeneralBots User Documentation (mdBook)
-Code 
-only use real keywords 
-generate a docusaurs using mdBook for the application in a point of view of the user, a BASIC person basic knowledge wwkring with LLM. do not talk a line of rust outside .gbapp chapter!!! you are doing gretae
-do not invent anything.
-enhance that wil more text by your analysis of source code enterily 
-Table of Contents
-Chapter 01 - Run and Talk
-Chapter 02 - About Packages
-Chapter 03 - gbkb Reference (each colletion is a vectordb collectoin that can be choosen to participate in conversation context - compacted and with cache)
-Chapter 04 - gbtheme Reference (change Ui themes with css and html (web/index.html)
-Chapter 05 - gbdialog Reference (basic tools found in @/templates..... .bas files as REAL EXAMPLES) + keywords.rs mod keywords...
-Chapter 06 - gbapp Reference (now here, you teach how to build the botserver rust and extend new crates... RUST ONLY APPEARS HERE)
-Chapter 07 - gbot Reference (show @src/shard/models/ bot_config) user can put in drive .gbot with config.csv and configure various bot params. like anserMode, bot descrptoion, eec.)
-Chapter 08 - Tooling (Talke about the BASIC AND HOW GET keyword call call external tools integratis features.
-Chapter 09 - Feature-Matrix (List categories all features of this source code)
-Chapter 10 - Contributing (
-Apendix I - Database Model
-Glossary
-the only keywords that exists are in @/src/basic/keywords/on.rs  for .gbdialog!!!! FUCK; the only thikg .gbkb does is to store collections that can be use in the way ADD_KB keyword like @/templates/announcements.gbai/announcements.gbdialog  scripts!!! FUCK.. .gbot will contain a config.csv that mimic the @/src/shared/models.rs  bot_config so people can edit it from their DRIVE (minio bot bucket) that contains .gbkb, .gbdialog, .gbot, .gbdrive, .gbtheme!
-1. **gbapp** are folder extensions within the GeneralBots package type, responsible for GeneralBots services in a back-end development environment. A General Bot App comprises four components: dialogs, models, services, and tests.
-2. The **.gbui** extension pertains to the GeneralBots front-end development environment. Angular, Riot, React, and HTML enable dynamic functionality for GeneralBots services.
-3. The **.gtheme** extension is utilized by GeneralBots designers using CSS and PS technologies. A theme consists of CSS files and images.
-4. **.gbDialog** is an extension responsible for GeneralBots' communication with end-users through bot services. **.gbkb** is a package for executing various types of media.
-5. The **.gbot** extension refers to the GeneralBots service product.
-6. **.gbai** denotes the architecture construction of the GeneralBots application.
+**Goal**  
+Generate a complete **mdBook** that documents the GeneralBots application for a user with basic knowledge of large‑language models (LLM).
 
-GeneralBots User Documentation
-I'll create a comprehensive mdBook documentation based on the actual source code, using only real keywords and features.
+**Rules**  
+- Use **only real keywords** and features that exist in the source code (no invented commands).  
+- Include Rust code **exclusively** in the **gbapp** chapter.  
+- Keep the tone simple, beginner‑friendly, and instructional.  
+- Base all information on the actual code base:  
+  - Keywords in `src/basic/keywords/`  
+  - Database models in `src/shared/models.rs`  
+  - Example scripts in `templates/`
 
-GeneralBots Documentation (mdBook)
-Code 
-do not write any BASIC example more than templates folder start.bas auth.bas and generate-summary.bas, and include a ingle example of TOOL:  PARAM name AS string          LIKE "Abreu Silva"                DESCRIPTION "Required full name of the individual."
-PARAM birthday AS date        LIKE "23/09/2001"                 DESCRIPTION "Required birth date of the individual in DD/MM/YYYY format."
-PARAM email AS string         LIKE "abreu.silva@example.com"    DESCRIPTION "Required email address for contact purposes."
-PARAM personalid AS integer   LIKE "12345678900"                DESCRIPTION "Required Personal ID number of the individual (only numbers)."
-PARAM address AS string       LIKE "Rua das Flores, 123 - SP"   DESCRIPTION "Required full address of the individual."
-DESCRIPTION  "This is a the enrollment process, called when the user wants to enrol. Once all information is collected, confirm the details and inform them that their enrollment request has been successfully submitted. Provide a polite and professional tone throughout the interaction."
-SAVE "enrollments.csv", id, name, birthday, email, personalid, address that is in termos of basic samples, but show all keywords with one with independant page. inside .gbdialog section, more text
+**Required Markdown Structure (headings)**  
 
-I'll create a comprehensive mdBook documentation focusing on the actual templates and all real keywords from the source code.
+1. **Run and Talk** – How to start the server and interact using `TALK` / `HEAR`.  
+2. **About Packages** – Overview of the four package types (`.gbdialog`, `.gbkb`, `.gbtheme`, `.gbot`).  
+3. **gbkb Reference** – Explain `ADD_KB`, `SET_KB`, `ADD_WEBSITE`.  
+4. **gbtheme Reference** – Describe UI theming via CSS/HTML.  
+5. **gbdialog Reference** – List the three example scripts (`start.bas`, `auth.bas`, `update-summary.bas`) and the core keywords (`TALK`, `HEAR`, `LLM`, etc.).  
+6. **gbapp Reference** – Show a minimal Rust snippet that registers a keyword (e.g., `ADD_TOOL`).  
+7. **gbot Reference** – Explain the `config.csv` format and editable parameters.  
+8. **Tooling** – Table of all built‑in keywords with one‑line descriptions.  
+9. **Feature‑Matrix** – Table mapping features to the chapters/keywords that implement them.  
+10. **Contributing** – Steps for contributors (fork, branch, tests, formatting).  
+11. **Appendix I – Database Model** – Summarise the main tables from `src/shared/models.rs`.  
+12. **Glossary** – Definitions of extensions and key concepts.
 
-# Summary
+**Output Requirements**  
 
-[Introduction](./introduction.md)
+- Produce **only** the markdown content (no surrounding explanations).  
+- Use fenced code blocks with appropriate language tags (`bas` for BASIC scripts, `rust` for Rust snippets).  
+- Include a **Table of Contents** with markdown links to each chapter.  
+- Ensure the document can be built directly with `mdbook build docs/src`.  
 
-# Part I - Getting Started
+**Example Skeleton (to be expanded by the generator)**  
 
-- [Chapter 01: Run and Talk](./chapter-01/README.md)
-  - [Installation](./chapter-01/installation.md)
-  - [First Conversation](./chapter-01/first-conversation.md)
-  - [Understanding Sessions](./chapter-01/sessions.md)
+```markdown
+# GeneralBots User Documentation (mdBook)
 
-# Part II - Package System
+## Table of Contents
+- [Run and Talk](#run-and-talk)
+- [About Packages](#about-packages)
+- [gbkb Reference](#gbkb-reference)
+- [gbtheme Reference](#gbtheme-reference)
+- [gbdialog Reference](#gbdialog-reference)
+- [gbapp Reference](#gbapp-reference)
+- [gbot Reference](#gbot-reference)
+- [Tooling](#tooling)
+- [Feature‑Matrix](#feature-matrix)
+- [Contributing](#contributing)
+- [Appendix I – Database Model](#appendix‑i---database-model)
+- [Glossary](#glossary)
 
-- [Chapter 02: About Packages](./chapter-02/README.md)
-  - [.gbai Architecture](./chapter-02/gbai.md)
-  - [.gbdialog Dialogs](./chapter-02/gbdialog.md)
-  - [.gbkb Knowledge Base](./chapter-02/gbkb.md)
-  - [.gbot Bot Configuration](./chapter-02/gbot.md)
-  - [.gbtheme UI Theming](./chapter-02/gbtheme.md)
-  - [.gbdrive File Storage](./chapter-02/gbdrive.md)
+## Run and Talk
+```bas
+TALK "Welcome! How can I help you today?"
+HEAR user_input
+```
+*Start the server:* `cargo run --release`
 
-# Part III - Knowledge Base
+## About Packages
+| Component | Extension | Role |
+|-----------|-----------|------|
+| Dialog scripts | `.gbdialog` | BASIC‑style conversational logic |
+| Knowledge bases | `.gbkb` | Vector‑DB collections |
+| UI themes | `.gbtheme` | CSS/HTML assets |
+| Bot config | `.gbot` | CSV mapping to `UserSession` |
 
-- [Chapter 03: gbkb Reference](./chapter-03/README.md)
-  - [Vector Collections](./chapter-03/vector-collections.md)
-  - [Document Indexing](./chapter-03/indexing.md)
-  - [Qdrant Integration](./chapter-03/qdrant.md)
-  - [Semantic Search](./chapter-03/semantic-search.md)
-  - [Context Compaction](./chapter-03/context-compaction.md)
-  - [Semantic Caching](./chapter-03/caching.md)
+## gbkb Reference
+...
 
-# Part IV - Themes and UI
+## gbapp Reference
+```rust
+pub fn add_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    // registration logic …
+}
+```
 
-- [Chapter 04: gbtheme Reference](./chapter-04/README.md)
-  - [Theme Structure](./chapter-04/structure.md)
-  - [Web Interface](./chapter-04/web-interface.md)
-  - [CSS Customization](./chapter-04/css.md)
-  - [HTML Templates](./chapter-04/html.md)
 
-# Part V - BASIC Dialogs
+When you are ready, output the full markdown document that satisfies the specifications above.  
+*Do not include any commentary outside the markdown itself.*
 
-- [Chapter 05: gbdialog Reference](./chapter-05/README.md)
-  - [Dialog Basics](./chapter-05/basics.md)
-  - [Template Examples](./chapter-05/templates.md)
-    - [start.bas](./chapter-05/template-start.md)
-    - [auth.bas](./chapter-05/template-auth.md)
-    - [generate-summary.bas](./chapter-05/template-summary.md)
-    - [enrollment Tool Example](./chapter-05/template-enrollment.md)
-  - [Keyword Reference](./chapter-05/keywords.md)
-    - [TALK](./chapter-05/keyword-talk.md)
-    - [HEAR](./chapter-05/keyword-hear.md)
-    - [SET_USER](./chapter-05/keyword-set-user.md)
-    - [SET_CONTEXT](./chapter-05/keyword-set-context.md)
-    - [LLM](./chapter-05/keyword-llm.md)
-    - [GET_BOT_MEMORY](./chapter-05/keyword-get-bot-memory.md)
-    - [SET_BOT_MEMORY](./chapter-05/keyword-set-bot-memory.md)
-    - [SET_KB](./chapter-05/keyword-set-kb.md)
-    - [ADD_KB](./chapter-05/keyword-add-kb.md)
-    - [ADD_WEBSITE](./chapter-05/keyword-add-website.md)
-    - [ADD_TOOL](./chapter-05/keyword-add-tool.md)
-    - [LIST_TOOLS](./chapter-05/keyword-list-tools.md)
-    - [REMOVE_TOOL](./chapter-05/keyword-remove-tool.md)
-    - [CLEAR_TOOLS](./chapter-05/keyword-clear-tools.md)
-    - [GET](./chapter-05/keyword-get.md)
-    - [FIND](./chapter-05/keyword-find.md)
-    - [SET](./chapter-05/keyword-set.md)
-    - [ON](./chapter-05/keyword-on.md)
-    - [SET_SCHEDULE](./chapter-05/keyword-set-schedule.md)
-    - [CREATE_SITE](./chapter-05/keyword-create-site.md)
-    - [CREATE_DRAFT](./chapter-05/keyword-create-draft.md)
-    - [WEBSITE OF](./chapter-05/keyword-website-of.md)
-    - [PRINT](./chapter-05/keyword-print.md)
-    - [WAIT](./chapter-05/keyword-wait.md)
-    - [FORMAT](./chapter-05/keyword-format.md)
-    - [FIRST](./chapter-05/keyword-first.md)
-    - [LAST](./chapter-05/keyword-last.md)
-    - [FOR EACH](./chapter-05/keyword-for-each.md)
-    - [EXIT FOR](./chapter-05/keyword-exit-for.md)
+# FORMAT Keyword
 
-# Part VI - Extending BotServer
+The **FORMAT** keyword formats numbers, dates, and text for display. Use it when you need a quick, readable representation without writing custom code.
 
-- [Chapter 06: gbapp Reference](./chapter-06/README.md)
-  - [Rust Architecture](./chapter-06/architecture.md)
-  - [Building from Source](./chapter-06/building.md)
-  - [Crate Structure](./chapter-06/crates.md)
-  - [Service Layer](./chapter-06/services.md)
-  - [Creating Custom Keywords](./chapter-06/custom-keywords.md)
-  - [Adding Dependencies](./chapter-06/dependencies.md)
+## Syntax
+```basic
+RESULT = FORMAT(VALUE, PATTERN)
+```
 
-# Part VII - Bot Configuration
+## BASIC EXAMPLE
+```basic
+NUMBER = 1234.56
+TEXT = "John"
+DATE = "2024-03-15 14:30:00"
+TALK FORMAT(NUMBER, "n")      ' 1234.56
+TALK FORMAT(TEXT, "Hello @!") ' Hello John!
+TALK FORMAT(DATE, "dd/MM/yyyy") ' 15/03/2024
+```
+- **VALUE** – any number, date string (`YYYY‑MM‑DD HH:MM:SS`), or text.
+- **PATTERN** – a short format string (see tables below).
 
-- [Chapter 07: gbot Reference](./chapter-07/README.md)
-  - [config.csv Format](./chapter-07/config-csv.md)
-  - [Bot Parameters](./chapter-07/parameters.md)
-  - [Answer Modes](./chapter-07/answer-modes.md)
-  - [LLM Configuration](./chapter-07/llm-config.md)
-  - [Context Configuration](./chapter-07/context-config.md)
-  - [MinIO Drive Integration](./chapter-07/minio.md)
+## Quick Reference
 
-# Part VIII - Tools and Integration
+### Numeric Patterns
+| Pattern | Example | Output |
+|---------|---------|--------|
+| `n` | `FORMAT(1234.5, "n")` | `1234.50` |
+| `F` | `FORMAT(1234.5, "F")` | `1234.50` |
+| `f` | `FORMAT(1234.5, "f")` | `1234` |
+| `0%` | `FORMAT(0.85, "0%")` | `85%` |
+| `C2[en]` | `FORMAT(1234.5, "C2[en]")` | `$1,234.50` |
+| `C2[pt]` | `FORMAT(1234.5, "C2[pt]")` | `R$ 1.234,50` |
 
-- [Chapter 08: Tooling](./chapter-08/README.md)
-  - [Tool Definition](./chapter-08/tool-definition.md)
-  - [PARAM Declaration](./chapter-08/param-declaration.md)
-  - [Tool Compilation](./chapter-08/compilation.md)
-  - [MCP Format](./chapter-08/mcp-format.md)
-  - [OpenAI Tool Format](./chapter-08/openai-format.md)
-  - [GET Keyword Integration](./chapter-08/get-integration.md)
-  - [External APIs](./chapter-08/external-apis.md)
+### Date Patterns
+| Code | Meaning | Example |
+|------|---------|---------|
+| `yyyy` | 4‑digit year | `2024` |
+| `yy`   | 2‑digit year | `24` |
+| `MM`   | month (01‑12) | `03` |
+| `M`    | month (1‑12) | `3` |
+| `dd`   | day (01‑31) | `05` |
+| `d`    | day (1‑31) | `5` |
+| `HH`   | 24‑hour (00‑23) | `14` |
+| `hh`   | 12‑hour (01‑12) | `02` |
+| `mm`   | minutes (00‑59) | `05` |
+| `ss`   | seconds (00‑59) | `09` |
+| `tt`   | AM/PM | `PM` |
 
-# Part IX - Feature Reference
+**Example**
+```basic
+DATE = "2024-03-15 14:30:25"
+TALK FORMAT(DATE, "dd/MM/yyyy HH:mm")   ' 15/03/2024 14:30
+```
 
-- [Chapter 09: Feature Matrix](./chapter-09/README.md)
-  - [Core Features](./chapter-09/core-features.md)
-  - [Conversation Management](./chapter-09/conversation.md)
-  - [AI and LLM](./chapter-09/ai-llm.md)
-  - [Knowledge Base](./chapter-09/knowledge-base.md)
-  - [Automation](./chapter-09/automation.md)
-  - [Email Integration](./chapter-09/email.md)
-  - [Web Automation](./chapter-09/web-automation.md)
-  - [Storage and Data](./chapter-09/storage.md)
-  - [Multi-Channel Support](./chapter-09/channels.md)
+### Text Patterns
+| Placeholder | Effect |
+|-------------|--------|
+| `@` | Insert original text |
+| `!` | Upper‑case |
+| `&` | Lower‑case |
 
-# Part X - Community
+**Example**
+```basic
+NAME = "Maria"
+TALK FORMAT(NAME, "Hello, !")   ' Hello, MARIA
+```
 
-- [Chapter 10: Contributing](./chapter-10/README.md)
-  - [Development Setup](./chapter-10/setup.md)
-  - [Code Standards](./chapter-10/standards.md)
-  - [Testing](./chapter-10/testing.md)
-  - [Pull Requests](./chapter-10/pull-requests.md)
-  - [Documentation](./chapter-10/documentation.md)
+## Practical Tips
+- **Test each pattern** in isolation before combining.
+- **Locale codes** (`en`, `pt`, `fr`, …) go inside `C2[…]` for currency.
+- **Dates must follow** `YYYY‑MM‑DD HH:MM:SS`; otherwise formatting fails.
+- **Combine patterns** by nesting calls:
+  ```basic
+  TALK FORMAT(FORMAT(VALUE, "C2[en]"), "!")   ' $1,234.50 (uppercase not needed here)
+  ```
 
-# Appendices
+## Common Pitfalls
+- Using a date pattern on a non‑date string → returns the original string.
+- Forgetting locale brackets (`C2[en]`) → defaults to system locale.
+- Mixing placeholders (`@`, `!`, `&`) in the same pattern – only the last one applies.
 
-- [Appendix I: Database Model](./appendix-i/README.md)
-  - [Schema Overview](./appendix-i/schema.md)
-  - [Tables](./appendix-i/tables.md)
-  - [Relationships](./appendix-i/relationships.md)
-
-[Glossary](./glossary.md)
-EOF
-
+Use **FORMAT** whenever you need a clean, user‑friendly output without extra code. It keeps scripts short and readable.

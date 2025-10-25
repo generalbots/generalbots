@@ -1,9 +1,78 @@
-- [x] Analyze errors from previous installation attempts
-- [ ] Download redis-stable.tar.gz
-- [ ] Extract and build Redis binaries
-- [ ] Clean up Redis source files
-- [x] Update drive component alias from "mc" to "minio" in installer.rs
-- [x] Re-run package manager installation for drive and cache components
-- [x] Verify MinIO client works and bucket creation succeeds
-- [x] Verify Redis server starts correctly
-- [x] Run overall package manager setup to ensure all components install without errors
+# Documentation Completion Checklist
+
+- [x] Created Chapter 01 files (README, installation, first-conversation, sessions)
+- [ ] Fill Chapter 02 files (README, gbai, gbdialog, gbkb, gbot, gbtheme, gbdrive) – already have content
+- [ ] Complete Chapter 03 files
+  - [ ] README.md
+  - [ ] vector-collections.md
+  - [ ] indexing.md
+  - [ ] qdrant.md
+  - [ ] semantic-search.md
+  - [ ] context-compaction.md
+  - [ ] caching.md (if needed)
+- [ ] Complete Chapter 04 files
+  - [ ] README.md
+  - [ ] structure.md
+  - [ ] web-interface.md
+  - [ ] css.md
+  - [ ] html.md
+- [ ] Complete Chapter 05 files
+  - [ ] README.md
+  - [ ] basics.md
+  - [ ] templates.md
+  - [ ] template-start.md
+  - [ ] template-auth.md
+  - [ ] template-summary.md
+  - [ ] template-enrollment.md
+  - [ ] keywords.md
+  - [ ] All keyword pages (talk, hear, set-user, set-context, llm, get-bot-memory, set-bot-memory, set-kb, add-kb, add-website, add-tool, list-tools, remove-tool, clear-tools, get, find, set, on, set-schedule, create-site, create-draft, website-of, print, wait, format, first, last, for-each, exit-for)
+- [ ] Complete Chapter 06 files
+  - [ ] README.md
+  - [ ] architecture.md
+  - [ ] building.md
+  - [ ] crates.md
+  - [ ] services.md
+  - [ ] custom-keywords.md
+  - [ ] dependencies.md
+- [ ] Complete Chapter 07 files
+  - [ ] README.md
+  - [ ] config-csv.md
+  - [ ] parameters.md
+  - [ ] answer-modes.md
+  - [ ] llm-config.md
+  - [ ] context-config.md
+  - [ ] minio.md
+- [ ] Complete Chapter 08 files
+  - [ ] README.md
+  - [ ] tool-definition.md
+  - [ ] param-declaration.md
+  - [ ] compilation.md
+  - [ ] mcp-format.md
+  - [ ] openai-format.md
+  - [ ] get-integration.md
+  - [ ] external-apis.md
+- [ ] Complete Chapter 09 files
+  - [ ] README.md
+  - [ ] core-features.md
+  - [ ] conversation.md
+  - [ ] ai-llm.md
+  - [ ] knowledge-base.md
+  - [ ] automation.md
+  - [ ] email.md
+  - [ ] web-automation.md
+  - [ ] storage.md
+  - [ ] channels.md
+- [ ] Complete Chapter 10 files
+  - [ ] README.md
+  - [ ] setup.md
+  - [ ] standards.md
+  - [ ] testing.md
+  - [ ] pull-requests.md
+  - [ ] documentation.md
+- [ ] Complete Appendix I files
+  - [ ] README.md
+  - [ ] schema.md
+  - [ ] tables.md
+  - [ ] relationships.md
+- [ ] Verify SUMMARY.md links
+- [ ] Run mdbook build to ensure no errors
