@@ -1,11 +1,11 @@
 # Semantic Search
 
-Semantic search enables the bot to retrieve information based on meaning rather than exact keyword matches. It leverages the vector embeddings stored in Qdrant.
+Semantic search enables the bot to retrieve information based on meaning rather than exact keyword matches. It leverages the vector embeddings stored in VectorDB.
 
 ## How It Works
 
 1. **Query Embedding** – The user’s query string is converted into a dense vector using the same embedding model as the documents.
-2. **Nearest‑Neighbor Search** – Qdrant returns the top‑k vectors that are closest to the query vector.
+2. **Nearest‑Neighbor Search** – VectorDB returns the top‑k vectors that are closest to the query vector.
 3. **Result Formatting** – The matching document chunks are concatenated and passed to the LLM as context for the final response.
 
 ## Using the `FIND` Keyword
@@ -33,4 +33,4 @@ TALK RESULT
 
 ## Performance
 
-Semantic search latency is typically < 100 ms for collections under 50 k vectors. Larger collections may require tuning Qdrant’s HNSW parameters.
+Semantic search latency is typically < 100 ms for collections under 50 k vectors. Larger collections may require tuning VectorDB’s HNSW parameters.
