@@ -72,11 +72,9 @@ impl PackageManager {
 
         // Write credentials to a .env file at the base path
         let env_path = self.base_path.join(".env");
-let app_user = "gbdriveapp".to_string();
-let app_password = self.generate_secure_password(16);
 let env_content = format!(
-    "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nMINIO_ROOT_USER={}\nMINIO_ROOT_PASSWORD={}\nAPP_USER={}\nAPP_PASSWORD={}\n",
-    drive_user, drive_password, farm_password, drive_user, drive_password, app_user, app_password
+    "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
+    drive_user, drive_password, farm_password, drive_user, drive_password
 );
         let _ = std::fs::write(&env_path, env_content);
 
@@ -94,14 +92,6 @@ let env_content = format!(
 post_install_cmds_linux: vec![
     "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
     "chmod +x {{BIN_PATH}}/mc".to_string(),
-    // Use generated credentials for root alias
-    format!("{{{{BIN_PATH}}}}/mc alias set minio http://localhost:9000 {} {}", drive_user, drive_password),
-    // Create bucket
-    "{{BIN_PATH}}/mc mb minio/default.gbai".to_string(),
-    // Add separate app user
-    format!("{{{{BIN_PATH}}}}/mc admin user add minio {} {}", app_user, app_password),
-    // Attach policy to app user
-    format!("{{{{BIN_PATH}}}}/mc admin policy attach minio readwrite --user={}", app_user)
 ],
             pre_install_cmds_macos: vec![],
             post_install_cmds_macos: vec![
@@ -111,12 +101,12 @@ post_install_cmds_linux: vec![
             pre_install_cmds_windows: vec![],
             post_install_cmds_windows: vec![],
             // No env vars here; credentials are read from .env at runtime
-            // Provide MinIO root credentials via environment variables
-        env_vars: HashMap::from([
-            ("MINIO_ROOT_USER".to_string(), drive_user.clone()),
-            ("MINIO_ROOT_PASSWORD".to_string(), drive_password.clone())
-        ]),
-            exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+             // Provide drive root credentials via environment variables
+env_vars: HashMap::from([
+    ("DRIVE_ROOT_USER".to_string(), drive_user.clone()),
+    ("DRIVE_ROOT_PASSWORD".to_string(), drive_password.clone())
+]),
+            exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 & sleep 5 && {{BIN_PATH}}/mc alias set drive http://localhost:9000 $DRIVE_ROOT_USER $DRIVE_ROOT_PASSWORD && {{BIN_PATH}}/mc mb drive/default.gbai || true".to_string(),
         });
 
         self.update_drive_credentials_in_database(&encrypted_drive_password)
@@ -226,14 +216,15 @@ post_install_cmds_linux: vec![
                 download_url: Some("https://download.redis.io/redis-stable.tar.gz".to_string()),
                 binary_name: Some("redis-server".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "tar -xzf redis-stable.tar.gz".to_string(),
-                    "cd redis-stable && make -j4".to_string(),
-                    "cp redis-stable/src/redis-server .".to_string(),
-                    "cp redis-stable/src/redis-cli .".to_string(),
-                    "chmod +x redis-server redis-cli".to_string(),
-                    "rm -rf redis-stable redis-stable.tar.gz".to_string(),
-                ],
+post_install_cmds_linux: vec![
+    "wget https://download.redis.io/redis-stable.tar.gz".to_string(),
+    "tar -xzf redis-stable.tar.gz".to_string(),
+    "cd redis-stable && make -j4".to_string(),
+    "cp redis-stable/src/redis-server .".to_string(),
+    "cp redis-stable/src/redis-cli .".to_string(),
+    "chmod +x redis-server redis-cli".to_string(),
+    "rm -rf redis-stable redis-stable.tar.gz".to_string(),
+],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![
                     "tar -xzf redis-stable.tar.gz".to_string(),
