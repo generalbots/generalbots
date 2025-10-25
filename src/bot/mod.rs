@@ -3,30 +3,27 @@ use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
-use chrono::Utc;
 use log::{debug, error, info, warn};
+use chrono::Utc;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use tokio::sync::Mutex;
+use crate::kb::embeddings::generate_embeddings;
 use uuid::Uuid;
-use redis::AsyncCommands;
-use reqwest::Client;
+ 
+use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
+use crate::context::langcache::{get_langcache_client};
+ 
 
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
-    pub cache: Arc<Mutex<std::collections::HashMap<String, String>>>,
 }
 
 impl BotOrchestrator {
-pub fn new(state: Arc<AppState>) -> Self {
-    Self {
-        state,
-        cache: Arc::new(Mutex::new(std::collections::HashMap::new())),
+    pub fn new(state: Arc<AppState>) -> Self {
+        Self { state }
     }
-}
-}
 
     pub async fn handle_user_input(
         &self,
@@ -301,7 +298,7 @@ pub fn new(state: Arc<AppState>) -> Self {
             session_manager.get_conversation_history(session.id, session.user_id)?
         };
 
-        // Prompt compactor: keep only last 10 entries to limit size
+        // Prompt compactor: keep only last 10 entries
         let recent_history = if history.len() > 10 {
             &history[history.len() - 10..]
         } else {
@@ -313,27 +310,111 @@ pub fn new(state: Arc<AppState>) -> Self {
         }
         prompt.push_str(&format!("User: {}\nAssistant:", message.content));
 
-        // Check in-memory cache for existing response
-        {
-            let cache = self.cache.lock().await;
-            if let Some(cached) = cache.get(&prompt) {
-                return Ok(cached.clone());
+        // Determine which cache backend to use
+        let use_langcache = std::env::var("LLM_CACHE")
+            .unwrap_or_else(|_| "false".to_string())
+            .eq_ignore_ascii_case("true");
+
+        if use_langcache {
+            // Ensure LangCache collection exists
+            ensure_collection_exists(&self.state, "semantic_cache").await?;
+
+            // Get LangCache client
+            let langcache_client = get_langcache_client()?;
+
+            // Isolate the user question (ignore conversation history)
+            let isolated_question = message.content.trim().to_string();
+
+            // Generate embedding for the isolated question
+            let question_embeddings = generate_embeddings(vec![isolated_question.clone()]).await?;
+            let question_embedding = question_embeddings
+                .get(0)
+                .ok_or_else(|| "Failed to generate embedding for question")?
+                .clone();
+
+            // Search for similar question in LangCache
+            let search_results = langcache_client
+                .search("semantic_cache", question_embedding.clone(), 1)
+                .await?;
+
+            if let Some(result) = search_results.first() {
+                let payload = &result.payload;
+                if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
+                    return Ok(resp.to_string());
+                }
             }
+
+            // Generate response via LLM provider using full prompt (including history)
+            let response = self.state
+                .llm_provider
+                .generate(&prompt, &serde_json::Value::Null)
+                .await?;
+
+            // Store isolated question and response in LangCache
+            let point = QdrantPoint {
+                id: uuid::Uuid::new_v4().to_string(),
+                vector: question_embedding,
+                payload: serde_json::json!({
+                    "question": isolated_question,
+                    "prompt": prompt,
+                    "response": response
+                }),
+            };
+            langcache_client
+                .upsert_points("semantic_cache", vec![point])
+                .await?;
+
+            Ok(response)
+        } else {
+            // Ensure semantic cache collection exists
+            ensure_collection_exists(&self.state, "semantic_cache").await?;
+
+            // Get Qdrant client
+            let qdrant_client = get_qdrant_client(&self.state)?;
+
+            // Generate embedding for the prompt
+            let embeddings = generate_embeddings(vec![prompt.clone()]).await?;
+            let embedding = embeddings
+                .get(0)
+                .ok_or_else(|| "Failed to generate embedding")?
+                .clone();
+
+            // Search for similar prompt in Qdrant
+            let search_results = qdrant_client
+                .search("semantic_cache", embedding.clone(), 1)
+                .await?;
+
+            if let Some(result) = search_results.first() {
+                if let Some(payload) = &result.payload {
+                    if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
+                        return Ok(resp.to_string());
+                    }
+                }
+            }
+
+            // Generate response via LLM provider
+            let response = self.state
+                .llm_provider
+                .generate(&prompt, &serde_json::Value::Null)
+                .await?;
+
+            // Store prompt and response in Qdrant
+            let point = QdrantPoint {
+                id: uuid::Uuid::new_v4().to_string(),
+                vector: embedding,
+                payload: serde_json::json!({
+                    "prompt": prompt,
+                    "response": response
+                }),
+            };
+            qdrant_client
+                .upsert_points("semantic_cache", vec![point])
+                .await?;
+
+            Ok(response)
         }
 
-        // Generate response via LLM provider
-        let response = self.state
-            .llm_provider
-            .generate(&prompt, &serde_json::Value::Null)
-            .await?;
 
-        // Store the new response in cache
-        {
-            let mut cache = self.cache.lock().await;
-            cache.insert(prompt.clone(), response.clone());
-        }
-
-        Ok(response)
     }
 
     pub async fn stream_response(
@@ -727,7 +808,6 @@ impl Default for BotOrchestrator {
     fn default() -> Self {
         Self {
             state: Arc::new(AppState::default()),
-            cache: Arc::new(Mutex::new(std::collections::HashMap::new())),
         }
     }
 }
