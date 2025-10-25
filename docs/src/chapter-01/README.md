@@ -1,13 +1,39 @@
-# Chapter 01: Run and Talk
+## Run and Talk
+```bas
+TALK "Welcome! How can I help you today?"
+HEAR user_input
+```
+*Start the server:* `cargo run --release`
 
-This chapter covers the basics of getting started with GeneralBots - from installation to having your first conversation with a bot.
+### Installation
+```bash
+# Clone the repository
+git clone https://github.com/GeneralBots/BotServer.git
+cd BotServer
 
-## Quick Start
+# Build the project
+cargo build --release
 
-1. Install the botserver package
-2. Configure your environment
-3. Start the server
-4. Open the web interface
-5. Begin chatting with your bot
+# Run the server
+cargo run --release
+```
 
-The platform is designed to be immediately usable with minimal setup, providing a working bot out of the box that you can extend and customize.
+### First Conversation
+```bas
+TALK "Hello! I'm your GeneralBots assistant."
+HEAR user_input
+IF user_input CONTAINS "weather" THEN
+    TALK "Sure, let me check the weather for you."
+    CALL GET_WEATHER
+ELSE
+    TALK "I can help with many tasks, just ask!"
+ENDIF
+```
+
+### Understanding Sessions
+Each conversation is represented by a **BotSession**. The session stores:
+- User identifier
+- Conversation history
+- Current context (variables, knowledge base references, etc.)
+
+Sessions are persisted in the SQLite database defined in `src/shared/models.rs`.

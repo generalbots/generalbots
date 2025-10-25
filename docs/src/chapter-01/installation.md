@@ -12,7 +12,7 @@
 ### Method 1: Package Manager (Recommended)
 
 ```bash
-# Install using the built-in package manager
+# Install using the built‑in package manager
 botserver install tables
 botserver install drive  
 botserver install cache
