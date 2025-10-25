@@ -1,54 +1,42 @@
 # Keyword Reference
 
-This section provides comprehensive reference for all BASIC keywords available in .gbdialog scripts.
+This section lists every BASIC keyword implemented in the GeneralBots engine. Each keyword page includes:
 
-## Categories
+* **Syntax** – Exact command format.
+* **Parameters** – Expected arguments.
+* **Description** – What the keyword does.
+* **Example** – A short snippet from the official template files.
 
-### 1. Conversation Keywords
-- `TALK` - Send message to user
-- `HEAR` - Receive input from user
-- `SET_USER` - Change user context
-- `SET_CONTEXT` - Store session data
+The source code for each keyword lives in `src/basic/keywords/`. Only the keywords listed here exist in the system.
 
-### 2. AI and LLM Keywords  
-- `LLM` - Generate AI response
-- `GET_BOT_MEMORY` - Retrieve bot data
-- `SET_BOT_MEMORY` - Store bot data
+## Keywords
 
-### 3. Knowledge Base Keywords
-- `SET_KB` - Set active knowledge base
-- `ADD_KB` - Add knowledge base to session
-- `ADD_WEBSITE` - Crawl and index website
-
-### 4. Tool Keywords
-- `ADD_TOOL` - Enable tool for session
-- `LIST_TOOLS` - Show available tools
-- `REMOVE_TOOL` - Disable tool
-- `CLEAR_TOOLS` - Remove all tools
-
-### 5. Data Keywords
-- `GET` - Retrieve data from URL or file
-- `FIND` - Search database tables
-- `SET` - Update database records
-
-### 6. Automation Keywords
-- `ON` - Create database triggers
-- `SET_SCHEDULE` - Schedule automated tasks
-
-### 7. Web Keywords
-- `CREATE_SITE` - Generate website
-- `CREATE_DRAFT` - Create email draft
-- `WEBSITE OF` - Search web content
-
-### 8. Utility Keywords
-- `PRINT` - Output debug information
-- `WAIT` - Pause execution
-- `FORMAT` - Format data values
-- `FIRST` - Get first word from text
-- `LAST` - Get last word from text
-
-### 9. Loop Keywords
-- `FOR EACH` - Iterate over collections
-- `EXIT FOR` - Break out of loops
-
-Each keyword is documented in detail in the following pages with syntax, parameters, examples, and usage notes.
+- [TALK](./keyword-talk.md)
+- [HEAR](./keyword-hear.md)
+- [SET_USER](./keyword-set-user.md)
+- [SET_CONTEXT](./keyword-set-context.md)
+- [LLM](./keyword-llm.md)
+- [GET_BOT_MEMORY](./keyword-get-bot-memory.md)
+- [SET_BOT_MEMORY](./keyword-set-bot-memory.md)
+- [SET_KB](./keyword-set-kb.md)
+- [ADD_KB](./keyword-add-kb.md)
+- [ADD_WEBSITE](./keyword-add-website.md)
+- [ADD_TOOL](./keyword-add-tool.md)
+- [LIST_TOOLS](./keyword-list-tools.md)
+- [REMOVE_TOOL](./keyword-remove-tool.md)
+- [CLEAR_TOOLS](./keyword-clear-tools.md)
+- [GET](./keyword-get.md)
+- [FIND](./keyword-find.md)
+- [SET](./keyword-set.md)
+- [ON](./keyword-on.md)
+- [SET_SCHEDULE](./keyword-set-schedule.md)
+- [CREATE_SITE](./keyword-create-site.md)
+- [CREATE_DRAFT](./keyword-create-draft.md)
+- [WEBSITE_OF](./keyword-website-of.md)
+- [PRINT](./keyword-print.md)
+- [WAIT](./keyword-wait.md)
+- [FORMAT](./keyword-format.md)
+- [FIRST](./keyword-first.md)
+- [LAST](./keyword-last.md)
+- [FOR EACH](./keyword-for-each.md)
+- [EXIT FOR](./keyword-exit-for.md)
