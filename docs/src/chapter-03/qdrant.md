@@ -1,21 +1,21 @@
-# Qdrant Integration
+# VectorDB Integration
 
-GeneralBots uses **Qdrant** as the vector database for storing and searching embeddings. The Rust client `qdrant-client` is used to communicate with the service.
+GeneralBots uses **VectorDB** as the vector database for storing and searching embeddings. The Rust client for the configured VectorDB is used to communicate with the service.
 
 ## Configuration
 
 The connection is configured via environment variables:
 
 ```env
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=your-api-key   # optional
+VECTORDB_URL=http://localhost:6333
+VECTORDB_API_KEY=your-api-key   # optional
 ```
 
-These values are read at startup and passed to the `QdrantClient`.
+These values are read at startup and passed to the `VectorDBClient`.
 
 ## Collection Mapping
 
-Each `.gbkb` collection maps to a Qdrant collection with the same name. For example, a knowledge base named `company-policies` becomes a Qdrant collection `company-policies`.
+Each `.gbkb` collection maps to a VectorDB collection with the same name. For example, a knowledge base named `company-policies` becomes a VectorDB collection `company-policies`.
 
 ## Operations
 
@@ -26,7 +26,7 @@ Each `.gbkb` collection maps to a Qdrant collection with the same name. For exam
 ## Performance Tips
 
 - Keep the number of vectors per collection reasonable (tens of thousands) for optimal latency.
-- Adjust Qdrant’s `hnsw` parameters in `QdrantClient::new` if you need higher recall.
+- Adjust VectorDB’s `hnsw` parameters in `VectorDBClient::new` if you need higher recall.
 - Use the `FILTER` option to restrict searches by metadata (e.g., source file).
 
 ## Example `FIND` Usage
@@ -39,5 +39,5 @@ TALK RESULT
 
 The keyword internally:
 1. Generates an embedding for the query string.
-2. Calls Qdrant’s `search` API.
+2. Calls VectorDB’s `search` API.
 3. Returns the most relevant chunk as `RESULT`.

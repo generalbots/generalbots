@@ -41,5 +41,5 @@ TALK RESULT
 ## Technical Details
 
 - Embeddings are generated with the BGE‑small‑en‑v1.5 model.
-- Vectors are stored in Qdrant (see Chapter 04).
+- Vectors are stored in VectorDB (see Chapter 04).
 - Each document is chunked into 500‑token pieces for efficient retrieval.
