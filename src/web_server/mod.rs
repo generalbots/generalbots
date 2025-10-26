@@ -4,7 +4,7 @@ use std::fs;
 
 #[actix_web::get("/")]
 async fn index() -> Result<HttpResponse> {
-    match fs::read_to_string("web/app/index.html") {
+    match fs::read_to_string("web/html/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page: {}", e);
@@ -17,7 +17,7 @@ async fn index() -> Result<HttpResponse> {
 async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
     let botname = req.match_info().query("botname");
     debug!("Serving bot interface for: {}", botname);
-    match fs::read_to_string("web/index.html") {
+    match fs::read_to_string("web/html/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page for bot {}: {}", botname, e);
@@ -29,7 +29,7 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
 #[actix_web::get("/{filename:.*}")]
 async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
     let filename = req.match_info().query("filename");
-    let path = format!("web/app/{}", filename);
+    let path = format!("web/html/{}", filename);
     match fs::read(&path) {
         Ok(content) => {
             debug!(
