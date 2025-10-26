@@ -160,7 +160,7 @@ env_vars: HashMap::from([
             macos_packages: vec![],
             windows_packages: vec![],
             download_url: Some("https://github.com/theseus-rs/postgresql-binaries/releases/download/18.0.0/postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz".to_string()),
-            binary_name: None,
+            binary_name: Some("postgres".to_string()),
             pre_install_cmds_linux: vec![],
             post_install_cmds_linux: vec![
                 "chmod +x ./bin/*".to_string(),
@@ -216,13 +216,16 @@ self.components.insert(
         download_url: Some("https://download.valkey.io/releases/valkey-9.0.0-jammy-x86_64.tar.gz".to_string()),
         binary_name: Some("valkey-server".to_string()),
         pre_install_cmds_linux: vec![],
-        post_install_cmds_linux: vec![],
+        post_install_cmds_linux: vec![
+    "tar -xzf {{BIN_PATH}}/valkey-9.0.0-jammy-x86_64.tar.gz -C {{BIN_PATH}}".to_string(),
+    "mv {{BIN_PATH}}/valkey-9.0.0-jammy-x86_64/valkey-server {{BIN_PATH}}/valkey-server".to_string(),
+],
         pre_install_cmds_macos: vec![],
         post_install_cmds_macos: vec![],
         pre_install_cmds_windows: vec![],
         post_install_cmds_windows: vec![],
         env_vars: HashMap::new(),
-        exec_cmd: "./valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
+        exec_cmd: "{{BIN_PATH}}/valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
     },
 );
     }

@@ -11,6 +11,13 @@ use diesel::RunQueryDsl;
 use rand::distr::Alphanumeric;
 use sha2::{Digest, Sha256};
 use std::path::Path;
+use std::process::Command;
+use std::io::{self, Write};
+
+pub struct ComponentInfo {
+    pub name: &'static str,
+    pub termination_command: &'static str,
+}
 
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
@@ -33,42 +40,40 @@ impl BootstrapManager {
     pub fn start_all(&mut self) -> Result<()> {
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
         let components = vec![
-            "tables",
-            "cache",
-            "drive",
-            "llm",
-            "email",
-            "proxy",
-            "directory",
-            "alm",
-            "alm_ci",
-            "dns",
-            "webmail",
-            "meeting",
-            "table_editor",
-            "doc_editor",
-            "desktop",
-            "devtools",
-            "bot",
-            "system",
-            "vector_db",
-            "host",
+            ComponentInfo { name: "tables", termination_command: "pg_ctl" },
+            ComponentInfo { name: "cache", termination_command: "valkey-server" },
+            ComponentInfo { name: "drive", termination_command: "minio" },
+            ComponentInfo { name: "llm", termination_command: "llama-server" },
+            ComponentInfo { name: "email", termination_command: "stalwart" },
+            ComponentInfo { name: "proxy", termination_command: "caddy" },
+            ComponentInfo { name: "directory", termination_command: "zitadel" },
+            ComponentInfo { name: "alm", termination_command: "forgejo" },
+            ComponentInfo { name: "alm_ci", termination_command: "forgejo-runner" },
+            ComponentInfo { name: "dns", termination_command: "coredns" },
+            ComponentInfo { name: "webmail", termination_command: "php" },
+            ComponentInfo { name: "meeting", termination_command: "livekit-server" },
+            ComponentInfo { name: "table_editor", termination_command: "nocodb" },
+            ComponentInfo { name: "doc_editor", termination_command: "coolwsd" },
+            ComponentInfo { name: "desktop", termination_command: "xrdp" },
+            ComponentInfo { name: "devtools", termination_command: "" },
+            ComponentInfo { name: "bot", termination_command: "" },
+            ComponentInfo { name: "system", termination_command: "" },
+            ComponentInfo { name: "vector_db", termination_command: "qdrant" },
+            ComponentInfo { name: "host", termination_command: "" },
         ];
 
 for component in components {
-    if pm.is_installed(component) {
-        trace!("Starting component: {}", component);
-        pm.start(component)?;
+    if pm.is_installed(component.name) {
+
+        trace!("Starting component: {}", component.name);
+        pm.start(component.name)?;
     } else {
-        trace!("Component {} not installed, skipping start", component);
-        // After installing a component, update the default bot configuration
-        // This is a placeholder for the logic that will write config.csv to the
-        // default.gbai bucket and upsert into the bot_config table.
-        // The actual implementation will use the AppState's S3 client to upload
-        // the updated CSV after each component installation.
-        // Now perform the actual update:
-        if let Err(e) = self.update_bot_config(component) {
-            error!("Failed to update bot config after installing {}: {}", component, e);
+
+
+
+        trace!("Component {} not installed, skipping start", component.name);
+        if let Err(e) = self.update_bot_config(component.name) {
+            error!("Failed to update bot config after installing {}: {}", component.name, e);
         }
     }
 }
@@ -127,7 +132,47 @@ Ok(())
 
         for component in required_components {
             if !pm.is_installed(component) {
+                
+                        // Determine termination command from package manager component config
+                let termination_cmd = pm.components.get(component)
+                    .and_then(|cfg| cfg.binary_name.clone())
+                    .unwrap_or_else(|| component.to_string());
+
+                // If a termination command is defined, check for leftover running process
+                if !termination_cmd.is_empty() {
+                    let check = Command::new("pgrep")
+                        .arg("-f")
+                        .arg(&termination_cmd)
+                        .output();
+
+                    if let Ok(output) = check {
+                        if !output.stdout.is_empty() {
+                            println!("Component '{}' appears to be already running from a previous install.", component);
+                            println!("Do you want to terminate it? (y/n)");
+                            let mut input = String::new();
+                            io::stdout().flush().unwrap();
+                            io::stdin().read_line(&mut input).unwrap();
+                            if input.trim().eq_ignore_ascii_case("y") {
+                                let _ = Command::new("pkill")
+                                    .arg("-f")
+                                    .arg(&termination_cmd)
+                                    .status();
+                                println!("Terminated existing '{}' process.", component);
+                            } else {
+                                println!("Skipping start of '{}' as it is already running.", component);
+                                continue;
+                            }
+                        }
+                    }
+                }
+
+                
+                
                 if component == "tables" {
+
+
+
+
                     let db_password = self.generate_secure_password(16);
                     let farm_password = self.generate_secure_password(32);
 
