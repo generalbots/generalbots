@@ -212,6 +212,7 @@ impl PackageManager {
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
 post_install_cmds_linux: vec![
+    "chmod +x {{BIN_PATH}}/bin/valkey-server".to_string(),
 ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
@@ -219,7 +220,7 @@ post_install_cmds_linux: vec![
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
+                exec_cmd: "{{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
             },
         );
     }
