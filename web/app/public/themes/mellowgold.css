@@ -1,0 +1,28 @@
+:root {
+  /* MellowGold Theme */
+  --background: 45 30% 90%;
+  --foreground: 30 20% 20%;
+  --card: 45 30% 85%;
+  --card-foreground: 30 20% 20%;
+  --popover: 45 30% 90%;
+  --popover-foreground: 30 20% 20%;
+  --primary: 35 80% 50%;
+  --primary-foreground: 45 30% 90%;
+  --secondary: 45 30% 80%;
+  --secondary-foreground: 30 20% 20%;
+  --muted: 45 30% 75%;
+  --muted-foreground: 30 20% 40%;
+  --accent: 25 80% 50%;
+  --accent-foreground: 45 30% 90%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 45 30% 80%;
+  --input: 45 30% 80%;
+  --ring: 35 80% 50%;
+  --radius: 0.5rem;
+  --chart-1: 35 80% 50%;
+  --chart-2: 25 80% 50%;
+  --chart-3: 15 80% 50%;
+  --chart-4: 5 80% 50%;
+  --chart-5: 55 80% 50%;
+}

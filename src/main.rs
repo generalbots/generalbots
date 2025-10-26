@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
@@ -18,6 +19,10 @@ mod context;
 mod drive_monitor;
 #[cfg(feature = "email")]
 mod email;
+
+#[cfg(feature = "desktop")]
+mod ui;
+
 mod file;
 mod kb;
 mod llm;
@@ -56,6 +61,7 @@ use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
 
+#[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();

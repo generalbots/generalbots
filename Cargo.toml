@@ -11,7 +11,6 @@ authors = [
     "Arenas.io",
     "Atylla L",
     "Christopher de Castilho",
-    "Dario Lima",
     "Dario Junior",
     "David Lerner",
     "Experimentation Garage",
@@ -38,10 +37,12 @@ license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
-default = ["vectordb"]
+desktop = ["tauri", "tauri-plugin-opener", "tauri-plugin-dialog"]
+default = [ "vectordb"]
 vectordb = ["qdrant-client"]
 email = ["imap"]
 web_automation = ["headless_chrome"]
+webapp = ["tauri", "tauri-plugin-opener", "tauri-plugin-dialog"]
 
 [dependencies]
 actix-cors = "0.7"
@@ -70,7 +71,6 @@ log = "0.4"
 mailparse = "0.15"
 native-tls = "0.2"
 
-
 num-format = "0.4"
 qdrant-client = { version = "1.12", optional = true }
 rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
@@ -97,3 +97,17 @@ scraper = "0.20"
 sha2 = "0.10.9"
 ureq = "3.1.2"
 indicatif = "0.18.0"
+
+tauri = { version = "2", features = ["unstable"], optional = true }
+tauri-plugin-opener = { version = "2", optional = true }
+tauri-plugin-dialog = { version = "2", optional = true }
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[profile.release]
+lto = true  # Enables Link-Time Optimization
+opt-level = "z"  # Optimizes for size instead of speed
+strip = true  # Strips debug symbols
+panic = "abort"  # Reduces size by removing panic unwinding
+codegen-units = 1  # More aggressive optimization
