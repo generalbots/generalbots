@@ -86,7 +86,9 @@ pub async fn download_file(
     let output_path = output_path.to_string();
 
     let download_handle = tokio::spawn(async move {
-        let client = Client::new();
+        let client = Client::builder()
+    .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+    .build()?;
         let response = client.get(&url).send().await?;
 
         if response.status().is_success() {
