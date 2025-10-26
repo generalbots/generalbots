@@ -235,7 +235,7 @@ impl AppConfig {
     }
 
     pub fn from_env() -> Self {
-        warn!("Loading configuration from environment variables");
+        info!("Loading configuration from environment variables");
 
         let stack_path =
             std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());

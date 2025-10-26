@@ -77,6 +77,15 @@ impl PackageManager {
                 .await?;
         }
 
+        // Process additional data downloads with progress bar
+        if !component.data_download_list.is_empty() {
+            for url in &component.data_download_list {
+                let filename = url.split('/').last().unwrap_or("download.tmp");
+                let output_path = self.base_path.join("data").join(&component.name).join(filename);
+                utils::download_file(url, output_path.to_str().unwrap()).await?;
+            }
+        }
+
         self.run_commands(post_cmds, "local", &component.name)?;
         trace!(
             "Component '{}' installation completed successfully",
