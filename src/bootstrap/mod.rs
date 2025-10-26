@@ -5,7 +5,6 @@ use diesel::connection::SimpleConnection;
 use diesel::Connection;
 use dotenvy::dotenv;
 use log::{info, trace, error};
-use aws_config;
 use aws_sdk_s3::Client as S3Client;
 use csv;
 use diesel::RunQueryDsl;
