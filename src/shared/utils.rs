@@ -81,7 +81,7 @@ pub fn to_array(value: Dynamic) -> Array {
 pub async fn download_file(
     url: &str,
     output_path: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(), anyhow::Error> {
     let url = url.to_string();
     let output_path = output_path.to_string();
 
@@ -115,7 +115,7 @@ pub async fn download_file(
             trace!("Download completed: {} -> {}", url, output_path);
             Ok(())
         } else {
-            Err(format!("HTTP {}: {}", response.status(), url).into())
+            Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
         }
     });
 
