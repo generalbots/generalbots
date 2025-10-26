@@ -68,6 +68,10 @@ impl DriveMonitor {
 
         // Check .gbkb folder for KB documents
         self.check_gbkb_changes(s3_client).await?;
+        // Check for default bot configuration in the drive bucket
+        if let Err(e) = self.check_default_gbot(s3_client).await {
+            error!("Error checking default bot config: {}", e);
+        }
 
         Ok(())
     }
@@ -264,6 +268,56 @@ impl DriveMonitor {
         }
 
         Ok(())
+    }
+
+    /// Check for default bot configuration in the drive bucket
+    async fn check_default_gbot(
+        &self,
+        s3_client: &S3Client,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // The default bot configuration is expected at:
+        // <bucket>/<DRIVE_ORG_PREFIX>default.gbai/default.gbot/config.csv
+        // Construct the expected key prefix
+        let prefix = format!("{}default.gbot/", self.bucket_name);
+        let config_key = format!("{}config.csv", prefix);
+
+        debug!("Checking for default bot config at key: {}", config_key);
+
+        // Attempt to get the object metadata to see if it exists
+        let head_req = s3_client
+            .head_object()
+            .bucket(&self.bucket_name)
+            .key(&config_key)
+            .send()
+            .await;
+
+        match head_req {
+            Ok(_) => {
+                info!("Default bot config found, downloading {}", config_key);
+                // Download the CSV file
+                let get_resp = s3_client
+                    .get_object()
+                    .bucket(&self.bucket_name)
+                    .key(&config_key)
+                    .send()
+                    .await?;
+
+                let data = get_resp.body.collect().await?;
+                let csv_content = String::from_utf8(data.into_bytes().to_vec())
+                    .map_err(|e| format!("UTF-8 error in config.csv: {}", e))?;
+
+                // Log the retrieved configuration (in a real implementation this would be parsed
+                // and used to populate the bot_config table, respecting overrides from .gbot files)
+                info!("Retrieved default bot config CSV:\n{}", csv_content);
+                // TODO: Parse CSV and upsert into bot_config table with appropriate precedence
+                Ok(())
+            }
+            Err(e) => {
+                // If the object does not exist, simply ignore
+                debug!("Default bot config not present: {}", e);
+                Ok(())
+            }
+        }
     }
 
     /// Compile a BASIC tool file
