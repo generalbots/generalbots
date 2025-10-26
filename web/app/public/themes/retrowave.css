@@ -1,0 +1,28 @@
+:root {
+  /* RetroWave Theme */
+  --background: 240 21% 15%;
+  --foreground: 0 0% 98%;
+  --card: 240 21% 18%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 21% 15%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 334 89% 62%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 240 21% 25%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 21% 20%;
+  --muted-foreground: 240 5% 65%;
+  --accent: 41 99% 60%;
+  --accent-foreground: 240 21% 15%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 21% 25%;
+  --input: 240 21% 25%;
+  --ring: 334 89% 62%;
+  --radius: 0.5rem;
+  --chart-1: 334 89% 62%;
+  --chart-2: 41 99% 60%;
+  --chart-3: 190 90% 50%;
+  --chart-4: 280 89% 65%;
+  --chart-5: 80 75% 55%;
+}

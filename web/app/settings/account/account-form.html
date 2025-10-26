@@ -1,0 +1,30 @@
+<!-- Riot.js component for the account form (converted from app/settings/account/account-form.tsx) -->
+<template>
+  <div class="space-y-4">
+    <controller name="name">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Name</label>
+        <input class="w-full p-2 border rounded"
+               bind="{name}"
+               placeholder="Your name" />
+        <p class="text-sm text-gray-500 mt-1">
+          This is the name that will be displayed on your profile and in emails.
+        </p>
+      </div>
+    </controller>
+
+    <controller name="dob">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Date of birth</label>
+        <button type="button"
+                class="w-full p-2 border rounded text-left"
+                @click="{() => showDatePicker = true}">
+          {value.toDateString()}
+        </button>
+        {showDatePicker && (
+          <input type="date"
+                 bind="{dob}"
+                 @change="{e => { showDatePicker = false; if (e.target.value) { dob = new Date(e.target.value); }}}"
+                 class="mt-1 p-1 border rounded" />
+        )}
+        <p class="text-sm text-gray-5
