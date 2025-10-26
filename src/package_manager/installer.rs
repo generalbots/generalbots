@@ -211,10 +211,8 @@ impl PackageManager {
                 ),
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "tar -xzf {{BIN_PATH}}/valkey-9.0.0-jammy-x86_64.tar.gz -C {{BIN_PATH}}".to_string(),
-                    "mv {{BIN_PATH}}/valkey-9.0.0-jammy-x86_64/valkey-server {{BIN_PATH}}/valkey-server".to_string(),
-                ],
+post_install_cmds_linux: vec![
+],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
