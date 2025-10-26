@@ -8,3 +8,4 @@ botserver-stack
 *logfile*
 *-log*
 docs/book
+.rdb

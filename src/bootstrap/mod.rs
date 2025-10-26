@@ -127,7 +127,7 @@ Ok(())
         }
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-        let required_components = vec!["tables", "drive", "cache", "llm"];
+        let required_components = vec!["tables", "drive", "cache"];
         let mut config = AppConfig::from_env();
 
         for component in required_components {
