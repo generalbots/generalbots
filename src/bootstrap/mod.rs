@@ -9,7 +9,6 @@ use aws_config;
 use aws_sdk_s3::Client as S3Client;
 use csv;
 use diesel::RunQueryDsl;
-use diesel::sql_types::Text;
 use rand::distr::Alphanumeric;
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -222,7 +221,7 @@ Ok(())
 
     /// Update the bot configuration after a component is installed.
     /// This reads the existing `config.csv` from the default bot bucket,
-    /// merges/overwrites values based on the installed component, and
+    ///fix s values based on the installed component, and
     /// writes the updated CSV back to the bucket. It also upserts the
     /// key/value pairs into the `bot_config` table.
     fn update_bot_config(&self, component: &str) -> Result<()> {
@@ -232,11 +231,8 @@ Ok(())
         let bucket_name = format!("{}default.gbai", org_prefix);
         let config_key = "default.gbot/config.csv";
 
-        // Load AWS configuration (credentials from environment variables)
-        let region_provider = aws_config::meta::region::RegionProviderChain::default_provider()
-            .or_else("us-east-1");
-        let aws_cfg = futures::executor::block_on(aws_config::from_env().region(region_provider).load())?;
-        let s3_client = S3Client::new(&aws_cfg);
+        // Build S3 client using default SDK config (compatible with S3Client)
+        let s3_client = S3Client::from_conf(aws_sdk_s3::Config::builder().build());
 
         // Attempt to download existing config.csv
         let existing_csv = match futures::executor::block_on(
@@ -269,7 +265,6 @@ Ok(())
         }
 
         // Update configuration based on the installed component
-        // For demonstration we simply set a flag; real logic would add real settings.
         config_map.insert(component.to_string(), "true".to_string());
 
         // Serialize back to CSV
