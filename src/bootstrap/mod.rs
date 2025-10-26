@@ -4,7 +4,12 @@ use anyhow::Result;
 use diesel::connection::SimpleConnection;
 use diesel::Connection;
 use dotenvy::dotenv;
-use log::{info, trace};
+use log::{info, trace, error};
+use aws_config;
+use aws_sdk_s3::Client as S3Client;
+use csv;
+use diesel::RunQueryDsl;
+use diesel::sql_types::Text;
 use rand::distr::Alphanumeric;
 use sha2::{Digest, Sha256};
 use std::path::Path;
@@ -52,15 +57,24 @@ impl BootstrapManager {
             "host",
         ];
 
-        for component in components {
-            if pm.is_installed(component) {
-                trace!("Starting component: {}", component);
-                pm.start(component)?;
-            } else {
-                trace!("Component {} not installed, skipping start", component);
-            }
+for component in components {
+    if pm.is_installed(component) {
+        trace!("Starting component: {}", component);
+        pm.start(component)?;
+    } else {
+        trace!("Component {} not installed, skipping start", component);
+        // After installing a component, update the default bot configuration
+        // This is a placeholder for the logic that will write config.csv to the
+        // default.gbai bucket and upsert into the bot_config table.
+        // The actual implementation will use the AppState's S3 client to upload
+        // the updated CSV after each component installation.
+        // Now perform the actual update:
+        if let Err(e) = self.update_bot_config(component) {
+            error!("Failed to update bot config after installing {}: {}", component, e);
         }
-        Ok(())
+    }
+}
+Ok(())
     }
 
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
@@ -204,6 +218,96 @@ impl BootstrapManager {
         hasher.update(key.as_bytes());
         hasher.update(password.as_bytes());
         format!("{:x}", hasher.finalize())
+    }
+
+    /// Update the bot configuration after a component is installed.
+    /// This reads the existing `config.csv` from the default bot bucket,
+    /// merges/overwrites values based on the installed component, and
+    /// writes the updated CSV back to the bucket. It also upserts the
+    /// key/value pairs into the `bot_config` table.
+    fn update_bot_config(&self, component: &str) -> Result<()> {
+        // Determine bucket name: DRIVE_ORG_PREFIX + "default.gbai"
+        let org_prefix = std::env::var("DRIVE_ORG_PREFIX")
+            .unwrap_or_else(|_| "pragmatismo-".to_string());
+        let bucket_name = format!("{}default.gbai", org_prefix);
+        let config_key = "default.gbot/config.csv";
+
+        // Load AWS configuration (credentials from environment variables)
+        let region_provider = aws_config::meta::region::RegionProviderChain::default_provider()
+            .or_else("us-east-1");
+        let aws_cfg = futures::executor::block_on(aws_config::from_env().region(region_provider).load())?;
+        let s3_client = S3Client::new(&aws_cfg);
+
+        // Attempt to download existing config.csv
+        let existing_csv = match futures::executor::block_on(
+            s3_client
+                .get_object()
+                .bucket(&bucket_name)
+                .key(config_key)
+                .send(),
+        ) {
+            Ok(resp) => {
+                let data = futures::executor::block_on(resp.body.collect())?;
+                String::from_utf8(data.into_bytes().to_vec()).unwrap_or_default()
+            }
+            Err(_) => String::new(), // No existing file – start fresh
+        };
+
+        // Parse CSV into a map
+        let mut config_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        if !existing_csv.is_empty() {
+            let mut rdr = csv::ReaderBuilder::new()
+                .has_headers(false)
+                .from_reader(existing_csv.as_bytes());
+            for result in rdr.records() {
+                if let Ok(record) = result {
+                    if record.len() >= 2 {
+                        config_map.insert(record[0].to_string(), record[1].to_string());
+                    }
+                }
+            }
+        }
+
+        // Update configuration based on the installed component
+        // For demonstration we simply set a flag; real logic would add real settings.
+        config_map.insert(component.to_string(), "true".to_string());
+
+        // Serialize back to CSV
+        let mut wtr = csv::WriterBuilder::new()
+            .has_headers(false)
+            .from_writer(vec![]);
+        for (k, v) in &config_map {
+            wtr.write_record(&[k, v])?;
+        }
+        wtr.flush()?;
+        let csv_bytes = wtr.into_inner()?;
+
+        // Upload updated CSV to S3
+        futures::executor::block_on(
+            s3_client
+                .put_object()
+                .bucket(&bucket_name)
+                .key(config_key)
+                .body(csv_bytes.clone().into())
+                .send(),
+        )?;
+
+        // Upsert into bot_config table
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+        let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
+
+        for (k, v) in config_map {
+            diesel::sql_query(
+                "INSERT INTO bot_config (key, value) VALUES ($1, $2) \
+                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+            )
+            .bind::<diesel::sql_types::Text, _>(&k)
+            .bind::<diesel::sql_types::Text, _>(&v)
+            .execute(&mut conn)?;
+        }
+
+        Ok(())
     }
 
     pub async fn upload_templates_to_minio(&self, config: &AppConfig) -> Result<()> {

@@ -188,7 +188,7 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-    info!("Initializing MinIO drive at {}", cfg.minio.server);
+    info!("Initializing drive at {}", cfg.minio.server);
     let drive = init_drive(&config.minio)
         .await
         .expect("Failed to initialize Drive");
