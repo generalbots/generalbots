@@ -92,7 +92,9 @@ async fn main() -> std::io::Result<()> {
     }
 
     dotenv().ok();
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+    .write_style(env_logger::WriteStyle::Always)
+    .init();
 
     info!("Starting BotServer bootstrap process");
 
