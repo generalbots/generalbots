@@ -18,5 +18,6 @@ pub struct ComponentConfig {
     pub pre_install_cmds_windows: Vec<String>,
     pub post_install_cmds_windows: Vec<String>,
     pub env_vars: HashMap<String, String>,
+    pub data_download_list: Vec<String>,
     pub exec_cmd: String,
 }
