@@ -1,0 +1,227 @@
+<!-- Riot.js component for the drive page (converted from app/drive/page.tsx) -->
+<template>
+  <div class="flex flex-col h-[calc(100vh-40px)] bg-background">
+    <resizable-panel-group direction="horizontal" class="flex-1 min-h-0">
+      <!-- Folder Tree Panel -->
+      <resizable-panel
+        default-size="20"
+        collapsed-size="4"
+        collapsible="true"
+        min-size="15"
+        max-size="30"
+        @collapse="{() => isCollapsed = true}"
+        @resize="{() => isCollapsed = false}"
+        class="{isCollapsed && 'min-w-[50px] transition-all duration-300'}"
+      >
+        <folder-tree
+          on-select="{setCurrentPath}"
+          selected-path="{currentPath}"
+          is-collapsed="{isCollapsed}"
+        />
+      </resizable-panel>
+
+      <resizable-handle with-handle class="bg-border" />
+
+      <!-- File List Panel -->
+      <resizable-panel default-size="50" min-size="30" class="bg-background border-r border-border">
+        <tabs default-value="all" class="flex flex-col h-full">
+          <div class="flex items-center px-4 py-2 bg-secondary border-b border-border">
+            <h1 class="text-xl font-bold">{currentItem?.name || 'My Drive'}</h1>
+            <tabs-list class="ml-auto bg-background">
+              <tabs-trigger value="all" class="data-[state=active]:bg-accent">All</tabs-trigger>
+              <tabs-trigger value="starred" class="data-[state=active]:bg-accent">Starred</tabs-trigger>
+            </tabs-list>
+          </div>
+          <separator class="bg-border" />
+          <div class="bg-secondary p-4">
+            <div class="flex items-center gap-2">
+              <div class="relative flex-1">
+                <search class="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <input placeholder="Search files"
+                       class="pl-8 bg-background border border-border"
+                       bind="{searchTerm}"
+                       @input="{e => searchTerm = e.target.value}" />
+              </div>
+              <select value="{filterType}" @change="{e => filterType = e.target.value}">
+                <option value="all">All items</option>
+                <option value="folders">Folders</option>
+                <option value="files">Files</option>
+                <option value="starred">Starred</option>
+              </select>
+            </div>
+          </div>
+          <tabs-content value="all" class="m-0 flex-1">
+            <file-list
+              path="{currentPath}"
+              search-term="{searchTerm}"
+              filter-type="{filterType}"
+              selected-file="{selectedFile}"
+              set-selected-file="{file => selectedFile = file}"
+              on-context-action="{handleContextAction}"
+            />
+          </tabs-content>
+          <tabs-content value="starred" class="m-0 flex-1">
+            <file-list
+              path="{currentPath}"
+              search-term="{searchTerm}"
+              filter-type="starred"
+              selected-file="{selectedFile}"
+              set-selected-file="{file => selectedFile = file}"
+              on-context-action="{handleContextAction}"
+            />
+          </tabs-content>
+        </tabs>
+      </resizable-panel>
+
+      <resizable-handle with-handle class="bg-border" />
+
+      <!-- File Details Panel -->
+      <resizable-panel default-size="30" min-size="25" class="bg-background">
+        <file-display file="{selectedFile}" />
+      </resizable-panel>
+    </resizable-panel-group>
+    <footer-component shortcuts="{shortcuts}" />
+  </div>
+</template>
+
+<script type="module">
+import { useState, useEffect } from 'riot';
+import {
+  Search, Download, Trash2, Share, Star,
+  MoreVertical, Home, ChevronRight, ChevronLeft,
+  Folder, File, Image, Video, Music, FileText, Code, Database,
+  Clock, Users, Eye, Edit3, Copy, Scissors,
+  FolderPlus, Info, Lock, Menu,
+  ExternalLink, History, X
+} from 'lucide-react';
+import { cn } from "@/lib/utils";
+import Footer from '../footer';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { Separator } from '@/components/ui/separator';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger, ContextMenuTrigger } from '@/components/ui/context-menu';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "@/components/ui/resizable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import './style.css';
+
+export default {
+  // Reactive state
+  isCollapsed: false,
+  currentPath: '',
+  searchTerm: '',
+  filterType: 'all',
+  selectedFile: null,
+  isMobile: false,
+  showMobileMenu: false,
+  activePanel: 'files',
+  shortcuts: [],
+
+  // Lifecycle
+  async mounted() {
+    // Initialize shortcuts (same as original component)
+    this.shortcuts = [
+      [
+        { key: 'Q', label: 'Rename', action: () => console.log('Rename') },
+        { key: 'W', label: 'View', action: () => console.log('View') },
+        { key: 'E', label: 'Edit', action: () => console.log('Edit') },
+        { key: 'R', label: 'Move', action: () => console.log('Move') },
+        { key: 'T', label: 'MkDir', action: () => console.log('Make Directory') },
+        { key: 'Y', label: 'Delete', action: () => console.log('Delete') },
+        { key: 'U', label: 'Copy', action: () => console.log('Copy') },
+        { key: 'I', label: 'Cut', action: () => console.log('Cut') },
+        { key: 'O', label: 'Paste', action: () => console.log('Paste') },
+        { key: 'P', label: 'Duplicate', action: () => console.log('Duplicate') },
+      ],
+      [
+        { key: 'A', label: 'Select', action: () => console.log('Select') },
+        { key: 'S', label: 'Select All', action: () => console.log('Select All') },
+        { key: 'D', label: 'Deselect', action: () => console.log('Deselect') },
+        { key: 'G', label: 'Details', action: () => console.log('Details') },
+        { key: 'H', label: 'History', action: () => console.log('History') },
+        { key: 'J', label: 'Share', action: () => console.log('Share') },
+        { key: 'K', label: 'Star', action: () => console.log('Star') },
+        { key: 'L', label: 'Download', action: () => console.log('Download') },
+        { key: 'Z', label: 'Upload', action: () => console.log('Upload') },
+        { key: 'X', label: 'Refresh', action: () => console.log('Refresh') },
+      ]
+    ];
+  },
+
+  // Helpers
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+  },
+
+  formatDateTime(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
+  },
+
+  formatDistanceToNow(date) {
+    const now = new Date();
+    const diffMs = now.getTime() - new Date(date).getTime();
+    const diffMinutes = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffMinutes < 1) return 'now';
+    if (diffMinutes < 60) return `${diffMinutes}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return this.formatDate(date);
+  },
+
+  formatFileSize(bytes) {
+    if (!bytes) return '';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  },
+
+  getFileIcon(item) {
+    if (item.is_dir) {
+      return <Folder className="w-4 h-4 text-yellow-500" />;
+    }
+    const iconMap = {
+      pdf: <FileText className="w-4 h-4 text-red-500" />,
+      xlsx: <Database className="w-4 h-4 text-green-600" />,
+      json: <Code className="w-4 h-4 text-yellow-600" />,
+      markdown: <Edit3 className="w-4 h-4 text-purple-500" />,
+      md: <Edit3 className="w-4 h-4 text-purple-500" />,
+      jpg: <Image className="w-4 h-4 text-pink-500" />,
+      jpeg: <Image className="w-4 h-4 text-pink-500" />,
+      png: <Image className="w-4 h-4 text-pink-500" />,
+      mp4: <Video className="w-4 h-4 text-red-600" />,
+      mp3: <Music className="w-4 h-4 text-green-600" />
+    };
+    return iconMap[item.type] || <File className="w-4 h-4 text-muted-foreground" />;
+  },
+
+  // Context actions
+  handleContextAction(action, file) {
+    console.log(`Context action: ${action}`, file);
+    // Implement actions as needed
+  }
+};
+</script>

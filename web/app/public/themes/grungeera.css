@@ -1,0 +1,28 @@
+:root {
+  /* GrungeEra Theme */
+  --background: 30 10% 10%;
+  --foreground: 30 30% 80%;
+  --card: 30 10% 15%;
+  --card-foreground: 30 30% 80%;
+  --popover: 30 10% 10%;
+  --popover-foreground: 30 30% 80%;
+  --primary: 10 70% 50%;
+  --primary-foreground: 30 30% 80%;
+  --secondary: 30 10% 20%;
+  --secondary-foreground: 30 30% 80%;
+  --muted: 30 10% 25%;
+  --muted-foreground: 30 30% 60%;
+  --accent: 200 70% 50%;
+  --accent-foreground: 30 30% 80%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 30 10% 20%;
+  --input: 30 10% 20%;
+  --ring: 10 70% 50%;
+  --radius: 0.5rem;
+  --chart-1: 10 70% 50%;
+  --chart-2: 200 70% 50%;
+  --chart-3: 90 70% 50%;
+  --chart-4: 300 70% 50%;
+  --chart-5: 30 70% 50%;
+}

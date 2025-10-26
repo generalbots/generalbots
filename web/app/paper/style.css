@@ -1,0 +1,103 @@
+        .ProseMirror {
+          outline: none;
+          font-family: 'Inter', system-ui, -apple-system, sans-serif;
+          font-size: 16px;
+          line-height: 1.7;
+          color: hsl(var(--foreground));
+          padding: 3rem;
+          
+          min-height: calc(100vh - 12rem);
+        }
+
+        .ProseMirror h1 {
+          font-size: 2.5rem;
+          font-weight: 700;
+          margin: 2rem 0 1rem 0;
+          color: hsl(var(--primary));
+        }
+
+        .ProseMirror h2 {
+          font-size: 2rem;
+          font-weight: 600;
+          margin: 1.5rem 0 0.75rem 0;
+          color: hsl(var(--primary));
+        }
+
+        .ProseMirror h3 {
+          font-size: 1.5rem;
+          font-weight: 600;
+          margin: 1.25rem 0 0.5rem 0;
+          color: hsl(var(--primary));
+        }
+
+        .ProseMirror p {
+          margin: 0.75rem 0;
+        }
+
+        .ProseMirror a {
+          color: hsl(var(--accent));
+          text-decoration: underline;
+          text-underline-offset: 2px;
+        }
+
+        .ProseMirror a:hover {
+          color: hsl(var(--primary));
+        }
+
+        .ProseMirror mark {
+          background-color: #ffff0040;
+          border-radius: 2px;
+          padding: 0 2px;
+        }
+
+        .ProseMirror ul, .ProseMirror ol {
+          margin: 1rem 0;
+          padding-left: 1.5rem;
+        }
+
+        .ProseMirror li {
+          margin: 0.25rem 0;
+        }
+
+        .ProseMirror blockquote {
+          border-left: 4px solid hsl(var(--primary));
+          padding-left: 1rem;
+          margin: 1rem 0;
+          font-style: italic;
+          color: hsl(var(--muted-foreground));
+        }
+
+        .ProseMirror code {
+          background-color: hsl(var(--muted));
+          padding: 0.25rem 0.5rem;
+          border-radius: 4px;
+          font-family: 'JetBrains Mono', monospace;
+          font-size: 0.9em;
+        }
+
+        .ProseMirror pre {
+          background-color: hsl(var(--muted));
+          padding: 1rem;
+          border-radius: 8px;
+          overflow-x: auto;
+          margin: 1rem 0;
+        }
+
+        .ProseMirror pre code {
+          background: none;
+          padding: 0;
+        }
+
+        /* Selection highlighting */
+        .ProseMirror ::selection {
+          background-color: hsl(var(--primary) / 0.2);
+        }
+
+        /* Placeholder styling */
+        .ProseMirror p.is-editor-empty:first-child::before {
+          content: attr(data-placeholder);
+          float: left;
+          color: hsl(var(--muted-foreground));
+          pointer-events: none;
+          height: 0;
+        }

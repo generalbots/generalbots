@@ -4,7 +4,7 @@ use std::fs;
 
 #[actix_web::get("/")]
 async fn index() -> Result<HttpResponse> {
-    match fs::read_to_string("web/index.html") {
+    match fs::read_to_string("web/app/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page: {}", e);
@@ -26,10 +26,10 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
     }
 }
 
-#[actix_web::get("/static/{filename:.*}")]
+#[actix_web::get("/{filename:.*}")]
 async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
     let filename = req.match_info().query("filename");
-    let path = format!("web/static/{}", filename);
+    let path = format!("web/app/{}", filename);
     match fs::read(&path) {
         Ok(content) => {
             debug!(
@@ -39,6 +39,8 @@ async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
             );
             let content_type = match filename {
                 f if f.ends_with(".js") => "application/javascript",
+                f if f.ends_with(".riot") => "application/javascript",
+                f if f.ends_with(".html") => "application/javascript",
                 f if f.ends_with(".css") => "text/css",
                 f if f.ends_with(".png") => "image/png",
                 f if f.ends_with(".jpg") | f.ends_with(".jpeg") => "image/jpeg",
