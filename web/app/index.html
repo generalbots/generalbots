@@ -6,19 +6,16 @@
 </head>
 
 <body>
-  <link rel="stylesheet" href="public/output.css" />
-  <link rel="stylesheet" href="client-nav.css" />
   <app></app>
-  <script src="app.html" type="riot"></script>
 
   <script src="https://unpkg.com/riot@10/riot+compiler.min.js"></script>
-    <script>
-      riot.compile().then(() => {
-        riot.mount('app', {
-          title: 'General Bots',
-        })
-      })
-    </script>
+  <script src="app.html" type="riot"></script>
+
+  <script>
+    riot.compile().then(() => {
+      riot.mount('app');
+    });
+  </script>
 </body>
 
 </html>
