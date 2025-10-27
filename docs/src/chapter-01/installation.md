@@ -41,7 +41,6 @@ DATABASE_URL=postgres://gbuser:password@localhost:5432/botserver
 DRIVE_SERVER=http://localhost:9000
 DRIVE_ACCESSKEY=minioadmin
 DRIVE_SECRET=minioadmin
-REDIS_URL=redis://localhost:6379
 ```
 
 ## Verification
