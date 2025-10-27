@@ -1,18 +1,18 @@
 use crate::config::AppConfig;
-use crate::package_manager::{InstallMode, PackageManager};
+use crate::package_manager::{ InstallMode, PackageManager };
 use anyhow::Result;
 use diesel::connection::SimpleConnection;
 use diesel::Connection;
 use dotenvy::dotenv;
-use log::{info, trace, error};
+use log::{ info, trace, error };
 use aws_sdk_s3::Client as S3Client;
 use csv;
 use diesel::RunQueryDsl;
 use rand::distr::Alphanumeric;
-use sha2::{Digest, Sha256};
+use sha2::{ Digest, Sha256 };
 use std::path::Path;
 use std::process::Command;
-use std::io::{self, Write};
+use std::io::{ self, Write };
 
 pub struct ComponentInfo {
     pub name: &'static str,
@@ -59,25 +59,25 @@ impl BootstrapManager {
             ComponentInfo { name: "bot", termination_command: "" },
             ComponentInfo { name: "system", termination_command: "" },
             ComponentInfo { name: "vector_db", termination_command: "qdrant" },
-            ComponentInfo { name: "host", termination_command: "" },
+            ComponentInfo { name: "host", termination_command: "" }
         ];
 
-for component in components {
-    if pm.is_installed(component.name) {
-
-        trace!("Starting component: {}", component.name);
-        pm.start(component.name)?;
-    } else {
-
-
-
-        trace!("Component {} not installed, skipping start", component.name);
-        if let Err(e) = self.update_bot_config(component.name) {
-            error!("Failed to update bot config after installing {}: {}", component.name, e);
+        for component in components {
+            if pm.is_installed(component.name) {
+                trace!("Starting component: {}", component.name);
+                pm.start(component.name)?;
+            } else {
+                trace!("Component {} not installed, skipping start", component.name);
+                if let Err(e) = self.update_bot_config(component.name) {
+                    error!(
+                        "Failed to update bot config after installing {}: {}",
+                        component.name,
+                        e
+                    );
+                }
+            }
         }
-    }
-}
-Ok(())
+        Ok(())
     }
 
     pub fn bootstrap(&mut self) -> Result<AppConfig> {
@@ -91,19 +91,20 @@ Ok(())
 
                 // Try to connect to the database and load config
                 let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-                    let username =
-                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "postgres".to_string());
-                    let password =
-                        std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
-                    let server =
-                        std::env::var("TABLES_SERVER").unwrap_or_else(|_| "localhost".to_string());
+                    let username = std::env
+                        ::var("TABLES_USERNAME")
+                        .unwrap_or_else(|_| "postgres".to_string());
+                    let password = std::env
+                        ::var("TABLES_PASSWORD")
+                        .unwrap_or_else(|_| "postgres".to_string());
+                    let server = std::env
+                        ::var("TABLES_SERVER")
+                        .unwrap_or_else(|_| "localhost".to_string());
                     let port = std::env::var("TABLES_PORT").unwrap_or_else(|_| "5432".to_string());
-                    let database =
-                        std::env::var("TABLES_DATABASE").unwrap_or_else(|_| "gbserver".to_string());
-                    format!(
-                        "postgres://{}:{}@{}:{}/{}",
-                        username, password, server, port, database
-                    )
+                    let database = std::env
+                        ::var("TABLES_DATABASE")
+                        .unwrap_or_else(|_| "gbserver".to_string());
+                    format!("postgres://{}:{}@{}:{}/{}", username, password, server, port, database)
                 });
 
                 match diesel::PgConnection::establish(&database_url) {
@@ -132,18 +133,15 @@ Ok(())
 
         for component in required_components {
             if !pm.is_installed(component) {
-                
-                        // Determine termination command from package manager component config
-                let termination_cmd = pm.components.get(component)
+                // Determine termination command from package manager component config
+                let termination_cmd = pm.components
+                    .get(component)
                     .and_then(|cfg| cfg.binary_name.clone())
                     .unwrap_or_else(|| component.to_string());
 
                 // If a termination command is defined, check for leftover running process
                 if !termination_cmd.is_empty() {
-                    let check = Command::new("pgrep")
-                        .arg("-f")
-                        .arg(&termination_cmd)
-                        .output();
+                    let check = Command::new("pgrep").arg("-f").arg(&termination_cmd).output();
 
                     if let Ok(output) = check {
                         if !output.stdout.is_empty() {
@@ -166,22 +164,18 @@ Ok(())
                     }
                 }
 
-                
-                
                 if component == "tables" {
-
-
-
-
                     let db_password = self.generate_secure_password(16);
                     let farm_password = self.generate_secure_password(32);
 
                     let env_contents = format!(
                         "FARM_PASSWORD={}\nDATABASE_URL=postgres://gbuser:{}@localhost:5432/botserver",
-                        farm_password, db_password
+                        farm_password,
+                        db_password
                     );
 
-                    std::fs::write(".env", &env_contents)
+                    std::fs
+                        ::write(".env", &env_contents)
                         .map_err(|e| anyhow::anyhow!("Failed to write .env file: {}", e))?;
                     dotenv().ok();
                     trace!("Generated database credentials and wrote to .env file");
@@ -194,7 +188,8 @@ Ok(())
                     trace!("Component {} installed successfully", component);
 
                     let database_url = std::env::var("DATABASE_URL").unwrap();
-                    let mut conn = diesel::PgConnection::establish(&database_url)
+                    let mut conn = diesel::PgConnection
+                        ::establish(&database_url)
                         .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
 
                     let migration_dir = include_dir::include_dir!("./migrations");
@@ -251,7 +246,8 @@ Ok(())
         use rand::Rng;
         let mut rng = rand::rng();
 
-        std::iter::repeat_with(|| rng.sample(Alphanumeric) as char)
+        std::iter
+            ::repeat_with(|| rng.sample(Alphanumeric) as char)
             .take(length)
             .collect()
     }
@@ -270,7 +266,8 @@ Ok(())
     /// key/value pairs into the `bot_config` table.
     fn update_bot_config(&self, component: &str) -> Result<()> {
         // Determine bucket name: DRIVE_ORG_PREFIX + "default.gbai"
-        let org_prefix = std::env::var("DRIVE_ORG_PREFIX")
+        let org_prefix = std::env
+            ::var("DRIVE_ORG_PREFIX")
             .unwrap_or_else(|_| "pragmatismo-".to_string());
         let bucket_name = format!("{}default.gbai", org_prefix);
         let config_key = "default.gbot/config.csv";
@@ -279,13 +276,11 @@ Ok(())
         let s3_client = S3Client::from_conf(aws_sdk_s3::Config::builder().build());
 
         // Attempt to download existing config.csv
-        let existing_csv = match futures::executor::block_on(
-            s3_client
-                .get_object()
-                .bucket(&bucket_name)
-                .key(config_key)
-                .send(),
-        ) {
+        let existing_csv = match
+            futures::executor::block_on(
+                s3_client.get_object().bucket(&bucket_name).key(config_key).send()
+            )
+        {
             Ok(resp) => {
                 let data = futures::executor::block_on(resp.body.collect())?;
                 String::from_utf8(data.into_bytes().to_vec()).unwrap_or_default()
@@ -294,9 +289,13 @@ Ok(())
         };
 
         // Parse CSV into a map
-        let mut config_map: std::collections::HashMap<String, String> = std::collections::HashMap::new();
+        let mut config_map: std::collections::HashMap<
+            String,
+            String
+        > = std::collections::HashMap::new();
         if !existing_csv.is_empty() {
-            let mut rdr = csv::ReaderBuilder::new()
+            let mut rdr = csv::ReaderBuilder
+                ::new()
                 .has_headers(false)
                 .from_reader(existing_csv.as_bytes());
             for result in rdr.records() {
@@ -312,7 +311,8 @@ Ok(())
         config_map.insert(component.to_string(), "true".to_string());
 
         // Serialize back to CSV
-        let mut wtr = csv::WriterBuilder::new()
+        let mut wtr = csv::WriterBuilder
+            ::new()
             .has_headers(false)
             .from_writer(vec![]);
         for (k, v) in &config_map {
@@ -328,22 +328,24 @@ Ok(())
                 .bucket(&bucket_name)
                 .key(config_key)
                 .body(csv_bytes.clone().into())
-                .send(),
+                .send()
         )?;
 
         // Upsert into bot_config table
-        let database_url = std::env::var("DATABASE_URL")
+        let database_url = std::env
+            ::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
         let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
 
         for (k, v) in config_map {
-            diesel::sql_query(
-                "INSERT INTO bot_config (key, value) VALUES ($1, $2) \
-                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
-            )
-            .bind::<diesel::sql_types::Text, _>(&k)
-            .bind::<diesel::sql_types::Text, _>(&v)
-            .execute(&mut conn)?;
+            diesel
+                ::sql_query(
+                    "INSERT INTO bot_config (key, value) VALUES ($1, $2) \
+                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value"
+                )
+                .bind::<diesel::sql_types::Text, _>(&k)
+                .bind::<diesel::sql_types::Text, _>(&v)
+                .execute(&mut conn)?;
         }
 
         Ok(())
@@ -365,10 +367,11 @@ Ok(())
             &config.minio.secret_key,
             None,
             None,
-            "minio",
+            "minio"
         );
 
-        let s3_config = aws_sdk_s3::Config::builder()
+        let s3_config = aws_sdk_s3::Config
+            ::builder()
             .credentials_provider(creds)
             .endpoint_url(&config.minio.server)
             .region(Region::new("us-east-1"))
@@ -390,7 +393,13 @@ Ok(())
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
+            if
+                path.is_dir() &&
+                path
+                    .extension()
+                    .map(|e| e == "gbai")
+                    .unwrap_or(false)
+            {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let bucket_name = format!("{}{}", config.minio.org_prefix, bot_name);
 
@@ -401,8 +410,9 @@ Ok(())
                     Ok(_) => info!("Created bucket: {}", bucket_name),
                     Err(e) => {
                         let err_str = e.to_string();
-                        if err_str.contains("BucketAlreadyOwnedByYou")
-                            || err_str.contains("BucketAlreadyExists")
+                        if
+                            err_str.contains("BucketAlreadyOwnedByYou") ||
+                            err_str.contains("BucketAlreadyExists")
                         {
                             trace!("Bucket {} already exists", bucket_name);
                         } else {
@@ -412,8 +422,7 @@ Ok(())
                 }
 
                 // Upload all files recursively
-                self.upload_directory_recursive(&client, &path, &bucket_name, "")
-                    .await?;
+                self.upload_directory_recursive(&client, &path, &bucket_name, "").await?;
                 info!("Uploaded template bot: {}", bot_name);
             }
         }
@@ -439,7 +448,13 @@ Ok(())
             let entry = entry?;
             let path = entry.path();
 
-            if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
+            if
+                path.is_dir() &&
+                path
+                    .extension()
+                    .map(|e| e == "gbai")
+                    .unwrap_or(false)
+            {
                 let bot_folder = path.file_name().unwrap().to_string_lossy().to_string();
                 // Remove .gbai extension to get bot name
                 let bot_name = bot_folder.trim_end_matches(".gbai");
@@ -468,13 +483,16 @@ Ok(())
 
                 if existing.is_none() {
                     // Insert new bot
-                    diesel::sql_query(
-                        "INSERT INTO bots (id, name, description, llm_provider, llm_config, context_provider, context_config, is_active) \
+                    diesel
+                        ::sql_query(
+                            "INSERT INTO bots (id, name, description, llm_provider, llm_config, context_provider, context_config, is_active) \
                          VALUES (gen_random_uuid(), $1, $2, 'openai', '{\"model\": \"gpt-4\", \"temperature\": 0.7}', 'database', '{}', true)"
-                    )
-                    .bind::<diesel::sql_types::Text, _>(&formatted_name)
-                    .bind::<diesel::sql_types::Text, _>(format!("Bot for {} template", bot_name))
-                    .execute(conn)?;
+                        )
+                        .bind::<diesel::sql_types::Text, _>(&formatted_name)
+                        .bind::<diesel::sql_types::Text, _>(
+                            format!("Bot for {} template", bot_name)
+                        )
+                        .execute(conn)?;
 
                     info!("Created bot entry: {}", formatted_name);
                 } else {
@@ -492,7 +510,7 @@ Ok(())
         client: &'a aws_sdk_s3::Client,
         local_path: &'a Path,
         bucket: &'a str,
-        prefix: &'a str,
+        prefix: &'a str
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
             use aws_sdk_s3::primitives::ByteStream;
@@ -517,18 +535,11 @@ Ok(())
 
                     let body = ByteStream::from_path(&path).await?;
 
-                    client
-                        .put_object()
-                        .bucket(bucket)
-                        .key(&key)
-                        .body(body)
-                        .send()
-                        .await?;
+                    client.put_object().bucket(bucket).key(&key).body(body).send().await?;
 
                     trace!("Uploaded: {}", key);
                 } else if path.is_dir() {
-                    self.upload_directory_recursive(client, &path, bucket, &key)
-                        .await?;
+                    self.upload_directory_recursive(client, &path, bucket, &key).await?;
                 }
             }
 
@@ -546,7 +557,8 @@ Ok(())
         }
 
         // Get all .sql files sorted
-        let mut sql_files: Vec<_> = std::fs::read_dir(migrations_dir)?
+        let mut sql_files: Vec<_> = std::fs
+            ::read_dir(migrations_dir)?
             .filter_map(|entry| entry.ok())
             .filter(|entry| {
                 entry
