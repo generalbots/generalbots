@@ -18,8 +18,44 @@ apt install -y build-essential \
     lld \
     binutils-dev \
     libudev-dev \
-    libdbus-1-dev
+    libdbus-1-dev \
+    libva-dev
 
+apt install -y \
+    curl \
+    git \
+    python3 \
+    python3-pip \
+    pkg-config \
+    libssl-dev \
+    libasound2-dev \
+    libpulse-dev \
+    libx11-dev \
+    libxext-dev \
+    libxrandr-dev \
+    libxcomposite-dev \
+    libxcursor-dev \
+    libxi-dev \
+    libxtst-dev \
+    libnss3-dev \
+    libnspr4-dev \
+    libatk-bridge2.0-dev \
+    libgtk-3-dev \
+    libudev-dev \
+    libavcodec-dev \
+    libavformat-dev \
+    libavutil-dev \
+    libswscale-dev \
+    libevent-dev \
+    libjsoncpp-dev \
+    libopus-dev \
+    libvpx-dev \
+    libsrtp2-dev \
+    protobuf-compiler \
+    ninja-build \
+    cmake \
+    clang \
+    lld
 
 
 
