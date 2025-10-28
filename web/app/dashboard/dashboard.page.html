@@ -1,0 +1,145 @@
+<!-- Riot.js component for the dashboard page (converted from app/dashboard/page.tsx) -->
+<template>
+  <div class="min-h-screen bg-background text-foreground">
+    <main class="container p-4 space-y-4">
+      <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold text-foreground">Dashboard</h1>
+        <div class="flex items-center space-x-2">
+          <calendar-date-range-picker />
+          <button class="px-4 py-2 bg-primary text-primary-foreground rounded hover:opacity-90 transition-opacity">
+            Download
+          </button>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <div class="p-6 bg-card border rounded-lg border-border" each={card in cards}>
+          <h3 class="text-sm font-medium text-muted-foreground">{card.title}</h3>
+          <p class="text-2xl font-bold mt-1 text-card-foreground">{card.value}</p>
+          <p class="text-xs text-muted-foreground mt-1">{card.subtext}</p>
+        </div>
+      </div>
+
+      <div class="grid gap-4 md:grid-cols-2">
+        <div class="p-6 bg-card border rounded-lg border-border">
+          <h3 class="text-lg font-medium mb-4 text-card-foreground">Overview</h3>
+          <overview />
+        </div>
+        <div class="p-6 bg-card border rounded-lg space-y-4 border-border">
+          <h3 class="text-lg font-medium text-card-foreground">Recent Sales</h3>
+          <p class="text-card-foreground">You made 265 sales this month.</p>
+          <recent-sales />
+        </div>
+      </div>
+    </main>
+  </div>
+</template>
+
+<script >
+import { useState } from 'riot';
+import './style.css';
+
+export default {
+  // Reactive state
+  dateRange: { startDate: new Date(), endDate: new Date() },
+  salesData: [
+    { name: "Olivia Martin", email: "olivia.martin@email.com", amount: "+$1,999.00" },
+    { name: "Jackson Lee", email: "jackson.lee@email.com", amount: "+$39.00" },
+    { name: "Isabella Nguyen", email: "isabella.nguyen@email.com", amount: "+$299.00" },
+    { name: "William Kim", email: "will@email.com", amount: "+$99.00" },
+    { name: "Sofia Davis", email: "sofia.davis@email.com", amount: "+$39.00" },
+  ],
+  cards: [
+    { title: "Total Revenue", value: "$45,231.89", subtext: "+20.1% from last month" },
+    { title: "Subscriptions", value: "+2350", subtext: "+180.1% from last month" },
+    { title: "Sales", value: "+12,234", subtext: "+19% from last month" },
+    { title: "Active Now", value: "+573", subtext: "+201 since last hour" },
+  ],
+
+  // Helpers
+  formatDate(date) {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: '2-digit',
+      year: 'numeric'
+    });
+  },
+
+  // Lifecycle
+  async mounted() {
+    // No additional setup needed
+  },
+
+  // Sub‑components
+  // CalendarDateRangePicker
+  components: {
+    'calendar-date-range-picker': {
+      template: `
+        <div class="flex items-center gap-2">
+          <button class="px-3 py-1 border rounded text-foreground border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                  @click={setStart}>
+            Start: {formatDate(parent.dateRange.startDate)}
+          </button>
+          <span class="text-foreground">to</span>
+          <button class="px-3 py-1 border rounded text-foreground border-border hover:bg-accent hover:text-accent-foreground transition-colors"
+                  @click={setEnd}>
+            End: {formatDate(parent.dateRange.endDate)}
+          </button>
+        </div>
+      `,
+      methods: {
+        setStart() {
+          const input = prompt("Enter start date (YYYY-MM-DD)");
+          if (input) {
+            parent.dateRange.startDate = new Date(input);
+          }
+        },
+        setEnd() {
+          const input = prompt("Enter end date (YYYY-MM-DD)");
+          if (input) {
+            parent.dateRange.endDate = new Date(input);
+          }
+        },
+        formatDate(date) {
+          return parent.formatDate(date);
+        }
+      }
+    },
+
+    // Overview
+    overview: {
+      template: `
+        <div class="p-4 border rounded-lg border-border">
+          <div class="flex justify-between items-end h-40">
+            <div each={h, i in [100,80,60,40,20]}
+                 class="w-8 opacity-60"
+                 style="height:{h}px;background-color:hsl(var(--chart-{(i%5)+1}))">
+            </div>
+          </div>
+        </div>
+      `
+    },
+
+    // RecentSales
+    'recent-sales': {
+      template: `
+        <div class="space-y-4">
+          <div each={item, i in parent.salesData}
+               class="flex items-center justify-between p-2 border-b border-border">
+            <div class="flex items-center space-x-3">
+              <div class="w-8 h-8 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground">
+                {item.name[0]}
+              </div>
+              <div>
+                <p class="font-medium text-foreground">{item.name}</p>
+                <p class="text-sm text-muted-foreground">{item.email}</p>
+              </div>
+            </div>
+            <span class="font-medium text-foreground">{item.amount}</span>
+          </div>
+        </div>
+      `
+    }
+  }
+};
+</script>

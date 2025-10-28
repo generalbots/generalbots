@@ -53,12 +53,12 @@ pub struct CollectionInfo {
     pub status: String,
 }
 
-pub struct QdrantClient {
+pub struct VectorDBClient {
     base_url: String,
     client: Client,
 }
 
-impl QdrantClient {
+impl VectorDBClient {
     pub fn new(base_url: String) -> Self {
         Self {
             base_url,
@@ -235,11 +235,11 @@ impl QdrantClient {
 }
 
 /// Get Qdrant client from app state
-pub fn get_qdrant_client(_state: &AppState) -> Result<QdrantClient, Box<dyn Error + Send + Sync>> {
+pub fn get_qdrant_client(_state: &AppState) -> Result<VectorDBClient, Box<dyn Error + Send + Sync>> {
     let qdrant_url =
         std::env::var("QDRANT_URL").unwrap_or_else(|_| "http://localhost:6333".to_string());
 
-    Ok(QdrantClient::new(qdrant_url))
+    Ok(VectorDBClient::new(qdrant_url))
 }
 
 /// Ensure a collection exists, create if not
@@ -280,7 +280,7 @@ mod tests {
 
     #[test]
     fn test_qdrant_client_creation() {
-        let client = QdrantClient::new("http://localhost:6333".to_string());
+        let client = VectorDBClient::new("http://localhost:6333".to_string());
         assert_eq!(client.base_url, "http://localhost:6333");
     }
 }
