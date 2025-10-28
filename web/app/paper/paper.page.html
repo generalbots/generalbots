@@ -1,0 +1,179 @@
+<!-- Riot.js component for the paper page (converted from app/paper/page.tsx) -->
+<template>
+  <div class="min-h-screen bg-background text-foreground">
+    <div>
+      <div class="max-w-4xl mx-auto">
+        <!-- Paper Shadow Effect -->
+        <div class="mx-4 my-8 bg-card rounded-lg shadow-2xl shadow-black/20 border border-border">
+          <editor-content bind={editor} class="min-h-[calc(100vh-12rem)]" />
+        </div>
+      </div>
+
+      <!-- Floating Selection Toolbar -->
+      {editor && (
+        <bubble-menu bind={editor}>
+          <div class="flex items-center bg-card border border-border rounded-lg shadow-lg p-1">
+            <!-- Text Formatting -->
+            <button @click={() => editor.chain().focus().toggleBold().run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('bold') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Bold">
+              <BoldIcon class="h-4 w-4" />
+            </button>
+
+            <button @click={() => editor.chain().focus().toggleItalic().run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('italic') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Italic">
+              <ItalicIcon class="h-4 w-4" />
+            </button>
+
+            <button @click={() => editor.chain().focus().toggleUnderline().run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('underline') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Underline">
+              <Underline class="h-4 w-4" />
+            </button>
+
+            <div class="w-px h-6 bg-border mx-1"></div>
+
+            <!-- Text Alignment -->
+            <button @click={() => editor.chain().focus().setTextAlign('left').run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive({textAlign:'left'}) ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Align Left">
+              <AlignLeft class="h-4 w-4" />
+            </button>
+
+            <button @click={() => editor.chain().focus().setTextAlign('center').run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive({textAlign:'center'}) ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Align Center">
+              <AlignCenter class="h-4 w-4" />
+            </button>
+
+            <button @click={() => editor.chain().focus().setTextAlign('right').run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive({textAlign:'right'}) ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Align Right">
+              <AlignRight class="h-4 w-4" />
+            </button>
+
+            <div class="w-px h-6 bg-border mx-1"></div>
+
+            <!-- Highlight -->
+            <button @click={() => editor.chain().focus().toggleHighlight({color:'#ffff00'}).run()}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('highlight') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Highlight">
+              <Highlighter class="h-4 w-4" />
+            </button>
+
+            <!-- Link -->
+            <button @click={addLink}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('link') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Add Link">
+              <Link class="h-4 w-4" />
+            </button>
+
+            <div class="w-px h-6 bg-border mx-1"></div>
+
+            <!-- Heading -->
+            <button @click={() => {
+              if (editor.isActive('heading')) {
+                editor.chain().focus().setNode('paragraph').run();
+              } else {
+                editor.chain().focus().setNode('heading', {level:2}).run();
+              }
+            }}
+                    class="p-2 rounded hover:bg-accent transition-colors {editor.isActive('heading') ? 'bg-primary text-primary-foreground' : 'text-foreground'}"
+                    title="Heading">
+              <Type class="h-4 w-4" />
+            </button>
+          </div>
+        </bubble-menu>
+      )}
+    </div>
+
+    <footer-component shortcuts="{shortcuts}" />
+  </div>
+</template>
+
+<script >
+import { useState, useRef, useEffect } from 'riot';
+import { useEditor, EditorContent, BubbleMenu, AnyExtension } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
+import { AlignLeft, AlignCenter, AlignRight, BoldIcon, ItalicIcon, Highlighter, Type, Link as LinkIcon, Underline as UnderlineIcon } from 'lucide-react';
+import Footer from '../footer';
+import './style.css';
+
+export default {
+  // Reactive state
+  editor: null,
+  shortcuts: [],
+
+  // Lifecycle
+  async mounted() {
+    this.editor = useEditor({
+      extensions: [
+        StarterKit.configure(),
+        Bold,
+        Italic,
+        TextStyle,
+        Color,
+        Highlight.configure({ multicolor: true }),
+        TextAlign.configure({ types: ['heading', 'paragraph'] }),
+        Link,
+        Underline,
+      ],
+      content: `<p>Start writing your thoughts here...</p>`,
+      editorProps: {
+        attributes: {
+          class: 'prose prose-invert max-w-none focus:outline-none min-h-[calc(100vh-8rem)] p-8 text-foreground',
+        },
+      },
+    });
+
+    // Initialize shortcuts (same as original component)
+    this.shortcuts = [
+      [
+        { key: 'Q', label: 'Resume', action: () => {} },
+        { key: 'W', label: 'Write', action: () => {} },
+        { key: 'E', label: 'Expand', action: () => {} },
+        { key: 'R', label: 'One Word', action: () => {} },
+        { key: 'T', label: 'As List', action: () => {} },
+        { key: 'Y', label: 'As Mail', action: () => {} },
+        { key: 'U', label: 'Copy', action: () => document.execCommand('copy') },
+        { key: 'I', label: 'Paste', action: () => document.execCommand('paste') },
+        { key: 'O', label: 'Undo', action: () => this.editor?.chain().focus().undo().run() },
+        { key: 'P', label: 'Redo', action: () => this.editor?.chain().focus().redo().run() },
+      ],
+      [
+        { key: 'A', label: 'Select', action: () => {} },
+        { key: 'S', label: 'Select All', action: () => this.editor?.chain().focus().selectAll().run() },
+        { key: 'D', label: 'Deselect', action: () => {} },
+        { key: 'G', label: 'Random', action: () => {} },
+        { key: 'H', label: 'Idea', action: () => {} },
+        { key: 'J', label: 'Insert Link', action: this.addLink },
+        { key: 'K', label: 'Highlight', action: () => this.editor?.chain().focus().toggleHighlight({color:'#ffff00'}).run() },
+        { key: 'L', label: 'To-Do', action: () => {} },
+        { key: 'Z', label: 'Zoom In', action: () => {} },
+        { key: 'X', label: 'Zoom Out', action: () => {} },
+      ]
+    ];
+  },
+
+  // Methods
+  addLink() {
+    const previousUrl = this.editor?.getAttributes('link').href;
+    const url = window.prompt('Enter URL:', previousUrl);
+    if (url === null) return;
+    if (url === '') {
+      this.editor?.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    this.editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  }
+};
+</script>

@@ -1,0 +1,28 @@
+:root {
+  /* ArcadeFlash Theme */
+  --background: 0 0% 5%;
+  --foreground: 0 0% 98%;
+  --card: 0 0% 8%;
+  --card-foreground: 0 0% 98%;
+  --popover: 0 0% 5%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 120 100% 50%;
+  --primary-foreground: 0 0% 5%;
+  --secondary: 0 0% 15%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 0 0% 60%;
+  --accent: 240 100% 50%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 100% 50%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 15%;
+  --input: 0 0% 15%;
+  --ring: 120 100% 50%;
+  --radius: 0.5rem;
+  --chart-1: 120 100% 50%;
+  --chart-2: 240 100% 50%;
+  --chart-3: 60 100% 50%;
+  --chart-4: 0 100% 50%;
+  --chart-5: 300 100% 50%;
+}

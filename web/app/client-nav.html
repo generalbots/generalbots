@@ -1,0 +1,493 @@
+<client-nav>
+  <script>
+    // Import icons from Lucide (using CDN)
+    import { HardDrive, Terminal, ChevronLeft, ChevronRight } from 'https://cdn.jsdelivr.net/npm/lucide@0.331.0/+esm';
+
+    export default {
+      // Component state
+      data() {
+        return {
+          examples: [
+            { name: "Chat", href: "/chat", color: "#25D366" },
+            { name: "Paper", href: "/paper", color: "#6366F1" },
+            { name: "Mail", href: "/mail", color: "#FFD700" },
+            { name: "Calendar", href: "/calendar", color: "#1DB954" },
+            { name: "Meet", href: "/meet", color: "#059669" },
+            { name: "Drive", href: "/drive", color: "#10B981" },
+            { name: "Editor", href: "/editor", color: "#2563EB" },
+            { name: "Player", href: "/player", color: "Yellow" },
+            { name: "Tables", href: "/tables", color: "#8B5CF6" },
+            { name: "Dashboard", href: "/dashboard", color: "#6366F1" },
+            { name: "Sources", href: "/sources", color: "#F59E0B" },
+            { name: "Settings", href: "/settings", color: "#6B7280" },
+          ],
+          pathname: window.location.pathname,
+          scrollContainer: null,
+          navItems: [],
+          isLoggedIn: false,
+          showLoginMenu: false,
+          showScrollButtons: false,
+          loginMenu: null,
+          showThemeMenu: false,
+          themeMenu: null,
+          currentTime: new Date(),
+          theme: { name: "default", label: "Default", icon: "🎨" },
+          themes: [
+            { name: "retrowave", label: "Retrowave", icon: "🌌" },
+            { name: "vapordream", label: "Vapordream", icon: "🌀" },
+            { name: "y2kglow", label: "Y2K Glow", icon: "💿" },
+            { name: "mellowgold", label: "Mellow Gold", icon: "☮️" },
+            { name: "arcadeflash", label: "Arcade Flash", icon: "🕹️" },
+            { name: "polaroidmemories", label: "Polaroid Memories", icon: "📸" },
+            { name: "midcenturymod", label: "Mid‑Century Mod", icon: "🪑" },
+            { name: "grungeera", label: "Grunge Era", icon: "🎸" },
+            { name: "discofever", label: "Disco Fever", icon: "🪩" },
+            { name: "saturdaycartoons", label: "Saturday Cartoons", icon: "📺" },
+            { name: "oldhollywood", label: "Old Hollywood", icon: "🎬" },
+            { name: "cyberpunk", label: "Cyberpunk", icon: "🤖" },
+            { name: "seasidepostcard", label: "Seaside Postcard", icon: "🏖️" },
+            { name: "typewriter", label: "Typewriter", icon: "⌨️" },
+            { name: "jazzage", label: "Jazz Age", icon: "🎷" },
+            { name: "xtreegold", label: "X‑Tree Gold", icon: "X" },
+          ],
+        };
+      },
+
+      // Lifecycle: component mounted
+      mounted() {
+        // References
+        this.scrollContainer = this.root.querySelector('.nav-scroll');
+        this.loginMenu = this.root.querySelector('.login-menu');
+        this.themeMenu = this.root.querySelector('.theme-menu');
+
+        // Initialize nav item refs
+        this.navItems = Array.from(this.root.querySelectorAll('.nav-item'));
+
+        // Time update interval
+        this.timeInterval = setInterval(() => {
+          this.currentTime = new Date();
+          this.update();
+        }, 1000);
+
+        // Scroll button visibility
+        this.checkScrollNeeded();
+
+        // Resize listener
+        window.addEventListener('resize', this.checkScrollNeeded);
+
+        // Click‑outside handling
+        document.addEventListener('mousedown', this.handleClickOutside);
+      },
+
+      // Cleanup
+      unmounted() {
+        clearInterval(this.timeInterval);
+        window.removeEventListener('resize', this.checkScrollNeeded);
+        document.removeEventListener('mousedown', this.handleClickOutside);
+      },
+
+      // Methods
+      formatTime(date) {
+        return date.toLocaleTimeString('en-US', {
+          hour12: false,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        });
+      },
+
+      formatDate(date) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        });
+      },
+
+      isActive(href) {
+        if (href === '/') return this.pathname === href;
+        return this.pathname.startsWith(href);
+      },
+
+      handleLogin() {
+        this.isLoggedIn = true;
+        this.showLoginMenu = false;
+        this.update();
+      },
+
+      handleLogout() {
+        this.isLoggedIn = false;
+        this.showLoginMenu = false;
+        this.update();
+      },
+
+      checkScrollNeeded() {
+        if (this.scrollContainer) {
+          const container = this.scrollContainer;
+          const isScrollable = container.scrollWidth > container.clientWidth;
+          this.showScrollButtons = isScrollable;
+          this.update();
+        }
+      },
+
+      handleClickOutside(event) {
+        if (this.loginMenu && !this.loginMenu.contains(event.target)) {
+          this.showLoginMenu = false;
+        }
+        if (this.themeMenu && !this.themeMenu.contains(event.target)) {
+          this.showThemeMenu = false;
+        }
+        this.update();
+      },
+
+      scrollLeft() {
+        if (this.scrollContainer) {
+          this.scrollContainer.scrollBy({ left: -150, behavior: 'smooth' });
+        }
+      },
+
+      scrollRight() {
+        if (this.scrollContainer) {
+          this.scrollContainer.scrollBy({ left: 150, behavior: 'smooth' });
+        }
+      },
+
+      getThemeIcon() {
+        const found = this.themes.find(t => t.name === this.theme.name);
+        return found ? found.icon : '🎨';
+      },
+
+      setTheme(name) {
+        const found = this.themes.find(t => t.name === name);
+        if (found) {
+          this.theme = found;
+          this.showThemeMenu = false;
+          this.update();
+        }
+      },
+
+      navigate(href) {
+        window.location.href = href;
+      },
+    };
+  </script>
+
+  <style>
+    /* Basic styles - the original Tailwind classes are kept as comments for reference */
+    .fixed {
+      position: fixed;
+    }
+
+    .top-0 {
+      top: 0;
+    }
+
+    .left-0 {
+      left: 0;
+    }
+
+    .right-0 {
+      right: 0;
+    }
+
+    .z-50 {
+      z-index: 50;
+    }
+
+    .bg-gray-800 {
+      background-color: #2d3748;
+    }
+
+    .text-green-400 {
+      color: #68d391;
+    }
+
+    .font-mono {
+      font-family: monospace;
+    }
+
+    .border-b {
+      border-bottom: 1px solid transparent;
+    }
+
+    .border-green-600 {
+      border-color: #38a169;
+    }
+
+    .text-xs {
+      font-size: .75rem;
+    }
+
+    .flex {
+      display: flex;
+    }
+
+    .items-center {
+      align-items: center;
+    }
+
+    .justify-between {
+      justify-content: space-between;
+    }
+
+    .px-4 {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .py-1 {
+      padding-top: .25rem;
+      padding-bottom: .25rem;
+    }
+
+    .gap-4>*+* {
+      margin-left: 1rem;
+    }
+
+    .gap-2>*+* {
+      margin-left: .5rem;
+    }
+
+    .w-3 {
+      width: .75rem;
+    }
+
+    .h-3 {
+      height: .75rem;
+    }
+
+    .text-green-300 {
+      color: #9ae6b4;
+    }
+
+    .w-2 {
+      width: .5rem;
+    }
+
+    .h-2 {
+      height: .5rem;
+    }
+
+    .bg-green-500 {
+      background-color: #48bb78;
+    }
+
+    .rounded-full {
+      border-radius: 9999px;
+    }
+
+    .animate-pulse {
+      animation: pulse 2s infinite;
+    }
+
+    .nav-container {
+      position: relative;
+    }
+
+    .nav-inner {
+      overflow: hidden;
+    }
+
+    .nav-content {
+      display: flex;
+      align-items: center;
+      gap: .5rem;
+    }
+
+    .logo-container img {
+      display: block;
+    }
+
+    .nav-scroll {
+      overflow-x: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .nav-scroll::-webkit-scrollbar {
+      display: none;
+    }
+
+    .nav-items {
+      display: flex;
+      gap: .25rem;
+    }
+
+    .nav-item {
+      padding: .25rem .5rem;
+      border: 1px solid transparent;
+      border-radius: .25rem;
+      cursor: pointer;
+      transition: all .2s;
+    }
+
+    .nav-item.active {
+      background-color: #2d3748;
+      border-color: #68d391;
+      color: #68d391;
+    }
+
+    .nav-item:hover {
+      border-color: currentColor;
+    }
+
+    .auth-controls {
+      display: flex;
+      gap: .5rem;
+    }
+
+    .login-button,
+    .theme-toggle {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+    }
+
+    .login-menu,
+    .theme-menu {
+      position: absolute;
+      background: #1a202c;
+      border: 1px solid #4a5568;
+      padding: .5rem;
+      margin-top: .25rem;
+      border-radius: .25rem;
+    }
+
+    .menu-item {
+      display: block;
+      width: 100%;
+      text-align: left;
+      padding: .25rem;
+      background: none;
+      border: none;
+      color: #a0aec0;
+      cursor: pointer;
+    }
+
+    .menu-item:hover {
+      background: #2d3748;
+    }
+
+    .active-theme {
+      font-weight: bold;
+    }
+  </style>
+
+  <!-- Markup -->
+  <div class="fixed top-0 left-0 right-0 z-50 bg-gray-800 text-green-400 font-mono border-b border-green-600 text-xs">
+    <div class="flex items-center justify-between px-4 py-1">
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <HardDrive class="w-3 h-3 text-green-400" />
+          <span class="text-green-300">RETRO NAVIGATOR v4.0</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+          <span class="text-green-400">READY</span>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-green-300">THEME:</span>
+          <span class="text-yellow-400">{theme.label}</span>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span class="text-green-300">{formatDate(currentTime)}</span>
+        <span class="text-green-300">{formatTime(currentTime)}</span>
+        <div class="flex items-center gap-1">
+          <Terminal class="w-3 h-3 text-green-400" />
+          <span class="text-green-400">SYS</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-container" style="top:24px;">
+    <div class="nav-inner">
+      <div class="nav-content">
+        <div class="logo-container">
+          <img src="/images/generalbots-logo.svg" alt="Logo" width="64" height="24" />
+        </div>
+
+        {#if showScrollButtons}
+        <button
+          class="w-8 h-8 bg-gray-800 border border-green-600 text-green-400 rounded hover:bg-green-900/30 hover:border-green-500 hover:text-green-300 transition-all flex items-center justify-center flex-shrink-0 mx-1"
+          @click="scrollLeft" aria-label="Scroll left">
+          <ChevronLeft class="w-4 h-4" />
+        </button>
+        {/if}
+
+        <div class="nav-scroll">
+          <div class="nav-items">
+            {#each examples as example, index}
+            <button class="nav-item {isActive(example.href) ? 'active' : ''}" @click="{() => navigate(example.href)}"
+              style="--neon-color:{example.color}" @mouseenter="{(e) => {
+                      e.target.style.boxShadow = `0 0 15px ${example.color}60`;
+                      e.target.style.borderColor = example.color;
+                      e.target.style.color = example.color;
+                      e.target.style.textShadow = `0 0 8px ${example.color}80`;
+                    }}" @mouseleave="{(e) => {
+                      if (!isActive(example.href)) {
+                        e.target.style.boxShadow = 'none';
+                        e.target.style.borderColor = '';
+                        e.target.style.color = '';
+                        e.target.style.textShadow = 'none';
+                      }
+                    }}">
+              {example.name}
+              <div class="neon-glow"></div>
+            </button>
+            {/each}
+          </div>
+        </div>
+
+        {#if showScrollButtons}
+        <button
+          class="w-8 h-8 bg-gray-800 border border-green-600 text-green-400 rounded hover:bg-green-900/30 hover:border-green-500 hover:text-green-300 transition-all flex items-center justify-center flex-shrink-0 mx-1"
+          @click="scrollRight" aria-label="Scroll right">
+          <ChevronRight class="w-4 h-4" />
+        </button>
+        {/if}
+
+        <div class="auth-controls">
+          <div class="login-container" bind:this="{loginMenu}">
+            <button @click="{() => showLoginMenu = !showLoginMenu}" class="login-button"
+              aria-label="{isLoggedIn ? 'User menu' : 'Login'}">
+              {isLoggedIn ? '👤' : '🔐'}
+            </button>
+
+            {#if showLoginMenu}
+            <div class="login-menu">
+              {#if !isLoggedIn}
+              <button @click="handleLogin" class="menu-item">Login</button>
+              {:else}
+              <button @click="handleLogout" class="menu-item">Logout</button>
+              {/if}
+            </div>
+            {/if}
+          </div>
+
+          <div class="theme-container" bind:this="{themeMenu}">
+            <button @click="{() => showThemeMenu = !showThemeMenu}" class="theme-toggle" aria-label="Change theme">
+              {getThemeIcon()}
+            </button>
+
+            {#if showThemeMenu}
+            <div class="theme-menu">
+              {#each themes as t}
+              <button @click="{() => setTheme(t.name)}"
+                class="theme-menu-item {theme.name === t.name ? 'active-theme' : ''}">
+                {t.label}
+              </button>
+              {/each}
+            </div>
+            {/if}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="nav-spacer" style="height:88px;"></div>
+  </div>
+</client-nav>

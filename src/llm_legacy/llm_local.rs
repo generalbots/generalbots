@@ -55,7 +55,7 @@ struct LlamaCppResponse {
 
 pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
 {
-    let llm_local = env::var("LLM_LOCAL").unwrap_or_else(|_| "false".to_string());
+    let llm_local = env::var("LLM_LOCAL").unwrap_or_else(|_| "true".to_string());
 
     if llm_local.to_lowercase() != "true" {
         info!("ℹ️  LLM_LOCAL is not enabled, skipping local server startup");
@@ -215,7 +215,7 @@ async fn start_embedding_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let port = url.split(':').last().unwrap_or("8082");
 
-      if cfg!(windows) {
+    if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/c").arg(format!(
             "cd {} && .\\llama-server.exe -m {} --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99",
@@ -230,7 +230,7 @@ async fn start_embedding_server(
         ));
         cmd.spawn()?;
     }
-    
+
     Ok(())
 }
 async fn is_server_running(url: &str) -> bool {
