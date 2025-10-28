@@ -342,7 +342,7 @@ impl AutomationService {
 
                     trace!("Downloading from bucket={} key={}", bucket_name, s3_key);
 
-                    match s3_client
+                    match s3_client.
                         .get_object()
                         .bucket(&bucket_name)
                         .key(&s3_key)
