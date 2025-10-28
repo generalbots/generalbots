@@ -160,11 +160,11 @@ pub async fn get_from_bucket(
         return Err("Invalid file path".into());
     }
 
-    let s3_client = match &state.s3_client {
-        Some(client) => client,
+    let s3_operator = match &state.s3_operator {
+        Some(operator) => operator,
         None => {
-            error!("S3 client not configured");
-            return Err("S3 client not configured".into());
+            error!("S3 operator not configured");
+            return Err("S3 operator not configured".into());
         }
     };
 
@@ -189,19 +189,11 @@ pub async fn get_from_bucket(
         bucket
     };
 
-    match s3_client.head_bucket().bucket(&bucket_name).send().await {
-        Ok(_) => debug!("Bucket exists: {}", bucket_name),
-        Err(e) => {
-            error!("Bucket inaccessible: {} - {}", bucket_name, e);
-            return Err(format!("Bucket inaccessible: {}", e).into());
-        }
-    }
 
-    let get_object_future = s3_client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(file_path)
-        .send();
+let get_object_future = s3_operator
+    .read(&bucket_name)
+    .key(file_path)
+    .send();
 
     let response = match tokio::time::timeout(Duration::from_secs(30), get_object_future).await {
         Ok(Ok(response)) => response,
