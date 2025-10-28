@@ -63,8 +63,8 @@ impl PackageManager {
     fn register_drive(&mut self) {
         let drive_password = self.generate_secure_password(16);
         let drive_user = "gbdriveuser".to_string();
-        let farm_password = std::env::var("FARM_PASSWORD")
-            .unwrap_or_else(|_| self.generate_secure_password(32));
+        let farm_password =
+            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
         let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
 
         let env_path = self.base_path.join(".env");
@@ -111,8 +111,37 @@ impl PackageManager {
             },
         );
 
-        self.update_drive_credentials_in_database(&encrypted_drive_password)
-            .ok();
+        // Delay updating drive credentials until database is created
+        let db_env_path = self.base_path.join(".env");
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+        let db_line = format!("DATABASE_URL={}\n", database_url);
+        let _ = std::fs::write(&db_env_path, db_line);
+
+        // Append drive credentials after database creation
+        let env_path = self.base_path.join(".env");
+        let drive_lines = format!(
+            "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
+            drive_user, drive_password, farm_password, drive_user, drive_password
+        );
+        let _ = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&env_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, drive_lines.as_bytes()));
+
+        // Update drive credentials in database only after database is ready
+        if std::process::Command::new("pg_isready")
+            .arg("-h")
+            .arg("localhost")
+            .arg("-p")
+            .arg("5432")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
+            self.update_drive_credentials_in_database(&encrypted_drive_password)
+                .ok();
+        }
     }
 
     fn update_drive_credentials_in_database(&self, encrypted_drive_password: &str) -> Result<()> {
@@ -750,7 +779,10 @@ post_install_cmds_linux: vec![
 
                 if let Ok(output) = check_output {
                     if output.status.success() {
-                        trace!("Component {} is already running, skipping start", component.name);
+                        trace!(
+                            "Component {} is already running, skipping start",
+                            component.name
+                        );
                         return Ok(std::process::Command::new("sh")
                             .arg("-c")
                             .arg("echo 'Already running'")
@@ -766,7 +798,11 @@ post_install_cmds_linux: vec![
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            trace!("Starting component {} with command: {}", component.name, rendered_cmd);
+            trace!(
+                "Starting component {} with command: {}",
+                component.name,
+                rendered_cmd
+            );
 
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
@@ -779,7 +815,10 @@ post_install_cmds_linux: vec![
                 Err(e) => {
                     let err_msg = e.to_string();
                     if err_msg.contains("already running") || component.name == "tables" {
-                        trace!("Component {} may already be running, continuing anyway", component.name);
+                        trace!(
+                            "Component {} may already be running, continuing anyway",
+                            component.name
+                        );
                         Ok(std::process::Command::new("sh")
                             .arg("-c")
                             .arg("echo 'Already running'")
