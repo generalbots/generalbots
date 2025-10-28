@@ -131,8 +131,11 @@ async fn main() -> std::io::Result<()> {
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
-    let config = std::sync::Arc::new(cfg.clone());
-    let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
+    // Refresh configuration from environment to ensure latest DATABASE_URL and credentials
+    dotenv().ok();
+    let refreshed_cfg = AppConfig::from_env();
+    let config = std::sync::Arc::new(refreshed_cfg.clone());
+    let db_pool = match diesel::Connection::establish(&refreshed_cfg.database_url()) {
         Ok(conn) => Arc::new(Mutex::new(conn)),
         Err(e) => {
             log::error!("Failed to connect to main database: {}", e);
