@@ -2,18 +2,24 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
 use diesel::connection::SimpleConnection;
-use diesel::Connection;
+use diesel::{Connection, QueryableByName};
 use diesel::RunQueryDsl;
 use dotenvy::dotenv;
 use log::{error, info};
 use opendal::services::S3;
 use opendal::Operator;
-use rand::Rng;
 use rand::distr::Alphanumeric;
+use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
+
+#[derive(QueryableByName)]
+struct BotIdRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    id: uuid::Uuid,
+}
 
 pub struct ComponentInfo {
     pub name: &'static str,
@@ -126,7 +132,16 @@ impl BootstrapManager {
             if pm.is_installed(component.name) {
                 pm.start(component.name)?;
             } else {
-                if let Err(e) = self.update_bot_config(component.name) {
+                let database_url = std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+                let mut conn = diesel::pg::PgConnection::establish(&database_url)
+                    .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
+                let default_bot_id: uuid::Uuid = diesel::sql_query("SELECT id FROM bots LIMIT 1")
+                    .get_result::<BotIdRow>(&mut conn)
+                    .map(|row| row.id)
+                    .unwrap_or_else(|_| uuid::Uuid::new_v4());
+
+                if let Err(e) = self.update_bot_config(&default_bot_id, component.name) {
                     error!(
                         "Failed to update bot config after installing {}: {}",
                         component.name, e
@@ -291,16 +306,19 @@ impl BootstrapManager {
         format!("{:x}", hasher.finalize())
     }
 
-    fn update_bot_config(&self, component: &str) -> Result<()> {
+    fn update_bot_config(&self, bot_id: &uuid::Uuid, component: &str) -> Result<()> {
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
         let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
 
+        let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+
         for (k, v) in vec![(component.to_string(), "true".to_string())] {
             diesel::sql_query(
-                "INSERT INTO bot_configuration (config_key, config_value) VALUES ($1, $2) \
-                 ON CONFLICT (config_key) DO UPDATE SET config_value = EXCLUDED.config_value",
+                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()",
             )
+            .bind::<diesel::sql_types::Uuid, _>(new_id)
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .bind::<diesel::sql_types::Text, _>(&k)
             .bind::<diesel::sql_types::Text, _>(&v)
             .execute(&mut conn)?;
@@ -319,8 +337,9 @@ impl BootstrapManager {
                 .root("/")
                 .endpoint(&config.minio.server)
                 .access_key_id(&config.minio.access_key)
-                .secret_access_key(&config.minio.secret_key)
-        )?.finish();
+                .secret_access_key(&config.minio.secret_key),
+        )?
+        .finish();
 
         let templates_dir = Path::new("templates");
         if !templates_dir.exists() {

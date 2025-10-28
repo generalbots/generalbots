@@ -458,12 +458,14 @@ impl ConfigManager {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
 
-                diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES (gen_random_uuid()::text, $1, $2, $3, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .bind::<diesel::sql_types::Text, _>(value)
-                    .execute(&mut *conn)
-                    .map_err(|e| format!("Failed to update config: {}", e))?;
+let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
+    .bind::<diesel::sql_types::Uuid, _>(new_id)
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Text, _>(key)
+    .bind::<diesel::sql_types::Text, _>(value)
+    .execute(&mut *conn)
+    .map_err(|e| format!("Failed to update config: {}", e))?;
 
                 updated += 1;
             }
