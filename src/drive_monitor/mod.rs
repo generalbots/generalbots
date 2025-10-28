@@ -72,7 +72,7 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         
         let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.try_next().await? {
+        while let Some(entry) = futures::TryStreamExt::try_next(&mut lister).await? {
             let path = entry.path().to_string();
             
             if path.ends_with('/') || !path.ends_with(".bas") {
@@ -132,7 +132,7 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         
         let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.try_next().await? {
+        while let Some(entry) = futures::TryStreamExt::try_next(&mut lister).await? {
             let path = entry.path().to_string();
             
             if path.ends_with('/') {

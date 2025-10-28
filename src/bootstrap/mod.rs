@@ -1,6 +1,5 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
-use actix_web::http::uri::Builder;
 use anyhow::Result;
 use diesel::connection::SimpleConnection;
 use diesel::Connection;
@@ -299,8 +298,8 @@ impl BootstrapManager {
 
         for (k, v) in vec![(component.to_string(), "true".to_string())] {
             diesel::sql_query(
-                "INSERT INTO bot_config (key, value) VALUES ($1, $2) \
-                 ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value",
+                "INSERT INTO bot_configuration (config_key, config_value) VALUES ($1, $2) \
+                 ON CONFLICT (config_key) DO UPDATE SET config_value = EXCLUDED.config_value",
             )
             .bind::<diesel::sql_types::Text, _>(&k)
             .bind::<diesel::sql_types::Text, _>(&v)
