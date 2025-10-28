@@ -1,3 +1,5 @@
+use crate::config::DriveConfig;
+use crate::shared::state::AppState;
 use actix_multipart::Multipart;
 use actix_web::web;
 use actix_web::{post, HttpResponse};
@@ -5,8 +7,6 @@ use opendal::Operator;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio_stream::StreamExt as TokioStreamExt;
-use crate::config::DriveConfig;
-use crate::shared::state::AppState;
 
 #[post("/files/upload/{folder_path}")]
 pub async fn upload_file(
@@ -39,13 +39,13 @@ pub async fn upload_file(
 
     let file_name = file_name.unwrap_or_else(|| "unnamed_file".to_string());
     let temp_file_path = temp_file.into_temp_path();
-    
+
     let op = state.get_ref().s3_operator.as_ref().ok_or_else(|| {
         actix_web::error::ErrorInternalServerError("S3 operator is not initialized")
     })?;
 
     let s3_key = format!("{}/{}", folder_path, file_name);
-    
+
     match upload_to_s3(op, &s3_key, &temp_file_path).await {
         Ok(_) => {
             let _ = std::fs::remove_file(&temp_file_path);
@@ -64,24 +64,19 @@ pub async fn upload_file(
     }
 }
 
-pub async fn init_drive(cfg: &DriveConfig) -> Result<Operator, Box<dyn std::error::Error>> {
+pub async fn init_drive(config: &DriveConfig) -> Result<Operator, Box<dyn std::error::Error>> {
     use opendal::services::S3;
     use opendal::Operator;
-    
-    let mut builder = S3::default();
-    
-    builder.root("/");
-    builder.endpoint(&cfg.server);
-    builder.access_key_id(&cfg.access_key);
-    builder.secret_access_key(&cfg.secret_key);
-    
-    if cfg.server.contains("minio") || cfg.server.contains("localhost") {
-        builder.enable_virtual_host_style();
-    }
+    let client = Operator::new(
+        S3::default()
+            .root("/")
+            .endpoint(&config.server)
+            .access_key_id(&config.access_key)
+            .secret_access_key(&config.secret_key),
+    )?
+    .finish();
 
-    let op = Operator::new(builder)?.finish();
-    
-    Ok(op)
+    Ok(client)
 }
 
 async fn upload_to_s3(

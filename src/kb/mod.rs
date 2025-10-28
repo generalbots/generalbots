@@ -1,7 +1,7 @@
 use crate::shared::models::KBCollection;
 use crate::shared::state::AppState;
-use log::{debug, error, info, warn};
-use opendal::Operator;
+use log::{ error, info, warn};
+use tokio_stream::StreamExt;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
