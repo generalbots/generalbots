@@ -331,8 +331,7 @@ impl AutomationService {
                     e
                 );
 
-                // Try to download from MinIO
-                if let Some(s3_client) = &self.state.s3_client {
+                if let Some(s3_operator) = &self.state.s3_operator {
                     let bucket_name = format!(
                         "{}{}.gbai",
                         env::var("MINIO_ORG_PREFIX").unwrap_or_else(|_| "org1_".to_string()),
@@ -342,47 +341,26 @@ impl AutomationService {
 
                     trace!("Downloading from bucket={} key={}", bucket_name, s3_key);
 
-                    match s3_client.
-                        .get_object()
-                        .bucket(&bucket_name)
-                        .key(&s3_key)
-                        .send()
-                        .await
-                    {
-                        Ok(response) => {
-                            match response.body.collect().await {
-                                Ok(data) => {
-                                    match String::from_utf8(data.into_bytes().to_vec()) {
-                                        Ok(content) => {
-                                            info!("Downloaded script '{}' from MinIO", param);
+                    match s3_operator.read(&format!("{}/{}", bucket_name, s3_key)).await {
+                        Ok(data) => {
+                            let bytes: Vec<u8> = data.to_vec();
+                            match String::from_utf8(bytes) {
+                                Ok(content) => {
+                                    info!("Downloaded script '{}' from MinIO", param);
 
-                                            // Save to local cache
-                                            if let Err(e) =
-                                                std::fs::create_dir_all(&self.scripts_dir)
-                                            {
-                                                warn!("Failed to create scripts directory: {}", e);
-                                            } else if let Err(e) =
-                                                tokio::fs::write(&full_path, &content).await
-                                            {
-                                                warn!("Failed to cache script locally: {}", e);
-                                            } else {
-                                                trace!("Cached script to {}", full_path.display());
-                                            }
-
-                                            content
-                                        }
-                                        Err(e) => {
-                                            error!("Failed to decode script {}: {}", param, e);
-                                            self.cleanup_job_flag(&bot_id, param).await;
-                                            return;
-                                        }
+                                    // Save to local cache
+                                    if let Err(e) = std::fs::create_dir_all(&self.scripts_dir) {
+                                        warn!("Failed to create scripts directory: {}", e);
+                                    } else if let Err(e) = tokio::fs::write(&full_path, &content).await {
+                                        warn!("Failed to cache script locally: {}", e);
+                                    } else {
+                                        trace!("Cached script to {}", full_path.display());
                                     }
+
+                                    content
                                 }
                                 Err(e) => {
-                                    error!(
-                                        "Failed to read script body from MinIO {}: {}",
-                                        param, e
-                                    );
+                                    error!("Failed to decode script {}: {}", param, e);
                                     self.cleanup_job_flag(&bot_id, param).await;
                                     return;
                                 }
