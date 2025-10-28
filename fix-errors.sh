@@ -19,8 +19,8 @@ done
 
 dirs=(
     # "auth"
-     "automation"
-     "basic"
+    # "automation"
+     #"basic"
     # "bot"
      "bootstrap"
     # "package_manager"
@@ -37,7 +37,7 @@ dirs=(
     "file"
     "kb"
     "shared"
-    "tests"
+    #"tests"
     # "tools"
     # "web_automation"
     # "whatsapp"
@@ -54,6 +54,8 @@ done
 echo "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 cat "$PROJECT_ROOT/src/main.rs" >> "$OUTPUT_FILE"
 
+echo "$PROJECT_ROOT/src/basic/keywords/get.rs" >> "$OUTPUT_FILE"
+cat "$PROJECT_ROOT/src/basic/keywords/get.rs" >> "$OUTPUT_FILE"
 
 echo "" >> "$OUTPUT_FILE"
 echo "Compiling..."
