@@ -72,15 +72,14 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         
         let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.next().await {
-            let entry = entry?;
+        while let Some(entry) = lister.try_next().await? {
             let path = entry.path().to_string();
             
             if path.ends_with('/') || !path.ends_with(".bas") {
                 continue;
             }
 
-            let meta = entry.metadata().await?;
+            let meta = op.stat(&path).await?;
             let file_state = FileState {
                 path: path.clone(),
                 size: meta.content_length() as i64,
@@ -133,8 +132,7 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         
         let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.next().await {
-            let entry = entry?;
+        while let Some(entry) = lister.try_next().await? {
             let path = entry.path().to_string();
             
             if path.ends_with('/') {
@@ -146,7 +144,7 @@ impl DriveMonitor {
                 continue;
             }
 
-            let meta = entry.metadata().await?;
+            let meta = op.stat(&path).await?;
             let file_state = FileState {
                 path: path.clone(),
                 size: meta.content_length() as i64,

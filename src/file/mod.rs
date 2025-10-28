@@ -1,7 +1,6 @@
 use actix_multipart::Multipart;
 use actix_web::web;
 use actix_web::{post, HttpResponse};
-use log::{error, info};
 use opendal::Operator;
 use std::io::Write;
 use tempfile::NamedTempFile;
@@ -76,14 +75,12 @@ pub async fn init_drive(cfg: &DriveConfig) -> Result<Operator, Box<dyn std::erro
     builder.access_key_id(&cfg.access_key);
     builder.secret_access_key(&cfg.secret_key);
     
-    
     if cfg.server.contains("minio") || cfg.server.contains("localhost") {
         builder.enable_virtual_host_style();
     }
 
     let op = Operator::new(builder)?.finish();
     
-    info!("OpenDAL S3 operator initialized for bucket: {}", cfg.bucket);
     Ok(op)
 }
 
@@ -91,7 +88,7 @@ async fn upload_to_s3(
     op: &Operator,
     key: &str,
     file_path: &std::path::Path,
-) -> Result<(), opendal::Error> {
+) -> Result<(), Box<dyn std::error::Error>> {
     let data = std::fs::read(file_path)?;
     op.write(key, data).await?;
     Ok(())
