@@ -85,18 +85,17 @@ impl MinIOHandler {
         let mut current_files = HashMap::new();
         
         let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.next().await {
-            let entry = entry?;
+        while let Some(entry) = lister.try_next().await? {
             let path = entry.path().to_string();
             
             if path.ends_with('/') {
                 continue;
             }
 
-            let meta = entry.metadata().await?;
+            let meta = op.stat(&path).await?;
             let file_state = FileState {
                 path: path.clone(),
-                size: meta.content_length().parse::<i64>().unwrap_or(0),
+                size: meta.content_length() as i64,
                 etag: meta.etag().unwrap_or_default().to_string(),
                 last_modified: meta.last_modified().map(|dt| dt.to_rfc3339()),
             };

@@ -1,14 +1,15 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
+use actix_web::http::uri::Builder;
 use anyhow::Result;
-use csv;
 use diesel::connection::SimpleConnection;
 use diesel::Connection;
 use diesel::RunQueryDsl;
 use dotenvy::dotenv;
-use log::{error, info, trace};
+use log::{error, info};
 use opendal::services::S3;
-use opendal::{Operator, OperatorBuilder};
+use opendal::Operator;
+use rand::Rng;
 use rand::distr::Alphanumeric;
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
@@ -278,7 +279,6 @@ impl BootstrapManager {
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
-        use rand::Rng;
         let mut rng = rand::rng();
         std::iter::repeat_with(|| rng.sample(Alphanumeric) as char)
             .take(length)
@@ -315,18 +315,13 @@ impl BootstrapManager {
         let mut conn = diesel::PgConnection::establish(&database_url)?;
         self.create_bots_from_templates(&mut conn)?;
 
-        let builder = S3::default();
-        builder
-            .root("/")
-            .endpoint(&config.minio.server)
-            .access_key_id(&config.minio.access_key)
-            .secret_access_key(&config.minio.secret_key);
-
-        // if !config.minio.use_ssl {
-        //     builder.disable_ssl_verification(true);
-        // }
-
-        let client = Operator::new(builder)?.finish();
+        let client = Operator::new(
+            S3::default()
+                .root("/")
+                .endpoint(&config.minio.server)
+                .access_key_id(&config.minio.access_key)
+                .secret_access_key(&config.minio.secret_key)
+        )?.finish();
 
         let templates_dir = Path::new("templates");
         if !templates_dir.exists() {
@@ -391,7 +386,7 @@ impl BootstrapManager {
                     .bind::<diesel::sql_types::Text, _>(format!("Bot for {} template", bot_name))
                     .execute(conn)?;
                 } else {
-                    trace!("Bot {} already exists", formatted_name);
+                    log::trace!("Bot {} already exists", formatted_name);
                 }
             }
         }
