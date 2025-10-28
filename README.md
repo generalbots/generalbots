@@ -136,34 +136,6 @@ DRIVE_ACCESSKEY=minioadmin
 DRIVE_SECRET=minioadmin
 DRIVE_ORG_PREFIX=botserver-
 
-# Cache (Redis - auto-installed)
-CACHE_URL=redis://localhost:6379
-
-# LLM (llama.cpp - auto-installed with models)
-LLM_LOCAL=false
-LLM_URL=http://localhost:8081/v1
-EMBEDDING_URL=http://localhost:8082
-```
-
-#### Optional Settings
-```bash
-# Server Configuration
-SERVER_HOST=127.0.0.1
-SERVER_PORT=8080
-
-# External AI API (Groq, OpenAI, Azure, etc.)
-AI_KEY=your-api-key-here
-AI_ENDPOINT=https://api.groq.com/openai/v1/chat/completions
-AI_LLM_MODEL=openai/gpt-4
-
-# Email (for notifications)
-EMAIL_FROM=bot@example.com
-EMAIL_SERVER=smtp.example.com
-EMAIL_PORT=587
-EMAIL_USER=your-email@example.com
-EMAIL_PASS=your-password
-```
-
 #### Legacy Mode (Use existing infrastructure)
 If you already have PostgreSQL, MinIO, etc. running, set these in `.env`:
 ```bash
@@ -176,10 +148,6 @@ TABLES_PASSWORD=your-password
 DRIVE_SERVER=https://your-minio-host
 DRIVE_ACCESSKEY=your-access-key
 DRIVE_SECRET=your-secret-key
-
-# Existing AI endpoint
-AI_ENDPOINT=https://your-llm-endpoint
-AI_KEY=your-api-key
 ```
 
 BotServer will detect existing infrastructure and skip auto-installation.

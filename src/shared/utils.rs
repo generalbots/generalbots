@@ -81,12 +81,14 @@ pub fn to_array(value: Dynamic) -> Array {
 pub async fn download_file(
     url: &str,
     output_path: &str,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+) -> Result<(), anyhow::Error> {
     let url = url.to_string();
     let output_path = output_path.to_string();
 
     let download_handle = tokio::spawn(async move {
-        let client = Client::new();
+        let client = Client::builder()
+    .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+    .build()?;
         let response = client.get(&url).send().await?;
 
         if response.status().is_success() {
@@ -113,7 +115,7 @@ pub async fn download_file(
             trace!("Download completed: {} -> {}", url, output_path);
             Ok(())
         } else {
-            Err(format!("HTTP {}: {}", response.status(), url).into())
+            Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
         }
     });
 

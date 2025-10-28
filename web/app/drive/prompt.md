@@ -1,0 +1,1 @@
+- The UI shoule look exactly xtree gold but using shadcn with keyborad shortcut well explicit.

@@ -1,0 +1,28 @@
+:root {
+  /* Typewriter Theme */
+  --background: 0 0% 95%;
+  --foreground: 0 0% 10%;
+  --card: 0 0% 90%;
+  --card-foreground: 0 0% 10%;
+  --popover: 0 0% 95%;
+  --popover-foreground: 0 0% 10%;
+  --primary: 0 0% 20%;
+  --primary-foreground: 0 0% 95%;
+  --secondary: 0 0% 85%;
+  --secondary-foreground: 0 0% 10%;
+  --muted: 0 0% 80%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 70%;
+  --accent-foreground: 0 0% 10%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 0 0% 85%;
+  --input: 0 0% 85%;
+  --ring: 0 0% 20%;
+  --radius: 0.5rem;
+  --chart-1: 0 0% 20%;
+  --chart-2: 0 0% 40%;
+  --chart-3: 0 0% 60%;
+  --chart-4: 0 0% 30%;
+  --chart-5: 0 0% 50%;
+}

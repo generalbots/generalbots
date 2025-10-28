@@ -1,0 +1,340 @@
+<!-- Riot.js component for the editor page (converted from app/editor/page.tsx) -->
+<template>
+  <div class="word-clone">
+    <!-- Quick Access Toolbar -->
+    <div class="quick-access">
+      <button class="quick-access-btn" @click={undo}>
+        <svg><!-- Undo icon (use same SVG as in React) --></svg>
+      </button>
+      <button class="quick-access-btn" @click={redo}>
+        <svg><!-- Redo icon --></svg>
+      </button>
+      <div class="title-controls">
+        <input
+          type="text"
+          class="title-input"
+          placeholder="Document name"
+          value={fileName}
+          @input={e => fileName = e.target.value}
+        />
+        <button class="quick-access-btn" @click={saveDocument}>
+          <svg><!-- Save icon --></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Ribbon -->
+    <div class="ribbon">
+      <div class="ribbon-tabs">
+        <button class="ribbon-tab-button {activeTab === 'home' ? 'active' : ''}" @click={() => activeTab = 'home'}>Home</button>
+        <button class="ribbon-tab-button {activeTab === 'insert' ? 'active' : ''}" @click={() => activeTab = 'insert'}>Insert</button>
+        <button class="ribbon-tab-button {activeTab === 'layout' ? 'active' : ''}" @click={() => activeTab = 'layout'}>Layout</button>
+        <button class="ribbon-tab-button {activeTab === 'view' ? 'active' : ''}" @click={() => activeTab = 'view'}>View</button>
+      </div>
+
+      {activeTab === 'home' && (
+        <div class="ribbon-content">
+          <ribbon-group title="Clipboard">
+            <ribbon-button icon="copy" label="Copy" size="large" @click={copy} />
+            <ribbon-button icon="paste" label="Paste" size="large" @click={paste} />
+            <ribbon-button icon="cut" label="Cut" size="medium" @click={cut} />
+          </ribbon-group>
+
+          <ribbon-group title="Font">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;gap:4px">
+                <select bind={fontFamily} @change={e => setFontFamily(e.target.value)} class="format-select" style="width:120px">
+                  <option value="Calibri">Calibri</option>
+                  <option value="Arial">Arial</option>
+                  <option value="Times New Roman">Times New Roman</option>
+                  <option value="Georgia">Georgia</option>
+                  <option value="Verdana">Verdana</option>
+                </select>
+                <select bind={fontSize} @change={e => setFontSize(e.target.value)} class="format-select" style="width:60px">
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="14">14</option>
+                  <option value="16">16</option>
+                  <option value="18">18</option>
+                  <option value="20">20</option>
+                  <option value="24">24</option>
+                  <option value="28">28</option>
+                  <option value="36">36</option>
+                </select>
+              </div>
+              <div style="display:flex;gap:2px">
+                <ribbon-button icon="bold" label="Bold" @click={toggleBold} active={editor?.isActive('bold')} />
+                <ribbon-button icon="italic" label="Italic" @click={toggleItalic} active={editor?.isActive('italic')} />
+                <ribbon-button icon="underline" label="Underline" @click={toggleUnderline} active={editor?.isActive('underline')} />
+                <div class="color-picker-wrapper">
+                  <ribbon-button icon="type" label="Text Color" />
+                  <input type="color" bind={textColor} @input={e => setTextColor(e.target.value)} class="color-picker" />
+                  <div class="color-indicator" style="background-color:{textColor}"></div>
+                </div>
+                <div class="color-picker-wrapper">
+                  <ribbon-button icon="highlighter" label="Highlight" />
+                  <input type="color" bind={highlightColor} @input={e => setHighlightColor(e.target.value)} class="color-picker" />
+                  <div class="color-indicator" style="background-color:{highlightColor}"></div>
+                </div>
+              </div>
+            </div>
+          </ribbon-group>
+
+          <ribbon-group title="Paragraph">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <div style="display:flex;gap:2px">
+                <ribbon-button icon="align-left" label="Align Left" @click={alignLeft} active={editor?.isActive({textAlign:'left'})} />
+                <ribbon-button icon="align-center" label="Center" @click={alignCenter} active={editor?.isActive({textAlign:'center'})} />
+                <ribbon-button icon="align-right" label="Align Right" @click={alignRight} active={editor?.isActive({textAlign:'right'})} />
+                <ribbon-button icon="align-justify" label="Justify" @click={alignJustify} active={editor?.isActive({textAlign:'justify'})} />
+              </div>
+            </div>
+          </ribbon-group>
+        </div>
+      )}
+
+      {activeTab === 'insert' && (
+        <div class="ribbon-content">
+          <ribbon-group title="Illustrations">
+            <ribbon-button icon="image" label="Picture" size="large" @click={addImage} />
+          </ribbon-group>
+
+          <ribbon-group title="Tables">
+            <ribbon-button icon="table" label="Table" size="large" @click={insertTable} />
+          </ribbon-group>
+
+          <ribbon-group title="Links">
+            <ribbon-button icon="link" label="Link" size="large" @click={addLink} active={editor?.isActive('link')} />
+          </ribbon-group>
+        </div>
+      )}
+
+      {activeTab === 'view' && (
+        <div class="ribbon-content">
+          <ribbon-group title="Zoom">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="font-size:14px;font-weight:600">{zoom}%</div>
+              <input type="range" min="50" max="200" bind={zoom} @input={e => zoom = parseInt(e.target.value)} class="zoom-slider" />
+            </div>
+          </ribbon-group>
+        </div>
+      )}
+    </div>
+
+    <!-- Editor Area -->
+    <div class="editor-container">
+      <div class="editor-main">
+        <div class="pages-container">
+          <div each={pageNum in pages} class="page">
+            <div class="page-number">Page {pageNum}</div>
+            <div class="page-content">
+              {pageNum === 1 && <editor-content bind={editor} />}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bubble Menu -->
+    {editor && (
+      <bubble-menu bind={editor}>
+        <ribbon-button icon="bold" label="Bold" @click={toggleBold} active={editor.isActive('bold')} />
+        <ribbon-button icon="italic" label="Italic" @click={toggleItalic} active={editor.isActive('italic')} />
+        <ribbon-button icon="underline" label="Underline" @click={toggleUnderline} active={editor.isActive('underline')} />
+        <ribbon-button icon="link" label="Link" @click={addLink} active={editor.isActive('link')} />
+      </bubble-menu>
+    )}
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+      <div>Page {pages.length} of {pages.length} | Words: {editor?.storage?.characterCount?.words() || 0}</div>
+      <div class="zoom-controls">
+        <button @click={() => zoom = Math.max(50, zoom - 10)}>-</button>
+        <span>{zoom}%</span>
+        <button @click={() => zoom = Math.min(200, zoom + 10)}>+</button>
+      </div>
+    </div>
+
+    <!-- Hidden file input -->
+    <input type="file" bind={fileInputRef} @change={handleImageUpload} accept="image/*" style="display:none" />
+  </div>
+</template>
+
+<script >
+<!-- Removed unused Riot imports -->
+import { useEditor, EditorContent, BubbleMenu, AnyExtension } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Bold from '@tiptap/extension-bold';
+import Italic from '@tiptap/extension-italic';
+import History from '@tiptap/extension-history';
+import TextStyle from '@tiptap/extension-text-style';
+import FontFamily from '@tiptap/extension-font-family';
+import Color from '@tiptap/extension-color';
+import Highlight from '@tiptap/extension-highlight';
+import TextAlign from '@tiptap/extension-text-align';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Underline from '@tiptap/extension-underline';
+import Table from '@tiptap/extension-table';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import TableRow from '@tiptap/extension-table-row';
+import './style.css';
+
+export default {
+  // Reactive state
+  fileName: 'Document 1',
+  fontSize: '12',
+  fontFamily: 'Calibri',
+  textColor: '#000000',
+  highlightColor: '#ffff00',
+  activeTab: 'home',
+  zoom: 100,
+  pages: [1],
+  editor: null,
+  fileInputRef: null,
+
+  // Lifecycle
+  async mounted() {
+    this.editor = useEditor({
+      extensions: [
+        StarterKit.configure({ history: false }),
+        Bold,
+        Italic,
+        History,
+        TextStyle,
+        FontFamily,
+        Color,
+        Highlight.configure({ multicolor: true }),
+        TextAlign.configure({ types: ['heading', 'paragraph', 'tableCell'] }),
+        Link.configure({ openOnClick: false }),
+        Image,
+        Underline,
+        Table.configure({
+          resizable: true,
+          HTMLAttributes: { class: 'editor-table' },
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
+      ],
+      content: `
+        <h1 style="text-align: center; font-size: 24px; margin-bottom: 20px;">${this.fileName}</h1>
+        <p><br></p>
+        <p>Start typing your document here...</p>
+        <p><br></p>
+      `,
+      onUpdate: ({ editor }) => {
+        const element = document.querySelector('.ProseMirror');
+        if (element) {
+          const contentHeight = element.scrollHeight;
+          const pageHeight = 1123; // A4 height in pixels at 96 DPI
+          const neededPages = Math.max(1, Math.ceil(contentHeight / pageHeight));
+          if (neededPages !== this.pages.length) {
+            this.pages = Array.from({ length: neededPages }, (_, i) => i + 1);
+          }
+        }
+      },
+    });
+  },
+
+  // Methods
+  undo() {
+    this.editor?.chain().focus().undo().run();
+  },
+  redo() {
+    this.editor?.chain().focus().redo().run();
+  },
+  saveDocument() {
+    if (!this.editor) return;
+    const content = this.editor.getHTML();
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${this.fileName}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
+  },
+  setFontFamily(value) {
+    this.fontFamily = value;
+    this.editor?.chain().focus().setFontFamily(value).run();
+  },
+  setFontSize(value) {
+    this.fontSize = value;
+    // TipTap does not have a built‑in font‑size extension; you may need a custom one.
+  },
+  setTextColor(value) {
+    this.textColor = value;
+    this.editor?.chain().focus().setColor(value).run();
+  },
+  setHighlightColor(value) {
+    this.highlightColor = value;
+    this.editor?.chain().focus().setHighlight({ color: value }).run();
+  },
+  toggleBold() {
+    this.editor?.chain().focus().toggleBold().run();
+  },
+  toggleItalic() {
+    this.editor?.chain().focus().toggleItalic().run();
+  },
+  toggleUnderline() {
+    this.editor?.chain().focus().toggleUnderline().run();
+  },
+  alignLeft() {
+    this.editor?.chain().focus().setTextAlign('left').run();
+  },
+  alignCenter() {
+    this.editor?.chain().focus().setTextAlign('center').run();
+  },
+  alignRight() {
+    this.editor?.chain().focus().setTextAlign('right').run();
+  },
+  alignJustify() {
+    this.editor?.chain().focus().setTextAlign('justify').run();
+  },
+  addImage() {
+    if (this.fileInputRef) this.fileInputRef.click();
+  },
+  handleImageUpload(e) {
+    const file = e.target.files?.[0];
+    if (file && this.editor) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const imageUrl = event.target?.result;
+                this.editor.chain().focus().setImage({ src: imageUrl }).run();
+      };
+      reader.readAsDataURL(file);
+    }
+  },
+  insertTable() {
+    this.editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
+  },
+  addLink() {
+    const previousUrl = this.editor?.getAttributes('link').href;
+    const url = window.prompt('URL', previousUrl);
+    if (url === null) return;
+    if (url === '') {
+      this.editor?.chain().focus().extendMarkRange('link').unsetLink().run();
+      return;
+    }
+    this.editor?.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+  },
+  copy() {
+    document.execCommand('copy');
+  },
+  paste() {
+    document.execCommand('paste');
+  },
+  cut() {
+    document.execCommand('cut');
+  },
+};
+</script>
+
+<style>
+/* Original styles moved to global CSS */
+</style>

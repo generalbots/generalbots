@@ -199,7 +199,7 @@ impl AppConfig {
             access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
             secret_key: get_str("DRIVE_SECRET", "minioadmin"),
             use_ssl: get_bool("DRIVE_USE_SSL", false),
-            org_prefix: get_str("DRIVE_ORG_PREFIX", "botserver"),
+            org_prefix: get_str("DRIVE_ORG_PREFIX", "pragmatismo-"),
         };
 
         let email = EmailConfig {
@@ -235,7 +235,7 @@ impl AppConfig {
     }
 
     pub fn from_env() -> Self {
-        warn!("Loading configuration from environment variables");
+        info!("Loading configuration from environment variables");
 
         let stack_path =
             std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
@@ -275,7 +275,7 @@ impl AppConfig {
                 .parse()
                 .unwrap_or(false),
             org_prefix: std::env::var("DRIVE_ORG_PREFIX")
-                .unwrap_or_else(|_| "botserver".to_string()),
+                .unwrap_or_else(|_| "pragmatismo-".to_string()),
         };
 
         let email = EmailConfig {

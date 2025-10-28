@@ -3,13 +3,18 @@ use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
-use chrono::Utc;
 use log::{debug, error, info, warn};
+use chrono::Utc;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+use crate::kb::embeddings::generate_embeddings;
 use uuid::Uuid;
+ 
+use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
+use crate::context::langcache::{get_langcache_client};
+ 
 
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
@@ -293,15 +298,123 @@ impl BotOrchestrator {
             session_manager.get_conversation_history(session.id, session.user_id)?
         };
 
-        for (role, content) in history {
+        // Prompt compactor: keep only last 10 entries
+        let recent_history = if history.len() > 10 {
+            &history[history.len() - 10..]
+        } else {
+            &history[..]
+        };
+
+        for (role, content) in recent_history {
             prompt.push_str(&format!("{}: {}\n", role, content));
         }
         prompt.push_str(&format!("User: {}\nAssistant:", message.content));
 
-        self.state
-            .llm_provider
-            .generate(&prompt, &serde_json::Value::Null)
-            .await
+        // Determine which cache backend to use
+        let use_langcache = std::env::var("LLM_CACHE")
+            .unwrap_or_else(|_| "false".to_string())
+            .eq_ignore_ascii_case("true");
+
+        if use_langcache {
+            // Ensure LangCache collection exists
+            ensure_collection_exists(&self.state, "semantic_cache").await?;
+
+            // Get LangCache client
+            let langcache_client = get_langcache_client()?;
+
+            // Isolate the user question (ignore conversation history)
+            let isolated_question = message.content.trim().to_string();
+
+            // Generate embedding for the isolated question
+            let question_embeddings = generate_embeddings(vec![isolated_question.clone()]).await?;
+            let question_embedding = question_embeddings
+                .get(0)
+                .ok_or_else(|| "Failed to generate embedding for question")?
+                .clone();
+
+            // Search for similar question in LangCache
+            let search_results = langcache_client
+                .search("semantic_cache", question_embedding.clone(), 1)
+                .await?;
+
+            if let Some(result) = search_results.first() {
+                let payload = &result.payload;
+                if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
+                    return Ok(resp.to_string());
+                }
+            }
+
+            // Generate response via LLM provider using full prompt (including history)
+            let response = self.state
+                .llm_provider
+                .generate(&prompt, &serde_json::Value::Null)
+                .await?;
+
+            // Store isolated question and response in LangCache
+            let point = QdrantPoint {
+                id: uuid::Uuid::new_v4().to_string(),
+                vector: question_embedding,
+                payload: serde_json::json!({
+                    "question": isolated_question,
+                    "prompt": prompt,
+                    "response": response
+                }),
+            };
+            langcache_client
+                .upsert_points("semantic_cache", vec![point])
+                .await?;
+
+            Ok(response)
+        } else {
+            // Ensure semantic cache collection exists
+            ensure_collection_exists(&self.state, "semantic_cache").await?;
+
+            // Get Qdrant client
+            let qdrant_client = get_qdrant_client(&self.state)?;
+
+            // Generate embedding for the prompt
+            let embeddings = generate_embeddings(vec![prompt.clone()]).await?;
+            let embedding = embeddings
+                .get(0)
+                .ok_or_else(|| "Failed to generate embedding")?
+                .clone();
+
+            // Search for similar prompt in Qdrant
+            let search_results = qdrant_client
+                .search("semantic_cache", embedding.clone(), 1)
+                .await?;
+
+            if let Some(result) = search_results.first() {
+                if let Some(payload) = &result.payload {
+                    if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
+                        return Ok(resp.to_string());
+                    }
+                }
+            }
+
+            // Generate response via LLM provider
+            let response = self.state
+                .llm_provider
+                .generate(&prompt, &serde_json::Value::Null)
+                .await?;
+
+            // Store prompt and response in Qdrant
+            let point = QdrantPoint {
+                id: uuid::Uuid::new_v4().to_string(),
+                vector: embedding,
+                payload: serde_json::json!({
+                    "prompt": prompt,
+                    "response": response
+                }),
+            };
+            qdrant_client
+                .upsert_points("semantic_cache", vec![point])
+                .await?;
+
+            Ok(response)
+        }
+
+
     }
 
     pub async fn stream_response(
@@ -447,12 +560,12 @@ impl BotOrchestrator {
             }
 
             analysis_buffer.push_str(&chunk);
-            if analysis_buffer.contains("<|channel|>") && !in_analysis {
+            if analysis_buffer.contains("**") && !in_analysis {
                 in_analysis = true;
             }
 
             if in_analysis {
-                if analysis_buffer.ends_with("final<|message|>") {
+                if analysis_buffer.ends_with("final") {
                     debug!(
                         "Analysis section completed, buffer length: {}",
                         analysis_buffer.len()
@@ -707,11 +820,24 @@ async fn websocket_handler(
 ) -> Result<HttpResponse, actix_web::Error> {
     let query = web::Query::<HashMap<String, String>>::from_query(req.query_string()).unwrap();
     let session_id = query.get("session_id").cloned().unwrap();
-    let user_id = query
+    let user_id_string = query
         .get("user_id")
         .cloned()
         .unwrap_or_else(|| Uuid::new_v4().to_string())
         .replace("undefined", &Uuid::new_v4().to_string());
+
+    // Ensure user exists in database before proceeding
+    let user_id = {
+        let user_uuid = Uuid::parse_str(&user_id_string).unwrap_or_else(|_| Uuid::new_v4());
+        let mut sm = data.session_manager.lock().await;
+        match sm.get_or_create_anonymous_user(Some(user_uuid)) {
+            Ok(uid) => uid.to_string(),
+            Err(e) => {
+                error!("Failed to ensure user exists for WebSocket: {}", e);
+                user_id_string
+            }
+        }
+    };
 
     let (res, mut session, mut msg_stream) = actix_ws::handle(&req, stream)?;
     let (tx, mut rx) = mpsc::channel::<BotResponse>(100);
@@ -729,7 +855,31 @@ async fn websocket_handler(
         .add_connection(session_id.clone(), tx.clone())
         .await;
 
-    let bot_id = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+    // Get first available bot from database
+    let bot_id = {
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        let mut db_conn = data.conn.lock().unwrap();
+        match bots
+            .filter(is_active.eq(true))
+            .select(id)
+            .first::<Uuid>(&mut *db_conn)
+            .optional()
+        {
+            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+            Ok(None) => {
+                error!("No active bots found in database for WebSocket");
+                return Err(actix_web::error::ErrorServiceUnavailable(
+                    "No bots available",
+                ));
+            }
+            Err(e) => {
+                error!("Failed to query bots for WebSocket: {}", e);
+                return Err(actix_web::error::ErrorInternalServerError("Database error"));
+            }
+        }
+    };
 
     orchestrator
         .send_event(
@@ -802,8 +952,29 @@ async fn websocket_handler(
             match msg {
                 WsMessage::Text(text) => {
                     message_count += 1;
-                    let bot_id =
-                        std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+                    // Get first available bot from database
+                    let bot_id = {
+                        use crate::shared::models::schema::bots::dsl::*;
+                        use diesel::prelude::*;
+
+                        let mut db_conn = data.conn.lock().unwrap();
+                        match bots
+                            .filter(is_active.eq(true))
+                            .select(id)
+                            .first::<Uuid>(&mut *db_conn)
+                            .optional()
+                        {
+                            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+                            Ok(None) => {
+                                error!("No active bots found");
+                                continue;
+                            }
+                            Err(e) => {
+                                error!("Failed to query bots: {}", e);
+                                continue;
+                            }
+                        }
+                    };
 
                     // Parse the text as JSON to extract the content field
                     let json_value: serde_json::Value = match serde_json::from_str(&text) {
@@ -840,8 +1011,29 @@ async fn websocket_handler(
                 }
 
                 WsMessage::Close(_) => {
-                    let bot_id =
-                        std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+                    // Get first available bot from database
+                    let bot_id = {
+                        use crate::shared::models::schema::bots::dsl::*;
+                        use diesel::prelude::*;
+
+                        let mut db_conn = data.conn.lock().unwrap();
+                        match bots
+                            .filter(is_active.eq(true))
+                            .select(id)
+                            .first::<Uuid>(&mut *db_conn)
+                            .optional()
+                        {
+                            Ok(Some(first_bot_id)) => first_bot_id.to_string(),
+                            Ok(None) => {
+                                error!("No active bots found");
+                                "".to_string()
+                            }
+                            Err(e) => {
+                                error!("Failed to query bots: {}", e);
+                                "".to_string()
+                            }
+                        }
+                    };
                     orchestrator
                         .send_event(
                             &user_id_clone,

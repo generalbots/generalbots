@@ -1,0 +1,414 @@
+.nav-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    background: hsl(var(--background));
+    height: auto;
+    min-height: 40px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5);
+    border-bottom: 1px solid hsl(var(--border));
+}
+
+.nav-inner {
+    max-width: 100%;
+    margin: 0 auto;
+    padding: 0 16px;
+    height: 100%;
+}
+
+.nav-content {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    gap: 8px;
+}
+
+.auth-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.login-container,
+.theme-container {
+    position: relative;
+}
+
+.login-button,
+.theme-toggle {
+    background: hsl(var(--accent));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--accent-foreground));
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.login-button:hover,
+.theme-toggle:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px hsla(var(--primary), 0.5);
+}
+
+.login-menu,
+.theme-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    background: hsl(var(--popover));
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    min-width: 120px;
+    z-index: 100;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.menu-item,
+.theme-menu-item {
+    width: 100%;
+    padding: 8px 12px;
+    background: transparent;
+    border: none;
+    color: hsl(var(--foreground));
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: left;
+    border-radius: 4px;
+}
+
+.menu-item:hover,
+.theme-menu-item:hover {
+    background: hsl(var(--accent));
+    color: hsl(var(--accent-foreground));
+}
+
+.active-theme {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+}
+
+.scroll-btn {
+    background: hsl(var(--accent));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--accent-foreground));
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.scroll-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 10px hsla(var(--primary), 0.5);
+}
+
+.scroll-btn:active {
+    transform: scale(0.95);
+}
+
+.nav-scroll {
+    flex: 1;
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: 100%;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+    scroll-behavior: smooth;
+    position: relative;
+}
+
+.nav-scroll::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-items {
+    display: flex;
+    align-items: center;
+    height: 100%;
+    white-space: nowrap;
+    gap: 3px;
+    padding: 0 8px;
+}
+
+.nav-item {
+    position: relative;
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--border));
+    color: hsl(var(--foreground));
+    font-size: 13px;
+    font-weight: 500;
+    padding: 6px 14px;
+    cursor: pointer;
+    border-radius: 6px;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: all 0.3s ease;
+    overflow: hidden;
+    min-width: 70px;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(var(--neon-color-rgb, 0, 255, 255), 0.2), transparent);
+    transition: left 0.5s;
+}
+
+.nav-item:hover::before {
+    left: 100%;
+}
+
+.nav-item:hover {
+    border-color: var(--neon-color, hsl(var(--primary)));
+    color: var(--neon-color, hsl(var(--primary)));
+    box-shadow: 0 0 15px rgba(var(--neon-color-rgb, 0, 255, 255), 0.3);
+    text-shadow: 0 0 6px rgba(var(--neon-color-rgb, 0, 255, 255), 0.4);
+}
+
+.nav-item.active {
+    border-color: var(--neon-color, hsl(var(--primary)));
+    color: var(--neon-color, hsl(var(--primary)));
+    box-shadow: 0 0 20px rgba(var(--neon-color-rgb, 0, 255, 255), 0.4);
+    text-shadow: 0 0 8px rgba(var(--neon-color-rgb, 0, 255, 255), 0.6);
+}
+
+.nav-item.active:hover {
+    box-shadow: 0 0 25px rgba(var(--neon-color-rgb, 0, 255, 255), 0.6);
+}
+
+.neon-glow {
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: linear-gradient(45deg, transparent, rgba(var(--neon-color-rgb, 0, 255, 255), 0.3), transparent);
+    border-radius: 8px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+}
+
+.nav-item:hover .neon-glow,
+.nav-item.active .neon-glow {
+    opacity: 1;
+}
+
+.nav-spacer {
+    height: 40px;
+}
+
+/* Set CSS custom properties for each neon color */
+.nav-item[style*="--neon-color: #25D366"] {
+    --neon-color-rgb: 37, 211, 102;
+}
+
+.nav-item[style*="--neon-color: #6366F1"] {
+    --neon-color-rgb: 99, 102, 241;
+}
+
+.nav-item[style*="--neon-color: #FFD700"] {
+    --neon-color-rgb: 255, 215, 0;
+}
+
+.nav-item[style*="--neon-color: #10B981"] {
+    --neon-color-rgb: 16, 185, 129;
+}
+
+.nav-item[style*="--neon-color: #2563EB"] {
+    --neon-color-rgb: 37, 99, 235;
+}
+
+.nav-item[style*="--neon-color: #8B5CF6"] {
+    --neon-color-rgb: 139, 92, 246;
+}
+
+.nav-item[style*="--neon-color: #059669"] {
+    --neon-color-rgb: 5, 150, 105;
+}
+
+.nav-item[style*="--neon-color: #DC2626"] {
+    --neon-color-rgb: 220, 38, 38;
+}
+
+.nav-item[style*="--neon-color: #1DB954"] {
+    --neon-color-rgb: 29, 185, 84;
+}
+
+.nav-item[style*="--neon-color: #F59E0B"] {
+    --neon-color-rgb: 245, 158, 11;
+}
+
+.nav-item[style*="--neon-color: #6B7280"] {
+    --neon-color-rgb: 107, 114, 128;
+}
+
+@media (max-width: 768px) {
+    .nav-container {
+        height: 44px;
+    }
+
+    .nav-spacer {
+        height: 44px;
+    }
+
+    .nav-inner {
+        padding: 0 12px;
+    }
+
+    .nav-content {
+        gap: 6px;
+    }
+
+    .scroll-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 16px;
+    }
+
+    .theme-toggle,
+    .login-button {
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
+    }
+
+    .nav-item {
+        font-size: 13px;
+        padding: 8px 16px;
+        height: 36px;
+        margin: 0 2px;
+    }
+
+    .nav-items {
+        gap: 6px;
+        padding: 0 8px;
+    }
+
+    .auth-controls {
+        gap: 6px;
+    }
+}
+
+@media (max-width: 480px) {
+    .nav-container {
+        height: 48px;
+    }
+
+    .nav-spacer {
+        height: 48px;
+    }
+
+    .nav-inner {
+        padding: 0 8px;
+    }
+
+    .nav-content {
+        gap: 6px;
+    }
+
+    .scroll-btn {
+        width: 28px;
+        height: 28px;
+        font-size: 16px;
+    }
+
+    .theme-toggle,
+    .login-button {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+    }
+
+    .nav-item {
+        font-size: 12px;
+        padding: 10px 14px;
+        height: 34px;
+        margin: 0 2px;
+    }
+
+    .nav-items {
+        gap: 4px;
+        padding: 0 6px;
+    }
+
+    .auth-controls {
+        gap: 4px;
+    }
+}
+
+@media (max-width: 320px) {
+    .nav-inner {
+        padding: 0 6px;
+    }
+
+    .nav-content {
+        gap: 4px;
+    }
+
+    .nav-item {
+        padding: 8px 12px;
+        height: 32px;
+        font-size: 11px;
+    }
+
+    .nav-items {
+        gap: 3px;
+        padding: 0 4px;
+    }
+
+    .theme-toggle,
+    .login-button {
+        width: 26px;
+        height: 26px;
+        font-size: 11px;
+    }
+
+    .scroll-btn {
+        width: 26px;
+        height: 26px;
+        font-size: 14px;
+    }
+}
+
+/* Touch-friendly scrolling for mobile */
+@media (hover: none) and (pointer: coarse) {
+    .nav-scroll {
+        -webkit-overflow-scrolling: touch;
+        scroll-snap-type: x mandatory;
+    }
+
+    .nav-item {
+        scroll-snap-align: start;
+    }
+}

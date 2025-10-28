@@ -1,7 +1,11 @@
-target
+target*
 .env
 *.env
 work
 *.out
 bin
 botserver-stack
+*logfile*
+*-log*
+docs/book
+.rdb

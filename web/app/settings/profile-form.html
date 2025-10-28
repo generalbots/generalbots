@@ -1,0 +1,91 @@
+<!-- Riot.js component for the profile form (converted from app/settings/profile-form.tsx) -->
+<template>
+  <div class="space-y-4">
+    <controller name="username">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Username</label>
+        <input class="w-full p-2 border rounded {error ? 'border-red-500' : 'border-gray-300'}"
+               bind="{username}"
+               placeholder="Enter username" />
+        {error && <p class="text-red-500 text-xs mt-1">{error.message}</p>}
+        <p class="text-sm text-gray-500 mt-1">
+          This is your public display name. It can be your real name or a pseudonym. You can only change this once every 30 days.
+        </p>
+      </div>
+    </controller>
+
+    <controller name="email">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Email</label>
+        <input type="email"
+               class="w-full p-2 border rounded {error ? 'border-red-500' : 'border-gray-300'}"
+               bind="{email}"
+               placeholder="Enter email" />
+        {error && <p class="text-red-500 text-xs mt-1">{error.message}</p>}
+        <p class="text-sm text-gray-500 mt-1">
+          You can manage verified email addresses in your email settings.
+        </p>
+      </div>
+    </controller>
+
+    <controller name="bio">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Bio</label>
+        <textarea class="w-full p-2 border rounded {error ? 'border-red-500' : 'border-gray-300'}"
+                  bind="{bio}"
+                  rows="4"
+                  placeholder="Tell us a little bit about yourself"></textarea>
+        {error && <p class="text-red-500 text-xs mt-1">{error.message}</p>}
+        <p class="text-sm text-gray-500 mt-1">
+          You can @mention other users and organizations to link to them.
+        </p>
+      </div>
+    </controller>
+
+    <button class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+            @click="{handleSubmit(onSubmit)}">
+      Update profile
+    </button>
+  </div>
+</template>
+
+<script >
+import { useState } from 'riot';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import './style.css';
+
+export default {
+  // Reactive state
+  username: '',
+  email: '',
+  bio: '',
+  error: null,
+
+  // Validation schema
+  schema: z.object({
+    username: z.string().min(2, { message: "Username must be at least 2 characters." }).max(30, { message: "Username must not be longer than 30 characters." }),
+    email: z.string().email(),
+    bio: z.string().min(4).max(160)
+  }),
+
+  // Methods
+  handleSubmit(callback) {
+    const result = this.schema.safeParse({
+      username: this.username,
+      email: this.email,
+      bio: this.bio
+    });
+    if (result.success) {
+      callback(result.data);
+    } else {
+      this.error = result.error.errors[0];
+    }
+  },
+
+  onSubmit(data) {
+    console.log(JSON.stringify(data, null, 2));
+  }
+};
+</script>

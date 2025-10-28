@@ -1,4 +1,5 @@
 #![allow(dead_code)]
+#![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
@@ -18,6 +19,10 @@ mod context;
 mod drive_monitor;
 #[cfg(feature = "email")]
 mod email;
+
+#[cfg(feature = "desktop")]
+mod ui;
+
 mod file;
 mod kb;
 mod llm;
@@ -56,6 +61,7 @@ use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
 
+#[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -86,7 +92,9 @@ async fn main() -> std::io::Result<()> {
     }
 
     dotenv().ok();
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info")).init();
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+    .write_style(env_logger::WriteStyle::Always)
+    .init();
 
     info!("Starting BotServer bootstrap process");
 
@@ -152,15 +160,13 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to initialize LLM local server");
 
-    let cache_url = cfg
-        .config_path("cache")
-        .join("redis.conf")
-        .display()
-        .to_string();
+    let cache_url = std::env::var("CACHE_URL")
+        .or_else(|_| std::env::var("REDIS_URL"))
+        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
-            log::warn!("Failed to connect to Redis: {}", e);
+            log::warn!("Failed to connect to Redis: Redis URL did not parse- {}", e);
             None
         }
     };
@@ -184,7 +190,7 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-    info!("Initializing MinIO drive at {}", cfg.minio.server);
+    info!("Initializing drive at {}", cfg.minio.server);
     let drive = init_drive(&config.minio)
         .await
         .expect("Failed to initialize Drive");
@@ -272,7 +278,6 @@ async fn main() -> std::io::Result<()> {
         app = app
             .service(upload_file)
             .service(index)
-            .service(bot_index)
             .service(static_files)
             .service(websocket_handler)
             .service(auth_handler)
@@ -284,7 +289,8 @@ async fn main() -> std::io::Result<()> {
             .service(start_session)
             .service(get_session_history)
             .service(chat_completions_local)
-            .service(embeddings_local);
+            .service(embeddings_local)
+            .service(bot_index); // Must be last - catches all remaining paths
 
         #[cfg(feature = "email")]
         {

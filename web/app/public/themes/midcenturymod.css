@@ -1,0 +1,28 @@
+:root {
+  /* MidCenturyMod Theme */
+  --background: 40 30% 95%;
+  --foreground: 30 20% 20%;
+  --card: 40 30% 90%;
+  --card-foreground: 30 20% 20%;
+  --popover: 40 30% 95%;
+  --popover-foreground: 30 20% 20%;
+  --primary: 180 60% 40%;
+  --primary-foreground: 40 30% 95%;
+  --secondary: 40 30% 85%;
+  --secondary-foreground: 30 20% 20%;
+  --muted: 40 30% 80%;
+  --muted-foreground: 30 20% 40%;
+  --accent: 350 60% 40%;
+  --accent-foreground: 40 30% 95%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 40 30% 85%;
+  --input: 40 30% 85%;
+  --ring: 180 60% 40%;
+  --radius: 0.5rem;
+  --chart-1: 180 60% 40%;
+  --chart-2: 350 60% 40%;
+  --chart-3: 40 60% 40%;
+  --chart-4: 220 60% 40%;
+  --chart-5: 300 60% 40%;
+}
