@@ -193,6 +193,31 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
+    use opendal::services::S3;
+    use opendal::Operator;
+    use opendal::ErrorKind;
+
+    async fn ensure_bucket_exists(cfg: &AppConfig) {
+        let builder = S3::default()
+            .endpoint(&cfg.minio.server)
+            .access_key_id(&cfg.minio.access_key)
+            .secret_access_key(&cfg.minio.secret_key)
+            .bucket(&cfg.s3_bucket)
+            .root("/");
+        let op = Operator::new(builder).unwrap().finish();
+        match op.stat("/").await {
+            Ok(_) => info!("Bucket {} exists", cfg.s3_bucket),
+            Err(e) if e.kind() == ErrorKind::NotFound => {
+                if let Err(err) = op.create_dir("/").await {
+                    info!("Created bucket {}: {:?}", cfg.s3_bucket, err);
+                }
+            }
+            Err(e) => info!("Bucket check failed: {:?}", e),
+        }
+    }
+
+    ensure_bucket_exists(&config).await;
+
     let drive = init_drive(&config.minio)
         .await
         .expect("Failed to initialize Drive");
