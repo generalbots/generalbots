@@ -140,7 +140,7 @@ async fn main() -> std::io::Result<()> {
 
     
     let _ = bootstrap.start_all();
-    if let Err(e) = bootstrap.upload_templates_to_minio(&cfg).await {
+    if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
@@ -193,32 +193,8 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-    use opendal::services::S3;
-    use opendal::Operator;
-    use opendal::ErrorKind;
 
-    async fn ensure_bucket_exists(cfg: &AppConfig) {
-        let builder = S3::default()
-            .endpoint(&cfg.minio.server)
-            .access_key_id(&cfg.minio.access_key)
-            .secret_access_key(&cfg.minio.secret_key)
-            .bucket(&cfg.s3_bucket)
-            .root("/");
-        let op = Operator::new(builder).unwrap().finish();
-        match op.stat("/").await {
-            Ok(_) => info!("Bucket {} exists", cfg.s3_bucket),
-            Err(e) if e.kind() == ErrorKind::NotFound => {
-                if let Err(err) = op.create_dir("/").await {
-                    info!("Created bucket {}: {:?}", cfg.s3_bucket, err);
-                }
-            }
-            Err(e) => info!("Bucket check failed: {:?}", e),
-        }
-    }
-
-    ensure_bucket_exists(&config).await;
-
-    let drive = init_drive(&config.minio)
+    let drive = init_drive(&config.drive)
         .await
         .expect("Failed to initialize Drive");
 
@@ -279,7 +255,7 @@ async fn main() -> std::io::Result<()> {
 
     let drive_state = app_state.clone();
     let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-    let bucket_name = format!("{}{}.gbai", cfg.minio.org_prefix, bot_guid);
+    let bucket_name = format!("{}{}.gbai", cfg.drive.org_prefix, bot_guid);
     let drive_monitor = Arc::new(DriveMonitor::new(drive_state, bucket_name));
     let _drive_handle = drive_monitor.spawn();
 
