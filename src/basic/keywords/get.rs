@@ -28,7 +28,6 @@ pub fn get_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
             let state_for_blocking = Arc::clone(&state_clone);
             let url_for_blocking = url_str.clone();
 
-            // ---- fixed section: spawn on separate thread runtime ----
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_multi_thread()
@@ -76,7 +75,6 @@ pub fn get_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-/// Enhanced security check for path traversal and unsafe paths
 fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {
         return true;
@@ -160,11 +158,11 @@ pub async fn get_from_bucket(
         return Err("Invalid file path".into());
     }
 
-    let s3_client = match &state.s3_client {
-        Some(client) => client,
+    let s3_operator = match &state.s3_operator {
+        Some(operator) => operator,
         None => {
-            error!("S3 client not configured");
-            return Err("S3 client not configured".into());
+            error!("S3 operator not configured");
+            return Err("S3 operator not configured".into());
         }
     };
 
@@ -177,7 +175,7 @@ pub async fn get_from_bucket(
                 "App configuration missing".into()
             })?;
 
-        let org_prefix = &cfg.minio.org_prefix;
+        let org_prefix = &cfg.drive.org_prefix;
 
         if org_prefix.contains("..") || org_prefix.contains('/') || org_prefix.contains('\\') {
             error!("Invalid org_prefix: {}", org_prefix);
@@ -189,46 +187,22 @@ pub async fn get_from_bucket(
         bucket
     };
 
-    match s3_client.head_bucket().bucket(&bucket_name).send().await {
-        Ok(_) => debug!("Bucket exists: {}", bucket_name),
-        Err(e) => {
-            error!("Bucket inaccessible: {} - {}", bucket_name, e);
-            return Err(format!("Bucket inaccessible: {}", e).into());
-        }
-    }
-
-    let get_object_future = s3_client
-        .get_object()
-        .bucket(&bucket_name)
-        .key(file_path)
-        .send();
-
-    let response = match tokio::time::timeout(Duration::from_secs(30), get_object_future).await {
+    let response = match tokio::time::timeout(
+        Duration::from_secs(30), 
+        s3_operator.read(&format!("{}/{}", bucket_name, file_path))
+    ).await {
         Ok(Ok(response)) => response,
         Ok(Err(e)) => {
-            error!("S3 get_object failed: {}", e);
+            error!("S3 read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());
         }
         Err(_) => {
-            error!("S3 get_object timed out");
+            error!("S3 read timed out");
             return Err("S3 operation timed out".into());
         }
     };
 
-    let body_future = response.body.collect();
-    let data = match tokio::time::timeout(Duration::from_secs(30), body_future).await {
-        Ok(Ok(data)) => data,
-        Ok(Err(e)) => {
-            error!("Failed to collect S3 response body: {}", e);
-            return Err(format!("Failed to read S3 response: {}", e).into());
-        }
-        Err(_) => {
-            error!("Timeout collecting S3 response body");
-            return Err("Timeout reading S3 response body".into());
-        }
-    };
-
-    let bytes = data.into_bytes().to_vec();
+    let bytes = response.to_vec();
     debug!(
         "Retrieved {} bytes from S3 for key: {}",
         bytes.len(),
