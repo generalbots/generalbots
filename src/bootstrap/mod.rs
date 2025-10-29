@@ -5,7 +5,7 @@ use diesel::connection::SimpleConnection;
 use diesel::RunQueryDsl;
 use diesel::{Connection, QueryableByName};
 use dotenvy::dotenv;
-use log::{error, info, trace};
+use log::{debug, error, info, trace};
 use opendal::Operator;
 use rand::distr::Alphanumeric;
 use rand::Rng;
@@ -293,17 +293,43 @@ impl BootstrapManager {
         }
 
         self.s3_operator = Self::create_s3_operator(&config);
+        let default_bucket_path = Path::new("templates/default.gbai/default.gbot/config.csv");
+        if default_bucket_path.exists() {
+            info!("Found initial config.csv, uploading to default.gbai/default.gbot");
+            let operator = &self.s3_operator;
+            futures::executor::block_on(async {
+                let content = std::fs::read(default_bucket_path).expect("Failed to read config.csv");
+                operator.write("default.gbai/default.gbot/config.csv", content).await
+            })?;
+            debug!("Initial config.csv uploaded successfully");
+        }
         Ok(config)
     }
-
     fn create_s3_operator(config: &AppConfig) -> Operator {
         use opendal::Scheme;
         use std::collections::HashMap;
+
+        let mut endpoint = config.drive.server.clone();
+        if !endpoint.ends_with('/') {
+            endpoint.push('/');
+        }
+
         let mut map = HashMap::new();
-        map.insert("endpoint".to_string(), config.drive.server.clone());
+        map.insert("endpoint".to_string(), endpoint);
         map.insert("access_key_id".to_string(), config.drive.access_key.clone());
-        map.insert("secret_access_key".to_string(), config.drive.secret_key.clone());
+        map.insert(
+            "secret_access_key".to_string(),
+            config.drive.secret_key.clone(),
+        );
+        map.insert(
+            "bucket".to_string(),
+            format!("default.gbai"),
+        );
+        map.insert("region".to_string(), "auto".to_string());
+        map.insert("force_path_style".to_string(), "true".to_string());
+
         trace!("Creating S3 operator with endpoint {}", config.drive.server);
+
         Operator::via_iter(Scheme::S3, map).expect("Failed to initialize S3 operator")
     }
 
@@ -357,22 +383,6 @@ impl BootstrapManager {
         }
         let operator = &self.s3_operator;
         for entry in std::fs::read_dir(templates_dir)? {
-            let bot_name = templates_dir
-                .read_dir()?
-                .filter_map(|e| e.ok())
-                .find(|e| {
-                    e.path().is_dir()
-                        && e.path()
-                            .file_name()
-                            .unwrap()
-                            .to_string_lossy()
-                            .ends_with(".gbai")
-                })
-                .map(|e| {
-                    let name = e.path().file_name().unwrap().to_string_lossy().to_string();
-                    name
-                })
-                .unwrap_or_else(|| "default".to_string());
             let entry = entry?;
             let path = entry.path();
             if path.is_dir()
@@ -383,16 +393,20 @@ impl BootstrapManager {
                     .ends_with(".gbai")
             {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
-                let bucket = bot_name.clone();
+                let bucket = bot_name.trim_start_matches('/').to_string();
                 info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
-                self.upload_directory_recursive(&operator, &path, &bucket, &bot_name)
+                if operator.stat(&bucket).await.is_err() {
+                    info!("Bucket {} not found, creating it", bucket);
+                    operator.create_dir("/").await?;
+                    debug!("Bucket {} created successfully", bucket);
+                }
+                self.upload_directory_recursive(&operator, &path, &bucket)
                     .await?;
                 info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
         }
         Ok(())
     }
-
 
     fn create_bots_from_templates(&self, conn: &mut diesel::PgConnection) -> Result<()> {
         use crate::shared::models::schema::bots;
@@ -450,20 +464,15 @@ impl BootstrapManager {
         &'a self,
         client: &'a Operator,
         local_path: &'a Path,
-        bucket: &'a str,
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
-            trace!("Checking bucket existence: {}", bucket);
-            if client.stat(bucket).await.is_err() {
-                info!("Bucket {} not found, creating it", bucket);
-                trace!("Creating bucket: {}", bucket);
-                client.create_dir(bucket).await?;
-                trace!("Bucket {} created successfully", bucket);
+            let normalized_path = if !local_path.to_string_lossy().ends_with('/') {
+                format!("{}/", local_path.to_string_lossy())
             } else {
-                trace!("Bucket {} already exists", bucket);
-            }
-            trace!("Starting upload from local path: {}", local_path.display());
+                local_path.to_string_lossy().to_string()
+            };
+            trace!("Starting upload from local path: {}", normalized_path);
             for entry in std::fs::read_dir(local_path)? {
                 let entry = entry?;
                 let path = entry.path();
@@ -471,32 +480,17 @@ impl BootstrapManager {
                 let key = if prefix.is_empty() {
                     file_name.clone()
                 } else {
-                    format!("{}/{}", prefix, file_name)
+                    format!("{}/{}", prefix.trim_end_matches('/'), file_name)
                 };
 
                 if path.is_file() {
-                    info!(
-                        "Uploading file: {} to bucket: {} with key: {}",
-                        path.display(),
-                        bucket,
-                        key
-                    );
+                    info!("Uploading file: {} with key: {}", path.display(), key);
                     let content = std::fs::read(&path)?;
-                    trace!(
-                        "Writing file {} to bucket {} with key {}",
-                        path.display(),
-                        bucket,
-                        key
-                    );
+                    trace!("Writing file {} with key {}", path.display(), key);
                     client.write(&key, content).await?;
-                    trace!(
-                        "Successfully wrote file {} to bucket {}",
-                        path.display(),
-                        bucket
-                    );
+                    trace!("Successfully wrote file {}", path.display());
                 } else if path.is_dir() {
-                    self.upload_directory_recursive(client, &path, bucket, &key)
-                        .await?;
+                    self.upload_directory_recursive(client, &path, &key).await?;
                 }
             }
             Ok(())
