@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
+
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
@@ -19,10 +20,8 @@ mod context;
 mod drive_monitor;
 #[cfg(feature = "email")]
 mod email;
-
 #[cfg(feature = "desktop")]
 mod ui;
-
 mod file;
 mod kb;
 mod llm;
@@ -65,7 +64,6 @@ use crate::whatsapp::WhatsAppAdapter;
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
-
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
@@ -93,10 +91,8 @@ async fn main() -> std::io::Result<()> {
 
     dotenv().ok();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-    .write_style(env_logger::WriteStyle::Always)
-    .init();
-
-    info!("Starting BotServer bootstrap process");
+        .write_style(env_logger::WriteStyle::Always)
+        .init();
 
     let install_mode = if args.contains(&"--container".to_string()) {
         InstallMode::Container
@@ -111,38 +107,48 @@ async fn main() -> std::io::Result<()> {
     };
 
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
-    let cfg = match bootstrap.bootstrap() {
-        Ok(config) => {
-            info!("Bootstrap completed successfully, configuration loaded from database");
-            config
+
+    // Prevent double bootstrap: skip if environment already initialized
+    let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
+    let cfg = if env_path.exists() {
+        info!("Environment already initialized, skipping bootstrap");
+        match diesel::Connection::establish(
+            &std::env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+        ) {
+            Ok(mut conn) => AppConfig::from_database(&mut conn),
+            Err(_) => AppConfig::from_env(),
         }
-        Err(e) => {
-            log::error!("Bootstrap failed: {}", e);
-            info!("Attempting to load configuration from database");
-            match diesel::Connection::establish(
-                &std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
-            ) {
-                Ok(mut conn) => AppConfig::from_database(&mut conn),
-                Err(_) => {
-                    info!("Database not available, using environment variables as fallback");
-                    AppConfig::from_env()
+    } else {
+        match bootstrap.bootstrap() {
+            Ok(config) => {
+                info!("Bootstrap completed successfully");
+                config
+            }
+            Err(e) => {
+                log::error!("Bootstrap failed: {}", e);
+                match diesel::Connection::establish(
+                    &std::env::var("DATABASE_URL")
+                        .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+                ) {
+                    Ok(mut conn) => AppConfig::from_database(&mut conn),
+                    Err(_) => AppConfig::from_env(),
                 }
             }
         }
     };
 
+    
     let _ = bootstrap.start_all();
-
-    // Upload template bots to MinIO on first startup
-    if let Err(e) = bootstrap.upload_templates_to_minio(&cfg).await {
+    if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
-    let config = std::sync::Arc::new(cfg.clone());
-
-    info!("Establishing database connection to {}", cfg.database_url());
-    let db_pool = match diesel::Connection::establish(&cfg.database_url()) {
+    // Refresh configuration from environment to ensure latest DATABASE_URL and credentials
+    dotenv().ok();
+    let refreshed_cfg = AppConfig::from_env();
+    let config = std::sync::Arc::new(refreshed_cfg.clone());
+    let db_pool = match diesel::Connection::establish(&refreshed_cfg.database_url()) {
         Ok(conn) => Arc::new(Mutex::new(conn)),
         Err(e) => {
             log::error!("Failed to connect to main database: {}", e);
@@ -154,8 +160,6 @@ async fn main() -> std::io::Result<()> {
     };
 
     let db_custom_pool = db_pool.clone();
-
-    info!("Initializing LLM server at {}", cfg.ai.endpoint);
     ensure_llama_servers_running()
         .await
         .expect("Failed to initialize LLM local server");
@@ -176,7 +180,6 @@ async fn main() -> std::io::Result<()> {
         "empty".to_string(),
         Some(cfg.ai.endpoint.clone()),
     ));
-
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new(
         "https://livekit.example.com".to_string(),
@@ -190,8 +193,8 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-    info!("Initializing drive at {}", cfg.minio.server);
-    let drive = init_drive(&config.minio)
+
+    let drive = init_drive(&config.drive)
         .await
         .expect("Failed to initialize Drive");
 
@@ -199,13 +202,14 @@ async fn main() -> std::io::Result<()> {
         diesel::Connection::establish(&cfg.database_url()).unwrap(),
         redis_client.clone(),
     )));
+
     let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
         diesel::Connection::establish(&cfg.database_url()).unwrap(),
         redis_client.clone(),
     )));
 
     let app_state = Arc::new(AppState {
-        s3_client: Some(drive.clone()),
+        s3_operator: Some(drive.clone()),
         config: Some(cfg.clone()),
         conn: db_pool.clone(),
         custom_conn: db_custom_pool.clone(),
@@ -229,23 +233,17 @@ async fn main() -> std::io::Result<()> {
         tool_api: tool_api.clone(),
     });
 
-    info!(
-        "Starting HTTP server on {}:{}",
-        config.server.host, config.server.port
-    );
-
+    info!("Starting HTTP server on {}:{}", config.server.host, config.server.port);
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
 
-    // Spawn AutomationService in a LocalSet on a separate thread
     let automation_state = app_state.clone();
     std::thread::spawn(move || {
         let rt = tokio::runtime::Builder::new_current_thread()
             .enable_all()
             .build()
             .expect("Failed to create runtime for automation");
-
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
             let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
@@ -257,7 +255,7 @@ async fn main() -> std::io::Result<()> {
 
     let drive_state = app_state.clone();
     let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-    let bucket_name = format!("{}{}.gbai", cfg.minio.org_prefix, bot_guid);
+    let bucket_name = format!("{}{}.gbai", cfg.drive.org_prefix, bot_guid);
     let drive_monitor = Arc::new(DriveMonitor::new(drive_state, bucket_name));
     let _drive_handle = drive_monitor.spawn();
 
@@ -267,8 +265,8 @@ async fn main() -> std::io::Result<()> {
             .allow_any_method()
             .allow_any_header()
             .max_age(3600);
-        let app_state_clone = app_state.clone();
 
+        let app_state_clone = app_state.clone();
         let mut app = App::new()
             .wrap(cors)
             .wrap(Logger::default())

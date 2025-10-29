@@ -1,16 +1,17 @@
-REM start.bas - Runs automatically when user connects via web
-REM This is the entry point for each session
+LET resume1 = GET_BOT_MEMORY("general")
+LET resume2 = GET_BOT_MEMORY("auxiliom")
+LET resume3 = GET_BOT_MEMORY("toolbix")
 
-LET resume = GET_BOT_MEMORY("resume")
+SET_CONTEXT "general", resume1
+SET_CONTEXT "auxiliom", resume2
+SET_CONTEXT "toolbix", resume3
 
-IF resume <> "" THEN
-    TALK resume
-ELSE
-    TALK "Welcome! I'm loading the latest information..."
-END IF
 
-REM Add knowledge base for weekly announcements
-ADD_KB "weekly"
+ADD_SUGGESTION "general", "Show me the weekly announcements"
+ADD_SUGGESTION "auxiliom", "Will Auxiliom help me with what?"
+ADD_SUGGESTION "auxiliom", "What does Auxiliom do?"
+ADD_SUGGESTION "toolbix", "Show me Toolbix features"
+ADD_SUGGESTION "toolbix", "How can Toolbix help my business?"
+
 
 TALK "You can ask me about any of the announcements or circulars."
-TALK "If you'd like to login or signup, just type 'auth'."

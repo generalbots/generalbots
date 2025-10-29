@@ -63,51 +63,85 @@ impl PackageManager {
     fn register_drive(&mut self) {
         let drive_password = self.generate_secure_password(16);
         let drive_user = "gbdriveuser".to_string();
-        let farm_password = std::env::var("FARM_PASSWORD")
-            .unwrap_or_else(|_| self.generate_secure_password(32));
+        let farm_password =
+            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
         let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
 
-        self.components.insert("drive".to_string(), ComponentConfig {
-            name: "drive".to_string(),
-            required: true,
-            ports: vec![9000, 9001],
-            dependencies: vec![],
-            linux_packages: vec![],
-            macos_packages: vec![],
-            windows_packages: vec![],
-            download_url: Some("https://dl.min.io/server/minio/release/linux-amd64/minio".to_string()),
-            binary_name: Some("minio".to_string()),
-            pre_install_cmds_linux: vec![],
-            post_install_cmds_linux: vec![
-                "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
-                "chmod +x {{BIN_PATH}}/mc".to_string(),
-                format!("{{{{BIN_PATH}}}}/mc alias set mc http://localhost:9000 gbdriveuser {}", drive_password),
-                "{{BIN_PATH}}/mc mb mc/default.gbai".to_string(),
-                format!("{{{{BIN_PATH}}}}/mc admin user add mc gbdriveuser {}", drive_password),
-                "{{BIN_PATH}}/mc admin policy attach mc readwrite --user=gbdriveuser".to_string()
-            ],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![
-                "wget https://dl.min.io/client/mc/release/darwin-amd64/mc -O {{BIN_PATH}}/mc".to_string(),
-                "chmod +x {{BIN_PATH}}/mc".to_string()
-            ],
-            pre_install_cmds_windows: vec![],
-            post_install_cmds_windows: vec![
-                "curl https://dl.min.io/client/mc/release/windows-amd64/mc.exe -O {{BIN_PATH}}\\mc.exe".to_string(),
-                "cmd /c {{BIN_PATH}}\\mc.exe alias set mc http://localhost:9000 gbdriveuser {}".to_string(),
-                "cmd /c {{BIN_PATH}}\\mc.exe mb mc\\default.gbai".to_string(),
-                "cmd /c {{BIN_PATH}}\\mc.exe admin user add mc gbdriveuser {}".to_string(),
-                "cmd /c {{BIN_PATH}}\\mc.exe admin policy attach mc readwrite --user=gbdriveuser".to_string()
-            ],
-            env_vars: HashMap::from([
-                ("MINIO_ROOT_USER".to_string(), "gbdriveuser".to_string()),
-                ("MINIO_ROOT_PASSWORD".to_string(), drive_password)
-            ]),
-            exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-        });
+        let env_path = self.base_path.join(".env");
+        let env_content = format!(
+            "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
+            drive_user, drive_password, farm_password, drive_user, drive_password
+        );
+        let _ = std::fs::write(&env_path, env_content);
 
-        self.update_drive_credentials_in_database(&encrypted_drive_password)
-            .ok();
+        self.components.insert(
+            "drive".to_string(),
+            ComponentConfig {
+                name: "drive".to_string(),
+                required: true,
+                ports: vec![9000, 9001],
+                dependencies: vec![],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some(
+                    "https://dl.min.io/server/minio/release/linux-amd64/minio".to_string(),
+                ),
+                binary_name: Some("minio".to_string()),
+                pre_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    "wget https://dl.min.io/client/mc/release/linux-amd64/mc -O {{BIN_PATH}}/mc"
+                        .to_string(),
+                    "chmod +x {{BIN_PATH}}/mc".to_string(),
+                ],
+                pre_install_cmds_macos: vec![],
+                post_install_cmds_macos: vec![
+                    "wget https://dl.min.io/client/mc/release/darwin-amd64/mc -O {{BIN_PATH}}/mc"
+                        .to_string(),
+                    "chmod +x {{BIN_PATH}}/mc".to_string(),
+                ],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: HashMap::from([
+                    ("DRIVE_ROOT_USER".to_string(), drive_user.clone()),
+                    ("DRIVE_ROOT_PASSWORD".to_string(), drive_password.clone()),
+                ]),
+                data_download_list: Vec::new(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 & sleep 5 && {{BIN_PATH}}/mc alias set drive http://localhost:9000 minioadmin minioadmin && {{BIN_PATH}}/mc admin user add drive $DRIVE_ROOT_USER $DRIVE_ROOT_PASSWORD && {{BIN_PATH}}/mc admin policy attach drive readwrite --user $DRIVE_ROOT_USER && {{BIN_PATH}}/mc mb drive/default.gbai || true".to_string(),
+            },
+        );
+
+        // Delay updating drive credentials until database is created
+        let db_env_path = self.base_path.join(".env");
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+        let db_line = format!("DATABASE_URL={}\n", database_url);
+        let _ = std::fs::write(&db_env_path, db_line);
+
+        // Append drive credentials after database creation
+        let env_path = self.base_path.join(".env");
+        let drive_lines = format!(
+            "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
+            drive_user, drive_password, farm_password, drive_user, drive_password
+        );
+        let _ = std::fs::OpenOptions::new()
+            .append(true)
+            .open(&env_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, drive_lines.as_bytes()));
+
+        // Update drive credentials in database only after database is ready
+        if std::process::Command::new("pg_isready")
+            .arg("-h")
+            .arg("localhost")
+            .arg("-p")
+            .arg("5432")
+            .output()
+            .map(|o| o.status.success())
+            .unwrap_or(false)
+        {
+            self.update_drive_credentials_in_database(&encrypted_drive_password)
+                .ok();
+        }
     }
 
     fn update_drive_credentials_in_database(&self, encrypted_drive_password: &str) -> Result<()> {
@@ -191,34 +225,33 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
-        self.components.insert("cache".to_string(), ComponentConfig {
-            name: "cache".to_string(),
-            required: true,
-            ports: vec![6379],
-            dependencies: vec![],
-            linux_packages: vec!["curl".to_string(), "gnupg".to_string(), "lsb-release".to_string()],
-            macos_packages: vec!["redis".to_string()],
-            windows_packages: vec![],
-            download_url: None,
-            binary_name: Some("valkey-server".to_string()),
-            pre_install_cmds_linux: vec![
-                "sudo bash -c 'if [ ! -f /usr/share/keyrings/valkey.gpg ]; then curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/valkey.gpg; fi'".to_string(),
-                "sudo bash -c 'if [ ! -f /etc/apt/sources.list.d/valkey.list ]; then echo \"deb [signed-by=/usr/share/keyrings/valkey.gpg] https://packages.redis.io/deb $(lsb_release -cs) main\" | tee /etc/apt/sources.list.d/valkey.list; fi'".to_string(),
-                "sudo apt-get update && sudo apt-get install -y valkey".to_string()
-            ],
-            post_install_cmds_linux: vec![],
-            pre_install_cmds_macos: vec![],
-            post_install_cmds_macos: vec![],
-            pre_install_cmds_windows: vec![
-
-                "powershell -Command \"if (!(Test-Path -Path 'C:\\ProgramData\\valkey\\keyrings\\valkey.gpg')) { Invoke-WebRequest -Uri 'https://packages.redis.io/gpg' -OutFile C:\\ProgramData\\valkey\\keyrings\\valkey.gpg }\"".to_string(),
-                "powershell -Command \"if (!(Test-Path -Path 'C:\\ProgramData\\valkey\\sources.list')) { Add-Content -Path 'C:\\ProgramData\\valkey\\sources.list' -Value 'deb [signed-by=C:\\ProgramData\\valkey\\keyrings\\valkey.gpg] https://packages.redis.io/windows valkey main' }\"".to_string(),
-                "powershell -Command \"winget install -e --id Valkey valkey-server\"".to_string()
-            ],
-            post_install_cmds_windows: vec![],
-            env_vars: HashMap::new(),
-            exec_cmd: "valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
-        });
+        self.components.insert(
+            "cache".to_string(),
+            ComponentConfig {
+                name: "cache".to_string(),
+                required: true,
+                ports: vec![6379],
+                dependencies: vec![],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some(
+                    "https://download.valkey.io/releases/valkey-9.0.0-jammy-x86_64.tar.gz".to_string(),
+                ),
+                binary_name: Some("valkey-server".to_string()),
+                pre_install_cmds_linux: vec![],
+post_install_cmds_linux: vec![
+    "chmod +x {{BIN_PATH}}/bin/valkey-server".to_string(),
+],
+                pre_install_cmds_macos: vec![],
+                post_install_cmds_macos: vec![],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: HashMap::new(),
+                data_download_list: Vec::new(),
+                exec_cmd: "{{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
+            },
+        );
     }
 
     fn register_llm(&mut self) {
@@ -746,7 +779,10 @@ impl PackageManager {
 
                 if let Ok(output) = check_output {
                     if output.status.success() {
-                        trace!("Component {} is already running, skipping start", component.name);
+                        trace!(
+                            "Component {} is already running, skipping start",
+                            component.name
+                        );
                         return Ok(std::process::Command::new("sh")
                             .arg("-c")
                             .arg("echo 'Already running'")
@@ -762,7 +798,11 @@ impl PackageManager {
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            trace!("Starting component {} with command: {}", component.name, rendered_cmd);
+            trace!(
+                "Starting component {} with command: {}",
+                component.name,
+                rendered_cmd
+            );
 
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
@@ -775,7 +815,10 @@ impl PackageManager {
                 Err(e) => {
                     let err_msg = e.to_string();
                     if err_msg.contains("already running") || component.name == "tables" {
-                        trace!("Component {} may already be running, continuing anyway", component.name);
+                        trace!(
+                            "Component {} may already be running, continuing anyway",
+                            component.name
+                        );
                         Ok(std::process::Command::new("sh")
                             .arg("-c")
                             .arg("echo 'Already running'")

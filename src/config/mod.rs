@@ -8,14 +8,13 @@ use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
 pub struct AppConfig {
-    pub minio: DriveConfig,
+    pub drive: DriveConfig,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub database_custom: DatabaseConfig,
     pub email: EmailConfig,
     pub ai: AIConfig,
     pub site_path: String,
-    pub s3_bucket: String,
     pub stack_path: PathBuf,
     pub db_conn: Option<Arc<Mutex<PgConnection>>>,
 }
@@ -218,7 +217,7 @@ impl AppConfig {
         };
 
         AppConfig {
-            minio,
+            drive: minio,
             server: ServerConfig {
                 host: get_str("SERVER_HOST", "127.0.0.1"),
                 port: get_u16("SERVER_PORT", 8080),
@@ -227,7 +226,6 @@ impl AppConfig {
             database_custom,
             email,
             ai,
-            s3_bucket: get_str("DRIVE_BUCKET", "default"),
             site_path: get_str("SITES_ROOT", "./botserver-stack/sites"),
             stack_path,
             db_conn: None,
@@ -300,7 +298,7 @@ impl AppConfig {
         };
 
         AppConfig {
-            minio,
+            drive: minio,
             server: ServerConfig {
                 host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
                 port: std::env::var("SERVER_PORT")
@@ -312,7 +310,6 @@ impl AppConfig {
             database_custom,
             email,
             ai,
-            s3_bucket: std::env::var("DRIVE_BUCKET").unwrap_or_else(|_| "default".to_string()),
             site_path: std::env::var("SITES_ROOT")
                 .unwrap_or_else(|_| "./botserver-stack/sites".to_string()),
             stack_path: PathBuf::from(stack_path),
@@ -458,12 +455,14 @@ impl ConfigManager {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
 
-                diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES (gen_random_uuid()::text, $1, $2, $3, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
-                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                    .bind::<diesel::sql_types::Text, _>(key)
-                    .bind::<diesel::sql_types::Text, _>(value)
-                    .execute(&mut *conn)
-                    .map_err(|e| format!("Failed to update config: {}", e))?;
+let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
+    .bind::<diesel::sql_types::Uuid, _>(new_id)
+    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+    .bind::<diesel::sql_types::Text, _>(key)
+    .bind::<diesel::sql_types::Text, _>(value)
+    .execute(&mut *conn)
+    .map_err(|e| format!("Failed to update config: {}", e))?;
 
                 updated += 1;
             }

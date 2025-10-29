@@ -1,8 +1,8 @@
 name,value
 
-server_host=0.0.0.0
-server_port=8080
-sites_root=/tmp
+server_host,0.0.0.0
+server_port,8080
+sites_root,/tmp
 
 llm-key,gsk_
 llm-model,openai/gpt-oss-20b

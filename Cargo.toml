@@ -37,74 +37,66 @@ license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
-desktop = ["tauri", "tauri-plugin-opener", "tauri-plugin-dialog"]
 default = [ "vectordb"]
 vectordb = ["qdrant-client"]
 email = ["imap"]
 web_automation = ["headless_chrome"]
-webapp = ["tauri", "tauri-plugin-opener", "tauri-plugin-dialog"]
+desktop = []
 
 [dependencies]
 actix-cors = "0.7"
-aws-config = "0.57.0"
-csv = "1.3"
 actix-multipart = "0.7"
-imap = { version = "3.0.0-alpha.15", optional = true }
 actix-web = "4.9"
 actix-ws = "0.3"
+aes-gcm = "0.10"
 anyhow = "1.0"
+argon2 = "0.5"
 async-stream = "0.3"
 async-trait = "0.1"
-aes-gcm = "0.10"
-argon2 = "0.5"
 base64 = "0.22"
 bytes = "1.8"
 chrono = { version = "0.4", features = ["serde"] }
+csv = "1.3"
 diesel = { version = "2.1", features = ["postgres", "uuid", "chrono", "serde_json"] }
 dotenvy = "0.15"
 downloader = "0.2"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
+headless_chrome = { version = "1.0.18", optional = true }
+imap = { version = "3.0.0-alpha.15", optional = true }
+include_dir = "0.7"
+indicatif = "0.18.0"
 lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"] }
 livekit = "0.7"
-include_dir = "0.7"
 log = "0.4"
 mailparse = "0.15"
 native-tls = "0.2"
 num-format = "0.4"
+opendal = { version = "0.54.1", features = ["services-s3"] }
+pdf-extract = "0.10.0"
 qdrant-client = { version = "1.12", optional = true }
-rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
+rand = "0.9.2"
 redis = { version = "0.27", features = ["tokio-comp"] }
 regex = "1.11"
 reqwest = { version = "0.12", features = ["json", "stream"] }
+rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
+scraper = "0.20" 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+sha2 = "0.10.9"
 smartstring = "1.0"
 tempfile = "3"
+time = "0.3.44"
 tokio = { version = "1.41", features = ["full"] }
 tokio-stream = "0.1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
+ureq = "3.1.2"
 urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4"] }
 zip = "2.2"
-time = "0.3.44"
-aws-sdk-s3 = { version = "1.108.0", features = ["behavior-version-latest"] }
-headless_chrome = { version = "1.0.18", optional = true }
-rand = "0.9.2"
-pdf-extract = "0.10.0"
-scraper = "0.20"
-sha2 = "0.10.9"
-ureq = "3.1.2"
-indicatif = "0.18.0"
 
-tauri = { version = "2", features = ["unstable"], optional = true }
-tauri-plugin-opener = { version = "2", optional = true }
-tauri-plugin-dialog = { version = "2", optional = true }
-
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
 
 [profile.release]
 lto = true  # Enables Link-Time Optimization
