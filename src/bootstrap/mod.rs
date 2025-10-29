@@ -395,14 +395,27 @@ impl BootstrapManager {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let bucket = bot_name.trim_start_matches('/').to_string();
                 info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
-                if operator.stat(&bucket).await.is_err() {
-                    info!("Bucket {} not found, creating it", bucket);
-                    operator.create_dir("/").await?;
-                    debug!("Bucket {} created successfully", bucket);
-                }
-                self.upload_directory_recursive(&operator, &path, &bucket)
-                    .await?;
-                info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
+if operator.stat(&bucket).await.is_err() {
+    info!("Bucket {} not found, creating it", bucket);
+    let bucket_path = if bucket.ends_with('/') { bucket.clone() } else { format!("{}/", bucket) };
+match operator.create_dir(&bucket_path).await {
+        Ok(_) => {
+            debug!("Bucket {} created successfully", bucket);
+        }
+        Err(e) => {
+            let err_msg = format!("{}", e);
+            if err_msg.contains("BucketAlreadyOwnedByYou") {
+                log::warn!("Bucket {} already exists, reusing default.gbai", bucket);
+                self.upload_directory_recursive(&operator, &Path::new("templates/default.gbai"), "default.gbai").await?;
+                continue;
+            } else {
+                return Err(e.into());
+            }
+        }
+    }
+}
+self.upload_directory_recursive(&operator, &path, &bucket).await?;
+info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
         }
         Ok(())
