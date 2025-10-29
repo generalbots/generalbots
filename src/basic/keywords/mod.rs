@@ -19,6 +19,7 @@ pub mod set;
 pub mod set_kb;
 pub mod set_schedule;
 pub mod wait;
+pub mod add_suggestion;
 
 #[cfg(feature = "email")]
 pub mod create_draft_keyword;
