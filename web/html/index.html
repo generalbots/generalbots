@@ -878,6 +878,48 @@
                     />
                     <button id="sendBtn">Enviar</button>
                 </div>
+                <div id="suggestions-container" style="text-align:center; margin-top:10px;"></div>
+                <script>
+                  async function loadSuggestions() {
+                    try {
+                      const res = await fetch('/api/suggestions');
+                      const suggestions = await res.json();
+                      const container = document.getElementById('suggestions-container');
+                      container.innerHTML = '';
+                      suggestions.forEach(s => {
+                        const btn = document.createElement('button');
+                        btn.textContent = s.text;
+                        btn.className = 'suggestion-button';
+                        btn.style.margin = '5px';
+                        btn.style.padding = '8px 12px';
+                        btn.style.backgroundColor = '#ffd700';
+                        btn.style.color = '#0a0e27';
+                        btn.style.border = 'none';
+                        btn.style.borderRadius = '6px';
+                        btn.style.cursor = 'pointer';
+                        btn.onclick = () => setContext(s.context);
+                        container.appendChild(btn);
+                      });
+                    } catch (err) {
+                      console.error('Failed to load suggestions:', err);
+                    }
+                  }
+
+                  async function setContext(context) {
+                    try {
+                      await fetch('/api/set_context', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ context })
+                      });
+                      alert(`Contexto alterado para: ${context}`);
+                    } catch (err) {
+                      console.error('Failed to set context:', err);
+                    }
+                  }
+
+                  window.addEventListener('load', loadSuggestions);
+                </script>
             </footer>
         </div>
 
