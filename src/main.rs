@@ -107,25 +107,38 @@ async fn main() -> std::io::Result<()> {
     };
 
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
-    let cfg = match bootstrap.bootstrap() {
-        Ok(config) => {
-            info!("Bootstrap completed successfully");
-            config
+
+    // Prevent double bootstrap: skip if environment already initialized
+    let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
+    let cfg = if env_path.exists() {
+        info!("Environment already initialized, skipping bootstrap");
+        match diesel::Connection::establish(
+            &std::env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+        ) {
+            Ok(mut conn) => AppConfig::from_database(&mut conn),
+            Err(_) => AppConfig::from_env(),
         }
-        Err(e) => {
-            log::error!("Bootstrap failed: {}", e);
-            match diesel::Connection::establish(
-                &std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
-            ) {
-                Ok(mut conn) => AppConfig::from_database(&mut conn),
-                Err(_) => {
-                    AppConfig::from_env()
+    } else {
+        match bootstrap.bootstrap() {
+            Ok(config) => {
+                info!("Bootstrap completed successfully");
+                config
+            }
+            Err(e) => {
+                log::error!("Bootstrap failed: {}", e);
+                match diesel::Connection::establish(
+                    &std::env::var("DATABASE_URL")
+                        .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+                ) {
+                    Ok(mut conn) => AppConfig::from_database(&mut conn),
+                    Err(_) => AppConfig::from_env(),
                 }
             }
         }
     };
 
+    
     let _ = bootstrap.start_all();
     if let Err(e) = bootstrap.upload_templates_to_minio(&cfg).await {
         log::warn!("Failed to upload templates to MinIO: {}", e);
