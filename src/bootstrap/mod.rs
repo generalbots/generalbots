@@ -307,22 +307,27 @@ impl BootstrapManager {
     }
 
     fn update_bot_config(&self, bot_id: &uuid::Uuid, component: &str) -> Result<()> {
+        use diesel::sql_types::{Uuid as SqlUuid, Text};
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
         let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
 
-        let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+        // Ensure globally unique keys and update values atomically
+        let config_key = format!("{}_{}", bot_id, component);
+        let config_value = "true".to_string();
+        let new_id = uuid::Uuid::new_v4();
 
-        for (k, v) in vec![(component.to_string(), "true".to_string())] {
-            diesel::sql_query(
-                "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()",
-            )
-            .bind::<diesel::sql_types::Uuid, _>(new_id)
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(&k)
-            .bind::<diesel::sql_types::Text, _>(&v)
-            .execute(&mut conn)?;
-        }
+        diesel::sql_query(
+            "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type)
+             VALUES ($1, $2, $3, $4, 'string')
+             ON CONFLICT (config_key)
+             DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()"
+        )
+        .bind::<SqlUuid, _>(new_id)
+        .bind::<SqlUuid, _>(bot_id)
+        .bind::<Text, _>(&config_key)
+        .bind::<Text, _>(&config_value)
+        .execute(&mut conn)?;
 
         Ok(())
     }
