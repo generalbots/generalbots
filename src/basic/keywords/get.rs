@@ -175,7 +175,7 @@ pub async fn get_from_bucket(
                 "App configuration missing".into()
             })?;
 
-        let org_prefix = &cfg.minio.org_prefix;
+        let org_prefix = &cfg.drive.org_prefix;
 
         if org_prefix.contains("..") || org_prefix.contains('/') || org_prefix.contains('\\') {
             error!("Invalid org_prefix: {}", org_prefix);

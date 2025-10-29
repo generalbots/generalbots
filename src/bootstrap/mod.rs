@@ -2,11 +2,10 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
 use diesel::connection::SimpleConnection;
-use diesel::{Connection, QueryableByName};
 use diesel::RunQueryDsl;
+use diesel::{Connection, QueryableByName};
 use dotenvy::dotenv;
-use log::{error, info};
-use opendal::services::S3;
+use log::{error, info, trace};
 use opendal::Operator;
 use rand::distr::Alphanumeric;
 use rand::Rng;
@@ -29,6 +28,7 @@ pub struct ComponentInfo {
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
     pub tenant: Option<String>,
+    pub s3_operator: Operator,
 }
 
 impl BootstrapManager {
@@ -37,9 +37,12 @@ impl BootstrapManager {
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode, tenant
         );
+        let config = AppConfig::from_env();
+        let s3_operator = Self::create_s3_operator(&config);
         Self {
             install_mode,
             tenant,
+            s3_operator,
         }
     }
 
@@ -289,7 +292,19 @@ impl BootstrapManager {
             }
         }
 
+        self.s3_operator = Self::create_s3_operator(&config);
         Ok(config)
+    }
+
+    fn create_s3_operator(config: &AppConfig) -> Operator {
+        use opendal::Scheme;
+        use std::collections::HashMap;
+        let mut map = HashMap::new();
+        map.insert("endpoint".to_string(), config.drive.server.clone());
+        map.insert("access_key_id".to_string(), config.drive.access_key.clone());
+        map.insert("secret_access_key".to_string(), config.drive.secret_key.clone());
+        trace!("Creating S3 operator with endpoint {}", config.drive.server);
+        Operator::via_iter(Scheme::S3, map).expect("Failed to initialize S3 operator")
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
@@ -307,7 +322,7 @@ impl BootstrapManager {
     }
 
     fn update_bot_config(&self, bot_id: &uuid::Uuid, component: &str) -> Result<()> {
-        use diesel::sql_types::{Uuid as SqlUuid, Text};
+        use diesel::sql_types::{Text, Uuid as SqlUuid};
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
         let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
@@ -321,7 +336,7 @@ impl BootstrapManager {
             "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type)
              VALUES ($1, $2, $3, $4, 'string')
              ON CONFLICT (config_key)
-             DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()"
+             DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()",
         )
         .bind::<SqlUuid, _>(new_id)
         .bind::<SqlUuid, _>(bot_id)
@@ -332,38 +347,52 @@ impl BootstrapManager {
         Ok(())
     }
 
-    pub async fn upload_templates_to_minio(&self, config: &AppConfig) -> Result<()> {
+    pub async fn upload_templates_to_drive(&self, config: &AppConfig) -> Result<()> {
         let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| config.database_url());
         let mut conn = diesel::PgConnection::establish(&database_url)?;
         self.create_bots_from_templates(&mut conn)?;
-
-        let client = Operator::new(
-            S3::default()
-                .root("/")
-                .endpoint(&config.minio.server)
-                .access_key_id(&config.minio.access_key)
-                .secret_access_key(&config.minio.secret_key),
-        )?
-        .finish();
-
         let templates_dir = Path::new("templates");
         if !templates_dir.exists() {
             return Ok(());
         }
-
+        let operator = &self.s3_operator;
         for entry in std::fs::read_dir(templates_dir)? {
+            let bot_name = templates_dir
+                .read_dir()?
+                .filter_map(|e| e.ok())
+                .find(|e| {
+                    e.path().is_dir()
+                        && e.path()
+                            .file_name()
+                            .unwrap()
+                            .to_string_lossy()
+                            .ends_with(".gbai")
+                })
+                .map(|e| {
+                    let name = e.path().file_name().unwrap().to_string_lossy().to_string();
+                    name
+                })
+                .unwrap_or_else(|| "default".to_string());
             let entry = entry?;
             let path = entry.path();
-            if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
+            if path.is_dir()
+                && path
+                    .file_name()
+                    .unwrap()
+                    .to_string_lossy()
+                    .ends_with(".gbai")
+            {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
-
-                self.upload_directory_recursive(&client, &path, &bot_name, "")
+                let bucket = bot_name.clone();
+                info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
+                self.upload_directory_recursive(&operator, &path, &bucket, &bot_name)
                     .await?;
+                info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
         }
-
         Ok(())
     }
+
 
     fn create_bots_from_templates(&self, conn: &mut diesel::PgConnection) -> Result<()> {
         use crate::shared::models::schema::bots;
@@ -425,6 +454,16 @@ impl BootstrapManager {
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
+            trace!("Checking bucket existence: {}", bucket);
+            if client.stat(bucket).await.is_err() {
+                info!("Bucket {} not found, creating it", bucket);
+                trace!("Creating bucket: {}", bucket);
+                client.create_dir(bucket).await?;
+                trace!("Bucket {} created successfully", bucket);
+            } else {
+                trace!("Bucket {} already exists", bucket);
+            }
+            trace!("Starting upload from local path: {}", local_path.display());
             for entry in std::fs::read_dir(local_path)? {
                 let entry = entry?;
                 let path = entry.path();
@@ -443,7 +482,18 @@ impl BootstrapManager {
                         key
                     );
                     let content = std::fs::read(&path)?;
+                    trace!(
+                        "Writing file {} to bucket {} with key {}",
+                        path.display(),
+                        bucket,
+                        key
+                    );
                     client.write(&key, content).await?;
+                    trace!(
+                        "Successfully wrote file {} to bucket {}",
+                        path.display(),
+                        bucket
+                    );
                 } else if path.is_dir() {
                     self.upload_directory_recursive(client, &path, bucket, &key)
                         .await?;
