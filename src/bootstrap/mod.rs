@@ -459,7 +459,7 @@ aws_sdk_s3::Client::from_conf(s3_config)
                     }
                 }
                 
-                self.upload_directory_recursive(client, &path, &bucket)
+                self.upload_directory_recursive(client, &path, &bucket, "/")
                     .await?;
                 info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
@@ -523,6 +523,7 @@ aws_sdk_s3::Client::from_conf(s3_config)
         &'a self,
         client: &'a Client,
         local_path: &'a Path,
+        bucket: &'a str,
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
@@ -536,25 +537,26 @@ aws_sdk_s3::Client::from_conf(s3_config)
                 let entry = entry?;
                 let path = entry.path();
                 let file_name = path.file_name().unwrap().to_string_lossy().to_string();
-                let key = if prefix.is_empty() {
-                    file_name.clone()
-                } else {
-                    format!("{}/{}", prefix.trim_end_matches('/'), file_name)
-                };
+                
+                // Construct key path, ensuring no duplicate slashes
+                let mut key = prefix.trim_matches('/').to_string();
+                if !key.is_empty() {
+                    key.push('/');
+                }
+                key.push_str(&file_name);
 
                 if path.is_file() {
-                    info!("Uploading file: {} with key: {}", path.display(), key);
+                    info!("Uploading file: {} to bucket {} with key: {}", 
+                        path.display(), bucket, key);
                     let content = std::fs::read(&path)?;
-                    trace!("Writing file {} with key {}", path.display(), key);
                     client.put_object()
-                        .bucket(prefix.split('/').next().unwrap_or("default.gbai"))
+                        .bucket(bucket)
                         .key(&key)
                         .body(content.into())
                         .send()
                         .await?;
-                    trace!("Successfully wrote file {}", path.display());
                 } else if path.is_dir() {
-                    self.upload_directory_recursive(client, &path, &key).await?;
+                    self.upload_directory_recursive(client, &path, bucket, &key).await?;
                 }
             }
             Ok(())
