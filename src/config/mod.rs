@@ -3,6 +3,8 @@ use diesel::sql_types::Text;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -223,6 +225,11 @@ impl AppConfig {
             endpoint: get_str("AI_ENDPOINT", "https://api.openai.com"),
         };
 
+        // Write drive config to .env file
+        if let Err(e) = write_drive_config_to_env(&minio) {
+            warn!("Failed to write drive config to .env: {}", e);
+        }
+
         AppConfig {
             drive: minio,
             server: ServerConfig {
@@ -372,6 +379,22 @@ impl AppConfig {
             .map(|row| row.value)?;
         Ok(result)
     }
+}
+
+fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(".env")?;
+    
+    writeln!(file,"")?;
+    writeln!(file, "DRIVE_SERVER={}", drive.server)?;
+    writeln!(file, "DRIVE_ACCESSKEY={}", drive.access_key)?;
+    writeln!(file, "DRIVE_SECRET={}", drive.secret_key)?;
+    writeln!(file, "DRIVE_USE_SSL={}", drive.use_ssl)?;
+    writeln!(file, "DRIVE_ORG_PREFIX={}", drive.org_prefix)?;
+
+    Ok(())
 }
 
 fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
