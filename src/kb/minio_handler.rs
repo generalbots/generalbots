@@ -1,7 +1,6 @@
 use crate::shared::state::AppState;
 use log::error;
-use opendal::Operator;
-use tokio_stream::StreamExt;
+use aws_sdk_s3::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -17,14 +16,32 @@ pub struct FileState {
 
 pub struct MinIOHandler {
     state: Arc<AppState>,
+    s3: Arc<Client>,
     watched_prefixes: Arc<tokio::sync::RwLock<Vec<String>>>,
     file_states: Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
 }
 
+pub async fn get_file_content(
+    client: &aws_sdk_s3::Client,
+    bucket: &str,
+    key: &str
+) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let response = client.get_object()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await?;
+    
+    let bytes = response.body.collect().await?.into_bytes().to_vec();
+    Ok(bytes)
+}
+
 impl MinIOHandler {
     pub fn new(state: Arc<AppState>) -> Self {
+        let client = state.s3_client.as_ref().expect("S3 client must be initialized").clone();
         Self {
-            state,
+            state: Arc::clone(&state),
+            s3: Arc::new(client),
             watched_prefixes: Arc::new(tokio::sync::RwLock::new(Vec::new())),
             file_states: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
         }
@@ -61,16 +78,9 @@ impl MinIOHandler {
         &self,
         callback: &Arc<dyn Fn(FileChangeEvent) + Send + Sync>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let op = match &self.state.s3_operator {
-            Some(op) => op,
-            None => {
-                return Ok(());
-            }
-        };
-
         let prefixes = self.watched_prefixes.read().await;
         for prefix in prefixes.iter() {
-            if let Err(e) = self.check_prefix_changes(op, prefix, callback).await {
+            if let Err(e) = self.check_prefix_changes(&self.s3, prefix, callback).await {
                 error!("Error checking prefix {}: {}", prefix, e);
             }
         }
@@ -79,28 +89,41 @@ impl MinIOHandler {
 
     async fn check_prefix_changes(
         &self,
-        op: &Operator,
+        client: &Client,
         prefix: &str,
         callback: &Arc<dyn Fn(FileChangeEvent) + Send + Sync>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut current_files = HashMap::new();
         
-        let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = lister.try_next().await? {
-            let path = entry.path().to_string();
-            
-            if path.ends_with('/') {
-                continue;
+        let mut continuation_token = None;
+        loop {
+            let list_objects = client.list_objects_v2()
+                .bucket(&self.state.bucket_name)
+                .prefix(prefix)
+                .set_continuation_token(continuation_token)
+                .send()
+                .await?;
+
+            for obj in list_objects.contents.unwrap_or_default() {
+                let path = obj.key().unwrap_or_default().to_string();
+                
+                if path.ends_with('/') {
+                    continue;
+                }
+
+                let file_state = FileState {
+                    path: path.clone(),
+                    size: obj.size().unwrap_or(0),
+                    etag: obj.e_tag().unwrap_or_default().to_string(),
+                    last_modified: obj.last_modified().map(|dt| dt.to_string()),
+                };
+                current_files.insert(path, file_state);
             }
 
-            let meta = op.stat(&path).await?;
-            let file_state = FileState {
-                path: path.clone(),
-                size: meta.content_length() as i64,
-                etag: meta.etag().unwrap_or_default().to_string(),
-                last_modified: meta.last_modified().map(|dt| dt.to_rfc3339()),
-            };
-            current_files.insert(path, file_state);
+            if !list_objects.is_truncated.unwrap_or(false) {
+                break;
+            }
+            continuation_token = list_objects.next_continuation_token;
         }
 
         let mut file_states = self.file_states.write().await;
@@ -146,7 +169,7 @@ impl MinIOHandler {
 
     pub async fn get_file_state(&self, path: &str) -> Option<FileState> {
         let states = self.file_states.read().await;
-        states.get(path).cloned()
+            states.get(&path.to_string()).cloned()
     }
 
     pub async fn clear_state(&self) {

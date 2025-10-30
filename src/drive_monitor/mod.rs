@@ -3,7 +3,7 @@ use crate::kb::embeddings;
 use crate::kb::qdrant_client;
 use crate::shared::state::AppState;
 use log::{debug, error, info, warn};
-use opendal::Operator;
+use aws_sdk_s3::Client;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -46,17 +46,17 @@ impl DriveMonitor {
     }
 
     async fn check_for_changes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let op = match &self.state.s3_operator {
-            Some(op) => op,
+        let client = match &self.state.s3_client {
+            Some(client) => client,
             None => {
                 return Ok(());
             }
         };
 
-        self.check_gbdialog_changes(op).await?;
-        self.check_gbkb_changes(op).await?;
+        self.check_gbdialog_changes(client).await?;
+        self.check_gbkb_changes(client).await?;
         
-        if let Err(e) = self.check_default_gbot(op).await {
+        if let Err(e) = self.check_default_gbot(client).await {
             error!("Error checking default bot config: {}", e);
         }
 
@@ -65,40 +65,53 @@ impl DriveMonitor {
 
     async fn check_gbdialog_changes(
         &self,
-        op: &Operator,
+        client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = ".gbdialog/";
         
         let mut current_files = HashMap::new();
         
-        let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = futures::TryStreamExt::try_next(&mut lister).await? {
-            let path = entry.path().to_string();
-            
-            if path.ends_with('/') || !path.ends_with(".bas") {
-                continue;
+        let mut continuation_token = None;
+        loop {
+            let list_objects = client.list_objects_v2()
+                .bucket(&self.bucket_name)
+                .prefix(prefix)
+                .set_continuation_token(continuation_token)
+                .send()
+                .await?;
+
+            for obj in list_objects.contents.unwrap_or_default() {
+                let path = obj.key().unwrap_or_default().to_string();
+                
+                if path.ends_with('/') || !path.ends_with(".bas") {
+                    continue;
+                }
+
+                let file_state = FileState {
+                    path: path.clone(),
+                    size: obj.size().unwrap_or(0),
+                    etag: obj.e_tag().unwrap_or_default().to_string(),
+                    last_modified: obj.last_modified().map(|dt| dt.to_string()),
+                };
+                current_files.insert(path, file_state);
             }
 
-            let meta = op.stat(&path).await?;
-            let file_state = FileState {
-                path: path.clone(),
-                size: meta.content_length() as i64,
-                etag: meta.etag().unwrap_or_default().to_string(),
-                last_modified: meta.last_modified().map(|dt| dt.to_rfc3339()),
-            };
-            current_files.insert(path, file_state);
+            if !list_objects.is_truncated.unwrap_or(false) {
+                break;
+            }
+            continuation_token = list_objects.next_continuation_token;
         }
 
         let mut file_states = self.file_states.write().await;
         for (path, current_state) in current_files.iter() {
             if let Some(previous_state) = file_states.get(path) {
                 if current_state.etag != previous_state.etag {
-                    if let Err(e) = self.compile_tool(op, path).await {
+                    if let Err(e) = self.compile_tool(client, path).await {
                         error!("Failed to compile tool {}: {}", path, e);
                     }
                 }
             } else {
-                if let Err(e) = self.compile_tool(op, path).await {
+                if let Err(e) = self.compile_tool(client, path).await {
                     error!("Failed to compile tool {}: {}", path, e);
                 }
             }
@@ -125,45 +138,58 @@ impl DriveMonitor {
 
     async fn check_gbkb_changes(
         &self,
-        op: &Operator,
+        client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = ".gbkb/";
         
         let mut current_files = HashMap::new();
         
-        let mut lister = op.lister_with(prefix).recursive(true).await?;
-        while let Some(entry) = futures::TryStreamExt::try_next(&mut lister).await? {
-            let path = entry.path().to_string();
-            
-            if path.ends_with('/') {
-                continue;
+        let mut continuation_token = None;
+        loop {
+            let list_objects = client.list_objects_v2()
+                .bucket(&self.bucket_name)
+                .prefix(prefix)
+                .set_continuation_token(continuation_token)
+                .send()
+                .await?;
+
+            for obj in list_objects.contents.unwrap_or_default() {
+                let path = obj.key().unwrap_or_default().to_string();
+                
+                if path.ends_with('/') {
+                    continue;
+                }
+
+                let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
+                if !["pdf", "txt", "md", "docx"].contains(&ext.as_str()) {
+                    continue;
+                }
+
+                let file_state = FileState {
+                    path: path.clone(),
+                    size: obj.size().unwrap_or(0),
+                    etag: obj.e_tag().unwrap_or_default().to_string(),
+                    last_modified: obj.last_modified().map(|dt| dt.to_string()),
+                };
+                current_files.insert(path, file_state);
             }
 
-            let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
-            if !["pdf", "txt", "md", "docx"].contains(&ext.as_str()) {
-                continue;
+            if !list_objects.is_truncated.unwrap_or(false) {
+                break;
             }
-
-            let meta = op.stat(&path).await?;
-            let file_state = FileState {
-                path: path.clone(),
-                size: meta.content_length() as i64,
-                etag: meta.etag().unwrap_or_default().to_string(),
-                last_modified: meta.last_modified().map(|dt| dt.to_rfc3339()),
-            };
-            current_files.insert(path, file_state);
+            continuation_token = list_objects.next_continuation_token;
         }
 
         let mut file_states = self.file_states.write().await;
         for (path, current_state) in current_files.iter() {
             if let Some(previous_state) = file_states.get(path) {
                 if current_state.etag != previous_state.etag {
-                    if let Err(e) = self.index_document(op, path).await {
+                    if let Err(e) = self.index_document(client, path).await {
                         error!("Failed to index document {}: {}", path, e);
                     }
                 }
             } else {
-                if let Err(e) = self.index_document(op, path).await {
+                if let Err(e) = self.index_document(client, path).await {
                     error!("Failed to index document {}: {}", path, e);
                 }
             }
@@ -190,15 +216,26 @@ impl DriveMonitor {
 
     async fn check_default_gbot(
         &self,
-        op: &Operator,
+        client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = format!("{}default.gbot/", self.bucket_name);
         let config_key = format!("{}config.csv", prefix);
         
-        match op.stat(&config_key).await {
+        match client.head_object()
+            .bucket(&self.bucket_name)
+            .key(&config_key)
+            .send()
+            .await 
+        {
             Ok(_) => {
-                let content = op.read(&config_key).await?;
-                let csv_content = String::from_utf8(content.to_vec())
+                let response = client.get_object()
+                    .bucket(&self.bucket_name)
+                    .key(&config_key)
+                    .send()
+                    .await?;
+                
+                let bytes = response.body.collect().await?.into_bytes();
+                let csv_content = String::from_utf8(bytes.to_vec())
                     .map_err(|e| format!("UTF-8 error in config.csv: {}", e))?;
                 debug!("Found config.csv: {} bytes", csv_content.len());
                 Ok(())
@@ -212,11 +249,17 @@ impl DriveMonitor {
 
     async fn compile_tool(
         &self,
-        op: &Operator,
+        client: &Client,
         file_path: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let content = op.read(file_path).await?;
-        let source_content = String::from_utf8(content.to_vec())?;
+        let response = client.get_object()
+            .bucket(&self.bucket_name)
+            .key(file_path)
+            .send()
+            .await?;
+        
+        let bytes = response.body.collect().await?.into_bytes();
+        let source_content = String::from_utf8(bytes.to_vec())?;
 
         let tool_name = file_path
             .strip_prefix(".gbdialog/")
@@ -254,7 +297,7 @@ impl DriveMonitor {
 
     async fn index_document(
         &self,
-        op: &Operator,
+        client: &Client,
         file_path: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let parts: Vec<&str> = file_path.split('/').collect();
@@ -264,8 +307,12 @@ impl DriveMonitor {
         }
 
         let collection_name = parts[1];
-        let content = op.read(file_path).await?;
-        let bytes = content.to_vec();
+        let response = client.get_object()
+            .bucket(&self.bucket_name)
+            .key(file_path)
+            .send()
+            .await?;
+        let bytes = response.body.collect().await?.into_bytes();
         
         let text_content = self.extract_text(file_path, &bytes)?;
         if text_content.trim().is_empty() {
