@@ -7,6 +7,7 @@ use actix_web::{web, App, HttpServer};
 use dotenvy::dotenv;
 use log::info;
 use std::collections::HashMap;
+use std::env;
 use std::sync::{Arc, Mutex};
 
 mod auth;
@@ -36,6 +37,7 @@ mod tools;
 mod web_automation;
 mod web_server;
 mod whatsapp;
+mod create_bucket;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
@@ -63,6 +65,12 @@ use crate::whatsapp::WhatsAppAdapter;
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // Test bucket creation
+    match create_bucket::create_bucket("test-bucket") {
+        Ok(_) => println!("Bucket created successfully"),
+        Err(e) => eprintln!("Failed to create bucket: {}", e),
+    }
+
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
         let command = &args[1];
@@ -89,6 +97,7 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
+    // Rest of the original main function remains unchanged...
     dotenv().ok();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .write_style(env_logger::WriteStyle::Always)
@@ -106,7 +115,7 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
-    let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
+    let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
 
     // Prevent double bootstrap: skip if environment already initialized
     let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
@@ -120,7 +129,7 @@ async fn main() -> std::io::Result<()> {
             Err(_) => AppConfig::from_env(),
         }
     } else {
-        match bootstrap.bootstrap() {
+        match bootstrap.bootstrap().await {
             Ok(config) => {
                 info!("Bootstrap completed successfully");
                 config
@@ -138,9 +147,13 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    
-    let _ = bootstrap.start_all();
-    if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
+    // Start all services (synchronous)
+    if let Err(e) = bootstrap.start_all() {
+        log::warn!("Failed to start all services: {}", e);
+    }
+
+    // Upload templates (asynchronous)
+    if let Err(e) = futures::executor::block_on(bootstrap.upload_templates_to_drive(&cfg)) {
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
@@ -193,7 +206,6 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-
     let drive = init_drive(&config.drive)
         .await
         .expect("Failed to initialize Drive");
@@ -209,7 +221,8 @@ async fn main() -> std::io::Result<()> {
     )));
 
     let app_state = Arc::new(AppState {
-        s3_operator: Some(drive.clone()),
+        s3_client: Some(drive),
+        bucket_name: format!("{}{}.gbai", cfg.drive.org_prefix, env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string())),
         config: Some(cfg.clone()),
         conn: db_pool.clone(),
         custom_conn: db_custom_pool.clone(),

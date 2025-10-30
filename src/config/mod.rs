@@ -175,7 +175,7 @@ impl AppConfig {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
             database: std::env::var("TABLES_DATABASE")
-                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
+                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "gbuser")),
         };
 
         let database_custom = DatabaseConfig {
@@ -190,11 +190,18 @@ impl AppConfig {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or_else(|| get_u32("CUSTOM_PORT", 5432)),
             database: std::env::var("CUSTOM_DATABASE")
-                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "botserver")),
+                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "gbuser")),
         };
 
         let minio = DriveConfig {
-            server: get_str("DRIVE_SERVER", "http://localhost:9000"),
+            server: {
+                let server = get_str("DRIVE_SERVER", "http://localhost:9000");
+                if !server.starts_with("http://") && !server.starts_with("https://") {
+                    format!("http://{}", server)
+                } else {
+                    server
+                }
+            },
             access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
             secret_key: get_str("DRIVE_SECRET", "minioadmin"),
             use_ssl: get_bool("DRIVE_USE_SSL", false),

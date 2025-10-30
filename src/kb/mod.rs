@@ -1,7 +1,8 @@
 use crate::shared::models::KBCollection;
 use crate::shared::state::AppState;
 use log::{ error, info, warn};
-use tokio_stream::StreamExt;
+// Removed unused import
+// Removed duplicate import since we're using the module directly
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -95,35 +96,16 @@ impl KBManager {
         &self,
         collection: &KBCollection,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let op = match &self.state.s3_operator {
-            Some(op) => op,
+        let _client = match &self.state.s3_client {
+            Some(client) => client,
             None => {
-                warn!("S3 operator not configured");
+                warn!("S3 client not configured");
                 return Ok(());
             }
         };
 
-        let mut lister = op.lister_with(&collection.folder_path).recursive(true).await?;
-        while let Some(entry) = lister.try_next().await? {
-            let path = entry.path().to_string();
-            
-            if path.ends_with('/') {
-                continue;
-            }
-
-            let meta = op.stat(&path).await?;
-            if let Err(e) = self
-                .process_file(
-                    &collection,
-                    &path,
-                    meta.content_length() as i64,
-                    meta.last_modified().map(|dt| dt.to_rfc3339()),
-                )
-                .await
-            {
-                error!("Error processing file {}: {}", path, e);
-            }
-        }
+        let minio_handler = minio_handler::MinIOHandler::new(self.state.clone());
+        minio_handler.watch_prefix(collection.folder_path.clone()).await;
 
         Ok(())
     }
@@ -135,7 +117,8 @@ impl KBManager {
         file_size: i64,
         _last_modified: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let content = self.get_file_content(file_path).await?;
+        let client = self.state.s3_client.as_ref().ok_or("S3 client not configured")?;
+        let content = minio_handler::get_file_content(client, &self.state.bucket_name, file_path).await?;
         let file_hash = if content.len() > 100 {
             format!(
                 "{:x}_{:x}_{}",
@@ -181,20 +164,6 @@ impl KBManager {
         .await?;
 
         Ok(())
-    }
-
-    async fn get_file_content(
-        &self,
-        file_path: &str,
-    ) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
-        let op = self
-            .state
-            .s3_operator
-            .as_ref()
-            .ok_or("S3 operator not configured")?;
-
-        let content = op.read(file_path).await?;
-        Ok(content.to_vec())
     }
 
     async fn extract_text(

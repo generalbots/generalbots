@@ -1,4 +1,5 @@
 use crate::config::AppConfig;
+use crate::file::aws_s3_bucket_create;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
 use diesel::connection::SimpleConnection;
@@ -6,7 +7,8 @@ use diesel::RunQueryDsl;
 use diesel::{Connection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
-use opendal::Operator;
+use aws_sdk_s3::{Client, config::Builder as S3ConfigBuilder};
+use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use sha2::{Digest, Sha256};
@@ -28,21 +30,21 @@ pub struct ComponentInfo {
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
     pub tenant: Option<String>,
-    pub s3_operator: Operator,
+    pub s3_client: Client,
 }
 
 impl BootstrapManager {
-    pub fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
+    pub async fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
         info!(
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode, tenant
         );
         let config = AppConfig::from_env();
-        let s3_operator = Self::create_s3_operator(&config);
+        let s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         Self {
             install_mode,
             tenant,
-            s3_operator,
+            s3_client,
         }
     }
 
@@ -156,7 +158,7 @@ impl BootstrapManager {
         Ok(())
     }
 
-    pub fn bootstrap(&mut self) -> Result<AppConfig> {
+    pub async fn bootstrap(&mut self) -> Result<AppConfig> {
         if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
             if !tables_server.is_empty() {
                 info!(
@@ -292,45 +294,86 @@ impl BootstrapManager {
             }
         }
 
-        self.s3_operator = Self::create_s3_operator(&config);
+        self.s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         let default_bucket_path = Path::new("templates/default.gbai/default.gbot/config.csv");
         if default_bucket_path.exists() {
             info!("Found initial config.csv, uploading to default.gbai/default.gbot");
-            let operator = &self.s3_operator;
+            let client = &self.s3_client;
             futures::executor::block_on(async {
                 let content = std::fs::read(default_bucket_path).expect("Failed to read config.csv");
-                operator.write("default.gbai/default.gbot/config.csv", content).await
+                client.put_object()
+                    .bucket("default.gbai")
+                    .key("default.gbot/config.csv")
+                    .body(content.into())
+                    .send()
+                    .await
+                    .map(|_| ())
             })?;
             debug!("Initial config.csv uploaded successfully");
         }
         Ok(config)
     }
-    fn create_s3_operator(config: &AppConfig) -> Operator {
-        use opendal::Scheme;
-        use std::collections::HashMap;
 
-        let mut endpoint = config.drive.server.clone();
-        if !endpoint.ends_with('/') {
-            endpoint.push('/');
-        }
 
-        let mut map = HashMap::new();
-        map.insert("endpoint".to_string(), endpoint);
-        map.insert("access_key_id".to_string(), config.drive.access_key.clone());
-        map.insert(
-            "secret_access_key".to_string(),
+
+    async fn c(config: &AppConfig, _bucket: &String) -> Client {
+        let endpoint = if !config.drive.server.ends_with('/') {
+            format!("{}/", config.drive.server)
+        } else {
+            config.drive.server.clone()
+        };
+
+let base_config = aws_config::defaults(BehaviorVersion::latest())
+    .endpoint_url(endpoint)
+    .region("auto")
+    .credentials_provider(
+        aws_sdk_s3::config::Credentials::new(
+            config.drive.access_key.clone(),
             config.drive.secret_key.clone(),
-        );
-        map.insert(
-            "bucket".to_string(),
-            format!("default.gbai"),
-        );
-        map.insert("region".to_string(), "auto".to_string());
-        map.insert("force_path_style".to_string(), "true".to_string());
+            None,
+            None,
+            "static",
+        )
+    )
+    .load()
+    .await;
 
-        trace!("Creating S3 operator with endpoint {}", config.drive.server);
+let s3_config = S3ConfigBuilder::from(&base_config)
+    .force_path_style(true)
+    .build();
 
-        Operator::via_iter(Scheme::S3, map).expect("Failed to initialize S3 operator")
+aws_sdk_s3::Client::from_conf(s3_config)
+    }
+
+
+
+    async fn create_s3_operator(config: &AppConfig) -> Client {
+        let endpoint = if !config.drive.server.ends_with('/') {
+            format!("{}/", config.drive.server)
+        } else {
+            config.drive.server.clone()
+        };
+
+let base_config = aws_config::defaults(BehaviorVersion::latest())
+    .endpoint_url(endpoint)
+    .region("auto")
+    .credentials_provider(
+        aws_sdk_s3::config::Credentials::new(
+            config.drive.access_key.clone(),
+            config.drive.secret_key.clone(),
+            None,
+            None,
+            "static",
+        )
+    )
+    .load()
+    .await;
+
+let s3_config = S3ConfigBuilder::from(&base_config)
+    .force_path_style(true)
+    .build();
+
+aws_sdk_s3::Client::from_conf(s3_config)
     }
 
     fn generate_secure_password(&self, length: usize) -> String {
@@ -381,7 +424,7 @@ impl BootstrapManager {
         if !templates_dir.exists() {
             return Ok(());
         }
-        let operator = &self.s3_operator;
+        let client = &self.s3_client;
         for entry in std::fs::read_dir(templates_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -395,12 +438,28 @@ impl BootstrapManager {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let bucket = bot_name.trim_start_matches('/').to_string();
                 info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
-                if operator.stat(&bucket).await.is_err() {
+                
+                // Check if bucket exists
+                if client.head_bucket().bucket(&bucket).send().await.is_err() {
                     info!("Bucket {} not found, creating it", bucket);
-                    operator.create_dir("/").await?;
-                    debug!("Bucket {} created successfully", bucket);
+                    match client.create_bucket()
+                        .bucket(&bucket)
+                        .send()
+                        .await {
+                        Ok(_) => {
+                            debug!("Bucket {} created successfully", bucket);
+                        }
+                        Err(e) => {
+                            error!("Failed to create bucket {}: {:?}", bucket, e);
+                            return Err(anyhow::anyhow!(
+                                "Failed to create bucket {}: {}. Check S3 credentials and endpoint configuration",
+                                bucket, e
+                            ));
+                        }
+                    }
                 }
-                self.upload_directory_recursive(&operator, &path, &bucket)
+                
+                self.upload_directory_recursive(client, &path, &bucket)
                     .await?;
                 info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
@@ -462,7 +521,7 @@ impl BootstrapManager {
 
     fn upload_directory_recursive<'a>(
         &'a self,
-        client: &'a Operator,
+        client: &'a Client,
         local_path: &'a Path,
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
@@ -487,7 +546,12 @@ impl BootstrapManager {
                     info!("Uploading file: {} with key: {}", path.display(), key);
                     let content = std::fs::read(&path)?;
                     trace!("Writing file {} with key {}", path.display(), key);
-                    client.write(&key, content).await?;
+                    client.put_object()
+                        .bucket(prefix.split('/').next().unwrap_or("default.gbai"))
+                        .key(&key)
+                        .body(content.into())
+                        .send()
+                        .await?;
                     trace!("Successfully wrote file {}", path.display());
                 } else if path.is_dir() {
                     self.upload_directory_recursive(client, &path, &key).await?;

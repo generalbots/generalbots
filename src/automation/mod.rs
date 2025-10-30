@@ -331,7 +331,7 @@ impl AutomationService {
                     e
                 );
 
-                if let Some(s3_operator) = &self.state.s3_operator {
+                if let Some(client) = &self.state.s3_client {
                     let bucket_name = format!(
                         "{}{}.gbai",
                         env::var("MINIO_ORG_PREFIX").unwrap_or_else(|_| "org1_".to_string()),
@@ -341,10 +341,9 @@ impl AutomationService {
 
                     trace!("Downloading from bucket={} key={}", bucket_name, s3_key);
 
-                    match s3_operator.read(&format!("{}/{}", bucket_name, s3_key)).await {
+                    match crate::kb::minio_handler::get_file_content(client, &bucket_name, &s3_key).await {
                         Ok(data) => {
-                            let bytes: Vec<u8> = data.to_vec();
-                            match String::from_utf8(bytes) {
+                            match String::from_utf8(data) {
                                 Ok(content) => {
                                     info!("Downloaded script '{}' from MinIO", param);
 
