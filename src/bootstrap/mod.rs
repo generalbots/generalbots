@@ -292,22 +292,6 @@ impl BootstrapManager {
         }
 
         self.s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
-        let default_bucket_path = Path::new("templates/default.gbai/default.gbot/config.csv");
-        if default_bucket_path.exists() {
-            info!("Found initial config.csv, uploading to default.gbai/default.gbot");
-            let client = &self.s3_client;
-            futures::executor::block_on(async {
-                let content = std::fs::read(default_bucket_path).expect("Failed to read config.csv");
-                client.put_object()
-                    .bucket("default.gbai")
-                    .key("default.gbot/config.csv")
-                    .body(content.into())
-                    .send()
-                    .await
-                    .map(|_| ())
-            })?;
-            debug!("Initial config.csv uploaded successfully");
-        }
         Ok(config)
     }
 
