@@ -37,7 +37,22 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &
                         .await;
 
                     match result {
-                        Ok(_) => debug!("Suggestion added successfully to Redis key {}", redis_key),
+                        Ok(_) => {
+                            debug!("Suggestion added successfully to Redis key {}", redis_key);
+
+                            // Also register context as inactive initially
+                            let active_key = format!("active_context:{}:{}", user.user_id, user.id);
+                            let _: Result<(), redis::RedisError> = redis::cmd("HSET")
+                                .arg(&active_key)
+                                .arg(&context_name)
+                                .arg("inactive")
+                                .query_async(&mut conn)
+                                .await
+                                .unwrap_or_else(|e| {
+                                    error!("Failed to set context state: {}", e);
+                                    ()
+                                });
+                        }
                         Err(e) => error!("Failed to add suggestion to Redis: {}", e),
                     }
                 });

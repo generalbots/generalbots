@@ -907,12 +907,24 @@
 
                   async function setContext(context) {
                     try {
-                      await fetch('/api/set_context', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ context })
-                      });
-                      alert(`Contexto alterado para: ${context}`);
+                      if (ws && ws.readyState === WebSocket.OPEN) {
+                        const suggestionEvent = {
+                          bot_id: "default_bot",
+                          user_id: currentUserId,
+                          session_id: currentSessionId,
+                          channel: "web",
+                          content: context,
+                          message_type: 4, // custom type for suggestion click
+                          is_suggestion: true,
+                          context_name: context,
+                          timestamp: new Date().toISOString()
+                        };
+                        ws.send(JSON.stringify(suggestionEvent));
+                        alert(`Contexto alterado para: ${context}`);
+                      } else {
+                        console.warn("WebSocket não está conectado. Tentando reconectar...");
+                        connectWebSocket();
+                      }
                     } catch (err) {
                       console.error('Failed to set context:', err);
                     }
