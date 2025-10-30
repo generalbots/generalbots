@@ -1,6 +1,6 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
-use anyhow::Result;
+use anyhow::{Result, Context};
 use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
@@ -12,6 +12,8 @@ use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
+use uuid::Uuid;
 
 #[derive(QueryableByName)]
 struct BotIdRow {
@@ -156,6 +158,7 @@ impl BootstrapManager {
     }
 
     pub async fn bootstrap(&mut self) -> Result<AppConfig> {
+        // First check for legacy mode
         if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
             if !tables_server.is_empty() {
                 info!(
@@ -176,6 +179,11 @@ impl BootstrapManager {
                         username, password, server, port, database
                     )
                 });
+
+                // In legacy mode, still try to load config.csv if available
+                if let Ok(config) = self.load_config_from_csv().await {
+                    return Ok(config);
+                }
 
                 match diesel::PgConnection::establish(&database_url) {
                     Ok(mut conn) => {
@@ -292,7 +300,13 @@ impl BootstrapManager {
         }
 
         self.s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
-        Ok(config)
+        
+        // Load config from CSV if available
+        if let Ok(csv_config) = self.load_config_from_csv().await {
+            Ok(csv_config)
+        } else {
+            Ok(config)
+        }
     }
 
 
@@ -514,6 +528,53 @@ impl BootstrapManager {
             }
             Ok(())
         })
+    }
+
+    async fn load_config_from_csv(&self) -> Result<AppConfig> {
+        use crate::config::ConfigManager;
+        use uuid::Uuid;
+
+        let client = &self.s3_client;
+        let bucket = "templates/default.gbai";
+        let config_key = "default.gbot/config.csv";
+        
+        match client.get_object()
+            .bucket(bucket)
+            .key(config_key)
+            .send()
+            .await 
+        {
+            Ok(response) => {
+                let bytes = response.body.collect().await?.into_bytes();
+                let csv_content = String::from_utf8(bytes.to_vec())?;
+                
+                let database_url = std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+                // Create new connection for config loading
+                let mut config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config_manager = ConfigManager::new(Arc::new(Mutex::new(config_conn)));
+                
+                // Use default bot ID or create one if needed
+                let default_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
+                
+                // Write CSV to temp file for ConfigManager
+                let temp_path = std::env::temp_dir().join("config.csv");
+                std::fs::write(&temp_path, csv_content)?;
+                
+                config_manager.sync_gbot_config(&default_bot_id, temp_path.to_str().unwrap())
+                    .map_err(|e| anyhow::anyhow!("Failed to sync gbot config: {}", e))?;
+                
+                // Load config from database which now has the CSV values
+                let mut config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config = AppConfig::from_database(&mut config_conn);
+                info!("Successfully loaded config from CSV");
+                Ok(config)
+            }
+            Err(e) => {
+                debug!("No config.csv found: {}", e);
+                Err(e.into())
+            }
+        }
     }
 
     fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
