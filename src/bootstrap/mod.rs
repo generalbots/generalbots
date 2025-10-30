@@ -166,7 +166,7 @@ impl BootstrapManager {
                 );
                 let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
                     let username =
-                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "postgres".to_string());
+                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "gbuser".to_string());
                     let password =
                         std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
                     let server =
