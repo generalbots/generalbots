@@ -7,7 +7,6 @@ use actix_web::{web, App, HttpServer};
 use dotenvy::dotenv;
 use log::info;
 use std::collections::HashMap;
-use std::env;
 use std::sync::{Arc, Mutex};
 
 mod auth;
@@ -45,7 +44,6 @@ use crate::bootstrap::BootstrapManager;
 use crate::bot::{start_session, websocket_handler};
 use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
-use crate::drive_monitor::DriveMonitor;
 #[cfg(feature = "email")]
 use crate::email::{
     get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
@@ -61,6 +59,7 @@ use crate::shared::state::AppState;
 use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
+use crate::bot::BotOrchestrator;
 
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
@@ -222,9 +221,9 @@ async fn main() -> std::io::Result<()> {
 
     let app_state = Arc::new(AppState {
         s3_client: Some(drive),
-        bucket_name: format!("{}{}.gbai", cfg.drive.org_prefix, env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string())),
         config: Some(cfg.clone()),
         conn: db_pool.clone(),
+        bucket_name: "default.gbai".to_string(), // Default bucket name
         custom_conn: db_custom_pool.clone(),
         redis_client: redis_client.clone(),
         session_manager: session_manager.clone(),
@@ -259,19 +258,21 @@ async fn main() -> std::io::Result<()> {
             .expect("Failed to create runtime for automation");
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
-            let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-            let scripts_dir = format!("work/{}.gbai/.gbdialog", bot_guid);
+            let scripts_dir = "work/default.gbai/.gbdialog".to_string();
             let automation = AutomationService::new(automation_state, &scripts_dir);
             automation.spawn().await.ok();
         });
     });
 
-    let drive_state = app_state.clone();
-    let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-    let bucket_name = format!("{}{}.gbai", cfg.drive.org_prefix, bot_guid);
-    let drive_monitor = Arc::new(DriveMonitor::new(drive_state, bucket_name));
-    let _drive_handle = drive_monitor.spawn();
+    // Initialize bot orchestrator and mount all bots
+    let bot_orchestrator = BotOrchestrator::new(app_state.clone());
+    
+    // Mount all active bots from database
+    if let Err(e) = bot_orchestrator.mount_all_bots().await {
+        log::error!("Failed to mount bots: {}", e);
+    }
 
+    
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
