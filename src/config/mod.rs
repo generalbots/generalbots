@@ -177,7 +177,7 @@ impl AppConfig {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
             database: std::env::var("TABLES_DATABASE")
-                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "gbuser")),
+                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
         };
 
         let database_custom = DatabaseConfig {
