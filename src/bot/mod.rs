@@ -3,11 +3,12 @@ use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
+use futures::TryFutureExt;
 use log::{debug, error, info, warn};
 use chrono::Utc;
 use serde_json;
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tokio::sync::mpsc;
 use crate::kb::embeddings::generate_embeddings;
 use uuid::Uuid;
@@ -16,13 +17,119 @@ use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, Qdra
 use crate::context::langcache::{get_langcache_client};
  
 
+use crate::drive_monitor::DriveMonitor;
+
+use tokio::sync::Mutex as AsyncMutex;
+
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
+    pub mounted_bots: Arc<AsyncMutex<HashMap<String, Arc<DriveMonitor>>>>,
 }
 
 impl BotOrchestrator {
+    /// Creates a new BotOrchestrator instance
     pub fn new(state: Arc<AppState>) -> Self {
-        Self { state }
+        Self {
+            state,
+            mounted_bots: Arc::new(AsyncMutex::new(HashMap::new())),
+        }
+    }
+
+    /// Mounts all available bots from the database table
+    pub async fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Mounting all available bots from database");
+        
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        let mut db_conn = self.state.conn.lock().unwrap();
+        let active_bots = bots
+            .filter(is_active.eq(true))
+            .select(id)
+            .load::<uuid::Uuid>(&mut *db_conn)
+            .map_err(|e| {
+                error!("Failed to query active bots: {}", e);
+                e
+            })?;
+
+        for bot_guid in active_bots {
+            if let Err(e) = self.mount_bot(&bot_guid.to_string()).await {
+                error!("Failed to mount bot {}: {}", bot_guid, e);
+                // Continue mounting other bots even if one fails
+                continue;
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Creates a new bot with its storage bucket
+    pub async fn create_bot(&self, bot_guid: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let bucket_name = format!("{}{}.gbai", self.state.config.as_ref().unwrap().drive.org_prefix, bot_guid);
+        // Generate a new GUID if needed
+        
+        // Create bucket in storage
+        crate::create_bucket::create_bucket(&bucket_name)?;
+
+        // TODO: Add bot to database
+        Ok(())
+    }
+
+    /// Mounts a bot by activating its resources (drive monitor, etc)
+    pub async fn mount_bot(&self, bot_guid: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Remove .gbai suffix if present to normalize bot GUID
+        let bot_guid = bot_guid.strip_suffix(".gbai").unwrap_or(bot_guid);
+        info!("Mounting bot: {}", bot_guid);
+        let bot_guid = bot_guid.to_string(); // Ensure we have an owned String
+        
+        let config = self.state.config.as_ref().ok_or("AppConfig not initialized")?;
+        // Use bot_guid directly without appending .gbai since it's now part of the ID
+        use diesel::prelude::*;
+use crate::shared::models::schema::bots::dsl::*;
+
+let mut db_conn = self.state.conn.lock().unwrap();
+let bot_name: String = bots
+    .filter(id.eq(Uuid::parse_str(&bot_guid)?))
+    .select(name)
+    .first(&mut *db_conn)
+    .map_err(|e| {
+        error!("Failed to query bot name for {}: {}", bot_guid, e);
+        e
+    })?;
+
+let bucket_name = format!("{}.gbai", bot_name);
+        
+        
+        // Check if bot is already mounted
+        {
+            let mounted_bots = self.mounted_bots.lock().await;
+            if mounted_bots.contains_key(&bot_guid) {
+                warn!("Bot {} is already mounted", bot_guid);
+                return Ok(());
+            }
+        }
+
+        // Initialize and spawn drive monitor asynchronously
+        let drive_monitor = Arc::new(DriveMonitor::new(self.state.clone(), bucket_name));
+        let drive_monitor_clone = drive_monitor.clone();
+        // Clone bot_guid to avoid moving it into the async block
+        let bot_guid_clone = bot_guid.clone();
+        tokio::spawn(async move {
+            if let Err(e) = drive_monitor_clone.spawn().await {
+                error!("Failed to spawn drive monitor for bot {}: {}", bot_guid_clone, e);
+            }
+        });
+
+        // Track mounted bot
+        let guid = bot_guid.clone();
+        let drive_monitor_clone = drive_monitor.clone();
+        {
+            let mut mounted_bots = self.mounted_bots.lock().await;
+            mounted_bots.insert(guid, drive_monitor_clone);
+        }
+
+        info!("Successfully mounted bot: {}", bot_guid);
+        Ok(())
     }
 
     pub async fn handle_user_input(
@@ -165,15 +272,8 @@ impl BotOrchestrator {
             e
         })?;
 
-        let bot_id = if let Ok(bot_guid) = std::env::var("BOT_GUID") {
-            Uuid::parse_str(&bot_guid).map_err(|e| {
-                warn!("Invalid BOT_GUID from env: {}", e);
-                e
-            })?
-        } else {
-            warn!("BOT_GUID not set in environment, using nil UUID");
-            Uuid::nil()
-        };
+        let bot_id = Uuid::nil(); // Using nil UUID for default bot
+            // Default to announcements bot
 
         let session = {
             let mut sm = self.state.session_manager.lock().await;
@@ -669,7 +769,7 @@ impl BotOrchestrator {
             "Running start script for session: {} with token: {:?}",
             session.id, token
         );
-        let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+            let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| String::from("default_bot"));
         let start_script_path = format!("./{}.gbai/.gbdialog/start.bas", bot_guid);
         let start_script = match std::fs::read_to_string(&start_script_path) {
             Ok(content) => content,
@@ -808,6 +908,7 @@ impl Default for BotOrchestrator {
     fn default() -> Self {
         Self {
             state: Arc::new(AppState::default()),
+            mounted_bots: Arc::new(AsyncMutex::new(HashMap::new())),
         }
     }
 }

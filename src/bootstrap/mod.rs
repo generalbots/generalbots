@@ -1,7 +1,7 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
-use anyhow::{Result, Context};
-use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
+use anyhow::Result;
+use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName, Selectable};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
@@ -14,8 +14,14 @@ use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 use uuid::Uuid;
+use diesel::SelectableHelper;
+
+use diesel::Queryable;
 
 #[derive(QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(Queryable)]
+#[diesel(table_name = crate::shared::models::schema::bots)]
 struct BotIdRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: uuid::Uuid,
@@ -141,8 +147,8 @@ impl BootstrapManager {
                 let mut conn = diesel::pg::PgConnection::establish(&database_url)
                     .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
                 let default_bot_id: uuid::Uuid = diesel::sql_query("SELECT id FROM bots LIMIT 1")
-                    .get_result::<BotIdRow>(&mut conn)
-                    .map(|row| row.id)
+                    .load::<BotIdRow>(&mut conn)
+                    .map(|rows| rows.first().map(|r| r.id).unwrap_or_else(|| uuid::Uuid::new_v4()))
                     .unwrap_or_else(|_| uuid::Uuid::new_v4());
 
                 if let Err(e) = self.update_bot_config(&default_bot_id, component.name) {
@@ -551,7 +557,7 @@ impl BootstrapManager {
                 let database_url = std::env::var("DATABASE_URL")
                     .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
                 // Create new connection for config loading
-                let mut config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config_conn = diesel::PgConnection::establish(&database_url)?;
                 let config_manager = ConfigManager::new(Arc::new(Mutex::new(config_conn)));
                 
                 // Use default bot ID or create one if needed
