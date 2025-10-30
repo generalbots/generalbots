@@ -1,13 +1,10 @@
 use crate::config::AppConfig;
-use crate::file::aws_s3_bucket_create;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
-use diesel::connection::SimpleConnection;
-use diesel::RunQueryDsl;
-use diesel::{Connection, QueryableByName};
+use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
-use aws_sdk_s3::{Client, config::Builder as S3ConfigBuilder};
+use aws_sdk_s3::Client;
 use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
 use rand::Rng;
@@ -316,37 +313,6 @@ impl BootstrapManager {
 
 
 
-    async fn c(config: &AppConfig, _bucket: &String) -> Client {
-        let endpoint = if !config.drive.server.ends_with('/') {
-            format!("{}/", config.drive.server)
-        } else {
-            config.drive.server.clone()
-        };
-
-let base_config = aws_config::defaults(BehaviorVersion::latest())
-    .endpoint_url(endpoint)
-    .region("auto")
-    .credentials_provider(
-        aws_sdk_s3::config::Credentials::new(
-            config.drive.access_key.clone(),
-            config.drive.secret_key.clone(),
-            None,
-            None,
-            "static",
-        )
-    )
-    .load()
-    .await;
-
-let s3_config = S3ConfigBuilder::from(&base_config)
-    .force_path_style(true)
-    .build();
-
-aws_sdk_s3::Client::from_conf(s3_config)
-    }
-
-
-
     async fn create_s3_operator(config: &AppConfig) -> Client {
         let endpoint = if !config.drive.server.ends_with('/') {
             format!("{}/", config.drive.server)
@@ -354,27 +320,30 @@ aws_sdk_s3::Client::from_conf(s3_config)
             config.drive.server.clone()
         };
 
-let base_config = aws_config::defaults(BehaviorVersion::latest())
-    .endpoint_url(endpoint)
-    .region("auto")
-    .credentials_provider(
-        aws_sdk_s3::config::Credentials::new(
-            config.drive.access_key.clone(),
-            config.drive.secret_key.clone(),
-            None,
-            None,
-            "static",
-        )
-    )
-    .load()
-    .await;
+        let base_config = aws_config::defaults(BehaviorVersion::latest())
+            .endpoint_url(endpoint)
+            .region("auto")
+            .credentials_provider(
+                aws_sdk_s3::config::Credentials::new(
+                    config.drive.access_key.clone(),
+                    config.drive.secret_key.clone(),
+                    None,
+                    None,
+                    "static",
+                )
+            )
+            .load()
+            .await;
 
-let s3_config = S3ConfigBuilder::from(&base_config)
-    .force_path_style(true)
-    .build();
+        let s3_config = aws_sdk_s3::config::Builder::from(&base_config)
+            .force_path_style(true)
+            .build();
 
-aws_sdk_s3::Client::from_conf(s3_config)
+        aws_sdk_s3::Client::from_conf(s3_config)
     }
+
+
+
 
     fn generate_secure_password(&self, length: usize) -> String {
         let mut rng = rand::rng();
