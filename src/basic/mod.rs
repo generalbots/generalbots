@@ -30,6 +30,7 @@ use self::keywords::set::set_keyword;
 use self::keywords::set_kb::{add_kb_keyword, set_kb_keyword};
 use self::keywords::set_schedule::set_schedule_keyword;
 use self::keywords::wait::wait_keyword;
+use self::keywords::add_suggestion::add_suggestion_keyword;
 
 #[cfg(feature = "email")]
 use self::keywords::create_draft_keyword;
@@ -81,6 +82,7 @@ impl ScriptService {
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
         list_tools_keyword(state.clone(), user.clone(), &mut engine);
         add_website_keyword(state.clone(), user.clone(), &mut engine);
+        add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
 
         #[cfg(feature = "web_automation")]
         get_website_keyword(&state, user.clone(), &mut engine);
