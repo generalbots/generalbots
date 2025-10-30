@@ -3,17 +3,12 @@ use crate::shared::state::AppState;
 use actix_multipart::Multipart;
 use actix_web::web;
 use actix_web::{post, HttpResponse};
-use base64::Engine;
 use aws_sdk_s3::{Client as S3Client, config::Builder as S3ConfigBuilder};
 use aws_config::BehaviorVersion;
-// Removed unused import
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio_stream::StreamExt as TokioStreamExt;
-use reqwest::Client as HttpClient;
-use hmac::{Hmac, Mac};
-use sha2::Sha256;
-use chrono::Utc;
+// Removed unused import
 
 #[post("/files/upload/{folder_path}")]
 pub async fn upload_file(

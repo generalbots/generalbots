@@ -395,7 +395,7 @@ async fn create_session(data: web::Data<AppState>) -> Result<HttpResponse> {
 #[actix_web::get("/api/sessions")]
 async fn get_sessions(data: web::Data<AppState>) -> Result<HttpResponse> {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+    let orchestrator = BotOrchestrator::new(Arc::new(data.get_ref().clone()));
     match orchestrator.get_user_sessions(user_id).await {
         Ok(sessions) => Ok(HttpResponse::Ok().json(sessions)),
         Err(e) => {
@@ -416,7 +416,7 @@ async fn get_session_history(
 
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
-            let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+            let orchestrator = BotOrchestrator::new(Arc::new(data.get_ref().clone()));
             match orchestrator
                 .get_conversation_history(session_uuid, user_id)
                 .await
