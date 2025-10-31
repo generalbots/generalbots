@@ -29,29 +29,32 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &
                         }
                     };
 
-                    // Append suggestion to Redis list
-                    let result: Result<(), redis::RedisError> = redis::cmd("RPUSH")
+                    // Append suggestion to Redis list - RPUSH returns the new length as i64
+                    let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
                         .arg(&redis_key)
                         .arg(suggestion.to_string())
                         .query_async(&mut conn)
                         .await;
 
                     match result {
-                        Ok(_) => {
-                            debug!("Suggestion added successfully to Redis key {}", redis_key);
+                        Ok(length) => {
+                            debug!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
 
                             // Also register context as inactive initially
                             let active_key = format!("active_context:{}:{}", user.user_id, user.id);
-                            let _: Result<(), redis::RedisError> = redis::cmd("HSET")
+                            let hset_result: Result<i64, redis::RedisError> = redis::cmd("HSET")
                                 .arg(&active_key)
                                 .arg(&context_name)
                                 .arg("inactive")
                                 .query_async(&mut conn)
-                                .await
-                                .unwrap_or_else(|e| {
-                                    error!("Failed to set context state: {}", e);
-                                    ()
-                                });
+                                .await;
+
+                            match hset_result {
+                                Ok(fields_added) => {
+                                    debug!("Context state set to inactive for {}, fields added: {}", context_name, fields_added)
+                                },
+                                Err(e) => error!("Failed to set context state: {}", e),
+                            }
                         }
                         Err(e) => error!("Failed to add suggestion to Redis: {}", e),
                     }
