@@ -1,7 +1,7 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
-use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName, Selectable};
+use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
@@ -13,8 +13,6 @@ use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
-use uuid::Uuid;
-use diesel::SelectableHelper;
 
 use diesel::Queryable;
 
@@ -455,22 +453,9 @@ impl BootstrapManager {
             if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
                 let bot_folder = path.file_name().unwrap().to_string_lossy().to_string();
                 let bot_name = bot_folder.trim_end_matches(".gbai");
-                let formatted_name = bot_name
-                    .split('_')
-                    .map(|word| {
-                        let mut chars = word.chars();
-                        match chars.next() {
-                            None => String::new(),
-                            Some(first) => {
-                                first.to_uppercase().collect::<String>() + chars.as_str()
-                            }
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join(" ");
 
                 let existing: Option<String> = bots::table
-                    .filter(bots::name.eq(&formatted_name))
+                    .filter(bots::name.eq(&bot_name))
                     .select(bots::name)
                     .first(conn)
                     .optional()?;
@@ -480,11 +465,11 @@ impl BootstrapManager {
                         "INSERT INTO bots (id, name, description, llm_provider, llm_config, context_provider, context_config, is_active) \
                          VALUES (gen_random_uuid(), $1, $2, 'openai', '{\"model\": \"gpt-4\", \"temperature\": 0.7}', 'database', '{}', true)"
                     )
-                    .bind::<diesel::sql_types::Text, _>(&formatted_name)
+                    .bind::<diesel::sql_types::Text, _>(&bot_name)
                     .bind::<diesel::sql_types::Text, _>(format!("Bot for {} template", bot_name))
                     .execute(conn)?;
                 } else {
-                    log::trace!("Bot {} already exists", formatted_name);
+                    log::trace!("Bot {} already exists", bot_name);
                 }
             }
         }
@@ -541,7 +526,7 @@ impl BootstrapManager {
         use uuid::Uuid;
 
         let client = &self.s3_client;
-        let bucket = "templates/default.gbai";
+        let bucket = "default.gbai";
         let config_key = "default.gbot/config.csv";
         
         match client.get_object()
