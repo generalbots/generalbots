@@ -285,25 +285,21 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
-            .app_data(web::Data::from(app_state_clone));
-
-        app = app
-            .service(upload_file)
-            .service(index)
-            .service(static_files)
-            .service(websocket_handler)
+            .app_data(web::Data::from(app_state_clone))
             .service(auth_handler)
-            .service(whatsapp_webhook_verify)
+            .service(chat_completions_local)
+            .service(create_session)
+            .service(embeddings_local)
+            .service(get_session_history)
+            .service(get_sessions)
+            .service(index)
+            .service(start_session)
+            .service(upload_file)
             .service(voice_start)
             .service(voice_stop)
-            .service(create_session)
-            .service(get_sessions)
-            .service(start_session)
-            .service(get_session_history)
-            .service(chat_completions_local)
-            .service(embeddings_local)
-            .service(bot_index); // Must be last - catches all remaining paths
-
+            .service(whatsapp_webhook_verify)
+            .service(websocket_handler);
+        
         #[cfg(feature = "email")]
         {
             app = app
@@ -313,9 +309,12 @@ async fn main() -> std::io::Result<()> {
                 .service(send_email)
                 .service(save_draft)
                 .service(save_click);
-        }
 
+        }
+        app = app.service(static_files);
+        app = app.service(bot_index);
         app
+
     })
     .workers(worker_count)
     .bind((config.server.host.clone(), config.server.port))?
