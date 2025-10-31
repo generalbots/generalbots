@@ -210,19 +210,20 @@ impl BotOrchestrator {
         data: serde_json::Value,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Sending event '{}' to session {} on channel {}", event_type, session_id, channel);
-        let event_response = BotResponse {
-            bot_id: bot_id.to_string(),
-            user_id: user_id.to_string(),
-            session_id: session_id.to_string(),
-            channel: channel.to_string(),
-            content: serde_json::to_string(&serde_json::json!({
-                "event": event_type,
-                "data": data
-            }))?,
-            message_type: 2,
-            stream_token: None,
-            is_complete: true,
-        };
+            let event_response = BotResponse {
+                bot_id: bot_id.to_string(),
+                user_id: user_id.to_string(),
+                session_id: session_id.to_string(),
+                channel: channel.to_string(),
+                content: serde_json::to_string(&serde_json::json!({
+                    "event": event_type,
+                    "data": data
+                }))?,
+                message_type: 2,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+            };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
             adapter.send_message(event_response).await?;
@@ -249,6 +250,7 @@ impl BotOrchestrator {
             message_type: 1,
             stream_token: None,
             is_complete: true,
+            suggestions: Vec::new(),
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -303,6 +305,7 @@ impl BotOrchestrator {
                         message_type: 1,
                         stream_token: None,
                         is_complete: true,
+                        suggestions: Vec::new(),
                     };
                     adapter.send_message(ack_response).await?;
                 }
@@ -346,6 +349,7 @@ impl BotOrchestrator {
             message_type: 1,
             stream_token: None,
             is_complete: true,
+            suggestions: Vec::new(),
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(&message.channel) {
@@ -593,6 +597,7 @@ impl BotOrchestrator {
                 message_type: 1,
                 stream_token: None,
                 is_complete: true,
+                suggestions: Vec::new(),
             };
             response_tx.send(thinking_response).await?;
         }
@@ -664,6 +669,7 @@ impl BotOrchestrator {
                 message_type: 1,
                 stream_token: None,
                 is_complete: false,
+                suggestions: Vec::new(),
             };
 
             if response_tx.send(partial).await.is_err() {
@@ -688,6 +694,7 @@ impl BotOrchestrator {
             message_type: 1,
             stream_token: None,
             is_complete: true,
+            suggestions: Vec::new(),
         };
 
         response_tx.send(final_msg).await?;
@@ -787,6 +794,7 @@ impl BotOrchestrator {
                     message_type: 1,
                     stream_token: None,
                     is_complete: true,
+                    suggestions: Vec::new(),
                 };
                 adapter.send_message(warn_response).await
             } else {

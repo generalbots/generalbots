@@ -354,19 +354,7 @@ impl SessionManager {
 #[actix_web::post("/api/sessions")]
 async fn create_session(data: web::Data<AppState>) -> Result<HttpResponse> {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-    let bot_id = if let Ok(bot_guid) = std::env::var("BOT_GUID") {
-        match Uuid::parse_str(&bot_guid) {
-            Ok(uuid) => uuid,
-            Err(e) => {
-                warn!("Invalid BOT_GUID from env: {}", e);
-                return Ok(HttpResponse::BadRequest()
-                    .json(serde_json::json!({"error": "Invalid BOT_GUID"})));
-            }
-        }
-    } else {
-        warn!("BOT_GUID not set in environment, using nil UUID");
-        Uuid::nil()
-    };
+    let bot_id = Uuid::nil();
 
     let session = {
         let mut session_manager = data.session_manager.lock().await;
