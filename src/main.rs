@@ -36,6 +36,7 @@ mod tools;
 mod web_automation;
 mod web_server;
 mod whatsapp;
+mod create_bucket;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
@@ -43,7 +44,6 @@ use crate::bootstrap::BootstrapManager;
 use crate::bot::{start_session, websocket_handler};
 use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
-use crate::drive_monitor::DriveMonitor;
 #[cfg(feature = "email")]
 use crate::email::{
     get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
@@ -59,10 +59,17 @@ use crate::shared::state::AppState;
 use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;
 use crate::whatsapp::WhatsAppAdapter;
+use crate::bot::BotOrchestrator;
 
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // Test bucket creation
+    match create_bucket::create_bucket("test-bucket") {
+        Ok(_) => println!("Bucket created successfully"),
+        Err(e) => eprintln!("Failed to create bucket: {}", e),
+    }
+
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
         let command = &args[1];
@@ -89,6 +96,7 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
+    // Rest of the original main function remains unchanged...
     dotenv().ok();
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .write_style(env_logger::WriteStyle::Always)
@@ -106,7 +114,7 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
-    let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
+    let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
 
     // Prevent double bootstrap: skip if environment already initialized
     let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
@@ -120,7 +128,7 @@ async fn main() -> std::io::Result<()> {
             Err(_) => AppConfig::from_env(),
         }
     } else {
-        match bootstrap.bootstrap() {
+        match bootstrap.bootstrap().await {
             Ok(config) => {
                 info!("Bootstrap completed successfully");
                 config
@@ -138,9 +146,13 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    
-    let _ = bootstrap.start_all();
-    if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
+    // Start all services (synchronous)
+    if let Err(e) = bootstrap.start_all() {
+        log::warn!("Failed to start all services: {}", e);
+    }
+
+    // Upload templates (asynchronous)
+    if let Err(e) = futures::executor::block_on(bootstrap.upload_templates_to_drive(&cfg)) {
         log::warn!("Failed to upload templates to MinIO: {}", e);
     }
 
@@ -193,7 +205,6 @@ async fn main() -> std::io::Result<()> {
     ));
     let tool_api = Arc::new(tools::ToolApi::new());
 
-
     let drive = init_drive(&config.drive)
         .await
         .expect("Failed to initialize Drive");
@@ -209,9 +220,10 @@ async fn main() -> std::io::Result<()> {
     )));
 
     let app_state = Arc::new(AppState {
-        s3_operator: Some(drive.clone()),
+        s3_client: Some(drive),
         config: Some(cfg.clone()),
         conn: db_pool.clone(),
+        bucket_name: "default.gbai".to_string(), // Default bucket name
         custom_conn: db_custom_pool.clone(),
         redis_client: redis_client.clone(),
         session_manager: session_manager.clone(),
@@ -246,19 +258,21 @@ async fn main() -> std::io::Result<()> {
             .expect("Failed to create runtime for automation");
         let local = tokio::task::LocalSet::new();
         local.block_on(&rt, async move {
-            let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-            let scripts_dir = format!("work/{}.gbai/.gbdialog", bot_guid);
+            let scripts_dir = "work/default.gbai/.gbdialog".to_string();
             let automation = AutomationService::new(automation_state, &scripts_dir);
             automation.spawn().await.ok();
         });
     });
 
-    let drive_state = app_state.clone();
-    let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-    let bucket_name = format!("{}{}.gbai", cfg.drive.org_prefix, bot_guid);
-    let drive_monitor = Arc::new(DriveMonitor::new(drive_state, bucket_name));
-    let _drive_handle = drive_monitor.spawn();
+    // Initialize bot orchestrator and mount all bots
+    let bot_orchestrator = BotOrchestrator::new(app_state.clone());
+    
+    // Mount all active bots from database
+    if let Err(e) = bot_orchestrator.mount_all_bots().await {
+        log::error!("Failed to mount bots: {}", e);
+    }
 
+    
     HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
@@ -271,25 +285,21 @@ async fn main() -> std::io::Result<()> {
             .wrap(cors)
             .wrap(Logger::default())
             .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
-            .app_data(web::Data::from(app_state_clone));
-
-        app = app
-            .service(upload_file)
-            .service(index)
-            .service(static_files)
-            .service(websocket_handler)
+            .app_data(web::Data::from(app_state_clone))
             .service(auth_handler)
-            .service(whatsapp_webhook_verify)
+            .service(chat_completions_local)
+            .service(create_session)
+            .service(embeddings_local)
+            .service(get_session_history)
+            .service(get_sessions)
+            .service(index)
+            .service(start_session)
+            .service(upload_file)
             .service(voice_start)
             .service(voice_stop)
-            .service(create_session)
-            .service(get_sessions)
-            .service(start_session)
-            .service(get_session_history)
-            .service(chat_completions_local)
-            .service(embeddings_local)
-            .service(bot_index); // Must be last - catches all remaining paths
-
+            .service(whatsapp_webhook_verify)
+            .service(websocket_handler);
+        
         #[cfg(feature = "email")]
         {
             app = app
@@ -299,9 +309,12 @@ async fn main() -> std::io::Result<()> {
                 .service(send_email)
                 .service(save_draft)
                 .service(save_click);
-        }
 
+        }
+        app = app.service(static_files);
+        app = app.service(bot_index);
         app
+
     })
     .workers(worker_count)
     .bind((config.server.host.clone(), config.server.port))?

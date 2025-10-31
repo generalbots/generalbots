@@ -2,6 +2,7 @@ use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{debug, error, info};
 use reqwest::{self, Client};
+use crate::kb::minio_handler;
 use rhai::{Dynamic, Engine};
 use std::error::Error;
 use std::path::Path;
@@ -158,13 +159,7 @@ pub async fn get_from_bucket(
         return Err("Invalid file path".into());
     }
 
-    let s3_operator = match &state.s3_operator {
-        Some(operator) => operator,
-        None => {
-            error!("S3 operator not configured");
-            return Err("S3 operator not configured".into());
-        }
-    };
+    let client = state.s3_client.as_ref().ok_or("S3 client not configured")?;
 
     let bucket_name = {
         let cfg = state
@@ -187,11 +182,11 @@ pub async fn get_from_bucket(
         bucket
     };
 
-    let response = match tokio::time::timeout(
-        Duration::from_secs(30), 
-        s3_operator.read(&format!("{}/{}", bucket_name, file_path))
+    let bytes = match tokio::time::timeout(
+        Duration::from_secs(30),
+        minio_handler::get_file_content(client, &bucket_name, file_path)
     ).await {
-        Ok(Ok(response)) => response,
+        Ok(Ok(data)) => data,
         Ok(Err(e)) => {
             error!("S3 read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());
@@ -202,15 +197,7 @@ pub async fn get_from_bucket(
         }
     };
 
-    let bytes = response.to_vec();
-    debug!(
-        "Retrieved {} bytes from S3 for key: {}",
-        bytes.len(),
-        file_path
-    );
-
     let content = if file_path.to_ascii_lowercase().ends_with(".pdf") {
-        debug!("Processing as PDF file: {}", file_path);
         match pdf_extract::extract_text_from_mem(&bytes) {
             Ok(text) => text,
             Err(e) => {

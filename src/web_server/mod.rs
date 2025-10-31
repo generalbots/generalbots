@@ -26,7 +26,7 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
     }
 }
 
-#[actix_web::get("/{filename:.*}")]
+#[actix_web::get("/static/{filename:.*}")]
 async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
     let filename = req.match_info().query("filename");
     let path = format!("web/html/{}", filename);

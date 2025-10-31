@@ -6,8 +6,8 @@ use crate::session::SessionManager;
 use crate::tools::{ToolApi, ToolManager};
 use crate::whatsapp::WhatsAppAdapter;
 use diesel::{Connection, PgConnection};
-use opendal::Operator;
-use redis::Client;
+use aws_sdk_s3::Client as S3Client;
+use redis::Client as RedisClient;
 use std::collections::HashMap;
 use std::sync::Arc;
 use std::sync::Mutex;
@@ -15,11 +15,12 @@ use tokio::sync::mpsc;
 use crate::shared::models::BotResponse;
 
 pub struct AppState {
-    pub s3_operator: Option<Operator>,
+    pub s3_client: Option<S3Client>,
+    pub bucket_name: String,
     pub config: Option<AppConfig>,
     pub conn: Arc<Mutex<PgConnection>>,
     pub custom_conn: Arc<Mutex<PgConnection>>,
-    pub redis_client: Option<Arc<Client>>,
+    pub redis_client: Option<Arc<RedisClient>>,
     pub session_manager: Arc<tokio::sync::Mutex<SessionManager>>,
     pub tool_manager: Arc<ToolManager>,
     pub llm_provider: Arc<dyn LLMProvider>,
@@ -35,7 +36,8 @@ pub struct AppState {
 impl Clone for AppState {
     fn clone(&self) -> Self {
         Self {
-            s3_operator: self.s3_operator.clone(),
+            s3_client: self.s3_client.clone(),
+            bucket_name: self.bucket_name.clone(),
             config: self.config.clone(),
             conn: Arc::clone(&self.conn),
             custom_conn: Arc::clone(&self.custom_conn),
@@ -57,7 +59,8 @@ impl Clone for AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            s3_operator: None,
+            s3_client: None,
+            bucket_name: "default.gbai".to_string(),
             config: None,
             conn: Arc::new(Mutex::new(
                 diesel::PgConnection::establish("postgres://localhost/test").unwrap(),

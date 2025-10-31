@@ -183,31 +183,6 @@ BEGIN
     END IF;
 END $$;
 
--- ============================================================================
--- DEFAULT SERVER CONFIGURATION
--- Insert default values that replace .env
--- ============================================================================
-INSERT INTO server_configuration (id, config_key, config_value, config_type, description) VALUES
-    (gen_random_uuid()::text, 'SERVER_HOST', '127.0.0.1', 'string', 'Server bind address'),
-    (gen_random_uuid()::text, 'SERVER_PORT', '8080', 'integer', 'Server port'),
-    (gen_random_uuid()::text, 'TABLES_SERVER', 'localhost', 'string', 'PostgreSQL server address'),
-    (gen_random_uuid()::text, 'TABLES_PORT', '5432', 'integer', 'PostgreSQL port'),
-    (gen_random_uuid()::text, 'TABLES_DATABASE', 'botserver', 'string', 'PostgreSQL database name'),
-    (gen_random_uuid()::text, 'TABLES_USERNAME', 'botserver', 'string', 'PostgreSQL username'),
-    (gen_random_uuid()::text, 'DRIVE_SERVER', 'localhost:9000', 'string', 'MinIO server address'),
-    (gen_random_uuid()::text, 'DRIVE_USE_SSL', 'false', 'boolean', 'Use SSL for drive'),
-    (gen_random_uuid()::text, 'DRIVE_ORG_PREFIX', 'botserver', 'string', 'Drive organization prefix'),
-    (gen_random_uuid()::text, 'DRIVE_BUCKET', 'default', 'string', 'Default S3 bucket'),
-    (gen_random_uuid()::text, 'VECTORDB_URL', 'http://localhost:6333', 'string', 'Qdrant vector database URL'),
-    (gen_random_uuid()::text, 'CACHE_URL', 'redis://localhost:6379', 'string', 'Redis cache URL'),
-    (gen_random_uuid()::text, 'STACK_PATH', './botserver-stack', 'string', 'Base path for all components'),
-    (gen_random_uuid()::text, 'SITES_ROOT', './botserver-stack/sites', 'string', 'Root path for sites')
-ON CONFLICT (config_key) DO NOTHING;
-
--- ============================================================================
--- DEFAULT TENANT
--- Create default tenant for single-tenant installations
--- ============================================================================
 INSERT INTO tenants (id, name, slug, is_active) VALUES
     (gen_random_uuid(), 'Default Tenant', 'default', true)
 ON CONFLICT (slug) DO NOTHING;

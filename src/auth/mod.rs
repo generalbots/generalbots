@@ -1,11 +1,11 @@
-use actix_web::{web, HttpResponse, Result};
+use actix_web::{HttpRequest, HttpResponse, Result, web};
 use argon2::{
     password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString},
     Argon2,
 };
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use log::{error, warn};
+use log::{error};
 use redis::Client;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -148,6 +148,7 @@ impl AuthService {
 
 #[actix_web::get("/api/auth")]
 async fn auth_handler(
+    req: HttpRequest,
     data: web::Data<AppState>,
     web::Query(params): web::Query<HashMap<String, String>>,
 ) -> Result<HttpResponse> {
@@ -166,45 +167,10 @@ async fn auth_handler(
         }
     };
 
-    let bot_id = if let Ok(bot_guid) = std::env::var("BOT_GUID") {
-        match Uuid::parse_str(&bot_guid) {
-            Ok(uuid) => uuid,
-            Err(e) => {
-                warn!("Invalid BOT_GUID from env: {}", e);
-                return Ok(HttpResponse::BadRequest()
-                    .json(serde_json::json!({"error": "Invalid BOT_GUID"})));
-            }
-        }
-    } else {
-        // BOT_GUID not set, get first available bot from database
-        use crate::shared::models::schema::bots::dsl::*;
-        use diesel::prelude::*;
-
-        let mut db_conn = data.conn.lock().unwrap();
-        match bots
-            .filter(is_active.eq(true))
-            .select(id)
-            .first::<Uuid>(&mut *db_conn)
-            .optional()
-        {
-            Ok(Some(first_bot_id)) => {
-                log::info!(
-                    "BOT_GUID not set, using first available bot: {}",
-                    first_bot_id
-                );
-                first_bot_id
-            }
-            Ok(None) => {
-                error!("No active bots found in database");
-                return Ok(HttpResponse::ServiceUnavailable()
-                    .json(serde_json::json!({"error": "No bots available"})));
-            }
-            Err(e) => {
-                error!("Failed to query bots: {}", e);
-                return Ok(HttpResponse::InternalServerError()
-                    .json(serde_json::json!({"error": "Failed to query bots"})));
-            }
-        }
+    let mut db_conn = data.conn.lock().unwrap();
+    let (bot_id, bot_name) = match crate::bot::bot_from_url(&mut *db_conn, req.path()) {
+        Ok((id, name)) => (id, name),
+        Err(res) => return Ok(res),
     };
 
     let session = {
@@ -224,35 +190,40 @@ async fn auth_handler(
         }
     };
 
-    let session_id_clone = session.id.clone();
-    let auth_script_path = "./templates/annoucements.gbai/annoucements.gbdialog/auth.bas";
-    let auth_script = match std::fs::read_to_string(auth_script_path) {
-        Ok(content) => content,
-        Err(_) => r#"SET_USER "00000000-0000-0000-0000-000000000001""#.to_string(),
-    };
-
-    let script_service = crate::basic::ScriptService::new(Arc::clone(&data), session.clone());
-    match script_service
-        .compile(&auth_script)
-        .and_then(|ast| script_service.run(&ast))
-    {
-        Ok(result) => {
-            if result.to_string() == "false" {
-                error!("Auth script returned false, authentication failed");
-                return Ok(HttpResponse::Unauthorized()
-                    .json(serde_json::json!({"error": "Authentication failed"})));
+    let auth_script_path = format!("./work/{}.gbai/{}.gbdialog/auth.ast", bot_name, bot_name);
+    if std::path::Path::new(&auth_script_path).exists() {
+        let auth_script = match std::fs::read_to_string(&auth_script_path) {
+            Ok(content) => content,
+            Err(e) => {
+                error!("Failed to read auth script: {}", e);
+                return Ok(HttpResponse::InternalServerError()
+                    .json(serde_json::json!({"error": "Failed to read auth script"})));
             }
-        }
-        Err(e) => {
-            error!("Failed to run auth script: {}", e);
-            return Ok(HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Auth failed"})));
+        };
+
+        let script_service = crate::basic::ScriptService::new(Arc::clone(&data), session.clone());
+        match script_service
+            .compile(&auth_script)
+            .and_then(|ast| script_service.run(&ast))
+        {
+            Ok(result) => {
+                if result.to_string() == "false" {
+                    error!("Auth script returned false, authentication failed");
+                    return Ok(HttpResponse::Unauthorized()
+                        .json(serde_json::json!({"error": "Authentication failed"})));
+                }
+            }
+            Err(e) => {
+                error!("Failed to run auth script: {}", e);
+                return Ok(HttpResponse::InternalServerError()
+                    .json(serde_json::json!({"error": "Auth failed"})));
+            }
         }
     }
 
     let session = {
         let mut sm = data.session_manager.lock().await;
-        match sm.get_session_by_id(session_id_clone) {
+        match sm.get_session_by_id(session.id) {
             Ok(Some(s)) => s,
             Ok(None) => {
                 error!("Failed to retrieve session");
