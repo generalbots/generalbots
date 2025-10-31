@@ -71,7 +71,7 @@ impl ScriptService {
         set_schedule_keyword(&state, user.clone(), &mut engine);
         hear_keyword(state.clone(), user.clone(), &mut engine);
         talk_keyword(state.clone(), user.clone(), &mut engine);
-        set_context_keyword(&state, user.clone(), &mut engine);
+        set_context_keyword(state.clone(), user.clone(), &mut engine);
         set_user_keyword(state.clone(), user.clone(), &mut engine);
 
         // KB and Tools keywords

@@ -880,36 +880,30 @@
                 </div>
                 <div id="suggestions-container" style="text-align:center; margin-top:10px;"></div>
                 <script>
-                  async function loadSuggestions() {
-                    try {
-                      const res = await fetch('/api/suggestions');
-                      const suggestions = await res.json();
-                      const container = document.getElementById('suggestions-container');
-                      container.innerHTML = '';
-                      suggestions.forEach(s => {
-                        const btn = document.createElement('button');
-                        btn.textContent = s.text;
-                        btn.className = 'suggestion-button';
-                        btn.style.margin = '5px';
-                        btn.style.padding = '8px 12px';
-                        btn.style.backgroundColor = '#ffd700';
-                        btn.style.color = '#0a0e27';
-                        btn.style.border = 'none';
-                        btn.style.borderRadius = '6px';
-                        btn.style.cursor = 'pointer';
-                        btn.onclick = () => setContext(s.context);
-                        container.appendChild(btn);
-                      });
-                    } catch (err) {
-                      console.error('Failed to load suggestions:', err);
-                    }
+                  function handleSuggestions(suggestions) {
+                    const container = document.getElementById('suggestions-container');
+                    container.innerHTML = '';
+                    suggestions.forEach(s => {
+                      const btn = document.createElement('button');
+                      btn.textContent = s.text;
+                      btn.className = 'suggestion-button';
+                      btn.style.margin = '5px';
+                      btn.style.padding = '8px 12px';
+                      btn.style.backgroundColor = '#ffd700';
+                      btn.style.color = '#0a0e27';
+                      btn.style.border = 'none';
+                      btn.style.borderRadius = '6px';
+                      btn.style.cursor = 'pointer';
+                      btn.onclick = () => setContext(s.context);
+                      container.appendChild(btn);
+                    });
                   }
 
                   async function setContext(context) {
                     try {
                       if (ws && ws.readyState === WebSocket.OPEN) {
                         const suggestionEvent = {
-                          bot_id: "default_bot",
+                          bot_id: currentBotId,
                           user_id: currentUserId,
                           session_id: currentSessionId,
                           channel: "web",
@@ -929,8 +923,6 @@
                       console.error('Failed to set context:', err);
                     }
                   }
-
-                  window.addEventListener('load', loadSuggestions);
                 </script>
             </footer>
         </div>
@@ -964,6 +956,7 @@
             let ws = null;
             let currentSessionId = null;
             let currentUserId = null;
+            let currentBotId = "default_bot";
             let isStreaming = false;
             let voiceRoom = null;
             let isVoiceMode = false;
@@ -1232,6 +1225,11 @@
 
                 ws.onmessage = function (event) {
                     const response = JSON.parse(event.data);
+                    
+                    // Update current bot_id if provided in the message
+                    if (response.bot_id) {
+                        currentBotId = response.bot_id;
+                    }
 
                     if (response.message_type === 2) {
                         const eventData = JSON.parse(response.content);
@@ -1295,6 +1293,12 @@
                 // Handle context usage if provided
                 if (response.context_usage !== undefined) {
                     updateContextUsage(response.context_usage);
+                }
+
+                // Handle suggestion messages
+                if (response.message_type === 3) {
+                    handleSuggestions(response.suggestions);
+                    return;
                 }
 
                 // Handle complete messages
