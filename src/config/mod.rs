@@ -3,6 +3,8 @@ use diesel::sql_types::Text;
 use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fs::OpenOptions;
+use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
@@ -190,11 +192,18 @@ impl AppConfig {
                 .and_then(|p| p.parse().ok())
                 .unwrap_or_else(|| get_u32("CUSTOM_PORT", 5432)),
             database: std::env::var("CUSTOM_DATABASE")
-                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "botserver")),
+                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "gbuser")),
         };
 
         let minio = DriveConfig {
-            server: get_str("DRIVE_SERVER", "http://localhost:9000"),
+            server: {
+                let server = get_str("DRIVE_SERVER", "http://localhost:9000");
+                if !server.starts_with("http://") && !server.starts_with("https://") {
+                    format!("http://{}", server)
+                } else {
+                    server
+                }
+            },
             access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
             secret_key: get_str("DRIVE_SECRET", "minioadmin"),
             use_ssl: get_bool("DRIVE_USE_SSL", false),
@@ -215,6 +224,11 @@ impl AppConfig {
             version: get_str("AI_VERSION", "2023-12-01-preview"),
             endpoint: get_str("AI_ENDPOINT", "https://api.openai.com"),
         };
+
+        // Write drive config to .env file
+        if let Err(e) = write_drive_config_to_env(&minio) {
+            warn!("Failed to write drive config to .env: {}", e);
+        }
 
         AppConfig {
             drive: minio,
@@ -365,6 +379,22 @@ impl AppConfig {
             .map(|row| row.value)?;
         Ok(result)
     }
+}
+
+fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
+    let mut file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(".env")?;
+    
+    writeln!(file,"")?;
+    writeln!(file, "DRIVE_SERVER={}", drive.server)?;
+    writeln!(file, "DRIVE_ACCESSKEY={}", drive.access_key)?;
+    writeln!(file, "DRIVE_SECRET={}", drive.secret_key)?;
+    writeln!(file, "DRIVE_USE_SSL={}", drive.use_ssl)?;
+    writeln!(file, "DRIVE_ORG_PREFIX={}", drive.org_prefix)?;
+
+    Ok(())
 }
 
 fn parse_database_url(url: &str) -> (String, String, String, u32, String) {

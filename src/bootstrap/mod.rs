@@ -1,20 +1,25 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use anyhow::Result;
-use diesel::connection::SimpleConnection;
-use diesel::RunQueryDsl;
-use diesel::{Connection, QueryableByName};
+use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
-use opendal::Operator;
+use aws_sdk_s3::Client;
+use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
 use rand::Rng;
 use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
+use std::sync::{Arc, Mutex};
+
+use diesel::Queryable;
 
 #[derive(QueryableByName)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+#[derive(Queryable)]
+#[diesel(table_name = crate::shared::models::schema::bots)]
 struct BotIdRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
     id: uuid::Uuid,
@@ -28,21 +33,21 @@ pub struct ComponentInfo {
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
     pub tenant: Option<String>,
-    pub s3_operator: Operator,
+    pub s3_client: Client,
 }
 
 impl BootstrapManager {
-    pub fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
+    pub async fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
         info!(
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode, tenant
         );
         let config = AppConfig::from_env();
-        let s3_operator = Self::create_s3_operator(&config);
+        let s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         Self {
             install_mode,
             tenant,
-            s3_operator,
+            s3_client,
         }
     }
 
@@ -140,8 +145,8 @@ impl BootstrapManager {
                 let mut conn = diesel::pg::PgConnection::establish(&database_url)
                     .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
                 let default_bot_id: uuid::Uuid = diesel::sql_query("SELECT id FROM bots LIMIT 1")
-                    .get_result::<BotIdRow>(&mut conn)
-                    .map(|row| row.id)
+                    .load::<BotIdRow>(&mut conn)
+                    .map(|rows| rows.first().map(|r| r.id).unwrap_or_else(|| uuid::Uuid::new_v4()))
                     .unwrap_or_else(|_| uuid::Uuid::new_v4());
 
                 if let Err(e) = self.update_bot_config(&default_bot_id, component.name) {
@@ -156,7 +161,8 @@ impl BootstrapManager {
         Ok(())
     }
 
-    pub fn bootstrap(&mut self) -> Result<AppConfig> {
+    pub async fn bootstrap(&mut self) -> Result<AppConfig> {
+        // First check for legacy mode
         if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
             if !tables_server.is_empty() {
                 info!(
@@ -164,7 +170,7 @@ impl BootstrapManager {
                 );
                 let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
                     let username =
-                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "postgres".to_string());
+                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "gbuser".to_string());
                     let password =
                         std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
                     let server =
@@ -177,6 +183,11 @@ impl BootstrapManager {
                         username, password, server, port, database
                     )
                 });
+
+                // In legacy mode, still try to load config.csv if available
+                if let Ok(config) = self.load_config_from_csv().await {
+                    return Ok(config);
+                }
 
                 match diesel::PgConnection::establish(&database_url) {
                     Ok(mut conn) => {
@@ -292,46 +303,49 @@ impl BootstrapManager {
             }
         }
 
-        self.s3_operator = Self::create_s3_operator(&config);
-        let default_bucket_path = Path::new("templates/default.gbai/default.gbot/config.csv");
-        if default_bucket_path.exists() {
-            info!("Found initial config.csv, uploading to default.gbai/default.gbot");
-            let operator = &self.s3_operator;
-            futures::executor::block_on(async {
-                let content = std::fs::read(default_bucket_path).expect("Failed to read config.csv");
-                operator.write("default.gbai/default.gbot/config.csv", content).await
-            })?;
-            debug!("Initial config.csv uploaded successfully");
+        self.s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
+        
+        // Load config from CSV if available
+        if let Ok(csv_config) = self.load_config_from_csv().await {
+            Ok(csv_config)
+        } else {
+            Ok(config)
         }
-        Ok(config)
     }
-    fn create_s3_operator(config: &AppConfig) -> Operator {
-        use opendal::Scheme;
-        use std::collections::HashMap;
 
-        let mut endpoint = config.drive.server.clone();
-        if !endpoint.ends_with('/') {
-            endpoint.push('/');
-        }
 
-        let mut map = HashMap::new();
-        map.insert("endpoint".to_string(), endpoint);
-        map.insert("access_key_id".to_string(), config.drive.access_key.clone());
-        map.insert(
-            "secret_access_key".to_string(),
-            config.drive.secret_key.clone(),
-        );
-        map.insert(
-            "bucket".to_string(),
-            format!("default.gbai"),
-        );
-        map.insert("region".to_string(), "auto".to_string());
-        map.insert("force_path_style".to_string(), "true".to_string());
 
-        trace!("Creating S3 operator with endpoint {}", config.drive.server);
+    async fn create_s3_operator(config: &AppConfig) -> Client {
+        let endpoint = if !config.drive.server.ends_with('/') {
+            format!("{}/", config.drive.server)
+        } else {
+            config.drive.server.clone()
+        };
 
-        Operator::via_iter(Scheme::S3, map).expect("Failed to initialize S3 operator")
+        let base_config = aws_config::defaults(BehaviorVersion::latest())
+            .endpoint_url(endpoint)
+            .region("auto")
+            .credentials_provider(
+                aws_sdk_s3::config::Credentials::new(
+                    config.drive.access_key.clone(),
+                    config.drive.secret_key.clone(),
+                    None,
+                    None,
+                    "static",
+                )
+            )
+            .load()
+            .await;
+
+        let s3_config = aws_sdk_s3::config::Builder::from(&base_config)
+            .force_path_style(true)
+            .build();
+
+        aws_sdk_s3::Client::from_conf(s3_config)
     }
+
+
+
 
     fn generate_secure_password(&self, length: usize) -> String {
         let mut rng = rand::rng();
@@ -381,7 +395,7 @@ impl BootstrapManager {
         if !templates_dir.exists() {
             return Ok(());
         }
-        let operator = &self.s3_operator;
+        let client = &self.s3_client;
         for entry in std::fs::read_dir(templates_dir)? {
             let entry = entry?;
             let path = entry.path();
@@ -395,27 +409,30 @@ impl BootstrapManager {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let bucket = bot_name.trim_start_matches('/').to_string();
                 info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
-if operator.stat(&bucket).await.is_err() {
-    info!("Bucket {} not found, creating it", bucket);
-    let bucket_path = if bucket.ends_with('/') { bucket.clone() } else { format!("{}/", bucket) };
-match operator.create_dir(&bucket_path).await {
-        Ok(_) => {
-            debug!("Bucket {} created successfully", bucket);
-        }
-        Err(e) => {
-            let err_msg = format!("{}", e);
-            if err_msg.contains("BucketAlreadyOwnedByYou") {
-                log::warn!("Bucket {} already exists, reusing default.gbai", bucket);
-                self.upload_directory_recursive(&operator, &Path::new("templates/default.gbai"), "default.gbai").await?;
-                continue;
-            } else {
-                return Err(e.into());
-            }
-        }
-    }
-}
-self.upload_directory_recursive(&operator, &path, &bucket).await?;
-info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
+                
+                // Check if bucket exists
+                if client.head_bucket().bucket(&bucket).send().await.is_err() {
+                    info!("Bucket {} not found, creating it", bucket);
+                    match client.create_bucket()
+                        .bucket(&bucket)
+                        .send()
+                        .await {
+                        Ok(_) => {
+                            debug!("Bucket {} created successfully", bucket);
+                        }
+                        Err(e) => {
+                            error!("Failed to create bucket {}: {:?}", bucket, e);
+                            return Err(anyhow::anyhow!(
+                                "Failed to create bucket {}: {}. Check S3 credentials and endpoint configuration",
+                                bucket, e
+                            ));
+                        }
+                    }
+                }
+                
+                self.upload_directory_recursive(client, &path, &bucket, "/")
+                    .await?;
+                info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
         }
         Ok(())
@@ -436,22 +453,9 @@ info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             if path.is_dir() && path.extension().map(|e| e == "gbai").unwrap_or(false) {
                 let bot_folder = path.file_name().unwrap().to_string_lossy().to_string();
                 let bot_name = bot_folder.trim_end_matches(".gbai");
-                let formatted_name = bot_name
-                    .split('_')
-                    .map(|word| {
-                        let mut chars = word.chars();
-                        match chars.next() {
-                            None => String::new(),
-                            Some(first) => {
-                                first.to_uppercase().collect::<String>() + chars.as_str()
-                            }
-                        }
-                    })
-                    .collect::<Vec<_>>()
-                    .join(" ");
 
                 let existing: Option<String> = bots::table
-                    .filter(bots::name.eq(&formatted_name))
+                    .filter(bots::name.eq(&bot_name))
                     .select(bots::name)
                     .first(conn)
                     .optional()?;
@@ -461,11 +465,11 @@ info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
                         "INSERT INTO bots (id, name, description, llm_provider, llm_config, context_provider, context_config, is_active) \
                          VALUES (gen_random_uuid(), $1, $2, 'openai', '{\"model\": \"gpt-4\", \"temperature\": 0.7}', 'database', '{}', true)"
                     )
-                    .bind::<diesel::sql_types::Text, _>(&formatted_name)
+                    .bind::<diesel::sql_types::Text, _>(&bot_name)
                     .bind::<diesel::sql_types::Text, _>(format!("Bot for {} template", bot_name))
                     .execute(conn)?;
                 } else {
-                    log::trace!("Bot {} already exists", formatted_name);
+                    log::trace!("Bot {} already exists", bot_name);
                 }
             }
         }
@@ -475,8 +479,9 @@ info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
 
     fn upload_directory_recursive<'a>(
         &'a self,
-        client: &'a Operator,
+        client: &'a Client,
         local_path: &'a Path,
+        bucket: &'a str,
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
@@ -490,24 +495,77 @@ info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
                 let entry = entry?;
                 let path = entry.path();
                 let file_name = path.file_name().unwrap().to_string_lossy().to_string();
-                let key = if prefix.is_empty() {
-                    file_name.clone()
-                } else {
-                    format!("{}/{}", prefix.trim_end_matches('/'), file_name)
-                };
+                
+                // Construct key path, ensuring no duplicate slashes
+                let mut key = prefix.trim_matches('/').to_string();
+                if !key.is_empty() {
+                    key.push('/');
+                }
+                key.push_str(&file_name);
 
                 if path.is_file() {
-                    info!("Uploading file: {} with key: {}", path.display(), key);
+                    info!("Uploading file: {} to bucket {} with key: {}", 
+                        path.display(), bucket, key);
                     let content = std::fs::read(&path)?;
-                    trace!("Writing file {} with key {}", path.display(), key);
-                    client.write(&key, content).await?;
-                    trace!("Successfully wrote file {}", path.display());
+                    client.put_object()
+                        .bucket(bucket)
+                        .key(&key)
+                        .body(content.into())
+                        .send()
+                        .await?;
                 } else if path.is_dir() {
-                    self.upload_directory_recursive(client, &path, &key).await?;
+                    self.upload_directory_recursive(client, &path, bucket, &key).await?;
                 }
             }
             Ok(())
         })
+    }
+
+    async fn load_config_from_csv(&self) -> Result<AppConfig> {
+        use crate::config::ConfigManager;
+        use uuid::Uuid;
+
+        let client = &self.s3_client;
+        let bucket = "default.gbai";
+        let config_key = "default.gbot/config.csv";
+        
+        match client.get_object()
+            .bucket(bucket)
+            .key(config_key)
+            .send()
+            .await 
+        {
+            Ok(response) => {
+                let bytes = response.body.collect().await?.into_bytes();
+                let csv_content = String::from_utf8(bytes.to_vec())?;
+                
+                let database_url = std::env::var("DATABASE_URL")
+                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+                // Create new connection for config loading
+                let config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config_manager = ConfigManager::new(Arc::new(Mutex::new(config_conn)));
+                
+                // Use default bot ID or create one if needed
+                let default_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
+                
+                // Write CSV to temp file for ConfigManager
+                let temp_path = std::env::temp_dir().join("config.csv");
+                std::fs::write(&temp_path, csv_content)?;
+                
+                config_manager.sync_gbot_config(&default_bot_id, temp_path.to_str().unwrap())
+                    .map_err(|e| anyhow::anyhow!("Failed to sync gbot config: {}", e))?;
+                
+                // Load config from database which now has the CSV values
+                let mut config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config = AppConfig::from_database(&mut config_conn);
+                info!("Successfully loaded config from CSV");
+                Ok(config)
+            }
+            Err(e) => {
+                debug!("No config.csv found: {}", e);
+                Err(e.into())
+            }
+        }
     }
 
     fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {

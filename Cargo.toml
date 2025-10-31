@@ -53,6 +53,8 @@ anyhow = "1.0"
 argon2 = "0.5"
 async-stream = "0.3"
 async-trait = "0.1"
+aws-config = "1.8.8"
+aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"] }
 base64 = "0.22"
 bytes = "1.8"
 chrono = { version = "0.4", features = ["serde"] }
@@ -64,6 +66,7 @@ env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
 headless_chrome = { version = "1.0.18", optional = true }
+hmac = "0.12.1"
 imap = { version = "3.0.0-alpha.15", optional = true }
 include_dir = "0.7"
 indicatif = "0.18.0"
@@ -71,9 +74,9 @@ lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", 
 livekit = "0.7"
 log = "0.4"
 mailparse = "0.15"
+mockito = "1.7.0"
 native-tls = "0.2"
 num-format = "0.4"
-opendal = { version = "0.54.1", features = ["services-s3"] }
 pdf-extract = "0.10.0"
 qdrant-client = { version = "1.12", optional = true }
 rand = "0.9.2"

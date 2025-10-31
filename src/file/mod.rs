@@ -3,10 +3,12 @@ use crate::shared::state::AppState;
 use actix_multipart::Multipart;
 use actix_web::web;
 use actix_web::{post, HttpResponse};
-use opendal::Operator;
+use aws_sdk_s3::{Client as S3Client, config::Builder as S3ConfigBuilder};
+use aws_config::BehaviorVersion;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio_stream::StreamExt as TokioStreamExt;
+// Removed unused import
 
 #[post("/files/upload/{folder_path}")]
 pub async fn upload_file(
@@ -40,13 +42,13 @@ pub async fn upload_file(
     let file_name = file_name.unwrap_or_else(|| "unnamed_file".to_string());
     let temp_file_path = temp_file.into_temp_path();
 
-    let op = state.get_ref().s3_operator.as_ref().ok_or_else(|| {
-        actix_web::error::ErrorInternalServerError("S3 operator is not initialized")
+    let client = state.get_ref().s3_client.as_ref().ok_or_else(|| {
+        actix_web::error::ErrorInternalServerError("S3 client is not initialized")
     })?;
 
     let s3_key = format!("{}/{}", folder_path, file_name);
 
-    match upload_to_s3(op, &s3_key, &temp_file_path).await {
+    match upload_to_s3(client, &state.get_ref().bucket_name, &s3_key, &temp_file_path).await {
         Ok(_) => {
             let _ = std::fs::remove_file(&temp_file_path);
             Ok(HttpResponse::Ok().body(format!(
@@ -64,27 +66,149 @@ pub async fn upload_file(
     }
 }
 
-pub async fn init_drive(config: &DriveConfig) -> Result<Operator, Box<dyn std::error::Error>> {
-    use opendal::services::S3;
-    use opendal::Operator;
-    let client = Operator::new(
-        S3::default()
-            .root("/")
-            .endpoint(&config.server)
-            .access_key_id(&config.access_key)
-            .secret_access_key(&config.secret_key),
-    )?
-    .finish();
+pub async fn aws_s3_bucket_delete(
+    bucket: &str,
+    endpoint: &str,
+    access_key: &str,
+    secret_key: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .endpoint_url(endpoint)
+        .region("auto")
+        .credentials_provider(
+            aws_sdk_s3::config::Credentials::new(
+                access_key.to_string(),
+                secret_key.to_string(),
+                None,
+                None,
+                "static",
+            )
+        )
+        .load()
+        .await;
 
-    Ok(client)
+    let client = S3Client::new(&config);
+    client.delete_bucket()
+        .bucket(bucket)
+        .send()
+        .await?;
+    Ok(())
+}
+
+pub async fn aws_s3_bucket_create(
+    bucket: &str,
+    endpoint: &str,
+    access_key: &str,
+    secret_key: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let config = aws_config::defaults(BehaviorVersion::latest())
+        .endpoint_url(endpoint)
+        .region("auto")
+        .credentials_provider(
+            aws_sdk_s3::config::Credentials::new(
+                access_key.to_string(),
+                secret_key.to_string(),
+                None,
+                None,
+                "static",
+            )
+        )
+        .load()
+        .await;
+
+    let client = S3Client::new(&config);
+    client.create_bucket()
+        .bucket(bucket)
+        .send()
+        .await?;
+    Ok(())
+}
+
+pub async fn init_drive(config: &DriveConfig) -> Result<S3Client, Box<dyn std::error::Error>> {
+    let endpoint = if !config.server.ends_with('/') {
+        format!("{}/", config.server)
+    } else {
+        config.server.clone()
+    };
+
+    let base_config = aws_config::defaults(BehaviorVersion::latest())
+        .endpoint_url(endpoint)
+        .region("auto")
+        .credentials_provider(
+            aws_sdk_s3::config::Credentials::new(
+                config.access_key.clone(),
+                config.secret_key.clone(),
+                None,
+                None,
+                "static",
+            )
+        )
+        .load()
+        .await;
+
+    let s3_config = S3ConfigBuilder::from(&base_config)
+        .force_path_style(true)
+        .build();
+
+    Ok(S3Client::from_conf(s3_config))
 }
 
 async fn upload_to_s3(
-    op: &Operator,
+    client: &S3Client,
+    bucket: &str,
     key: &str,
     file_path: &std::path::Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let data = std::fs::read(file_path)?;
-    op.write(key, data).await?;
+    client.put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(data.into())
+        .send()
+        .await?;
     Ok(())
+}
+
+async fn create_s3_client(
+    
+) -> Result<S3Client, Box<dyn std::error::Error>> {
+    let config = DriveConfig {
+        server: std::env::var("DRIVE_SERVER").expect("DRIVE_SERVER not set"),
+        access_key: std::env::var("DRIVE_ACCESS_KEY").expect("DRIVE_ACCESS_KEY not set"),
+        secret_key: std::env::var("DRIVE_SECRET_KEY").expect("DRIVE_SECRET_KEY not set"),
+        org_prefix: "".to_string(),
+        use_ssl: false,
+    };
+    Ok(init_drive(&config).await?)
+}
+
+pub async fn bucket_exists(client: &S3Client, bucket: &str) -> Result<bool, Box<dyn std::error::Error>> {
+    match client.head_bucket().bucket(bucket).send().await {
+        Ok(_) => Ok(true),
+        Err(e) => {
+            if e.to_string().contains("NoSuchBucket") {
+                Ok(false)
+            } else {
+                Err(Box::new(e))
+            }
+        }
+    }
+}
+
+pub async fn create_bucket(client: &S3Client, bucket: &str) -> Result<(), Box<dyn std::error::Error>> {
+    client.create_bucket()
+        .bucket(bucket)
+        .send()
+        .await?;
+    Ok(())
+}
+
+#[cfg(test)]
+mod bucket_tests {
+    include!("tests/bucket_tests.rs");
+}
+
+#[cfg(test)]
+mod tests {
+    include!("tests/tests.rs");
 }
