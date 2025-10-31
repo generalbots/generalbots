@@ -119,6 +119,13 @@ pub struct UserMessage {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Suggestion {
+    pub text: String,  // The button text that will be sent as message
+    pub context_name: String,  // The context name to set when clicked
+    pub is_suggestion: bool,  // Flag to identify suggestion clicks
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotResponse {
     pub bot_id: String,
     pub user_id: String,
@@ -128,6 +135,7 @@ pub struct BotResponse {
     pub message_type: i32,
     pub stream_token: Option<String>,
     pub is_complete: bool,
+    pub suggestions: Vec<Suggestion>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -189,7 +189,7 @@ async fn auth_handler(
             }
         }
     };
-
+ 
     let auth_script_path = format!("./work/{}.gbai/{}.gbdialog/auth.ast", bot_name, bot_name);
     if std::path::Path::new(&auth_script_path).exists() {
         let auth_script = match std::fs::read_to_string(&auth_script_path) {

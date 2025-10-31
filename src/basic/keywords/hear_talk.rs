@@ -1,8 +1,7 @@
-use crate::shared::models::{BotResponse, UserSession};
+use crate::shared::models::{BotResponse, Suggestion, UserSession};
 use crate::shared::state::AppState;
 use log::{debug, error, info};
 use rhai::{Dynamic, Engine, EvalAltResult};
-use std::env;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -73,7 +72,7 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
             debug!("TALK: Sending message: {}", message);
 
             // Build the bot response that will be sent back to the client.
-            let bot_id = env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
+            let bot_id = "default_bot".to_string();
             let response = BotResponse {
                 bot_id,
                 user_id: user_clone.user_id.to_string(),
@@ -83,6 +82,7 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 message_type: 1,
                 stream_token: None,
                 is_complete: true,
+                suggestions: Vec::new(),
             };
 
             let user_id = user_clone.id.to_string();
@@ -168,23 +168,73 @@ pub fn set_user_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         })
         .unwrap();
 }
-pub fn set_context_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
+pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let user_clone = user.clone();
+    
+    engine
+        .register_custom_syntax(&["ADD_SUGGESTION", "$expr$", "$expr$", "$expr$"], true, move |context, inputs| {
+            // Evaluate expressions: text, context_name
+            let text = context.eval_expression_tree(&inputs[0])?.to_string();
+            let context_name = context.eval_expression_tree(&inputs[1])?.to_string();
+
+            info!("ADD_SUGGESTION command executed - text: {}, context: {}", text, context_name);
+
+            // Get current response channels
+            let state_clone = Arc::clone(&state);
+            let user_id = user_clone.id.to_string();
+            
+            tokio::spawn(async move {
+                let mut response_channels = state_clone.response_channels.lock().await;
+                if let Some(tx) = response_channels.get_mut(&user_id) {
+                    let suggestion = Suggestion {
+                        text,
+                        context_name,
+                        is_suggestion: true
+                    };
+
+                    // Create a response with just this suggestion
+                    let response = BotResponse {
+                        bot_id: "system".to_string(),
+                        user_id: user_clone.user_id.to_string(),
+                        session_id: user_clone.id.to_string(),
+                        channel: "web".to_string(),
+                        content: String::new(),
+                        message_type: 3, // Special type for suggestions
+                        stream_token: None,
+                        is_complete: true,
+                        suggestions: vec![suggestion],
+                    };
+
+                    if let Err(e) = tx.try_send(response) {
+                        error!("Failed to send suggestion: {}", e);
+                    }
+                }
+            });
+
+            Ok(Dynamic::UNIT)
+        })
+        .unwrap();
+}
+
+pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let cache = state.redis_client.clone();
 
     engine
-        .register_custom_syntax(&["SET_CONTEXT", "$expr$"], true, move |context, inputs| {
-            // Evaluate the expression that should be stored in the context.
-            let context_value = context.eval_expression_tree(&inputs[0])?.to_string();
+        .register_custom_syntax(&["SET_CONTEXT", "$expr$", "$expr$"], true, move |context, inputs| {
+            // Evaluate both expressions - first is context name, second is context value
+            let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
+            let context_value = context.eval_expression_tree(&inputs[1])?.to_string();
 
-            info!("SET CONTEXT command executed: {}", context_value);
-            // Build the Redis key using the user ID and the session ID.
-            let redis_key = format!("context:{}:{}", user.user_id, user.id);
+            info!("SET CONTEXT command executed - name: {}, value: {}", context_name, context_value);
+            // Build the Redis key using user ID, session ID and context name
+            let redis_key = format!("context:{}:{}:{}", user.user_id, user.id, context_name);
             log::trace!(
                 target: "app::set_context",
-                "Constructed Redis key: {} for user {} and session {}",
+                "Constructed Redis key: {} for user {}, session {}, context {}",
                 redis_key,
                 user.user_id,
-                user.id
+                user.id,
+                context_name
             );
 
             // If a Redis client is configured, perform the SET operation in a background task.
