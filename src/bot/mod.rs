@@ -3,6 +3,7 @@ use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
+use diesel::PgConnection;
 use log::{debug, error, info, warn};
 use chrono::Utc;
 use serde_json;
@@ -826,6 +827,52 @@ impl BotOrchestrator {
     }
 }
 
+pub fn bot_from_url(
+    db_conn: &mut PgConnection,
+    path: &str
+) -> Result<(Uuid, String), HttpResponse> {
+    use crate::shared::models::schema::bots::dsl::*;
+    use diesel::prelude::*;
+
+    // Extract bot name from first path segment
+    if let Some(bot_name) = path.split('/').nth(1).filter(|s| !s.is_empty()) {
+        match bots
+            .filter(name.eq(bot_name))
+            .filter(is_active.eq(true))
+            .select((id, name))
+            .first::<(Uuid, String)>(db_conn)
+            .optional()
+        {
+            Ok(Some((bot_id, bot_name))) => return Ok((bot_id, bot_name)),
+            Ok(None) => warn!("No active bot found with name: {}", bot_name),
+            Err(e) => error!("Failed to query bot by name: {}", e),
+        }
+    }
+
+    // Fall back to first available bot
+    match bots
+        .filter(is_active.eq(true))
+        .select((id, name))
+        .first::<(Uuid, String)>(db_conn)
+        .optional()
+    {
+        Ok(Some((first_bot_id, first_bot_name))) => {
+            log::info!("Using first available bot: {} ({})", first_bot_id, first_bot_name);
+            Ok((first_bot_id, first_bot_name))
+        }
+        Ok(None) => {
+            error!("No active bots found in database");
+            Err(HttpResponse::ServiceUnavailable()
+                .json(serde_json::json!({"error": "No bots available"})))
+        }
+        Err(e) => {
+            error!("Failed to query bots: {}", e);
+            Err(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": "Failed to query bots"})))
+        }
+    }
+}
+
 impl Default for BotOrchestrator {
     fn default() -> Self {
         Self {
@@ -1013,7 +1060,9 @@ async fn websocket_handler(
                         error!("Error processing WebSocket message {}: {}", message_count, e);
                     }
                 }
-                WsMessage::Close(_) => {
+                WsMessage::Close(reason) => {
+                    debug!("WebSocket closing for session {} - reason: {:?}", session_id_clone2, reason);
+                    
                     let bot_id = {
                         use crate::shared::models::schema::bots::dsl::*;
                         use diesel::prelude::*;
@@ -1037,7 +1086,8 @@ async fn websocket_handler(
                         }
                     };
 
-                    orchestrator
+                    debug!("Sending session_end event for {}", session_id_clone2);
+                    if let Err(e) = orchestrator
                         .send_event(
                             &user_id_clone,
                             &bot_id,
@@ -1047,12 +1097,19 @@ async fn websocket_handler(
                             serde_json::json!({}),
                         )
                         .await
-                        .ok();
+                    {
+                        error!("Failed to send session_end event: {}", e);
+                    }
 
+                    debug!("Removing WebSocket connection for {}", session_id_clone2);
                     web_adapter.remove_connection(&session_id_clone2).await;
+
+                    debug!("Unregistering response channel for {}", session_id_clone2);
                     orchestrator
                         .unregister_response_channel(&session_id_clone2)
                         .await;
+
+                    info!("WebSocket fully closed for session {}", session_id_clone2);
                     break;
                 }
                 _ => {}
