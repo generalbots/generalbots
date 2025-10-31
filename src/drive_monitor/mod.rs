@@ -2,8 +2,8 @@ use crate::basic::compiler::BasicCompiler;
 use crate::kb::embeddings;
 use crate::kb::qdrant_client;
 use crate::shared::state::AppState;
-use log::{debug, error, info, warn};
 use aws_sdk_s3::Client;
+use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -34,7 +34,10 @@ impl DriveMonitor {
 
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
-            info!("Drive Monitor service started for bucket: {}", self.bucket_name);
+            info!(
+                "Drive Monitor service started for bucket: {}",
+                self.bucket_name
+            );
             let mut tick = interval(Duration::from_secs(30));
             loop {
                 tick.tick().await;
@@ -55,8 +58,8 @@ impl DriveMonitor {
 
         self.check_gbdialog_changes(client).await?;
         self.check_gbkb_changes(client).await?;
-        
-        if let Err(e) = self.check_default_gbot(client).await {
+
+        if let Err(e) = self.check_gbot(client).await {
             error!("Error checking default bot config: {}", e);
         }
 
@@ -68,21 +71,25 @@ impl DriveMonitor {
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = ".gbdialog/";
-        
+
         let mut current_files = HashMap::new();
-        
+
         let mut continuation_token = None;
         loop {
-            let list_objects = client.list_objects_v2()
-                .bucket(&self.bucket_name)
-                .prefix(prefix)
+            let list_objects = client
+                .list_objects_v2()
+                .bucket(&self.bucket_name.to_lowercase())
                 .set_continuation_token(continuation_token)
                 .send()
                 .await?;
+            debug!("List objects result: {:?}", list_objects);
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
-                
+                let path_parts: Vec<&str> = path.split('/').collect();
+                if path_parts.len() < 2 || !path_parts[0].ends_with(".gbdialog") {
+                    continue;
+                }
                 if path.ends_with('/') || !path.ends_with(".bas") {
                     continue;
                 }
@@ -141,21 +148,30 @@ impl DriveMonitor {
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = ".gbkb/";
-        
+
         let mut current_files = HashMap::new();
-        
+
         let mut continuation_token = None;
         loop {
-            let list_objects = client.list_objects_v2()
-                .bucket(&self.bucket_name)
+            let list_objects = client
+                .list_objects_v2()
+                .bucket(&self.bucket_name.to_lowercase())
                 .prefix(prefix)
                 .set_continuation_token(continuation_token)
                 .send()
                 .await?;
+            debug!("List objects result: {:?}", list_objects);
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
-                
+
+                let path_parts: Vec<&str> = path.split('/').collect();
+                if path_parts.len() < 2 || !path_parts[0].ends_with(".gbkb") {
+                    continue;
+                }
+
+
+
                 if path.ends_with('/') {
                     continue;
                 }
@@ -214,37 +230,71 @@ impl DriveMonitor {
         Ok(())
     }
 
-    async fn check_default_gbot(
+    async fn check_gbot(
         &self,
         client: &Client,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let prefix = format!("{}default.gbot/", self.bucket_name);
-        let config_key = format!("{}config.csv", prefix);
-        
-        match client.head_object()
-            .bucket(&self.bucket_name)
-            .key(&config_key)
-            .send()
-            .await 
-        {
-            Ok(_) => {
-                let response = client.get_object()
-                    .bucket(&self.bucket_name)
-                    .key(&config_key)
-                    .send()
-                    .await?;
+        let prefix = ".gbot/";
+        let mut continuation_token = None;
+
+        loop {
+            let list_objects = client
+                .list_objects_v2()
+                .bucket(&self.bucket_name.to_lowercase())
+                .prefix(prefix)
+                .set_continuation_token(continuation_token)
+                .send()
+                .await?;
+
+            for obj in list_objects.contents.unwrap_or_default() {
+                let path = obj.key().unwrap_or_default().to_string();
+                let path_parts: Vec<&str> = path.split('/').collect();
                 
-                let bytes = response.body.collect().await?.into_bytes();
-                let csv_content = String::from_utf8(bytes.to_vec())
-                    .map_err(|e| format!("UTF-8 error in config.csv: {}", e))?;
-                debug!("Found config.csv: {} bytes", csv_content.len());
-                Ok(())
+                if path_parts.len() < 2 || !path_parts[0].ends_with(".gbot") {
+                    continue;
+                }
+                
+                if !path.ends_with("config.csv") {
+                    continue;
+                }
+
+                debug!("Checking config file at path: {}", path);
+                match client
+                    .head_object()
+                    .bucket(&self.bucket_name)
+                    .key(&path)
+                    .send()
+                    .await
+                {
+                    Ok(head_res) => {
+                        debug!("HeadObject successful for {}, metadata: {:?}", path, head_res);
+                        let response = client
+                            .get_object()
+                            .bucket(&self.bucket_name)
+                            .key(&path)
+                            .send()
+                            .await?;
+                        debug!("GetObject successful for {}, content length: {}", path, response.content_length().unwrap_or(0));
+
+                        let bytes = response.body.collect().await?.into_bytes();
+                        debug!("Collected {} bytes for {}", bytes.len(), path);
+                        let csv_content = String::from_utf8(bytes.to_vec())
+                            .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
+                        debug!("Found {}: {} bytes", path, csv_content.len());
+                    }
+                    Err(e) => {
+                        debug!("Config file {} not found or inaccessible: {}", path, e);
+                    }
+                }
             }
-            Err(e) => {
-                debug!("Config file not found or inaccessible: {}", e);
-                Ok(())
+
+            if !list_objects.is_truncated.unwrap_or(false) {
+                break;
             }
+            continuation_token = list_objects.next_continuation_token;
         }
+
+        Ok(())
     }
 
     async fn compile_tool(
@@ -252,17 +302,31 @@ impl DriveMonitor {
         client: &Client,
         file_path: &str,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let response = client.get_object()
+        debug!("Fetching object from S3: bucket={}, key={}", &self.bucket_name, file_path);
+        let response = match client
+            .get_object()
             .bucket(&self.bucket_name)
             .key(file_path)
             .send()
-            .await?;
-        
+            .await {
+                Ok(res) => {
+                    debug!("Successfully fetched object from S3: bucket={}, key={}, size={}",
+                        &self.bucket_name, file_path, res.content_length().unwrap_or(0));
+                    res
+                }
+                Err(e) => {
+                    error!("Failed to fetch object from S3: bucket={}, key={}, error={:?}",
+                        &self.bucket_name, file_path, e);
+                    return Err(e.into());
+                }
+            };
+
         let bytes = response.body.collect().await?.into_bytes();
         let source_content = String::from_utf8(bytes.to_vec())?;
 
         let tool_name = file_path
-            .strip_prefix(".gbdialog/")
+            .split('/')
+            .last()
             .unwrap_or(file_path)
             .strip_suffix(".bas")
             .unwrap_or(file_path)
@@ -272,7 +336,7 @@ impl DriveMonitor {
             .bucket_name
             .strip_suffix(".gbai")
             .unwrap_or(&self.bucket_name);
-        let work_dir = format!("./work/{}.gbai/.gbdialog", bot_name);
+        let work_dir = format!("./work/{}.gbai/{}.gbdialog", bot_name, bot_name);
         std::fs::create_dir_all(&work_dir)?;
 
         let local_source_path = format!("{}/{}.bas", work_dir, tool_name);
@@ -307,13 +371,14 @@ impl DriveMonitor {
         }
 
         let collection_name = parts[1];
-        let response = client.get_object()
+        let response = client
+            .get_object()
             .bucket(&self.bucket_name)
             .key(file_path)
             .send()
             .await?;
         let bytes = response.body.collect().await?.into_bytes();
-        
+
         let text_content = self.extract_text(file_path, &bytes)?;
         if text_content.trim().is_empty() {
             warn!("No text extracted from: {}", file_path);
@@ -328,7 +393,7 @@ impl DriveMonitor {
 
         let qdrant_collection = format!("kb_default_{}", collection_name);
         qdrant_client::ensure_collection_exists(&self.state, &qdrant_collection).await?;
-        
+
         embeddings::index_document(&self.state, &qdrant_collection, file_path, &text_content)
             .await?;
 
