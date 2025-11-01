@@ -89,7 +89,8 @@ impl BotOrchestrator {
             }
         }
 
-        let drive_monitor = Arc::new(DriveMonitor::new(state.clone(), bucket_name));
+        let bot_id = Uuid::parse_str(&bot_guid)?;
+        let drive_monitor = Arc::new(DriveMonitor::new(state.clone(), bucket_name, bot_id));
         
         let _handle = drive_monitor.clone().spawn().await;
 
@@ -136,7 +137,8 @@ impl BotOrchestrator {
             }
         }
 
-        let drive_monitor = Arc::new(DriveMonitor::new(self.state.clone(), bucket_name));
+        let bot_id = Uuid::parse_str(&bot_guid)?;
+        let drive_monitor = Arc::new(DriveMonitor::new(self.state.clone(), bucket_name, bot_id));
         
         let _handle = drive_monitor.clone().spawn().await;
 
