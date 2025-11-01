@@ -42,7 +42,7 @@ pub async fn upload_file(
     let file_name = file_name.unwrap_or_else(|| "unnamed_file".to_string());
     let temp_file_path = temp_file.into_temp_path();
 
-    let client = state.get_ref().s3_client.as_ref().ok_or_else(|| {
+    let client = state.get_ref().drive.as_ref().ok_or_else(|| {
         actix_web::error::ErrorInternalServerError("S3 client is not initialized")
     })?;
 

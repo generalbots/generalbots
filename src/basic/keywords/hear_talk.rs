@@ -1,9 +1,8 @@
-use crate::shared::models::{BotResponse, Suggestion, UserSession};
+use crate::shared::models::{BotResponse, UserSession};
 use crate::shared::state::AppState;
 use log::{debug, error, info};
 use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
-use uuid::Uuid;
 
 pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
@@ -34,7 +33,7 @@ pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let mut session_manager = state_for_spawn.session_manager.lock().await;
                 session_manager.mark_waiting(session_id_clone);
 
-                if let Some(redis_client) = &state_for_spawn.redis_client {
+                if let Some(redis_client) = &state_for_spawn.cache {
                     let mut conn = match redis_client.get_multiplexed_async_connection().await {
                         Ok(conn) => conn,
                         Err(e) => {
@@ -131,168 +130,3 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-pub fn set_user_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-    engine
-        .register_custom_syntax(&["SET_USER", "$expr$"], true, move |context, inputs| {
-            let user_id_str = context.eval_expression_tree(&inputs[0])?.to_string();
-
-            info!("SET USER command executed with ID: {}", user_id_str);
-
-            match Uuid::parse_str(&user_id_str) {
-                Ok(user_id) => {
-                    debug!("Successfully parsed user UUID: {}", user_id);
-
-                    let state_for_spawn = Arc::clone(&state_clone);
-                    let user_clone_spawn = user_clone.clone();
-
-                    let mut session_manager =
-                        futures::executor::block_on(state_for_spawn.session_manager.lock());
-
-                    if let Err(e) = session_manager.update_user_id(user_clone_spawn.id, user_id) {
-                        error!("Failed to update user ID in session: {}", e);
-                    } else {
-                        info!(
-                            "Updated session {} to user ID: {}",
-                            user_clone_spawn.id, user_id
-                        );
-                    }
-                }
-                Err(e) => {
-                    debug!("Invalid UUID format for SET USER: {}", e);
-                }
-            }
-
-            Ok(Dynamic::UNIT)
-        })
-        .unwrap();
-}
-pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let user_clone = user.clone();
-    
-    engine
-        .register_custom_syntax(&["ADD_SUGGESTION", "$expr$", "$expr$", "$expr$"], true, move |context, inputs| {
-            // Evaluate expressions: text, context_name
-            let text = context.eval_expression_tree(&inputs[0])?.to_string();
-            let context_name = context.eval_expression_tree(&inputs[1])?.to_string();
-
-            info!("ADD_SUGGESTION command executed - text: {}, context: {}", text, context_name);
-
-            // Get current response channels
-            let state_clone = Arc::clone(&state);
-            let user_id = user_clone.id.to_string();
-            
-            tokio::spawn(async move {
-                let mut response_channels = state_clone.response_channels.lock().await;
-                if let Some(tx) = response_channels.get_mut(&user_id) {
-                    let suggestion = Suggestion {
-                        text,
-                        context_name,
-                        is_suggestion: true
-                    };
-
-                    // Create a response with just this suggestion
-                    let response = BotResponse {
-                        bot_id: "system".to_string(),
-                        user_id: user_clone.user_id.to_string(),
-                        session_id: user_clone.id.to_string(),
-                        channel: "web".to_string(),
-                        content: String::new(),
-                        message_type: 3, // Special type for suggestions
-                        stream_token: None,
-                        is_complete: true,
-                        suggestions: vec![suggestion],
-                    };
-
-                    if let Err(e) = tx.try_send(response) {
-                        error!("Failed to send suggestion: {}", e);
-                    }
-                }
-            });
-
-            Ok(Dynamic::UNIT)
-        })
-        .unwrap();
-}
-
-pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let cache = state.redis_client.clone();
-
-    engine
-        .register_custom_syntax(&["SET_CONTEXT", "$expr$", "$expr$"], true, move |context, inputs| {
-            // Evaluate both expressions - first is context name, second is context value
-            let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
-            let context_value = context.eval_expression_tree(&inputs[1])?.to_string();
-
-            info!("SET CONTEXT command executed - name: {}, value: {}", context_name, context_value);
-            // Build the Redis key using user ID, session ID and context name
-            let redis_key = format!("context:{}:{}:{}", user.user_id, user.id, context_name);
-            log::trace!(
-                target: "app::set_context",
-                "Constructed Redis key: {} for user {}, session {}, context {}",
-                redis_key,
-                user.user_id,
-                user.id,
-                context_name
-            );
-
-            // If a Redis client is configured, perform the SET operation in a background task.
-            if let Some(cache_client) = &cache {
-                log::trace!("Redis client is available, preparing to set context value");
-                // Clone the values we need inside the async block.
-                let cache_client = cache_client.clone();
-                let redis_key = redis_key.clone();
-                let context_value = context_value.clone();
-                log::trace!(
-                    "Cloned cache_client, redis_key ({}) and context_value (len={}) for async task",
-                    redis_key,
-                    context_value.len()
-                );
-
-                // Spawn a task so we don't need an async closure here.
-                tokio::spawn(async move {
-                    log::trace!("Async task started for SET_CONTEXT operation");
-                    // Acquire an async Redis connection.
-                    let mut conn = match cache_client.get_multiplexed_async_connection().await {
-                        Ok(conn) => {
-                            log::trace!("Successfully acquired async Redis connection");
-                            conn
-                        }
-                        Err(e) => {
-                            error!("Failed to connect to cache: {}", e);
-                            log::trace!("Aborting SET_CONTEXT task due to connection error");
-                            return;
-                        }
-                    };
-
-                    // Perform the SET command.
-                    log::trace!(
-                        "Executing Redis SET command with key: {} and value length: {}",
-                        redis_key,
-                        context_value.len()
-                    );
-                    let result: Result<(), redis::RedisError> = redis::cmd("SET")
-                        .arg(&redis_key)
-                        .arg(&context_value)
-                        .query_async(&mut conn)
-                        .await;
-
-                    match result {
-                        Ok(_) => {
-                            log::trace!("Successfully set context in Redis for key {}", redis_key);
-                        }
-                        Err(e) => {
-                            error!("Failed to set cache value: {}", e);
-                            log::trace!("SET_CONTEXT Redis SET command failed");
-                        }
-                    }
-                });
-            } else {
-                log::trace!("No Redis client configured; SET_CONTEXT will not persist to cache");
-            }
-
-            Ok(Dynamic::UNIT)
-        })
-        .unwrap();
-}

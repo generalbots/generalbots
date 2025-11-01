@@ -171,7 +171,6 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let db_custom_pool = db_pool.clone();
     let cache_url = std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
         .unwrap_or_else(|_| "redis://localhost:6379".to_string());
@@ -216,12 +215,11 @@ async fn main() -> std::io::Result<()> {
     )));
 
     let app_state = Arc::new(AppState {
-        s3_client: Some(drive),
+        drive: Some(drive),
         config: Some(cfg.clone()),
         conn: db_pool.clone(),
         bucket_name: "default.gbai".to_string(), // Default bucket name
-        custom_conn: db_custom_pool.clone(),
-        redis_client: redis_client.clone(),
+        cache: redis_client.clone(),
         session_manager: session_manager.clone(),
         tool_manager: tool_manager.clone(),
         llm_provider: llm_provider.clone(),

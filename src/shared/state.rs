@@ -15,12 +15,11 @@ use tokio::sync::mpsc;
 use crate::shared::models::BotResponse;
 
 pub struct AppState {
-    pub s3_client: Option<S3Client>,
+    pub drive: Option<S3Client>,
+    pub cache: Option<Arc<RedisClient>>,
     pub bucket_name: String,
     pub config: Option<AppConfig>,
     pub conn: Arc<Mutex<PgConnection>>,
-    pub custom_conn: Arc<Mutex<PgConnection>>,
-    pub redis_client: Option<Arc<RedisClient>>,
     pub session_manager: Arc<tokio::sync::Mutex<SessionManager>>,
     pub tool_manager: Arc<ToolManager>,
     pub llm_provider: Arc<dyn LLMProvider>,
@@ -36,12 +35,12 @@ pub struct AppState {
 impl Clone for AppState {
     fn clone(&self) -> Self {
         Self {
-            s3_client: self.s3_client.clone(),
+            drive: self.drive.clone(),
             bucket_name: self.bucket_name.clone(),
             config: self.config.clone(),
             conn: Arc::clone(&self.conn),
-            custom_conn: Arc::clone(&self.custom_conn),
-            redis_client: self.redis_client.clone(),
+            
+            cache: self.cache.clone(),
             session_manager: Arc::clone(&self.session_manager),
             tool_manager: Arc::clone(&self.tool_manager),
             llm_provider: Arc::clone(&self.llm_provider),
@@ -59,16 +58,14 @@ impl Clone for AppState {
 impl Default for AppState {
     fn default() -> Self {
         Self {
-            s3_client: None,
+            drive: None,
             bucket_name: "default.gbai".to_string(),
             config: None,
             conn: Arc::new(Mutex::new(
                 diesel::PgConnection::establish("postgres://localhost/test").unwrap(),
             )),
-            custom_conn: Arc::new(Mutex::new(
-                diesel::PgConnection::establish("postgres://localhost/test").unwrap(),
-            )),
-            redis_client: None,
+            
+            cache: None,
             session_manager: Arc::new(tokio::sync::Mutex::new(SessionManager::new(
                 diesel::PgConnection::establish("postgres://localhost/test").unwrap(),
                 None,

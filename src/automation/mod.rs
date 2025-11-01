@@ -285,7 +285,7 @@ impl AutomationService {
         let redis_key = format!("job:running:{}:{}", bot_id, param);
         trace!("Redis key for job tracking: {}", redis_key);
 
-        if let Some(redis_client) = &self.state.redis_client {
+        if let Some(redis_client) = &self.state.cache {
             match redis_client.get_multiplexed_async_connection().await {
                 Ok(mut conn) => {
                     trace!("Connected to Redis; checking if job '{}' is running", param);
@@ -331,7 +331,7 @@ impl AutomationService {
                     e
                 );
 
-                if let Some(client) = &self.state.s3_client {
+                if let Some(client) = &self.state.drive {
                     let bucket_name = format!(
                         "{}{}.gbai",
                         env::var("MINIO_ORG_PREFIX").unwrap_or_else(|_| "org1_".to_string()),
@@ -436,7 +436,7 @@ impl AutomationService {
         );
         let redis_key = format!("job:running:{}:{}", bot_id, param);
 
-        if let Some(redis_client) = &self.state.redis_client {
+        if let Some(redis_client) = &self.state.cache {
             match redis_client.get_multiplexed_async_connection().await {
                 Ok(mut conn) => {
                     let _: Result<(), redis::RedisError> = redis::cmd("DEL")
