@@ -4,6 +4,7 @@ use log::{error, info};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
+use std::sync::Arc;
 use tokio::time::{sleep, Duration};
 
 use crate::config::ConfigManager;
@@ -59,7 +60,7 @@ struct LlamaCppResponse {
 }
 
 pub async fn ensure_llama_servers_running(
-    app_state: &AppState,
+    app_state: &Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let conn = app_state.conn.clone();
     let config_manager = ConfigManager::new(conn.clone());
@@ -120,6 +121,7 @@ pub async fn ensure_llama_servers_running(
     if !llm_running && !llm_model.is_empty() {
         info!("🔄 Starting LLM server...");
         tasks.push(tokio::spawn(start_llm_server(
+            Arc::clone(app_state),
             llm_server_path.clone(),
             llm_model.clone(),
             llm_url.clone(),
@@ -206,6 +208,7 @@ pub async fn ensure_llama_servers_running(
 }
 
 async fn start_llm_server(
+    app_state: Arc<AppState>,
     llama_cpp_path: String,
     model_path: String,
     url: String,
@@ -217,14 +220,30 @@ async fn start_llm_server(
     std::env::set_var("OMP_PROC_BIND", "close");
 
     // "cd {} && numactl --interleave=all ./llama-server -m {} --host 0.0.0.0 --port {} --threads 20 --threads-batch 40 --temp 0.7 --parallel 1 --repeat-penalty 1.1 --ctx-size 8192 --batch-size 8192 -n 4096 --mlock --no-mmap --flash-attn  --no-kv-offload  --no-mmap &",
-    // Read config values with defaults
-    let n_moe = env::var("LLM_SERVER_N_MOE").unwrap_or("4".to_string());
-    let ctx_size = env::var("LLM_SERVER_CTX_SIZE").unwrap_or("4096".to_string());
-    let parallel = env::var("LLM_SERVER_PARALLEL").unwrap_or("1".to_string());
-    let cont_batching = env::var("LLM_SERVER_CONT_BATCHING").unwrap_or("true".to_string());
-    let mlock = env::var("LLM_SERVER_MLOCK").unwrap_or("true".to_string());
-    let no_mmap = env::var("LLM_SERVER_NO_MMAP").unwrap_or("true".to_string());
-    let gpu_layers = env::var("LLM_SERVER_GPU_LAYERS").unwrap_or("20".to_string());
+    // Read config values with defaults 
+
+
+
+
+    
+    let conn = app_state.conn.clone();
+    let config_manager = ConfigManager::new(conn.clone());
+
+    let default_bot_id = {
+        let mut conn = conn.lock().unwrap();
+        bots.filter(name.eq("default"))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .unwrap_or_else(|_| uuid::Uuid::nil())
+    };
+
+    let n_moe = config_manager.get_config(&default_bot_id, "llm-server-n-moe", None).unwrap_or("4".to_string());
+    let ctx_size = config_manager.get_config(&default_bot_id, "llm-server-ctx-size", None).unwrap_or("4096".to_string());
+    let parallel = config_manager.get_config(&default_bot_id, "llm-server-parallel", None).unwrap_or("1".to_string());
+    let cont_batching = config_manager.get_config(&default_bot_id, "llm-server-cont-batching", None).unwrap_or("true".to_string());
+    let mlock = config_manager.get_config(&default_bot_id, "llm-server-mlock", None).unwrap_or("true".to_string());
+    let no_mmap = config_manager.get_config(&default_bot_id, "llm-server-no-mmap", None).unwrap_or("true".to_string());
+    let gpu_layers = config_manager.get_config(&default_bot_id, "llm-server-gpu-layers", None).unwrap_or("20".to_string());
 
     // Build command arguments dynamically
     let mut args = format!(

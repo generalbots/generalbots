@@ -232,13 +232,11 @@ impl DriveMonitor {
     }
 
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
- 
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
 
         let mut continuation_token = None;
 
         loop {
-
             let list_objects = client
                 .list_objects_v2()
                 .bucket(&self.bucket_name.to_lowercase())
@@ -276,13 +274,12 @@ impl DriveMonitor {
                             .bucket(&self.bucket_name)
                             .key(&path)
                             .send()
-                            .await?; 
+                            .await?;
                         debug!(
                             "GetObject successful for {}, content length: {}",
                             path,
                             response.content_length().unwrap_or(0)
                         );
-
 
                         let bytes = response.body.collect().await?.into_bytes();
                         debug!("Collected {} bytes for {}", bytes.len(), path);
@@ -290,47 +287,53 @@ impl DriveMonitor {
                             .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
                         debug!("Found {}: {} bytes", path, csv_content.len());
 
+                        // Restart LLaMA servers only if llm- properties changed
+                        let llm_lines: Vec<_> = csv_content
+                            .lines()
+                            .filter(|line| line.trim_start().starts_with("llm-"))
+                            .collect();
 
+                        if !llm_lines.is_empty() {
+                            use crate::llm_legacy::llm_local::ensure_llama_servers_running;
+                            let mut restart_needed = false;
 
-                            // Restart LLaMA servers only if llm- properties changed
-                            let llm_lines: Vec<_> = csv_content
-                                .lines()
-                                .filter(|line| line.trim_start().starts_with("llm-"))
-                                .collect();
-
-                            if !llm_lines.is_empty() {
-                                use crate::llm_legacy::llm_local::ensure_llama_servers_running;
-                                let mut restart_needed = false;
-
-                                for line in llm_lines {
-                                    let parts: Vec<&str> = line.split(',').collect();
-                                    if parts.len() >= 2 {
-                                        let key = parts[0].trim();
-                                        let new_value = parts[1].trim();
-                                        match config_manager.get_config(&self.bot_id, key, None) {
-                                            Ok(old_value) => {
-                                                if old_value != new_value {
-                                                    info!("Detected change in {} (old: {}, new: {})", key, old_value, new_value);
-                                                    restart_needed = true;
-                                                }
-                                            }
-                                            Err(_) => {
-                                                info!("New llm- property detected: {}", key);
+                            for line in llm_lines {
+                                let parts: Vec<&str> = line.split(',').collect();
+                                if parts.len() >= 2 {
+                                    let key = parts[0].trim();
+                                    let new_value = parts[1].trim();
+                                    match config_manager.get_config(&self.bot_id, key, None) {
+                                        Ok(old_value) => {
+                                            if old_value != new_value {
+                                                info!(
+                                                    "Detected change in {} (old: {}, new: {})",
+                                                    key, old_value, new_value
+                                                );
                                                 restart_needed = true;
                                             }
                                         }
+                                        Err(_) => {
+                                            info!("New llm- property detected: {}", key);
+                                            restart_needed = true;
+                                        }
                                     }
                                 }
+                            }
 
-                                if restart_needed {
-                                    info!("Detected llm- configuration change, restarting LLaMA servers...");
-                                    if let Err(e) = ensure_llama_servers_running(&self.state).await {
-                                        error!("Failed to restart LLaMA servers after llm- config change: {}", e);
-                                    }
-                                } else {
-                                    info!("No llm- property changes detected; skipping LLaMA server restart.");
+                            _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                            if restart_needed {
+                                info!("Detected llm- configuration change, restarting LLaMA servers...");
+                                if let Err(e) = ensure_llama_servers_running(&self.state).await {
+                                    error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
-                            config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                            } else {
+                                info!("No llm- property changes detected; skipping LLaMA server restart.");
+                            }
+                        }
+                        else
+                        {
+                                _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                        
                         }
                     }
                     Err(e) => {
