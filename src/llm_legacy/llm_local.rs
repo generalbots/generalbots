@@ -1,12 +1,15 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Result};
-use crate::config::{AppConfig, ConfigManager};
 use dotenvy::dotenv;
 use log::{error, info};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
 use tokio::time::{sleep, Duration};
-use uuid::Uuid;
+
+use crate::config::ConfigManager;
+use crate::shared::models::schema::bots::dsl::*;
+use crate::shared::state::AppState;
+use diesel::prelude::*;
 
 // OpenAI-compatible request/response structures
 #[derive(Debug, Serialize, Deserialize)]
@@ -55,61 +58,37 @@ struct LlamaCppResponse {
     generation_settings: Option<serde_json::Value>,
 }
 
-pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Error + Send + Sync>>
-{
-    let llm_local = env::var("LLM_LOCAL").unwrap_or_else(|_| "true".to_string());
+pub async fn ensure_llama_servers_running(
+    app_state: &AppState,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let conn = app_state.conn.clone();
+    let config_manager = ConfigManager::new(conn.clone());
 
-    if llm_local.to_lowercase() != "true" {
-        info!("ℹ️  LLM_LOCAL is not enabled, skipping local server startup");
-        return Ok(());
-    }
-
-    // Get configuration with fallback to default bot config
-    let default_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
-    let config_manager = AppConfig::from_env().db_conn.map(ConfigManager::new);
-
-    let llm_url = match &config_manager {
-        Some(cm) => env::var("LLM_URL").unwrap_or_else(|_| 
-            cm.get_config(&default_bot_id, "LLM_URL", None)
-                .unwrap_or("http://localhost:8081".to_string())
-        ),
-        None => env::var("LLM_URL").unwrap_or("http://localhost:8081".to_string())
-    };
-    let embedding_url = match &config_manager {
-        Some(cm) => env::var("EMBEDDING_URL").unwrap_or_else(|_| 
-            cm.get_config(&default_bot_id, "EMBEDDING_URL", None)
-                .unwrap_or("http://localhost:8082".to_string())
-        ),
-        None => env::var("EMBEDDING_URL").unwrap_or("http://localhost:8082".to_string())
-    };
-    let llama_cpp_path = match &config_manager {
-        Some(cm) => env::var("LLM_CPP_PATH").unwrap_or_else(|_| 
-            cm.get_config(&default_bot_id, "LLM_CPP_PATH", None)
-                .unwrap_or("~/llama.cpp".to_string())
-        ),
-        None => env::var("LLM_CPP_PATH").unwrap_or("~/llama.cpp".to_string())
-    };
-    let llm_model_path = match &config_manager {
-        Some(cm) => env::var("LLM_MODEL_PATH").unwrap_or_else(|_| 
-            cm.get_config(&default_bot_id, "LLM_MODEL_PATH", None)
-                .unwrap_or("".to_string())
-        ),
-        None => env::var("LLM_MODEL_PATH").unwrap_or("".to_string())
-    };
-    let embedding_model_path = match &config_manager {
-        Some(cm) => env::var("EMBEDDING_MODEL_PATH").unwrap_or_else(|_| 
-            cm.get_config(&default_bot_id, "EMBEDDING_MODEL_PATH", None)
-                .unwrap_or("".to_string())
-        ),
-        None => env::var("EMBEDDING_MODEL_PATH").unwrap_or("".to_string())
+    // Get default bot ID from database
+    let default_bot_id = {
+        let mut conn = conn.lock().unwrap();
+        bots.filter(name.eq("default"))
+            .select(id)
+            .first::<uuid::Uuid>(&mut *conn)
+            .unwrap_or_else(|_| uuid::Uuid::nil())
     };
 
-    info!("🚀 Starting local llama.cpp servers...");
-    info!("📋 Configuration:");
+    // Get configuration from config using default bot ID
+    let llm_url = config_manager.get_config(&default_bot_id, "llm-url", None)?;
+    let llm_model = config_manager.get_config(&default_bot_id, "llm-model", None)?;
+
+    let embedding_url = config_manager.get_config(&default_bot_id, "embedding-url", None)?;
+    let embedding_model = config_manager.get_config(&default_bot_id, "embedding-model", None)?;
+
+    let llm_server_path = config_manager.get_config(&default_bot_id, "llm-server-path", None)?;
+
+    info!(" Starting LLM servers...");
+    info!(" Configuration:");
     info!("   LLM URL: {}", llm_url);
     info!("   Embedding URL: {}", embedding_url);
-    info!("   LLM Model: {}", llm_model_path);
-    info!("   Embedding Model: {}", embedding_model_path);
+    info!("   LLM Model: {}", llm_model);
+    info!("   Embedding Model: {}", embedding_model);
+    info!("   LLM Server Path: {}", llm_server_path);
 
     // Check if servers are already running
     let llm_running = is_server_running(&llm_url).await;
@@ -123,26 +102,26 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
     // Start servers that aren't running
     let mut tasks = vec![];
 
-    if !llm_running && !llm_model_path.is_empty() {
+    if !llm_running && !llm_model.is_empty() {
         info!("🔄 Starting LLM server...");
         tasks.push(tokio::spawn(start_llm_server(
-            llama_cpp_path.clone(),
-            llm_model_path.clone(),
+            llm_server_path.clone(),
+            llm_model.clone(),
             llm_url.clone(),
         )));
-    } else if llm_model_path.is_empty() {
-        info!("⚠️  LLM_MODEL_PATH not set, skipping LLM server");
+    } else if llm_model.is_empty() {
+        info!("⚠️  LLM_MODEL not set, skipping LLM server");
     }
 
-    if !embedding_running && !embedding_model_path.is_empty() {
+    if !embedding_running && !embedding_model.is_empty() {
         info!("🔄 Starting Embedding server...");
         tasks.push(tokio::spawn(start_embedding_server(
-            llama_cpp_path.clone(),
-            embedding_model_path.clone(),
+            llm_server_path.clone(),
+            embedding_model.clone(),
             embedding_url.clone(),
         )));
-    } else if embedding_model_path.is_empty() {
-        info!("⚠️  EMBEDDING_MODEL_PATH not set, skipping Embedding server");
+    } else if embedding_model.is_empty() {
+        info!("⚠️  EMBEDDING_MODEL not set, skipping Embedding server");
     }
 
     // Wait for all server startup tasks
@@ -153,8 +132,8 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
     // Wait for servers to be ready with verbose logging
     info!("⏳ Waiting for servers to become ready...");
 
-    let mut llm_ready = llm_running || llm_model_path.is_empty();
-    let mut embedding_ready = embedding_running || embedding_model_path.is_empty();
+    let mut llm_ready = llm_running || llm_model.is_empty();
+    let mut embedding_ready = embedding_running || embedding_model.is_empty();
 
     let mut attempts = 0;
     let max_attempts = 60; // 2 minutes total
@@ -168,7 +147,7 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
             max_attempts
         );
 
-        if !llm_ready && !llm_model_path.is_empty() {
+        if !llm_ready && !llm_model.is_empty() {
             if is_server_running(&llm_url).await {
                 info!("   ✅ LLM server ready at {}", llm_url);
                 llm_ready = true;
@@ -177,7 +156,7 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
             }
         }
 
-        if !embedding_ready && !embedding_model_path.is_empty() {
+        if !embedding_ready && !embedding_model.is_empty() {
             if is_server_running(&embedding_url).await {
                 info!("   ✅ Embedding server ready at {}", embedding_url);
                 embedding_ready = true;
@@ -201,10 +180,10 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
         Ok(())
     } else {
         let mut error_msg = "❌ Servers failed to start within timeout:".to_string();
-        if !llm_ready && !llm_model_path.is_empty() {
+        if !llm_ready && !llm_model.is_empty() {
             error_msg.push_str(&format!("\n   - LLM server at {}", llm_url));
         }
-        if !embedding_ready && !embedding_model_path.is_empty() {
+        if !embedding_ready && !embedding_model.is_empty() {
             error_msg.push_str(&format!("\n   - Embedding server at {}", embedding_url));
         }
         Err(error_msg.into())
@@ -239,7 +218,7 @@ async fn start_llm_server(
     );
 
     if n_moe != "0" {
-        args.push_str(&format!(" --n-moe {}", n_moe));
+        args.push_str(&format!(" --n-cpu-moe {}", n_moe));
     }
     if parallel != "1" {
         args.push_str(&format!(" --parallel {}", parallel));
@@ -298,7 +277,10 @@ async fn start_embedding_server(
 
     Ok(())
 }
+
 async fn is_server_running(url: &str) -> bool {
+    
+    
     let client = reqwest::Client::new();
     match client.get(&format!("{}/health", url)).send().await {
         Ok(response) => response.status().is_success(),
@@ -364,7 +346,7 @@ pub async fn chat_completions_local(
         })?;
 
     let response = client
-        .post(&format!("{}/completion", llama_url))
+        .post(&format!("{}/v1/completion", llama_url))
         .header("Content-Type", "application/json")
         .json(&llama_request)
         .send()
@@ -639,20 +621,3 @@ pub async fn embeddings_local(
     Ok(HttpResponse::Ok().json(openai_response))
 }
 
-// Health check endpoint
-#[actix_web::get("/health")]
-pub async fn health() -> Result<HttpResponse> {
-    let llama_url = env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:8081".to_string());
-
-    if is_server_running(&llama_url).await {
-        Ok(HttpResponse::Ok().json(serde_json::json!({
-            "status": "healthy",
-            "llama_server": "running"
-        })))
-    } else {
-        Ok(HttpResponse::ServiceUnavailable().json(serde_json::json!({
-            "status": "unhealthy",
-            "llama_server": "not running"
-        })))
-    }
-}
