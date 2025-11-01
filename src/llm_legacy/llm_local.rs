@@ -90,6 +90,20 @@ pub async fn ensure_llama_servers_running(
     info!("   Embedding Model: {}", embedding_model);
     info!("   LLM Server Path: {}", llm_server_path);
 
+
+    // Restart any existing llama-server processes before starting new ones
+    info!("🔁 Restarting any existing llama-server processes...");
+    if let Err(e) = tokio::process::Command::new("sh")
+        .arg("-c")
+        .arg("pkill -f llama-server || true")
+        .spawn()
+    {
+        error!("Failed to execute pkill for llama-server: {}", e);
+    } else {
+        sleep(Duration::from_secs(2)).await;
+        info!("✅ Existing llama-server processes terminated (if any)");
+    }
+
     // Check if servers are already running
     let llm_running = is_server_running(&llm_url).await;
     let embedding_running = is_server_running(&embedding_url).await;
@@ -98,6 +112,7 @@ pub async fn ensure_llama_servers_running(
         info!("✅ Both LLM and Embedding servers are already running");
         return Ok(());
     }
+
 
     // Start servers that aren't running
     let mut tasks = vec![];
@@ -620,4 +635,3 @@ pub async fn embeddings_local(
 
     Ok(HttpResponse::Ok().json(openai_response))
 }
-
