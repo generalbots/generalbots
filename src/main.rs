@@ -190,7 +190,7 @@ async fn main() -> std::io::Result<()> {
     let tool_manager = Arc::new(tools::ToolManager::new());
     let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
         "empty".to_string(),
-        Some(cfg.ai.endpoint.clone()),
+        Some(cfg.llm.url.clone()),
     ));
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new(
