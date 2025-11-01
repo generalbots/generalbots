@@ -1,7 +1,8 @@
 use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
+use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
-use diesel::{connection::SimpleConnection, RunQueryDsl, Connection, QueryableByName};
+use diesel::{connection::SimpleConnection, RunQueryDsl, QueryableByName, Connection};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
@@ -140,10 +141,7 @@ impl BootstrapManager {
             if pm.is_installed(component.name) {
                 pm.start(component.name)?;
             } else {
-                let database_url = std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
-                let mut conn = diesel::pg::PgConnection::establish(&database_url)
-                    .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
+                let mut conn = establish_pg_connection()?;
                 let default_bot_id: uuid::Uuid = diesel::sql_query("SELECT id FROM bots LIMIT 1")
                     .load::<BotIdRow>(&mut conn)
                     .map(|rows| rows.first().map(|r| r.id).unwrap_or_else(|| uuid::Uuid::new_v4()))
@@ -189,7 +187,7 @@ impl BootstrapManager {
                     return Ok(config);
                 }
 
-                match diesel::PgConnection::establish(&database_url) {
+                match establish_pg_connection() {
                     Ok(mut conn) => {
                         if let Err(e) = self.apply_migrations(&mut conn) {
                             log::warn!("Failed to apply migrations: {}", e);
@@ -197,7 +195,7 @@ impl BootstrapManager {
                         return Ok(AppConfig::from_database(&mut conn));
                     }
                     Err(e) => {
-                        log::warn!("Failed to connect to legacy database: {}", e);
+                        log::warn!("Failed to connect to database: {}", e);
                         return Ok(AppConfig::from_env());
                     }
                 }
@@ -205,7 +203,7 @@ impl BootstrapManager {
         }
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-        let required_components = vec!["tables", "drive", "cache"];
+        let required_components = vec!["tables", "drive", "cache", "llm"];
         let mut config = AppConfig::from_env();
 
         for component in required_components {
@@ -260,8 +258,7 @@ impl BootstrapManager {
                 futures::executor::block_on(pm.install(component))?;
 
                 if component == "tables" {
-                    let database_url = std::env::var("DATABASE_URL").unwrap();
-                    let mut conn = diesel::PgConnection::establish(&database_url)
+                    let mut conn = establish_pg_connection()
                         .map_err(|e| anyhow::anyhow!("Failed to connect to database: {}", e))?;
 
                     let migration_dir = include_dir::include_dir!("./migrations");
@@ -363,9 +360,7 @@ impl BootstrapManager {
 
     fn update_bot_config(&self, bot_id: &uuid::Uuid, component: &str) -> Result<()> {
         use diesel::sql_types::{Text, Uuid as SqlUuid};
-        let database_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
-        let mut conn = diesel::pg::PgConnection::establish(&database_url)?;
+        let mut conn = establish_pg_connection()?;
 
         // Ensure globally unique keys and update values atomically
         let config_key = format!("{}_{}", bot_id, component);
@@ -388,8 +383,7 @@ impl BootstrapManager {
     }
 
     pub async fn upload_templates_to_drive(&self, config: &AppConfig) -> Result<()> {
-        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| config.database_url());
-        let mut conn = diesel::PgConnection::establish(&database_url)?;
+                let mut conn = establish_pg_connection()?;
         self.create_bots_from_templates(&mut conn)?;
         let templates_dir = Path::new("templates");
         if !templates_dir.exists() {
@@ -539,10 +533,8 @@ impl BootstrapManager {
                 let bytes = response.body.collect().await?.into_bytes();
                 let csv_content = String::from_utf8(bytes.to_vec())?;
                 
-                let database_url = std::env::var("DATABASE_URL")
-                    .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
                 // Create new connection for config loading
-                let config_conn = diesel::PgConnection::establish(&database_url)?;
+                let config_conn = establish_pg_connection()?;
                 let config_manager = ConfigManager::new(Arc::new(Mutex::new(config_conn)));
                 
                 // Use default bot ID or create one if needed
@@ -556,7 +548,7 @@ impl BootstrapManager {
                     .map_err(|e| anyhow::anyhow!("Failed to sync gbot config: {}", e))?;
                 
                 // Load config from database which now has the CSV values
-                let mut config_conn = diesel::PgConnection::establish(&database_url)?;
+                let mut config_conn = establish_pg_connection()?;
                 let config = AppConfig::from_database(&mut config_conn);
                 info!("Successfully loaded config from CSV");
                 Ok(config)
