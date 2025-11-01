@@ -1,4 +1,3 @@
-use crate::config::AIConfig;
 use anyhow::{Context, Result};
 use diesel::{Connection, PgConnection};
 use futures_util::StreamExt;
@@ -175,7 +174,7 @@ pub fn parse_filter_with_offset(
 
 pub async fn call_llm(
     prompt: &str,
-    _ai_config: &AIConfig,
+    _llm_config: &crate::config::LLMConfig,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     Ok(format!("Generated response for: {}", prompt))
 }

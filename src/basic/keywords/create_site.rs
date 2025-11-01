@@ -78,7 +78,7 @@ async fn create_site(
     );
 
     info!("Asking LLM to create site.");
-    let llm_result = utils::call_llm(&full_prompt, &config.ai).await?;
+    let llm_result = utils::call_llm(&full_prompt, &config.llm).await?;
 
     let index_path = alias_path.join("index.html");
     fs::write(index_path, llm_result).map_err(|e| e.to_string())?;
