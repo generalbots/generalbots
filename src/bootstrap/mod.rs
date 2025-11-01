@@ -2,7 +2,7 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
-use diesel::{connection::SimpleConnection, RunQueryDsl, QueryableByName, Connection};
+use diesel::{connection::SimpleConnection, RunQueryDsl, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
@@ -166,7 +166,7 @@ impl BootstrapManager {
                 info!(
                     "Legacy mode detected (TABLES_SERVER present), skipping bootstrap installation"
                 );
-                let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+                let _database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
                     let username =
                         std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "gbuser".to_string());
                     let password =
@@ -382,7 +382,7 @@ impl BootstrapManager {
         Ok(())
     }
 
-    pub async fn upload_templates_to_drive(&self, config: &AppConfig) -> Result<()> {
+    pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
                 let mut conn = establish_pg_connection()?;
         self.create_bots_from_templates(&mut conn)?;
         let templates_dir = Path::new("templates");
