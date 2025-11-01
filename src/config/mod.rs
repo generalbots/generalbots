@@ -446,13 +446,9 @@ impl ConfigManager {
     pub fn sync_gbot_config(
         &self,
         bot_id: &uuid::Uuid,
-        config_path: &str,
+        content: &str,
     ) -> Result<usize, String> {
         use sha2::{Digest, Sha256};
-        use std::fs;
-
-        let content = fs::read_to_string(config_path)
-            .map_err(|e| format!("Failed to read config file: {}", e))?;
 
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
@@ -483,9 +479,8 @@ impl ConfigManager {
         }
 
         info!(
-            "Synced {} config values for bot {} from {}",
-            updated, bot_id, config_path
-        );
+            "Synced {} config values for bot {}",
+            updated, bot_id);
         Ok(updated)
     }
 }
