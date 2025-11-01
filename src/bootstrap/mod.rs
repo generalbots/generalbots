@@ -140,19 +140,6 @@ impl BootstrapManager {
         for component in components {
             if pm.is_installed(component.name) {
                 pm.start(component.name)?;
-            } else {
-                let mut conn = establish_pg_connection()?;
-                let default_bot_id: uuid::Uuid = diesel::sql_query("SELECT id FROM bots LIMIT 1")
-                    .load::<BotIdRow>(&mut conn)
-                    .map(|rows| rows.first().map(|r| r.id).unwrap_or_else(|| uuid::Uuid::new_v4()))
-                    .unwrap_or_else(|_| uuid::Uuid::new_v4());
-
-                if let Err(e) = self.update_bot_config(&default_bot_id, component.name) {
-                    error!(
-                        "Failed to update bot config after installing {}: {}",
-                        component.name, e
-                    );
-                }
             }
         }
 
@@ -356,30 +343,6 @@ impl BootstrapManager {
         hasher.update(key.as_bytes());
         hasher.update(password.as_bytes());
         format!("{:x}", hasher.finalize())
-    }
-
-    fn update_bot_config(&self, bot_id: &uuid::Uuid, component: &str) -> Result<()> {
-        use diesel::sql_types::{Text, Uuid as SqlUuid};
-        let mut conn = establish_pg_connection()?;
-
-        // Ensure globally unique keys and update values atomically
-        let config_key = format!("{}_{}", bot_id, component);
-        let config_value = "true".to_string();
-        let new_id = uuid::Uuid::new_v4();
-
-        diesel::sql_query(
-            "INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type)
-             VALUES ($1, $2, $3, $4, 'string')
-             ON CONFLICT (config_key)
-             DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()",
-        )
-        .bind::<SqlUuid, _>(new_id)
-        .bind::<SqlUuid, _>(bot_id)
-        .bind::<Text, _>(&config_key)
-        .bind::<Text, _>(&config_value)
-        .execute(&mut conn)?;
-
-        Ok(())
     }
 
     pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
