@@ -9,13 +9,21 @@ use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 
 #[derive(Clone)]
+pub struct LLMConfig {
+    pub url: String,
+    pub key: String,
+    pub model: String,
+}
+
+#[derive(Clone)]
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
     pub database_custom: DatabaseConfig,
     pub email: EmailConfig,
-    pub ai: AIConfig,
+    pub llm: LLMConfig,
+    pub embedding: LLMConfig,
     pub site_path: String,
     pub stack_path: PathBuf,
     pub db_conn: Option<Arc<Mutex<PgConnection>>>,
@@ -52,14 +60,6 @@ pub struct EmailConfig {
     pub port: u16,
     pub username: String,
     pub password: String,
-}
-
-#[derive(Clone)]
-pub struct AIConfig {
-    pub instance: String,
-    pub key: String,
-    pub version: String,
-    pub endpoint: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, QueryableByName)]
@@ -218,13 +218,6 @@ impl AppConfig {
             password: get_str("EMAIL_PASS", "pass"),
         };
 
-        let ai = AIConfig {
-            instance: get_str("AI_INSTANCE", "gpt-4"),
-            key: get_str("AI_KEY", ""),
-            version: get_str("AI_VERSION", "2023-12-01-preview"),
-            endpoint: get_str("AI_ENDPOINT", "https://api.openai.com"),
-        };
-
         // Write drive config to .env file
         if let Err(e) = write_drive_config_to_env(&minio) {
             warn!("Failed to write drive config to .env: {}", e);
@@ -239,7 +232,16 @@ impl AppConfig {
             database,
             database_custom,
             email,
-            ai,
+            llm: LLMConfig {
+                url: get_str("LLM_URL", "http://localhost:8081"),
+                key: get_str("LLM_KEY", ""),
+                model: get_str("LLM_MODEL", "gpt-4"),
+            },
+            embedding: LLMConfig {
+                url: get_str("EMBEDDING_URL", "http://localhost:8082"),
+                key: get_str("EMBEDDING_KEY", ""),
+                model: get_str("EMBEDDING_MODEL", "text-embedding-ada-002"),
+            },
             site_path: get_str("SITES_ROOT", "./botserver-stack/sites"),
             stack_path,
             db_conn: None,
@@ -302,15 +304,6 @@ impl AppConfig {
             password: std::env::var("EMAIL_PASS").unwrap_or_else(|_| "pass".to_string()),
         };
 
-        let ai = AIConfig {
-            instance: std::env::var("AI_INSTANCE").unwrap_or_else(|_| "gpt-4".to_string()),
-            key: std::env::var("AI_KEY").unwrap_or_else(|_| "".to_string()),
-            version: std::env::var("AI_VERSION")
-                .unwrap_or_else(|_| "2023-12-01-preview".to_string()),
-            endpoint: std::env::var("AI_ENDPOINT")
-                .unwrap_or_else(|_| "https://api.openai.com".to_string()),
-        };
-
         AppConfig {
             drive: minio,
             server: ServerConfig {
@@ -323,7 +316,16 @@ impl AppConfig {
             database,
             database_custom,
             email,
-            ai,
+            llm: LLMConfig {
+                url: std::env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:8081".to_string()),
+                key: std::env::var("LLM_KEY").unwrap_or_else(|_| "".to_string()),
+                model: std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4".to_string()),
+            },
+            embedding: LLMConfig {
+                url: std::env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8082".to_string()),
+                key: std::env::var("EMBEDDING_KEY").unwrap_or_else(|_| "".to_string()),
+                model: std::env::var("EMBEDDING_MODEL").unwrap_or_else(|_| "text-embedding-ada-002".to_string()),
+            },
             site_path: std::env::var("SITES_ROOT")
                 .unwrap_or_else(|_| "./botserver-stack/sites".to_string()),
             stack_path: PathBuf::from(stack_path),

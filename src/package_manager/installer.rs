@@ -241,7 +241,7 @@ post_install_cmds_linux: vec![
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}}".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} > {{LOGS_PATH}}/valkey.log 2>&1 &".to_string(),
             },
         );
     }

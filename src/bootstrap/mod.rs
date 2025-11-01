@@ -544,13 +544,14 @@ impl BootstrapManager {
                 let temp_path = std::env::temp_dir().join("config.csv");
                 std::fs::write(&temp_path, csv_content)?;
                 
+                // First sync the CSV to database
                 config_manager.sync_gbot_config(&default_bot_id, temp_path.to_str().unwrap())
                     .map_err(|e| anyhow::anyhow!("Failed to sync gbot config: {}", e))?;
                 
-                // Load config from database which now has the CSV values
-                let mut config_conn = establish_pg_connection()?;
-                let config = AppConfig::from_database(&mut config_conn);
-                info!("Successfully loaded config from CSV");
+                // Create fresh connection for final config load
+                let mut final_conn = establish_pg_connection()?;
+                let config = AppConfig::from_database(&mut final_conn);
+                info!("Successfully loaded config from CSV with LLM settings");
                 Ok(config)
             }
             Err(e) => {
