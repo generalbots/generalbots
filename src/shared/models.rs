@@ -401,6 +401,18 @@ pub mod schema {
             added_at -> Text,
         }
     }
+
+    diesel::table! {
+        bot_configuration (id) {
+            id -> Uuid,
+            bot_id -> Uuid,
+            config_key -> Text,
+            config_value -> Text,
+            config_type -> Text,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
 }
 
 pub use schema::*;

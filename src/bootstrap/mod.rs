@@ -2,7 +2,7 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
-use diesel::{connection::SimpleConnection, RunQueryDsl, QueryableByName};
+use diesel::{connection::SimpleConnection, QueryableByName};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
