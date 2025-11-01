@@ -1,21 +1,21 @@
 use crate::channels::ChannelAdapter;
+use crate::context::langcache::get_langcache_client;
+use crate::drive_monitor::DriveMonitor;
+use crate::kb::embeddings::generate_embeddings;
+use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
 use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
+use chrono::Utc;
 use diesel::PgConnection;
 use log::{debug, error, info, warn};
-use chrono::Utc;
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
-use crate::kb::embeddings::generate_embeddings;
-use uuid::Uuid;
-use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
-use crate::context::langcache::get_langcache_client;
-use crate::drive_monitor::DriveMonitor;
 use tokio::sync::Mutex as AsyncMutex;
+use uuid::Uuid;
 
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
@@ -50,7 +50,10 @@ impl BotOrchestrator {
             let bot_guid_str = bot_guid.to_string();
 
             tokio::spawn(async move {
-                if let Err(e) = Self::mount_bot_task(state_clone, mounted_bots_clone, bot_guid_str.clone()).await {
+                if let Err(e) =
+                    Self::mount_bot_task(state_clone, mounted_bots_clone, bot_guid_str.clone())
+                        .await
+                {
                     error!("Failed to mount bot {}: {}", bot_guid_str, e);
                 }
             });
@@ -64,13 +67,12 @@ impl BotOrchestrator {
         mounted_bots: Arc<AsyncMutex<HashMap<String, Arc<DriveMonitor>>>>,
         bot_guid: String,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use diesel::prelude::*;
         use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
 
         let bot_name: String = {
             let mut db_conn = state.conn.lock().unwrap();
-            bots
-                .filter(id.eq(Uuid::parse_str(&bot_guid)?))
+            bots.filter(id.eq(Uuid::parse_str(&bot_guid)?))
                 .select(name)
                 .first(&mut *db_conn)
                 .map_err(|e| {
@@ -91,7 +93,7 @@ impl BotOrchestrator {
 
         let bot_id = Uuid::parse_str(&bot_guid)?;
         let drive_monitor = Arc::new(DriveMonitor::new(state.clone(), bucket_name, bot_id));
-        
+
         let _handle = drive_monitor.clone().spawn().await;
 
         {
@@ -103,22 +105,34 @@ impl BotOrchestrator {
         Ok(())
     }
 
-    pub async fn create_bot(&self, bot_guid: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let bucket_name = format!("{}{}.gbai", self.state.config.as_ref().unwrap().drive.org_prefix, bot_guid);
+    pub async fn create_bot(
+        &self,
+        bot_guid: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let bucket_name = format!(
+            "{}{}.gbai",
+            self.state.config.as_ref().unwrap().drive.org_prefix,
+            bot_guid
+        );
         crate::create_bucket::create_bucket(&bucket_name)?;
         Ok(())
     }
 
-    pub async fn mount_bot(&self, bot_guid: &str) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let bot_guid = bot_guid.strip_suffix(".gbai").unwrap_or(bot_guid).to_string();
-        
-        use diesel::prelude::*;
+    pub async fn mount_bot(
+        &self,
+        bot_guid: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let bot_guid = bot_guid
+            .strip_suffix(".gbai")
+            .unwrap_or(bot_guid)
+            .to_string();
+
         use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
 
         let bot_name: String = {
             let mut db_conn = self.state.conn.lock().unwrap();
-            bots
-                .filter(id.eq(Uuid::parse_str(&bot_guid)?))
+            bots.filter(id.eq(Uuid::parse_str(&bot_guid)?))
                 .select(name)
                 .first(&mut *db_conn)
                 .map_err(|e| {
@@ -139,7 +153,7 @@ impl BotOrchestrator {
 
         let bot_id = Uuid::parse_str(&bot_guid)?;
         let drive_monitor = Arc::new(DriveMonitor::new(self.state.clone(), bucket_name, bot_id));
-        
+
         let _handle = drive_monitor.clone().spawn().await;
 
         {
@@ -155,7 +169,10 @@ impl BotOrchestrator {
         session_id: Uuid,
         user_input: &str,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Handling user input for session {}: '{}'", session_id, user_input);
+        info!(
+            "Handling user input for session {}: '{}'",
+            session_id, user_input
+        );
         let mut session_manager = self.state.session_manager.lock().await;
         session_manager.provide_input(session_id, user_input.to_string())?;
         Ok(None)
@@ -196,7 +213,10 @@ impl BotOrchestrator {
         bot_id: &str,
         mode: i32,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Setting answer mode for user {} with bot {} to mode {}", user_id, bot_id, mode);
+        info!(
+            "Setting answer mode for user {} with bot {} to mode {}",
+            user_id, bot_id, mode
+        );
         let mut session_manager = self.state.session_manager.lock().await;
         session_manager.update_answer_mode(user_id, bot_id, mode)?;
         Ok(())
@@ -211,21 +231,24 @@ impl BotOrchestrator {
         event_type: &str,
         data: serde_json::Value,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Sending event '{}' to session {} on channel {}", event_type, session_id, channel);
-            let event_response = BotResponse {
-                bot_id: bot_id.to_string(),
-                user_id: user_id.to_string(),
-                session_id: session_id.to_string(),
-                channel: channel.to_string(),
-                content: serde_json::to_string(&serde_json::json!({
-                    "event": event_type,
-                    "data": data
-                }))?,
-                message_type: 2,
-                stream_token: None,
-                is_complete: true,
-                suggestions: Vec::new(),
-            };
+        info!(
+            "Sending event '{}' to session {} on channel {}",
+            event_type, session_id, channel
+        );
+        let event_response = BotResponse {
+            bot_id: bot_id.to_string(),
+            user_id: user_id.to_string(),
+            session_id: session_id.to_string(),
+            channel: channel.to_string(),
+            content: serde_json::to_string(&serde_json::json!({
+                "event": event_type,
+                "data": data
+            }))?,
+            message_type: 2,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+        };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
             adapter.send_message(event_response).await?;
@@ -242,7 +265,10 @@ impl BotOrchestrator {
         channel: &str,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Sending direct message to session {}: '{}'", session_id, content);
+        info!(
+            "Sending direct message to session {}: '{}'",
+            session_id, content
+        );
         let bot_response = BotResponse {
             bot_id: "default_bot".to_string(),
             user_id: "default_user".to_string(),
@@ -258,7 +284,10 @@ impl BotOrchestrator {
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
             adapter.send_message(bot_response).await?;
         } else {
-            warn!("No channel adapter found for direct message on channel: {}", channel);
+            warn!(
+                "No channel adapter found for direct message on channel: {}",
+                channel
+            );
         }
 
         Ok(())
@@ -268,8 +297,14 @@ impl BotOrchestrator {
         &self,
         message: UserMessage,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Processing message from channel: {}, user: {}, session: {}", message.channel, message.user_id, message.session_id);
-        debug!("Message content: '{}', type: {}", message.content, message.message_type);
+        info!(
+            "Processing message from channel: {}, user: {}, session: {}",
+            message.channel, message.user_id, message.session_id
+        );
+        debug!(
+            "Message content: '{}', type: {}",
+            message.content, message.message_type
+        );
 
         let user_id = Uuid::parse_str(&message.user_id).map_err(|e| {
             error!("Invalid user ID provided: {}", e);
@@ -287,16 +322,27 @@ impl BotOrchestrator {
             match sm.get_session_by_id(session_id)? {
                 Some(session) => session,
                 None => {
-                    error!("Failed to create session for user {} with bot {}", user_id, bot_id);
+                    error!(
+                        "Failed to create session for user {} with bot {}",
+                        user_id, bot_id
+                    );
                     return Err("Failed to create session".into());
                 }
             }
         };
 
         if self.is_waiting_for_input(session.id).await {
-            debug!("Session {} is waiting for input, processing as variable input", session.id);
-            if let Some(variable_name) = self.handle_user_input(session.id, &message.content).await? {
-                info!("Stored user input in variable '{}' for session {}", variable_name, session.id);
+            debug!(
+                "Session {} is waiting for input, processing as variable input",
+                session.id
+            );
+            if let Some(variable_name) =
+                self.handle_user_input(session.id, &message.content).await?
+            {
+                info!(
+                    "Stored user input in variable '{}' for session {}",
+                    variable_name, session.id
+                );
                 if let Some(adapter) = self.state.channels.lock().unwrap().get(&message.channel) {
                     let ack_response = BotResponse {
                         bot_id: message.bot_id.clone(),
@@ -357,7 +403,10 @@ impl BotOrchestrator {
         if let Some(adapter) = self.state.channels.lock().unwrap().get(&message.channel) {
             adapter.send_message(bot_response).await?;
         } else {
-            warn!("No channel adapter found for message channel: {}", message.channel);
+            warn!(
+                "No channel adapter found for message channel: {}",
+                message.channel
+            );
         }
 
         Ok(())
@@ -426,7 +475,8 @@ impl BotOrchestrator {
                 }
             }
 
-            let response = self.state
+            let response = self
+                .state
                 .llm_provider
                 .generate(&prompt, &serde_json::Value::Null)
                 .await?;
@@ -467,7 +517,8 @@ impl BotOrchestrator {
                 }
             }
 
-            let response = self.state
+            let response = self
+                .state
                 .llm_provider
                 .generate(&prompt, &serde_json::Value::Null)
                 .await?;
@@ -494,7 +545,10 @@ impl BotOrchestrator {
         message: UserMessage,
         response_tx: mpsc::Sender<BotResponse>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!("Streaming response for user: {}, session: {}", message.user_id, message.session_id);
+        info!(
+            "Streaming response for user: {}, session: {}",
+            message.user_id, message.session_id
+        );
 
         let user_id = Uuid::parse_str(&message.user_id).map_err(|e| {
             error!("Invalid user ID: {}", e);
@@ -572,7 +626,10 @@ impl BotOrchestrator {
             }
 
             p.push_str(&format!("User: {}\nAssistant:", message.content));
-            info!("Stream prompt constructed with {} history entries", history.len());
+            info!(
+                "Stream prompt constructed with {} history entries",
+                history.len()
+            );
             p
         };
 
@@ -628,13 +685,18 @@ impl BotOrchestrator {
 
             analysis_buffer.push_str(&chunk);
 
-            if analysis_buffer.contains("**") && !in_analysis {
+            if (analysis_buffer.contains("**") || analysis_buffer.contains("<think>"))
+                && !in_analysis
+            {
                 in_analysis = true;
             }
 
             if in_analysis {
-                if analysis_buffer.ends_with("final") {
-                    info!("Analysis section completed, buffer length: {}", analysis_buffer.len());
+                if analysis_buffer.ends_with("final") || analysis_buffer.ends_with("</think>") {
+                    info!(
+                        "Analysis section completed, buffer length: {}",
+                        analysis_buffer.len()
+                    );
                     in_analysis = false;
                     analysis_buffer.clear();
 
@@ -680,7 +742,10 @@ impl BotOrchestrator {
             }
         }
 
-        info!("Stream processing completed, {} chunks processed", chunk_count);
+        info!(
+            "Stream processing completed, {} chunks processed",
+            chunk_count
+        );
 
         {
             let mut sm = self.state.session_manager.lock().await;
@@ -717,7 +782,10 @@ impl BotOrchestrator {
         session_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<(String, String)>, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Getting conversation history for session {} user {}", session_id, user_id);
+        info!(
+            "Getting conversation history for session {} user {}",
+            session_id, user_id
+        );
         let mut session_manager = self.state.session_manager.lock().await;
         let history = session_manager.get_conversation_history(session_id, user_id)?;
         Ok(history)
@@ -728,7 +796,10 @@ impl BotOrchestrator {
         state: Arc<AppState>,
         token: Option<String>,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Running start script for session: {} with token: {:?}", session.id, token);
+        info!(
+            "Running start script for session: {} with token: {:?}",
+            session.id, token
+        );
 
         let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| String::from("default_bot"));
         let start_script_path = format!("./{}.gbai/.gbdialog/start.bas", bot_guid);
@@ -741,7 +812,10 @@ impl BotOrchestrator {
             }
         };
 
-        info!("Start script content for session {}: {}", session.id, start_script);
+        info!(
+            "Start script content for session {}: {}",
+            session.id, start_script
+        );
 
         let session_clone = session.clone();
         let state_clone = state.clone();
@@ -754,11 +828,17 @@ impl BotOrchestrator {
             .and_then(|ast| script_service.run(&ast))
         {
             Ok(result) => {
-                info!("Start script executed successfully for session {}, result: {}", session_clone.id, result);
+                info!(
+                    "Start script executed successfully for session {}, result: {}",
+                    session_clone.id, result
+                );
                 Ok(true)
             }
             Err(e) => {
-                error!("Failed to run start script for session {}: {}", session_clone.id, e);
+                error!(
+                    "Failed to run start script for session {}: {}",
+                    session_clone.id, e
+                );
                 Ok(false)
             }
         }
@@ -770,7 +850,10 @@ impl BotOrchestrator {
         channel: &str,
         message: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        warn!("Sending warning to session {} on channel {}: {}", session_id, channel, message);
+        warn!(
+            "Sending warning to session {} on channel {}: {}",
+            session_id, channel, message
+        );
 
         if channel == "web" {
             self.send_event(
@@ -800,7 +883,10 @@ impl BotOrchestrator {
                 };
                 adapter.send_message(warn_response).await
             } else {
-                warn!("No channel adapter found for warning on channel: {}", channel);
+                warn!(
+                    "No channel adapter found for warning on channel: {}",
+                    channel
+                );
                 Ok(())
             }
         }
@@ -813,7 +899,10 @@ impl BotOrchestrator {
         _bot_id: &str,
         token: Option<String>,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Triggering auto welcome for user: {}, session: {}, token: {:?}", user_id, session_id, token);
+        info!(
+            "Triggering auto welcome for user: {}, session: {}, token: {:?}",
+            user_id, session_id, token
+        );
 
         let session_uuid = Uuid::parse_str(session_id).map_err(|e| {
             error!("Invalid session ID: {}", e);
@@ -832,14 +921,17 @@ impl BotOrchestrator {
         };
 
         let result = Self::run_start_script(&session, Arc::clone(&self.state), token).await?;
-        info!("Auto welcome completed for session: {} with result: {}", session_id, result);
+        info!(
+            "Auto welcome completed for session: {} with result: {}",
+            session_id, result
+        );
         Ok(result)
     }
 }
 
 pub fn bot_from_url(
     db_conn: &mut PgConnection,
-    path: &str
+    path: &str,
 ) -> Result<(Uuid, String), HttpResponse> {
     use crate::shared::models::schema::bots::dsl::*;
     use diesel::prelude::*;
@@ -867,7 +959,11 @@ pub fn bot_from_url(
         .optional()
     {
         Ok(Some((first_bot_id, first_bot_name))) => {
-            log::info!("Using first available bot: {} ({})", first_bot_id, first_bot_name);
+            log::info!(
+                "Using first available bot: {} ({})",
+                first_bot_id,
+                first_bot_name
+            );
             Ok((first_bot_id, first_bot_name))
         }
         Ok(None) => {
@@ -975,7 +1071,10 @@ async fn websocket_handler(
         .await
         .ok();
 
-    info!("WebSocket connection established for session: {}, user: {}", session_id, user_id);
+    info!(
+        "WebSocket connection established for session: {}, user: {}",
+        session_id, user_id
+    );
 
     let orchestrator_clone = BotOrchestrator::new(Arc::clone(&data));
     let user_id_welcome = user_id.clone();
@@ -997,7 +1096,10 @@ async fn websocket_handler(
     let user_id_clone = user_id.clone();
 
     actix_web::rt::spawn(async move {
-        info!("Starting WebSocket sender for session {}", session_id_clone1);
+        info!(
+            "Starting WebSocket sender for session {}",
+            session_id_clone1
+        );
         let mut message_count = 0;
         while let Some(msg) = rx.recv().await {
             message_count += 1;
@@ -1008,11 +1110,17 @@ async fn websocket_handler(
                 }
             }
         }
-        info!("WebSocket sender terminated for session {}, sent {} messages", session_id_clone1, message_count);
+        info!(
+            "WebSocket sender terminated for session {}, sent {} messages",
+            session_id_clone1, message_count
+        );
     });
 
     actix_web::rt::spawn(async move {
-        info!("Starting WebSocket receiver for session {}", session_id_clone2);
+        info!(
+            "Starting WebSocket receiver for session {}",
+            session_id_clone2
+        );
         let mut message_count = 0;
         while let Some(Ok(msg)) = msg_stream.recv().await {
             match msg {
@@ -1067,12 +1175,18 @@ async fn websocket_handler(
                     };
 
                     if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
-                        error!("Error processing WebSocket message {}: {}", message_count, e);
+                        error!(
+                            "Error processing WebSocket message {}: {}",
+                            message_count, e
+                        );
                     }
                 }
                 WsMessage::Close(reason) => {
-                    debug!("WebSocket closing for session {} - reason: {:?}", session_id_clone2, reason);
-                    
+                    debug!(
+                        "WebSocket closing for session {} - reason: {:?}",
+                        session_id_clone2, reason
+                    );
+
                     let bot_id = {
                         use crate::shared::models::schema::bots::dsl::*;
                         use diesel::prelude::*;
@@ -1125,10 +1239,16 @@ async fn websocket_handler(
                 _ => {}
             }
         }
-        info!("WebSocket receiver terminated for session {}, processed {} messages", session_id_clone2, message_count);
+        info!(
+            "WebSocket receiver terminated for session {}, processed {} messages",
+            session_id_clone2, message_count
+        );
     });
 
-    info!("WebSocket handler setup completed for session {}", session_id);
+    info!(
+        "WebSocket handler setup completed for session {}",
+        session_id
+    );
     Ok(res)
 }
 
@@ -1178,7 +1298,10 @@ async fn start_session(
 
     match result {
         Ok(true) => {
-            info!("Start script completed successfully for session: {}", session_id);
+            info!(
+                "Start script completed successfully for session: {}",
+                session_id
+            );
             Ok(HttpResponse::Ok().json(serde_json::json!({
                 "status": "started",
                 "session_id": session.id,
@@ -1194,7 +1317,10 @@ async fn start_session(
             })))
         }
         Err(e) => {
-            error!("Error running start script for session {}: {}", session_id, e);
+            error!(
+                "Error running start script for session {}: {}",
+                session_id, e
+            );
             Ok(HttpResponse::InternalServerError()
                 .json(serde_json::json!({"error": e.to_string()})))
         }
@@ -1214,7 +1340,10 @@ async fn send_warning_handler(
     let channel = info.get("channel").unwrap_or(&default_channel);
     let message = info.get("message").unwrap_or(&default_message);
 
-    info!("Sending warning via API - session: {}, channel: {}", session_id, channel);
+    info!(
+        "Sending warning via API - session: {}, channel: {}",
+        session_id, channel
+    );
 
     let orchestrator = BotOrchestrator::new(Arc::clone(&data));
     if let Err(e) = orchestrator
