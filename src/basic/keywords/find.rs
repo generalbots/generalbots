@@ -13,7 +13,7 @@ use crate::shared::utils;
 use crate::shared::utils::to_array;
 
 pub fn find_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
-    let connection = state.custom_conn.clone();
+    let connection = state.conn.clone();
 
     engine
         .register_custom_syntax(&["FIND", "$expr$", ",", "$expr$"], false, {

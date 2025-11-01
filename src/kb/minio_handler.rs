@@ -38,7 +38,7 @@ pub async fn get_file_content(
 
 impl MinIOHandler {
     pub fn new(state: Arc<AppState>) -> Self {
-        let client = state.s3_client.as_ref().expect("S3 client must be initialized").clone();
+        let client = state.drive.as_ref().expect("S3 client must be initialized").clone();
         Self {
             state: Arc::clone(&state),
             s3: Arc::new(client),

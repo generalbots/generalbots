@@ -159,7 +159,7 @@ pub async fn get_from_bucket(
         return Err("Invalid file path".into());
     }
 
-    let client = state.s3_client.as_ref().ok_or("S3 client not configured")?;
+    let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bucket_name = {
         let cfg = state

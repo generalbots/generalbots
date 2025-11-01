@@ -52,7 +52,7 @@ impl DriveMonitor {
     }
 
     async fn check_for_changes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let client = match &self.state.s3_client {
+        let client = match &self.state.drive {
             Some(client) => client,
             None => {
                 return Ok(());

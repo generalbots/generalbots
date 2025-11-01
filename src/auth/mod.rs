@@ -164,7 +164,7 @@ impl AuthService {
 
 #[actix_web::get("/api/auth")]
 async fn auth_handler(
-    req: HttpRequest,
+    _req: HttpRequest,
     data: web::Data<AppState>,
     web::Query(params): web::Query<HashMap<String, String>>,
 ) -> Result<HttpResponse> {

@@ -551,7 +551,7 @@ impl BotOrchestrator {
         );
 
         // Get suggestions from Redis
-        let suggestions = if let Some(redis) = &self.state.redis_client {
+        let suggestions = if let Some(redis) = &self.state.cache {
             let mut conn = redis.get_multiplexed_async_connection().await?;
             let redis_key = format!("suggestions:{}:{}", message.user_id, message.session_id);
             let suggestions: Vec<String> = redis::cmd("LRANGE")

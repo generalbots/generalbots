@@ -878,8 +878,7 @@
                     />
                     <button id="sendBtn">Enviar</button>
                 </div>
-                <div id="suggestions-container" style="text-align:center; margin-top:10px;"></div>
-                <script>
+                                <script>
                   function handleSuggestions(suggestions) {
                     const container = document.getElementById('suggestions-container');
                     container.innerHTML = '';
@@ -899,21 +898,45 @@
                     });
                   }
 
+                  let pendingContextChange = null;
+
                   async function setContext(context) {
                     try {
+                      // Get the button text from the clicked suggestion
+                      const buttonText = event?.target?.textContent || context;
+                      
+                      // Set the input field value to the button text
+                      const input = document.getElementById('messageInput');
+                      if (input) {
+                        input.value = buttonText;
+                      }
+
                       if (ws && ws.readyState === WebSocket.OPEN) {
-                        const suggestionEvent = {
-                          bot_id: currentBotId,
-                          user_id: currentUserId,
-                          session_id: currentSessionId,
-                          channel: "web",
-                          content: context,
-                          message_type: 4, // custom type for suggestion click
-                          is_suggestion: true,
-                          context_name: context,
-                          timestamp: new Date().toISOString()
-                        };
-                        ws.send(JSON.stringify(suggestionEvent));
+                        pendingContextChange = new Promise((resolve) => {
+                          const handler = (event) => {
+                            const response = JSON.parse(event.data);
+                            if (response.message_type === 5 && response.context_name === context) {
+                              ws.removeEventListener('message', handler);
+                              resolve();
+                            }
+                          };
+                          ws.addEventListener('message', handler);
+
+                          const suggestionEvent = {
+                            bot_id: currentBotId,
+                            user_id: currentUserId,
+                            session_id: currentSessionId,
+                            channel: "web",
+                            content: context,
+                            message_type: 4, // custom type for suggestion click
+                            is_suggestion: true,
+                            context_name: context,
+                            timestamp: new Date().toISOString()
+                          };
+                          ws.send(JSON.stringify(suggestionEvent));
+                        });
+
+                        await pendingContextChange;
                         alert(`Contexto alterado para: ${context}`);
                       } else {
                         console.warn("WebSocket não está conectado. Tentando reconectar...");
@@ -922,6 +945,42 @@
                     } catch (err) {
                       console.error('Failed to set context:', err);
                     }
+                  }
+
+                  async function sendMessage() {
+                    if (pendingContextChange) {
+                      await pendingContextChange;
+                      pendingContextChange = null;
+                    }
+                    const message = input.value.trim();
+                    if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
+                      if (!ws || ws.readyState !== WebSocket.OPEN) {
+                        showWarning("Conexão não disponível. Tentando reconectar...");
+                        connectWebSocket();
+                      }
+                      return;
+                    }
+
+                    if (isThinking) {
+                      hideThinkingIndicator();
+                    }
+
+                    addMessage("user", message);
+
+                    const messageData = {
+                      bot_id: currentBotId,
+                      user_id: currentUserId,
+                      session_id: currentSessionId,
+                      channel: "web",
+                      content: message,
+                      message_type: 1,
+                      media_url: null,
+                      timestamp: new Date().toISOString()
+                    };
+
+                    ws.send(JSON.stringify(messageData));
+                    input.value = "";
+                    input.focus();
                   }
                 </script>
             </footer>
