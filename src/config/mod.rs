@@ -439,6 +439,32 @@ impl ConfigManager {
         Self { conn }
     }
 
+    pub fn get_config(
+        &self,
+        bot_id: &uuid::Uuid,
+        key: &str,
+        fallback: Option<&str>,
+    ) -> Result<String, diesel::result::Error> {
+        let mut conn = self.conn.lock().unwrap();
+        let fallback_str = fallback.unwrap_or("");
+
+        #[derive(Debug, QueryableByName)]
+        struct ConfigValue {
+            #[diesel(sql_type = Text)]
+            value: String,
+        }
+
+        let result = diesel::sql_query(
+            "SELECT get_bot_config($1, $2, $3) as value"
+        )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .bind::<Text, _>(key)
+            .bind::<Text, _>(fallback_str)
+            .get_result::<ConfigValue>(&mut *conn)
+            .map(|row| row.value)?;
+        Ok(result)
+    }
+
     pub fn sync_gbot_config(
         &self,
         bot_id: &uuid::Uuid,
