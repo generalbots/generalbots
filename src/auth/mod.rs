@@ -144,6 +144,22 @@ impl AuthService {
 
         Ok(user)
     }
+
+    pub fn bot_from_name(
+        &mut self,
+        bot_name: &str,
+    ) -> Result<Option<Uuid>, Box<dyn std::error::Error + Send + Sync>> {
+        use crate::shared::models::bots;
+
+        let bot = bots::table
+            .filter(bots::name.eq(bot_name))
+            .filter(bots::is_active.eq(true))
+            .select(bots::id)
+            .first::<Uuid>(&mut self.conn)
+            .optional()?;
+
+        Ok(bot)
+    }
 }
 
 #[actix_web::get("/api/auth")]
@@ -152,6 +168,7 @@ async fn auth_handler(
     data: web::Data<AppState>,
     web::Query(params): web::Query<HashMap<String, String>>,
 ) -> Result<HttpResponse> {
+    let bot_name = params.get("bot_name").cloned().unwrap_or_default();
     let _token = params.get("token").cloned().unwrap_or_default();
 
     // Create or get anonymous user with proper UUID
@@ -168,9 +185,41 @@ async fn auth_handler(
     };
 
     let mut db_conn = data.conn.lock().unwrap();
-    let (bot_id, bot_name) = match crate::bot::bot_from_url(&mut *db_conn, req.path()) {
-        Ok((id, name)) => (id, name),
-        Err(res) => return Ok(res),
+    // Use bot_name query parameter if provided, otherwise fallback to path-based lookup
+    let bot_name_param = bot_name.clone();
+    let (bot_id, bot_name) = {
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+        use actix_web::error::ErrorInternalServerError;
+
+        // Try to find bot by the provided name
+        match bots
+            .filter(name.eq(&bot_name_param))
+            .filter(is_active.eq(true))
+            .select((id, name))
+            .first::<(Uuid, String)>(&mut *db_conn)
+            .optional()
+            .map_err(|e| ErrorInternalServerError(e))?
+        {
+            Some((id_val, name_val)) => (id_val, name_val),
+            None => {
+                // Fallback to first active bot if not found
+                match bots
+                    .filter(is_active.eq(true))
+                    .select((id, name))
+                    .first::<(Uuid, String)>(&mut *db_conn)
+                    .optional()
+                    .map_err(|e| ErrorInternalServerError(e))?
+                {
+                    Some((id_val, name_val)) => (id_val, name_val),
+                    None => {
+                        error!("No active bots found");
+                        return Ok(HttpResponse::ServiceUnavailable()
+                            .json(serde_json::json!({"error": "No bots available"})));
+                    }
+                }
+            }
+        }
     };
 
     let session = {

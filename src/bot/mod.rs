@@ -3,7 +3,7 @@ use crate::context::langcache::get_langcache_client;
 use crate::drive_monitor::DriveMonitor;
 use crate::kb::embeddings::generate_embeddings;
 use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
-use crate::shared::models::{BotResponse, UserMessage, UserSession};
+use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
@@ -550,6 +550,25 @@ impl BotOrchestrator {
             message.user_id, message.session_id
         );
 
+        // Get suggestions from Redis
+        let suggestions = if let Some(redis) = &self.state.redis_client {
+            let mut conn = redis.get_multiplexed_async_connection().await?;
+            let redis_key = format!("suggestions:{}:{}", message.user_id, message.session_id);
+            let suggestions: Vec<String> = redis::cmd("LRANGE")
+                .arg(&redis_key)
+                .arg(0)
+                .arg(-1)
+                .query_async(&mut conn)
+                .await?;
+
+            suggestions
+                .into_iter()
+                .filter_map(|s| serde_json::from_str::<Suggestion>(&s).ok())
+                .collect()
+        } else {
+            Vec::new()
+        };
+
         let user_id = Uuid::parse_str(&message.user_id).map_err(|e| {
             error!("Invalid user ID: {}", e);
             e
@@ -733,7 +752,7 @@ impl BotOrchestrator {
                 message_type: 1,
                 stream_token: None,
                 is_complete: false,
-                suggestions: Vec::new(),
+                suggestions: suggestions.clone(),
             };
 
             if response_tx.send(partial).await.is_err() {
@@ -761,7 +780,7 @@ impl BotOrchestrator {
             message_type: 1,
             stream_token: None,
             is_complete: true,
-            suggestions: Vec::new(),
+            suggestions,
         };
 
         response_tx.send(final_msg).await?;
@@ -801,8 +820,23 @@ impl BotOrchestrator {
             session.id, token
         );
 
-        let bot_guid = std::env::var("BOT_GUID").unwrap_or_else(|_| String::from("default_bot"));
-        let start_script_path = format!("./{}.gbai/.gbdialog/start.bas", bot_guid);
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        let bot_id = session.bot_id;
+        let bot_name: String = {
+            let mut db_conn = state.conn.lock().unwrap();
+            bots.filter(id.eq(Uuid::parse_str(&bot_id.to_string())?))
+                .select(name)
+                .first(&mut *db_conn)
+                .map_err(|e| {
+                    error!("Failed to query bot name for {}: {}", bot_id, e);
+                    e
+                })?
+        };
+
+
+        let start_script_path = format!("./work/{}.gbai/{}.gbdialog/start.ast", bot_name, bot_name);
 
         let start_script = match std::fs::read_to_string(&start_script_path) {
             Ok(content) => content,

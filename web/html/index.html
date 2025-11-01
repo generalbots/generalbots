@@ -1093,7 +1093,11 @@
             async function initializeAuth() {
                 try {
                     updateConnectionStatus("connecting");
-                    const response = await fetch("/api/auth");
+                    // Extract bot name from URL path (first segment after /)
+                    const pathSegments = window.location.pathname.split('/').filter(s => s);
+                    const botName = pathSegments.length > 0 ? pathSegments[0] : 'default';
+                    
+                    const response = await fetch(`/api/auth?bot_name=${encodeURIComponent(botName)}`);
                     const authData = await response.json();
                     currentUserId = authData.user_id;
                     currentSessionId = authData.session_id;
