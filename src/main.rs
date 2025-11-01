@@ -172,10 +172,6 @@ async fn main() -> std::io::Result<()> {
     };
 
     let db_custom_pool = db_pool.clone();
-    ensure_llama_servers_running()
-        .await
-        .expect("Failed to initialize LLM local server");
-
     let cache_url = std::env::var("CACHE_URL")
         .or_else(|_| std::env::var("REDIS_URL"))
         .unwrap_or_else(|_| "redis://localhost:6379".to_string());
@@ -272,8 +268,14 @@ async fn main() -> std::io::Result<()> {
         log::error!("Failed to mount bots: {}", e);
     }
 
-    
+
+    ensure_llama_servers_running(&app_state)
+        .await
+        .expect("Failed to initialize LLM local server");
+
+        
     HttpServer::new(move || {
+
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
