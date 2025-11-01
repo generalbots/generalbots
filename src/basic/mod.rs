@@ -1,3 +1,4 @@
+use crate::basic::keywords::set_user::set_user_keyword;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::info;
@@ -17,9 +18,8 @@ use self::keywords::first::first_keyword;
 use self::keywords::for_next::for_keyword;
 use self::keywords::format::format_keyword;
 use self::keywords::get::get_keyword;
-use self::keywords::hear_talk::{
-    hear_keyword, set_context_keyword, set_user_keyword, talk_keyword,
-};
+use self::keywords::hear_talk::{hear_keyword, talk_keyword};
+use self::keywords::set_context::set_context_keyword;
 use self::keywords::last::last_keyword;
 use self::keywords::list_tools::list_tools_keyword;
 use self::keywords::llm_keyword::llm_keyword;

@@ -5,11 +5,11 @@ use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
 
-pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let cache = state.redis_client.clone();
+pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
+    let cache = state.cache.clone();
 
     engine
-        .register_custom_syntax(&["ADD_SUGGESTION", "$expr$", "$expr$"], true, move |context, inputs| {
+        .register_custom_syntax(&["ADD_SUGGESTION", "$expr$", "AS", "$expr$"], true, move |context, inputs| {
             let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
             let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
@@ -17,7 +17,7 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &
 
             if let Some(cache_client) = &cache {
                 let cache_client = cache_client.clone();
-                let redis_key = format!("suggestions:{}:{}", user.user_id, user.id);
+                let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
                 let suggestion = json!({ "context": context_name, "text": button_text });
 
                 tokio::spawn(async move {
@@ -41,7 +41,7 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user: UserSession, engine: &
                             debug!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
 
                             // Also register context as inactive initially
-                            let active_key = format!("active_context:{}:{}", user.user_id, user.id);
+                            let active_key = format!("active_context:{}:{}", user_session.user_id, user_session.id);
                             let hset_result: Result<i64, redis::RedisError> = redis::cmd("HSET")
                                 .arg(&active_key)
                                 .arg(&context_name)

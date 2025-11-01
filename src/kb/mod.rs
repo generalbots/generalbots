@@ -96,7 +96,7 @@ impl KBManager {
         &self,
         collection: &KBCollection,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let _client = match &self.state.s3_client {
+        let _client = match &self.state.drive {
             Some(client) => client,
             None => {
                 warn!("S3 client not configured");
@@ -117,7 +117,7 @@ impl KBManager {
         file_size: i64,
         _last_modified: Option<String>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let client = self.state.s3_client.as_ref().ok_or("S3 client not configured")?;
+        let client = self.state.drive.as_ref().ok_or("S3 client not configured")?;
         let content = minio_handler::get_file_content(client, &self.state.bucket_name, file_path).await?;
         let file_hash = if content.len() > 100 {
             format!(
