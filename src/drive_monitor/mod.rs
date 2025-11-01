@@ -1,4 +1,5 @@
 use crate::basic::compiler::BasicCompiler;
+use crate::config::ConfigManager;
 use crate::kb::embeddings;
 use crate::kb::qdrant_client;
 use crate::shared::state::AppState;
@@ -241,7 +242,6 @@ impl DriveMonitor {
             let list_objects = client
                 .list_objects_v2()
                 .bucket(&self.bucket_name.to_lowercase())
-                .prefix(prefix)
                 .set_continuation_token(continuation_token)
                 .send()
                 .await?;
@@ -281,6 +281,22 @@ impl DriveMonitor {
                         let csv_content = String::from_utf8(bytes.to_vec())
                             .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
                         debug!("Found {}: {} bytes", path, csv_content.len());
+
+                        // Parse config.csv and update bot configuration
+                        let bot_id = path.split('/')
+                            .nth(1)
+                            .and_then(|s| s.strip_suffix(".gbot"))
+                            .and_then(|s| uuid::Uuid::parse_str(s).ok())
+                            .unwrap_or(uuid::Uuid::nil());
+
+                        if bot_id != uuid::Uuid::nil() {
+                            let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+                            if let Err(e) = config_manager.sync_gbot_config(&bot_id, &csv_content) {
+                                error!("Failed to sync config for bot {} {}: {}", path, bot_id, e);
+                            } else {
+                                info!("Successfully synced config for bot {}", bot_id);
+                            }
+                        }
                     }
                     Err(e) => {
                         debug!("Config file {} not found or inaccessible: {}", path, e);

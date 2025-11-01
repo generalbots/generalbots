@@ -119,24 +119,15 @@ impl AppConfig {
         self.stack_path.join("logs").join(component)
     }
 
-    pub fn from_database(conn: &mut PgConnection) -> Self {
+    pub fn from_database(_conn: &mut PgConnection) -> Self {
         info!("Loading configuration from database");
-
-        let config_map = match Self::load_config_from_db(conn) {
-            Ok(map) => {
-                info!("Loaded {} config values from database", map.len());
-                map
-            }
-            Err(e) => {
-                warn!("Failed to load config from database: {}. Using defaults", e);
-                HashMap::new()
-            }
-        };
+        // Config is now loaded from bot_configuration table via drive_monitor
+        let config_map: HashMap<String, ServerConfigRow> = HashMap::new();
 
         let get_str = |key: &str, default: &str| -> String {
             config_map
                 .get(key)
-                .map(|v| v.config_value.clone())
+                .map(|v: &ServerConfigRow| v.config_value.clone())
                 .unwrap_or_else(|| default.to_string())
         };
 
@@ -163,8 +154,6 @@ impl AppConfig {
 
         let stack_path = PathBuf::from(get_str("STACK_PATH", "./botserver-stack"));
 
-        // For database credentials, prioritize environment variables over database values
-        // because we need the correct credentials to connect to the database in the first place
         let database = DatabaseConfig {
             username: std::env::var("TABLES_USERNAME")
                 .unwrap_or_else(|_| get_str("TABLES_USERNAME", "gbuser")),
@@ -333,19 +322,6 @@ impl AppConfig {
         }
     }
 
-    fn load_config_from_db(
-        conn: &mut PgConnection,
-    ) -> Result<HashMap<String, ServerConfigRow>, diesel::result::Error> {
-        let results = diesel::sql_query("SELECT id, config_key, config_value, config_type, is_encrypted FROM server_configuration").load::<ServerConfigRow>(conn)?;
-
-        let mut map = HashMap::new();
-        for row in results {
-            map.insert(row.config_key.clone(), row);
-        }
-
-        Ok(map)
-    }
-
     pub fn set_config(
         &self,
         conn: &mut PgConnection,
@@ -480,31 +456,11 @@ impl ConfigManager {
 
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
-        let file_hash = format!("{:x}", hasher.finalize());
 
         let mut conn = self
             .conn
             .lock()
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
-
-        #[derive(QueryableByName)]
-        struct SyncHash {
-            #[diesel(sql_type = Text)]
-            file_hash: String,
-        }
-
-        let last_hash: Option<String> =
-            diesel::sql_query("SELECT file_hash FROM gbot_config_sync WHERE bot_id = $1")
-                .bind::<diesel::sql_types::Uuid, _>(bot_id)
-                .get_result::<SyncHash>(&mut *conn)
-                .optional()
-                .map_err(|e| format!("Database error: {}", e))?
-                .map(|row| row.file_hash);
-
-        if last_hash.as_ref() == Some(&file_hash) {
-            info!("Config file unchanged for bot {}", bot_id);
-            return Ok(0);
-        }
 
         let mut updated = 0;
         for line in content.lines().skip(1) {
@@ -513,25 +469,18 @@ impl ConfigManager {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
 
-let new_id: uuid::Uuid = uuid::Uuid::new_v4();
-diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
-    .bind::<diesel::sql_types::Uuid, _>(new_id)
-    .bind::<diesel::sql_types::Uuid, _>(bot_id)
-    .bind::<diesel::sql_types::Text, _>(key)
-    .bind::<diesel::sql_types::Text, _>(value)
-    .execute(&mut *conn)
-    .map_err(|e| format!("Failed to update config: {}", e))?;
+                let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+                diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
+                    .bind::<diesel::sql_types::Uuid, _>(new_id)
+                    .bind::<diesel::sql_types::Uuid, _>(bot_id)
+                    .bind::<diesel::sql_types::Text, _>(key)
+                    .bind::<diesel::sql_types::Text, _>(value)
+                    .execute(&mut *conn)
+                    .map_err(|e| format!("Failed to update config: {}", e))?;
 
                 updated += 1;
             }
         }
-
-        diesel::sql_query("INSERT INTO gbot_config_sync (id, bot_id, config_file_path, file_hash, sync_count) VALUES (gen_random_uuid()::text, $1, $2, $3, 1) ON CONFLICT (bot_id) DO UPDATE SET last_sync_at = NOW(), file_hash = EXCLUDED.file_hash, sync_count = gbot_config_sync.sync_count + 1")
-            .bind::<diesel::sql_types::Uuid, _>(bot_id)
-            .bind::<diesel::sql_types::Text, _>(config_path)
-            .bind::<diesel::sql_types::Text, _>(&file_hash)
-            .execute(&mut *conn)
-            .map_err(|e| format!("Failed to update sync record: {}", e))?;
 
         info!(
             "Synced {} config values for bot {} from {}",
