@@ -1,10 +1,12 @@
 use actix_web::{post, web, HttpRequest, HttpResponse, Result};
+use crate::config::{AppConfig, ConfigManager};
 use dotenvy::dotenv;
 use log::{error, info};
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::env;
 use tokio::time::{sleep, Duration};
+use uuid::Uuid;
 
 // OpenAI-compatible request/response structures
 #[derive(Debug, Serialize, Deserialize)]
@@ -62,13 +64,45 @@ pub async fn ensure_llama_servers_running() -> Result<(), Box<dyn std::error::Er
         return Ok(());
     }
 
-    // Get configuration from environment variables
-    let llm_url = env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:8081".to_string());
-    let embedding_url =
-        env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8082".to_string());
-    let llama_cpp_path = env::var("LLM_CPP_PATH").unwrap_or_else(|_| "~/llama.cpp".to_string());
-    let llm_model_path = env::var("LLM_MODEL_PATH").unwrap_or_else(|_| "".to_string());
-    let embedding_model_path = env::var("EMBEDDING_MODEL_PATH").unwrap_or_else(|_| "".to_string());
+    // Get configuration with fallback to default bot config
+    let default_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000").unwrap();
+    let config_manager = AppConfig::from_env().db_conn.map(ConfigManager::new);
+
+    let llm_url = match &config_manager {
+        Some(cm) => env::var("LLM_URL").unwrap_or_else(|_| 
+            cm.get_config(&default_bot_id, "LLM_URL", None)
+                .unwrap_or("http://localhost:8081".to_string())
+        ),
+        None => env::var("LLM_URL").unwrap_or("http://localhost:8081".to_string())
+    };
+    let embedding_url = match &config_manager {
+        Some(cm) => env::var("EMBEDDING_URL").unwrap_or_else(|_| 
+            cm.get_config(&default_bot_id, "EMBEDDING_URL", None)
+                .unwrap_or("http://localhost:8082".to_string())
+        ),
+        None => env::var("EMBEDDING_URL").unwrap_or("http://localhost:8082".to_string())
+    };
+    let llama_cpp_path = match &config_manager {
+        Some(cm) => env::var("LLM_CPP_PATH").unwrap_or_else(|_| 
+            cm.get_config(&default_bot_id, "LLM_CPP_PATH", None)
+                .unwrap_or("~/llama.cpp".to_string())
+        ),
+        None => env::var("LLM_CPP_PATH").unwrap_or("~/llama.cpp".to_string())
+    };
+    let llm_model_path = match &config_manager {
+        Some(cm) => env::var("LLM_MODEL_PATH").unwrap_or_else(|_| 
+            cm.get_config(&default_bot_id, "LLM_MODEL_PATH", None)
+                .unwrap_or("".to_string())
+        ),
+        None => env::var("LLM_MODEL_PATH").unwrap_or("".to_string())
+    };
+    let embedding_model_path = match &config_manager {
+        Some(cm) => env::var("EMBEDDING_MODEL_PATH").unwrap_or_else(|_| 
+            cm.get_config(&default_bot_id, "EMBEDDING_MODEL_PATH", None)
+                .unwrap_or("".to_string())
+        ),
+        None => env::var("EMBEDDING_MODEL_PATH").unwrap_or("".to_string())
+    };
 
     info!("🚀 Starting local llama.cpp servers...");
     info!("📋 Configuration:");
@@ -189,18 +223,49 @@ async fn start_llm_server(
     std::env::set_var("OMP_PROC_BIND", "close");
 
     // "cd {} && numactl --interleave=all ./llama-server -m {} --host 0.0.0.0 --port {} --threads 20 --threads-batch 40 --temp 0.7 --parallel 1 --repeat-penalty 1.1 --ctx-size 8192 --batch-size 8192 -n 4096 --mlock --no-mmap --flash-attn  --no-kv-offload  --no-mmap &",
+    // Read config values with defaults
+    let n_moe = env::var("LLM_SERVER_N_MOE").unwrap_or("4".to_string());
+    let ctx_size = env::var("LLM_SERVER_CTX_SIZE").unwrap_or("4096".to_string());
+    let parallel = env::var("LLM_SERVER_PARALLEL").unwrap_or("1".to_string());
+    let cont_batching = env::var("LLM_SERVER_CONT_BATCHING").unwrap_or("true".to_string());
+    let mlock = env::var("LLM_SERVER_MLOCK").unwrap_or("true".to_string());
+    let no_mmap = env::var("LLM_SERVER_NO_MMAP").unwrap_or("true".to_string());
+    let gpu_layers = env::var("LLM_SERVER_GPU_LAYERS").unwrap_or("20".to_string());
+
+    // Build command arguments dynamically
+    let mut args = format!(
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --ctx-size {} --repeat-penalty 1.2 -ngl {}",
+        model_path, port, ctx_size, gpu_layers
+    );
+
+    if n_moe != "0" {
+        args.push_str(&format!(" --n-moe {}", n_moe));
+    }
+    if parallel != "1" {
+        args.push_str(&format!(" --parallel {}", parallel));
+    }
+    if cont_batching == "true" {
+        args.push_str(" --cont-batching");
+    }
+    if mlock == "true" {
+        args.push_str(" --mlock");
+    }
+    if no_mmap == "true" {
+        args.push_str(" --no-mmap");
+    }
+
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/C").arg(format!(
-            "cd {} && .\\llama-server.exe -m {} --host 0.0.0.0 --port {} --top_p 0.95  --temp 0.6 --flash-attn on  --ctx-size 4096  --repeat-penalty 1.2 -ngl 20 ",
-            llama_cpp_path, model_path, port
+            "cd {} && .\\llama-server.exe {}",
+            llama_cpp_path, args
         ));
         cmd.spawn()?;
     } else {
         let mut cmd = tokio::process::Command::new("sh");
         cmd.arg("-c").arg(format!(
-            "cd {} && ./llama-server -m {} --host 0.0.0.0 --port {} --top_p 0.95  --temp 0.6 --flash-attn on  --ctx-size 4096  --repeat-penalty 1.2 -ngl 20 &",
-            llama_cpp_path, model_path, port
+            "cd {} && ./llama-server {} &",
+            llama_cpp_path, args
         ));
         cmd.spawn()?;
     }

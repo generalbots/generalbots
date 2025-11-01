@@ -1,4 +1,6 @@
 use crate::config::AIConfig;
+use anyhow::{Context, Result};
+use diesel::{Connection, PgConnection};
 use futures_util::StreamExt;
 use indicatif::{ProgressBar, ProgressStyle};
 use log::trace;
@@ -176,4 +178,13 @@ pub async fn call_llm(
     _ai_config: &AIConfig,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     Ok(format!("Generated response for: {}", prompt))
+}
+
+/// Establishes a PostgreSQL connection using DATABASE_URL environment variable
+pub fn establish_pg_connection() -> Result<PgConnection> {
+    let database_url = std::env::var("DATABASE_URL")
+        .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+    
+    PgConnection::establish(&database_url)
+        .with_context(|| format!("Failed to connect to database at {}", database_url))
 }

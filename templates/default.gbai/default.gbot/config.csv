@@ -4,18 +4,25 @@ server_host,0.0.0.0
 server_port,8080
 sites_root,/tmp
 
-llm-key,gsk_
-llm-model,openai/gpt-oss-20b
-llm-url,https://api.groq.com/openai/v1/chat/completions
-
+llm-key,none
 llm-url,http://localhost:8080/v1
-llm-model,./botserver-stack/llm/data/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf
+llm-model,botserver-stack/data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf
 
 embedding-url,http://localhost:8082
-embedding-model-path,./botserver-stack/llm/data/bge-small-en-v1.5-f32.gguf
+embedding-model-path,botserver-stack/data/llm/bge-small-en-v1.5-f32.gguf
 
 llm-server,false
-llm-server-path,~/llama.cpp
+llm-server-path,botserver-stack/bin/llm/
+llm-server-model,botserver-stack/data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf
+llm-server-host,0.0.0.0
+llm-server-port,8080
+llm-server-gpu-layers,35
+llm-server-n-moe,4
+llm-server-ctx-size,2048
+llm-server-parallel,4
+llm-server-cont-batching,true
+llm-server-mlock,true
+llm-server-no-mmap,true
 
 email-from,from@domain.com
 email-server,mail.domain.com
