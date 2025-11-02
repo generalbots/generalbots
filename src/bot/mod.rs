@@ -4,6 +4,7 @@ use crate::context::langcache::get_langcache_client;
 use crate::drive_monitor::DriveMonitor;
 use crate::kb::embeddings::generate_embeddings;
 use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
+use crate::llm_models;
 use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
@@ -680,7 +681,6 @@ impl BotOrchestrator {
             e
         })?;
 
-
         let session = {
             let mut sm = self.state.session_manager.lock().await;
             let session_id = Uuid::parse_str(&message.session_id).map_err(|e| {
@@ -795,6 +795,17 @@ impl BotOrchestrator {
         let mut chunk_count = 0;
         let mut first_word_received = false;
 
+        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let model = config_manager
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-model",
+                None,
+            )
+            .unwrap_or_default();
+
+        let handler = llm_models::get_handler(&model);
+
         while let Some(chunk) = stream_rx.recv().await {
             chunk_count += 1;
 
@@ -804,63 +815,56 @@ impl BotOrchestrator {
 
             analysis_buffer.push_str(&chunk);
 
-            if (analysis_buffer.contains("**") || analysis_buffer.contains("<think>"))
-                && !in_analysis
-            {
+            // Check for analysis markers
+            if handler.has_analysis_markers(&analysis_buffer) && !in_analysis {
                 in_analysis = true;
             }
 
-            if in_analysis {
-                if analysis_buffer.ends_with("final") || analysis_buffer.ends_with("</think>") {
-                    info!(
-                        "Analysis section completed, buffer length: {}",
-                        analysis_buffer.len()
-                    );
-                    in_analysis = false;
-                    analysis_buffer.clear();
+            // Check if analysis is complete
+            if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
+                info!("Analysis section completed");
+                in_analysis = false;
+                analysis_buffer.clear();
 
-                    if message.channel == "web" {
-                        let orchestrator = BotOrchestrator::new(Arc::clone(&self.state));
-                        orchestrator
-                            .send_event(
-                                &message.user_id,
-                                &message.bot_id,
-                                &message.session_id,
-                                &message.channel,
-                                "thinking_end",
-                                serde_json::json!({
-                                    "user_id": message.user_id.clone()
-                                }),
-                            )
-                            .await
-                            .ok();
-                    }
-                    analysis_buffer.clear();
-                    continue;
+                if message.channel == "web" {
+                    let orchestrator = BotOrchestrator::new(Arc::clone(&self.state));
+                    orchestrator
+                        .send_event(
+                            &message.user_id,
+                            &message.bot_id,
+                            &message.session_id,
+                            &message.channel,
+                            "thinking_end",
+                            serde_json::json!({"user_id": message.user_id.clone()}),
+                        )
+                        .await
+                        .ok();
                 }
                 continue;
             }
 
-            full_response.push_str(&chunk);
+            if !in_analysis {
+                full_response.push_str(&chunk);
 
-            let partial = BotResponse {
-                bot_id: message.bot_id.clone(),
-                user_id: message.user_id.clone(),
-                session_id: message.session_id.clone(),
-                channel: message.channel.clone(),
-                content: chunk,
-                message_type: 1,
-                stream_token: None,
-                is_complete: false,
-                suggestions: suggestions.clone(),
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
-            };
+                let partial = BotResponse {
+                    bot_id: message.bot_id.clone(),
+                    user_id: message.user_id.clone(),
+                    session_id: message.session_id.clone(),
+                    channel: message.channel.clone(),
+                    content: chunk,
+                    message_type: 1,
+                    stream_token: None,
+                    is_complete: false,
+                    suggestions: suggestions.clone(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
+                };
 
-            if response_tx.send(partial).await.is_err() {
-                warn!("Response channel closed, stopping stream processing");
-                break;
+                if response_tx.send(partial).await.is_err() {
+                    warn!("Response channel closed, stopping stream processing");
+                    break;
+                }
             }
         }
 
@@ -1369,7 +1373,10 @@ async fn websocket_handler(
 
                     // Cancel any ongoing LLM jobs for this session
                     if let Err(e) = data.llm_provider.cancel_job(&session_id_clone2).await {
-                        warn!("Failed to cancel LLM job for session {}: {}", session_id_clone2, e);
+                        warn!(
+                            "Failed to cancel LLM job for session {}: {}",
+                            session_id_clone2, e
+                        );
                     }
 
                     info!("WebSocket fully closed for session {}", session_id_clone2);

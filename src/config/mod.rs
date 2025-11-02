@@ -1,14 +1,19 @@
 use diesel::prelude::*;
+use diesel::pg::PgConnection;
+use crate::shared::models::schema::bot_configuration;
 use diesel::sql_types::Text;
+use uuid::Uuid;
+use diesel::pg::Pg;
 use log::{info, trace, warn};
-use serde::{Deserialize, Serialize};
+ // removed unused serde import
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
+use crate::shared::utils::establish_pg_connection;
 
-#[derive(Clone)]
+#[derive(Clone, Default)]
 pub struct LLMConfig {
     pub url: String,
     pub key: String,
@@ -20,7 +25,6 @@ pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
-    pub database_custom: DatabaseConfig,
     pub email: EmailConfig,
     pub llm: LLMConfig,
     pub embedding: LLMConfig,
@@ -61,17 +65,21 @@ pub struct EmailConfig {
     pub password: String,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, QueryableByName)]
+#[derive(Debug, Clone, Queryable, Selectable)]
+#[diesel(table_name = bot_configuration)]
+#[diesel(check_for_backend(Pg))]
 pub struct ServerConfigRow {
-    #[diesel(sql_type = Text)]
-    pub id: String,
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = DieselUuid)]
+    pub bot_id: Uuid,
     #[diesel(sql_type = Text)]
     pub config_key: String,
     #[diesel(sql_type = Text)]
     pub config_value: String,
     #[diesel(sql_type = Text)]
     pub config_type: String,
-    #[diesel(sql_type = diesel::sql_types::Bool)]
+    #[diesel(sql_type = Bool)]
     pub is_encrypted: bool,
 }
 
@@ -84,17 +92,6 @@ impl AppConfig {
             self.database.server,
             self.database.port,
             self.database.database
-        )
-    }
-
-    pub fn database_custom_url(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.database_custom.username,
-            self.database_custom.password,
-            self.database_custom.server,
-            self.database_custom.port,
-            self.database_custom.database
         )
     }
 
@@ -117,125 +114,134 @@ impl AppConfig {
     pub fn log_path(&self, component: &str) -> PathBuf {
         self.stack_path.join("logs").join(component)
     }
+}
+ 
+impl AppConfig {
+    pub fn from_database(conn: &mut PgConnection) -> Result<Self, diesel::result::Error> {
+    info!("Loading configuration from database");
+    
+    use crate::shared::models::schema::bot_configuration::dsl::*;
+    use diesel::prelude::*;
+    
+    let config_map: HashMap<String, ServerConfigRow> = bot_configuration
+        .select(ServerConfigRow::as_select()).load::<ServerConfigRow>(conn)
+        .unwrap_or_default()
+        .into_iter()
+        .map(|row| (row.config_key.clone(), row))
+        .collect();
 
-    pub fn from_database(_conn: &mut PgConnection) -> Self {
-        info!("Loading configuration from database");
-        // Config is now loaded from bot_configuration table via drive_monitor
-        let config_map: HashMap<String, ServerConfigRow> = HashMap::new();
+    let mut get_str = |key: &str, default: &str| -> String {
+        bot_configuration
+            .filter(config_key.eq(key))
+            .select(config_value)
+            .first::<String>(conn)
+            .unwrap_or_else(|_| default.to_string())
+    };
 
-        let get_str = |key: &str, default: &str| -> String {
-            config_map
-                .get(key)
-                .map(|v: &ServerConfigRow| v.config_value.clone())
-                .unwrap_or_else(|| default.to_string())
-        };
+    let get_u32 = |key: &str, default: u32| -> u32 {
+        config_map
+            .get(key)
+            .and_then(|v| v.config_value.parse().ok())
+            .unwrap_or(default)
+    };
 
-        let get_u32 = |key: &str, default: u32| -> u32 {
-            config_map
-                .get(key)
-                .and_then(|v| v.config_value.parse().ok())
-                .unwrap_or(default)
-        };
+    let get_u16 = |key: &str, default: u16| -> u16 {
+        config_map
+            .get(key)
+            .and_then(|v| v.config_value.parse().ok())
+            .unwrap_or(default)
+    };
 
-        let get_u16 = |key: &str, default: u16| -> u16 {
-            config_map
-                .get(key)
-                .and_then(|v| v.config_value.parse().ok())
-                .unwrap_or(default)
-        };
+    let get_bool = |key: &str, default: bool| -> bool {
+        config_map
+            .get(key)
+            .map(|v| v.config_value.to_lowercase() == "true")
+            .unwrap_or(default)
+    };
 
-        let get_bool = |key: &str, default: bool| -> bool {
-            config_map
-                .get(key)
-                .map(|v| v.config_value.to_lowercase() == "true")
-                .unwrap_or(default)
-        };
+    let stack_path = PathBuf::from(get_str("STACK_PATH", "./botserver-stack"));
 
-        let stack_path = PathBuf::from(get_str("STACK_PATH", "./botserver-stack"));
+    let database = DatabaseConfig {
+        username: std::env::var("TABLES_USERNAME")
+            .unwrap_or_else(|_| get_str("TABLES_USERNAME", "gbuser")),
+        password: std::env::var("TABLES_PASSWORD")
+            .unwrap_or_else(|_| get_str("TABLES_PASSWORD", "")),
+        server: std::env::var("TABLES_SERVER")
+            .unwrap_or_else(|_| get_str("TABLES_SERVER", "localhost")),
+        port: std::env::var("TABLES_PORT")
+            .ok()
+            .and_then(|p| p.parse().ok())
+            .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
+        database: std::env::var("TABLES_DATABASE")
+            .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
+    };
 
-        let database = DatabaseConfig {
-            username: std::env::var("TABLES_USERNAME")
-                .unwrap_or_else(|_| get_str("TABLES_USERNAME", "gbuser")),
-            password: std::env::var("TABLES_PASSWORD")
-                .unwrap_or_else(|_| get_str("TABLES_PASSWORD", "")),
-            server: std::env::var("TABLES_SERVER")
-                .unwrap_or_else(|_| get_str("TABLES_SERVER", "localhost")),
-            port: std::env::var("TABLES_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
-            database: std::env::var("TABLES_DATABASE")
-                .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
-        };
 
-        let database_custom = DatabaseConfig {
-            username: std::env::var("CUSTOM_USERNAME")
-                .unwrap_or_else(|_| get_str("CUSTOM_USERNAME", "gbuser")),
-            password: std::env::var("CUSTOM_PASSWORD")
-                .unwrap_or_else(|_| get_str("CUSTOM_PASSWORD", "")),
-            server: std::env::var("CUSTOM_SERVER")
-                .unwrap_or_else(|_| get_str("CUSTOM_SERVER", "localhost")),
-            port: std::env::var("CUSTOM_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or_else(|| get_u32("CUSTOM_PORT", 5432)),
-            database: std::env::var("CUSTOM_DATABASE")
-                .unwrap_or_else(|_| get_str("CUSTOM_DATABASE", "gbuser")),
-        };
+    let drive = DriveConfig {
+        server: {
+            let server = get_str("DRIVE_SERVER", "http://localhost:9000");
+            if !server.starts_with("http://") && !server.starts_with("https://") {
+                format!("http://{}", server)
+            } else {
+                server
+            }
+        },
+        access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
+        secret_key: get_str("DRIVE_SECRET", "minioadmin"),
+        use_ssl: get_bool("DRIVE_USE_SSL", false),
+    };
 
-        let minio = DriveConfig {
-            server: {
-                let server = get_str("DRIVE_SERVER", "http://localhost:9000");
-                if !server.starts_with("http://") && !server.starts_with("https://") {
-                    format!("http://{}", server)
-                } else {
-                    server
-                }
-            },
-            access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
-            secret_key: get_str("DRIVE_SECRET", "minioadmin"),
-            use_ssl: get_bool("DRIVE_USE_SSL", false),
-        };
+    let email = EmailConfig {
+        from: get_str("EMAIL_FROM", "noreply@example.com"),
+        server: get_str("EMAIL_SERVER", "smtp.example.com"),
+        port: get_u16("EMAIL_PORT", 587),
+        username: get_str("EMAIL_USER", "user"),
+        password: get_str("EMAIL_PASS", "pass"),
+    };
 
-        let email = EmailConfig {
-            from: get_str("EMAIL_FROM", "noreply@example.com"),
-            server: get_str("EMAIL_SERVER", "smtp.example.com"),
-            port: get_u16("EMAIL_PORT", 587),
-            username: get_str("EMAIL_USER", "user"),
-            password: get_str("EMAIL_PASS", "pass"),
-        };
+    // Write drive config to .env file
+    if let Err(e) = write_drive_config_to_env(&drive) {
+        warn!("Failed to write drive config to .env: {}", e);
+    }
 
-        // Write drive config to .env file
-        if let Err(e) = write_drive_config_to_env(&minio) {
-            warn!("Failed to write drive config to .env: {}", e);
-        }
-
-        AppConfig {
-            drive: minio,
+        Ok(AppConfig {
+            drive,
             server: ServerConfig {
                 host: get_str("SERVER_HOST", "127.0.0.1"),
                 port: get_u16("SERVER_PORT", 8080),
             },
             database,
-            database_custom,
             email,
-            llm: LLMConfig {
-                url: get_str("LLM_URL", "http://localhost:8081"),
-                key: get_str("LLM_KEY", ""),
-                model: get_str("LLM_MODEL", "gpt-4"),
+            llm: {
+                // Use a fresh connection for ConfigManager to avoid cloning the mutable reference
+                let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
+                let config = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
+                LLMConfig {
+                    url: config.get_config(&Uuid::nil(), "LLM_URL", Some("http://localhost:8081"))?,
+                    key: config.get_config(&Uuid::nil(), "LLM_KEY", Some(""))?,
+                    model: config.get_config(&Uuid::nil(), "LLM_MODEL", Some("gpt-4"))?,
+                }
             },
-            embedding: LLMConfig {
-                url: get_str("EMBEDDING_URL", "http://localhost:8082"),
-                key: get_str("EMBEDDING_KEY", ""),
-                model: get_str("EMBEDDING_MODEL", "text-embedding-ada-002"),
+            embedding: {
+                let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
+                let config = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
+                LLMConfig {
+                    url: config.get_config(&Uuid::nil(), "EMBEDDING_URL", Some("http://localhost:8082"))?,
+                    key: config.get_config(&Uuid::nil(), "EMBEDDING_KEY", Some(""))?,
+                    model: config.get_config(&Uuid::nil(), "EMBEDDING_MODEL", Some("text-embedding-ada-002"))?,
+                }
             },
-            site_path: get_str("SITES_ROOT", "./botserver-stack/sites"),
+            site_path: {
+                let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
+                ConfigManager::new(Arc::new(Mutex::new(fresh_conn)))
+                    .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?.to_string()
+            },
             stack_path,
             db_conn: None,
-        }
-    }
-
-    pub fn from_env() -> Self {
+        })
+}
+ 
+    pub fn from_env() -> Result<Self, anyhow::Error> {
         info!("Loading configuration from environment variables");
 
         let stack_path =
@@ -254,16 +260,6 @@ impl AppConfig {
             database: db_name,
         };
 
-        let database_custom = DatabaseConfig {
-            username: std::env::var("CUSTOM_USERNAME").unwrap_or_else(|_| "gbuser".to_string()),
-            password: std::env::var("CUSTOM_PASSWORD").unwrap_or_else(|_| "".to_string()),
-            server: std::env::var("CUSTOM_SERVER").unwrap_or_else(|_| "localhost".to_string()),
-            port: std::env::var("CUSTOM_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or(5432),
-            database: std::env::var("CUSTOM_DATABASE").unwrap_or_else(|_| "botserver".to_string()),
-        };
 
         let minio = DriveConfig {
             server: std::env::var("DRIVE_SERVER")
@@ -288,33 +284,43 @@ impl AppConfig {
             password: std::env::var("EMAIL_PASS").unwrap_or_else(|_| "pass".to_string()),
         };
 
-        AppConfig {
+        Ok(AppConfig {
             drive: minio,
             server: ServerConfig {
-                host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
+                host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.1".to_string()),
                 port: std::env::var("SERVER_PORT")
                     .ok()
                     .and_then(|p| p.parse().ok())
                     .unwrap_or(8080),
             },
             database,
-            database_custom,
             email,
-            llm: LLMConfig {
-                url: std::env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:8081".to_string()),
-                key: std::env::var("LLM_KEY").unwrap_or_else(|_| "".to_string()),
-                model: std::env::var("LLM_MODEL").unwrap_or_else(|_| "gpt-4".to_string()),
+            llm: {
+                let conn = PgConnection::establish(&database_url)?;
+                let config = ConfigManager::new(Arc::new(Mutex::new(conn)));
+                LLMConfig {
+                    url: config.get_config(&Uuid::nil(), "LLM_URL", Some("http://localhost:8081"))?,
+                    key: config.get_config(&Uuid::nil(), "LLM_KEY", Some(""))?,
+                    model: config.get_config(&Uuid::nil(), "LLM_MODEL", Some("gpt-4"))?,
+                }
             },
-            embedding: LLMConfig {
-                url: std::env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8082".to_string()),
-                key: std::env::var("EMBEDDING_KEY").unwrap_or_else(|_| "".to_string()),
-                model: std::env::var("EMBEDDING_MODEL").unwrap_or_else(|_| "text-embedding-ada-002".to_string()),
+            embedding: {
+                let conn = PgConnection::establish(&database_url)?;
+                let config = ConfigManager::new(Arc::new(Mutex::new(conn)));
+                LLMConfig {
+                    url: config.get_config(&Uuid::nil(), "EMBEDDING_URL", Some("http://localhost:8082"))?,
+                    key: config.get_config(&Uuid::nil(), "EMBEDDING_KEY", Some(""))?,
+                    model: config.get_config(&Uuid::nil(), "EMBEDDING_MODEL", Some("text-embedding-ada-002"))?,
+                }
             },
-            site_path: std::env::var("SITES_ROOT")
-                .unwrap_or_else(|_| "./botserver-stack/sites".to_string()),
+            site_path: {
+                let conn = PgConnection::establish(&database_url)?;
+                ConfigManager::new(Arc::new(Mutex::new(conn)))
+                    .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?
+            },
             stack_path: PathBuf::from(stack_path),
             db_conn: None,
-        }
+        })
     }
 
     pub fn set_config(

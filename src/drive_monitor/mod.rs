@@ -62,10 +62,7 @@ impl DriveMonitor {
 
         self.check_gbdialog_changes(client).await?;
         self.check_gbkb_changes(client).await?;
-
-        if let Err(e) = self.check_gbot(client).await {
-            error!("Error checking default bot config: {}", e);
-        }
+        self.check_gbot(client).await?; 
 
         Ok(())
     }
@@ -257,7 +254,7 @@ impl DriveMonitor {
                     continue;
                 }
 
-                debug!("Checking config file at path: {}", path);
+                trace!("Checking config file at path: {}", path);
                 match client
                     .head_object()
                     .bucket(&self.bucket_name)
@@ -276,7 +273,7 @@ impl DriveMonitor {
                             .key(&path)
                             .send()
                             .await?;
-                        debug!(
+                        trace!(
                             "GetObject successful for {}, content length: {}",
                             path,
                             response.content_length().unwrap_or(0)
@@ -295,7 +292,7 @@ impl DriveMonitor {
                             .collect();
 
                         if !llm_lines.is_empty() {
-                            use crate::llm_legacy::llm_local::ensure_llama_servers_running;
+                            use crate::llm::local::ensure_llama_servers_running;
                             let mut restart_needed = false;
 
                             for line in llm_lines {
@@ -338,7 +335,7 @@ impl DriveMonitor {
                         }
                     }
                     Err(e) => {
-                        debug!("Config file {} not found or inaccessible: {}", path, e);
+                        error!("Config file {} not found or inaccessible: {}", path, e);
                     }
                 }
             }
