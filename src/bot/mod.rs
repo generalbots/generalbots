@@ -16,6 +16,7 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
+use crate::config::ConfigManager;
 
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
@@ -249,6 +250,8 @@ impl BotOrchestrator {
             is_complete: true,
             suggestions: Vec::new(),
             context_name: None,
+            context_length: 0,
+            context_max_length: 0,
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -281,6 +284,8 @@ impl BotOrchestrator {
             is_complete: true,
             suggestions: Vec::new(),
             context_name: None,
+            context_length: 0,
+            context_max_length: 0,
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -327,6 +332,8 @@ impl BotOrchestrator {
             is_complete: true,
             suggestions: Vec::new(),
             context_name: Some(context_name.to_string()),
+            context_length: 0,
+            context_max_length: 0,
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -398,6 +405,8 @@ impl BotOrchestrator {
                         is_complete: true,
                         suggestions: Vec::new(),
                         context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
                     };
                     adapter.send_message(ack_response).await?;
                 }
@@ -447,18 +456,29 @@ impl BotOrchestrator {
 
         // Create regular response
 let channel = message.channel.clone();
-let bot_response = BotResponse {
-    bot_id: message.bot_id,
-    user_id: message.user_id,
-    session_id: message.session_id,
-    channel: channel.clone(),
-    content: response_content,
-    message_type: 1,
-    stream_token: None,
-    is_complete: true,
-    suggestions: Vec::new(),
-    context_name: None,
-};
+        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let max_context_size = config_manager
+            .get_config(&Uuid::parse_str(&message.bot_id).unwrap_or_default(), "llm-server-ctx-size", None)
+            .unwrap_or_default()
+            .parse::<usize>()
+            .unwrap_or(0);
+        
+        let current_context_length = 0usize;
+
+        let bot_response = BotResponse {
+            bot_id: message.bot_id,
+            user_id: message.user_id,
+            session_id: message.session_id,
+            channel: channel.clone(),
+            content: response_content,
+            message_type: 1,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+            context_name: None,
+            context_length: current_context_length,
+            context_max_length: max_context_size,
+        };
 
 if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
     adapter.send_message(bot_response).await?;
@@ -737,6 +757,8 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
                 is_complete: true,
                 suggestions: Vec::new(),
                 context_name: None,
+                context_length: 0,
+                context_max_length: 0,
             };
             response_tx.send(thinking_response).await?;
         }
@@ -815,6 +837,8 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
                 is_complete: false,
                 suggestions: suggestions.clone(),
                 context_name: None,
+                context_length: 0,
+                context_max_length: 0,
             };
 
             if response_tx.send(partial).await.is_err() {
@@ -833,6 +857,15 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;
         }
 
+        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let max_context_size = config_manager
+            .get_config(&Uuid::parse_str(&message.bot_id).unwrap_or_default(), "llm-server-ctx-size", None)
+            .unwrap_or_default()
+            .parse::<usize>()
+            .unwrap_or(0);
+        
+        let current_context_length = 0usize;
+
         let final_msg = BotResponse {
             bot_id: message.bot_id,
             user_id: message.user_id,
@@ -844,6 +877,8 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
             is_complete: true,
             suggestions,
             context_name: None,
+            context_length: current_context_length,
+            context_max_length: max_context_size,
         };
 
         response_tx.send(final_msg).await?;
@@ -978,6 +1013,8 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
                     is_complete: true,
                     suggestions: Vec::new(),
                     context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
                 };
                 adapter.send_message(warn_response).await
             } else {
