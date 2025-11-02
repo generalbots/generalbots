@@ -1,3 +1,5 @@
+SET_SCHEDULE "* * * * *"
+
 
 let text = GET "announcements.gbkb/news/news.pdf"
 let resume = LLM "Resume this document, in a table (DO NOT THINK) no_think: " + text
