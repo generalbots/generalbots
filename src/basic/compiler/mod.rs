@@ -1,4 +1,5 @@
 use crate::shared::state::AppState;
+use crate::basic::keywords::set_schedule::execute_set_schedule;
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -88,11 +89,12 @@ pub struct OpenAIProperty {
 /// BASIC Compiler
 pub struct BasicCompiler {
     state: Arc<AppState>,
+    bot_id: uuid::Uuid,
 }
 
 impl BasicCompiler {
-    pub fn new(state: Arc<AppState>) -> Self {
-        Self { state }
+    pub fn new(state: Arc<AppState>, bot_id: uuid::Uuid) -> Self {
+        Self { state, bot_id }
     }
 
     /// Compile a BASIC file to AST and generate tool definitions
@@ -121,7 +123,7 @@ impl BasicCompiler {
 
         // Generate AST (using Rhai compilation would happen here)
         // For now, we'll store the preprocessed script
-        let ast_content = self.preprocess_basic(&source_content)?;
+        let ast_content = self.preprocess_basic(&source_content, source_path, self.bot_id)?;
         fs::write(&ast_path, &ast_content)
             .map_err(|e| format!("Failed to write AST file: {}", e))?;
 
@@ -368,7 +370,7 @@ impl BasicCompiler {
     }
 
     /// Preprocess BASIC script (basic transformations)
-    fn preprocess_basic(&self, source: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
+    fn preprocess_basic(&self, source: &str, source_path: &str, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
         let mut result = String::new();
 
         for line in source.lines() {
@@ -376,6 +378,32 @@ impl BasicCompiler {
 
             // Skip empty lines and comments
             if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("REM") {
+                continue;
+            }
+
+            // Handle SET_SCHEDULE keyword during preprocessing
+            if trimmed.starts_with("SET_SCHEDULE") {
+                // Expected format: SET_SCHEDULE "cron_expression"
+                // Extract the quoted cron expression
+                let parts: Vec<&str> = trimmed.split('"').collect();
+                if parts.len() >= 3 {
+                    let cron = parts[1];
+                    
+                    // Get the current script's name (file stem)
+                    use std::path::Path;
+                    let script_name = Path::new(source_path)
+                        .file_stem()
+                        .and_then(|s| s.to_str())
+                        .unwrap_or("unknown")
+                        .to_string();
+
+                    let mut conn = self.state.conn.lock().unwrap();
+                    if let Err(e) = execute_set_schedule(&mut *conn, cron, &script_name, bot_id) {
+                        log::error!("Failed to schedule SET_SCHEDULE during preprocessing: {}", e);
+                    }
+                } else {
+                    log::warn!("Malformed SET_SCHEDULE line ignored: {}", trimmed);
+                }
                 continue;
             }
 
@@ -407,7 +435,7 @@ mod tests {
 
     #[test]
     fn test_normalize_type() {
-        let compiler = BasicCompiler::new(Arc::new(AppState::default()));
+        let compiler = BasicCompiler::new(Arc::new(AppState::default()), uuid::Uuid::nil());
 
         assert_eq!(compiler.normalize_type("string"), "string");
         assert_eq!(compiler.normalize_type("integer"), "integer");
@@ -418,7 +446,7 @@ mod tests {
 
     #[test]
     fn test_parse_param_line() {
-        let compiler = BasicCompiler::new(Arc::new(AppState::default()));
+        let compiler = BasicCompiler::new(Arc::new(AppState::default()), uuid::Uuid::nil());
 
         let line = r#"PARAM name AS string LIKE "John Doe" DESCRIPTION "User's full name""#;
         let result = compiler.parse_param_line(line).unwrap();

@@ -28,7 +28,6 @@ use self::keywords::print::print_keyword;
 use self::keywords::remove_tool::remove_tool_keyword;
 use self::keywords::set::set_keyword;
 use self::keywords::set_kb::{add_kb_keyword, set_kb_keyword};
-use self::keywords::set_schedule::set_schedule_keyword;
 use self::keywords::wait::wait_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
 
@@ -68,7 +67,6 @@ impl ScriptService {
         wait_keyword(&state, user.clone(), &mut engine);
         print_keyword(&state, user.clone(), &mut engine);
         on_keyword(&state, user.clone(), &mut engine);
-        set_schedule_keyword(&state, user.clone(), &mut engine);
         hear_keyword(state.clone(), user.clone(), &mut engine);
         talk_keyword(state.clone(), user.clone(), &mut engine);
         set_context_keyword(state.clone(), user.clone(), &mut engine);

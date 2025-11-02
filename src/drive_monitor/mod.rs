@@ -404,7 +404,7 @@ impl DriveMonitor {
         let local_source_path = format!("{}/{}.bas", work_dir, tool_name);
         std::fs::write(&local_source_path, &source_content)?;
 
-        let compiler = BasicCompiler::new(Arc::clone(&self.state));
+        let compiler = BasicCompiler::new(Arc::clone(&self.state), self.bot_id);
         let result = compiler.compile_file(&local_source_path, &work_dir)?;
 
         if let Some(mcp_tool) = result.mcp_tool {
