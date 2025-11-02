@@ -86,7 +86,7 @@ impl DriveMonitor {
                 .set_continuation_token(continuation_token)
                 .send()
                 .await?;
-            debug!("List objects result: {:?}", list_objects);
+            trace!("List objects result: {:?}", list_objects);
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
@@ -164,7 +164,7 @@ impl DriveMonitor {
                 .set_continuation_token(continuation_token)
                 .send()
                 .await?;
-            debug!("List objects result: {:?}", list_objects);
+            trace!("List objects result: {:?}", list_objects);
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();

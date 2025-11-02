@@ -1,6 +1,6 @@
 use crate::shared::state::AppState;
 use crate::shared::models::UserSession;
-use log::{debug, error, info};
+use log::{trace, debug, error, info};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -35,7 +35,7 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, e
 
                 match result {
                     Ok(length) => {
-                        debug!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
+                        trace!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
 
                         // Also register context as inactive initially
                         let active_key = format!("active_context:{}:{}", user_session.user_id, user_session.id);
@@ -47,7 +47,7 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, e
 
                         match hset_result {
                             Ok(fields_added) => {
-                                debug!("Context state set to inactive for {}, fields added: {}", context_name, fields_added)
+                                trace!("Context state set to inactive for {}, fields added: {}", context_name, fields_added)
                             },
                             Err(e) => error!("Failed to set context state: {}", e),
                         }
@@ -55,7 +55,7 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, e
                     Err(e) => error!("Failed to add suggestion to Redis: {}", e),
                 }
             } else {
-                debug!("No Redis client configured; suggestion will not persist");
+                debug!("No Cache client configured; suggestion will not persist");
             }
 
             Ok(Dynamic::UNIT)
