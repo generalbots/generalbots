@@ -6,6 +6,7 @@ SET_CONTEXT "general"  AS  resume1;
 SET_CONTEXT "auxiliom" AS  resume2;
 SET_CONTEXT "toolbix"  AS  resume3;
 
+CLEAR_SUGGESTIONS;
 
 ADD_SUGGESTION "general" AS "Show me the weekly announcements"
 ADD_SUGGESTION "auxiliom" AS "Will Auxiliom help me with what?"
