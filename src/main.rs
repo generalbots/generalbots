@@ -41,7 +41,7 @@ mod create_bucket;
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
 use crate::bootstrap::BootstrapManager;
-use crate::bot::{start_session, websocket_handler};
+use crate::bot::{websocket_handler};
 use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
 #[cfg(feature = "email")]
@@ -54,7 +54,7 @@ use crate::llm_legacy::llm_local::{
 };
 use crate::meet::{voice_start, voice_stop};
 use crate::package_manager::InstallMode;
-use crate::session::{create_session, get_session_history, get_sessions};
+use crate::session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::web_server::{bot_index, index, static_files};
 use crate::whatsapp::whatsapp_webhook_verify;

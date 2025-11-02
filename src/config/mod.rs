@@ -1,6 +1,6 @@
 use diesel::prelude::*;
 use diesel::sql_types::Text;
-use log::{info, warn};
+use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -473,7 +473,7 @@ impl ConfigManager {
             }
         }
 
-        info!(
+        trace!(
             "Synced {} config values for bot {}",
             updated, bot_id);
         Ok(updated)

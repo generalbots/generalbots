@@ -1152,7 +1152,7 @@
             async function initializeAuth() {
                 try {
                     updateConnectionStatus("connecting");
-                    // Extract bot name from URL path (first segment after /)
+                    // Extract bot name from URL path (first segment after /
                     const pathSegments = window.location.pathname.split('/').filter(s => s);
                     const botName = pathSegments.length > 0 ? pathSegments[0] : 'default';
                     
@@ -1162,7 +1162,6 @@
                     currentSessionId = authData.session_id;
                     connectWebSocket();
                     loadSessions();
-                    await triggerStartScript();
                 } catch (error) {
                     console.error("Failed to initialize auth:", error);
                     updateConnectionStatus("disconnected");
@@ -1170,20 +1169,6 @@
                 }
             }
 
-            async function triggerStartScript() {
-                if (!currentSessionId) return;
-                try {
-                    await fetch("/api/start", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            session_id: currentSessionId,
-                        }),
-                    });
-                } catch (error) {
-                    console.error("Failed to trigger start script:", error);
-                }
-            }
 
             async function loadSessions() {
                 try {
@@ -1218,7 +1203,6 @@
                     if (isVoiceMode) {
                         await startVoiceSession();
                     }
-                    await triggerStartScript();
 
                     // Close sidebar on mobile after creating new chat
                     if (window.innerWidth <= 768) {
@@ -1282,7 +1266,6 @@
                 }
 
                 clearTimeout(reconnectTimeout);
-
                 const wsUrl = getWebSocketUrl();
                 ws = new WebSocket(wsUrl);
 
