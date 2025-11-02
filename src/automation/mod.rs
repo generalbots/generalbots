@@ -1,8 +1,9 @@
+use crate::shared::models::schema::bots::dsl::*;
+use diesel::prelude::*;
 use crate::basic::ScriptService;
 use crate::shared::models::{Automation, TriggerKind};
 use crate::shared::state::AppState;
 use chrono::{DateTime, Datelike, Timelike, Utc};
-use diesel::prelude::*;
 use log::{debug, error, info, trace, warn};
 use std::path::Path;
 use std::sync::Arc;
@@ -150,7 +151,9 @@ impl AutomationService {
                         table,
                         automation.id
                     );
-                    self.execute_action(&automation.param).await;
+                    if let Err(e) = self.execute_action(automation).await {
+                        error!("Error executing automation {}: {}", automation.id, e);
+                    }
                     self.update_last_triggered(automation.id).await;
                 }
                 Ok(result) => {
@@ -187,7 +190,9 @@ impl AutomationService {
                             automation.id,
                             automation.param
                         );
-                        self.execute_action(&automation.param).await;
+                        if let Err(e) = self.execute_action(automation).await {
+                            error!("Error executing automation {}: {}", automation.id, e);
+                        }
                         self.update_last_triggered(automation.id).await;
                     } else {
                         trace!("Pattern did not match for automation {}", automation.id);
@@ -275,10 +280,10 @@ impl AutomationService {
         part.parse::<i32>().map_or(false, |num| num == value)
     }
 
-    async fn execute_action(&self, param: &str) {
-        trace!("Starting execute_action with param='{}'", param);
-        let (bot_id, _) = crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap());
-        trace!("Resolved bot_id={} for param='{}'", bot_id, param);
+    async fn execute_action(&self, automation: &Automation) -> Result<(), Box<dyn std::error::Error>> {
+        let bot_id = automation.bot_id;
+        let param = &automation.param;
+        trace!("Starting execute_action for bot_id={} param='{}'", bot_id, param);
 
         let redis_key = format!("job:running:{}:{}", bot_id, param);
         trace!("Redis key for job tracking: {}", redis_key);
@@ -297,7 +302,6 @@ impl AutomationService {
                             "Job '{}' is already running for bot '{}'; skipping execution",
                             param, bot_id
                         );
-                        return;
                     }
 
                     let _: Result<(), redis::RedisError> = redis::cmd("SETEX")
@@ -314,26 +318,15 @@ impl AutomationService {
             }
         }
 
-        // Get bot name from database
-        let bot_name = {
-            use crate::shared::models::bots;
-            let mut conn = self.state.conn.lock().unwrap();
-            match bots::table
-                .filter(bots::id.eq(bot_id))
-                .select(bots::name)
-                .first::<String>(&mut *conn)
-                .optional()
-            {
-                Ok(Some(name)) => name,
-                Ok(None) => {
-                    warn!("No bot found with id {}, using default name", bot_id);
-                    crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).1
-                }
-                Err(e) => {
-                    error!("Failed to query bot name: {}", e);
-                    crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).1
-                }
-            }
+        let bot_name: String = {
+            let mut db_conn = self.state.conn.lock().unwrap();
+            bots.filter(id.eq(&bot_id))
+                .select(name)
+                .first(&mut *db_conn)
+                .map_err(|e| {
+                    error!("Failed to query bot name for {}: {}", bot_id, e);
+                    e
+                })?
         };
 
         let script_name = param.strip_suffix(".bas").unwrap_or(param);
@@ -358,7 +351,7 @@ impl AutomationService {
                     e
                 );
                 self.cleanup_job_flag(&bot_id, param).await;
-                return;
+                return Ok(());
             }
         };
 
@@ -389,7 +382,7 @@ impl AutomationService {
                 Err(e) => {
                     error!("Error compiling script '{}': {}", param, e);
                     self.cleanup_job_flag(&bot_id, param).await;
-                    return;
+                    return Ok(());
                 }
             };
 
@@ -409,6 +402,7 @@ impl AutomationService {
         trace!("Cleaning up Redis flag for job '{}'", param);
         self.cleanup_job_flag(&bot_id, param).await;
         trace!("Finished execute_action for '{}'", param);
+        Ok(())
     }
 
     async fn cleanup_job_flag(&self, bot_id: &Uuid, param: &str) {
