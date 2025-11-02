@@ -4,6 +4,7 @@ use crate::kb::embeddings;
 use crate::kb::qdrant_client;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
+use log::trace;
 use log::{debug, error, info, warn};
 use std::collections::HashMap;
 use std::error::Error;
@@ -322,12 +323,12 @@ impl DriveMonitor {
 
                             _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
                             if restart_needed {
-                                info!("Detected llm- configuration change, restarting LLaMA servers...");
+                                trace!("Detected llm- configuration change, restarting LLaMA servers...");
                                 if let Err(e) = ensure_llama_servers_running(&self.state).await {
                                     error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
                             } else {
-                                info!("No llm- property changes detected; skipping LLaMA server restart.");
+                                trace!("No llm- property changes detected; skipping LLaMA server restart.");
                             }
                         }
                         else

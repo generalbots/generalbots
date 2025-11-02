@@ -802,6 +802,8 @@ post_install_cmds_linux: vec![
                 .arg(&rendered_cmd)
                 .spawn();
 
+            std::thread::sleep(std::time::Duration::from_secs(2));
+            
             match child {
                 Ok(c) => Ok(c),
                 Err(e) => {

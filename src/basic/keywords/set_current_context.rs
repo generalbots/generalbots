@@ -34,10 +34,9 @@ pub fn set_current_context_keyword(state: Arc<AppState>, user: UserSession, engi
 
                 // Build a Redis key that is unique per user and session.
                 let redis_key = format!(
-                    "context:{}:{}:{}",
+                    "context:{}:{}",
                     user.user_id,
-                    user.id,
-                    context_name
+                    user.id
                 );
 
                 trace!(
