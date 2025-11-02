@@ -3,8 +3,7 @@ use crate::shared::models::{Automation, TriggerKind};
 use crate::shared::state::AppState;
 use chrono::{DateTime, Datelike, Timelike, Utc};
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
-use std::env;
+use log::{debug, error, info, trace, warn};
 use std::path::Path;
 use std::sync::Arc;
 use tokio::time::Duration;
@@ -176,14 +175,14 @@ impl AutomationService {
         );
         for automation in automations {
             if let Some(TriggerKind::Scheduled) = TriggerKind::from_i32(automation.kind) {
-                trace!(
+                debug!(
                     "Evaluating schedule pattern={:?} for automation {}",
                     automation.schedule,
                     automation.id
                 );
                 if let Some(pattern) = &automation.schedule {
                     if Self::should_run_cron(pattern, now.timestamp()) {
-                        trace!(
+                        debug!(
                             "Pattern matched; executing automation {} param='{}'",
                             automation.id,
                             automation.param
@@ -191,7 +190,7 @@ impl AutomationService {
                         self.execute_action(&automation.param).await;
                         self.update_last_triggered(automation.id).await;
                     } else {
-                        trace!("Pattern did not match for automation {}", automation.id);
+                        debug!("Pattern did not match for automation {}", automation.id);
                     }
                 }
             }
@@ -278,8 +277,7 @@ impl AutomationService {
 
     async fn execute_action(&self, param: &str) {
         trace!("Starting execute_action with param='{}'", param);
-        let bot_id_string = env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string());
-        let bot_id = Uuid::parse_str(&bot_id_string).unwrap_or_else(|_| Uuid::new_v4());
+        let (bot_id, _) = crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap());
         trace!("Resolved bot_id={} for param='{}'", bot_id, param);
 
         let redis_key = format!("job:running:{}:{}", bot_id, param);
@@ -316,7 +314,34 @@ impl AutomationService {
             }
         }
 
-        let full_path = Path::new(&self.scripts_dir).join(param);
+        // Get bot name from database
+        let bot_name = {
+            use crate::shared::models::bots;
+            let mut conn = self.state.conn.lock().unwrap();
+            match bots::table
+                .filter(bots::id.eq(bot_id))
+                .select(bots::name)
+                .first::<String>(&mut *conn)
+                .optional()
+            {
+                Ok(Some(name)) => name,
+                Ok(None) => {
+                    warn!("No bot found with id {}, using default name", bot_id);
+                    crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).1
+                }
+                Err(e) => {
+                    error!("Failed to query bot name: {}", e);
+                    crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).1
+                }
+            }
+        };
+
+        let path_str = format!("./work/{}.gbai/{}.gbdialog/{}", 
+            bot_name,
+            bot_name,
+            param
+        );
+        let full_path = Path::new(&path_str);
         trace!("Resolved full path: {}", full_path.display());
 
         let script_content = match tokio::fs::read_to_string(&full_path).await {
@@ -333,9 +358,8 @@ impl AutomationService {
 
                 if let Some(client) = &self.state.drive {
                     let bucket_name = format!(
-                        "{}{}.gbai",
-                        env::var("MINIO_ORG_PREFIX").unwrap_or_else(|_| "org1_".to_string()),
-                        env::var("BOT_GUID").unwrap_or_else(|_| "default_bot".to_string())
+                        "{}.gbai",
+                        crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).0.to_string()
                     );
                     let s3_key = format!(".gbdialog/{}", param);
 

@@ -266,7 +266,7 @@ impl DriveMonitor {
                     .await
                 {
                     Ok(head_res) => {
-                        debug!(
+                        trace!(
                             "HeadObject successful for {}, metadata: {:?}",
                             path, head_res
                         );
@@ -283,10 +283,10 @@ impl DriveMonitor {
                         );
 
                         let bytes = response.body.collect().await?.into_bytes();
-                        debug!("Collected {} bytes for {}", bytes.len(), path);
+                        trace!("Collected {} bytes for {}", bytes.len(), path);
                         let csv_content = String::from_utf8(bytes.to_vec())
                             .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
-                        debug!("Found {}: {} bytes", path, csv_content.len());
+                        trace!("Found {}: {} bytes", path, csv_content.len());
 
                         // Restart LLaMA servers only if llm- properties changed
                         let llm_lines: Vec<_> = csv_content

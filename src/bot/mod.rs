@@ -1,4 +1,5 @@
 use crate::channels::ChannelAdapter;
+use crate::config::ConfigManager;
 use crate::context::langcache::get_langcache_client;
 use crate::drive_monitor::DriveMonitor;
 use crate::kb::embeddings::generate_embeddings;
@@ -16,7 +17,28 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
-use crate::config::ConfigManager;
+
+pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
+    use crate::shared::models::schema::bots::dsl::*;
+    use diesel::prelude::*;
+
+    match bots
+        .filter(is_active.eq(true))
+        .select((id, name))
+        .first::<(Uuid, String)>(conn)
+        .optional()
+    {
+        Ok(Some((bot_id, bot_name))) => (bot_id, bot_name),
+        Ok(None) => {
+            warn!("No active bots found, using nil UUID");
+            (Uuid::nil(), "default".to_string())
+        }
+        Err(e) => {
+            error!("Failed to query default bot: {}", e);
+            (Uuid::nil(), "default".to_string())
+        }
+    }
+}
 
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
@@ -108,13 +130,11 @@ impl BotOrchestrator {
 
     pub async fn create_bot(
         &self,
-        bot_guid: &str,
+        bot_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let bucket_name = format!(
-            "{}{}.gbai",
-            self.state.config.as_ref().unwrap().drive.org_prefix,
-            bot_guid
-        );
+        // TODO: Move logic to here after duplication refactor
+
+        let bucket_name = format!("{}.gbai", bot_name);
         crate::create_bucket::create_bucket(&bucket_name)?;
         Ok(())
     }
@@ -273,8 +293,9 @@ impl BotOrchestrator {
             "Sending direct message to session {}: '{}'",
             session_id, content
         );
+        let (bot_id, _) = get_default_bot(&mut self.state.conn.lock().unwrap());
         let bot_response = BotResponse {
-            bot_id: "default_bot".to_string(),
+            bot_id: bot_id.to_string(),
             user_id: "default_user".to_string(),
             session_id: session_id.to_string(),
             channel: channel.to_string(),
@@ -312,13 +333,15 @@ impl BotOrchestrator {
             "Changing context for session {} to {}",
             session_id, context_name
         );
-        
+
         let mut session_manager = self.state.session_manager.lock().await;
-        session_manager.update_session_context(
-            &Uuid::parse_str(session_id)?,
-            &Uuid::parse_str(user_id)?,
-            context_name.to_string()
-        ).await?;
+        session_manager
+            .update_session_context(
+                &Uuid::parse_str(session_id)?,
+                &Uuid::parse_str(user_id)?,
+                context_name.to_string(),
+            )
+            .await?;
 
         // Send confirmation back to client
         let confirmation = BotResponse {
@@ -444,25 +467,31 @@ impl BotOrchestrator {
         // Handle context change messages (type 4) first
         if message.message_type == 4 {
             if let Some(context_name) = &message.context_name {
-                return self.handle_context_change(
-                    &message.user_id,
-                    &message.bot_id,
-                    &message.session_id,
-                    &message.channel,
-                    context_name
-                ).await;
+                return self
+                    .handle_context_change(
+                        &message.user_id,
+                        &message.bot_id,
+                        &message.session_id,
+                        &message.channel,
+                        context_name,
+                    )
+                    .await;
             }
         }
 
         // Create regular response
-let channel = message.channel.clone();
+        let channel = message.channel.clone();
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
         let max_context_size = config_manager
-            .get_config(&Uuid::parse_str(&message.bot_id).unwrap_or_default(), "llm-server-ctx-size", None)
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-server-ctx-size",
+                None,
+            )
             .unwrap_or_default()
             .parse::<usize>()
             .unwrap_or(0);
-        
+
         let current_context_length = 0usize;
 
         let bot_response = BotResponse {
@@ -480,14 +509,11 @@ let channel = message.channel.clone();
             context_max_length: max_context_size,
         };
 
-if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
-    adapter.send_message(bot_response).await?;
-} else {
-    warn!(
-        "No channel adapter found for message channel: {}",
-        channel
-    );
-}
+        if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
+            adapter.send_message(bot_response).await?;
+        } else {
+            warn!("No channel adapter found for message channel: {}", channel);
+        }
 
         Ok(())
     }
@@ -654,15 +680,6 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
             e
         })?;
 
-        let _bot_id = if let Ok(bot_guid) = std::env::var("BOT_GUID") {
-            Uuid::parse_str(&bot_guid).map_err(|e| {
-                warn!("Invalid BOT_GUID from env: {}", e);
-                e
-            })?
-        } else {
-            warn!("BOT_GUID not set in environment, using nil UUID");
-            Uuid::nil()
-        };
 
         let session = {
             let mut sm = self.state.session_manager.lock().await;
@@ -859,11 +876,15 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
 
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
         let max_context_size = config_manager
-            .get_config(&Uuid::parse_str(&message.bot_id).unwrap_or_default(), "llm-server-ctx-size", None)
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-server-ctx-size",
+                None,
+            )
             .unwrap_or_default()
             .parse::<usize>()
             .unwrap_or(0);
-        
+
         let current_context_length = 0usize;
 
         let final_msg = BotResponse {
@@ -932,7 +953,6 @@ if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
                     e
                 })?
         };
-
 
         let start_script_path = format!("./work/{}.gbai/{}.gbdialog/start.ast", bot_name, bot_name);
 
@@ -1086,32 +1106,10 @@ pub fn bot_from_url(
         }
     }
 
-    // Fall back to first available bot
-    match bots
-        .filter(is_active.eq(true))
-        .select((id, name))
-        .first::<(Uuid, String)>(db_conn)
-        .optional()
-    {
-        Ok(Some((first_bot_id, first_bot_name))) => {
-            log::info!(
-                "Using first available bot: {} ({})",
-                first_bot_id,
-                first_bot_name
-            );
-            Ok((first_bot_id, first_bot_name))
-        }
-        Ok(None) => {
-            error!("No active bots found in database");
-            Err(HttpResponse::ServiceUnavailable()
-                .json(serde_json::json!({"error": "No bots available"})))
-        }
-        Err(e) => {
-            error!("Failed to query bots: {}", e);
-            Err(HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": "Failed to query bots"})))
-        }
-    }
+    // Fall back to default bot
+    let (bot_id, bot_name) = get_default_bot(db_conn);
+    log::info!("Using default bot: {} ({})", bot_id, bot_name);
+    Ok((bot_id, bot_name))
 }
 
 impl Default for BotOrchestrator {
@@ -1387,7 +1385,6 @@ async fn websocket_handler(
     );
     Ok(res)
 }
-
 
 #[actix_web::post("/api/warn")]
 async fn send_warning_handler(

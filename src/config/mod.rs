@@ -44,7 +44,6 @@ pub struct DriveConfig {
     pub access_key: String,
     pub secret_key: String,
     pub use_ssl: bool,
-    pub org_prefix: String,
 }
 
 #[derive(Clone)]
@@ -196,7 +195,6 @@ impl AppConfig {
             access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
             secret_key: get_str("DRIVE_SECRET", "minioadmin"),
             use_ssl: get_bool("DRIVE_USE_SSL", false),
-            org_prefix: get_str("DRIVE_ORG_PREFIX", "pragmatismo-"),
         };
 
         let email = EmailConfig {
@@ -276,10 +274,7 @@ impl AppConfig {
             use_ssl: std::env::var("DRIVE_USE_SSL")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()
-                .unwrap_or(false),
-            org_prefix: std::env::var("DRIVE_ORG_PREFIX")
-                .unwrap_or_else(|_| "pragmatismo-".to_string()),
-        };
+                .unwrap_or(false)        };
 
         let email = EmailConfig {
             from: std::env::var("EMAIL_FROM").unwrap_or_else(|_| "noreply@example.com".to_string()),
@@ -370,7 +365,6 @@ fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
     writeln!(file, "DRIVE_ACCESSKEY={}", drive.access_key)?;
     writeln!(file, "DRIVE_SECRET={}", drive.secret_key)?;
     writeln!(file, "DRIVE_USE_SSL={}", drive.use_ssl)?;
-    writeln!(file, "DRIVE_ORG_PREFIX={}", drive.org_prefix)?;
 
     Ok(())
 }

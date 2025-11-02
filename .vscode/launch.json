@@ -14,7 +14,8 @@
       },
       "args": [],
       "env": {
-        "RUST_LOG": "info"
+        "RUST_LOG": "debug,actix_server=off,hyper_util=off,aws_smithy_runtime=off,aws_smithy_runtime_api=off,tracing=off,aws_sdk_s3=off"
+      
       },
       "cwd": "${workspaceFolder}"
     },
