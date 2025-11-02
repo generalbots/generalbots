@@ -102,6 +102,8 @@ pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: Stri
         is_complete: true,
         suggestions,
         context_name: None,
+        context_length: 0,
+        context_max_length: 0,
     };
 
     let user_id = user.id.to_string();

@@ -137,6 +137,8 @@ pub struct BotResponse {
     pub is_complete: bool,
     pub suggestions: Vec<Suggestion>,
     pub context_name: Option<String>,
+    pub context_length: usize,
+    pub context_max_length: usize,
 }
 
 #[derive(Debug, Deserialize)]
