@@ -880,8 +880,8 @@
                 </div>
                                 <script>
                   function handleSuggestions(suggestions) {
-                    // Find the last assistant message content div
-                    const messageContents = document.querySelectorAll('.assistant-message-content');
+                    // Find all assistant message content divs (including empty state)
+                    const messageContents = document.querySelectorAll('.assistant-message-content, #emptyState');
                     if (messageContents.length === 0) return;
                     
                     const lastContent = messageContents[messageContents.length - 1];
@@ -921,7 +921,10 @@
                         btn.style.transform = 'scale(1)';
                         btn.style.boxShadow = 'none';
                       };
-                      btn.onclick = () => setContext(s.context);
+                      btn.onclick = () => {
+                        setContext(s.context);
+                        input.value = ''; // Clear input after clicking
+                      };
                       container.appendChild(btn);
                     });
                   }
@@ -933,10 +936,13 @@
                       // Get the button text from the clicked suggestion
                       const buttonText = event?.target?.textContent || context;
                       
-                      // Set the input field value to the button text
+                      // Add the suggestion as a user message to the chat
+                      addMessage("user", buttonText);
+
+                      // Clear the input field
                       const input = document.getElementById('messageInput');
                       if (input) {
-                        input.value = buttonText;
+                        input.value = '';
                       }
 
                       if (ws && ws.readyState === WebSocket.OPEN) {
