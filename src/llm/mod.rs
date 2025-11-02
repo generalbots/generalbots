@@ -6,6 +6,8 @@ use tokio::sync::mpsc;
 
 use crate::tools::ToolManager;
 
+pub mod llama;
+
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
     async fn generate(
@@ -30,6 +32,11 @@ pub trait LLMProvider: Send + Sync {
         session_id: &str,
         user_id: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
+
+    async fn cancel_job(
+        &self,
+        session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
 
 pub struct OpenAIClient {
@@ -144,6 +151,14 @@ impl LLMProvider for OpenAIClient {
 
         self.generate(&enhanced_prompt, &Value::Null).await
     }
+
+    async fn cancel_job(
+        &self,
+        _session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // OpenAI doesn't support job cancellation
+        Ok(())
+    }
 }
 
 pub struct AnthropicClient {
@@ -254,6 +269,14 @@ impl LLMProvider for AnthropicClient {
 
         self.generate(&enhanced_prompt, &Value::Null).await
     }
+
+    async fn cancel_job(
+        &self,
+        _session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Anthropic doesn't support job cancellation
+        Ok(())
+    }
 }
 
 pub struct MockLLMProvider;
@@ -306,5 +329,13 @@ impl LLMProvider for MockLLMProvider {
             "Mock response with tools [{}] to: {}",
             tools_list, prompt
         ))
+    }
+
+    async fn cancel_job(
+        &self,
+        _session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // Mock implementation just logs the cancellation
+        Ok(())
     }
 }
