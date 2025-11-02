@@ -162,22 +162,8 @@ pub async fn get_from_bucket(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bucket_name = {
-        let cfg = state
-            .config
-            .as_ref()
-            .ok_or_else(|| -> Box<dyn Error + Send + Sync> {
-                error!("App configuration missing");
-                "App configuration missing".into()
-            })?;
 
-        let org_prefix = &cfg.drive.org_prefix;
-
-        if org_prefix.contains("..") || org_prefix.contains('/') || org_prefix.contains('\\') {
-            error!("Invalid org_prefix: {}", org_prefix);
-            return Err("Invalid organization prefix".into());
-        }
-
-        let bucket = format!("{}default.gbai", org_prefix);
+        let bucket = format!("default.gbai");
         debug!("Resolved bucket name: {}", bucket);
         bucket
     };
