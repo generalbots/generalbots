@@ -22,6 +22,17 @@
                 --text-secondary: #a0a0b0;
             }
 
+            [data-theme="light"] {
+                --primary: #0066cc;
+                --primary-glow: rgba(0, 102, 204, 0.3);
+                --secondary: #cc00cc;
+                --accent: #ff9900;
+                --bg-dark: #f5f7fa;
+                --bg-card: rgba(255, 255, 255, 0.9);
+                --text-primary: #1a1a1a;
+                --text-secondary: #666666;
+            }
+
             * {
                 margin: 0;
                 padding: 0;
@@ -34,6 +45,11 @@
                 color: var(--text-primary);
                 overflow: hidden;
                 position: relative;
+                transition: background 0.3s ease, color 0.3s ease;
+            }
+
+            [data-theme="light"] body {
+                background: radial-gradient(ellipse at top, #e6e9f0 0%, #f5f7fa 100%);
             }
 
             body::before {
@@ -50,6 +66,12 @@
                 z-index: 0;
             }
 
+            [data-theme="light"] body::before {
+                background: 
+                    radial-gradient(circle at 20% 50%, rgba(0, 102, 204, 0.1) 0%, transparent 50%),
+                    radial-gradient(circle at 80% 80%, rgba(204, 0, 204, 0.1) 0%, transparent 50%);
+            }
+
             .grain-overlay {
                 position: fixed;
                 top: 0;
@@ -60,6 +82,10 @@
                 pointer-events: none;
                 z-index: 1;
                 opacity: 0.4;
+            }
+
+            [data-theme="light"] .grain-overlay {
+                opacity: 0.1;
             }
 
             .sidebar {
@@ -76,6 +102,12 @@
                 overflow-y: auto;
                 padding: 24px;
                 box-shadow: 10px 0 50px rgba(0, 0, 0, 0.5);
+            }
+
+            [data-theme="light"] .sidebar {
+                background: linear-gradient(135deg, rgba(255, 255, 255, 0.98) 0%, rgba(245, 247, 250, 0.98) 100%);
+                border-right: 1px solid rgba(0, 102, 204, 0.2);
+                box-shadow: 10px 0 50px rgba(0, 0, 0, 0.1);
             }
 
             .sidebar.open {
@@ -103,9 +135,20 @@
                 backdrop-filter: blur(20px);
             }
 
+            [data-theme="light"] .sidebar-toggle {
+                background: rgba(0, 102, 204, 0.1);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+                color: var(--primary);
+            }
+
             .sidebar-toggle:hover {
                 background: rgba(0, 240, 255, 0.2);
                 transform: scale(1.05);
+                box-shadow: 0 0 30px var(--primary-glow);
+            }
+
+            [data-theme="light"] .sidebar-toggle:hover {
+                background: rgba(0, 102, 204, 0.2);
                 box-shadow: 0 0 30px var(--primary-glow);
             }
 
@@ -125,10 +168,21 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] .new-chat {
+                background: linear-gradient(135deg, rgba(0, 102, 204, 0.15) 0%, rgba(204, 0, 204, 0.15) 100%);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+                color: var(--primary);
+            }
+
             .new-chat:hover {
                 background: linear-gradient(135deg, rgba(0, 240, 255, 0.25) 0%, rgba(255, 0, 229, 0.25) 100%);
                 transform: translateY(-2px);
                 box-shadow: 0 10px 30px rgba(0, 240, 255, 0.3);
+            }
+
+            [data-theme="light"] .new-chat:hover {
+                background: linear-gradient(135deg, rgba(0, 102, 204, 0.25) 0%, rgba(204, 0, 204, 0.25) 100%);
+                box-shadow: 0 10px 30px rgba(0, 102, 204, 0.3);
             }
 
             .voice-toggle {
@@ -146,9 +200,19 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] .voice-toggle {
+                background: rgba(0, 200, 83, 0.1);
+                border: 1px solid rgba(0, 200, 83, 0.3);
+                color: #00c853;
+            }
+
             .voice-toggle:hover {
                 background: rgba(100, 255, 180, 0.2);
                 transform: translateY(-2px);
+            }
+
+            [data-theme="light"] .voice-toggle:hover {
+                background: rgba(0, 200, 83, 0.2);
             }
 
             .voice-toggle.recording {
@@ -158,9 +222,20 @@
                 animation: recordingPulse 2s infinite;
             }
 
+            [data-theme="light"] .voice-toggle.recording {
+                background: rgba(244, 67, 54, 0.2);
+                border-color: rgba(244, 67, 54, 0.4);
+                color: #f44336;
+            }
+
             @keyframes recordingPulse {
                 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 100, 120, 0.4); }
                 50% { box-shadow: 0 0 20px 10px rgba(255, 100, 120, 0); }
+            }
+
+            [data-theme="light"] @keyframes recordingPulse {
+                0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+                50% { box-shadow: 0 0 20px 10px rgba(244, 67, 54, 0); }
             }
 
             .history-item {
@@ -175,10 +250,20 @@
                 word-wrap: break-word;
             }
 
+            [data-theme="light"] .history-item {
+                background: rgba(0, 0, 0, 0.03);
+                border: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
             .history-item:hover {
                 background: rgba(0, 240, 255, 0.1);
                 border-color: rgba(0, 240, 255, 0.3);
                 transform: translateX(4px);
+            }
+
+            [data-theme="light"] .history-item:hover {
+                background: rgba(0, 102, 204, 0.1);
+                border-color: rgba(0, 102, 204, 0.3);
             }
 
             .main {
@@ -207,6 +292,11 @@
                 justify-content: space-between;
             }
 
+            [data-theme="light"] header {
+                background: rgba(255, 255, 255, 0.7);
+                border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
             .logo {
                 display: flex;
                 align-items: center;
@@ -224,8 +314,16 @@
                 font-size: 28px;
                 font-weight: 700;
                 color: #fff;
-                box-shadow: 0 8px 32px rgba(0, 240, 255, 0.4);
+                box-shadow: 0 8px 32px var(--primary-glow);
                 position: relative;
+                overflow: hidden;
+            }
+
+            .logo-icon img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                padding: 6px;
             }
 
             .logo-icon::before {
@@ -295,6 +393,14 @@
                 margin-bottom: 24px;
                 position: relative;
                 animation: floatIcon 3s ease-in-out infinite;
+                overflow: hidden;
+            }
+
+            .empty-icon img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                padding: 12px;
             }
 
             .empty-icon::before {
@@ -358,6 +464,12 @@
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
             }
 
+            [data-theme="light"] .user-message-content {
+                background: linear-gradient(135deg, rgba(0, 102, 204, 0.15) 0%, rgba(204, 0, 204, 0.15) 100%);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            }
+
             .assistant-message {
                 display: flex;
                 gap: 16px;
@@ -376,8 +488,16 @@
                 font-weight: 700;
                 color: #fff;
                 flex-shrink: 0;
-                box-shadow: 0 8px 24px rgba(0, 240, 255, 0.3);
+                box-shadow: 0 8px 24px var(--primary-glow);
                 position: relative;
+                overflow: hidden;
+            }
+
+            .assistant-avatar img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                padding: 6px;
             }
 
             .assistant-avatar::before {
@@ -401,6 +521,12 @@
                 line-height: 1.7;
                 backdrop-filter: blur(10px);
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            }
+
+            [data-theme="light"] .assistant-message-content {
+                background: rgba(0, 0, 0, 0.03);
+                border: 1px solid rgba(0, 0, 0, 0.08);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
             }
 
             .thinking-indicator {
@@ -441,6 +567,11 @@
                 position: relative;
             }
 
+            [data-theme="light"] footer {
+                background: rgba(255, 255, 255, 0.7);
+                border-top: 1px solid rgba(0, 0, 0, 0.05);
+            }
+
             .suggestions-container {
                 display: flex;
                 flex-wrap: wrap;
@@ -462,10 +593,20 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] .suggestion-button {
+                background: rgba(0, 102, 204, 0.1);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+            }
+
             .suggestion-button:hover {
                 background: rgba(0, 240, 255, 0.2);
                 transform: translateY(-2px);
                 box-shadow: 0 8px 24px rgba(0, 240, 255, 0.3);
+            }
+
+            [data-theme="light"] .suggestion-button:hover {
+                background: rgba(0, 102, 204, 0.2);
+                box-shadow: 0 8px 24px rgba(0, 102, 204, 0.3);
             }
 
             .input-container {
@@ -490,10 +631,22 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] #messageInput {
+                background: rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+                color: var(--text-primary);
+            }
+
             #messageInput:focus {
                 border-color: rgba(0, 240, 255, 0.5);
                 background: rgba(255, 255, 255, 0.08);
                 box-shadow: 0 0 30px rgba(0, 240, 255, 0.2);
+            }
+
+            [data-theme="light"] #messageInput:focus {
+                border-color: rgba(0, 102, 204, 0.5);
+                background: rgba(0, 0, 0, 0.08);
+                box-shadow: 0 0 30px rgba(0, 102, 204, 0.2);
             }
 
             #messageInput::placeholder {
@@ -510,7 +663,7 @@
                 font-size: 15px;
                 cursor: pointer;
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-                box-shadow: 0 8px 24px rgba(0, 240, 255, 0.4);
+                box-shadow: 0 8px 24px var(--primary-glow);
                 position: relative;
                 overflow: hidden;
             }
@@ -530,7 +683,7 @@
 
             #sendBtn:hover {
                 transform: translateY(-2px);
-                box-shadow: 0 12px 36px rgba(0, 240, 255, 0.6);
+                box-shadow: 0 12px 36px var(--primary-glow);
             }
 
             #newChatBtn {
@@ -546,10 +699,20 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] #newChatBtn {
+                background: rgba(0, 102, 204, 0.1);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+            }
+
             #newChatBtn:hover {
                 background: rgba(0, 240, 255, 0.2);
                 transform: translateY(-2px);
                 box-shadow: 0 8px 24px rgba(0, 240, 255, 0.3);
+            }
+
+            [data-theme="light"] #newChatBtn:hover {
+                background: rgba(0, 102, 204, 0.2);
+                box-shadow: 0 8px 24px rgba(0, 102, 204, 0.3);
             }
 
             .voice-status {
@@ -562,6 +725,12 @@
                 backdrop-filter: blur(20px);
             }
 
+            [data-theme="light"] .voice-status {
+                background: rgba(0, 200, 83, 0.15);
+                border-bottom: 1px solid rgba(0, 200, 83, 0.3);
+                color: #00c853;
+            }
+
             .warning-message {
                 background: rgba(255, 200, 0, 0.1);
                 border: 1px solid rgba(255, 200, 0, 0.3);
@@ -570,6 +739,12 @@
                 margin-bottom: 20px;
                 color: #ffc800;
                 backdrop-filter: blur(10px);
+            }
+
+            [data-theme="light"] .warning-message {
+                background: rgba(255, 152, 0, 0.1);
+                border: 1px solid rgba(255, 152, 0, 0.3);
+                color: #ff9800;
             }
 
             .connection-status {
@@ -594,9 +769,19 @@
                 animation: connectedPulse 2s infinite;
             }
 
+            [data-theme="light"] .connection-status.connected {
+                background-color: #00c853;
+                box-shadow: 0 0 20px rgba(0, 200, 83, 0.6);
+            }
+
             .connection-status.disconnected {
                 background-color: #ff6478;
                 box-shadow: 0 0 20px rgba(255, 100, 120, 0.6);
+            }
+
+            [data-theme="light"] .connection-status.disconnected {
+                background-color: #f44336;
+                box-shadow: 0 0 20px rgba(244, 67, 54, 0.6);
             }
 
             @keyframes connectingPulse {
@@ -607,6 +792,11 @@
             @keyframes connectedPulse {
                 0%, 100% { opacity: 0.8; transform: scale(1); }
                 50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 30px rgba(100, 255, 180, 0.8); }
+            }
+
+            [data-theme="light"] @keyframes connectedPulse {
+                0%, 100% { opacity: 0.8; transform: scale(1); }
+                50% { opacity: 1; transform: scale(1.3); box-shadow: 0 0 30px rgba(0, 200, 83, 0.8); }
             }
 
             .markdown-content h1,
@@ -650,6 +840,12 @@
                 border: 1px solid rgba(0, 240, 255, 0.2);
             }
 
+            [data-theme="light"] .markdown-content code {
+                background: rgba(0, 102, 204, 0.1);
+                color: var(--primary);
+                border: 1px solid rgba(0, 102, 204, 0.2);
+            }
+
             .markdown-content pre {
                 background: rgba(0, 0, 0, 0.4);
                 border: 1px solid rgba(255, 255, 255, 0.1);
@@ -660,11 +856,20 @@
                 backdrop-filter: blur(10px);
             }
 
+            [data-theme="light"] .markdown-content pre {
+                background: rgba(0, 0, 0, 0.05);
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
             .markdown-content pre code {
                 background: none;
                 padding: 0;
                 border: none;
                 color: #e0e0e0;
+            }
+
+            [data-theme="light"] .markdown-content pre code {
+                color: #333333;
             }
 
             .markdown-content table {
@@ -680,10 +885,19 @@
                 text-align: left;
             }
 
+            [data-theme="light"] .markdown-content table th,
+            [data-theme="light"] .markdown-content table td {
+                border: 1px solid rgba(0, 0, 0, 0.1);
+            }
+
             .markdown-content table th {
                 background: rgba(0, 240, 255, 0.1);
                 font-weight: 600;
                 color: var(--primary);
+            }
+
+            [data-theme="light"] .markdown-content table th {
+                background: rgba(0, 102, 204, 0.1);
             }
 
             .markdown-content blockquote {
@@ -711,6 +925,10 @@
                 transition: all 0.3s;
             }
 
+            [data-theme="light"] .markdown-content a {
+                border-bottom: 1px solid rgba(0, 102, 204, 0.3);
+            }
+
             .markdown-content a:hover {
                 border-bottom-color: var(--primary);
             }
@@ -723,13 +941,25 @@
                 background: rgba(255, 255, 255, 0.02);
             }
 
+            [data-theme="light"] ::-webkit-scrollbar-track {
+                background: rgba(0, 0, 0, 0.02);
+            }
+
             ::-webkit-scrollbar-thumb {
                 background: rgba(0, 240, 255, 0.3);
                 border-radius: 5px;
             }
 
+            [data-theme="light"] ::-webkit-scrollbar-thumb {
+                background: rgba(0, 102, 204, 0.3);
+            }
+
             ::-webkit-scrollbar-thumb:hover {
                 background: rgba(0, 240, 255, 0.5);
+            }
+
+            [data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+                background: rgba(0, 102, 204, 0.5);
             }
 
             .scroll-to-bottom {
@@ -747,14 +977,14 @@
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 8px 24px rgba(0, 240, 255, 0.4);
+                box-shadow: 0 8px 24px var(--primary-glow);
                 transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
                 z-index: 10;
             }
 
             .scroll-to-bottom:hover {
                 transform: scale(1.1);
-                box-shadow: 0 12px 36px rgba(0, 240, 255, 0.6);
+                box-shadow: 0 12px 36px var(--primary-glow);
             }
 
             .continue-button {
@@ -771,10 +1001,20 @@
                 font-size: 14px;
             }
 
+            [data-theme="light"] .continue-button {
+                background: rgba(0, 102, 204, 0.1);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+            }
+
             .continue-button:hover {
                 background: rgba(0, 240, 255, 0.2);
                 transform: translateY(-2px);
                 box-shadow: 0 8px 24px rgba(0, 240, 255, 0.3);
+            }
+
+            [data-theme="light"] .continue-button:hover {
+                background: rgba(0, 102, 204, 0.2);
+                box-shadow: 0 8px 24px rgba(0, 102, 204, 0.3);
             }
 
             .context-indicator {
@@ -793,12 +1033,22 @@
                 box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             }
 
+            [data-theme="light"] .context-indicator {
+                background: rgba(255, 255, 255, 0.95);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            }
+
             .context-progress {
                 height: 6px;
                 background: rgba(255, 255, 255, 0.1);
                 border-radius: 3px;
                 margin-top: 8px;
                 overflow: hidden;
+            }
+
+            [data-theme="light"] .context-progress {
+                background: rgba(0, 0, 0, 0.1);
             }
 
             .context-progress-bar {
@@ -808,12 +1058,61 @@
                 transition: width 0.3s ease, background-color 0.3s ease;
             }
 
+            [data-theme="light"] .context-progress-bar {
+                background: linear-gradient(90deg, #00c853, var(--primary));
+            }
+
             .context-progress-bar.warning {
                 background: linear-gradient(90deg, #ffc800, var(--accent));
             }
 
+            [data-theme="light"] .context-progress-bar.warning {
+                background: linear-gradient(90deg, #ff9800, var(--accent));
+            }
+
             .context-progress-bar.danger {
                 background: linear-gradient(90deg, #ff6478, var(--secondary));
+            }
+
+            [data-theme="light"] .context-progress-bar.danger {
+                background: linear-gradient(90deg, #f44336, var(--secondary));
+            }
+
+            .theme-toggle {
+                position: fixed;
+                top: 24px;
+                right: 60px;
+                z-index: 101;
+                background: rgba(0, 240, 255, 0.1);
+                border: 1px solid rgba(0, 240, 255, 0.3);
+                color: var(--primary);
+                padding: 12px;
+                border-radius: 12px;
+                cursor: pointer;
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+                font-size: 20px;
+                width: 48px;
+                height: 48px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                backdrop-filter: blur(20px);
+            }
+
+            [data-theme="light"] .theme-toggle {
+                background: rgba(0, 102, 204, 0.1);
+                border: 1px solid rgba(0, 102, 204, 0.3);
+            }
+
+            .theme-toggle:hover {
+                background: rgba(0, 240, 255, 0.2);
+                transform: scale(1.05);
+                box-shadow: 0 0 30px var(--primary-glow);
+            }
+
+            [data-theme="light"] .theme-toggle:hover {
+                background: rgba(0, 102, 204, 0.2);
+                box-shadow: 0 0 30px var(--primary-glow);
             }
 
             @media (max-width: 768px) {
@@ -884,6 +1183,13 @@
                     right: 20px;
                     width: 120px;
                 }
+
+                .theme-toggle {
+                    top: 16px;
+                    right: 60px;
+                    width: 44px;
+                    height: 44px;
+                }
             }
 
             @media (max-width: 480px) {
@@ -921,6 +1227,13 @@
                     height: 40px;
                     font-size: 16px;
                 }
+
+                .theme-toggle {
+                    top: 16px;
+                    right: 60px;
+                    width: 40px;
+                    height: 40px;
+                }
             }
         </style>
     </head>
@@ -929,6 +1242,7 @@
         <div class="connection-status connecting" id="connectionStatus"></div>
 
         <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()">🌙</button>
 
         <div class="sidebar" id="sidebar">
             <button class="new-chat" onclick="createNewSession()">
@@ -947,7 +1261,9 @@
         <div class="main">
             <header>
                 <div class="logo">
-                    <div class="logo-icon">D</div>
+                    <div class="logo-icon">
+                        <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                    </div>
                     <h1 class="logo-text">General Bots</h1>
                 </div>
                 <button id="newChatBtn">Novo Chat</button>
@@ -959,7 +1275,9 @@
 
             <main id="messages">
                 <div id="emptyState">
-                    <div class="empty-icon">D</div>
+                    <div class="empty-icon">
+                        <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                    </div>
                     <h2 class="empty-title">
                         Bem-vindo ao General Bots
                     </h2>
@@ -977,119 +1295,6 @@
                     />
                     <button id="sendBtn">Enviar</button>
                 </div>
-                <script>
-                  function handleSuggestions(suggestions) {
-                    const footer = document.querySelector('footer');
-                    let container = footer.querySelector('.suggestions-container');
-                    
-                    if (!container) {
-                      container = document.createElement('div');
-                      container.className = 'suggestions-container';
-                      footer.insertBefore(container, footer.firstChild);
-                    }
-
-                    container.innerHTML = '';
-                    suggestions.forEach(s => {
-                      const btn = document.createElement('button');
-                      btn.textContent = s.text;
-                      btn.className = 'suggestion-button';
-                      btn.onclick = () => {
-                        setContext(s.context);
-                        input.value = '';
-                      };
-                      container.appendChild(btn);
-                    });
-                  }
-
-                  let pendingContextChange = null;
-
-                  async function setContext(context) {
-                    try {
-                      const buttonText = event?.target?.textContent || context;
-                      
-                      addMessage("user", buttonText);
-
-                      const input = document.getElementById('messageInput');
-                      if (input) {
-                        input.value = '';
-                      }
-
-                      if (ws && ws.readyState === WebSocket.OPEN) {
-                        pendingContextChange = new Promise((resolve) => {
-                          const handler = (event) => {
-                            const response = JSON.parse(event.data);
-                            if (response.message_type === 5 && response.context_name === context) {
-                              ws.removeEventListener('message', handler);
-                              resolve();
-                            }
-                          };
-                          ws.addEventListener('message', handler);
-
-                          const suggestionEvent = {
-                            bot_id: currentBotId,
-                            user_id: currentUserId,
-                            session_id: currentSessionId,
-                            channel: "web",
-                            content: buttonText,
-                            message_type: 4,
-                            is_suggestion: true,
-                            context_name: context,
-                            timestamp: new Date().toISOString()
-                          };
-                          ws.send(JSON.stringify(suggestionEvent));
-                        });
-
-                        await pendingContextChange;
-                        const contextIndicator = document.getElementById('contextIndicator');
-                        if (contextIndicator) {
-                          contextIndicator.style.display = 'block';
-                          document.getElementById('contextPercentage').textContent = context;
-                        }
-                      } else {
-                        console.warn("WebSocket não está conectado. Tentando reconectar...");
-                        connectWebSocket();
-                      }
-                    } catch (err) {
-                      console.error('Failed to set context:', err);
-                    }
-                  }
-
-                  async function sendMessage() {
-                    if (pendingContextChange) {
-                      await pendingContextChange;
-                      pendingContextChange = null;
-                    }
-                    const message = input.value.trim();
-                    if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
-                      if (!ws || ws.readyState !== WebSocket.OPEN) {
-                        showWarning("Conexão não disponível. Tentando reconectar...");
-                        connectWebSocket();
-                      }
-                      return;
-                    }
-
-                    if (isThinking) {
-                      hideThinkingIndicator();
-                    }
-
-                    addMessage("user", message);
-
-                    const messageData = {
-                      bot_id: currentBotId,
-                      user_id: currentUserId,
-                      session_id: currentSessionId,
-                      channel: "web",
-                      content: message,
-                      message_type: 1,
-                      media_url: null,
-                      timestamp: new Date().toISOString()
-                    };
-
-                    ws.send(JSON.stringify(messageData));
-                    input.value = "";
-                    input.focus();
-                  }
-                </script>
             </footer>
         </div>
 
@@ -1139,6 +1344,7 @@
             let contextUsage = 0;
             let isUserScrolling = false;
             let autoScrollEnabled = true;
+            let currentTheme = 'dark';
 
             const messagesDiv = document.getElementById("messages");
             const input = document.getElementById("messageInput");
@@ -1149,6 +1355,7 @@
             const contextIndicator = document.getElementById("contextIndicator");
             const contextPercentage = document.getElementById("contextPercentage");
             const contextProgressBar = document.getElementById("contextProgressBar");
+            const themeToggle = document.getElementById("themeToggle");
 
             marked.setOptions({
                 breaks: true,
@@ -1157,6 +1364,15 @@
 
             function toggleSidebar() {
                 document.getElementById("sidebar").classList.toggle("open");
+            }
+
+            function toggleTheme() {
+                currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+                
+                // Save theme preference to localStorage
+                localStorage.setItem('gb-theme', currentTheme);
             }
 
             function updateConnectionStatus(status) {
@@ -1171,6 +1387,19 @@
             }
 
             window.addEventListener("load", function () {
+                // Check for saved theme preference or respect OS preference
+                const savedTheme = localStorage.getItem('gb-theme');
+                const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+                
+                if (savedTheme) {
+                    currentTheme = savedTheme;
+                } else {
+                    currentTheme = prefersDark ? 'dark' : 'light';
+                }
+                
+                document.documentElement.setAttribute('data-theme', currentTheme);
+                themeToggle.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+                
                 input.focus();
             });
 
@@ -1274,7 +1503,9 @@
                     loadSessions();
                     document.getElementById("messages").innerHTML = `
                         <div id="emptyState">
-                            <div class="empty-icon">D</div>
+                            <div class="empty-icon">
+                                <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                            </div>
                             <h2 class="empty-title">Bem-vindo ao General Bots</h2>
                             <p class="empty-subtitle">Seu assistente de IA avançado</p>
                         </div>
@@ -1316,7 +1547,9 @@
                     if (history.length === 0) {
                         messages.innerHTML = `
                             <div id="emptyState">
-                                <div class="empty-icon">D</div>
+                                <div class="empty-icon">
+                                    <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                                </div>
                                 <h2 class="empty-title">Bem-vindo ao General Bots</h2>
                                 <p class="empty-subtitle">Seu assistente de IA avançado</p>
                             </div>
@@ -1457,7 +1690,9 @@
                 thinkingDiv.className = "message-container";
                 thinkingDiv.innerHTML = `
                     <div class="assistant-message">
-                        <div class="assistant-avatar">D</div>
+                        <div class="assistant-avatar">
+                            <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                        </div>
                         <div class="thinking-indicator">
                             <div class="typing-dots">
                                 <div class="typing-dot"></div>
@@ -1549,7 +1784,9 @@
                 continueDiv.className = "message-container";
                 continueDiv.innerHTML = `
                     <div class="assistant-message">
-                        <div class="assistant-avatar">D</div>
+                        <div class="assistant-avatar">
+                            <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                        </div>
                         <div class="assistant-message-content">
                             <p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p>
                             <button class="continue-button" onclick="continueInterruptedResponse()">Continuar</button>
@@ -1622,7 +1859,9 @@
                 } else if (role === "assistant") {
                     msg.innerHTML = `
                         <div class="assistant-message">
-                            <div class="assistant-avatar">D</div>
+                            <div class="assistant-avatar">
+                                <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                            </div>
                             <div class="assistant-message-content markdown-content" id="${msgId || ""}">
                                 ${streaming ? "" : marked.parse(content)}
                             </div>
@@ -1639,7 +1878,9 @@
                 } else {
                     msg.innerHTML = `
                         <div class="assistant-message">
-                            <div class="assistant-avatar">D</div>
+                            <div class="assistant-avatar">
+                                <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
+                            </div>
                             <div class="assistant-message-content">${content}</div>
                         </div>
                     `;
@@ -1692,6 +1933,118 @@
                 const div = document.createElement("div");
                 div.textContent = text;
                 return div.innerHTML;
+            }
+
+            function handleSuggestions(suggestions) {
+                const footer = document.querySelector('footer');
+                let container = footer.querySelector('.suggestions-container');
+                
+                if (!container) {
+                    container = document.createElement('div');
+                    container.className = 'suggestions-container';
+                    footer.insertBefore(container, footer.firstChild);
+                }
+
+                container.innerHTML = '';
+                suggestions.forEach(s => {
+                    const btn = document.createElement('button');
+                    btn.textContent = s.text;
+                    btn.className = 'suggestion-button';
+                    btn.onclick = () => {
+                        setContext(s.context);
+                        input.value = '';
+                    };
+                    container.appendChild(btn);
+                });
+            }
+
+            let pendingContextChange = null;
+
+            async function setContext(context) {
+                try {
+                    const buttonText = event?.target?.textContent || context;
+                    
+                    addMessage("user", buttonText);
+
+                    const input = document.getElementById('messageInput');
+                    if (input) {
+                        input.value = '';
+                    }
+
+                    if (ws && ws.readyState === WebSocket.OPEN) {
+                        pendingContextChange = new Promise((resolve) => {
+                            const handler = (event) => {
+                                const response = JSON.parse(event.data);
+                                if (response.message_type === 5 && response.context_name === context) {
+                                    ws.removeEventListener('message', handler);
+                                    resolve();
+                                }
+                            };
+                            ws.addEventListener('message', handler);
+
+                            const suggestionEvent = {
+                                bot_id: currentBotId,
+                                user_id: currentUserId,
+                                session_id: currentSessionId,
+                                channel: "web",
+                                content: buttonText,
+                                message_type: 4,
+                                is_suggestion: true,
+                                context_name: context,
+                                timestamp: new Date().toISOString()
+                            };
+                            ws.send(JSON.stringify(suggestionEvent));
+                        });
+
+                        await pendingContextChange;
+                        const contextIndicator = document.getElementById('contextIndicator');
+                        if (contextIndicator) {
+                            contextIndicator.style.display = 'block';
+                            document.getElementById('contextPercentage').textContent = context;
+                        }
+                    } else {
+                        console.warn("WebSocket não está conectado. Tentando reconectar...");
+                        connectWebSocket();
+                    }
+                } catch (err) {
+                    console.error('Failed to set context:', err);
+                }
+            }
+
+            async function sendMessage() {
+                if (pendingContextChange) {
+                    await pendingContextChange;
+                    pendingContextChange = null;
+                }
+                const message = input.value.trim();
+                if (!message || !ws || ws.readyState !== WebSocket.OPEN) {
+                    if (!ws || ws.readyState !== WebSocket.OPEN) {
+                        showWarning("Conexão não disponível. Tentando reconectar...");
+                        connectWebSocket();
+                    }
+                    return;
+                }
+
+                if (isThinking) {
+                    hideThinkingIndicator();
+                }
+
+                addMessage("user", message);
+
+                const messageData = {
+                    bot_id: currentBotId,
+                    user_id: currentUserId,
+                    session_id: currentSessionId,
+                    channel: "web",
+                    content: message,
+                    message_type: 1,
+                    media_url: null,
+                    timestamp: new Date().toISOString()
+                };
+
+                ws.send(JSON.stringify(messageData));
+                input.value = "";
+                input.focus();
             }
 
             sendBtn.onclick = sendMessage;
