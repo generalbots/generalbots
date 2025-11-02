@@ -175,7 +175,7 @@ impl AutomationService {
         );
         for automation in automations {
             if let Some(TriggerKind::Scheduled) = TriggerKind::from_i32(automation.kind) {
-                debug!(
+                trace!(
                     "Evaluating schedule pattern={:?} for automation {}",
                     automation.schedule,
                     automation.id
@@ -190,7 +190,7 @@ impl AutomationService {
                         self.execute_action(&automation.param).await;
                         self.update_last_triggered(automation.id).await;
                     } else {
-                        debug!("Pattern did not match for automation {}", automation.id);
+                        trace!("Pattern did not match for automation {}", automation.id);
                     }
                 }
             }
@@ -336,10 +336,11 @@ impl AutomationService {
             }
         };
 
-        let path_str = format!("./work/{}.gbai/{}.gbdialog/{}", 
+        let script_name = param.strip_suffix(".bas").unwrap_or(param);
+        let path_str = format!("./work/{}.gbai/{}.gbdialog/{}.ast", 
             bot_name,
             bot_name,
-            param
+            script_name
         );
         let full_path = Path::new(&path_str);
         trace!("Resolved full path: {}", full_path.display());
@@ -350,56 +351,14 @@ impl AutomationService {
                 content
             }
             Err(e) => {
-                warn!(
-                    "Script not found locally at {}, attempting to download from MinIO: {}",
+                error!(
+                    "Failed to read script '{}' at {}: {}",
+                    param,
                     full_path.display(),
                     e
                 );
-
-                if let Some(client) = &self.state.drive {
-                    let bucket_name = format!(
-                        "{}.gbai",
-                        crate::bot::get_default_bot(&mut self.state.conn.lock().unwrap()).0.to_string()
-                    );
-                    let s3_key = format!(".gbdialog/{}", param);
-
-                    trace!("Downloading from bucket={} key={}", bucket_name, s3_key);
-
-                    match crate::kb::minio_handler::get_file_content(client, &bucket_name, &s3_key).await {
-                        Ok(data) => {
-                            match String::from_utf8(data) {
-                                Ok(content) => {
-                                    info!("Downloaded script '{}' from MinIO", param);
-
-                                    // Save to local cache
-                                    if let Err(e) = std::fs::create_dir_all(&self.scripts_dir) {
-                                        warn!("Failed to create scripts directory: {}", e);
-                                    } else if let Err(e) = tokio::fs::write(&full_path, &content).await {
-                                        warn!("Failed to cache script locally: {}", e);
-                                    } else {
-                                        trace!("Cached script to {}", full_path.display());
-                                    }
-
-                                    content
-                                }
-                                Err(e) => {
-                                    error!("Failed to decode script {}: {}", param, e);
-                                    self.cleanup_job_flag(&bot_id, param).await;
-                                    return;
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            error!("Failed to download script {} from MinIO: {}", param, e);
-                            self.cleanup_job_flag(&bot_id, param).await;
-                            return;
-                        }
-                    }
-                } else {
-                    error!("S3 client not available, cannot download script {}", param);
-                    self.cleanup_job_flag(&bot_id, param).await;
-                    return;
-                }
+                self.cleanup_job_flag(&bot_id, param).await;
+                return;
             }
         };
 

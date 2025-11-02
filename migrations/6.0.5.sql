@@ -13,7 +13,7 @@ ALTER TABLE public.system_automations ADD COLUMN IF NOT EXISTS name VARCHAR(255)
 INSERT INTO public.system_automations (name, kind, target, param, schedule, is_active)
 VALUES (
     'Update Summary',
-    3,
+    0,
     NULL,
     'update-summary.bas',
     '* * * * *',
