@@ -5,6 +5,44 @@ use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
 
+pub fn clear_suggestions_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
+    let cache = state.cache.clone();
+
+    engine
+        .register_custom_syntax(&["CLEAR_SUGGESTIONS"], true, move |context, _inputs| {
+            info!("CLEAR_SUGGESTIONS command executed");
+
+            if let Some(cache_client) = &cache {
+                let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
+
+                let mut conn = match cache_client.get_connection() {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        error!("Failed to connect to cache: {}", e);
+                        return Ok(Dynamic::UNIT);
+                    }
+                };
+
+                // Delete the suggestions list
+                let result: Result<i64, redis::RedisError> = redis::cmd("DEL")
+                    .arg(&redis_key)
+                    .query(&mut conn);
+
+                match result {
+                    Ok(deleted) => {
+                        trace!("Cleared suggestions from Redis key {}, deleted: {}", redis_key, deleted);
+                    }
+                    Err(e) => error!("Failed to clear suggestions from Redis: {}", e),
+                }
+            } else {
+                debug!("No Cache client configured; suggestions not cleared");
+            }
+
+            Ok(Dynamic::UNIT)
+        })
+        .unwrap();
+}
+
 pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
     let cache = state.cache.clone();
 
