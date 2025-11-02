@@ -43,7 +43,7 @@ impl BootstrapManager {
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode, tenant
         );
-        let config = AppConfig::from_env();
+        let config = AppConfig::from_env().expect("Failed to load config from env");
         let s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         Self {
             install_mode,
@@ -179,11 +179,11 @@ impl BootstrapManager {
                         if let Err(e) = self.apply_migrations(&mut conn) {
                             log::warn!("Failed to apply migrations: {}", e);
                         }
-                        return Ok(AppConfig::from_database(&mut conn));
+                        return Ok(AppConfig::from_database(&mut conn).expect("Failed to load config from DB"));
                     }
                     Err(e) => {
                         log::warn!("Failed to connect to database: {}", e);
-                        return Ok(AppConfig::from_env());
+                        return Ok(AppConfig::from_env()?);
                     }
                 }
             }
@@ -191,7 +191,7 @@ impl BootstrapManager {
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
         let required_components = vec!["tables", "drive", "cache", "llm"];
-        let mut config = AppConfig::from_env();
+        let mut config = AppConfig::from_env().expect("Failed to load config from env");
 
         for component in required_components {
             if !pm.is_installed(component) {
@@ -282,7 +282,7 @@ impl BootstrapManager {
                         );
                     }
 
-                    config = AppConfig::from_database(&mut conn);
+                    config = AppConfig::from_database(&mut conn).expect("Failed to load config from DB");
                 }
             }
         }
@@ -513,9 +513,9 @@ impl BootstrapManager {
                 
                 // Create fresh connection for final config load
                 let mut final_conn = establish_pg_connection()?;
-                let config = AppConfig::from_database(&mut final_conn);
-                info!("Successfully loaded config from CSV with LLM settings");
-                Ok(config)
+let config = AppConfig::from_database(&mut final_conn)?;
+info!("Successfully loaded config from CSV with LLM settings");
+Ok(config)
             }
             Err(e) => {
                 debug!("No config.csv found: {}", e);

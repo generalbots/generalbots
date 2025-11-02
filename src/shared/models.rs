@@ -411,6 +411,9 @@ pub mod schema {
             bot_id -> Uuid,
             config_key -> Text,
             config_value -> Text,
+ 
+            is_encrypted -> Bool,
+
             config_type -> Text,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,

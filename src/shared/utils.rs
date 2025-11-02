@@ -34,6 +34,19 @@ pub fn extract_zip_recursive(
                 if !parent.exists() {
                     std::fs::create_dir_all(&parent)?;
                 }
+
+use crate::llm::LLMProvider;
+use std::sync::Arc;
+use serde_json::Value;
+
+/// Unified chat utility to interact with any LLM provider
+pub async fn chat_with_llm(
+    provider: Arc<dyn LLMProvider>,
+    prompt: &str,
+    config: &Value,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    provider.generate(prompt, config).await
+}
             }
             let mut outfile = File::create(&outpath)?;
             std::io::copy(&mut file, &mut outfile)?;

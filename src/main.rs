@@ -25,7 +25,7 @@ mod ui;
 mod file;
 mod kb;
 mod llm;
-mod llm_legacy;
+mod llm_models;
 mod meet;
 mod org;
 mod package_manager;
@@ -49,7 +49,7 @@ use crate::email::{
     get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
 };
 use crate::file::{init_drive, upload_file};
-use crate::llm_legacy::llm_local::{
+use crate::llm::local::{
     chat_completions_local, embeddings_local, ensure_llama_servers_running,
 };
 use crate::meet::{voice_start, voice_stop};
@@ -124,8 +124,8 @@ async fn main() -> std::io::Result<()> {
             &std::env::var("DATABASE_URL")
                 .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
         ) {
-            Ok(mut conn) => AppConfig::from_database(&mut conn),
-            Err(_) => AppConfig::from_env(),
+            Ok(mut conn) => AppConfig::from_database(&mut conn).expect("Failed to load config from DB"),
+            Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
         }
     } else {
         match bootstrap.bootstrap().await {
@@ -135,13 +135,13 @@ async fn main() -> std::io::Result<()> {
             }
             Err(e) => {
                 log::error!("Bootstrap failed: {}", e);
-                match diesel::Connection::establish(
-                    &std::env::var("DATABASE_URL")
-                        .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
-                ) {
-                    Ok(mut conn) => AppConfig::from_database(&mut conn),
-                    Err(_) => AppConfig::from_env(),
-                }
+        match diesel::Connection::establish(
+            &std::env::var("DATABASE_URL")
+                .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+        ) {
+            Ok(mut conn) => AppConfig::from_database(&mut conn).expect("Failed to load config from DB"),
+            Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
+        }
             }
         }
     };
@@ -158,7 +158,7 @@ async fn main() -> std::io::Result<()> {
 
     // Refresh configuration from environment to ensure latest DATABASE_URL and credentials
     dotenv().ok();
-    let refreshed_cfg = AppConfig::from_env();
+    let refreshed_cfg = AppConfig::from_env().expect("Failed to load config from env");
     let config = std::sync::Arc::new(refreshed_cfg.clone());
     let db_pool = match diesel::Connection::establish(&refreshed_cfg.database_url()) {
         Ok(conn) => Arc::new(Mutex::new(conn)),
