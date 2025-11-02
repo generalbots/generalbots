@@ -880,7 +880,25 @@
                 </div>
                                 <script>
                   function handleSuggestions(suggestions) {
-                    const container = document.getElementById('suggestions-container');
+                    // Find the last assistant message content div
+                    const messageContents = document.querySelectorAll('.assistant-message-content');
+                    if (messageContents.length === 0) return;
+                    
+                    const lastContent = messageContents[messageContents.length - 1];
+                    let container = lastContent.querySelector('.suggestions-container');
+                    
+                    // Create container if it doesn't exist
+                    if (!container) {
+                      container = document.createElement('div');
+                      container.className = 'suggestions-container';
+                      container.style.display = 'flex';
+                      container.style.flexWrap = 'wrap';
+                      container.style.gap = '8px';
+                      container.style.marginTop = '10px';
+                      container.style.justifyContent = 'flex-start';
+                      lastContent.appendChild(container);
+                    }
+
                     container.innerHTML = '';
                     suggestions.forEach(s => {
                       const btn = document.createElement('button');
@@ -893,6 +911,16 @@
                       btn.style.border = 'none';
                       btn.style.borderRadius = '6px';
                       btn.style.cursor = 'pointer';
+                      btn.style.fontSize = '14px';
+                      btn.style.transition = 'all 0.2s ease';
+                      btn.onmouseenter = () => {
+                        btn.style.transform = 'scale(1.05)';
+                        btn.style.boxShadow = '0 0 8px rgba(255, 215, 0, 0.6)';
+                      };
+                      btn.onmouseleave = () => {
+                        btn.style.transform = 'scale(1)';
+                        btn.style.boxShadow = 'none';
+                      };
                       btn.onclick = () => setContext(s.context);
                       container.appendChild(btn);
                     });
@@ -927,17 +955,22 @@
                             user_id: currentUserId,
                             session_id: currentSessionId,
                             channel: "web",
-                            content: context,
+                            content: buttonText, // Send button text as content
                             message_type: 4, // custom type for suggestion click
                             is_suggestion: true,
-                            context_name: context,
+                            context_name: context, // Context to switch to
                             timestamp: new Date().toISOString()
                           };
                           ws.send(JSON.stringify(suggestionEvent));
                         });
 
                         await pendingContextChange;
-                        alert(`Contexto alterado para: ${context}`);
+                        // Update UI to show current context
+                        const contextIndicator = document.getElementById('contextIndicator');
+                        if (contextIndicator) {
+                          contextIndicator.style.display = 'block';
+                          document.getElementById('contextPercentage').textContent = context;
+                        }
                       } else {
                         console.warn("WebSocket não está conectado. Tentando reconectar...");
                         connectWebSocket();
@@ -1341,10 +1374,9 @@
                     updateContextUsage(response.context_usage);
                 }
 
-                // Handle suggestion messages
-                if (response.message_type === 3) {
+                // Handle suggestions if present in any message
+                if (response.suggestions && response.suggestions.length > 0) {
                     handleSuggestions(response.suggestions);
-                    return;
                 }
 
                 // Handle complete messages

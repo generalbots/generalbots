@@ -154,16 +154,17 @@ impl WhatsAppAdapter {
                         if let Some(text) = msg.text {
                             let session_id = self.get_session_id(&msg.from).await;
 
-                            let user_message = crate::shared::models::UserMessage {
-                                bot_id: "default_bot".to_string(),
-                                user_id: msg.from.clone(),
-                                session_id: session_id.clone(),
-                                channel: "whatsapp".to_string(),
-                                content: text.body,
-                                message_type: 1,
-                                media_url: None,
-                                timestamp: chrono::Utc::now(),
-                            };
+                    let user_message = crate::shared::models::UserMessage {
+                        bot_id: "default_bot".to_string(),
+                        user_id: msg.from.clone(),
+                        session_id: session_id,
+                        channel: "whatsapp".to_string(),
+                        content: text.body,
+                        message_type: 1,
+                        media_url: None,
+                        timestamp: chrono::Utc::now(),
+                        context_name: None,
+                    };
 
                             user_messages.push(user_message);
                         }

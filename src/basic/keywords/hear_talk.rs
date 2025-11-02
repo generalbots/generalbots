@@ -59,74 +59,99 @@ pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
+pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: String) -> Result<BotResponse, Box<dyn std::error::Error>> {
+    info!("Executing TALK with message: {}", message);
+    debug!("TALK: Sending message: {}", message);
+
+    let mut suggestions = Vec::new();
+    
+            if let Some(redis_client) = &state.cache {
+                let mut conn: redis::aio::MultiplexedConnection = redis_client.get_multiplexed_async_connection().await?;
+
+                let redis_key = format!("suggestions:{}:{}", user.user_id, user.id);
+                debug!("Loading suggestions from Redis key: {}", redis_key);
+                let suggestions_json: Result<Vec<String>, _> = redis::cmd("LRANGE")
+                    .arg(redis_key.as_str())
+                    .arg(0)
+                    .arg(-1)
+                    .query_async(&mut conn)
+                    .await;
+
+                match suggestions_json {
+                    Ok(suggestions_json) => {
+                        debug!("Found suggestions in Redis: {:?}", suggestions_json);
+                        suggestions = suggestions_json.into_iter()
+                            .filter_map(|s| serde_json::from_str(&s).ok())
+                            .collect();
+                        debug!("Parsed suggestions: {:?}", suggestions);
+                    }
+                    Err(e) => {
+                        error!("Failed to load suggestions from Redis: {}", e);
+                    }
+                }
+            }
+
+    let response = BotResponse {
+        bot_id: "default_bot".to_string(),
+        user_id: "default_user".to_string(),
+        session_id: user.id.to_string(),
+        channel: "web".to_string(),
+        content: format!("I heard: {}", message),
+        message_type: 1,
+        stream_token: None,
+        is_complete: true,
+        suggestions,
+        context_name: None,
+    };
+
+    let user_id = user.id.to_string();
+    let response_clone = response.clone();
+
+    match state.response_channels.try_lock() {
+        Ok(response_channels) => {
+            if let Some(tx) = response_channels.get(&user_id) {
+                if let Err(e) = tx.try_send(response_clone) {
+                    error!("Failed to send TALK message via WebSocket: {}", e);
+                } else {
+                    debug!("TALK message sent successfully via WebSocket");
+                }
+            } else {
+                debug!("No WebSocket connection found for session {}, sending via web adapter", user_id);
+                let web_adapter = Arc::clone(&state.web_adapter);
+                tokio::spawn(async move {
+                    if let Err(e) = web_adapter.send_message_to_session(&user_id, response_clone).await {
+                        error!("Failed to send TALK message via web adapter: {}", e);
+                    } else {
+                        debug!("TALK message sent successfully via web adapter");
+                    }
+                });
+            }
+        }
+        Err(_) => {
+            error!("Failed to acquire lock on response_channels for TALK command");
+        }
+    }
+
+    Ok(response)
+}
+
 pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
     engine
         .register_custom_syntax(&["TALK", "$expr$"], true, move |context, inputs| {
-            // Evaluate the expression that produces the message text.
             let message = context.eval_expression_tree(&inputs[0])?.to_string();
-            info!("TALK command executed: {}", message);
-            debug!("TALK: Sending message: {}", message);
+            let state_for_talk = Arc::clone(&state_clone);
+            let user_for_talk = user_clone.clone();
 
-            // Build the bot response that will be sent back to the client.
-            let bot_id = "default_bot".to_string();
-            let response = BotResponse {
-                bot_id,
-                user_id: user_clone.user_id.to_string(),
-                session_id: user_clone.id.to_string(),
-                channel: "web".to_string(),
-                content: message,
-                message_type: 1,
-                stream_token: None,
-                is_complete: true,
-                suggestions: Vec::new(),
-            };
-
-            let user_id = user_clone.id.to_string();
-
-            // Try to acquire the lock on the response_channels map. The map is protected
-            // by an async `tokio::sync::Mutex`, so we use `try_lock` to avoid awaiting
-            // inside this non‑async closure.
-            match state_clone.response_channels.try_lock() {
-                Ok(response_channels) => {
-                    if let Some(tx) = response_channels.get(&user_id) {
-                        // Use `try_send` to avoid blocking the runtime.
-                        if let Err(e) = tx.try_send(response.clone()) {
-                            error!("Failed to send TALK message via WebSocket: {}", e);
-                        } else {
-                            debug!("TALK message sent successfully via WebSocket");
-                        }
-                    } else {
-                        debug!(
-                            "No WebSocket connection found for session {}, sending via web adapter",
-                            user_id
-                        );
-                        // The web adapter method is async (`send_message_to_session`), so we
-                        // spawn a detached task to perform the send without blocking.
-                        let web_adapter = Arc::clone(&state_clone.web_adapter);
-                        let resp_clone = response.clone();
-                        let sess_id = user_id.clone();
-                        tokio::spawn(async move {
-                            if let Err(e) = web_adapter
-                                .send_message_to_session(&sess_id, resp_clone)
-                                .await
-                            {
-                                error!("Failed to send TALK message via web adapter: {}", e);
-                            } else {
-                                debug!("TALK message sent successfully via web adapter");
-                            }
-                        });
-                    }
+            tokio::spawn(async move {
+                if let Err(e) = execute_talk(state_for_talk, user_for_talk, message).await {
+                    error!("Error executing TALK command: {}", e);
                 }
-                Err(_) => {
-                    error!("Failed to acquire lock on response_channels for TALK command");
-                }
-            }
+            });
 
             Ok(Dynamic::UNIT)
         })
         .unwrap();
 }
-
