@@ -16,49 +16,44 @@ pub fn add_suggestion_keyword(state: Arc<AppState>, user_session: UserSession, e
             info!("ADD_SUGGESTION command executed: context='{}', text='{}'", context_name, button_text);
 
             if let Some(cache_client) = &cache {
-                let cache_client = cache_client.clone();
                 let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
                 let suggestion = json!({ "context": context_name, "text": button_text });
 
-                tokio::spawn(async move {
-                    let mut conn = match cache_client.get_multiplexed_async_connection().await {
-                        Ok(conn) => conn,
-                        Err(e) => {
-                            error!("Failed to connect to cache: {}", e);
-                            return;
-                        }
-                    };
-
-                    // Append suggestion to Redis list - RPUSH returns the new length as i64
-                    let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
-                        .arg(&redis_key)
-                        .arg(suggestion.to_string())
-                        .query_async(&mut conn)
-                        .await;
-
-                    match result {
-                        Ok(length) => {
-                            debug!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
-
-                            // Also register context as inactive initially
-                            let active_key = format!("active_context:{}:{}", user_session.user_id, user_session.id);
-                            let hset_result: Result<i64, redis::RedisError> = redis::cmd("HSET")
-                                .arg(&active_key)
-                                .arg(&context_name)
-                                .arg("inactive")
-                                .query_async(&mut conn)
-                                .await;
-
-                            match hset_result {
-                                Ok(fields_added) => {
-                                    debug!("Context state set to inactive for {}, fields added: {}", context_name, fields_added)
-                                },
-                                Err(e) => error!("Failed to set context state: {}", e),
-                            }
-                        }
-                        Err(e) => error!("Failed to add suggestion to Redis: {}", e),
+                let mut conn = match cache_client.get_connection() {
+                    Ok(conn) => conn,
+                    Err(e) => {
+                        error!("Failed to connect to cache: {}", e);
+                        return Ok(Dynamic::UNIT);
                     }
-                });
+                };
+
+                // Append suggestion to Redis list - RPUSH returns the new length as i64
+                let result: Result<i64, redis::RedisError> = redis::cmd("RPUSH")
+                    .arg(&redis_key)
+                    .arg(suggestion.to_string())
+                    .query(&mut conn);
+
+                match result {
+                    Ok(length) => {
+                        debug!("Suggestion added successfully to Redis key {}, new length: {}", redis_key, length);
+
+                        // Also register context as inactive initially
+                        let active_key = format!("active_context:{}:{}", user_session.user_id, user_session.id);
+                        let hset_result: Result<i64, redis::RedisError> = redis::cmd("HSET")
+                            .arg(&active_key)
+                            .arg(&context_name)
+                            .arg("inactive")
+                            .query(&mut conn);
+
+                        match hset_result {
+                            Ok(fields_added) => {
+                                debug!("Context state set to inactive for {}, fields added: {}", context_name, fields_added)
+                            },
+                            Err(e) => error!("Failed to set context state: {}", e),
+                        }
+                    }
+                    Err(e) => error!("Failed to add suggestion to Redis: {}", e),
+                }
             } else {
                 debug!("No Redis client configured; suggestion will not persist");
             }
