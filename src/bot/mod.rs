@@ -248,6 +248,7 @@ impl BotOrchestrator {
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
+            context_name: None,
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -279,6 +280,7 @@ impl BotOrchestrator {
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
+            context_name: None,
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -288,6 +290,47 @@ impl BotOrchestrator {
                 "No channel adapter found for direct message on channel: {}",
                 channel
             );
+        }
+
+        Ok(())
+    }
+
+    pub async fn handle_context_change(
+        &self,
+        user_id: &str,
+        bot_id: &str,
+        session_id: &str,
+        channel: &str,
+        context_name: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!(
+            "Changing context for session {} to {}",
+            session_id, context_name
+        );
+        
+        let mut session_manager = self.state.session_manager.lock().await;
+        session_manager.update_session_context(
+            &Uuid::parse_str(session_id)?,
+            &Uuid::parse_str(user_id)?,
+            context_name.to_string()
+        ).await?;
+
+        // Send confirmation back to client
+        let confirmation = BotResponse {
+            bot_id: bot_id.to_string(),
+            user_id: user_id.to_string(),
+            session_id: session_id.to_string(),
+            channel: channel.to_string(),
+            content: "Context changed".to_string(),
+            message_type: 5,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+            context_name: Some(context_name.to_string()),
+        };
+
+        if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
+            adapter.send_message(confirmation).await?;
         }
 
         Ok(())
@@ -354,6 +397,7 @@ impl BotOrchestrator {
                         stream_token: None,
                         is_complete: true,
                         suggestions: Vec::new(),
+                        context_name: None,
                     };
                     adapter.send_message(ack_response).await?;
                 }
@@ -388,26 +432,42 @@ impl BotOrchestrator {
             session_manager.save_message(session.id, user_id, 2, &response_content, 1)?;
         }
 
-        let bot_response = BotResponse {
-            bot_id: message.bot_id,
-            user_id: message.user_id,
-            session_id: message.session_id.clone(),
-            channel: message.channel.clone(),
-            content: response_content,
-            message_type: 1,
-            stream_token: None,
-            is_complete: true,
-            suggestions: Vec::new(),
-        };
-
-        if let Some(adapter) = self.state.channels.lock().unwrap().get(&message.channel) {
-            adapter.send_message(bot_response).await?;
-        } else {
-            warn!(
-                "No channel adapter found for message channel: {}",
-                message.channel
-            );
+        // Handle context change messages (type 4) first
+        if message.message_type == 4 {
+            if let Some(context_name) = &message.context_name {
+                return self.handle_context_change(
+                    &message.user_id,
+                    &message.bot_id,
+                    &message.session_id,
+                    &message.channel,
+                    context_name
+                ).await;
+            }
         }
+
+        // Create regular response
+let channel = message.channel.clone();
+let bot_response = BotResponse {
+    bot_id: message.bot_id,
+    user_id: message.user_id,
+    session_id: message.session_id,
+    channel: channel.clone(),
+    content: response_content,
+    message_type: 1,
+    stream_token: None,
+    is_complete: true,
+    suggestions: Vec::new(),
+    context_name: None,
+};
+
+if let Some(adapter) = self.state.channels.lock().unwrap().get(&channel) {
+    adapter.send_message(bot_response).await?;
+} else {
+    warn!(
+        "No channel adapter found for message channel: {}",
+        channel
+    );
+}
 
         Ok(())
     }
@@ -676,6 +736,7 @@ impl BotOrchestrator {
                 stream_token: None,
                 is_complete: true,
                 suggestions: Vec::new(),
+                context_name: None,
             };
             response_tx.send(thinking_response).await?;
         }
@@ -753,6 +814,7 @@ impl BotOrchestrator {
                 stream_token: None,
                 is_complete: false,
                 suggestions: suggestions.clone(),
+                context_name: None,
             };
 
             if response_tx.send(partial).await.is_err() {
@@ -781,6 +843,7 @@ impl BotOrchestrator {
             stream_token: None,
             is_complete: true,
             suggestions,
+            context_name: None,
         };
 
         response_tx.send(final_msg).await?;
@@ -914,6 +977,7 @@ impl BotOrchestrator {
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
+                    context_name: None,
                 };
                 adapter.send_message(warn_response).await
             } else {
@@ -1206,6 +1270,7 @@ async fn websocket_handler(
                         message_type: 1,
                         media_url: None,
                         timestamp: Utc::now(),
+                        context_name: None,
                     };
 
                     if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {

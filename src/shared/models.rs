@@ -1,4 +1,4 @@
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -115,14 +115,14 @@ pub struct UserMessage {
     pub content: String,
     pub message_type: i32,
     pub media_url: Option<String>,
-    pub timestamp: chrono::DateTime<chrono::Utc>,
+    pub timestamp: DateTime<Utc>,
+    pub context_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Suggestion {
     pub text: String,  // The button text that will be sent as message
-    pub context_name: String,  // The context name to set when clicked
-    pub is_suggestion: bool,  // Flag to identify suggestion clicks
+    pub context: String,  // The context name to set when clicked
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -136,6 +136,7 @@ pub struct BotResponse {
     pub stream_token: Option<String>,
     pub is_complete: bool,
     pub suggestions: Vec<Suggestion>,
+    pub context_name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]

@@ -215,6 +215,22 @@ impl SessionManager {
         Ok(())
     }
 
+    pub async fn update_session_context(
+        &mut self,
+        session_id: &Uuid,
+        _user_id: &Uuid,
+        context_name: String,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        use crate::shared::models::schema::user_sessions::dsl::*;
+        use diesel::prelude::*;
+
+        diesel::update(user_sessions.filter(id.eq(session_id).and(user_id.eq(user_id))))
+            .set(context_data.eq(serde_json::json!({ "current_context": context_name })))
+            .execute(&mut self.conn)?;
+
+        Ok(())
+    }
+
     pub async fn get_session_context(
         &self,
         session_id: &Uuid,
@@ -400,13 +416,12 @@ async fn start_session(
     path: web::Path<String>,
 ) -> Result<HttpResponse> {
     let session_id = path.into_inner();
-    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
 
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
             let mut session_manager = data.session_manager.lock().await;
             match session_manager.get_session_by_id(session_uuid) {
-                Ok(Some(session)) => {
+                Ok(Some(_session)) => {
                     session_manager.mark_waiting(session_uuid);
                     Ok(HttpResponse::Ok().json(serde_json::json!({
                         "status": "started",
