@@ -394,6 +394,44 @@ async fn get_sessions(data: web::Data<AppState>) -> Result<HttpResponse> {
     }
 }
 
+#[actix_web::post("/api/sessions/{session_id}/start")]
+async fn start_session(
+    data: web::Data<AppState>,
+    path: web::Path<String>,
+) -> Result<HttpResponse> {
+    let session_id = path.into_inner();
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
+
+    match Uuid::parse_str(&session_id) {
+        Ok(session_uuid) => {
+            let mut session_manager = data.session_manager.lock().await;
+            match session_manager.get_session_by_id(session_uuid) {
+                Ok(Some(session)) => {
+                    session_manager.mark_waiting(session_uuid);
+                    Ok(HttpResponse::Ok().json(serde_json::json!({
+                        "status": "started",
+                        "session_id": session_id
+                    })))
+                }
+                Ok(None) => {
+                    Ok(HttpResponse::NotFound().json(serde_json::json!({
+                        "error": "Session not found"
+                    })))
+                }
+                Err(e) => {
+                    error!("Failed to start session {}: {}", session_id, e);
+                    Ok(HttpResponse::InternalServerError()
+                        .json(serde_json::json!({"error": e.to_string()})))
+                }
+            }
+        }
+        Err(_) => {
+            warn!("Invalid session ID format: {}", session_id);
+            Ok(HttpResponse::BadRequest().json(serde_json::json!({"error": "Invalid session ID"})))
+        }
+    }
+}
+
 #[actix_web::get("/api/sessions/{session_id}")]
 async fn get_session_history(
     data: web::Data<AppState>,
