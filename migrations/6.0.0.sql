@@ -55,6 +55,7 @@ CREATE INDEX idx_organizations_slug ON public.organizations USING btree (slug);
 
 CREATE TABLE public.system_automations (
 	id uuid DEFAULT gen_random_uuid() NOT NULL,
+	bot_id uuid NOT NULL,
 	kind int4 NOT NULL,
 	"target" varchar(32) NULL,
 	schedule bpchar(12) NULL,

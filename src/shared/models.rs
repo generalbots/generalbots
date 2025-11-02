@@ -65,6 +65,7 @@ impl TriggerKind {
 #[diesel(table_name = system_automations)]
 pub struct Automation {
     pub id: Uuid,
+    pub bot_id: Uuid,
     pub kind: i32,
     pub target: Option<String>,
     pub schedule: Option<String>,
@@ -265,6 +266,7 @@ pub mod schema {
     diesel::table! {
         system_automations (id) {
             id -> Uuid,
+            bot_id -> Uuid,
             kind -> Int4,
             target -> Nullable<Text>,
             schedule -> Nullable<Text>,
