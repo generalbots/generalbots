@@ -351,6 +351,32 @@
                 border-top: 1px solid rgba(255, 215, 0, 0.3);
                 padding: 20px 40px;
                 box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+                position: relative;
+            }
+
+            .suggestions-container {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 8px;
+                margin-bottom: 10px;
+                justify-content: center;
+            }
+
+            .suggestion-button {
+                margin: 0 5px;
+                padding: 6px 10px;
+                background-color: #ffd700;
+                color: #0a0e27;
+                border: none;
+                border-radius: 6px;
+                cursor: pointer;
+                font-size: 12px;
+                transition: all 0.2s ease;
+            }
+
+            .suggestion-button:hover {
+                transform: scale(1.05);
+                box-shadow: 0 0 8px rgba(255, 215, 0, 0.6);
             }
 
             .input-container {
@@ -880,23 +906,13 @@
                 </div>
                                 <script>
                   function handleSuggestions(suggestions) {
-                    // Find all assistant message content divs (including empty state)
-                    const messageContents = document.querySelectorAll('.assistant-message-content, #emptyState');
-                    if (messageContents.length === 0) return;
+                    const footer = document.querySelector('footer');
+                    let container = footer.querySelector('.suggestions-container');
                     
-                    const lastContent = messageContents[messageContents.length - 1];
-                    let container = lastContent.querySelector('.suggestions-container');
-                    
-                    // Create container if it doesn't exist
                     if (!container) {
                       container = document.createElement('div');
                       container.className = 'suggestions-container';
-                      container.style.display = 'flex';
-                      container.style.flexWrap = 'wrap';
-                      container.style.gap = '8px';
-                      container.style.marginTop = '10px';
-                      container.style.justifyContent = 'flex-start';
-                      lastContent.appendChild(container);
+                      footer.insertBefore(container, footer.firstChild);
                     }
 
                     container.innerHTML = '';
@@ -904,23 +920,6 @@
                       const btn = document.createElement('button');
                       btn.textContent = s.text;
                       btn.className = 'suggestion-button';
-                      btn.style.margin = '5px';
-                      btn.style.padding = '8px 12px';
-                      btn.style.backgroundColor = '#ffd700';
-                      btn.style.color = '#0a0e27';
-                      btn.style.border = 'none';
-                      btn.style.borderRadius = '6px';
-                      btn.style.cursor = 'pointer';
-                      btn.style.fontSize = '14px';
-                      btn.style.transition = 'all 0.2s ease';
-                      btn.onmouseenter = () => {
-                        btn.style.transform = 'scale(1.05)';
-                        btn.style.boxShadow = '0 0 8px rgba(255, 215, 0, 0.6)';
-                      };
-                      btn.onmouseleave = () => {
-                        btn.style.transform = 'scale(1)';
-                        btn.style.boxShadow = 'none';
-                      };
                       btn.onclick = () => {
                         setContext(s.context);
                         input.value = ''; // Clear input after clicking
