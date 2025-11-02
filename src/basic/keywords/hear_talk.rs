@@ -96,7 +96,7 @@ pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: Stri
         user_id: "default_user".to_string(),
         session_id: user.id.to_string(),
         channel: "web".to_string(),
-        content: format!("I heard: {}", message),
+        content: message,
         message_type: 1,
         stream_token: None,
         is_complete: true,
