@@ -176,7 +176,6 @@ async fn create_s3_client(
         server: std::env::var("DRIVE_SERVER").expect("DRIVE_SERVER not set"),
         access_key: std::env::var("DRIVE_ACCESS_KEY").expect("DRIVE_ACCESS_KEY not set"),
         secret_key: std::env::var("DRIVE_SECRET_KEY").expect("DRIVE_SECRET_KEY not set"),
-        org_prefix: "".to_string(),
         use_ssl: false,
     };
     Ok(init_drive(&config).await?)
