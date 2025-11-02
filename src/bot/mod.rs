@@ -1367,6 +1367,11 @@ async fn websocket_handler(
                         .unregister_response_channel(&session_id_clone2)
                         .await;
 
+                    // Cancel any ongoing LLM jobs for this session
+                    if let Err(e) = data.llm_provider.cancel_job(&session_id_clone2).await {
+                        warn!("Failed to cancel LLM job for session {}: {}", session_id_clone2, e);
+                    }
+
                     info!("WebSocket fully closed for session {}", session_id_clone2);
                     break;
                 }

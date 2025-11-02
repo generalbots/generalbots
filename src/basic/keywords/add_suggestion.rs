@@ -9,7 +9,7 @@ pub fn clear_suggestions_keyword(state: Arc<AppState>, user_session: UserSession
     let cache = state.cache.clone();
 
     engine
-        .register_custom_syntax(&["CLEAR_SUGGESTIONS"], true, move |context, _inputs| {
+        .register_custom_syntax(&["CLEAR_SUGGESTIONS"], true, move |_context, _inputs| {
             info!("CLEAR_SUGGESTIONS command executed");
 
             if let Some(cache_client) = &cache {
