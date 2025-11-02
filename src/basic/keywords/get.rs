@@ -1,15 +1,17 @@
+use crate::shared::models::schema::bots::dsl::*;
+use diesel::prelude::*;
+use crate::kb::minio_handler;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, error, info};
+use log::{debug, error, info, trace};
 use reqwest::{self, Client};
-use crate::kb::minio_handler;
 use rhai::{Dynamic, Engine};
 use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
 
-pub fn get_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
     engine
@@ -45,7 +47,9 @@ pub fn get_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
                             execute_get(&url_for_blocking).await
                         } else {
                             info!("Local file GET request from bucket: {}", url_for_blocking);
-                            get_from_bucket(&state_for_blocking, &url_for_blocking).await
+                            get_from_bucket(&state_for_blocking, &url_for_blocking, 
+                                user_session.bot_id)
+                                .await
                         }
                     });
                     tx.send(result).err()
@@ -151,6 +155,7 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
 pub async fn get_from_bucket(
     state: &AppState,
     file_path: &str,
+    bot_id: uuid::Uuid,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     debug!("Getting file from bucket: {}", file_path);
 
@@ -160,26 +165,37 @@ pub async fn get_from_bucket(
     }
 
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
+    let bot_name: String = {
+        let mut db_conn = state.conn.lock().unwrap();
+        bots.filter(id.eq(&bot_id))
+            .select(name)
+            .first(&mut *db_conn)
+            .map_err(|e| {
+                error!("Failed to query bot name for {}: {}", bot_id, e);
+                e
+            })?
+    };
 
     let bucket_name = {
-
-        let bucket = format!("default.gbai");
-        debug!("Resolved bucket name: {}", bucket);
+        let bucket = format!("{}.gbai", bot_name);
+        trace!("Resolved GET bucket name: {}", bucket);
         bucket
     };
 
     let bytes = match tokio::time::timeout(
         Duration::from_secs(30),
-        minio_handler::get_file_content(client, &bucket_name, file_path)
-    ).await {
+        minio_handler::get_file_content(client, &bucket_name, file_path),
+    )
+    .await
+    {
         Ok(Ok(data)) => data,
         Ok(Err(e)) => {
-            error!("S3 read failed: {}", e);
+            error!("drive read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());
         }
         Err(_) => {
-            error!("S3 read timed out");
-            return Err("S3 operation timed out".into());
+            error!("drive read timed out");
+            return Err("drive operation timed out".into());
         }
     };
 

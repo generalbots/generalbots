@@ -9,3 +9,8 @@ ADD COLUMN IF NOT EXISTS bot_id UUID NOT NULL;
 -- Create an index on bot_id for faster lookups
 CREATE INDEX IF NOT EXISTS idx_system_automations_bot_id
 ON public.system_automations (bot_id);
+
+
+ALTER TABLE public.system_automations
+ADD CONSTRAINT IF NOT EXISTS system_automations_bot_kind_param_unique
+UNIQUE (bot_id, kind, param);
