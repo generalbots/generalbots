@@ -1,57 +1,77 @@
-# Template Examples
+# Templates System
 
-The `templates` section showcases the official BASIC dialog templates shipped with GeneralBots. They are stored under `templates/` and can be referenced directly in dialogs via `ADD_TOOL`.
+The **Templates** directory is the foundation for the `templates.html` interface in GeneralBots.  
+It contains all official `.gbai` template packages used to generate bot dialogs, announcements, and default automation flows.
 
-## start.bas
+---
 
-```basic
-REM Basic greeting and help flow
-SET user_name = "Guest"
-TALK "Hello, " + user_name + "! How can I help you today?"
-HEAR user_input
-IF user_input = "help" THEN
-    TALK "Sure, I can assist with account info, orders, or support."
-ELSE
-    TALK "Sorry, I didn't understand."
-ENDIF
+## Overview
+
+Templates define reusable bot configurations, dialog flows, and knowledge bases.  
+Each template package is stored under the `templates/` directory and follows a consistent structure:
+
+```
+templates/
+├── default.gbai/
+│   ├── default.gbot/
+│   ├── default.gbdialog/
+│   └── default.gbkb/
+└── announcements.gbai/
+    ├── announcements.gbot/
+    ├── announcements.gbdialog/
+    └── announcements.gbkb/
 ```
 
-## auth.bas
+Each `.gbai` folder represents a **template group**, containing:
+- `.gbdialog/` — BASIC dialog scripts defining conversational flows.
+- `.gbkb/` — Knowledge base files used for contextual responses.
+- `.gbot/` — Bot configuration files defining behavior and metadata.
 
-```basic
-REM Simple authentication flow
-SET attempts = 0
-LABEL auth_loop
-HEAR password
-IF password = "secret123" THEN
-    TALK "Authentication successful."
-ELSE
-    SET attempts = attempts + 1
-    IF attempts >= 3 THEN
-        TALK "Too many attempts. Goodbye."
-        EXIT
-    ENDIF
-    TALK "Incorrect password. Try again."
-    GOTO auth_loop
-ENDIF
-```
+---
 
-## generate-summary.bas
+## Template Groups
 
-```basic
-REM Generates a summary using the LLM keyword
-SET topic = "GeneralBots platform"
-TALK "Generating summary for " + topic + "..."
-SET summary = LLM "Summarize the following: " + topic
-TALK summary
-```
+### `default.gbai`
 
-## enrollment.bas (Tool Example)
+The **Default Template** provides the base configuration for new bots and general automation.  
+It includes standard dialogs, system prompts, and basic workflows used across all bots.
 
-```basic
-REM Demonstrates adding a custom tool to the conversation
-ADD_TOOL "enrollment.bas"
-TALK "Enrollment tool added. You can now use ENROLL command."
-```
+**Contents:**
+- `default.gbot/` — Core bot configuration.
+- `default.gbdialog/` — Default dialog scripts (e.g., greetings, help, onboarding).
+- `default.gbkb/` — Default knowledge base entries.
 
-These templates illustrate common patterns: greeting, authentication, LLM integration, and tool registration. Users can copy and adapt them for their own bots.
+**Purpose:**
+Used as the starting point for new bot instances and as the fallback template when no specific configuration is provided.
+
+---
+
+### `announcements.gbai`
+
+The **Announcements Template** defines dialogs and content for broadcasting messages or system updates.  
+It is used by bots that handle notifications, alerts, or scheduled announcements.
+
+**Contents:**
+- `announcements.gbot/` — Announcement bot configuration.
+- `announcements.gbdialog/` — Dialog scripts for announcement delivery.
+- `announcements.gbkb/` — Knowledge base entries related to announcements.
+
+**Purpose:**
+Used for bots that send periodic updates, news, or system-wide messages.
+
+
+---
+
+## Implementation Notes
+
+- Templates are modular and can be extended by adding new `.gbai` folders.
+- Each template group must include at least one `.gbdialog` and `.gbot` directory.
+- The bot engine automatically detects and loads templates at startup.
+- Custom templates can be created by duplicating an existing `.gbai` folder and modifying its contents.
+
+---
+
+## Summary
+
+The `templates/` directory is the backbone of the GeneralBots template system.  
+Each `.gbai` package encapsulates dialogs, knowledge bases, and configurations for specific bot behaviors.

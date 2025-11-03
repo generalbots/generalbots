@@ -3,10 +3,16 @@
 ## A
 **Answer Mode** - Configuration that determines how the bot responds to user queries (direct LLM, with tools, documents only, etc.)
 
+**Argon2** - Password hashing algorithm used for secure credential storage (winner of Password Hashing Competition)
+
 **AST** - Abstract Syntax Tree, the compiled representation of BASIC scripts used for execution
+
+**Authentication Flow** - Process of verifying user identity through credentials and establishing a session
 
 ## B
 **BASIC** - The scripting language used in .gbdialog files for creating conversational flows
+
+**Bot Authentication** - Process of verifying a bot's credentials before allowing access
 
 **BotSession** - A single conversation instance between a user and bot, maintaining context and history
 
@@ -51,6 +57,8 @@
 
 ## S
 **Session** - See BotSession
+
+**Session Token** - Unique identifier issued after authentication that validates subsequent requests
 
 **Semantic Search** - Search method that finds content based on meaning rather than just keywords
 

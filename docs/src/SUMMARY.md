@@ -130,6 +130,14 @@
   - [Pull Requests](./chapter-10/pull-requests.md)
   - [Documentation](./chapter-10/documentation.md)
 
+# Part XI - Authentication and Security
+
+- [Chapter 11: Authentication](./chapter-11/README.md)
+  - [User Authentication](./chapter-11/user-auth.md)
+  - [Password Security](./chapter-11/password-security.md)
+  - [API Endpoints](./chapter-11/api-endpoints.md)
+  - [Bot Authentication](./chapter-11/bot-auth.md)
+
 # Appendices
 
 - [Appendix I: Database Model](./appendix-i/README.md)

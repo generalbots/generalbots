@@ -1,4 +1,4 @@
-**Task:** Generate comprehensive mdBook documentation for the GeneralBots application by analyzing the actual source code and filling all documentation files with accurate, complete information.
+**Task:** Generate comprehensive mdBook documentation @docs/src for the GeneralBots application by analyzing the actual source code and filling all documentation files with accurate, complete information.
 
 **Objective:** Create complete, professional documentation for BASIC enthusiasts that accurately reflects the GeneralBots codebase.
 
@@ -8,6 +8,7 @@
 - Document actual database models from `src/shared/models.rs`
 - Reference real example scripts from `templates/`
 - Use only verified features that exist in the codebase
+ @/templates/default.gbai/default.gbot/config.csv 
 
 **Documentation Standards:**
 - Maintain beginner-friendly, instructional tone
@@ -27,7 +28,7 @@
 8. **Tooling** - Complete keyword reference table
 9. **Feature-Matrix** - Features to implementation mapping
 10. **Contributing** - Development workflow guidelines
-11. **Appendix I - Database Model** - models.rs table summaries
+11. **Database Model** - models.rs table summaries
 12. **Glossary** - Key terms and extension definitions
 
 **Output Specifications:**
