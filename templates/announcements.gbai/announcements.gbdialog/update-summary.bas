@@ -1,8 +1,8 @@
-SET_SCHEDULE "* * * * *"
+SET_SCHEDULE "*/10 * * * *"
 
 
 let text = GET "announcements.gbkb/news/news.pdf"
-let resume = LLM "Resume this document, in a table (DO NOT THINK) no_think: " + text
+let resume = LLM "Resume this document: " + text
 
 SET_BOT_MEMORY "resume", resume
 
