@@ -218,20 +218,23 @@ impl SessionManager {
     pub async fn update_session_context(
         &mut self,
         session_id: &Uuid,
-        _user_id: &Uuid,
-        context_name: String,
+        user_id: &Uuid,
+        context_data: String,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::schema::user_sessions::dsl::*;
-        use diesel::prelude::*;
+        use redis::Commands;
 
-        diesel::update(user_sessions.filter(id.eq(session_id).and(user_id.eq(user_id))))
-            .set(context_data.eq(serde_json::json!({ "current_context": context_name })))
-            .execute(&mut self.conn)?;
-
+        let redis_key = format!("context:{}:{}", user_id, session_id);
+        if let Some(redis_client) = &self.redis {
+            let mut conn = redis_client.get_connection()?;
+            conn.set(&redis_key, &context_data)?;
+            info!("Updated context in Redis for key {}", redis_key);
+        } else {
+            warn!("No Redis client configured, context not persisted");
+        }
         Ok(())
     }
 
-    pub async fn get_session_context(
+    pub async fn get_session_context_data(
         &self,
         session_id: &Uuid,
         user_id: &Uuid,
@@ -241,11 +244,11 @@ impl SessionManager {
 
         let redis_key = format!("context:{}:{}", user_id, session_id);
         if let Some(redis_client) = &self.redis {
-            // Attempt to obtain a Redis connection; log and ignore errors, returning `None`.
+            // Attempt to obtain a Redis connection; log and ignore errors
             let conn_option = redis_client
                 .get_connection()
                 .map_err(|e| {
-                    warn!("Failed to get Redis connection: {}", e);
+                    warn!("Failed to get Cache connection: {}", e);
                     e
                 })
                 .ok();
@@ -254,22 +257,23 @@ impl SessionManager {
                 match connection.get::<_, Option<String>>(&redis_key) {
                     Ok(Some(context)) => {
                         debug!(
-                            "Retrieved context from Redis for key {}: {} chars",
+                            "Retrieved context from Cache for key {}: {} chars",
                             redis_key,
                             context.len()
                         );
                         return Ok(context);
                     }
                     Ok(None) => {
-                        debug!("No context found in Redis for key {}", redis_key);
+                        debug!("No context found in Cache for key {}", redis_key);
                     }
                     Err(e) => {
-                        warn!("Failed to retrieve context from Redis: {}", e);
+                        warn!("Failed to retrieve context from Cache: {}", e);
                     }
                 }
             }
         }
-        // If Redis is unavailable or the key is missing, return an empty context.
+
+        // If no context found, return empty string
         Ok(String::new())
     }
 

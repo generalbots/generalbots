@@ -1,3 +1,4 @@
+use crate::config::ConfigManager;
 use crate::shared::models::schema::bots::dsl::*;
 use diesel::prelude::*;
 use crate::basic::ScriptService;
@@ -33,6 +34,38 @@ impl AutomationService {
         tokio::task::spawn_local({
             let service = service.clone();
             async move {
+                // Check if llama servers are ready before starting
+                let config_manager = ConfigManager::new(Arc::clone(&service.state.conn));
+                let default_bot_id = {
+                    let mut conn = service.state.conn.lock().unwrap();
+                    bots.filter(name.eq("default"))
+                        .select(id)
+                        .first::<uuid::Uuid>(&mut *conn)
+                        .unwrap_or_else(|_| uuid::Uuid::nil())
+                };
+
+                let llm_url = match config_manager.get_config(&default_bot_id, "llm-url", None) {
+                    Ok(url) => url,
+                    Err(e) => {
+                        error!("Failed to get llm-url config: {}", e);
+                        return;
+                    }
+                };
+
+                let embedding_url = match config_manager.get_config(&default_bot_id, "embedding-url", None) {
+                    Ok(url) => url,
+                    Err(e) => {
+                        error!("Failed to get embedding-url config: {}", e);
+                        return;
+                    }
+                };
+
+                if !crate::llm::local::is_server_running(&llm_url).await || 
+                   !crate::llm::local::is_server_running(&embedding_url).await {
+                    trace!("LLM servers not ready - llm: {}, embedding: {}", llm_url, embedding_url);
+                    return;
+                }
+
                 let mut interval = tokio::time::interval(Duration::from_secs(5));
                 let mut last_check = Utc::now();
                 loop {
