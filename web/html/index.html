@@ -1728,7 +1728,8 @@
                         pendingContextChange = new Promise((resolve) => {
                             const handler = (event) => {
                                 const response = JSON.parse(event.data);
-                                if (response.message_type === 5 && response.context_name === context) {
+                                if (response.message_type === 5 && 
+                                response.context_name === context) {
                                     ws.removeEventListener('message', handler);
                                     resolve();
                                 }

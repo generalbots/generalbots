@@ -17,6 +17,17 @@ pub fn execute_set_schedule(
         cron, script_name, bot_uuid
     );
 
+    // First check if bot exists
+    use crate::shared::models::bots::dsl::bots;
+    let bot_exists: bool = diesel::select(diesel::dsl::exists(
+        bots.filter(crate::shared::models::bots::dsl::id.eq(bot_uuid))
+    ))
+    .get_result(conn)?;
+    
+    if !bot_exists {
+        return Err(format!("Bot with id {} does not exist", bot_uuid).into());
+    }
+
     use crate::shared::models::system_automations::dsl::*;
 
     let new_automation = (
