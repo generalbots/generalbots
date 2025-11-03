@@ -15,13 +15,14 @@ llm-server,false
 llm-server-path,botserver-stack/bin/llm/build/bin
 llm-server-host,0.0.0.0
 llm-server-port,8081
-llm-server-gpu-layers,35
-llm-server-n-moe,23
-llm-server-ctx-size,512
-llm-server-parallel,8
+llm-server-gpu-layers,0
+llm-server-n-moe,0
+llm-server-ctx-size,2048
+llm-server-parallel,2
 llm-server-cont-batching,true
-llm-server-mlock,true
-llm-server-no-mmap,true
+llm-server-mlock,false
+llm-server-no-mmap,false
+    
 
 email-from,from@domain.com
 email-server,mail.domain.com
