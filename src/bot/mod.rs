@@ -553,10 +553,21 @@ impl BotOrchestrator {
             session_manager.get_conversation_history(session.id, session.user_id)?
         };
 
-        let recent_history = if history.len() > 10 {
-            &history[history.len() - 10..]
+        // Deduplicate consecutive messages from same role
+        let mut deduped_history: Vec<(String, String)> = Vec::new();
+        let mut last_role = None;
+        for (role, content) in history.iter() {
+            if last_role != Some(role) || !deduped_history.is_empty() && 
+               content != &deduped_history.last().unwrap().1 {
+                deduped_history.push((role.clone(), content.clone()));
+                last_role = Some(role);
+            }
+        }
+
+        let recent_history = if deduped_history.len() > 10 {
+            &deduped_history[deduped_history.len() - 10..]
         } else {
-            &history[..]
+            &deduped_history[..]
         };
 
         for (role, content) in recent_history {
@@ -1331,7 +1342,7 @@ async fn websocket_handler(
                     match orchestrator.process_message(user_message.clone()).await {
                         Ok(_) => (),
                         Err(e) => {
-                            error!("Failed to process message: {}", e);
+                        error!("Failed to process message: {}", e);
                             // Fall back to streaming if processing fails
                             if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
                                 error!("Failed to stream response: {}", e);
