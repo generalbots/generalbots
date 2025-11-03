@@ -121,6 +121,7 @@ impl AppConfig {
     info!("Loading configuration from database");
     
     use crate::shared::models::schema::bot_configuration::dsl::*;
+use crate::bot::get_default_bot;
     use diesel::prelude::*;
     
     let config_map: HashMap<String, ServerConfigRow> = bot_configuration
@@ -351,12 +352,28 @@ impl AppConfig {
             value: String,
         }
 
+        // First attempt: use the current context (existing query)
         let result = diesel::sql_query("SELECT get_config($1, $2) as value")
             .bind::<Text, _>(key)
             .bind::<Text, _>(fallback_str)
             .get_result::<ConfigValue>(conn)
-            .map(|row| row.value)?;
-        Ok(result)
+            .map(|row| row.value);
+
+        match result {
+            Ok(v) => Ok(v),
+            Err(_) => {
+                // Fallback to default bot
+                let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(conn);
+                // Use a fresh connection for ConfigManager to avoid borrowing issues
+                let fresh_conn = establish_pg_connection()
+                    .map_err(|e| diesel::result::Error::DatabaseError(
+                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                        Box::new(e.to_string())
+                    ))?;
+                let manager = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
+                manager.get_config(&default_bot_id, key, fallback)
+            }
+        }
     }
 }
 
@@ -424,18 +441,33 @@ impl ConfigManager {
         fallback: Option<&str>,
     ) -> Result<String, diesel::result::Error> {
         use crate::shared::models::schema::bot_configuration::dsl::*;
-        
+        use crate::bot::get_default_bot;
+
         let mut conn = self.conn.lock().unwrap();
         let fallback_str = fallback.unwrap_or("");
 
+        // Try config for provided bot_id
         let result = bot_configuration
             .filter(bot_id.eq(code_bot_id))
             .filter(config_key.eq(key))
             .select(config_value)
-            .first::<String>(&mut *conn)
-            .unwrap_or(fallback_str.to_string());
-            
-        Ok(result)
+            .first::<String>(&mut *conn);
+
+        let value = match result {
+            Ok(v) => v,
+            Err(_) => {
+                // Fallback to default bot
+                let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut *conn);
+                bot_configuration
+                    .filter(bot_id.eq(default_bot_id))
+                    .filter(config_key.eq(key))
+                    .select(config_value)
+                    .first::<String>(&mut *conn)
+                    .unwrap_or(fallback_str.to_string())
+            }
+        };
+
+        Ok(value)
     }
 
     pub fn sync_gbot_config(

@@ -17,7 +17,7 @@ llm-server-host,0.0.0.0
 llm-server-port,8081
 llm-server-gpu-layers,35
 llm-server-n-moe,23
-llm-server-ctx-size,16000
+llm-server-ctx-size,512
 llm-server-parallel,8
 llm-server-cont-batching,true
 llm-server-mlock,true
