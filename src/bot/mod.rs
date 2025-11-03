@@ -455,16 +455,6 @@ impl BotOrchestrator {
             return Ok(());
         }
 
-        {
-            let mut session_manager = self.state.session_manager.lock().await;
-            session_manager.save_message(
-                session.id,
-                user_id,
-                1,
-                &message.content,
-                message.message_type,
-            )?;
-        }
 
 
         // Handle context change messages (type 4) immediately
@@ -489,6 +479,13 @@ impl BotOrchestrator {
 
         {
             let mut session_manager = self.state.session_manager.lock().await;
+            session_manager.save_message(
+                session.id,
+                user_id,
+                1,
+                &message.content,
+                message.message_type,
+            )?;
             session_manager.save_message(session.id, user_id, 2, &response_content, 1)?;
         }
 
@@ -570,19 +567,26 @@ impl BotOrchestrator {
         prompt.push_str(&format!("User: {}\nAssistant:", message.content));
 
 
-        let (tx, mut rx) = mpsc::channel::<String>(100);        let llm = self.state.llm_provider.clone();
-        tokio::spawn(async move {
-            if let Err(e) = llm
-                .generate_stream(&prompt, &serde_json::Value::Null, tx)
-                .await
-            {
-                error!("LLM streaming error in direct_mode_handler: {}", e);
-            }
-        });
+        let user_message = UserMessage {
+            bot_id: "default".to_string(),
+            user_id: session.user_id.to_string(),
+            session_id: session.id.to_string(),
+            channel: "web".to_string(),
+            content: message.content.clone(),
+            message_type: 1,
+            media_url: None,
+            timestamp: Utc::now(),
+            context_name: None,
+        };
+
+        let (response_tx, mut response_rx) = mpsc::channel::<BotResponse>(100);
+        if let Err(e) = self.stream_response(user_message, response_tx).await {
+            error!("Failed to stream response in direct_mode_handler: {}", e);
+        }
 
         let mut full_response = String::new();
-        while let Some(chunk) = rx.recv().await {
-            full_response.push_str(&chunk);
+        while let Some(response) = response_rx.recv().await {
+            full_response.push_str(&response.content);
         }
 
         Ok(full_response)

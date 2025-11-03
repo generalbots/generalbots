@@ -71,12 +71,6 @@ impl DriveMonitor {
                 }
             };
 
-            if !crate::llm::local::is_server_running(&llm_url).await || 
-               !crate::llm::local::is_server_running(&embedding_url).await {
-                trace!("LLM servers not ready - llm: {}, embedding: {}", llm_url, embedding_url);
-                return;
-            }
-
             let mut tick = interval(Duration::from_secs(30));
             loop {
                 tick.tick().await;

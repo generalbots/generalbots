@@ -239,12 +239,10 @@ impl SessionManager {
         session_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
-        // Bring the Redis command trait into scope so we can call `get`.
         use redis::Commands;
 
-        let redis_key = format!("context:{}:{}", user_id, session_id);
+        let base_key = format!("context:{}:{}", user_id, session_id);
         if let Some(redis_client) = &self.redis {
-            // Attempt to obtain a Redis connection; log and ignore errors
             let conn_option = redis_client
                 .get_connection()
                 .map_err(|e| {
@@ -254,26 +252,39 @@ impl SessionManager {
                 .ok();
 
             if let Some(mut connection) = conn_option {
-                match connection.get::<_, Option<String>>(&redis_key) {
-                    Ok(Some(context)) => {
-                        debug!(
-                            "Retrieved context from Cache for key {}: {} chars",
-                            redis_key,
-                            context.len()
-                        );
-                        return Ok(context);
+                // First cache trip: get context name
+                match connection.get::<_, Option<String>>(&base_key) {
+                    Ok(Some(context_name)) => {
+                        debug!("Found context name '{}' for key {}", context_name, base_key);
+                        // Second cache trip: get actual context value
+                        let full_key = format!("context:{}:{}:{}", user_id, session_id, context_name);
+                        match connection.get::<_, Option<String>>(&full_key) {
+                            Ok(Some(context_value)) => {
+                                debug!(
+                                    "Retrieved context value from Cache for key {}: {} chars",
+                                    full_key,
+                                    context_value.len()
+                                );
+                                return Ok(context_value);
+                            }
+                            Ok(None) => {
+                                debug!("No context value found for key {}", full_key);
+                            }
+                            Err(e) => {
+                                warn!("Failed to retrieve context value from Cache: {}", e);
+                            }
+                        }
                     }
                     Ok(None) => {
-                        debug!("No context found in Cache for key {}", redis_key);
+                        debug!("No context name found for key {}", base_key);
                     }
                     Err(e) => {
-                        warn!("Failed to retrieve context from Cache: {}", e);
+                        warn!("Failed to retrieve context name from Cache: {}", e);
                     }
                 }
             }
         }
 
-        // If no context found, return empty string
         Ok(String::new())
     }
 
