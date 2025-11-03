@@ -12,6 +12,7 @@ GeneralBots allows users to create sophisticated bot applications without extens
 - **.gbot** - Bot configuration and parameters
 - **.gbtheme** - UI theming and customization
 - **.gbdrive** - File storage and management
+- **Authentication** - Secure user and bot identity verification
 
 ## Key Features
 
@@ -21,6 +22,7 @@ GeneralBots allows users to create sophisticated bot applications without extens
 - **Tool Integration**: Extensible tool system for external API calls
 - **Automation**: Scheduled tasks and event-driven triggers
 - **Theming**: Customizable UI with CSS and HTML templates
+- **Security**: Argon2 password hashing, session tokens, and bot authentication
 
 ## How It Works
 
@@ -30,4 +32,4 @@ GeneralBots processes user messages through a combination of:
 3. **Tools** that extend bot capabilities with external functionality
 4. **LLM Integration** for intelligent response generation
 
-The platform manages sessions, maintains conversation history, and provides a consistent experience across different communication channels.
+The platform manages authenticated sessions, maintains secure conversation history, and provides a consistent experience across different communication channels. All user credentials are securely hashed and sessions are protected with unique tokens.

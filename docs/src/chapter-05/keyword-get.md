@@ -1,44 +1,75 @@
 # GET Keyword
 
-**Syntax**
+The **GET** keyword retrieves content from a specified source — either a remote URL or a local file stored in the bot’s configured storage system.  
+It is used to fetch data dynamically during script execution.
 
-```
-GET "url-or-path"
-```
+---
 
-**Parameters**
-
-- `"url-or-path"` – Either an HTTP/HTTPS URL (e.g., `https://api.example.com/data`) or a relative path to an object stored in the configured MinIO bucket.
-
-**Description**
-
-`GET` fetches the content from the specified location.
-
-- If the argument starts with `http://` or `https://`, the keyword performs an HTTP GET request using a timeout‑protected `reqwest` client. The response must have a successful status code; otherwise a runtime error is raised.
-- If the argument does not start with a scheme, it is treated as a path inside the bot’s MinIO bucket. The keyword reads the object, automatically handling PDF extraction when the file ends with `.pdf`. The content is returned as a UTF‑8 string.
-
-The fetched content can be stored in a variable or passed to other keywords such as `TALK` or `FORMAT`.
-
-**Example (HTTP)**
+## Syntax
 
 ```basic
-SET data = GET "https://api.example.com/users"
-TALK "Received data: " + data
+GET "source" INTO variable
 ```
 
-**Example (Bucket file)**
+---
+
+## Parameters
+
+- `"source"` — The location of the content to retrieve.  
+  This can be:
+  - An HTTP/HTTPS URL (e.g., `"https://api.example.com/data"`)
+  - A relative path to a file stored in the bot’s MinIO bucket or local drive.
+- `variable` — The variable that will receive the fetched content.
+
+---
+
+## Description
+
+`GET` performs a read operation from the specified source.  
+If the source is a URL, the bot sends an HTTP GET request and retrieves the response body.  
+If the source is a file path, the bot reads the file content directly from its configured storage (e.g., MinIO or local filesystem).
+
+The command automatically handles text extraction from PDF and DOCX files, converting them to plain UTF‑8 text.  
+If the request fails or the file cannot be found, an error message is returned.
+
+This keyword is essential for integrating external APIs, reading stored documents, and dynamically loading data into scripts.
+
+---
+
+## Example
 
 ```basic
-SET report = GET "reports/summary.txt"
-TALK "Report content:\n" + report
+' Fetch data from a remote API
+GET "https://api.example.com/users" INTO RESPONSE
+PRINT RESPONSE
+
+' Read a local file from the bot’s storage
+GET "reports/summary.txt" INTO CONTENT
+TALK CONTENT
 ```
 
-**Security**
+---
 
-The implementation validates the path to prevent directory traversal (`..`) and other unsafe patterns. Invalid or unsafe paths cause a runtime error.
+## Implementation Notes
 
-**Implementation Notes**
+- Implemented in Rust under `src/file/mod.rs` and `src/web_automation/crawler.rs`.  
+- Uses the `reqwest` library for HTTP requests with timeout and error handling.  
+- Automatically detects file type and performs extraction for supported formats (PDF, DOCX, TXT).  
+- Validates paths to prevent directory traversal or unsafe access.  
+- Runs in a separate thread to avoid blocking the main engine.
 
-- The request runs in a separate thread with its own Tokio runtime to avoid blocking the main engine.
-- Network timeouts are set to 30 seconds; connection timeouts to 10 seconds.
-- For bucket access, the keyword ensures the bucket exists before attempting to read.
+---
+
+## Related Keywords
+
+- [`SET`](keyword-set.md) — Stores values in variables or session memory.  
+- [`FIND`](keyword-find.md) — Searches for data within the current context.  
+- [`FORMAT`](keyword-format.md) — Formats retrieved data for display.  
+- [`PRINT`](keyword-print.md) — Outputs data to the console or chat.
+
+---
+
+## Summary
+
+`GET` is a versatile keyword for retrieving external or stored content.  
+It enables bots to access APIs, read documents, and integrate dynamic data sources seamlessly within BASIC scripts.
