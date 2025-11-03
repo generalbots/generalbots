@@ -31,9 +31,26 @@ ENDIF
 ```
 
 ### Understanding Sessions
-Each conversation is represented by a **BotSession**. The session stores:
-- User identifier
-- Conversation history
-- Current context (variables, knowledge base references, etc.)
+Each conversation is represented by a **BotSession** that persists across multiple interactions. The session manages:
 
-Sessions are persisted in the SQLite database defined in `src/shared/models.rs`.
+- **User identity** (authenticated or anonymous)
+- **Conversation history** (full message transcript)
+- **Context state** (variables, knowledge base references, active tools)
+- **Interaction metrics** (message counts, timing)
+
+#### Storage Architecture
+Sessions use a multi-layer persistence model:
+1. **PostgreSQL** - Primary storage for all session data
+2. **Redis** - Caching layer for active session state
+3. **In-memory** - Hot session data for performance
+
+#### Key API Endpoints
+- `POST /api/sessions` - Create new session
+- `GET /api/sessions` - List user sessions  
+- `POST /api/sessions/{id}/start` - Activate session
+- `GET /api/sessions/{id}` - Get conversation history
+
+#### Advanced Features
+- **Context compaction** - Reduces memory usage for long conversations
+- **Interaction counting** - Tracks message frequency
+- **Multi-device sync** - Shared state across clients
