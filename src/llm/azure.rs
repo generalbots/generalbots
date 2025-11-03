@@ -1,4 +1,5 @@
 use async_trait::async_trait;
+use log::trace;
 use reqwest::Client;
 use serde_json::Value;
 use std::sync::Arc;
@@ -32,6 +33,8 @@ impl LLMProvider for AzureOpenAIClient {
         prompt: &str,
         _config: &Value,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        trace!("LLM Prompt (no stream): {}", prompt);
+
         let url = format!(
             "{}/openai/deployments/{}/chat/completions?api-version={}",
             self.endpoint, self.deployment, self.api_version
@@ -71,6 +74,7 @@ impl LLMProvider for AzureOpenAIClient {
         _config: &Value,
         tx: tokio::sync::mpsc::Sender<String>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        trace!("LLM Prompt: {}", prompt);
         let content = self.generate(prompt, _config).await?;
         let _ = tx.send(content).await;
         Ok(())

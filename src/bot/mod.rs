@@ -344,11 +344,14 @@ impl BotOrchestrator {
             error!("Failed to parse user_id: {}", e);
             e
         })?;
-        if let Err(e) = self.state.session_manager.lock().await.update_session_context(
-            &session_uuid,
-            &user_uuid,
-            context_name.to_string()
-        ).await {
+        if let Err(e) = self
+            .state
+            .session_manager
+            .lock()
+            .await
+            .update_session_context(&session_uuid, &user_uuid, context_name.to_string())
+            .await
+        {
             error!("Failed to update session context: {}", e);
         }
 
@@ -473,21 +476,6 @@ impl BotOrchestrator {
             session_manager.save_message(session.id, user_id, 2, &response_content, 1)?;
         }
 
-        // Handle context change messages (type 4) first
-        if message.message_type == 4 {
-            if let Some(context_name) = &message.context_name {
-                return self
-                    .handle_context_change(
-                        &message.user_id,
-                        &message.bot_id,
-                        &message.session_id,
-                        &message.channel,
-                        context_name,
-                    )
-                    .await;
-            }
-        }
-
         // Create regular response
         let channel = message.channel.clone();
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
@@ -557,8 +545,9 @@ impl BotOrchestrator {
         let mut deduped_history: Vec<(String, String)> = Vec::new();
         let mut last_role = None;
         for (role, content) in history.iter() {
-            if last_role != Some(role) || !deduped_history.is_empty() && 
-               content != &deduped_history.last().unwrap().1 {
+            if last_role != Some(role)
+                || !deduped_history.is_empty() && content != &deduped_history.last().unwrap().1
+            {
                 deduped_history.push((role.clone(), content.clone()));
                 last_role = Some(role);
             }
@@ -719,6 +708,22 @@ impl BotOrchestrator {
             }
         };
 
+        // Handle context change messages (type 4) first
+        if message.message_type == 4 {
+            if let Some(context_name) = &message.context_name {
+                self
+                    .handle_context_change(
+                        &message.user_id,
+                        &message.bot_id,
+                        &message.session_id,
+                        &message.channel,
+                        context_name,
+                    )
+                    .await;
+            }
+        }
+
+
         if session.answer_mode == 1 && session.current_tool.is_some() {
             self.state.tool_manager.provide_user_response(
                 &message.user_id,
@@ -728,17 +733,7 @@ impl BotOrchestrator {
             return Ok(());
         }
 
-        {
-            let mut sm = self.state.session_manager.lock().await;
-            sm.save_message(
-                session.id,
-                user_id,
-                1,
-                &message.content,
-                message.message_type,
-            )?;
-        }
-
+        
         let system_prompt = std::env::var("SYSTEM_PROMPT").unwrap_or_default();
         let context_data = {
             let session_manager = self.state.session_manager.lock().await;
@@ -770,6 +765,17 @@ impl BotOrchestrator {
             );
             p
         };
+
+        {
+            let mut sm = self.state.session_manager.lock().await;
+            sm.save_message(
+                session.id,
+                user_id,
+                1,
+                &message.content,
+                message.message_type,
+            )?;
+        }
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
@@ -803,6 +809,7 @@ impl BotOrchestrator {
         }
 
         tokio::spawn(async move {
+            info!("LLM prompt: {}", prompt);
             if let Err(e) = llm
                 .generate_stream(&prompt, &serde_json::Value::Null, stream_tx)
                 .await
@@ -1328,26 +1335,14 @@ async fn websocket_handler(
                         session_id: session_id_clone2.clone(),
                         channel: "web".to_string(),
                         content,
-                        message_type: json_value["message_type"]
-                            .as_u64()
-                            .unwrap_or(1) as i32,
+                        message_type: json_value["message_type"].as_u64().unwrap_or(1) as i32,
                         media_url: None,
                         timestamp: Utc::now(),
-                        context_name: json_value["context_name"]
-                            .as_str()
-                            .map(|s| s.to_string()),
+                        context_name: json_value["context_name"].as_str().map(|s| s.to_string()),
                     };
 
-                    // First try processing as a regular message
-                    match orchestrator.process_message(user_message.clone()).await {
-                        Ok(_) => (),
-                        Err(e) => {
-                        error!("Failed to process message: {}", e);
-                            // Fall back to streaming if processing fails
-                            if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
-                                error!("Failed to stream response: {}", e);
-                            }
-                        }
+                    if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
+                        error!("Failed to stream response: {}", e);
                     }
                 }
                 WsMessage::Close(reason) => {
