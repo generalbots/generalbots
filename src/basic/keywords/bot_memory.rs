@@ -1,7 +1,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info};
+use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
@@ -133,6 +133,7 @@ pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 .optional()
                 .unwrap_or(None);
 
+            trace!("GET_MEMORY for key '{}' returned value: {:?}", key_param, memory_value);
             memory_value.unwrap_or_default()
         } else {
             String::new()

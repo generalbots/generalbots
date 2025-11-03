@@ -915,7 +915,7 @@
                 }
 
                 .theme-toggle {
-                    top: 16px;
+                    top: 24px;
                     right: 60px;
                     width: 44px;
                     height: 44px;
@@ -959,7 +959,7 @@
                 }
 
                 .theme-toggle {
-                    top: 16px;
+                    top: 24px;
                     right: 60px;
                     width: 40px;
                     height: 40px;
@@ -1075,6 +1075,7 @@
             let isUserScrolling = false;
             let autoScrollEnabled = true;
             let currentTheme = 'dark';
+            let isContextChange = false;
 
             const messagesDiv = document.getElementById("messages");
             const input = document.getElementById("messageInput");
@@ -1207,7 +1208,7 @@
                 }
 
                 if (percentage >= 50) {
-                    contextIndicator.style.display = "block";
+                    //contextIndicator.style.display = "block";
                 } else {
                     contextIndicator.style.display = "none";
                 }
@@ -1251,7 +1252,9 @@
                     hasReceivedInitialMessage = false;
                     connectWebSocket();
                     loadSessions();
-                    document.getElementById("messages").innerHTML = `
+                    
+                    // Clear messages and show empty state
+                    messagesDiv.innerHTML = `
                         <div id="emptyState">
                             <div class="empty-icon">
                                 <img src="https://pragmatismo.com.br/gb-logo.png" alt="General Bots Logo">
@@ -1260,9 +1263,22 @@
                             <p class="empty-subtitle">Seu assistente de IA avançado</p>
                         </div>
                     `;
+                    
+                    // Clear suggestions
+                    clearSuggestions();
+                    
+                    // Reset context usage
                     updateContextUsage(0);
+                    
+                    // Stop voice if active
                     if (isVoiceMode) {
-                        await startVoiceSession();
+                        await stopVoiceSession();
+                        isVoiceMode = false;
+                        const voiceToggle = document.getElementById("voiceToggle");
+                        voiceToggle.textContent = "🎤 Modo Voz";
+                        voiceToggle.classList.remove("recording");
+                        const voiceStatus = document.getElementById("voiceStatus");
+                        voiceStatus.style.display = "none";
                     }
 
                     if (window.innerWidth <= 768) {
@@ -1338,6 +1354,12 @@
                         return;
                     }
 
+                    // Check if this is a context change message and skip processing
+                    if (response.message_type === 5) {
+                        isContextChange = true;
+                        return;
+                    }
+
                     processMessageContent(response);
                 };
 
@@ -1377,6 +1399,12 @@
             }
 
             function processMessageContent(response) {
+                // Skip processing if this is a context change
+                if (isContextChange) {
+                    isContextChange = false;
+                    return;
+                }
+                
                 const emptyState = document.getElementById("emptyState");
                 if (emptyState) {
                     emptyState.remove();
@@ -1685,6 +1713,14 @@
                 return div.innerHTML;
             }
 
+            function clearSuggestions() {
+                const footer = document.querySelector('footer');
+                const container = footer.querySelector('.suggestions-container');
+                if (container) {
+                    container.innerHTML = '';
+                }
+            }
+
             function handleSuggestions(suggestions) {
                 const footer = document.querySelector('footer');
                 let container = footer.querySelector('.suggestions-container');
@@ -1695,7 +1731,9 @@
                     footer.insertBefore(container, footer.firstChild);
                 }
 
+                // Clear existing suggestions before adding new ones
                 container.innerHTML = '';
+                
                 suggestions.forEach(s => {
                     const btn = document.createElement('button');
                     btn.textContent = s.text;
@@ -1750,7 +1788,7 @@
                         await pendingContextChange;
                         const contextIndicator = document.getElementById('contextIndicator');
                         if (contextIndicator) {
-                            contextIndicator.style.display = 'block';
+                            //contextIndicator.style.display = 'block';
                             document.getElementById('contextPercentage').textContent = context;
                         }
                     } else {

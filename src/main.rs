@@ -1,4 +1,4 @@
-#![allow(dead_code)]
+#![allow(warnings)]
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
 
 use actix_cors::Cors;
