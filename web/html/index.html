@@ -240,7 +240,6 @@
             .logo-icon {
                 width: 48px;
                 height: 48px;
-                background: var(--primary);
                 border-radius: 14px;
                 display: flex;
                 align-items: center;
@@ -262,7 +261,6 @@
             }
 
             [data-theme="light"] .logo-icon img {
-                filter: invert(0);
             }
 
             .logo-text {
@@ -381,7 +379,6 @@
             .assistant-avatar {
                 width: 44px;
                 height: 44px;
-                background: var(--primary);
                 border-radius: 12px;
                 display: flex;
                 align-items: center;
@@ -404,7 +401,7 @@
             }
 
             [data-theme="light"] .assistant-avatar img {
-                filter: invert(0);
+            filter: invert(1);
             }
 
             .assistant-message-content {
@@ -824,7 +821,7 @@
             .theme-toggle {
                 position: fixed;
                 top: 24px;
-                right: 60px;
+                right: 160px;
                 z-index: 101;
                 background: var(--bg-card);
                 border: 1px solid var(--border-color);
