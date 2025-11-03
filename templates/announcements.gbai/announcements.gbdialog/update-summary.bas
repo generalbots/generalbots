@@ -1,4 +1,4 @@
-
+SET_SCHEDULE "*/15 * * * *"
 
 let text = GET "announcements.gbkb/news/news.pdf"
 let resume = LLM "Resume this document: " + text
