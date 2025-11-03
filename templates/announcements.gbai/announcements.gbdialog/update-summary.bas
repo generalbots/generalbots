@@ -1,4 +1,3 @@
-SET_SCHEDULE "*/10 * * * *"
 
 
 let text = GET "announcements.gbkb/news/news.pdf"
