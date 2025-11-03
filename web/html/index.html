@@ -1734,7 +1734,12 @@
                 // Clear existing suggestions before adding new ones
                 container.innerHTML = '';
                 
-                suggestions.forEach(s => {
+                // Filter out duplicate suggestions
+                const uniqueSuggestions = suggestions.filter((s, index, self) =>
+                    index === self.findIndex(t => t.text === s.text && t.context === s.context)
+                );
+                
+                uniqueSuggestions.forEach(s => {
                     const btn = document.createElement('button');
                     btn.textContent = s.text;
                     btn.className = 'suggestion-button';
