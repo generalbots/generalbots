@@ -2,6 +2,7 @@ use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, info};
 use rhai::{Dynamic, Engine};
+use uuid::Uuid;
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -80,10 +81,16 @@ pub async fn execute_llm_generation(
     state: Arc<AppState>,
     prompt: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let config_manager = crate::config::ConfigManager::new(Arc::clone(&state.conn));
+    let model = config_manager
+        .get_config(&Uuid::nil(), "llm-model", None)
+        .unwrap_or_default();
 
-    state
+    let handler = crate::llm_models::get_handler(&model);
+    let raw_response = state
         .llm_provider
         .generate(&prompt, &serde_json::Value::Null)
-        .await
-        .map_err(|e| format!("LLM call failed: {}", e).into())
+        .await?;
+
+    Ok(handler.process_content(&raw_response))
 }
