@@ -59,7 +59,7 @@ pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: String) -> Result<BotResponse, Box<dyn std::error::Error>> {
+pub async fn execute_talk(state: Arc<AppState>, user_session: UserSession, message: String) -> Result<BotResponse, Box<dyn std::error::Error>> {
     info!("Executing TALK with message: {}", message);
     debug!("TALK: Sending message: {}", message);
 
@@ -68,7 +68,7 @@ pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: Stri
             if let Some(redis_client) = &state.cache {
                 let mut conn: redis::aio::MultiplexedConnection = redis_client.get_multiplexed_async_connection().await?;
 
-                let redis_key = format!("suggestions:{}:{}", user.user_id, user.id);
+                let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
                 debug!("Loading suggestions from Redis key: {}", redis_key);
                 let suggestions_json: Result<Vec<String>, _> = redis::cmd("LRANGE")
                     .arg(redis_key.as_str())
@@ -92,9 +92,9 @@ pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: Stri
             }
 
     let response = BotResponse {
-        bot_id: "default_bot".to_string(),
-        user_id: "default_user".to_string(),
-        session_id: user.id.to_string(),
+        bot_id: user_session.bot_id.to_string(),
+        user_id: user_session.user_id.to_string(),
+        session_id: user_session.id.to_string(),
         channel: "web".to_string(),
         content: message,
         message_type: 1,
@@ -106,7 +106,7 @@ pub async fn execute_talk(state: Arc<AppState>, user: UserSession, message: Stri
         context_max_length: 0,
     };
 
-    let user_id = user.id.to_string();
+    let user_id = user_session.id.to_string();
     let response_clone = response.clone();
 
     match state.response_channels.try_lock() {

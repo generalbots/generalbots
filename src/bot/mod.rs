@@ -335,14 +335,22 @@ impl BotOrchestrator {
             session_id, context_name
         );
 
-        let mut session_manager = self.state.session_manager.lock().await;
-        session_manager
-            .update_session_context(
-                &Uuid::parse_str(session_id)?,
-                &Uuid::parse_str(user_id)?,
-                context_name.to_string(),
-            )
-            .await?;
+        // Use session manager to update context
+        let session_uuid = Uuid::parse_str(session_id).map_err(|e| {
+            error!("Failed to parse session_id: {}", e);
+            e
+        })?;
+        let user_uuid = Uuid::parse_str(user_id).map_err(|e| {
+            error!("Failed to parse user_id: {}", e);
+            e
+        })?;
+        if let Err(e) = self.state.session_manager.lock().await.update_session_context(
+            &session_uuid,
+            &user_uuid,
+            context_name.to_string()
+        ).await {
+            error!("Failed to update session context: {}", e);
+        }
 
         // Send confirmation back to client
         let confirmation = BotResponse {
@@ -458,17 +466,12 @@ impl BotOrchestrator {
             )?;
         }
 
-        let response_content = self.direct_mode_handler(&message, &session).await?;
 
-        {
-            let mut session_manager = self.state.session_manager.lock().await;
-            session_manager.save_message(session.id, user_id, 2, &response_content, 1)?;
-        }
-
-        // Handle context change messages (type 4) first
+        // Handle context change messages (type 4) immediately
+        // before any other processing
         if message.message_type == 4 {
             if let Some(context_name) = &message.context_name {
-                return self
+                self
                     .handle_context_change(
                         &message.user_id,
                         &message.bot_id,
@@ -476,11 +479,20 @@ impl BotOrchestrator {
                         &message.channel,
                         context_name,
                     )
-                    .await;
+                    .await?;
+            
             }
         }
 
-        // Create regular response
+
+        let response_content = self.direct_mode_handler(&message, &session).await?;
+
+        {
+            let mut session_manager = self.state.session_manager.lock().await;
+            session_manager.save_message(session.id, user_id, 2, &response_content, 1)?;
+        }
+
+        // Create regular response for non-context-change messages
         let channel = message.channel.clone();
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
         let max_context_size = config_manager
@@ -528,7 +540,7 @@ impl BotOrchestrator {
         let context_data = {
             let session_manager = self.state.session_manager.lock().await;
             session_manager
-                .get_session_context(&session.id, &session.user_id)
+                .get_session_context_data(&session.id, &session.user_id)
                 .await?
         };
 
@@ -721,7 +733,7 @@ impl BotOrchestrator {
         let context_data = {
             let session_manager = self.state.session_manager.lock().await;
             session_manager
-                .get_session_context(&session.id, &session.user_id)
+                .get_session_context_data(&session.id, &session.user_id)
                 .await?
         };
 
@@ -1306,17 +1318,26 @@ async fn websocket_handler(
                         session_id: session_id_clone2.clone(),
                         channel: "web".to_string(),
                         content,
-                        message_type: 1,
+                        message_type: json_value["message_type"]
+                            .as_u64()
+                            .unwrap_or(1) as i32,
                         media_url: None,
                         timestamp: Utc::now(),
-                        context_name: None,
+                        context_name: json_value["context_name"]
+                            .as_str()
+                            .map(|s| s.to_string()),
                     };
 
-                    if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
-                        error!(
-                            "Error processing WebSocket message {}: {}",
-                            message_count, e
-                        );
+                    // First try processing as a regular message
+                    match orchestrator.process_message(user_message.clone()).await {
+                        Ok(_) => (),
+                        Err(e) => {
+                            error!("Failed to process message: {}", e);
+                            // Fall back to streaming if processing fails
+                            if let Err(e) = orchestrator.stream_response(user_message, tx.clone()).await {
+                                error!("Failed to stream response: {}", e);
+                            }
+                        }
                     }
                 }
                 WsMessage::Close(reason) => {

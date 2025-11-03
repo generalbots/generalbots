@@ -1,3 +1,5 @@
+use crate::shared::models::schema::bots::dsl::*;
+use diesel::prelude::*;
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::kb::embeddings;
@@ -42,6 +44,39 @@ impl DriveMonitor {
                 "Drive Monitor service started for bucket: {}",
                 self.bucket_name
             );
+
+            // Check if llama servers are ready before first scan
+            let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+            let default_bot_id = {
+                let mut conn = self.state.conn.lock().unwrap();
+                bots.filter(name.eq("default"))
+                    .select(id)
+                    .first::<uuid::Uuid>(&mut *conn)
+                    .unwrap_or_else(|_| uuid::Uuid::nil())
+            };
+
+            let llm_url = match config_manager.get_config(&default_bot_id, "llm-url", None) {
+                Ok(url) => url,
+                Err(e) => {
+                    error!("Failed to get llm-url config: {}", e);
+                    return;
+                }
+            };
+
+            let embedding_url = match config_manager.get_config(&default_bot_id, "embedding-url", None) {
+                Ok(url) => url,
+                Err(e) => {
+                    error!("Failed to get embedding-url config: {}", e);
+                    return;
+                }
+            };
+
+            if !crate::llm::local::is_server_running(&llm_url).await || 
+               !crate::llm::local::is_server_running(&embedding_url).await {
+                trace!("LLM servers not ready - llm: {}, embedding: {}", llm_url, embedding_url);
+                return;
+            }
+
             let mut tick = interval(Duration::from_secs(30));
             loop {
                 tick.tick().await;
