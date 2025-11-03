@@ -200,6 +200,7 @@ pub async fn start_llm_server(
     let mlock = config_manager.get_config(&default_bot_id, "llm-server-mlock", None).unwrap_or("true".to_string());
     let no_mmap = config_manager.get_config(&default_bot_id, "llm-server-no-mmap", None).unwrap_or("true".to_string());
     let gpu_layers = config_manager.get_config(&default_bot_id, "llm-server-gpu-layers", None).unwrap_or("20".to_string());
+    let n_predict = config_manager.get_config(&default_bot_id, "llm-server-n-predict", None).unwrap_or("50".to_string());
 
     // Build command arguments dynamically
     let mut args = format!(
@@ -221,6 +222,9 @@ pub async fn start_llm_server(
     }
     if no_mmap == "true" {
         args.push_str(" --no-mmap");
+    }
+    if n_predict != "0" {
+        args.push_str(&format!(" --n-predict {}", n_predict));
     }
 
     if cfg!(windows) {
