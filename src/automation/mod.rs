@@ -245,15 +245,26 @@ impl AutomationService {
         let day = dt.day() as i32;
         let month = dt.month() as i32;
         let weekday = dt.weekday().num_days_from_monday() as i32;
-        let match_result = [minute, hour, day, month, weekday]
-            .iter()
-            .enumerate()
-            .all(|(i, &val)| Self::cron_part_matches(parts[i], val));
+
+        // More strict matching with additional logging
+        let minute_match = Self::cron_part_matches(parts[0], minute);
+        let hour_match = Self::cron_part_matches(parts[1], hour);
+        let day_match = Self::cron_part_matches(parts[2], day);
+        let month_match = Self::cron_part_matches(parts[3], month);
+        let weekday_match = Self::cron_part_matches(parts[4], weekday);
+
+        let match_result = minute_match && hour_match && day_match && month_match && weekday_match;
+
         trace!(
-            "Cron pattern='{}' result={} at {}",
+            "Cron pattern='{}' result={} at {} (minute={}, hour={}, day={}, month={}, weekday={})",
             pattern,
             match_result,
-            dt
+            dt,
+            minute_match,
+            hour_match,
+            day_match,
+            month_match,
+            weekday_match
         );
         match_result
     }
@@ -288,30 +299,42 @@ impl AutomationService {
             match redis_client.get_multiplexed_async_connection().await {
                 Ok(mut conn) => {
                     trace!("Connected to Redis; checking if job '{}' is running", param);
-                    let is_running: Result<bool, redis::RedisError> = redis::cmd("EXISTS")
+                    
+                    // Use SET with NX (only set if not exists) and EX (expire) for atomic operation
+                    let set_result: Result<String, redis::RedisError> = redis::cmd("SET")
                         .arg(&redis_key)
-                        .query_async(&mut conn)
-                        .await;
-
-                    if let Ok(true) = is_running {
-                        warn!(
-                            "Job '{}' is already running for bot '{}'; skipping execution",
-                            param, bot_id
-                        );
-                    }
-
-                    let _: Result<(), redis::RedisError> = redis::cmd("SETEX")
-                        .arg(&redis_key)
-                        .arg(300)
                         .arg("1")
+                        .arg("NX")
+                        .arg("EX")
+                        .arg(300)
                         .query_async(&mut conn)
                         .await;
-                    trace!("Job '{}' marked as running in Redis", param);
+
+                    match set_result {
+                        Ok(res) if res == "OK" => {
+                            trace!("Acquired lock for job '{}'", param);
+                        }
+                        Ok(_) => {
+                            warn!(
+                                "Job '{}' is already running for bot '{}'; skipping execution",
+                                param, bot_id
+                            );
+                            return Ok(());
+                        }
+                        Err(e) => {
+                            warn!("Redis error checking job status for '{}': {}", param, e);
+                            return Ok(()); // Skip execution if we can't verify lock status
+                        }
+                    }
                 }
                 Err(e) => {
                     warn!("Failed to connect to Redis for job tracking: {}", e);
+                    return Ok(()); // Skip execution if we can't connect to Redis
                 }
             }
+        } else {
+            warn!("Redis client not available for job tracking");
+            return Ok(()); // Skip execution if Redis isn't configured
         }
 
         let bot_name: String = {
