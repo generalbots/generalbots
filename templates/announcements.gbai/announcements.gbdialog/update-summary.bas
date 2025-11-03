@@ -1,7 +1,7 @@
-SET_SCHEDULE "*/15 * * * *"
+SET_SCHEDULE "37 * * * *"
 
 let text = GET "announcements.gbkb/news/news.pdf"
-let resume = LLM "Resume this document: " + text
+let resume = LLM "In a short phrase, resume this: " + text
 
 SET_BOT_MEMORY "resume", resume
 

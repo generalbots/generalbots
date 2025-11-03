@@ -676,9 +676,12 @@ impl BotOrchestrator {
                 .query_async(&mut conn)
                 .await?;
 
+            // Filter out duplicate suggestions
+            let mut seen = std::collections::HashSet::new();
             suggestions
                 .into_iter()
                 .filter_map(|s| serde_json::from_str::<Suggestion>(&s).ok())
+                .filter(|s| seen.insert((s.text.clone(), s.context.clone())))
                 .collect()
         } else {
             Vec::new()
