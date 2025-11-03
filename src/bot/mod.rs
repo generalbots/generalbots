@@ -569,94 +569,23 @@ impl BotOrchestrator {
 
         prompt.push_str(&format!("User: {}\nAssistant:", message.content));
 
-        let use_langcache = std::env::var("LLM_CACHE")
-            .unwrap_or_else(|_| "false".to_string())
-            .eq_ignore_ascii_case("true");
 
-        if use_langcache {
-            ensure_collection_exists(&self.state, "semantic_cache").await?;
-            let langcache_client = get_langcache_client()?;
-            let isolated_question = message.content.trim().to_string();
-            let question_embeddings = generate_embeddings(vec![isolated_question.clone()]).await?;
-            let question_embedding = question_embeddings
-                .get(0)
-                .ok_or_else(|| "Failed to generate embedding for question")?
-                .clone();
-
-            let search_results = langcache_client
-                .search("semantic_cache", question_embedding.clone(), 1)
-                .await?;
-
-            if let Some(result) = search_results.first() {
-                let payload = &result.payload;
-                if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
-                    return Ok(resp.to_string());
-                }
+        let (tx, mut rx) = mpsc::channel::<String>(100);        let llm = self.state.llm_provider.clone();
+        tokio::spawn(async move {
+            if let Err(e) = llm
+                .generate_stream(&prompt, &serde_json::Value::Null, tx)
+                .await
+            {
+                error!("LLM streaming error in direct_mode_handler: {}", e);
             }
+        });
 
-            let response = self
-                .state
-                .llm_provider
-                .generate(&prompt, &serde_json::Value::Null)
-                .await?;
-
-            let point = QdrantPoint {
-                id: uuid::Uuid::new_v4().to_string(),
-                vector: question_embedding,
-                payload: serde_json::json!({
-                    "question": isolated_question,
-                    "prompt": prompt,
-                    "response": response
-                }),
-            };
-
-            langcache_client
-                .upsert_points("semantic_cache", vec![point])
-                .await?;
-
-            Ok(response)
-        } else {
-            ensure_collection_exists(&self.state, "semantic_cache").await?;
-            let qdrant_client = get_qdrant_client(&self.state)?;
-            let embeddings = generate_embeddings(vec![prompt.clone()]).await?;
-            let embedding = embeddings
-                .get(0)
-                .ok_or_else(|| "Failed to generate embedding")?
-                .clone();
-
-            let search_results = qdrant_client
-                .search("semantic_cache", embedding.clone(), 1)
-                .await?;
-
-            if let Some(result) = search_results.first() {
-                if let Some(payload) = &result.payload {
-                    if let Some(resp) = payload.get("response").and_then(|v| v.as_str()) {
-                        return Ok(resp.to_string());
-                    }
-                }
-            }
-
-            let response = self
-                .state
-                .llm_provider
-                .generate(&prompt, &serde_json::Value::Null)
-                .await?;
-
-            let point = QdrantPoint {
-                id: uuid::Uuid::new_v4().to_string(),
-                vector: embedding,
-                payload: serde_json::json!({
-                    "prompt": prompt,
-                    "response": response
-                }),
-            };
-
-            qdrant_client
-                .upsert_points("semantic_cache", vec![point])
-                .await?;
-
-            Ok(response)
+        let mut full_response = String::new();
+        while let Some(chunk) = rx.recv().await {
+            full_response.push_str(&chunk);
         }
+
+        Ok(full_response)
     }
 
     pub async fn stream_response(

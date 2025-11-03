@@ -70,14 +70,7 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
 /// You can change the style/structure here to guide the model's behavior.
 fn build_llm_prompt(user_text: &str) -> String {
     format!(
-        "You are a AI assistant in form of KEYWORD called LLM
-         running inside a General Bots BASIC environment.
-Task: Process and respond concisely to the following call to x = LLM 'prompt' syntax.
----
-User Input:
-{}
----
-Respond clearly and accurately in the same language as the input.",
+        "User: {}",
         user_text.trim()
     )
 }
@@ -87,7 +80,6 @@ pub async fn execute_llm_generation(
     state: Arc<AppState>,
     prompt: String,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    info!("Starting LLM generation for prompt: '{}'", prompt);
 
     state
         .llm_provider

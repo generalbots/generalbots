@@ -244,19 +244,6 @@ async fn main() -> std::io::Result<()> {
         .map(|n| n.get())
         .unwrap_or(4);
 
-    let automation_state = app_state.clone();
-    std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("Failed to create runtime for automation");
-        let local = tokio::task::LocalSet::new();
-        local.block_on(&rt, async move {
-            let scripts_dir = "work/default.gbai/.gbdialog".to_string();
-            let automation = AutomationService::new(automation_state, &scripts_dir);
-            automation.spawn().await.ok();
-        });
-    });
 
     // Initialize bot orchestrator and mount all bots
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
@@ -271,6 +258,18 @@ async fn main() -> std::io::Result<()> {
         .await
         .expect("Failed to initialize LLM local server");
 
+    let automation_state = app_state.clone();
+    std::thread::spawn(move || {
+        let rt = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("Failed to create runtime for automation");
+        let local = tokio::task::LocalSet::new();
+        local.block_on(&rt, async move {
+            let automation = AutomationService::new(automation_state);
+            automation.spawn().await.ok();
+        });
+    });
         
     HttpServer::new(move || {
 
