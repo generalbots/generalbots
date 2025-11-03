@@ -9,8 +9,8 @@ SET_CONTEXT "toolbix"  AS  resume3;
 CLEAR_SUGGESTIONS;
 
 ADD_SUGGESTION "general" AS "Show me the weekly announcements"
-ADD_SUGGESTION "auxiliom" AS "Will Auxiliom help me with what?"
-ADD_SUGGESTION "auxiliom" AS "What does Auxiliom do?"
+ADD_SUGGESTION "auxiliom" AS "Explain Auxiliom to me"
+ADD_SUGGESTION "auxiliom" AS "What does Auxiliom provide?"
 ADD_SUGGESTION "toolbix" AS "Show me Toolbix features"
 ADD_SUGGESTION "toolbix" AS "How can Toolbix help my business?"
 
