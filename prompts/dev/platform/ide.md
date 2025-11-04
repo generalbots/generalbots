@@ -2,3 +2,4 @@
 - Do not emmit any comment, and remove any existants in Rust/html.
 - Compact the code emission where possible.
 - On change code, ensure cargo check cycle to remove warnings and errors. 
+- Never use defaults or magic values in code (never unwrap_or_else or similars)
