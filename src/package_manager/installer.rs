@@ -100,6 +100,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
 
@@ -212,6 +213,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
+                check_cmd: "{{BIN_PATH}}/bin/pg_isready -h localhost -p 5432 -U gbuser >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -242,6 +244,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} > {{LOGS_PATH}}/valkey.log 2>&1 && {{BIN_PATH}}/bin/valkey-cli CONFIG SET stop-writes-on-bgsave-error no 2>&1 &".to_string(),
+                check_cmd: "{{BIN_PATH}}/bin/valkey-cli ping | grep -q PONG".to_string(),
             },
         );
     }
@@ -273,6 +276,7 @@ impl PackageManager {
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
                 ],
                 exec_cmd: "".to_string(),
+                check_cmd: "".to_string(),
             },
         );
     }
@@ -303,6 +307,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/stalwart --config {{CONF_PATH}}/config.toml".to_string(),
+                check_cmd: "curl -f http://localhost:25 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -333,6 +338,7 @@ impl PackageManager {
                 env_vars: HashMap::from([("XDG_DATA_HOME".to_string(), "{{DATA_PATH}}".to_string())]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
+                check_cmd: "curl -f http://localhost >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -363,6 +369,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/zitadel.yaml".to_string(),
+                check_cmd: "curl -f http://localhost:8080 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -394,6 +401,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}}".to_string(),
+                check_cmd: "curl -f http://localhost:3000 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -431,6 +439,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/config.yaml".to_string(),
+                check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
     }
@@ -461,6 +470,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/Corefile".to_string(),
+                check_cmd: "dig @localhost example.com >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -494,6 +504,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
+                check_cmd: "curl -f http://localhost:8080 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -522,6 +533,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/config.yaml".to_string(),
+                check_cmd: "curl -f http://localhost:7880 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -548,6 +560,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/nocodb".to_string(),
+                check_cmd: "curl -f http://localhost:5757 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -574,6 +587,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
+                check_cmd: "curl -f http://localhost:9980 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -600,6 +614,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "xrdp --nodaemon".to_string(),
+                check_cmd: "netstat -tln | grep :3389 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -626,6 +641,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
+                check_cmd: "".to_string(),
             },
         );
     }
@@ -660,6 +676,7 @@ impl PackageManager {
                 env_vars: HashMap::from([("DISPLAY".to_string(), ":99".to_string())]),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
+                check_cmd: "".to_string(),
             },
         );
     }
@@ -686,6 +703,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
+                check_cmd: "".to_string(),
             },
         );
     }
@@ -714,6 +732,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}}".to_string(),
+                check_cmd: "curl -f http://localhost:6333 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -747,6 +766,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "".to_string(),
+                check_cmd: "".to_string(),
             },
         );
     }
@@ -758,6 +778,26 @@ impl PackageManager {
             let conf_path = self.base_path.join("conf").join(&component.name);
             let logs_path = self.base_path.join("logs").join(&component.name);
 
+            // First check if the service is already running
+            let check_cmd = component
+                .check_cmd
+                .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
+                .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
+                .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
+                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+
+            let check_status = std::process::Command::new("sh")
+                .current_dir(&bin_path)
+                .arg("-c")
+                .arg(&check_cmd)
+                .status();
+
+            if check_status.is_ok() && check_status.unwrap().success() {
+                trace!("Component {} is already running", component.name);
+                return Ok(std::process::Command::new("sh").arg("-c").spawn()?);
+            }
+
+            // If not running, execute the main command
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())

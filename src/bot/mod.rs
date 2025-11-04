@@ -457,17 +457,17 @@ impl BotOrchestrator {
             let mut p = String::new();
 
             if !system_prompt.is_empty() {
-                p.push_str(&format!("System: {}\n", system_prompt));
+                p.push_str(&format!("AI:{}\n", system_prompt));
             }
             if !context_data.is_empty() {
-                p.push_str(&format!("Context: {}\n", context_data));
+                p.push_str(&format!("CTX:{}\n", context_data));
             }
 
             for (role, content) in &history {
-                p.push_str(&format!("{}: {}\n", role, content));
+                p.push_str(&format!("{}:{}\n", role, content));
             }
 
-            p.push_str(&format!("User: {}\nAssistant:", message.content));
+            p.push_str(&format!("U: {}\nAI:", message.content));
             info!(
                 "Stream prompt constructed with {} history entries",
                 history.len()

@@ -20,4 +20,5 @@ pub struct ComponentConfig {
     pub env_vars: HashMap<String, String>,
     pub data_download_list: Vec<String>,
     pub exec_cmd: String,
+    pub check_cmd: String,
 }
