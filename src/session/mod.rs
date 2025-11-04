@@ -167,7 +167,6 @@ impl SessionManager {
                 bot_id.eq(bid),
                 title.eq(session_title),
                 context_data.eq(serde_json::json!({})),
-                answer_mode.eq(0),
                 current_tool.eq(None::<String>),
                 created_at.eq(now),
                 updated_at.eq(now),
@@ -406,41 +405,6 @@ impl SessionManager {
         Ok(sessions)
     }
 
-    pub fn update_answer_mode(
-        &mut self,
-        uid: &str,
-        bid: &str,
-        mode: i32,
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions::dsl::*;
-
-        let user_uuid = Uuid::parse_str(uid).map_err(|e| {
-            warn!("Invalid user ID format: {}", uid);
-            e
-        })?;
-        let bot_uuid = Uuid::parse_str(bid).map_err(|e| {
-            warn!("Invalid bot ID format: {}", bid);
-            e
-        })?;
-
-        let updated_count = diesel::update(
-            user_sessions
-                .filter(user_id.eq(user_uuid))
-                .filter(bot_id.eq(bot_uuid)),
-        )
-        .set((answer_mode.eq(mode), updated_at.eq(chrono::Utc::now())))
-        .execute(&mut self.conn)?;
-
-        if updated_count == 0 {
-            warn!("No session found for user {} and bot {}", uid, bid);
-        } else {
-            info!(
-                "Answer mode updated to {} for user {} and bot {}",
-                mode, uid, bid
-            );
-        }
-        Ok(())
-    }
 
     pub fn update_user_id(
         &mut self,
