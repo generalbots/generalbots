@@ -192,6 +192,14 @@ pub async fn call_llm(
     Ok(format!("Generated response for: {}", prompt))
 }
 
+/// Estimates token count for text using simple heuristic (1 token ≈ 4 chars)
+pub fn estimate_token_count(text: &str) -> usize {
+    // Basic token estimation - count whitespace-separated words
+    // Add 1 token for every 4 characters as a simple approximation
+    let char_count = text.chars().count();
+    (char_count / 4).max(1) // Ensure at least 1 token
+}
+
 /// Establishes a PostgreSQL connection using DATABASE_URL environment variable
 pub fn establish_pg_connection() -> Result<PgConnection> {
     let database_url = std::env::var("DATABASE_URL")
