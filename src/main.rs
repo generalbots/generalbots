@@ -63,11 +63,6 @@ use crate::bot::BotOrchestrator;
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // Test bucket creation
-    match create_bucket::create_bucket("test-bucket") {
-        Ok(_) => println!("Bucket created successfully"),
-        Err(e) => eprintln!("Failed to create bucket: {}", e),
-    }
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
