@@ -229,20 +229,6 @@ impl BotOrchestrator {
         self.state.response_channels.lock().await.remove(session_id);
     }
 
-    pub async fn set_user_answer_mode(
-        &self,
-        user_id: &str,
-        bot_id: &str,
-        mode: i32,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!(
-            "Setting answer mode for user {} with bot {} to mode {}",
-            user_id, bot_id, mode
-        );
-        let mut session_manager = self.state.session_manager.lock().await;
-        session_manager.update_answer_mode(user_id, bot_id, mode)?;
-        Ok(())
-    }
 
     pub async fn send_event(
         &self,
@@ -447,7 +433,7 @@ impl BotOrchestrator {
         }
 
 
-        if session.answer_mode == 1 && session.current_tool.is_some() {
+        if session.current_tool.is_some() {
             self.state.tool_manager.provide_user_response(
                 &message.user_id,
                 &message.bot_id,
@@ -641,7 +627,7 @@ impl BotOrchestrator {
             .parse::<usize>()
             .unwrap_or(0);
 
-        let current_context_length = 0usize;
+        let current_context_length = crate::shared::utils::estimate_token_count(&context_data);
 
         let final_msg = BotResponse {
             bot_id: message.bot_id,
@@ -783,14 +769,14 @@ impl BotOrchestrator {
                     user_id: "system".to_string(),
                     session_id: session_id.to_string(),
                     channel: channel.to_string(),
-                    content: format!("⚠️ WARNING: {}", message),
-                    message_type: 1,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
+                content: format!("⚠️ WARNING: {}", message),
+                message_type: 1,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
                 };
                 adapter.send_message(warn_response).await
             } else {
