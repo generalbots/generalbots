@@ -211,7 +211,7 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30".to_string(),
+                exec_cmd: "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30 > {{LOGS_PATH}}/stdout.log 2>&1 &".to_string(),
             },
         );
     }
@@ -232,16 +232,16 @@ impl PackageManager {
                 ),
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
-post_install_cmds_linux: vec![
-    "chmod +x {{BIN_PATH}}/bin/valkey-server".to_string(),
-],
+                post_install_cmds_linux: vec![
+                    "chmod +x {{BIN_PATH}}/bin/valkey-server".to_string(),
+                ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} > {{LOGS_PATH}}/valkey.log && {{BIN_PATH}}/bin/valkey-cli CONFIG SET stop-writes-on-bgsave-error no 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} > {{LOGS_PATH}}/valkey.log 2>&1 && {{BIN_PATH}}/bin/valkey-cli CONFIG SET stop-writes-on-bgsave-error no 2>&1 &".to_string(),
             },
         );
     }
@@ -272,7 +272,7 @@ post_install_cmds_linux: vec![
                     "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
                 ],
-                exec_cmd: "nohup {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf --port 8081 > {{LOGS_PATH}}/llm-main.log 2>&1 & nohup {{BIN_PATH}}/llama-server -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --port 8082 --embedding > {{LOGS_PATH}}/llm-embed.log 2>&1 &".to_string(),
+                exec_cmd: "".to_string(),
             },
         );
     }
@@ -758,31 +758,6 @@ post_install_cmds_linux: vec![
             let conf_path = self.base_path.join("conf").join(&component.name);
             let logs_path = self.base_path.join("logs").join(&component.name);
 
-            if component.name == "tables" {
-                let check_cmd = format!(
-                    "./bin/pg_ctl -D {} status",
-                    data_path.join("pgdata").display()
-                );
-                let check_output = std::process::Command::new("sh")
-                    .current_dir(&bin_path)
-                    .arg("-c")
-                    .arg(&check_cmd)
-                    .output();
-
-                if let Ok(output) = check_output {
-                    if output.status.success() {
-                        trace!(
-                            "Component {} is already running, skipping start",
-                            component.name
-                        );
-                        return Ok(std::process::Command::new("sh")
-                            .arg("-c")
-                            .arg("echo 'Already running'")
-                            .spawn()?);
-                    }
-                }
-            }
-
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -803,20 +778,20 @@ post_install_cmds_linux: vec![
                 .spawn();
 
             std::thread::sleep(std::time::Duration::from_secs(2));
-            
+
             match child {
                 Ok(c) => Ok(c),
                 Err(e) => {
                     let err_msg = e.to_string();
-                    if err_msg.contains("already running") || component.name == "tables" {
+                    if err_msg.contains("already running")
+                        || err_msg.contains("be running")
+                        || component.name == "tables"
+                    {
                         trace!(
                             "Component {} may already be running, continuing anyway",
                             component.name
                         );
-                        Ok(std::process::Command::new("sh")
-                            .arg("-c")
-                            .arg("echo 'Already running'")
-                            .spawn()?)
+                        Ok(std::process::Command::new("sh").arg("-c").spawn()?)
                     } else {
                         Err(e.into())
                     }
