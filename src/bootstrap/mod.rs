@@ -136,9 +136,10 @@ impl BootstrapManager {
                 termination_command: "",
             },
         ];
-
+        info!("Starting all installed components...");
         for component in components {
             if pm.is_installed(component.name) {
+                debug!("Starting component: {}", component.name);
                 pm.start(component.name)?;
             }
         }
@@ -501,7 +502,7 @@ impl BootstrapManager {
                 // Create new connection for config loading
                 let config_conn = establish_pg_connection()?;
                 let config_manager = ConfigManager::new(Arc::new(Mutex::new(config_conn)));
-                
+                 
                 // Use default bot ID or create one if needed
                 let default_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
                 
