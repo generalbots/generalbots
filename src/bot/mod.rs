@@ -135,8 +135,6 @@ impl BotOrchestrator {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Move logic to here after duplication refactor
 
-        let bucket_name = format!("{}.gbai", bot_name);
-        crate::create_bucket::create_bucket(&bucket_name)?;
         Ok(())
     }
 

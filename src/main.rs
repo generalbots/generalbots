@@ -36,7 +36,6 @@ mod tools;
 mod web_automation;
 mod web_server;
 mod whatsapp;
-mod create_bucket;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
