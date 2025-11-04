@@ -8,6 +8,8 @@ echo "Consolidated LLM Context" > "$OUTPUT_FILE"
 
 prompts=(
     "./prompts/dev/platform/shared.md"
+    "./prompts/dev/platform/cli.md"
+    "./prompts/dev/platform/ide.md"
     "./Cargo.toml"
 )
 
