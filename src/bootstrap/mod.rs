@@ -365,17 +365,21 @@ impl BootstrapManager {
             {
                 let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
                 let bucket = bot_name.trim_start_matches('/').to_string();
-                info!("Uploading template {} to Drive bucket {}", bot_name, bucket);
+                info!("Checking template {} for Drive bucket {}", bot_name, bucket);
                 
                 // Check if bucket exists
                 if client.head_bucket().bucket(&bucket).send().await.is_err() {
-                    info!("Bucket {} not found, creating it", bucket);
+                    info!("Bucket {} not found, creating it and uploading template", bucket);
                     match client.create_bucket()
                         .bucket(&bucket)
                         .send()
                         .await {
                         Ok(_) => {
                             debug!("Bucket {} created successfully", bucket);
+                            // Only upload template if bucket was just created
+                            self.upload_directory_recursive(client, &path, &bucket, "/")
+                                .await?;
+                            info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
                         }
                         Err(e) => {
                             error!("Failed to create bucket {}: {:?}", bucket, e);
@@ -385,11 +389,9 @@ impl BootstrapManager {
                             ));
                         }
                     }
+                } else {
+                    info!("Bucket {} already exists, skipping template upload", bucket);
                 }
-                
-                self.upload_directory_recursive(client, &path, &bucket, "/")
-                    .await?;
-                info!("Uploaded template {} to Drive bucket {}", bot_name, bucket);
             }
         }
         Ok(())
