@@ -109,9 +109,11 @@ async fn main() -> std::io::Result<()> {
     let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
     let cfg = if env_path.exists() {
         info!("Environment already initialized, skipping bootstrap");
+        
+
         match diesel::Connection::establish(
             &std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
+                .unwrap()
         ) {
             Ok(mut conn) => AppConfig::from_database(&mut conn).expect("Failed to load config from DB"),
             Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
