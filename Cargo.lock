@@ -1090,7 +1090,7 @@ dependencies = [
 
 [[package]]
 name = "botserver"
-version = "6.0.5"
+version = "6.0.7"
 dependencies = [
  "actix-cors",
  "actix-multipart",

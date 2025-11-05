@@ -1,11 +1,10 @@
 [package]
 name = "botserver"
-version = "6.0.5"
+version = "6.0.7"
 edition = "2021"
 authors = [
     "Pragmatismo.com.br <contact@pragmatismo.com.br>",
     "General Bots Community <https://github.com/GeneralBots>",
-    "Rodrigo Rodriguez <rodrigorodriguez@pragmatismo.com.br>",
     "Alan Perdomo",
     "Ana Paula Gil",
     "Arenas.io",
@@ -27,6 +26,7 @@ authors = [
     "PH Nascimento",
     "Phpussente",
     "Robson Dantas",
+    "Rodrigo Rodriguez <me@rodrigorodriguez.com>",
     "Sarah Lourenco",
     "Thi Patriota",
     "Webgus",
