@@ -13,7 +13,7 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
         .register_custom_syntax(&["LLM", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            info!("LLM processing text: {}", text);
+            info!("LLM keyword processing text: {}", text);
 
             let state_for_thread = Arc::clone(&state_clone);
             let prompt = build_llm_prompt(&text);

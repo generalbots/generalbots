@@ -1,4 +1,5 @@
 use super::ModelHandler;
+use regex;
 
 pub struct DeepseekR3Handler;
 
@@ -8,7 +9,8 @@ impl ModelHandler for DeepseekR3Handler {
     }
 
     fn process_content(&self, content: &str) -> String {
-        content.replace("<think>", "").replace("</think>", "")
+        let re = regex::Regex::new(r"<think>.*?</think>").unwrap();
+        re.replace_all(content, "").to_string()
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
