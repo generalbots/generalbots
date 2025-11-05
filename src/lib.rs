@@ -15,6 +15,7 @@ pub mod meet;
 pub mod package_manager;
 pub mod session;
 pub mod shared;
+pub mod tests;
 #[cfg(feature = "web_automation")]
 pub mod web_automation;
 pub mod web_server;
