@@ -385,10 +385,29 @@ impl BotOrchestrator {
                 .await?
         };
 
-        // Acquire lock briefly for history retrieval
+        // Get history limit from bot config (default -1 for unlimited)
+        let history_limit = {
+            let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+            config_manager
+                .get_config(
+                    &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                    "prompt-history",
+                    None,
+                )
+                .unwrap_or_default()
+                .parse::<i32>()
+                .unwrap_or(-1)
+        };
+
+        // Acquire lock briefly for history retrieval with configurable limit
         let history = {
             let mut sm = self.state.session_manager.lock().await;
-            sm.get_conversation_history(session.id, user_id)?
+            let mut history = sm.get_conversation_history(session.id, user_id)?;
+            if history_limit > 0 && history.len() > history_limit as usize {
+                let start = history.len() - history_limit as usize;
+                history.drain(0..start);
+            }
+            history
         };
 
         let mut prompt = String::new();
