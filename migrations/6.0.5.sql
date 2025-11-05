@@ -26,7 +26,7 @@ ON public.system_automations (bot_id);
 
 
 ALTER TABLE public.system_automations
-ADD CONSTRAINT IF NOT EXISTS system_automations_bot_kind_param_unique
+ADD CONSTRAINT system_automations_bot_kind_param_unique
 UNIQUE (bot_id, kind, param);
 
 -- Migration 6.0.10: Add unique constraint for system_automations upsert
