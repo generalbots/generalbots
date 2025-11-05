@@ -20,3 +20,4 @@ pub mod tests;
 pub mod web_automation;
 pub mod web_server;
 pub mod auth;
+pub mod nvidia;
