@@ -3,43 +3,8 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable)]
-#[diesel(table_name = organizations)]
-pub struct Organization {
-    pub org_id: Uuid,
-    pub name: String,
-    pub slug: String,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-}
 
-#[derive(Debug, Clone, Queryable, Serialize, Deserialize)]
-#[diesel(table_name = users)]
-pub struct User {
-    pub id: Uuid,
-    pub username: String,
-    pub email: String,
-    pub password_hash: String,
-    pub is_active: bool,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable)]
-#[diesel(table_name = bots)]
-pub struct Bot {
-    pub bot_id: Uuid,
-    pub name: String,
-    pub status: i32,
-    pub config: serde_json::Value,
-    pub created_at: chrono::DateTime<chrono::Utc>,
-    pub updated_at: chrono::DateTime<chrono::Utc>,
-}
-
-pub enum BotStatus {
-    Active,
-    Inactive,
-    Maintenance,
-}
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TriggerKind {
@@ -87,24 +52,8 @@ pub struct UserSession {
     pub updated_at: chrono::DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EmbeddingRequest {
-    pub text: String,
-    pub model: Option<String>,
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct EmbeddingResponse {
-    pub embedding: Vec<f32>,
-    pub model: String,
-}
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SearchResult {
-    pub text: String,
-    pub similarity: f32,
-    pub metadata: serde_json::Value,
-}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMessage {
@@ -141,12 +90,6 @@ pub struct BotResponse {
     pub context_max_length: usize,
 }
 
-#[derive(Debug, Deserialize)]
-pub struct PaginationQuery {
-    pub page: Option<i64>,
-    pub page_size: Option<i64>,
-}
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = bot_memories)]
 pub struct BotMemory {
@@ -156,84 +99,6 @@ pub struct BotMemory {
     pub value: String,
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
-#[diesel(table_name = kb_documents)]
-pub struct KBDocument {
-    pub id: String,
-    pub bot_id: String,
-    pub user_id: String,
-    pub collection_name: String,
-    pub file_path: String,
-    pub file_size: i32,
-    pub file_hash: String,
-    pub first_published_at: String,
-    pub last_modified_at: String,
-    pub indexed_at: Option<String>,
-    pub metadata: String,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
-#[diesel(table_name = basic_tools)]
-pub struct BasicTool {
-    pub id: String,
-    pub bot_id: String,
-    pub tool_name: String,
-    pub file_path: String,
-    pub ast_path: String,
-    pub file_hash: String,
-    pub mcp_json: Option<String>,
-    pub tool_json: Option<String>,
-    pub compiled_at: String,
-    pub is_active: i32,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
-#[diesel(table_name = kb_collections)]
-pub struct KBCollection {
-    pub id: String,
-    pub bot_id: String,
-    pub user_id: String,
-    pub name: String,
-    pub folder_path: String,
-    pub qdrant_collection: String,
-    pub document_count: i32,
-    pub is_active: i32,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
-#[diesel(table_name = user_kb_associations)]
-pub struct UserKBAssociation {
-    pub id: String,
-    pub user_id: String,
-    pub bot_id: String,
-    pub kb_name: String,
-    pub is_website: i32,
-    pub website_url: Option<String>,
-    pub created_at: String,
-    pub updated_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
-#[diesel(table_name = session_tool_associations)]
-pub struct SessionToolAssociation {
-    pub id: String,
-    pub session_id: String,
-    pub tool_name: String,
-    pub added_at: String,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SystemCredentials {
-    pub encrypted_db_password: String,
-    pub encrypted_drive_password: String,
 }
 
 pub mod schema {

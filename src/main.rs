@@ -1,6 +1,5 @@
-#![allow(warnings)]
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
-
+use log::error;
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
@@ -8,7 +7,7 @@ use dotenvy::dotenv;
 use log::info;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
+mod llm;
 mod auth;
 mod automation;
 mod basic;
@@ -23,19 +22,14 @@ mod email;
 #[cfg(feature = "desktop")]
 mod ui;
 mod file;
-mod kb;
-mod llm;
 mod llm_models;
 mod meet;
-mod org;
 mod package_manager;
 mod session;
 mod shared;
-mod tools;
 #[cfg(feature = "web_automation")]
 mod web_automation;
 mod web_server;
-mod whatsapp;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
@@ -48,21 +42,20 @@ use crate::email::{
     get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
 };
 use crate::file::{init_drive, upload_file};
-use crate::llm::local::{
-    chat_completions_local, embeddings_local, ensure_llama_servers_running,
-};
 use crate::meet::{voice_start, voice_stop};
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::web_server::{bot_index, index, static_files};
-use crate::whatsapp::whatsapp_webhook_verify;
-use crate::whatsapp::WhatsAppAdapter;
 use crate::bot::BotOrchestrator;
 
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    use botserver::config::ConfigManager;
+
+    use crate::llm::local::ensure_llama_servers_running;
+
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
@@ -175,24 +168,9 @@ async fn main() -> std::io::Result<()> {
             None
         }
     };
-
-    let tool_manager = Arc::new(tools::ToolManager::new());
-    let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
-        "empty".to_string(),
-        Some(cfg.llm.url.clone()),
-    ));
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new(
-        "https://livekit.example.com".to_string(),
-        "api_key".to_string(),
-        "api_secret".to_string(),
     ));
-    let whatsapp_adapter = Arc::new(WhatsAppAdapter::new(
-        "whatsapp_token".to_string(),
-        "phone_number_id".to_string(),
-        "verify_token".to_string(),
-    ));
-    let tool_api = Arc::new(tools::ToolApi::new());
 
     let drive = init_drive(&config.drive)
         .await
@@ -204,9 +182,24 @@ async fn main() -> std::io::Result<()> {
     )));
 
     let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
-        diesel::Connection::establish(&cfg.database_url()).unwrap(),
-        redis_client.clone(),
     )));
+
+    
+    let conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
+let config_manager = ConfigManager::new(Arc::new(Mutex::new(conn)));
+let mut bot_conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
+let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
+let llm_url = config_manager
+    .get_config(&default_bot_id, "llm-url", Some("https://api.openai.com/v1"))
+    
+    .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+
+    let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
+        "empty".to_string(),
+        Some(llm_url.clone()),
+    ));
+
+
 
     let app_state = Arc::new(AppState {
         drive: Some(drive),
@@ -215,7 +208,6 @@ async fn main() -> std::io::Result<()> {
         bucket_name: "default.gbai".to_string(), // Default bucket name
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),
-        tool_manager: tool_manager.clone(),
         llm_provider: llm_provider.clone(),
         auth_service: auth_service.clone(),
         channels: Arc::new(Mutex::new({
@@ -229,8 +221,6 @@ async fn main() -> std::io::Result<()> {
         response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
-        whatsapp_adapter: whatsapp_adapter.clone(),
-        tool_api: tool_api.clone(),
     });
 
     info!("Starting HTTP server on {}:{}", config.server.host, config.server.port);
@@ -245,12 +235,15 @@ async fn main() -> std::io::Result<()> {
     // Mount all active bots from database
     if let Err(e) = bot_orchestrator.mount_all_bots().await {
         log::error!("Failed to mount bots: {}", e);
+        // Use BotOrchestrator::send_warning to notify system admins
+        let msg = format!("Bot mount failure: {}", e);
+        let _ = bot_orchestrator.send_warning("System", "AdminBot", msg.as_str()).await;
+    } else {
+        let _sessions = get_sessions;
+        log::info!("Session handler registered successfully");
     }
 
 
-    ensure_llama_servers_running(&app_state)
-        .await
-        .expect("Failed to initialize LLM local server");
 
     let automation_state = app_state.clone();
     std::thread::spawn(move || {
@@ -264,7 +257,13 @@ async fn main() -> std::io::Result<()> {
             automation.spawn().await.ok();
         });
     });
-        
+
+    if let Err(e) = ensure_llama_servers_running(&app_state).await {
+
+        error!("Failed to stat LLM servers: {}", e);
+    }
+
+
     HttpServer::new(move || {
 
         let cors = Cors::default()
@@ -280,9 +279,7 @@ async fn main() -> std::io::Result<()> {
             .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
             .app_data(web::Data::from(app_state_clone))
             .service(auth_handler)
-            .service(chat_completions_local)
             .service(create_session)
-            .service(embeddings_local)
             .service(get_session_history)
             .service(get_sessions)
             .service(index)
@@ -290,8 +287,12 @@ async fn main() -> std::io::Result<()> {
             .service(upload_file)
             .service(voice_start)
             .service(voice_stop)
-            .service(whatsapp_webhook_verify)
-            .service(websocket_handler);
+            .service(websocket_handler)
+            .service(crate::bot::create_bot_handler)
+            .service(crate::bot::mount_bot_handler)
+            .service(crate::bot::handle_user_input_handler)
+            .service(crate::bot::get_user_sessions_handler)
+            .service(crate::bot::get_conversation_history_handler);
         
         #[cfg(feature = "email")]
         {

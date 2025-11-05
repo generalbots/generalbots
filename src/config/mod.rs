@@ -1,36 +1,21 @@
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
-use crate::shared::models::schema::bot_configuration;
-use diesel::sql_types::Text;
 use uuid::Uuid;
-use diesel::pg::Pg;
 use log::{info, trace, warn};
  // removed unused serde import
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
-use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use crate::shared::utils::establish_pg_connection;
 
-#[derive(Clone, Default)]
-pub struct LLMConfig {
-    pub url: String,
-    pub key: String,
-    pub model: String,
-}
 
 #[derive(Clone)]
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
     pub database: DatabaseConfig,
-    pub email: EmailConfig,
-    pub llm: LLMConfig,
-    pub embedding: LLMConfig,
     pub site_path: String,
-    pub stack_path: PathBuf,
-    pub db_conn: Option<Arc<Mutex<PgConnection>>>,
 }
 
 #[derive(Clone)]
@@ -56,32 +41,7 @@ pub struct ServerConfig {
     pub port: u16,
 }
 
-#[derive(Clone)]
-pub struct EmailConfig {
-    pub from: String,
-    pub server: String,
-    pub port: u16,
-    pub username: String,
-    pub password: String,
-}
 
-#[derive(Debug, Clone, Queryable, Selectable)]
-#[diesel(table_name = bot_configuration)]
-#[diesel(check_for_backend(Pg))]
-pub struct ServerConfigRow {
-    #[diesel(sql_type = DieselUuid)]
-    pub id: Uuid,
-    #[diesel(sql_type = DieselUuid)]
-    pub bot_id: Uuid,
-    #[diesel(sql_type = Text)]
-    pub config_key: String,
-    #[diesel(sql_type = Text)]
-    pub config_value: String,
-    #[diesel(sql_type = Text)]
-    pub config_type: String,
-    #[diesel(sql_type = Bool)]
-    pub is_encrypted: bool,
-}
 
 impl AppConfig {
     pub fn database_url(&self) -> String {
@@ -95,25 +55,6 @@ impl AppConfig {
         )
     }
 
-    pub fn component_path(&self, component: &str) -> PathBuf {
-        self.stack_path.join(component)
-    }
-
-    pub fn bin_path(&self, component: &str) -> PathBuf {
-        self.stack_path.join("bin").join(component)
-    }
-
-    pub fn data_path(&self, component: &str) -> PathBuf {
-        self.stack_path.join("data").join(component)
-    }
-
-    pub fn config_path(&self, component: &str) -> PathBuf {
-        self.stack_path.join("conf").join(component)
-    }
-
-    pub fn log_path(&self, component: &str) -> PathBuf {
-        self.stack_path.join("logs").join(component)
-    }
 }
  
 impl AppConfig {
@@ -121,14 +62,14 @@ impl AppConfig {
     info!("Loading configuration from database");
     
     use crate::shared::models::schema::bot_configuration::dsl::*;
-use crate::bot::get_default_bot;
     use diesel::prelude::*;
     
-    let config_map: HashMap<String, ServerConfigRow> = bot_configuration
-        .select(ServerConfigRow::as_select()).load::<ServerConfigRow>(conn)
+    let config_map: HashMap<String, (Uuid, Uuid, String, String, String, bool)> = bot_configuration
+        .select((id, bot_id, config_key, config_value, config_type, is_encrypted))
+        .load::<(Uuid, Uuid, String, String, String, bool)>(conn)
         .unwrap_or_default()
         .into_iter()
-        .map(|row| (row.config_key.clone(), row))
+        .map(|(_, _, key, value, _, _)| (key.clone(), (Uuid::nil(), Uuid::nil(), key, value, String::new(), false)))
         .collect();
 
     let mut get_str = |key: &str, default: &str| -> String {
@@ -142,25 +83,24 @@ use crate::bot::get_default_bot;
     let get_u32 = |key: &str, default: u32| -> u32 {
         config_map
             .get(key)
-            .and_then(|v| v.config_value.parse().ok())
+            .and_then(|v| v.3.parse().ok())
             .unwrap_or(default)
     };
 
     let get_u16 = |key: &str, default: u16| -> u16 {
         config_map
             .get(key)
-            .and_then(|v| v.config_value.parse().ok())
+            .and_then(|v| v.3.parse().ok())
             .unwrap_or(default)
     };
 
     let get_bool = |key: &str, default: bool| -> bool {
         config_map
             .get(key)
-            .map(|v| v.config_value.to_lowercase() == "true")
+            .map(|v| v.3.to_lowercase() == "true")
             .unwrap_or(default)
     };
 
-    let stack_path = PathBuf::from(get_str("STACK_PATH", "./botserver-stack"));
 
     let database = DatabaseConfig {
         username: std::env::var("TABLES_USERNAME")
@@ -192,14 +132,6 @@ use crate::bot::get_default_bot;
         use_ssl: get_bool("DRIVE_USE_SSL", false),
     };
 
-    let email = EmailConfig {
-        from: get_str("EMAIL_FROM", "noreply@example.com"),
-        server: get_str("EMAIL_SERVER", "smtp.example.com"),
-        port: get_u16("EMAIL_PORT", 587),
-        username: get_str("EMAIL_USER", "user"),
-        password: get_str("EMAIL_PASS", "pass"),
-    };
-
     // Write drive config to .env file
     if let Err(e) = write_drive_config_to_env(&drive) {
         warn!("Failed to write drive config to .env: {}", e);
@@ -212,41 +144,17 @@ use crate::bot::get_default_bot;
                 port: get_u16("SERVER_PORT", 8080),
             },
             database,
-            email,
-            llm: {
-                // Use a fresh connection for ConfigManager to avoid cloning the mutable reference
-                let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
-                let config = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
-                LLMConfig {
-                    url: config.get_config(&Uuid::nil(), "LLM_URL", Some("http://localhost:8081"))?,
-                    key: config.get_config(&Uuid::nil(), "LLM_KEY", Some(""))?,
-                    model: config.get_config(&Uuid::nil(), "LLM_MODEL", Some("gpt-4"))?,
-                }
-            },
-            embedding: {
-                let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
-                let config = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
-                LLMConfig {
-                    url: config.get_config(&Uuid::nil(), "EMBEDDING_URL", Some("http://localhost:8082"))?,
-                    key: config.get_config(&Uuid::nil(), "EMBEDDING_KEY", Some(""))?,
-                    model: config.get_config(&Uuid::nil(), "EMBEDDING_MODEL", Some("text-embedding-ada-002"))?,
-                }
-            },
             site_path: {
                 let fresh_conn = establish_pg_connection().map_err(|e| diesel::result::Error::DatabaseError(diesel::result::DatabaseErrorKind::UnableToSendCommand, Box::new(e.to_string())))?;
                 ConfigManager::new(Arc::new(Mutex::new(fresh_conn)))
                     .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?.to_string()
             },
-            stack_path,
-            db_conn: None,
         })
 }
  
     pub fn from_env() -> Result<Self, anyhow::Error> {
         info!("Loading configuration from environment variables");
 
-        let stack_path =
-            std::env::var("STACK_PATH").unwrap_or_else(|_| "./botserver-stack".to_string());
 
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
@@ -273,17 +181,6 @@ use crate::bot::get_default_bot;
                 .parse()
                 .unwrap_or(false)        };
 
-        let email = EmailConfig {
-            from: std::env::var("EMAIL_FROM").unwrap_or_else(|_| "noreply@example.com".to_string()),
-            server: std::env::var("EMAIL_SERVER")
-                .unwrap_or_else(|_| "smtp.example.com".to_string()),
-            port: std::env::var("EMAIL_PORT")
-                .unwrap_or_else(|_| "587".to_string())
-                .parse()
-                .unwrap_or(587),
-            username: std::env::var("EMAIL_USER").unwrap_or_else(|_| "user".to_string()),
-            password: std::env::var("EMAIL_PASS").unwrap_or_else(|_| "pass".to_string()),
-        };
 
         Ok(AppConfig {
             drive: minio,
@@ -295,86 +192,14 @@ use crate::bot::get_default_bot;
                     .unwrap_or(8080),
             },
             database,
-            email,
-            llm: {
-                let conn = PgConnection::establish(&database_url)?;
-                let config = ConfigManager::new(Arc::new(Mutex::new(conn)));
-                LLMConfig {
-                    url: config.get_config(&Uuid::nil(), "LLM_URL", Some("http://localhost:8081"))?,
-                    key: config.get_config(&Uuid::nil(), "LLM_KEY", Some(""))?,
-                    model: config.get_config(&Uuid::nil(), "LLM_MODEL", Some("gpt-4"))?,
-                }
-            },
-            embedding: {
-                let conn = PgConnection::establish(&database_url)?;
-                let config = ConfigManager::new(Arc::new(Mutex::new(conn)));
-                LLMConfig {
-                    url: config.get_config(&Uuid::nil(), "EMBEDDING_URL", Some("http://localhost:8082"))?,
-                    key: config.get_config(&Uuid::nil(), "EMBEDDING_KEY", Some(""))?,
-                    model: config.get_config(&Uuid::nil(), "EMBEDDING_MODEL", Some("text-embedding-ada-002"))?,
-                }
-            },
             site_path: {
                 let conn = PgConnection::establish(&database_url)?;
                 ConfigManager::new(Arc::new(Mutex::new(conn)))
                     .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?
             },
-            stack_path: PathBuf::from(stack_path),
-            db_conn: None,
         })
     }
 
-    pub fn set_config(
-        &self,
-        conn: &mut PgConnection,
-        key: &str,
-        value: &str,
-    ) -> Result<(), diesel::result::Error> {
-        diesel::sql_query("SELECT set_config($1, $2)")
-            .bind::<Text, _>(key)
-            .bind::<Text, _>(value)
-            .execute(conn)?;
-        info!("Updated configuration: {} = {}", key, value);
-        Ok(())
-    }
-
-    pub fn get_config(
-        &self,
-        conn: &mut PgConnection,
-        key: &str,
-        fallback: Option<&str>,
-    ) -> Result<String, diesel::result::Error> {
-        let fallback_str = fallback.unwrap_or("");
-
-        #[derive(Debug, QueryableByName)]
-        struct ConfigValue {
-            #[diesel(sql_type = Text)]
-            value: String,
-        }
-
-        // First attempt: use the current context (existing query)
-        let result = diesel::sql_query("SELECT get_config($1, $2) as value")
-            .bind::<Text, _>(key)
-            .bind::<Text, _>(fallback_str)
-            .get_result::<ConfigValue>(conn)
-            .map(|row| row.value);
-
-        match result {
-            Ok(v) => Ok(v),
-            Err(_) => {
-                // Fallback to default bot
-                let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(conn);
-                // Use a fresh connection for ConfigManager to avoid borrowing issues
-                let fresh_conn = establish_pg_connection()
-                    .map_err(|e| diesel::result::Error::DatabaseError(
-                        diesel::result::DatabaseErrorKind::UnableToSendCommand,
-                        Box::new(e.to_string())
-                    ))?;
-                let manager = ConfigManager::new(Arc::new(Mutex::new(fresh_conn)));
-                manager.get_config(&default_bot_id, key, fallback)
-            }
-        }
-    }
 }
 
 fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
@@ -441,7 +266,7 @@ impl ConfigManager {
         fallback: Option<&str>,
     ) -> Result<String, diesel::result::Error> {
         use crate::shared::models::schema::bot_configuration::dsl::*;
-        use crate::bot::get_default_bot;
+        
 
         let mut conn = self.conn.lock().unwrap();
         let fallback_str = fallback.unwrap_or("");

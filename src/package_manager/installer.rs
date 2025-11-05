@@ -78,7 +78,6 @@ impl PackageManager {
             "drive".to_string(),
             ComponentConfig {
                 name: "drive".to_string(),
-                required: true,
                 ports: vec![9000, 9001],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -175,7 +174,6 @@ impl PackageManager {
             "tables".to_string(),
             ComponentConfig {
                 name: "tables".to_string(),
-                required: true,
                 ports: vec![5432],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -223,7 +221,7 @@ impl PackageManager {
             "cache".to_string(),
             ComponentConfig {
                 name: "cache".to_string(),
-                required: true,
+                
                 ports: vec![6379],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -254,7 +252,7 @@ impl PackageManager {
             "llm".to_string(),
             ComponentConfig {
                 name: "llm".to_string(),
-                required: true,
+                
                 ports: vec![8081, 8082],
                 dependencies: vec![],
                 linux_packages: vec!["unzip".to_string()],
@@ -286,7 +284,6 @@ impl PackageManager {
             "email".to_string(),
             ComponentConfig {
                 name: "email".to_string(),
-                required: false,
                 ports: vec![25, 80, 110, 143, 465, 587, 993, 995, 4190],
                 dependencies: vec![],
                 linux_packages: vec!["libcap2-bin".to_string(), "resolvconf".to_string()],
@@ -317,7 +314,6 @@ impl PackageManager {
             "proxy".to_string(),
             ComponentConfig {
                 name: "proxy".to_string(),
-                required: false,
                 ports: vec![80, 443],
                 dependencies: vec![],
                 linux_packages: vec!["libcap2-bin".to_string()],
@@ -348,7 +344,7 @@ impl PackageManager {
             "directory".to_string(),
             ComponentConfig {
                 name: "directory".to_string(),
-                required: false,
+                
                 ports: vec![8080],
                 dependencies: vec![],
                 linux_packages: vec!["libcap2-bin".to_string()],
@@ -379,7 +375,7 @@ impl PackageManager {
             "alm".to_string(),
             ComponentConfig {
                 name: "alm".to_string(),
-                required: false,
+                
                 ports: vec![3000],
                 dependencies: vec![],
                 linux_packages: vec!["git".to_string(), "git-lfs".to_string()],
@@ -411,7 +407,7 @@ impl PackageManager {
             "alm-ci".to_string(),
             ComponentConfig {
                 name: "alm-ci".to_string(),
-                required: false,
+                
                 ports: vec![],
                 dependencies: vec!["alm".to_string()],
                 linux_packages: vec![
@@ -449,7 +445,7 @@ impl PackageManager {
             "dns".to_string(),
             ComponentConfig {
                 name: "dns".to_string(),
-                required: false,
+                
                 ports: vec![53],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -480,7 +476,7 @@ impl PackageManager {
             "webmail".to_string(),
             ComponentConfig {
                 name: "webmail".to_string(),
-                required: false,
+                
                 ports: vec![8080],
                 dependencies: vec!["email".to_string()],
                 linux_packages: vec![
@@ -514,7 +510,7 @@ impl PackageManager {
             "meeting".to_string(),
             ComponentConfig {
                 name: "meeting".to_string(),
-                required: false,
+                
                 ports: vec![7880, 3478],
                 dependencies: vec![],
                 linux_packages: vec!["coturn".to_string()],
@@ -543,7 +539,7 @@ impl PackageManager {
             "table_editor".to_string(),
             ComponentConfig {
                 name: "table_editor".to_string(),
-                required: false,
+                
                 ports: vec![5757],
                 dependencies: vec!["tables".to_string()],
                 linux_packages: vec!["curl".to_string()],
@@ -570,7 +566,7 @@ impl PackageManager {
             "doc_editor".to_string(),
             ComponentConfig {
                 name: "doc_editor".to_string(),
-                required: false,
+                
                 ports: vec![9980],
                 dependencies: vec![],
                 linux_packages: vec!["gnupg".to_string()],
@@ -597,7 +593,7 @@ impl PackageManager {
             "desktop".to_string(),
             ComponentConfig {
                 name: "desktop".to_string(),
-                required: false,
+                
                 ports: vec![3389],
                 dependencies: vec![],
                 linux_packages: vec!["xvfb".to_string(), "xrdp".to_string(), "xfce4".to_string()],
@@ -624,7 +620,7 @@ impl PackageManager {
             "devtools".to_string(),
             ComponentConfig {
                 name: "devtools".to_string(),
-                required: false,
+                
                 ports: vec![],
                 dependencies: vec![],
                 linux_packages: vec!["xclip".to_string(), "git".to_string(), "curl".to_string()],
@@ -651,7 +647,7 @@ impl PackageManager {
             "bot".to_string(),
             ComponentConfig {
                 name: "bot".to_string(),
-                required: false,
+                
                 ports: vec![3000],
                 dependencies: vec![],
                 linux_packages: vec![
@@ -686,7 +682,7 @@ impl PackageManager {
             "system".to_string(),
             ComponentConfig {
                 name: "system".to_string(),
-                required: false,
+                
                 ports: vec![8000],
                 dependencies: vec![],
                 linux_packages: vec!["curl".to_string(), "unzip".to_string(), "git".to_string()],
@@ -713,7 +709,7 @@ impl PackageManager {
             "vector_db".to_string(),
             ComponentConfig {
                 name: "vector_db".to_string(),
-                required: false,
+                
                 ports: vec![6333],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -742,7 +738,7 @@ impl PackageManager {
             "host".to_string(),
             ComponentConfig {
                 name: "host".to_string(),
-                required: false,
+                
                 ports: vec![],
                 dependencies: vec![],
                 linux_packages: vec!["sshfs".to_string(), "bridge-utils".to_string()],

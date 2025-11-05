@@ -32,10 +32,17 @@ pub fn format_keyword(engine: &mut Engine) {
                         } else {
                             let frac_scaled =
                                 ((frac_part * 10f64.powi(decimals as i32)).round()) as i64;
+                            
+                            let decimal_sep = match locale_tag.as_str() {
+                                "pt" | "fr" | "es" | "it" | "de" => ",",
+                                _ => "."
+                            };
+
                             format!(
-                                "{}{}.{:0width$}",
+                                "{}{}{}{:0width$}",
                                 symbol,
                                 int_part.to_formatted_string(&locale),
+                                decimal_sep,
                                 frac_scaled,
                                 width = decimals
                             )
@@ -163,14 +170,32 @@ fn apply_date_format(dt: &NaiveDateTime, pattern: &str) -> String {
 
 fn apply_text_placeholders(value: &str, pattern: &str) -> String {
     let mut result = String::new();
+    let mut i = 0;
+    let chars: Vec<char> = pattern.chars().collect();
 
-    for ch in pattern.chars() {
-        match ch {
+    while i < chars.len() {
+        match chars[i] {
             '@' => result.push_str(value),
-            '&' | '<' => result.push_str(&value.to_lowercase()),
+            '&' => {
+                result.push_str(&value.to_lowercase());
+                // Handle modifiers
+                if i + 1 < chars.len() {
+                    match chars[i+1] {
+                        '!' => {
+                            result.push('!');
+                            i += 1;
+                        }
+                        '>' => {
+                            i += 1;
+                        }
+                        _ => ()
+                    }
+                }
+            }
             '>' | '!' => result.push_str(&value.to_uppercase()),
-            _ => result.push(ch),
+            _ => result.push(chars[i]),
         }
+        i += 1;
     }
 
     result

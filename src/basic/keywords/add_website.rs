@@ -163,25 +163,3 @@ async fn crawl_and_index_website(
     }
 }
 
-/// Add a website KB to user's active KBs
-async fn add_website_kb_to_user(
-    _state: &AppState,
-    user: &UserSession,
-    kb_name: &str,
-    website_url: &str,
-) -> Result<String, String> {
-    // TODO: Insert into user_kb_associations table using Diesel
-    // INSERT INTO user_kb_associations (id, user_id, bot_id, kb_name, is_website, website_url, created_at, updated_at)
-    // VALUES (uuid_generate_v4(), user.user_id, user.bot_id, kb_name, 1, website_url, NOW(), NOW())
-    // ON CONFLICT (user_id, bot_id, kb_name) DO UPDATE SET updated_at = NOW()
-
-    info!(
-        "Website KB '{}' associated with user '{}' (bot: {}, url: {})",
-        kb_name, user.user_id, user.bot_id, website_url
-    );
-
-    Ok(format!(
-        "Website KB '{}' added successfully for user",
-        kb_name
-    ))
-}
