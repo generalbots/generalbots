@@ -7,7 +7,6 @@ use sysinfo::{System};
 pub struct SystemMetrics {
     pub gpu_usage: Option<f32>,
     pub cpu_usage: f32,
-    pub token_ratio: f32,
 }
 
 /// Gets current system metrics
@@ -25,17 +24,10 @@ pub fn get_system_metrics(current_tokens: usize, max_tokens: usize) -> Result<Sy
         None
     };
 
-    // Calculate token ratio
-    let token_ratio = if max_tokens > 0 {
-        current_tokens as f32 / max_tokens as f32 * 100.0
-    } else {
-        0.0
-    };
 
     Ok(SystemMetrics {
         gpu_usage,
         cpu_usage,
-        token_ratio,
     })
 }
 
