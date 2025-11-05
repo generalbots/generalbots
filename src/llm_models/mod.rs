@@ -24,7 +24,7 @@ pub fn get_handler(model_path: &str) -> Box<dyn ModelHandler> {
     if path.contains("deepseek") {
         Box::new(deepseek_r3::DeepseekR3Handler)
     } else if path.contains("120b") {
-        Box::new(gpt_oss_120b::GptOss120bHandler::new("default"))
+        Box::new(gpt_oss_120b::GptOss120bHandler::new())
     } else if path.contains("gpt-oss") || path.contains("gpt") {
         Box::new(gpt_oss_20b::GptOss20bHandler)
     } else {

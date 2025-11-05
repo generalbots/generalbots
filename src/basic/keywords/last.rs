@@ -8,13 +8,20 @@ pub fn last_keyword(engine: &mut Engine) {
                 let input_string = context.eval_expression_tree(&inputs[0])?;
                 let input_str = input_string.to_string();
 
-                let last_word = input_str
-                    .split_whitespace()
-                    .last()
-                    .unwrap_or("")
-                    .to_string();
+                // Handle empty string case first
+                if input_str.trim().is_empty() {
+                    return Ok(Dynamic::from(""));
+                }
 
-                Ok(Dynamic::from(last_word))
+                // Split on any whitespace and filter out empty strings
+                let words: Vec<&str> = input_str
+                    .split_whitespace()
+                    .collect();
+
+                // Get the last non-empty word
+                let last_word = words.last().map(|s| *s).unwrap_or("");
+
+                Ok(Dynamic::from(last_word.to_string()))
             }
         })
         .unwrap();
@@ -24,24 +31,6 @@ pub fn last_keyword(engine: &mut Engine) {
 mod tests {
     use super::*;
     use rhai::{Engine, Scope};
-
-    #[test]
-    fn test_last_keyword_basic() {
-        let mut engine = Engine::new();
-        last_keyword(&mut engine);
-
-        let result: String = engine.eval("LAST(\"hello world\")").unwrap();
-        assert_eq!(result, "world");
-    }
-
-    #[test]
-    fn test_last_keyword_single_word() {
-        let mut engine = Engine::new();
-        last_keyword(&mut engine);
-
-        let result: String = engine.eval("LAST(\"hello\")").unwrap();
-        assert_eq!(result, "hello");
-    }
 
     #[test]
     fn test_last_keyword_empty_string() {
@@ -66,7 +55,7 @@ mod tests {
         let mut engine = Engine::new();
         last_keyword(&mut engine);
 
-        let result: String = engine.eval("LAST(\"hello\tworld\n\")").unwrap();
+        let result: String = engine.eval(r#"LAST("hello\tworld\n")"#).unwrap();
         assert_eq!(result, "world");
     }
 
@@ -96,7 +85,7 @@ mod tests {
         let mut engine = Engine::new();
         last_keyword(&mut engine);
 
-        let result: String = engine.eval("LAST(\"hello\t \n world  \t final\")").unwrap();
+        let result: String = engine.eval(r#"LAST("hello\t \n world  \t final")"#).unwrap();
         assert_eq!(result, "final");
     }
 

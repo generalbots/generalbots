@@ -1,13 +1,11 @@
 use super::ModelHandler;
 
 pub struct GptOss120bHandler {
-    model_name: String,
 }
 
 impl GptOss120bHandler {
-    pub fn new(model_name: &str) -> Self {
+    pub fn new() -> Self {
         Self {
-            model_name: model_name.to_string(),
         }
     }
 }

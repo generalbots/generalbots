@@ -3,7 +3,6 @@ use std::collections::HashMap;
 #[derive(Debug, Clone)]
 pub struct ComponentConfig {
     pub name: String,
-    pub required: bool,
     pub ports: Vec<u16>,
     pub dependencies: Vec<String>,
     pub linux_packages: Vec<String>,

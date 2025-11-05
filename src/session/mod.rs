@@ -11,7 +11,6 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use uuid::Uuid;
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -26,7 +25,6 @@ pub struct SessionManager {
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
     redis: Option<Arc<Client>>,
-    interaction_counts: HashMap<Uuid, AtomicUsize>,
 }
 
 impl SessionManager {
@@ -36,7 +34,6 @@ impl SessionManager {
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
             redis: redis_client,
-            interaction_counts: HashMap::new(),
         }
     }
 
@@ -63,10 +60,6 @@ impl SessionManager {
             self.waiting_for_input.remove(&session_id);
             Ok(Some("user_input".to_string()))
         }
-    }
-
-    pub fn is_waiting_for_input(&self, session_id: &Uuid) -> bool {
-        self.waiting_for_input.contains(session_id)
     }
 
     pub fn mark_waiting(&mut self, session_id: Uuid) {
@@ -244,7 +237,7 @@ impl SessionManager {
         let redis_key = format!("context:{}:{}", user_id, session_id);
         if let Some(redis_client) = &self.redis {
             let mut conn = redis_client.get_connection()?;
-            conn.set(&redis_key, &context_data)?;
+            conn.set::<_, _, ()>(&redis_key, &context_data)?;
             info!("Updated context in Redis for key {}", redis_key);
         } else {
             warn!("No Redis client configured, context not persisted");
@@ -306,66 +299,7 @@ impl SessionManager {
         Ok(String::new())
     }
 
-    pub fn increment_and_get_interaction_count(
-        &mut self,
-        session_id: Uuid,
-        user_id: Uuid,
-    ) -> Result<usize, Box<dyn Error + Send + Sync>> {
-        use redis::Commands;
 
-        let redis_key = format!("interactions:{}:{}", user_id, session_id);
-        let count = if let Some(redis_client) = &self.redis {
-            let mut conn = redis_client.get_connection()?;
-            let count: usize = conn.incr(&redis_key, 1)?;
-            count
-        } else {
-            let counter = self.interaction_counts
-                .entry(session_id)
-                .or_insert(AtomicUsize::new(0));
-            counter.fetch_add(1, Ordering::SeqCst) + 1
-        };
-        Ok(count)
-    }
-
-    pub fn replace_conversation_history(
-        &mut self,
-        sess_id: Uuid,
-        user_uuid: Uuid,
-        new_history: &[(String, String)],
-    ) -> Result<(), Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::message_history::dsl::*;
-
-        // Delete existing history
-        diesel::delete(message_history)
-            .filter(session_id.eq(sess_id))
-            .execute(&mut self.conn)?;
-
-        // Insert new compacted history
-        for (idx, (role_str, content)) in new_history.iter().enumerate() {
-            let role_num = match role_str.as_str() {
-                "user" => 1,
-                "assistant" => 2,
-                "system" => 3,
-                _ => 0,
-            };
-
-            diesel::insert_into(message_history)
-            .values((
-                id.eq(Uuid::new_v4()),
-                session_id.eq(sess_id),
-                user_id.eq(user_uuid),
-                role.eq(role_num),
-                content_encrypted.eq(content),
-                message_type.eq(1),
-                message_index.eq(idx as i64),
-                created_at.eq(chrono::Utc::now()),
-            ))
-                .execute(&mut self.conn)?;
-        }
-
-        info!("Replaced conversation history for session {}", sess_id);
-        Ok(())
-    } 
 
     pub fn get_conversation_history(
         &mut self,
@@ -431,20 +365,23 @@ async fn create_session(data: web::Data<AppState>) -> Result<HttpResponse> {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
     let bot_id = Uuid::nil();
 
-    let session = {
-        let mut session_manager = data.session_manager.lock().await;
-        match session_manager.get_or_create_user_session(user_id, bot_id, "New Conversation") {
-            Ok(Some(s)) => s,
-            Ok(None) => {
-                error!("Failed to create session");
-                return Ok(HttpResponse::InternalServerError()
-                    .json(serde_json::json!({"error": "Failed to create session"})));
-            }
-            Err(e) => {
-                error!("Failed to create session: {}", e);
-                return Ok(HttpResponse::InternalServerError()
-                    .json(serde_json::json!({"error": e.to_string()})));
-            }
+    // Acquire lock briefly, then release before performing blocking DB operations
+    let session_result = {
+        let mut sm = data.session_manager.lock().await;
+        sm.get_or_create_user_session(user_id, bot_id, "New Conversation")
+    };
+
+    let session = match session_result {
+        Ok(Some(s)) => s,
+        Ok(None) => {
+            error!("Failed to create session");
+            return Ok(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": "Failed to create session"})));
+        }
+        Err(e) => {
+            error!("Failed to create session: {}", e);
+            return Ok(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()})));
         }
     };
 

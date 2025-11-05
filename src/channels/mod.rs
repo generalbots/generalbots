@@ -71,19 +71,13 @@ impl ChannelAdapter for WebChannelAdapter {
 }
 
 pub struct VoiceAdapter {
-    livekit_url: String,
-    api_key: String,
-    api_secret: String,
     rooms: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
 
 impl VoiceAdapter {
-    pub fn new(livekit_url: String, api_key: String, api_secret: String) -> Self {
+    pub fn new() -> Self {
         Self {
-            livekit_url,
-            api_key,
-            api_secret,
             rooms: Arc::new(Mutex::new(HashMap::new())),
             connections: Arc::new(Mutex::new(HashMap::new())),
         }

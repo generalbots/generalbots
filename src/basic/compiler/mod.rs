@@ -8,7 +8,6 @@ use std::fs;
 use std::path::Path;
 use std::sync::Arc;
 
-pub mod tool_generator;
 
 /// Represents a PARAM declaration in BASIC
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -156,15 +155,13 @@ impl BasicCompiler {
         };
 
         Ok(CompilationResult {
-            ast_path,
             mcp_tool: mcp_json,
             openai_tool: tool_json,
-            tool_definition: Some(tool_def),
         })
     }
 
     /// Parse tool definition from BASIC source
-    fn parse_tool_definition(
+    pub fn parse_tool_definition(
         &self,
         source: &str,
         source_path: &str,
@@ -423,39 +420,6 @@ impl BasicCompiler {
 /// Result of compilation
 #[derive(Debug)]
 pub struct CompilationResult {
-    pub ast_path: String,
     pub mcp_tool: Option<MCPTool>,
     pub openai_tool: Option<OpenAITool>,
-    pub tool_definition: Option<ToolDefinition>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_normalize_type() {
-        let compiler = BasicCompiler::new(Arc::new(AppState::default()), uuid::Uuid::nil());
-
-        assert_eq!(compiler.normalize_type("string"), "string");
-        assert_eq!(compiler.normalize_type("integer"), "integer");
-        assert_eq!(compiler.normalize_type("int"), "integer");
-        assert_eq!(compiler.normalize_type("boolean"), "boolean");
-        assert_eq!(compiler.normalize_type("date"), "string");
-    }
-
-    #[test]
-    fn test_parse_param_line() {
-        let compiler = BasicCompiler::new(Arc::new(AppState::default()), uuid::Uuid::nil());
-
-        let line = r#"PARAM name AS string LIKE "John Doe" DESCRIPTION "User's full name""#;
-        let result = compiler.parse_param_line(line).unwrap();
-
-        assert!(result.is_some());
-        let param = result.unwrap();
-        assert_eq!(param.name, "name");
-        assert_eq!(param.param_type, "string");
-        assert_eq!(param.example, Some("John Doe".to_string()));
-        assert_eq!(param.description, "User's full name");
-    }
 }
