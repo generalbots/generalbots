@@ -1,7 +1,5 @@
-use diesel::deserialize::QueryableByName;
 use diesel::pg::PgConnection;
 use diesel::prelude::*;
-use diesel::sql_types::Text;
 use log::{error, info};
 use rhai::Dynamic;
 use rhai::Engine;
@@ -63,12 +61,6 @@ pub async fn execute_find(
     );
     info!("Executing query: {}", query);
 
-    // Define a struct that can deserialize from named rows
-    #[derive(QueryableByName)]
-    struct DynamicRow {
-        #[diesel(sql_type = Text)]
-        _placeholder: String,
-    }
 
     // Execute raw SQL and get raw results
     let raw_result = diesel::sql_query(&query)

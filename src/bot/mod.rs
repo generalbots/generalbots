@@ -1,9 +1,5 @@
-use crate::channels::ChannelAdapter;
 use crate::config::ConfigManager;
-use crate::context::langcache::get_langcache_client;
 use crate::drive_monitor::DriveMonitor;
-use crate::kb::embeddings::generate_embeddings;
-use crate::kb::qdrant_client::{ensure_collection_exists, get_qdrant_client, QdrantPoint};
 use crate::llm_models;
 use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
@@ -11,7 +7,7 @@ use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
 use chrono::Utc;
 use diesel::PgConnection;
-use log::{debug, error, info, warn};
+use log::{error, info, trace, warn};
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -117,7 +113,6 @@ impl BotOrchestrator {
 
         let bot_id = Uuid::parse_str(&bot_guid)?;
         let drive_monitor = Arc::new(DriveMonitor::new(state.clone(), bucket_name, bot_id));
-
         let _handle = drive_monitor.clone().spawn().await;
 
         {
@@ -125,16 +120,13 @@ impl BotOrchestrator {
             mounted.insert(bot_guid.clone(), drive_monitor);
         }
 
-        info!("Bot {} mounted successfully", bot_guid);
         Ok(())
     }
 
     pub async fn create_bot(
         &self,
-        bot_name: &str,
+        _bot_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Move logic to here after duplication refactor
-
         Ok(())
     }
 
@@ -173,7 +165,6 @@ impl BotOrchestrator {
 
         let bot_id = Uuid::parse_str(&bot_guid)?;
         let drive_monitor = Arc::new(DriveMonitor::new(self.state.clone(), bucket_name, bot_id));
-
         let _handle = drive_monitor.clone().spawn().await;
 
         {
@@ -189,26 +180,16 @@ impl BotOrchestrator {
         session_id: Uuid,
         user_input: &str,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Handling user input for session {}: '{}'",
-            session_id, user_input
+            session_id,
+            user_input
         );
+
         let mut session_manager = self.state.session_manager.lock().await;
         session_manager.provide_input(session_id, user_input.to_string())?;
+
         Ok(None)
-    }
-
-    pub async fn is_waiting_for_input(&self, session_id: Uuid) -> bool {
-        let session_manager = self.state.session_manager.lock().await;
-        session_manager.is_waiting_for_input(&session_id)
-    }
-
-    pub fn add_channel(&self, channel_type: &str, adapter: Arc<dyn ChannelAdapter>) {
-        self.state
-            .channels
-            .lock()
-            .unwrap()
-            .insert(channel_type.to_string(), adapter);
     }
 
     pub async fn register_response_channel(
@@ -227,7 +208,6 @@ impl BotOrchestrator {
         self.state.response_channels.lock().await.remove(session_id);
     }
 
-
     pub async fn send_event(
         &self,
         user_id: &str,
@@ -237,10 +217,13 @@ impl BotOrchestrator {
         event_type: &str,
         data: serde_json::Value,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Sending event '{}' to session {} on channel {}",
-            event_type, session_id, channel
+            event_type,
+            session_id,
+            channel
         );
+
         let event_response = BotResponse {
             bot_id: bot_id.to_string(),
             user_id: user_id.to_string(),
@@ -268,44 +251,6 @@ impl BotOrchestrator {
         Ok(())
     }
 
-    pub async fn send_direct_message(
-        &self,
-        session_id: &str,
-        channel: &str,
-        content: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!(
-            "Sending direct message to session {}: '{}'",
-            session_id, content
-        );
-        let (bot_id, _) = get_default_bot(&mut self.state.conn.lock().unwrap());
-        let bot_response = BotResponse {
-            bot_id: bot_id.to_string(),
-            user_id: "default_user".to_string(),
-            session_id: session_id.to_string(),
-            channel: channel.to_string(),
-            content: content.to_string(),
-            message_type: 1,
-            stream_token: None,
-            is_complete: true,
-            suggestions: Vec::new(),
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
-        };
-
-        if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
-            adapter.send_message(bot_response).await?;
-        } else {
-            warn!(
-                "No channel adapter found for direct message on channel: {}",
-                channel
-            );
-        }
-
-        Ok(())
-    }
-
     pub async fn handle_context_change(
         &self,
         user_id: &str,
@@ -314,20 +259,22 @@ impl BotOrchestrator {
         channel: &str,
         context_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Changing context for session {} to {}",
-            session_id, context_name
+            session_id,
+            context_name
         );
 
-        // Use session manager to update context
         let session_uuid = Uuid::parse_str(session_id).map_err(|e| {
             error!("Failed to parse session_id: {}", e);
             e
         })?;
+
         let user_uuid = Uuid::parse_str(user_id).map_err(|e| {
             error!("Failed to parse user_id: {}", e);
             e
         })?;
+
         if let Err(e) = self
             .state
             .session_manager
@@ -339,7 +286,6 @@ impl BotOrchestrator {
             error!("Failed to update session context: {}", e);
         }
 
-        // Send confirmation back to client
         let confirmation = BotResponse {
             bot_id: bot_id.to_string(),
             user_id: user_id.to_string(),
@@ -367,15 +313,16 @@ impl BotOrchestrator {
         message: UserMessage,
         response_tx: mpsc::Sender<BotResponse>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Streaming response for user: {}, session: {}",
-            message.user_id, message.session_id
+            message.user_id,
+            message.session_id
         );
 
-        // Get suggestions from Redis
         let suggestions = if let Some(redis) = &self.state.cache {
             let mut conn = redis.get_multiplexed_async_connection().await?;
             let redis_key = format!("suggestions:{}:{}", message.user_id, message.session_id);
+
             let suggestions: Vec<String> = redis::cmd("LRANGE")
                 .arg(&redis_key)
                 .arg(0)
@@ -383,7 +330,6 @@ impl BotOrchestrator {
                 .query_async(&mut conn)
                 .await?;
 
-            // Filter out duplicate suggestions
             let mut seen = std::collections::HashSet::new();
             suggestions
                 .into_iter()
@@ -399,26 +345,23 @@ impl BotOrchestrator {
             e
         })?;
 
+        // Acquire lock briefly for DB access, then release before awaiting
+        let session_id = Uuid::parse_str(&message.session_id).map_err(|e| {
+            error!("Invalid session ID: {}", e);
+            e
+        })?;
         let session = {
             let mut sm = self.state.session_manager.lock().await;
-            let session_id = Uuid::parse_str(&message.session_id).map_err(|e| {
-                error!("Invalid session ID: {}", e);
-                e
-            })?;
+            sm.get_session_by_id(session_id)?
+        }
+        .ok_or_else(|| {
+            error!("Failed to create session for streaming");
+            "Failed to create session"
+        })?;
 
-            match sm.get_session_by_id(session_id)? {
-                Some(sess) => sess,
-                None => {
-                    error!("Failed to create session for streaming");
-                    return Err("Failed to create session".into());
-                }
-            }
-        };
-
-        // Handle context change messages (type 4) first
         if message.message_type == 4 {
             if let Some(context_name) = &message.context_name {
-                self
+                let _ = self
                     .handle_context_change(
                         &message.user_id,
                         &message.bot_id,
@@ -430,59 +373,37 @@ impl BotOrchestrator {
             }
         }
 
-
-        if session.current_tool.is_some() {
-            self.state.tool_manager.provide_user_response(
-                &message.user_id,
-                &message.bot_id,
-                message.content.clone(),
-            )?;
-            return Ok(());
-        }
-
-        
         let system_prompt = std::env::var("SYSTEM_PROMPT").unwrap_or_default();
+
+        // Acquire lock briefly for context retrieval
         let context_data = {
-            let session_manager = self.state.session_manager.lock().await;
-            session_manager
-                .get_session_context_data(&session.id, &session.user_id)
+            let sm = self.state.session_manager.lock().await;
+            sm.get_session_context_data(&session.id, &session.user_id)
                 .await?
         };
 
-        let prompt = {
+        // Acquire lock briefly for history retrieval
+        let history = {
             let mut sm = self.state.session_manager.lock().await;
-            let history = sm.get_conversation_history(session.id, user_id)?;
-            let mut p = String::new();
-
-            if !system_prompt.is_empty() {
-                p.push_str(&format!("AI:{}\n", system_prompt));
-            }
-            if !context_data.is_empty() {
-                p.push_str(&format!("CTX:{}\n", context_data));
-            }
-
-            for (role, content) in &history {
-                p.push_str(&format!("{}:{}\n", role, content));
-            }
-
-            p.push_str(&format!("U: {}\nAI:", message.content));
-            info!(
-                "Stream prompt constructed with {} history entries",
-                history.len()
-            );
-            p
+            sm.get_conversation_history(session.id, user_id)?
         };
 
-        {
-            let mut sm = self.state.session_manager.lock().await;
-            sm.save_message(
-                session.id,
-                user_id,
-                1,
-                &message.content,
-                message.message_type,
-            )?;
+        let mut prompt = String::new();
+        if !system_prompt.is_empty() {
+            prompt.push_str(&format!("AI:{}\n", system_prompt));
         }
+        if !context_data.is_empty() {
+            prompt.push_str(&format!("CTX:{}\n", context_data));
+        }
+        for (role, content) in &history {
+            prompt.push_str(&format!("{}:{}\n", role, content));
+        }
+        prompt.push_str(&format!("U: {}\nAI:", message.content));
+
+        trace!(
+            "Stream prompt constructed with {} history entries",
+            history.len()
+        );
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
@@ -516,7 +437,6 @@ impl BotOrchestrator {
         }
 
         tokio::spawn(async move {
-            info!("LLM prompt: {}", prompt);
             if let Err(e) = llm
                 .generate_stream(&prompt, &serde_json::Value::Null, stream_tx)
                 .await
@@ -539,7 +459,6 @@ impl BotOrchestrator {
                 None,
             )
             .unwrap_or_default();
-
         let handler = llm_models::get_handler(&model);
 
         while let Some(chunk) = stream_rx.recv().await {
@@ -551,14 +470,11 @@ impl BotOrchestrator {
 
             analysis_buffer.push_str(&chunk);
 
-            // Check for analysis markers
             if handler.has_analysis_markers(&analysis_buffer) && !in_analysis {
                 in_analysis = true;
             }
 
-            // Check if analysis is complete
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
-                info!("Analysis section completed");
                 in_analysis = false;
                 analysis_buffer.clear();
 
@@ -604,11 +520,12 @@ impl BotOrchestrator {
             }
         }
 
-        info!(
+        trace!(
             "Stream processing completed, {} chunks processed",
             chunk_count
         );
 
+        // Save final message with short lock scope
         {
             let mut sm = self.state.session_manager.lock().await;
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;
@@ -660,10 +577,12 @@ impl BotOrchestrator {
         session_id: Uuid,
         user_id: Uuid,
     ) -> Result<Vec<(String, String)>, Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Getting conversation history for session {} user {}",
-            session_id, user_id
+            session_id,
+            user_id
         );
+
         let mut session_manager = self.state.session_manager.lock().await;
         let history = session_manager.get_conversation_history(session_id, user_id)?;
         Ok(history)
@@ -674,15 +593,17 @@ impl BotOrchestrator {
         state: Arc<AppState>,
         token: Option<String>,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Running start script for session: {} with token: {:?}",
-            session.id, token
+            session.id,
+            token
         );
 
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
 
         let bot_id = session.bot_id;
+
         let bot_name: String = {
             let mut db_conn = state.conn.lock().unwrap();
             bots.filter(id.eq(Uuid::parse_str(&bot_id.to_string())?))
@@ -704,33 +625,39 @@ impl BotOrchestrator {
             }
         };
 
-        info!(
+        trace!(
             "Start script content for session {}: {}",
-            session.id, start_script
+            session.id,
+            start_script
         );
 
         let session_clone = session.clone();
         let state_clone = state.clone();
         let script_service = crate::basic::ScriptService::new(state_clone, session_clone.clone());
 
-        if let Some(_token_id_value) = token {}
-
-        match script_service
-            .compile(&start_script)
-            .and_then(|ast| script_service.run(&ast))
+        match tokio::time::timeout(std::time::Duration::from_secs(10), async {
+            script_service
+                .compile(&start_script)
+                .and_then(|ast| script_service.run(&ast))
+        })
+        .await
         {
-            Ok(result) => {
+            Ok(Ok(result)) => {
                 info!(
                     "Start script executed successfully for session {}, result: {}",
                     session_clone.id, result
                 );
                 Ok(true)
             }
-            Err(e) => {
+            Ok(Err(e)) => {
                 error!(
                     "Failed to run start script for session {}: {}",
                     session_clone.id, e
                 );
+                Ok(false)
+            }
+            Err(_) => {
+                error!("Start script timeout for session {}", session_clone.id);
                 Ok(false)
             }
         }
@@ -767,14 +694,14 @@ impl BotOrchestrator {
                     user_id: "system".to_string(),
                     session_id: session_id.to_string(),
                     channel: channel.to_string(),
-                content: format!("⚠️ WARNING: {}", message),
-                message_type: 1,
-                stream_token: None,
-                is_complete: true,
-                suggestions: Vec::new(),
-                context_name: None,
-                context_length: 0,
-                context_max_length: 0,
+                    content: format!("⚠️ WARNING: {}", message),
+                    message_type: 1,
+                    stream_token: None,
+                    is_complete: true,
+                    suggestions: Vec::new(),
+                    context_name: None,
+                    context_length: 0,
+                    context_max_length: 0,
                 };
                 adapter.send_message(warn_response).await
             } else {
@@ -794,9 +721,11 @@ impl BotOrchestrator {
         _bot_id: &str,
         token: Option<String>,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        info!(
+        trace!(
             "Triggering auto welcome for user: {}, session: {}, token: {:?}",
-            user_id, session_id, token
+            user_id,
+            session_id,
+            token
         );
 
         let session_uuid = Uuid::parse_str(session_id).map_err(|e| {
@@ -815,41 +744,29 @@ impl BotOrchestrator {
             }
         };
 
-        let result = Self::run_start_script(&session, Arc::clone(&self.state), token).await?;
+        let result = match tokio::time::timeout(
+            std::time::Duration::from_secs(5),
+            Self::run_start_script(&session, Arc::clone(&self.state), token),
+        )
+        .await
+        {
+            Ok(Ok(result)) => result,
+            Ok(Err(e)) => {
+                error!("Auto welcome script error: {}", e);
+                false
+            }
+            Err(_) => {
+                error!("Auto welcome timeout for session: {}", session_id);
+                false
+            }
+        };
+
         info!(
             "Auto welcome completed for session: {} with result: {}",
             session_id, result
         );
         Ok(result)
     }
-}
-
-pub fn bot_from_url(
-    db_conn: &mut PgConnection,
-    path: &str,
-) -> Result<(Uuid, String), HttpResponse> {
-    use crate::shared::models::schema::bots::dsl::*;
-    use diesel::prelude::*;
-
-    // Extract bot name from first path segment
-    if let Some(bot_name) = path.split('/').nth(1).filter(|s| !s.is_empty()) {
-        match bots
-            .filter(name.eq(bot_name))
-            .filter(is_active.eq(true))
-            .select((id, name))
-            .first::<(Uuid, String)>(db_conn)
-            .optional()
-        {
-            Ok(Some((bot_id, bot_name))) => return Ok((bot_id, bot_name)),
-            Ok(None) => warn!("No active bot found with name: {}", bot_name),
-            Err(e) => error!("Failed to query bot by name: {}", e),
-        }
-    }
-
-    // Fall back to default bot
-    let (bot_id, bot_name) = get_default_bot(db_conn);
-    log::info!("Using default bot: {} ({})", bot_id, bot_name);
-    Ok((bot_id, bot_name))
 }
 
 impl Default for BotOrchestrator {
@@ -868,6 +785,7 @@ async fn websocket_handler(
     data: web::Data<AppState>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let query = web::Query::<HashMap<String, String>>::from_query(req.query_string()).unwrap();
+
     let session_id = query.get("session_id").cloned().unwrap();
     let user_id_string = query
         .get("user_id")
@@ -875,10 +793,14 @@ async fn websocket_handler(
         .unwrap_or_else(|| Uuid::new_v4().to_string())
         .replace("undefined", &Uuid::new_v4().to_string());
 
+    // Acquire lock briefly, then release before performing blocking DB operations
     let user_id = {
         let user_uuid = Uuid::parse_str(&user_id_string).unwrap_or_else(|_| Uuid::new_v4());
-        let mut sm = data.session_manager.lock().await;
-        match sm.get_or_create_anonymous_user(Some(user_uuid)) {
+        let result = {
+            let mut sm = data.session_manager.lock().await;
+            sm.get_or_create_anonymous_user(Some(user_uuid))
+        };
+        match result {
             Ok(uid) => uid.to_string(),
             Err(e) => {
                 error!("Failed to ensure user exists for WebSocket: {}", e);
@@ -903,7 +825,7 @@ async fn websocket_handler(
         .add_connection(session_id.clone(), tx.clone())
         .await;
 
-    let bot_id = {
+    let bot_id: String = {
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
 
@@ -916,14 +838,12 @@ async fn websocket_handler(
         {
             Ok(Some(first_bot_id)) => first_bot_id.to_string(),
             Ok(None) => {
-                error!("No active bots found in database for WebSocket");
-                return Err(actix_web::error::ErrorServiceUnavailable(
-                    "No bots available",
-                ));
+                warn!("No active bots found");
+                Uuid::nil().to_string()
             }
             Err(e) => {
-                error!("Failed to query bots for WebSocket: {}", e);
-                return Err(actix_web::error::ErrorInternalServerError("Database error"));
+                error!("DB error: {}", e);
+                Uuid::nil().to_string()
             }
         }
     };
@@ -955,11 +875,26 @@ async fn websocket_handler(
     let bot_id_welcome = bot_id.clone();
 
     actix_web::rt::spawn(async move {
-        if let Err(e) = orchestrator_clone
-            .trigger_auto_welcome(&session_id_welcome, &user_id_welcome, &bot_id_welcome, None)
-            .await
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(3),
+            orchestrator_clone.trigger_auto_welcome(
+                &session_id_welcome,
+                &user_id_welcome,
+                &bot_id_welcome,
+                None,
+            ),
+        )
+        .await
         {
-            warn!("Failed to trigger auto welcome: {}", e);
+            Ok(Ok(_)) => {
+                trace!("Auto welcome completed successfully");
+            }
+            Ok(Err(e)) => {
+                warn!("Failed to trigger auto welcome: {}", e);
+            }
+            Err(_) => {
+                warn!("Auto welcome timeout");
+            }
         }
     });
 
@@ -969,11 +904,12 @@ async fn websocket_handler(
     let user_id_clone = user_id.clone();
 
     actix_web::rt::spawn(async move {
-        info!(
+        trace!(
             "Starting WebSocket sender for session {}",
             session_id_clone1
         );
         let mut message_count = 0;
+
         while let Some(msg) = rx.recv().await {
             message_count += 1;
             if let Ok(json) = serde_json::to_string(&msg) {
@@ -983,18 +919,21 @@ async fn websocket_handler(
                 }
             }
         }
-        info!(
+
+        trace!(
             "WebSocket sender terminated for session {}, sent {} messages",
-            session_id_clone1, message_count
+            session_id_clone1,
+            message_count
         );
     });
 
     actix_web::rt::spawn(async move {
-        info!(
+        trace!(
             "Starting WebSocket receiver for session {}",
             session_id_clone2
         );
         let mut message_count = 0;
+
         while let Some(Ok(msg)) = msg_stream.recv().await {
             match msg {
                 WsMessage::Text(text) => {
@@ -1013,12 +952,12 @@ async fn websocket_handler(
                         {
                             Ok(Some(first_bot_id)) => first_bot_id.to_string(),
                             Ok(None) => {
-                                error!("No active bots found");
-                                continue;
+                                warn!("No active bots found");
+                                Uuid::nil().to_string()
                             }
                             Err(e) => {
-                                error!("Failed to query bots: {}", e);
-                                continue;
+                                error!("DB error: {}", e);
+                                Uuid::nil().to_string()
                             }
                         }
                     };
@@ -1053,9 +992,10 @@ async fn websocket_handler(
                     }
                 }
                 WsMessage::Close(reason) => {
-                    debug!(
+                    trace!(
                         "WebSocket closing for session {} - reason: {:?}",
-                        session_id_clone2, reason
+                        session_id_clone2,
+                        reason
                     );
 
                     let bot_id = {
@@ -1081,7 +1021,6 @@ async fn websocket_handler(
                         }
                     };
 
-                    debug!("Sending session_end event for {}", session_id_clone2);
                     if let Err(e) = orchestrator
                         .send_event(
                             &user_id_clone,
@@ -1096,15 +1035,11 @@ async fn websocket_handler(
                         error!("Failed to send session_end event: {}", e);
                     }
 
-                    debug!("Removing WebSocket connection for {}", session_id_clone2);
                     web_adapter.remove_connection(&session_id_clone2).await;
-
-                    debug!("Unregistering response channel for {}", session_id_clone2);
                     orchestrator
                         .unregister_response_channel(&session_id_clone2)
                         .await;
 
-                    // Cancel any ongoing LLM jobs for this session
                     if let Err(e) = data.llm_provider.cancel_job(&session_id_clone2).await {
                         warn!(
                             "Failed to cancel LLM job for session {}: {}",
@@ -1112,15 +1047,16 @@ async fn websocket_handler(
                         );
                     }
 
-                    info!("WebSocket fully closed for session {}", session_id_clone2);
                     break;
                 }
                 _ => {}
             }
         }
-        info!(
+
+        trace!(
             "WebSocket receiver terminated for session {}, processed {} messages",
-            session_id_clone2, message_count
+            session_id_clone2,
+            message_count
         );
     });
 
@@ -1129,6 +1065,112 @@ async fn websocket_handler(
         session_id
     );
     Ok(res)
+}
+
+#[actix_web::post("/api/bot/create")]
+async fn create_bot_handler(
+    data: web::Data<AppState>,
+    info: web::Json<HashMap<String, String>>,
+) -> Result<HttpResponse> {
+    let bot_name = info
+        .get("bot_name")
+        .cloned()
+        .unwrap_or("default".to_string());
+
+    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+
+    if let Err(e) = orchestrator.create_bot(&bot_name).await {
+        error!("Failed to create bot: {}", e);
+        return Ok(
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()}))
+        );
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status": "bot_created"})))
+}
+
+#[actix_web::post("/api/bot/mount")]
+async fn mount_bot_handler(
+    data: web::Data<AppState>,
+    info: web::Json<HashMap<String, String>>,
+) -> Result<HttpResponse> {
+    let bot_guid = info.get("bot_guid").cloned().unwrap_or_default();
+
+    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+
+    if let Err(e) = orchestrator.mount_bot(&bot_guid).await {
+        error!("Failed to mount bot: {}", e);
+        return Ok(
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()}))
+        );
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status": "bot_mounted"})))
+}
+
+#[actix_web::post("/api/bot/input")]
+async fn handle_user_input_handler(
+    data: web::Data<AppState>,
+    info: web::Json<HashMap<String, String>>,
+) -> Result<HttpResponse> {
+    let session_id = info.get("session_id").cloned().unwrap_or_default();
+    let user_input = info.get("input").cloned().unwrap_or_default();
+
+    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+    let session_uuid = Uuid::parse_str(&session_id).unwrap_or(Uuid::nil());
+
+    if let Err(e) = orchestrator
+        .handle_user_input(session_uuid, &user_input)
+        .await
+    {
+        error!("Failed to handle user input: {}", e);
+        return Ok(
+            HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()}))
+        );
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status": "input_processed"})))
+}
+
+#[actix_web::get("/api/bot/sessions/{user_id}")]
+async fn get_user_sessions_handler(
+    data: web::Data<AppState>,
+    path: web::Path<Uuid>,
+) -> Result<HttpResponse> {
+    let user_id = path.into_inner();
+
+    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+
+    match orchestrator.get_user_sessions(user_id).await {
+        Ok(sessions) => Ok(HttpResponse::Ok().json(sessions)),
+        Err(e) => {
+            error!("Failed to get user sessions: {}", e);
+            Ok(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()})))
+        }
+    }
+}
+
+#[actix_web::get("/api/bot/history/{session_id}/{user_id}")]
+async fn get_conversation_history_handler(
+    data: web::Data<AppState>,
+    path: web::Path<(Uuid, Uuid)>,
+) -> Result<HttpResponse> {
+    let (session_id, user_id) = path.into_inner();
+
+    let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+
+    match orchestrator
+        .get_conversation_history(session_id, user_id)
+        .await
+    {
+        Ok(history) => Ok(HttpResponse::Ok().json(history)),
+        Err(e) => {
+            error!("Failed to get conversation history: {}", e);
+            Ok(HttpResponse::InternalServerError()
+                .json(serde_json::json!({"error": e.to_string()})))
+        }
+    }
 }
 
 #[actix_web::post("/api/warn")]
@@ -1144,12 +1186,14 @@ async fn send_warning_handler(
     let channel = info.get("channel").unwrap_or(&default_channel);
     let message = info.get("message").unwrap_or(&default_message);
 
-    info!(
+    trace!(
         "Sending warning via API - session: {}, channel: {}",
-        session_id, channel
+        session_id,
+        channel
     );
 
     let orchestrator = BotOrchestrator::new(Arc::clone(&data));
+
     if let Err(e) = orchestrator
         .send_warning(session_id, channel, message)
         .await

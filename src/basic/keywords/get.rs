@@ -1,6 +1,5 @@
 use crate::shared::models::schema::bots::dsl::*;
 use diesel::prelude::*;
-use crate::kb::minio_handler;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{debug, error, info, trace};
@@ -184,11 +183,26 @@ pub async fn get_from_bucket(
 
     let bytes = match tokio::time::timeout(
         Duration::from_secs(30),
-        minio_handler::get_file_content(client, &bucket_name, file_path),
+        async {
+            let result: Result<Vec<u8>, Box<dyn Error + Send + Sync>> = match client
+                .get_object()
+                .bucket(&bucket_name)
+                .key(file_path)
+                .send()
+                .await
+            {
+                Ok(response) => {
+                    let data = response.body.collect().await?.into_bytes();
+                    Ok(data.to_vec())
+                }
+                Err(e) => Err(format!("S3 operation failed: {}", e).into()),
+            };
+            result
+        },
     )
     .await
     {
-        Ok(Ok(data)) => data,
+        Ok(Ok(data)) => data.to_vec(),
         Ok(Err(e)) => {
             error!("drive read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());

@@ -1,3 +1,5 @@
+#[cfg(feature = "web_automation")]
+
 pub mod crawler;
 
 use headless_chrome::browser::tab::Tab;

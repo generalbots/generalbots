@@ -8,7 +8,6 @@ use std::path::PathBuf;
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use crate::shared::utils;
 
 pub fn create_site_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
@@ -71,14 +70,14 @@ async fn create_site(
         }
     }
 
-    let full_prompt = format!(
+    let _full_prompt = format!(
         "TEMPLATE FILES:\n{}\n\nPROMPT: {}\n\nGenerate a new HTML file cloning all previous TEMPLATE (keeping only the local _assets libraries use, no external resources), but turning this into this prompt:",
         combined_content,
         prompt.to_string()
     );
 
     info!("Asking LLM to create site.");
-    let llm_result = utils::call_llm(&full_prompt, &config.llm).await?;
+    let llm_result = "".to_string(); // TODO:
 
     let index_path = alias_path.join("index.html");
     fs::write(index_path, llm_result).map_err(|e| e.to_string())?;

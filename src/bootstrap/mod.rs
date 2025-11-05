@@ -2,33 +2,21 @@ use crate::config::AppConfig;
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
-use diesel::{connection::SimpleConnection, QueryableByName};
+use diesel::{connection::SimpleConnection};
 use dotenvy::dotenv;
 use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
 use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
 use rand::Rng;
-use sha2::{Digest, Sha256};
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
 use std::sync::{Arc, Mutex};
 
-use diesel::Queryable;
-
-#[derive(QueryableByName)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-#[derive(Queryable)]
-#[diesel(table_name = crate::shared::models::schema::bots)]
-struct BotIdRow {
-    #[diesel(sql_type = diesel::sql_types::Uuid)]
-    id: uuid::Uuid,
-}
 
 pub struct ComponentInfo {
     pub name: &'static str,
-    pub termination_command: &'static str,
 }
 
 pub struct BootstrapManager {
@@ -57,83 +45,83 @@ impl BootstrapManager {
         let components = vec![
             ComponentInfo {
                 name: "tables",
-                termination_command: "pg_ctl",
+                
             },
             ComponentInfo {
                 name: "cache",
-                termination_command: "valkey-server",
+                
             },
             ComponentInfo {
                 name: "drive",
-                termination_command: "minio",
+                
             },
             ComponentInfo {
                 name: "llm",
-                termination_command: "llama-server",
+                
             },
             ComponentInfo {
                 name: "email",
-                termination_command: "stalwart",
+                
             },
             ComponentInfo {
                 name: "proxy",
-                termination_command: "caddy",
+                
             },
             ComponentInfo {
                 name: "directory",
-                termination_command: "zitadel",
+                
             },
             ComponentInfo {
                 name: "alm",
-                termination_command: "forgejo",
+                
             },
             ComponentInfo {
                 name: "alm_ci",
-                termination_command: "forgejo-runner",
+                
             },
             ComponentInfo {
                 name: "dns",
-                termination_command: "coredns",
+                
             },
             ComponentInfo {
                 name: "webmail",
-                termination_command: "php",
+                
             },
             ComponentInfo {
                 name: "meeting",
-                termination_command: "livekit-server",
+                
             },
             ComponentInfo {
                 name: "table_editor",
-                termination_command: "nocodb",
+                
             },
             ComponentInfo {
                 name: "doc_editor",
-                termination_command: "coolwsd",
+                
             },
             ComponentInfo {
                 name: "desktop",
-                termination_command: "xrdp",
+                
             },
             ComponentInfo {
                 name: "devtools",
-                termination_command: "",
+                
             },
             ComponentInfo {
                 name: "bot",
-                termination_command: "",
+                
             },
             ComponentInfo {
                 name: "system",
-                termination_command: "",
+                
             },
             ComponentInfo {
                 name: "vector_db",
-                termination_command: "qdrant",
+                
             },
             ComponentInfo {
                 name: "host",
-                termination_command: "",
+                
             },
         ];
         info!("Starting all installed components...");
@@ -339,12 +327,6 @@ impl BootstrapManager {
             .collect()
     }
 
-    fn encrypt_password(&self, password: &str, key: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(key.as_bytes());
-        hasher.update(password.as_bytes());
-        format!("{:x}", hasher.finalize())
-    }
 
     pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
                 let mut conn = establish_pg_connection()?;

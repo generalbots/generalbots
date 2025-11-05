@@ -8,52 +8,8 @@ use rhai::{Array, Dynamic};
 use serde_json::Value;
 use smartstring::SmartString;
 use std::error::Error;
-use std::fs::File;
-use std::io::BufReader;
-use std::path::Path;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
-use zip::ZipArchive;
-
-pub fn extract_zip_recursive(
-    zip_path: &Path,
-    destination_path: &Path,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let file = File::open(zip_path)?;
-    let buf_reader = BufReader::new(file);
-    let mut archive = ZipArchive::new(buf_reader)?;
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        let outpath = destination_path.join(file.mangled_name());
-
-        if file.is_dir() {
-            std::fs::create_dir_all(&outpath)?;
-        } else {
-            if let Some(parent) = outpath.parent() {
-                if !parent.exists() {
-                    std::fs::create_dir_all(&parent)?;
-                }
-
-use crate::llm::LLMProvider;
-use std::sync::Arc;
-use serde_json::Value;
-
-/// Unified chat utility to interact with any LLM provider
-pub async fn chat_with_llm(
-    provider: Arc<dyn LLMProvider>,
-    prompt: &str,
-    config: &Value,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    provider.generate(prompt, config).await
-}
-            }
-            let mut outfile = File::create(&outpath)?;
-            std::io::copy(&mut file, &mut outfile)?;
-        }
-    }
-    Ok(())
-}
 
 pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
     match value {
@@ -155,52 +111,11 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn E
     Ok((format!("{} = $1", column), vec![value.to_string()]))
 }
 
-pub fn parse_filter_with_offset(
-    filter_str: &str,
-    offset: usize,
-) -> Result<(String, Vec<String>), Box<dyn Error>> {
-    let mut clauses = Vec::new();
-    let mut params = Vec::new();
-
-    for (i, condition) in filter_str.split('&').enumerate() {
-        let parts: Vec<&str> = condition.split('=').collect();
-        if parts.len() != 2 {
-            return Err("Invalid filter format".into());
-        }
-
-        let column = parts[0].trim();
-        let value = parts[1].trim();
-
-        if !column
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || c == '_')
-        {
-            return Err("Invalid column name".into());
-        }
-
-        clauses.push(format!("{} = ${}", column, i + 1 + offset));
-        params.push(value.to_string());
-    }
-
-    Ok((clauses.join(" AND "), params))
-}
-
-pub async fn call_llm(
-    prompt: &str,
-    _llm_config: &crate::config::LLMConfig,
-) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    Ok(format!("Generated response for: {}", prompt))
-}
-
-/// Estimates token count for text using simple heuristic (1 token ≈ 4 chars)
 pub fn estimate_token_count(text: &str) -> usize {
-    // Basic token estimation - count whitespace-separated words
-    // Add 1 token for every 4 characters as a simple approximation
     let char_count = text.chars().count();
     (char_count / 4).max(1) // Ensure at least 1 token
 }
 
-/// Establishes a PostgreSQL connection using DATABASE_URL environment variable
 pub fn establish_pg_connection() -> Result<PgConnection> {
     let database_url = std::env::var("DATABASE_URL")
         .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
@@ -208,3 +123,4 @@ pub fn establish_pg_connection() -> Result<PgConnection> {
     PgConnection::establish(&database_url)
         .with_context(|| format!("Failed to connect to database at {}", database_url))
 }
+            

@@ -66,64 +66,6 @@ pub async fn upload_file(
     }
 }
 
-pub async fn aws_s3_bucket_delete(
-    bucket: &str,
-    endpoint: &str,
-    access_key: &str,
-    secret_key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let config = aws_config::defaults(BehaviorVersion::latest())
-        .endpoint_url(endpoint)
-        .region("auto")
-        .credentials_provider(
-            aws_sdk_s3::config::Credentials::new(
-                access_key.to_string(),
-                secret_key.to_string(),
-                None,
-                None,
-                "static",
-            )
-        )
-        .load()
-        .await;
-
-    let client = S3Client::new(&config);
-    client.delete_bucket()
-        .bucket(bucket)
-        .send()
-        .await?;
-    Ok(())
-}
-
-pub async fn aws_s3_bucket_create(
-    bucket: &str,
-    endpoint: &str,
-    access_key: &str,
-    secret_key: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
-    let config = aws_config::defaults(BehaviorVersion::latest())
-        .endpoint_url(endpoint)
-        .region("auto")
-        .credentials_provider(
-            aws_sdk_s3::config::Credentials::new(
-                access_key.to_string(),
-                secret_key.to_string(),
-                None,
-                None,
-                "static",
-            )
-        )
-        .load()
-        .await;
-
-    let client = S3Client::new(&config);
-    client.create_bucket()
-        .bucket(bucket)
-        .send()
-        .await?;
-    Ok(())
-}
-
 pub async fn init_drive(config: &DriveConfig) -> Result<S3Client, Box<dyn std::error::Error>> {
     let endpoint = if !config.server.ends_with('/') {
         format!("{}/", config.server)
@@ -167,47 +109,4 @@ async fn upload_to_s3(
         .send()
         .await?;
     Ok(())
-}
-
-async fn create_s3_client(
-    
-) -> Result<S3Client, Box<dyn std::error::Error>> {
-    let config = DriveConfig {
-        server: std::env::var("DRIVE_SERVER").expect("DRIVE_SERVER not set"),
-        access_key: std::env::var("DRIVE_ACCESS_KEY").expect("DRIVE_ACCESS_KEY not set"),
-        secret_key: std::env::var("DRIVE_SECRET_KEY").expect("DRIVE_SECRET_KEY not set"),
-        use_ssl: false,
-    };
-    Ok(init_drive(&config).await?)
-}
-
-pub async fn bucket_exists(client: &S3Client, bucket: &str) -> Result<bool, Box<dyn std::error::Error>> {
-    match client.head_bucket().bucket(bucket).send().await {
-        Ok(_) => Ok(true),
-        Err(e) => {
-            if e.to_string().contains("NoSuchBucket") {
-                Ok(false)
-            } else {
-                Err(Box::new(e))
-            }
-        }
-    }
-}
-
-pub async fn create_bucket(client: &S3Client, bucket: &str) -> Result<(), Box<dyn std::error::Error>> {
-    client.create_bucket()
-        .bucket(bucket)
-        .send()
-        .await?;
-    Ok(())
-}
-
-#[cfg(test)]
-mod bucket_tests {
-    include!("tests/bucket_tests.rs");
-}
-
-#[cfg(test)]
-mod tests {
-    include!("tests/tests.rs");
 }

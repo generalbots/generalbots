@@ -2,7 +2,7 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::OsType;
 use crate::shared::utils;
-use crate::InstallMode;
+use crate::package_manager::InstallMode;
 use anyhow::{Context, Result};
 use log::{error, trace, warn};
 use reqwest::Client;
@@ -496,57 +496,6 @@ impl PackageManager {
         Ok(())
     }
 
-    pub fn create_service_file(
-        &self,
-        component: &str,
-        exec_cmd: &str,
-        env_vars: &HashMap<String, String>,
-    ) -> Result<()> {
-        let service_path = format!("/etc/systemd/system/{}.service", component);
-        let bin_path = self.base_path.join("bin").join(component);
-        let data_path = self.base_path.join("data").join(component);
-        let conf_path = self.base_path.join("conf").join(component);
-        let logs_path = self.base_path.join("logs").join(component);
-
-        std::fs::create_dir_all(&bin_path)?;
-        std::fs::create_dir_all(&data_path)?;
-        std::fs::create_dir_all(&conf_path)?;
-        std::fs::create_dir_all(&logs_path)?;
-
-        let rendered_cmd = exec_cmd
-            .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
-            .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
-            .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-            .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
-
-        let mut env_section = String::new();
-        for (key, value) in env_vars {
-            let rendered_value = value
-                .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
-                .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
-                .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
-            env_section.push_str(&format!("Environment={}={}\n", key, rendered_value));
-        }
-
-        let service_content = format!(
-            "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory={}\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
-            component, env_section, rendered_cmd, data_path.to_string_lossy()
-        );
-
-        std::fs::write(&service_path, service_content)?;
-        Command::new("systemctl")
-            .args(&["daemon-reload"])
-            .output()?;
-        Command::new("systemctl")
-            .args(&["enable", &format!("{}.service", component)])
-            .output()?;
-        Command::new("systemctl")
-            .args(&["start", &format!("{}.service", component)])
-            .output()?;
-
-        Ok(())
-    }
 
     pub fn run_commands(&self, commands: &[String], target: &str, component: &str) -> Result<()> {
         let bin_path = if target == "local" {

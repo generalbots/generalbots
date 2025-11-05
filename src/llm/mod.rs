@@ -1,14 +1,10 @@
 use async_trait::async_trait;
 use futures::StreamExt;
 use serde_json::Value;
-use std::sync::Arc;
 use tokio::sync::mpsc;
 
-use crate::tools::ToolManager;
 
-pub mod azure;
 pub mod local;
-pub mod anthropic;
 
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
@@ -25,15 +21,6 @@ pub trait LLMProvider: Send + Sync {
         tx: mpsc::Sender<String>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
-    async fn generate_with_tools(
-        &self,
-        prompt: &str,
-        config: &Value,
-        available_tools: &[String],
-        tool_manager: Arc<ToolManager>,
-        session_id: &str,
-        user_id: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
 
     async fn cancel_job(
         &self,
@@ -66,7 +53,7 @@ impl LLMProvider for OpenAIClient {
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .client
-            .post(&format!("{}/chat/completions", self.base_url))
+            .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
@@ -101,7 +88,7 @@ impl LLMProvider for OpenAIClient {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let response = self
             .client
-            .post(&format!("{}/chat/completions", self.base_url))
+            .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
@@ -134,93 +121,12 @@ impl LLMProvider for OpenAIClient {
         Ok(())
     }
 
-    async fn generate_with_tools(
-        &self,
-        prompt: &str,
-        _config: &Value,
-        available_tools: &[String],
-        _tool_manager: Arc<ToolManager>,
-        _session_id: &str,
-        _user_id: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let tools_info = if available_tools.is_empty() {
-            String::new()
-        } else {
-            format!("\n\nAvailable tools: {}. You can suggest using these tools if they would help answer the user's question.", available_tools.join(", "))
-        };
-
-        let enhanced_prompt = format!("{}{}", prompt, tools_info);
-
-        self.generate(&enhanced_prompt, &Value::Null).await
-    }
 
     async fn cancel_job(
         &self,
         _session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // OpenAI doesn't support job cancellation
-        Ok(())
-    }
-}
-
-
-pub struct MockLLMProvider;
-
-impl MockLLMProvider {
-    pub fn new() -> Self {
-        Self
-    }
-}
-
-#[async_trait]
-impl LLMProvider for MockLLMProvider {
-    async fn generate(
-        &self,
-        prompt: &str,
-        _config: &Value,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(format!("Mock response to: {}", prompt))
-    }
-
-    async fn generate_stream(
-        &self,
-        prompt: &str,
-        _config: &Value,
-        tx: mpsc::Sender<String>,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let response = format!("Mock stream response to: {}", prompt);
-        for word in response.split_whitespace() {
-            let _ = tx.send(format!("{} ", word)).await;
-            tokio::time::sleep(tokio::time::Duration::from_millis(100)).await;
-        }
-        Ok(())
-    }
-
-    async fn generate_with_tools(
-        &self,
-        prompt: &str,
-        _config: &Value,
-        available_tools: &[String],
-        _tool_manager: Arc<ToolManager>,
-        _session_id: &str,
-        _user_id: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let tools_list = if available_tools.is_empty() {
-            "no tools available".to_string()
-        } else {
-            available_tools.join(", ")
-        };
-        Ok(format!(
-            "Mock response with tools [{}] to: {}",
-            tools_list, prompt
-        ))
-    }
-
-    async fn cancel_job(
-        &self,
-        _session_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Mock implementation just logs the cancellation
         Ok(())
     }
 }

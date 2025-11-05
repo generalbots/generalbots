@@ -1,3 +1,4 @@
+use crate::basic::keywords::add_suggestion::clear_suggestions_keyword;
 use crate::basic::keywords::set_user::set_user_keyword;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -39,9 +40,7 @@ use self::keywords::get_website::get_website_keyword;
 
 pub struct ScriptService {
     pub engine: Engine,
-    state: Arc<AppState>,
-    user: UserSession,
-}
+ }
 
 impl ScriptService {
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
@@ -71,6 +70,7 @@ impl ScriptService {
         talk_keyword(state.clone(), user.clone(), &mut engine);
         set_context_keyword(state.clone(), user.clone(), &mut engine);
         set_user_keyword(state.clone(), user.clone(), &mut engine);
+        clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
 
         // KB and Tools keywords
         set_kb_keyword(state.clone(), user.clone(), &mut engine);
@@ -87,8 +87,7 @@ impl ScriptService {
 
         ScriptService {
             engine,
-            state,
-            user,
+            
         }
     }
 

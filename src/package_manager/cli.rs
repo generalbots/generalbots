@@ -2,7 +2,7 @@ use anyhow::Result;
 use std::env;
 use std::process::Command;
 
-use crate::package_manager::{InstallMode, PackageManager};
+use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 
 pub async fn run() -> Result<()> {
     env_logger::init();
@@ -31,12 +31,12 @@ pub async fn run() -> Result<()> {
             let pm = PackageManager::new(mode, tenant)?;
             println!("Starting all installed components...");
 
-            let components = vec!["tables", "cache", "drive", "llm"];
+            let components = get_all_components();
             for component in components {
-                if pm.is_installed(component) {
-                    match pm.start(component) {
-                        Ok(_) => println!("✓ Started {}", component),
-                        Err(e) => eprintln!("✗ Failed to start {}: {}", component, e),
+                if pm.is_installed(component.name) {
+                    match pm.start(component.name) {
+                        Ok(_) => println!("✓ Started {}", component.name),
+                        Err(e) => eprintln!("✗ Failed to start {}: {}", component.name, e),
                     }
                 }
             }
@@ -46,10 +46,10 @@ pub async fn run() -> Result<()> {
             println!("Stopping all components...");
 
             // Stop components gracefully
-            let _ = Command::new("pkill").arg("-f").arg("redis-server").output();
-            let _ = Command::new("pkill").arg("-f").arg("minio").output();
-            let _ = Command::new("pkill").arg("-f").arg("postgres").output();
-            let _ = Command::new("pkill").arg("-f").arg("llama-server").output();
+            let components = get_all_components();
+            for component in components {
+                let _ = Command::new("pkill").arg("-f").arg(component.termination_command).output();
+            }
 
             println!("✓ BotServer components stopped");
         }
@@ -57,10 +57,10 @@ pub async fn run() -> Result<()> {
             println!("Restarting BotServer...");
 
             // Stop
-            let _ = Command::new("pkill").arg("-f").arg("redis-server").output();
-            let _ = Command::new("pkill").arg("-f").arg("minio").output();
-            let _ = Command::new("pkill").arg("-f").arg("postgres").output();
-            let _ = Command::new("pkill").arg("-f").arg("llama-server").output();
+            let components = get_all_components();
+            for component in components {
+                let _ = Command::new("pkill").arg("-f").arg(component.termination_command).output();
+            }
 
             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
@@ -78,10 +78,10 @@ pub async fn run() -> Result<()> {
 
             let pm = PackageManager::new(mode, tenant)?;
 
-            let components = vec!["tables", "cache", "drive", "llm"];
+            let components = get_all_components();
             for component in components {
-                if pm.is_installed(component) {
-                    let _ = pm.start(component);
+                if pm.is_installed(component.name) {
+                    let _ = pm.start(component.name);
                 }
             }
 
