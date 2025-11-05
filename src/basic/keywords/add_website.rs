@@ -1,7 +1,5 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-#[cfg(feature = "web_automation")]
-use crate::web_automation::WebCrawler;
 use log::{error, info};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
@@ -21,9 +19,6 @@ pub fn add_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
             );
 
             // Validate URL
-            #[cfg(feature = "web_automation")]
-            let is_valid = WebCrawler::is_valid_url(&url_str);
-            #[cfg(not(feature = "web_automation"))]
             let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
 
             if !is_valid {
@@ -92,74 +87,5 @@ async fn crawl_and_index_website(
     url: &str,
 ) -> Result<String, String> {
     info!("Crawling website: {} for user: {}", url, user.user_id);
-
-    // Check if web_automation feature is enabled
-    #[cfg(not(feature = "web_automation"))]
-    {
-        return Err(
-            "Web automation feature not enabled. Recompile with --features web_automation"
-                .to_string(),
-        );
-    }
-
-    // Fetch website content (only compiled if feature enabled)
-    #[cfg(feature = "web_automation")]
-    {
-        let crawler = WebCrawler::new();
-        let text_content = crawler
-            .crawl(url)
-            .await
-            .map_err(|e| format!("Failed to crawl website: {}", e))?;
-
-        if text_content.trim().is_empty() {
-            return Err("No text content found on website".to_string());
-        }
-
-        info!(
-            "Extracted {} characters of text from website",
-            text_content.len()
-        );
-
-        // Create KB name from URL
-        let kb_name = format!(
-            "website_{}",
-            url.replace("https://", "")
-                .replace("http://", "")
-                .replace('/', "_")
-                .replace('.', "_")
-                .chars()
-                .take(50)
-                .collect::<String>()
-        );
-
-        // Create collection name for this user's website KB
-        let collection_name = format!("kb_{}_{}_{}", user.bot_id, user.user_id, kb_name);
-
-        // Ensure collection exists in Qdrant
-        crate::kb::qdrant_client::ensure_collection_exists(_state, &collection_name)
-            .await
-            .map_err(|e| format!("Failed to create Qdrant collection: {}", e))?;
-
-        // Index the content
-        crate::kb::embeddings::index_document(_state, &collection_name, url, &text_content)
-            .await
-            .map_err(|e| format!("Failed to index document: {}", e))?;
-
-        // Associate KB with user (not session)
-        add_website_kb_to_user(_state, user, &kb_name, url)
-            .await
-            .map_err(|e| format!("Failed to associate KB with user: {}", e))?;
-
-        info!(
-            "Website indexed successfully to collection: {}",
-            collection_name
-        );
-
-        Ok(format!(
-            "Website '{}' crawled and indexed successfully ({} characters)",
-            url,
-            text_content.len()
-        ))
-    }
+    Err("Web automation functionality has been removed from this build".to_string())
 }
-

@@ -24,6 +24,3 @@ pub mod set_context;
 
 #[cfg(feature = "email")]
 pub mod create_draft_keyword;
-
-#[cfg(feature = "web_automation")]
-pub mod get_website;
