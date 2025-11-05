@@ -393,10 +393,10 @@ impl BotOrchestrator {
 
         let mut prompt = String::new();
         if !system_prompt.is_empty() {
-            prompt.push_str(&format!("AI:{}\n", system_prompt));
+            prompt.push_str(&format!("SYSTEM: *** {} *** \n", system_prompt));
         }
         if !context_data.is_empty() {
-            prompt.push_str(&format!("CTX:{}\n", context_data));
+            prompt.push_str(&format!("CONTEXT: *** {} *** \n", context_data));
         }
         for (role, content) in &history {
             prompt.push_str(&format!("{}:{}\n", role, content));
