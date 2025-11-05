@@ -1,5 +1,5 @@
 name,value
-prompt-compact, 10
+prompt-history, 2
 theme-color1,green
 theme-color2,yellow
 custom-logo-url,https://example.com/logo.png
