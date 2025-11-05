@@ -3,6 +3,11 @@ use crate::basic::keywords::set_schedule::execute_set_schedule;
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use diesel::QueryDsl;
+use diesel::ExpressionMethods;
+use std::collections::HashSet;
+use diesel::RunQueryDsl;
+use crate::shared::models::TriggerKind;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
@@ -89,16 +94,21 @@ pub struct OpenAIProperty {
 pub struct BasicCompiler {
     state: Arc<AppState>,
     bot_id: uuid::Uuid,
+    previous_schedules: HashSet<String>, // Tracks script names with SET_SCHEDULE
 }
 
 impl BasicCompiler {
     pub fn new(state: Arc<AppState>, bot_id: uuid::Uuid) -> Self {
-        Self { state, bot_id }
+        Self { 
+            state, 
+            bot_id,
+            previous_schedules: HashSet::new(),
+        }
     }
 
     /// Compile a BASIC file to AST and generate tool definitions
     pub fn compile_file(
-        &self,
+        &mut self,
         source_path: &str,
         output_dir: &str,
     ) -> Result<CompilationResult, Box<dyn Error + Send + Sync>> {
@@ -288,10 +298,10 @@ impl BasicCompiler {
             "integer" | "int" | "number" => "integer".to_string(),
             "float" | "double" | "decimal" => "number".to_string(),
             "boolean" | "bool" => "boolean".to_string(),
-            "date" | "datetime" => "string".to_string(), // Dates as strings
+            "date" | "datetime" => "string".to_string(),
             "array" | "list" => "array".to_string(),
             "object" | "map" => "object".to_string(),
-            _ => "string".to_string(), // Default to string
+            _ => "string".to_string(),
         }
     }
 
@@ -367,33 +377,41 @@ impl BasicCompiler {
     }
 
     /// Preprocess BASIC script (basic transformations)
-    fn preprocess_basic(&self, source: &str, source_path: &str, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
+    fn preprocess_basic(&mut self, source: &str, source_path: &str, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
+        let bot_uuid = bot_id;
         let mut result = String::new();
+        let mut has_schedule = false;
+        let script_name = Path::new(source_path)
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        // Remove any existing schedule for this script before processing
+        {
+            let mut conn = self.state.conn.lock().unwrap();
+            use crate::shared::models::system_automations::dsl::*;
+            diesel::delete(system_automations
+                .filter(bot_id.eq(bot_uuid))
+                .filter(kind.eq(TriggerKind::Scheduled as i32))
+                .filter(param.eq(&script_name))
+            )
+            .execute(&mut *conn)
+            .ok();
+        }
 
         for line in source.lines() {
             let trimmed = line.trim();
 
-            // Skip empty lines and comments
             if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("REM") {
                 continue;
             }
 
-            // Handle SET_SCHEDULE keyword during preprocessing
             if trimmed.starts_with("SET_SCHEDULE") {
-                // Expected format: SET_SCHEDULE "cron_expression"
-                // Extract the quoted cron expression
+                has_schedule = true;
                 let parts: Vec<&str> = trimmed.split('"').collect();
                 if parts.len() >= 3 {
                     let cron = parts[1];
-                    
-                    // Get the current script's name (file stem)
-                    use std::path::Path;
-                    let script_name = Path::new(source_path)
-                        .file_stem()
-                        .and_then(|s| s.to_str())
-                        .unwrap_or("unknown")
-                        .to_string();
-
                     let mut conn = self.state.conn.lock().unwrap();
                     if let Err(e) = execute_set_schedule(&mut *conn, cron, &script_name, bot_id) {
                         log::error!("Failed to schedule SET_SCHEDULE during preprocessing: {}", e);
@@ -404,13 +422,31 @@ impl BasicCompiler {
                 continue;
             }
 
-            // Skip PARAM and DESCRIPTION lines (metadata)
             if trimmed.starts_with("PARAM ") || trimmed.starts_with("DESCRIPTION ") {
                 continue;
             }
 
             result.push_str(trimmed);
             result.push('\n');
+        }
+
+        if self.previous_schedules.contains(&script_name) && !has_schedule {
+            let mut conn = self.state.conn.lock().unwrap();
+            use crate::shared::models::system_automations::dsl::*;
+            diesel::delete(system_automations
+                .filter(bot_id.eq(bot_uuid))
+                .filter(kind.eq(TriggerKind::Scheduled as i32))
+                .filter(param.eq(&script_name))
+            )
+            .execute(&mut *conn)
+            .map_err(|e| log::error!("Failed to remove schedule for {}: {}", script_name, e))
+            .ok();
+        }
+
+        if has_schedule {
+            self.previous_schedules.insert(script_name);
+        } else {
+            self.previous_schedules.remove(&script_name);
         }
 
         Ok(result)

@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use uuid::Uuid;
-use log::{info, trace, warn};
+use log::{info, trace};
  // removed unused serde import
 use std::collections::HashMap;
 use std::fs::OpenOptions;
@@ -197,7 +197,7 @@ impl AppConfig {
 
 }
 
-fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
+pub fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
     let mut file = OpenOptions::new()
         .append(true)
         .create(true)

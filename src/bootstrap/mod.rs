@@ -1,4 +1,4 @@
-use crate::config::AppConfig;
+use crate::config::{AppConfig, write_drive_config_to_env};
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
@@ -279,11 +279,19 @@ impl BootstrapManager {
         self.s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         
         // Load config from CSV if available
-        if let Ok(csv_config) = self.load_config_from_csv().await {
-            Ok(csv_config)
+        let final_config = if let Ok(csv_config) = self.load_config_from_csv().await {
+            csv_config
         } else {
-            Ok(config)
+            config
+        };
+
+        // Write drive config to .env file if not already present (first bootstrap)
+        if std::env::var("DRIVE_SERVER").is_err() {
+            write_drive_config_to_env(&final_config.drive)
+                .map_err(|e| anyhow::anyhow!("Failed to write drive config to .env: {}", e))?;
         }
+
+        Ok(final_config)
     }
 
 
