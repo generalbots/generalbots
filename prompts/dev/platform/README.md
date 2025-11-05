@@ -14,3 +14,4 @@ When initial attempts fail, sequentially try these LLMs:
 - **On error**: Stop and consult Claude for guidance
 - **Change progression**: Start with DeepSeek, conclude with gpt-oss-120b
 - **Final validation**: Use prompt "cargo check" with gpt-oss-120b
+- Be humble, one requirement, one commit. But sometimes, freedom of caos is welcome - when no deadlines are set.
