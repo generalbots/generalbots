@@ -132,11 +132,6 @@ impl AppConfig {
         use_ssl: get_bool("DRIVE_USE_SSL", false),
     };
 
-    // Write drive config to .env file
-    if let Err(e) = write_drive_config_to_env(&drive) {
-        warn!("Failed to write drive config to .env: {}", e);
-    }
-
         Ok(AppConfig {
             drive,
             server: ServerConfig {
