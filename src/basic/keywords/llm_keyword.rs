@@ -6,11 +6,6 @@ use uuid::Uuid;
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Registers the `LLM` keyword for Rhai scripts.
-/// Example usage inside Rhai:
-/// ```rhai
-/// result = LLM "Summarize the following text about AI:";
-/// ```
 pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
