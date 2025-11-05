@@ -38,16 +38,26 @@ pub fn execute_set_schedule(
         is_active.eq(true),
     );
 
-    let result = diesel::insert_into(system_automations)
-        .values(&new_automation)
-        .on_conflict((bot_id, kind, param))
-        .do_update()
+    // First try to update existing record
+    let update_result = diesel::update(system_automations)
+        .filter(bot_id.eq(bot_uuid))
+        .filter(kind.eq(TriggerKind::Scheduled as i32))
+        .filter(param.eq(script_name))
         .set((
             schedule.eq(cron),
             is_active.eq(true),
             last_triggered.eq(None::<chrono::DateTime<chrono::Utc>>),
         ))
         .execute(&mut *conn)?;
+
+    // If no rows were updated, insert new record
+    let result = if update_result == 0 {
+        diesel::insert_into(system_automations)
+            .values(&new_automation)
+            .execute(&mut *conn)?
+    } else {
+        update_result
+    };
 
     Ok(json!({
         "command": "set_schedule",
