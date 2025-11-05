@@ -34,8 +34,6 @@ use self::keywords::add_suggestion::add_suggestion_keyword;
 #[cfg(feature = "email")]
 use self::keywords::create_draft_keyword;
 
-#[cfg(feature = "web_automation")]
-use self::keywords::get_website::get_website_keyword;
 
 pub struct ScriptService {
     pub engine: Engine,
@@ -80,8 +78,6 @@ impl ScriptService {
         add_website_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
 
-        #[cfg(feature = "web_automation")]
-        get_website_keyword(&state, user.clone(), &mut engine);
 
         ScriptService {
             engine,

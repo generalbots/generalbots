@@ -40,7 +40,6 @@ repository = "https://github.com/GeneralBots/BotServer"
 default = [ "vectordb"]
 vectordb = ["qdrant-client"]
 email = ["imap"]
-web_automation = ["headless_chrome"]
 desktop = []
 
 [dependencies]
@@ -65,7 +64,6 @@ downloader = "0.2"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
-headless_chrome = { version = "1.0.18", optional = true }
 hmac = "0.12.1"
 imap = { version = "3.0.0-alpha.15", optional = true }
 include_dir = "0.7"
@@ -84,7 +82,6 @@ redis = { version = "0.27", features = ["tokio-comp"] }
 regex = "1.11"
 reqwest = { version = "0.12", features = ["json", "stream"] }
 rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
-scraper = "0.20" 
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 sha2 = "0.10.9"
