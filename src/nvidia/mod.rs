@@ -10,7 +10,7 @@ pub struct SystemMetrics {
 }
 
 /// Gets current system metrics
-pub fn get_system_metrics(current_tokens: usize, max_tokens: usize) -> Result<SystemMetrics> {
+pub fn get_system_metrics(_current_tokens: usize, _max_tokens: usize) -> Result<SystemMetrics> {
     let mut sys = System::new();
     sys.refresh_cpu_usage();
     
