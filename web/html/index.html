@@ -552,7 +552,6 @@ width:100px;
 <div class="flash-overlay" id="flashOverlay"></div>
 <div class="float-menu">
 <div class="float-logo" id="floatLogo" title="Menu"></div>
-<div class="menu-button" id="newChatBtn" title="New Chat">+</div>
 <div class="menu-button" id="themeBtn" title="Theme">⚙</div>
 </div>
 <div class="sidebar" id="sidebar">
@@ -560,11 +559,7 @@ width:100px;
 <div class="sidebar-logo"></div>
 <div class="sidebar-title" id="sidebarTitle">General Bots</div>
 </div>
-<button class="sidebar-button" onclick="createNewSession()">+ New Chat</button>
 <button class="sidebar-button" id="voiceToggle" onclick="toggleVoiceMode()">🎤 Voice Mode</button>
-<div class="history-section">
-<div class="history-title">History</div>
-<div id="history"></div>
 </div>
 </div>
 <main id="messages"></main>
@@ -584,7 +579,7 @@ width:100px;
 </div>
 <script>
 let ws=null,currentSessionId=null,currentUserId=null,currentBotId="default_bot",isStreaming=false,voiceRoom=null,isVoiceMode=false,mediaRecorder=null,audioChunks=[],streamingMessageId=null,isThinking=false,currentStreamingContent="",hasReceivedInitialMessage=false,reconnectAttempts=0,reconnectTimeout=null,thinkingTimeout=null,currentTheme='auto',themeColor1=null,themeColor2=null,customLogoUrl=null,contextUsage=0,isUserScrolling=false,autoScrollEnabled=true,isContextChange=false;
-const maxReconnectAttempts=5,messagesDiv=document.getElementById("messages"),input=document.getElementById("messageInput"),sendBtn=document.getElementById("sendBtn"),voiceBtn=document.getElementById("voiceBtn"),connectionStatus=document.getElementById("connectionStatus"),flashOverlay=document.getElementById("flashOverlay"),suggestionsContainer=document.getElementById("suggestions"),floatLogo=document.getElementById("floatLogo"),sidebar=document.getElementById("sidebar"),newChatBtn=document.getElementById("newChatBtn"),themeBtn=document.getElementById("themeBtn"),scrollToBottomBtn=document.getElementById("scrollToBottom"),contextIndicator=document.getElementById("contextIndicator"),contextPercentage=document.getElementById("contextPercentage"),contextProgressBar=document.getElementById("contextProgressBar"),sidebarTitle=document.getElementById("sidebarTitle");
+const maxReconnectAttempts=5,messagesDiv=document.getElementById("messages"),input=document.getElementById("messageInput"),sendBtn=document.getElementById("sendBtn"),voiceBtn=document.getElementById("voiceBtn"),connectionStatus=document.getElementById("connectionStatus"),flashOverlay=document.getElementById("flashOverlay"),suggestionsContainer=document.getElementById("suggestions"),floatLogo=document.getElementById("floatLogo"),sidebar=document.getElementById("sidebar"),themeBtn=document.getElementById("themeBtn"),scrollToBottomBtn=document.getElementById("scrollToBottom"),contextIndicator=document.getElementById("contextIndicator"),contextPercentage=document.getElementById("contextPercentage"),contextProgressBar=document.getElementById("contextProgressBar"),sidebarTitle=document.getElementById("sidebarTitle");
 marked.setOptions({breaks:true,gfm:true});
 
 function toggleSidebar(){
@@ -638,10 +633,6 @@ input.focus();
 });
 
 floatLogo.addEventListener('click',toggleSidebar);
-newChatBtn.addEventListener('click',()=>{
-createNewSession();
-sidebar.classList.remove('open');
-});
 themeBtn.addEventListener('click',toggleTheme);
 
 document.addEventListener('click',function(e){
