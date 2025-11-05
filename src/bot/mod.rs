@@ -1,16 +1,19 @@
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
 use crate::llm_models;
+use crate::nvidia::get_system_metrics;
 use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
 use actix_ws::Message as WsMessage;
-use chrono::Utc;
+use chrono::{Utc};
 use diesel::PgConnection;
 use log::{error, info, trace, warn};
 use serde_json;
+use tokio::time::Instant;
 use std::collections::HashMap;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
@@ -436,9 +439,10 @@ impl BotOrchestrator {
             response_tx.send(thinking_response).await?;
         }
 
+        let prompt_clone = prompt.clone();
         tokio::spawn(async move {
             if let Err(e) = llm
-                .generate_stream(&prompt, &serde_json::Value::Null, stream_tx)
+                .generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx)
                 .await
             {
                 error!("LLM streaming error: {}", e);
@@ -450,8 +454,32 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let mut chunk_count = 0;
         let mut first_word_received = false;
+        let mut last_progress_update = Instant::now();
+        let progress_interval = Duration::from_secs(1);
 
+        // Calculate initial token count
+        let initial_tokens = crate::shared::utils::estimate_token_count(&prompt);
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let max_context_size = config_manager
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-server-ctx-size",
+                None,
+            )
+            .unwrap_or_default()
+            .parse::<usize>()
+            .unwrap_or(0);
+
+        // Show initial progress
+        if let Ok(metrics) = get_system_metrics(initial_tokens, max_context_size) {
+            eprintln!(
+                "\nNVIDIA: {:.1}% | CPU: {:.1}% | Tokens: {}/{}",
+                metrics.gpu_usage.unwrap_or(0.0),
+                metrics.cpu_usage,
+                initial_tokens,
+                max_context_size
+            );
+        }
         let model = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -497,6 +525,21 @@ impl BotOrchestrator {
 
             if !in_analysis {
                 full_response.push_str(&chunk);
+
+                // Update progress if interval elapsed
+                if last_progress_update.elapsed() >= progress_interval {
+                    let current_tokens = initial_tokens + crate::shared::utils::estimate_token_count(&full_response);
+                    if let Ok(metrics) = get_system_metrics(current_tokens, max_context_size) {
+                        eprintln!(
+                            "\nNVIDIA: {:.1}% | CPU: {:.1}% | Tokens: {}/{}",
+                            metrics.gpu_usage.unwrap_or(0.0),
+                            metrics.cpu_usage,
+                            current_tokens,
+                            max_context_size
+                        );
+                    }
+                    last_progress_update = Instant::now();
+                }
 
                 let partial = BotResponse {
                     bot_id: message.bot_id.clone(),
