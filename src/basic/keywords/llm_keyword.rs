@@ -65,10 +65,7 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
 /// Builds a consistent LLM prompt used by all Rhai scripts.
 /// You can change the style/structure here to guide the model's behavior.
 fn build_llm_prompt(user_text: &str) -> String {
-    format!(
-        "User: {}",
-        user_text.trim()
-    )
+    user_text.trim().to_string()
 }
 
 /// Runs the async LLM provider call safely.
@@ -81,11 +78,14 @@ pub async fn execute_llm_generation(
         .get_config(&Uuid::nil(), "llm-model", None)
         .unwrap_or_default();
 
+    info!("Using LLM model: {}", model);
     let handler = crate::llm_models::get_handler(&model);
     let raw_response = state
         .llm_provider
         .generate(&prompt, &serde_json::Value::Null)
         .await?;
 
-    Ok(handler.process_content(&raw_response))
+    let processed = handler.process_content(&raw_response);
+    info!("Processed content: {}", processed);
+    Ok(processed)
 }
