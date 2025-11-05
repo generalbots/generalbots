@@ -1,3 +1,4 @@
+
 use actix_web::{HttpRequest, HttpResponse, Result, web};
 use log::error;
 use std::collections::HashMap;
@@ -132,3 +133,7 @@ async fn auth_handler(
         "status": "authenticated"
     })))
 }
+
+
+#[cfg(test)]
+pub mod auth_test;

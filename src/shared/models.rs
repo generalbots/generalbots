@@ -4,8 +4,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 
-
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TriggerKind {
     Scheduled = 0,

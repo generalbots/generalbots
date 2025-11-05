@@ -32,5 +32,3 @@ macro_rules! assert_err {
         }
     };
 }
-
-/// Mock structures and common test data can be added here
