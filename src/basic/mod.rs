@@ -26,7 +26,6 @@ use self::keywords::list_tools::list_tools_keyword;
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
 use self::keywords::print::print_keyword;
-use self::keywords::remove_tool::remove_tool_keyword;
 use self::keywords::set::set_keyword;
 use self::keywords::set_kb::{add_kb_keyword, set_kb_keyword};
 use self::keywords::wait::wait_keyword;
@@ -76,7 +75,6 @@ impl ScriptService {
         set_kb_keyword(state.clone(), user.clone(), &mut engine);
         add_kb_keyword(state.clone(), user.clone(), &mut engine);
         add_tool_keyword(state.clone(), user.clone(), &mut engine);
-        remove_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
         list_tools_keyword(state.clone(), user.clone(), &mut engine);
         add_website_keyword(state.clone(), user.clone(), &mut engine);

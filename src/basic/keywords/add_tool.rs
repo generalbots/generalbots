@@ -206,24 +206,6 @@ pub fn get_session_tools(
         .load::<String>(conn)
 }
 
-/// Remove a tool association from a session
-pub fn remove_session_tool(
-    conn: &mut PgConnection,
-    session_id: &Uuid,
-    tool_name: &str,
-) -> Result<usize, diesel::result::Error> {
-    use crate::shared::models::schema::session_tool_associations;
-
-    let session_id_str = session_id.to_string();
-
-    diesel::delete(
-        session_tool_associations::table
-            .filter(session_tool_associations::session_id.eq(&session_id_str))
-            .filter(session_tool_associations::tool_name.eq(tool_name)),
-    )
-    .execute(conn)
-}
-
 /// Clear all tool associations for a session
 pub fn clear_session_tools(
     conn: &mut PgConnection,
