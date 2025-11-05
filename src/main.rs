@@ -27,9 +27,11 @@ mod meet;
 mod package_manager;
 mod session;
 mod shared;
+pub mod tests;
 #[cfg(feature = "web_automation")]
 mod web_automation;
 mod web_server;
+
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
