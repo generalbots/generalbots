@@ -21,6 +21,14 @@ pub trait LLMProvider: Send + Sync {
         tx: mpsc::Sender<String>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 
+    async fn summarize(
+        &self,
+        text: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let prompt = format!("Summarize the following conversation while preserving key details:\n\n{}", text);
+        self.generate(&prompt, &serde_json::json!({"max_tokens": 500}))
+            .await
+    }
 
     async fn cancel_job(
         &self,

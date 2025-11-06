@@ -13,5 +13,6 @@ When initial attempts fail, sequentially try these LLMs:
 - **One requirement at a time** with sequential commits
 - **On error**: Stop and consult Claude for guidance
 - **Change progression**: Start with DeepSeek, conclude with gpt-oss-120b
+- If a big req. fail, specify a @code file that has similar pattern or sample from official docs.
 - **Final validation**: Use prompt "cargo check" with gpt-oss-120b
 - Be humble, one requirement, one commit. But sometimes, freedom of caos is welcome - when no deadlines are set.
