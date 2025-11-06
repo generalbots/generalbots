@@ -9,6 +9,7 @@ use log::{error, info};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
+mod compact_prompt;
 
 pub struct AutomationService {
     state: Arc<AppState>,
@@ -16,6 +17,8 @@ pub struct AutomationService {
 
 impl AutomationService {
     pub fn new(state: Arc<AppState>) -> Self {
+        // Start the compact prompt scheduler
+        crate::automation::compact_prompt::start_compact_prompt_scheduler(Arc::clone(&state));
         Self { state }
     }
 
@@ -33,9 +36,15 @@ impl AutomationService {
     }
 
     async fn check_scheduled_tasks(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        use crate::shared::models::system_automations::dsl::{system_automations, is_active, kind, id, last_triggered as lt_column};
+        use crate::shared::models::system_automations::dsl::{
+            id, is_active, kind, last_triggered as lt_column, system_automations,
+        };
 
-        let mut conn = self.state.conn.lock().map_err(|e| format!("Failed to acquire lock: {}", e))?;
+        let mut conn = self
+            .state
+            .conn
+            .lock()
+            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
         let automations: Vec<Automation> = system_automations
             .filter(is_active.eq(true))
@@ -43,10 +52,10 @@ impl AutomationService {
             .load::<Automation>(&mut *conn)?;
 
         for automation in automations {
-if let Some(schedule_str) = &automation.schedule {
-    if let Ok(parsed_schedule) = Schedule::from_str(schedule_str) {
-        let now = Utc::now();
-        let next_run = parsed_schedule.upcoming(Utc).next();
+            if let Some(schedule_str) = &automation.schedule {
+                if let Ok(parsed_schedule) = Schedule::from_str(schedule_str) {
+                    let now = Utc::now();
+                    let next_run = parsed_schedule.upcoming(Utc).next();
 
                     if let Some(next_time) = next_run {
                         let time_until_next = next_time - now;
@@ -59,9 +68,9 @@ if let Some(schedule_str) = &automation.schedule {
 
                             self.execute_automation(&automation).await?;
 
-diesel::update(system_automations.filter(id.eq(automation.id)))
-    .set(lt_column.eq(Some(now)))
-    .execute(&mut *conn)?;
+                            diesel::update(system_automations.filter(id.eq(automation.id)))
+                                .set(lt_column.eq(Some(now)))
+                                .execute(&mut *conn)?;
                         }
                     }
                 }
@@ -71,19 +80,28 @@ diesel::update(system_automations.filter(id.eq(automation.id)))
         Ok(())
     }
 
-    async fn execute_automation(&self, automation: &Automation) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn execute_automation(
+        &self,
+        automation: &Automation,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Executing automation: {}", automation.param);
 
-        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
         let bot_name: String = {
             use crate::shared::models::schema::bots::dsl::*;
-            let mut conn = self.state.conn.lock().map_err(|e| format!("Lock failed: {}", e))?;
+            let mut conn = self
+                .state
+                .conn
+                .lock()
+                .map_err(|e| format!("Lock failed: {}", e))?;
             bots.filter(id.eq(automation.bot_id))
                 .select(name)
                 .first(&mut *conn)?
         };
 
-        let script_path = format!("./work/{}.gbai/{}.gbdialog/{}.ast", bot_name, bot_name, automation.param);
+        let script_path = format!(
+            "./work/{}.gbai/{}.gbdialog/{}.ast",
+            bot_name, bot_name, automation.param
+        );
 
         let script_content = match tokio::fs::read_to_string(&script_path).await {
             Ok(content) => content,
@@ -96,26 +114,30 @@ diesel::update(system_automations.filter(id.eq(automation.id)))
         let session = {
             let mut sm = self.state.session_manager.lock().await;
             let admin_user = uuid::Uuid::nil();
-            sm.get_or_create_user_session(admin_user, automation.bot_id, "Automation")?.ok_or("Failed to create session")?
+            sm.get_or_create_user_session(admin_user, automation.bot_id, "Automation")?
+                .ok_or("Failed to create session")?
         };
 
         let script_service = ScriptService::new(Arc::clone(&self.state), session);
 
-match script_service.compile(&script_content) {
-    Ok(ast) => {
-        if let Err(e) = script_service.run(&ast) {
-            error!("Script execution failed: {}", e);
+        match script_service.compile(&script_content) {
+            Ok(ast) => {
+                if let Err(e) = script_service.run(&ast) {
+                    error!("Script execution failed: {}", e);
+                }
+            }
+            Err(e) => {
+                error!("Script compilation failed: {}", e);
+            }
         }
-    }
-    Err(e) => {
-        error!("Script compilation failed: {}", e);
-    }
-}
 
         Ok(())
     }
 
-    async fn execute_compact_prompt(&self, automation: &Automation) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    async fn execute_compact_prompt(
+        &self,
+        automation: &Automation,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Executing prompt compaction for bot: {}", automation.bot_id);
 
         let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
@@ -139,7 +161,11 @@ match script_service.compile(&script_content) {
             let history = session_manager.get_conversation_history(session.id, session.user_id)?;
 
             if history.len() > compact_threshold {
-                info!("Compacting prompt for session {}: {} messages", session.id, history.len());
+                info!(
+                    "Compacting prompt for session {}: {} messages",
+                    session.id,
+                    history.len()
+                );
 
                 let mut compacted = String::new();
                 for (role, content) in &history[..history.len() - compact_threshold] {
@@ -148,13 +174,7 @@ match script_service.compile(&script_content) {
 
                 let summarized = format!("SUMMARY: {}", compacted);
 
-                session_manager.save_message(
-                    session.id,
-                    session.user_id,
-                    3,
-                    &summarized,
-                    1
-                )?;
+                session_manager.save_message(session.id, session.user_id, 3, &summarized, 1)?;
             }
         }
 
@@ -163,7 +183,7 @@ match script_service.compile(&script_content) {
 }
 
 pub async fn execute_compact_prompt() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::system_automations::dsl::{system_automations, is_active};
+    use crate::shared::models::system_automations::dsl::{is_active, system_automations};
     use diesel::prelude::*;
     use log::info;
     use std::sync::Arc;
@@ -171,14 +191,20 @@ pub async fn execute_compact_prompt() -> Result<(), Box<dyn std::error::Error + 
     let state = Arc::new(crate::shared::state::AppState::default());
     let service = AutomationService::new(Arc::clone(&state));
 
-    let mut conn = state.conn.lock().map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    let mut conn = state
+        .conn
+        .lock()
+        .map_err(|e| format!("Failed to acquire lock: {}", e))?;
     let automations: Vec<crate::shared::models::Automation> = system_automations
         .filter(is_active.eq(true))
         .load::<crate::shared::models::Automation>(&mut *conn)?;
 
     for automation in automations {
         if let Err(e) = service.execute_compact_prompt(&automation).await {
-            error!("Failed to compact prompt for bot {}: {}", automation.bot_id, e);
+            error!(
+                "Failed to compact prompt for bot {}: {}",
+                automation.bot_id, e
+            );
         }
     }
 
