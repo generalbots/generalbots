@@ -161,3 +161,27 @@ match script_service.compile(&script_content) {
         Ok(())
     }
 }
+
+pub async fn execute_compact_prompt() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use crate::shared::models::system_automations::dsl::{system_automations, is_active};
+    use diesel::prelude::*;
+    use log::info;
+    use std::sync::Arc;
+
+    let state = Arc::new(crate::shared::state::AppState::default());
+    let service = AutomationService::new(Arc::clone(&state));
+
+    let mut conn = state.conn.lock().map_err(|e| format!("Failed to acquire lock: {}", e))?;
+    let automations: Vec<crate::shared::models::Automation> = system_automations
+        .filter(is_active.eq(true))
+        .load::<crate::shared::models::Automation>(&mut *conn)?;
+
+    for automation in automations {
+        if let Err(e) = service.execute_compact_prompt(&automation).await {
+            error!("Failed to compact prompt for bot {}: {}", automation.bot_id, e);
+        }
+    }
+
+    info!("Prompt compaction cycle completed");
+    Ok(())
+}

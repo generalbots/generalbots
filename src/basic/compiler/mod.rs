@@ -365,7 +365,7 @@ impl BasicCompiler {
         for line in source.lines() {
             let trimmed = line.trim();
 
-            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("REM") {
+            if trimmed.is_empty() || trimmed.starts_with("'") || trimmed.starts_with("//") || trimmed.starts_with("REM") {
                 continue;
             }
 
