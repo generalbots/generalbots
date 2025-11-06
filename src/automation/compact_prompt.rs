@@ -1,8 +1,10 @@
 use crate::config::ConfigManager;
+use crate::llm_models;
 use crate::shared::models::Automation;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info};
+use log::{error, info, trace};
+use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
@@ -51,6 +53,32 @@ async fn compact_prompt_for_bot(
     state: &Arc<AppState>,
     automation: &Automation,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Skip if already compacting this bot
+    use once_cell::sync::Lazy;
+    use scopeguard::guard;
+    static IN_PROGRESS: Lazy<tokio::sync::Mutex<HashSet<Uuid>>> = Lazy::new(|| {
+        tokio::sync::Mutex::new(HashSet::new())
+    });
+    
+    {
+        let mut in_progress = IN_PROGRESS.lock().await;
+        if in_progress.contains(&automation.bot_id) {
+            trace!("Skipping compaction for bot {} - already in progress", automation.bot_id);
+            return Ok(());
+        }
+        in_progress.insert(automation.bot_id);
+    }
+
+    // Ensure cleanup happens when function exits
+    let bot_id = automation.bot_id;
+    let _cleanup = guard((), |_| {
+        tokio::spawn(async move {
+            let mut in_progress = IN_PROGRESS.lock().await;
+            in_progress.remove(&bot_id);
+            trace!("Released compaction lock for bot {}", bot_id);
+        });
+    });
+
     info!("Executing prompt compaction for bot: {}", automation.bot_id);
 
     let config_manager = ConfigManager::new(Arc::clone(&state.conn));
@@ -80,15 +108,15 @@ async fn compact_prompt_for_bot(
             session_manager.get_conversation_history(session.id, session.user_id)?
         };
 
-        if history.len() > compact_threshold {
             info!(
                 "Compacting prompt for session {}: {} messages",
                 session.id,
                 history.len()
             );
 
+            // Compact entire conversation history when threshold is reached
             let mut compacted = String::new();
-            for (role, content) in &history[..history.len() - compact_threshold] {
+            for (role, content) in &history {
                 compacted.push_str(&format!("{}: {}\n", role, content));
             }
 
@@ -96,11 +124,26 @@ async fn compact_prompt_for_bot(
             let llm_provider = state.llm_provider.clone();
             let compacted_clone = compacted.clone();
             
-            // Run LLM summarization
-            let summarized = match llm_provider.generate(&compacted_clone, &serde_json::Value::Null).await {
-                Ok(summary) => format!("SUMMARY: {}", summary),
+            // Run LLM summarization with proper tracing and filtering
+            trace!("Starting summarization for session {}", session.id);
+            let summarized = match llm_provider.summarize(&compacted_clone).await {
+                Ok(summary) => {
+                    trace!("Successfully summarized session {} ({} chars)", 
+                        session.id, summary.len());
+                    // Use handler to filter <think> content
+                    let handler = llm_models::get_handler(
+                        &config_manager.get_config(
+                            &automation.bot_id, 
+                            "llm-model", 
+                            None
+                        ).unwrap_or_default()
+                    );
+                    let filtered = handler.process_content(&summary);
+                    format!("SUMMARY: {}", filtered)
+                },
                 Err(e) => {
-                    error!("Failed to summarize conversation: {}", e);
+                    error!("Failed to summarize conversation for session {}: {}", session.id, e);
+                    trace!("Using fallback summary for session {}", session.id);
                     format!("SUMMARY: {}", compacted) // Fallback
                 }
             };
@@ -110,12 +153,17 @@ async fn compact_prompt_for_bot(
                 history.len()
             );
 
-            // Save with minimal lock time
+            // Remove all old messages and save only the summary
             {
                 let mut session_manager = state.session_manager.lock().await;
+                // First delete all existing messages for this session
+                if let Err(e) = session_manager.clear_messages(session.id) {
+                    error!("Failed to clear messages for session {}: {}", session.id, e);
+                    return Err(e);
+                }
+                // Then save just the summary
                 session_manager.save_message(session.id, session.user_id, 3, &summarized, 1)?;
             }
-        }
     }
 
     Ok(())
