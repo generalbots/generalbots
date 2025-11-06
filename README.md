@@ -32,6 +32,70 @@
 
 General Bot is a strongly typed LLM conversational platform package based chat bot server focused in convention over configuration and code-less approaches, which brings software packages and application server concepts to help parallel bot development.
 
+## GENERAL BOTS SELF-HOST AI AUTOMATION PLATFORM
+
+| FEATURE | STATUS | STRATEGIC ADVANTAGE | COMPETITIVE GAP |
+|---------|--------|---------------------|-----------------|
+| **Multi-Vendor LLM API** | ✅ DEPLOYED | Unified interface for OpenAI, Groq, Claude, Anthropic | Vendor lock-in |
+| **MCP + LLM Tools Generation** | ✅ DEPLOYED | Instant tool creation from code/functions | Manual tool development |
+| **Semantic Caching System** | ✅ DEPLOYED | 70% cost reduction via intelligent caching | No caching or basic key-value |
+| **Cross-Platform Desktop** | ⚡ NEAR-TERM | Native MacOS/Windows/Linux applications | Web-only interfaces |
+| **Git-like Version Control** | ✅ DEPLOYED | Full history with rollback capabilities | Basic undo/redo |
+| **Web Automation Engine** | ✅ DEPLOYED | Browser automation + AI intelligence | Separate RPA tools |
+| **External Data APIs** | ✅ DEPLOYED | integrated services via connectors | Limited integrations |
+| **Document Intelligence Suite** | ⚡ NEAR-TERM | AI-powered document creation & analysis | Basic file processing |
+| **Workflow Collaboration** | ⚡ NEAR-TERM | Real-time team automation building | Individual automation |
+| **Enterprise Data Connectors** | ✅ DEPLOYED | CRM, ERP, database native integrations | API-only connections |
+| **Real-time Co-editing** | 🔶 MEDIUM-TERM | Multiple users edit workflows simultaneously | Single-user editors |
+| **Advanced Analytics Dashboard** | ⚡ NEAR-TERM | Business intelligence with AI insights | Basic metrics |
+| **Compliance Automation** | 🔶 MEDIUM-TERM | Regulatory compliance workflows | Manual compliance |
+| **Presentation Generation** | ⚡ NEAR-TERM | AI-driven slide decks and reports | Manual creation |
+| **Spreadsheet Intelligence** | ⚡ NEAR-TERM | AI analysis of complex data models | Basic CSV processing |
+| **Calendar Automation** | 🔶 MEDIUM-TERM | Meeting scheduling and coordination | Manual calendar management |
+| **Email Campaign Engine** | 🔶 MEDIUM-TERM | Personalized bulk email with AI | Basic mailing lists |
+| **Project Management Sync** | 🔶 MEDIUM-TERM | AI coordinates across multiple tools | Siloed project data |
+| **Contract Analysis** | ✅ DEPLOYED | Legal document review and summary | Manual legal review |
+| **Budget Forecasting** | ⚡ NEAR-TERM | AI-powered financial projections | Spreadsheet-based |
+
+**STATUS LEGEND:**
+- ✅ DEPLOYED - Production ready
+- ⚡ NEAR-TERM - 6 month development (foundation exists)
+- 🔶 MEDIUM-TERM - 12 month development
+
+**ENTERPRISE PRODUCTIVITY SUITE CAPABILITIES:**
+
+**Document Intelligence**
+- AI-powered document creation from templates
+- Smart content summarization and analysis
+- Multi-format compatibility (PDF, Word, Markdown)
+- Version control with change tracking
+
+**Data Analysis & Reporting**
+- Spreadsheet AI with natural language queries
+- Automated dashboard generation
+- Predictive analytics and trend identification
+- Export to multiple business formats
+
+**Communication & Collaboration**
+- Team workspace with shared automation
+- Meeting automation and minute generation
+- Cross-platform notification system
+- Approval workflow automation
+
+**Business Process Automation**
+- End-to department workflow orchestration
+- Compliance and audit trail automation
+- Customer lifecycle management
+- Supply chain intelligence
+
+**Competitive Positioning:**
+- **vs ChatGPT/Claude**: We automate entire business processes, not just chat
+- **vs n8n/Make**: Simpler approach and stimulate little programming. 
+- **vs Microsoft 365**: We give control to users, not sell locked systems
+- **vs Salesforce**: We connect all business systems with open-source AI orchestration
+
+
+
 ## What is a Bot Server?
 
 Bot Server accelerates the process of developing a bot. It provisions all code
@@ -74,13 +138,7 @@ Follow these steps to get your General Bots server up and running:
    ```
    This changes your current directory to the newly cloned BotServer folder.
 
-3. Create your configuration file:
-   ```bash
-   cp .env.example .env
-   ```
-   Edit `.env` with your actual configuration values. See [Configuration](#configuration) section below.
-
-4. Run the server:
+3. Run the server:
    ```bash
    cargo run
    ```
@@ -90,12 +148,6 @@ Follow these steps to get your General Bots server up and running:
    - Download AI models
    - Upload template bots from `templates/` folder
    - Start the HTTP server on `http://127.0.0.1:8080` (or your configured port)
-
-**Alternative - Build release version:**
-```bash
-cargo build --release
-./target/release/botserver
-```
 
 **Management Commands:**
 ```bash
@@ -116,70 +168,6 @@ Once the server is running, you can access your bot at `http://localhost:8080/` 
 **Authentication:** Users can optionally register/login at `/static/auth/login.html` to save conversations across devices.
 
 **About Page:** Visit `/static/about/index.html` to learn more about BotServer and its maintainers.
-
-### Configuration
-
-BotServer uses environment variables for configuration. Copy `.env.example` to `.env` and customize:
-
-#### Required Settings (Auto-installed on first run)
-```bash
-# Database (PostgreSQL - auto-installed)
-TABLES_SERVER=localhost
-TABLES_PORT=5432
-TABLES_DATABASE=botserver
-TABLES_USERNAME=gbuser
-TABLES_PASSWORD=changeme
-
-# Storage (MinIO - auto-installed)
-DRIVE_SERVER=http://localhost:9000
-DRIVE_ACCESSKEY=minioadmin
-DRIVE_SECRET=minioadmin
-DRIVE_ORG_PREFIX=botserver-
-
-#### Legacy Mode (Use existing infrastructure)
-If you already have PostgreSQL, MinIO, etc. running, set these in `.env`:
-```bash
-# Existing database
-TABLES_SERVER=your-db-host
-TABLES_USERNAME=your-username
-TABLES_PASSWORD=your-password
-
-# Existing MinIO/S3
-DRIVE_SERVER=https://your-minio-host
-DRIVE_ACCESSKEY=your-access-key
-DRIVE_SECRET=your-secret-key
-```
-
-BotServer will detect existing infrastructure and skip auto-installation.
-
-## Development Workflow
-
-### 1. Project Structure
-
-The General Bots server follows a modular architecture designed for flexibility and scalability. Here's an overview of the main directories:
-
-```
-BotServer/
-├── packages/
-│   ├── core.gbapp/         # Core bot functionality
-│   ├── kb.gbapp/           # Knowledge base packages
-├── src /             # Main entry point
-└── package.json      # Project configuration
-```
-
-This structure allows for easy navigation and management of different aspects of your bot project.
-
-### 2. Creating Custom Packages
-
-One of the strengths of General Bots is its extensibility. You can create custom packages to enhance your bot's capabilities:
-
-- **.gbkb (Knowledge Base packages)**: Store and manage your bot's knowledge and responses.
-- **.gbtheme (Theme packages)**: Customize the visual appearance of your bot interface.
-- **.gbapp (Application packages)**: Add new features and functionalities to your bot.
-
-Each package type has its own structure and purpose, which we'll explore in depth in their respective chapters.
-
-## Samples
 
 Several samples, including a Bot for AD Password Reset, are avaiable on the [repository list](https://github.com/GeneralBots).
 
