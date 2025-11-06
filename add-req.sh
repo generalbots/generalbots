@@ -21,15 +21,15 @@ for file in "${prompts[@]}"; do
 done
 
 dirs=(
-      "auth"
+     # "auth"
      # "automation"
-     # "basic"
+      "basic"
      # "bootstrap"
       "bot"
      # "channels"
-     # "config"
-     # "context"
-     # "drive_monitor"
+      "config"
+      "context"
+      "drive_monitor"
      # "email"
      # "file"
      # "kb"

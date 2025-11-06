@@ -17,14 +17,18 @@
 --glass:rgba(0,0,0,0.02);
 --shadow:rgba(0,0,0,0.05);
 --logo-url:url('https://pragmatismo.com.br/icons/general-bots.svg');
+--gradient-1:linear-gradient(135deg,rgba(0,102,255,0.05) 0%,rgba(0,102,255,0.0) 100%);
+--gradient-2:linear-gradient(45deg,rgba(0,0,0,0.02) 0%,rgba(0,0,0,0.0) 100%);
 }
 [data-theme="dark"]{
---bg:#727171;
+--bg:#1a1a1a;
 --fg:#ffffff;
---border:#a3a0a0;
+--border:#333333;
 --accent:#ffffff;
---glass:rgba(255,255,255,0.02);
---shadow:rgba(0,0,0,0.3);
+--glass:rgba(255,255,255,0.05);
+--shadow:rgba(0,0,0,0.5);
+--gradient-1:linear-gradient(135deg,rgba(255,255,255,0.08) 0%,rgba(255,255,255,0.0) 100%);
+--gradient-2:linear-gradient(45deg,rgba(255,255,255,0.03) 0%,rgba(255,255,255,0.0) 100%);
 }
 *{margin:0;padding:0;box-sizing:border-box}
 body{
@@ -36,6 +40,15 @@ transition:background 0.3s, color 0.3s;
 display:flex;
 flex-direction:column;
 height:100vh;
+position:relative;
+}
+body::before{
+content:'';
+position:fixed;
+inset:0;
+background:var(--gradient-1);
+pointer-events:none;
+z-index:0;
 }
 .float-menu{
 position:fixed;
@@ -55,11 +68,12 @@ border-radius:50%;
 cursor:pointer;
 transition:all 0.3s;
 border:1px solid var(--border);
+backdrop-filter:blur(10px);
 }
 [data-theme="dark"] .float-logo{
 }
 .float-logo:hover{
-transform:scale(1.1);
+transform:scale(1.1) rotate(5deg);
 }
 .menu-button{
 width:40px;
@@ -74,9 +88,10 @@ background:var(--bg);
 border:1px solid var(--border);
 font-size:16px;
 color:var(--fg);
+backdrop-filter:blur(10px);
 }
 .menu-button:hover{
-transform:scale(1.1);
+transform:scale(1.1) rotate(-5deg);
 background:var(--fg);
 color:var(--bg);
 }
@@ -92,6 +107,8 @@ transition:left 0.4s cubic-bezier(0.4,0,0.2,1);
 z-index:999;
 overflow-y:auto;
 padding:20px;
+backdrop-filter:blur(20px);
+box-shadow:4px 0 20px var(--shadow);
 }
 .sidebar.open{
 left:0;
@@ -132,7 +149,7 @@ text-align:left;
 .sidebar-button:hover{
 background:var(--fg);
 color:var(--bg);
-transform:translateX(4px);
+transform:translateX(4px) scale(1.02);
 }
 .history-section{
 margin-top:20px;
@@ -156,7 +173,7 @@ border:1px solid transparent;
 .history-item:hover{
 background:var(--fg);
 color:var(--bg);
-transform:translateX(4px);
+transform:translateX(4px) scale(1.02);
 }
 #messages{
 flex:1;
@@ -165,6 +182,8 @@ padding:20px 20px 140px;
 max-width:680px;
 margin:0 auto;
 width:100%;
+position:relative;
+z-index:1;
 }
 .message-container{
 margin-bottom:24px;
@@ -180,10 +199,21 @@ margin-bottom:8px;
 background:var(--fg);
 color:var(--bg);
 border-radius:18px;
-padding:10px 16px;
+padding:12px 18px;
 max-width:80%;
 font-size:14px;
 line-height:1.5;
+box-shadow:0 2px 8px var(--shadow);
+position:relative;
+overflow:hidden;
+}
+.user-message-content::before{
+content:'';
+position:absolute;
+inset:0;
+background:var(--gradient-2);
+opacity:0.3;
+pointer-events:none;
 }
 .assistant-message{
 display:flex;
@@ -205,6 +235,21 @@ filter:var(--logo-filter, none);
 flex:1;
 font-size:14px;
 line-height:1.7;
+background:var(--glass);
+border-radius:18px;
+padding:12px 18px;
+border:1px solid var(--border);
+box-shadow:0 2px 8px var(--shadow);
+position:relative;
+overflow:hidden;
+}
+.assistant-message-content::before{
+content:'';
+position:absolute;
+inset:0;
+background:var(--gradient-1);
+opacity:0.5;
+pointer-events:none;
 }
 .thinking-indicator{
 display:flex;
@@ -240,6 +285,7 @@ border-top:1px solid var(--border);
 padding:12px;
 z-index:100;
 transition:all 0.3s;
+backdrop-filter:blur(20px);
 }
 .suggestions-container{
 display:flex;
@@ -251,7 +297,7 @@ max-width:680px;
 margin:0 auto 8px;
 }
 .suggestion-button{
-padding:4px 10px;
+padding:6px 12px;
 border-radius:12px;
 cursor:pointer;
 font-size:11px;
@@ -264,7 +310,7 @@ color:var(--fg);
 .suggestion-button:hover{
 background:var(--fg);
 color:var(--bg);
-transform:scale(1.02);
+transform:scale(1.05);
 }
 .input-container{
 display:flex;
@@ -284,9 +330,11 @@ transition:all 0.3s;
 background:var(--glass);
 border:1px solid var(--border);
 color:var(--fg);
+backdrop-filter:blur(10px);
 }
 #messageInput:focus{
 border-color:var(--accent);
+box-shadow:0 0 0 3px rgba(0,102,255,0.1);
 }
 #messageInput::placeholder{
 opacity:0.3;
@@ -307,7 +355,7 @@ font-size:16px;
 flex-shrink:0;
 }
 #sendBtn:hover,#voiceBtn:hover{
-transform:scale(1.08);
+transform:scale(1.08) rotate(5deg);
 }
 #sendBtn:active,#voiceBtn:active{
 transform:scale(0.95);
@@ -316,8 +364,8 @@ transform:scale(0.95);
 animation:pulse 1.5s infinite;
 }
 @keyframes pulse{
-0%,100%{opacity:1}
-50%{opacity:0.6}
+0%,100%{opacity:1;transform:scale(1)}
+50%{opacity:0.6;transform:scale(1.1)}
 }
 .flash-overlay{
 position:fixed;
@@ -349,7 +397,7 @@ z-index:90;
 display:flex;
 }
 .scroll-to-bottom:hover{
-transform:scale(1.1);
+transform:scale(1.1) rotate(180deg);
 }
 .warning-message{
 border-radius:12px;
@@ -390,6 +438,7 @@ z-index:90;
 background:var(--bg);
 border:1px solid var(--border);
 display:none;
+backdrop-filter:blur(10px);
 }
 .context-indicator.visible{
 display:block;
@@ -560,6 +609,9 @@ width:100px;
 <div class="sidebar-title" id="sidebarTitle">General Bots</div>
 </div>
 <button class="sidebar-button" id="voiceToggle" onclick="toggleVoiceMode()">🎤 Voice Mode</button>
+<div class="history-section">
+<div class="history-title">History</div>
+<div id="history"></div>
 </div>
 </div>
 <main id="messages"></main>
@@ -581,6 +633,8 @@ width:100px;
 let ws=null,currentSessionId=null,currentUserId=null,currentBotId="default_bot",isStreaming=false,voiceRoom=null,isVoiceMode=false,mediaRecorder=null,audioChunks=[],streamingMessageId=null,isThinking=false,currentStreamingContent="",hasReceivedInitialMessage=false,reconnectAttempts=0,reconnectTimeout=null,thinkingTimeout=null,currentTheme='auto',themeColor1=null,themeColor2=null,customLogoUrl=null,contextUsage=0,isUserScrolling=false,autoScrollEnabled=true,isContextChange=false;
 const maxReconnectAttempts=5,messagesDiv=document.getElementById("messages"),input=document.getElementById("messageInput"),sendBtn=document.getElementById("sendBtn"),voiceBtn=document.getElementById("voiceBtn"),connectionStatus=document.getElementById("connectionStatus"),flashOverlay=document.getElementById("flashOverlay"),suggestionsContainer=document.getElementById("suggestions"),floatLogo=document.getElementById("floatLogo"),sidebar=document.getElementById("sidebar"),themeBtn=document.getElementById("themeBtn"),scrollToBottomBtn=document.getElementById("scrollToBottom"),contextIndicator=document.getElementById("contextIndicator"),contextPercentage=document.getElementById("contextPercentage"),contextProgressBar=document.getElementById("contextProgressBar"),sidebarTitle=document.getElementById("sidebarTitle");
 marked.setOptions({breaks:true,gfm:true});
+
+floatLogo.addEventListener('click',toggleSidebar);
 
 function toggleSidebar(){
 sidebar.classList.toggle('open');
@@ -1137,6 +1191,7 @@ async function connectToVoiceRoom(t){
 try{
 const r=new LiveKitClient.Room(),p=window.location.protocol==="https:"?"wss:":"ws:",u=`${p}//${window.location.host}/voice`;
 await r.connect(u,t);
+
 voiceRoom=r;
 r.on("dataReceived",d=>{
 const dc=new TextDecoder(),m=dc.decode(d);
