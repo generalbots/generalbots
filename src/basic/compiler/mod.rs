@@ -1,6 +1,6 @@
 use crate::shared::state::AppState;
 use crate::basic::keywords::set_schedule::execute_set_schedule;
-use log::{info, warn};
+use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use diesel::QueryDsl;
