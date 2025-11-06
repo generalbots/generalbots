@@ -1,10 +1,8 @@
-use crate::shared::models::schema::bots::dsl::*;
-use diesel::prelude::*;
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
-use log::{info, warn};
+use log::{info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -36,14 +34,6 @@ impl DriveMonitor {
         tokio::spawn(async move {
             info!("Drive Monitor service started for bucket: {}", self.bucket_name);
 
-            let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
-            let default_bot_id = {
-                let mut conn = self.state.conn.lock().unwrap();
-                bots.filter(name.eq("default"))
-                    .select(id)
-                    .first::<uuid::Uuid>(&mut *conn)
-                    .unwrap_or_else(|_| uuid::Uuid::nil())
-            };
 
             let mut tick = interval(Duration::from_secs(30));
 
