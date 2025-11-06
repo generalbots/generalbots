@@ -331,11 +331,19 @@ impl SessionManager {
         &mut self,
         uid: Uuid,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
-        use crate::shared::models::user_sessions;
-        let sessions = user_sessions::table
-            .filter(user_sessions::user_id.eq(uid))
-            .order(user_sessions::created_at.desc())
-            .load::<UserSession>(&mut self.conn)?;
+        use crate::shared::models::user_sessions::dsl::*;
+
+        let sessions = if uid == Uuid::nil() {
+            user_sessions
+                .order(created_at.desc())
+                .load::<UserSession>(&mut self.conn)?
+        } else {
+            user_sessions
+                .filter(user_id.eq(uid))
+                .order(created_at.desc())
+                .load::<UserSession>(&mut self.conn)?
+        };
+
         Ok(sessions)
     }
 
