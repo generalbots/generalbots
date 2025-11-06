@@ -43,6 +43,8 @@ email = ["imap"]
 desktop = []
 
 [dependencies]
+scopeguard = "1.2.0"
+once_cell = "1.18.0"
 actix-cors = "0.7"
 actix-multipart = "0.7"
 actix-web = "4.9"
