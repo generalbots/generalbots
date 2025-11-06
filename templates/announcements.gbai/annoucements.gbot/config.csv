@@ -1,6 +1,7 @@
 name,value
 prompt-history, 2
-theme-color1,#0d2b55
-theme-color2,#fff9c2
-theme-logo,https://example.com/logo.png
+prompt-compact, 4
+theme-color1, #0d2b55
+theme-color2, #fff9c2
+theme-logo, https://pragmatismo.com.br/icons/general-bots.svg
 theme-title, Custom

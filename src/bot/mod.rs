@@ -47,10 +47,15 @@ pub struct BotOrchestrator {
 
 impl BotOrchestrator {
     pub fn new(state: Arc<AppState>) -> Self {
-        Self {
+        let orchestrator = Self {
             state,
             mounted_bots: Arc::new(AsyncMutex::new(HashMap::new())),
-        }
+        };
+
+        // Spawn internal automation to run compact prompt every minute if enabled
+    // Compact automation disabled to avoid Send issues in background task
+
+        orchestrator
     }
 
     pub async fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -412,7 +417,7 @@ impl BotOrchestrator {
 
         let mut prompt = String::new();
         if !system_prompt.is_empty() {
-            prompt.push_str(&format!("SYSTEM: *** {} *** \n", system_prompt));
+            prompt.push_str(&format!("SYS: *** {} *** \n", system_prompt));
         }
         if !context_data.is_empty() {
             prompt.push_str(&format!("CONTEXT: *** {} *** \n", context_data));
@@ -549,13 +554,20 @@ impl BotOrchestrator {
                 if last_progress_update.elapsed() >= progress_interval {
                     let current_tokens = initial_tokens + crate::shared::utils::estimate_token_count(&full_response);
                     if let Ok(metrics) = get_system_metrics(current_tokens, max_context_size) {
-                        eprintln!(
-                            "\nNVIDIA: {:.1}% | CPU: {:.1}% | Tokens: {}/{}",
-                            metrics.gpu_usage.unwrap_or(0.0),
-                            metrics.cpu_usage,
-                            current_tokens,
-                            max_context_size
-                        );
+let gpu_bar = "█".repeat((metrics.gpu_usage.unwrap_or(0.0) / 5.0).round() as usize);
+let cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
+let token_ratio = current_tokens as f64 / max_context_size.max(1) as f64;
+let token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
+eprintln!(
+    "\nGPU [{:<20}] {:.1}% | CPU [{:<20}] {:.1}% | TOKENS [{:<20}] {}/{}",
+    gpu_bar,
+    metrics.gpu_usage.unwrap_or(0.0),
+    cpu_bar,
+    metrics.cpu_usage,
+    token_bar,
+    current_tokens,
+    max_context_size
+);
                     }
                     last_progress_update = Instant::now();
                 }
@@ -582,10 +594,34 @@ impl BotOrchestrator {
             }
         }
 
-        trace!(
-            "Stream processing completed, {} chunks processed",
-            chunk_count
-        );
+trace!(
+    "Stream processing completed, {} chunks processed",
+    chunk_count
+);
+
+// Sum tokens from all p.push context builds before submission
+let total_tokens = crate::shared::utils::estimate_token_count(&prompt)
+    + crate::shared::utils::estimate_token_count(&context_data)
+    + crate::shared::utils::estimate_token_count(&full_response);
+info!("Total tokens (context + prompt + response): {}", total_tokens);
+
+// Trigger compact prompt if enabled
+let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+let compact_enabled = config_manager
+    .get_config(&Uuid::parse_str(&message.bot_id).unwrap_or_default(), "prompt-compact", None)
+    .unwrap_or_default()
+    .parse::<i32>()
+    .unwrap_or(0);
+if compact_enabled > 0 {
+    tokio::task::spawn_blocking(move || {
+        loop {
+            if let Err(e) = tokio::runtime::Handle::current().block_on(crate::automation::execute_compact_prompt()) {
+                error!("Failed to execute compact prompt: {}", e);
+            }
+            std::thread::sleep(Duration::from_secs(60));
+        }
+    });
+}
 
         // Save final message with short lock scope
         {
