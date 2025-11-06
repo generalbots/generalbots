@@ -1,5 +1,6 @@
 name,value
 prompt-history, 2
-theme-color1,green
-theme-color2,yellow
-custom-logo-url,https://example.com/logo.png
+theme-color1,#0d2b55
+theme-color2,#fff9c2
+theme-logo,https://example.com/logo.png
+theme-title, Custom

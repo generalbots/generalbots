@@ -1,14 +1,12 @@
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use uuid::Uuid;
-use log::{info, trace};
- // removed unused serde import
+use log::info;
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
 use std::sync::{Arc, Mutex};
 use crate::shared::utils::establish_pg_connection;
-
 
 #[derive(Clone)]
 pub struct AppConfig {
@@ -41,8 +39,6 @@ pub struct ServerConfig {
     pub port: u16,
 }
 
-
-
 impl AppConfig {
     pub fn database_url(&self) -> String {
         format!(
@@ -54,83 +50,86 @@ impl AppConfig {
             self.database.database
         )
     }
-
 }
- 
+
 impl AppConfig {
     pub fn from_database(conn: &mut PgConnection) -> Result<Self, diesel::result::Error> {
-    info!("Loading configuration from database");
-    
-    use crate::shared::models::schema::bot_configuration::dsl::*;
-    use diesel::prelude::*;
-    
-    let config_map: HashMap<String, (Uuid, Uuid, String, String, String, bool)> = bot_configuration
-        .select((id, bot_id, config_key, config_value, config_type, is_encrypted))
-        .load::<(Uuid, Uuid, String, String, String, bool)>(conn)
-        .unwrap_or_default()
-        .into_iter()
-        .map(|(_, _, key, value, _, _)| (key.clone(), (Uuid::nil(), Uuid::nil(), key, value, String::new(), false)))
-        .collect();
+        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use diesel::prelude::*;
 
-    let mut get_str = |key: &str, default: &str| -> String {
-        bot_configuration
-            .filter(config_key.eq(key))
-            .select(config_value)
-            .first::<String>(conn)
-            .unwrap_or_else(|_| default.to_string())
-    };
+        let config_map: HashMap<String, (Uuid, Uuid, String, String, String, bool)> = bot_configuration
+            .select((id, bot_id, config_key, config_value, config_type, is_encrypted))
+            .load::<(Uuid, Uuid, String, String, String, bool)>(conn)
+            .unwrap_or_default()
+            .into_iter()
+            .map(|(_, _, key, value, _, _)| (key.clone(), (Uuid::nil(), Uuid::nil(), key, value, String::new(), false)))
+            .collect();
 
-    let get_u32 = |key: &str, default: u32| -> u32 {
-        config_map
-            .get(key)
-            .and_then(|v| v.3.parse().ok())
-            .unwrap_or(default)
-    };
+        let mut get_str = |key: &str, default: &str| -> String {
+            bot_configuration
+                .filter(config_key.eq(key))
+                .select(config_value)
+                .first::<String>(conn)
+                .unwrap_or_else(|_| default.to_string())
+        };
 
-    let get_u16 = |key: &str, default: u16| -> u16 {
-        config_map
-            .get(key)
-            .and_then(|v| v.3.parse().ok())
-            .unwrap_or(default)
-    };
+        let get_u32 = |key: &str, default: u32| -> u32 {
+            config_map
+                .get(key)
+                .and_then(|v| v.3.parse().ok())
+                .unwrap_or(default)
+        };
 
-    let get_bool = |key: &str, default: bool| -> bool {
-        config_map
-            .get(key)
-            .map(|v| v.3.to_lowercase() == "true")
-            .unwrap_or(default)
-    };
+        let get_u16 = |key: &str, default: u16| -> u16 {
+            config_map
+                .get(key)
+                .and_then(|v| v.3.parse().ok())
+                .unwrap_or(default)
+        };
 
+        let get_bool = |key: &str, default: bool| -> bool {
+            config_map
+                .get(key)
+                .map(|v| v.3.to_lowercase() == "true")
+                .unwrap_or(default)
+        };
 
-    let database = DatabaseConfig {
-        username: std::env::var("TABLES_USERNAME")
-            .unwrap_or_else(|_| get_str("TABLES_USERNAME", "gbuser")),
-        password: std::env::var("TABLES_PASSWORD")
-            .unwrap_or_else(|_| get_str("TABLES_PASSWORD", "")),
-        server: std::env::var("TABLES_SERVER")
-            .unwrap_or_else(|_| get_str("TABLES_SERVER", "localhost")),
-        port: std::env::var("TABLES_PORT")
-            .ok()
-            .and_then(|p| p.parse().ok())
-            .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
-        database: std::env::var("TABLES_DATABASE")
-            .unwrap_or_else(|_| get_str("TABLES_DATABASE", "botserver")),
-    };
+        let database = DatabaseConfig {
+username: match std::env::var("TABLES_USERNAME") {
+    Ok(v) => v,
+    Err(_) => get_str("TABLES_USERNAME", "gbuser"),
+},
+password: match std::env::var("TABLES_PASSWORD") {
+    Ok(v) => v,
+    Err(_) => get_str("TABLES_PASSWORD", ""),
+},
+server: match std::env::var("TABLES_SERVER") {
+    Ok(v) => v,
+    Err(_) => get_str("TABLES_SERVER", "localhost"),
+},
+port: std::env::var("TABLES_PORT")
+    .ok()
+    .and_then(|p| p.parse().ok())
+    .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
+database: match std::env::var("TABLES_DATABASE") {
+    Ok(v) => v,
+    Err(_) => get_str("TABLES_DATABASE", "botserver"),
+},
+        };
 
-
-    let drive = DriveConfig {
-        server: {
-            let server = get_str("DRIVE_SERVER", "http://localhost:9000");
-            if !server.starts_with("http://") && !server.starts_with("https://") {
-                format!("http://{}", server)
-            } else {
-                server
-            }
-        },
-        access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
-        secret_key: get_str("DRIVE_SECRET", "minioadmin"),
-        use_ssl: get_bool("DRIVE_USE_SSL", false),
-    };
+        let drive = DriveConfig {
+            server: {
+                let server = get_str("DRIVE_SERVER", "http://localhost:9000");
+                if !server.starts_with("http://") && !server.starts_with("https://") {
+                    format!("http://{}", server)
+                } else {
+                    server
+                }
+            },
+            access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
+            secret_key: get_str("DRIVE_SECRET", "minioadmin"),
+            use_ssl: get_bool("DRIVE_USE_SSL", false),
+        };
 
         Ok(AppConfig {
             drive,
@@ -145,14 +144,12 @@ impl AppConfig {
                     .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?.to_string()
             },
         })
-}
- 
+    }
+
     pub fn from_env() -> Result<Self, anyhow::Error> {
-        info!("Loading configuration from environment variables");
-
-
         let database_url = std::env::var("DATABASE_URL")
             .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
+
         let (db_username, db_password, db_server, db_port, db_name) =
             parse_database_url(&database_url);
 
@@ -164,7 +161,6 @@ impl AppConfig {
             database: db_name,
         };
 
-
         let minio = DriveConfig {
             server: std::env::var("DRIVE_SERVER")
                 .unwrap_or_else(|_| "http://localhost:9000".to_string()),
@@ -174,13 +170,13 @@ impl AppConfig {
             use_ssl: std::env::var("DRIVE_USE_SSL")
                 .unwrap_or_else(|_| "false".to_string())
                 .parse()
-                .unwrap_or(false)        };
-
+                .unwrap_or(false)
+        };
 
         Ok(AppConfig {
             drive: minio,
             server: ServerConfig {
-                host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.1".to_string()),
+                host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
                 port: std::env::var("SERVER_PORT")
                     .ok()
                     .and_then(|p| p.parse().ok())
@@ -194,7 +190,6 @@ impl AppConfig {
             },
         })
     }
-
 }
 
 pub fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
@@ -202,8 +197,8 @@ pub fn write_drive_config_to_env(drive: &DriveConfig) -> std::io::Result<()> {
         .append(true)
         .create(true)
         .open(".env")?;
-    
-    writeln!(file,"")?;
+
+    writeln!(file, "")?;
     writeln!(file, "DRIVE_SERVER={}", drive.server)?;
     writeln!(file, "DRIVE_ACCESSKEY={}", drive.access_key)?;
     writeln!(file, "DRIVE_SECRET={}", drive.secret_key)?;
@@ -229,6 +224,7 @@ fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
                     .get(1)
                     .and_then(|p| p.parse().ok())
                     .unwrap_or(5432);
+
                 let database = host_db[1].to_string();
 
                 return (username, password, server, port, database);
@@ -261,12 +257,10 @@ impl ConfigManager {
         fallback: Option<&str>,
     ) -> Result<String, diesel::result::Error> {
         use crate::shared::models::schema::bot_configuration::dsl::*;
-        
 
         let mut conn = self.conn.lock().unwrap();
         let fallback_str = fallback.unwrap_or("");
 
-        // Try config for provided bot_id
         let result = bot_configuration
             .filter(bot_id.eq(code_bot_id))
             .filter(config_key.eq(key))
@@ -276,8 +270,8 @@ impl ConfigManager {
         let value = match result {
             Ok(v) => v,
             Err(_) => {
-                // Fallback to default bot
                 let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut *conn);
+
                 bot_configuration
                     .filter(bot_id.eq(default_bot_id))
                     .filter(config_key.eq(key))
@@ -306,6 +300,7 @@ impl ConfigManager {
             .map_err(|e| format!("Failed to acquire lock: {}", e))?;
 
         let mut updated = 0;
+
         for line in content.lines().skip(1) {
             let parts: Vec<&str> = line.split(',').collect();
             if parts.len() >= 2 {
@@ -313,6 +308,7 @@ impl ConfigManager {
                 let value = parts[1].trim();
 
                 let new_id: uuid::Uuid = uuid::Uuid::new_v4();
+
                 diesel::sql_query("INSERT INTO bot_configuration (id, bot_id, config_key, config_value, config_type) VALUES ($1, $2, $3, $4, 'string') ON CONFLICT (bot_id, config_key) DO UPDATE SET config_value = EXCLUDED.config_value, updated_at = NOW()")
                     .bind::<diesel::sql_types::Uuid, _>(new_id)
                     .bind::<diesel::sql_types::Uuid, _>(bot_id)
@@ -325,9 +321,8 @@ impl ConfigManager {
             }
         }
 
-        trace!(
-            "Synced {} config values for bot {}",
-            updated, bot_id);
+        info!("Synced {} config values for bot {}", updated, bot_id);
+
         Ok(updated)
     }
 }
