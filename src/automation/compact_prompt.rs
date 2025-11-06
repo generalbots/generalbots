@@ -5,9 +5,12 @@ use diesel::prelude::*;
 use log::{error, info};
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
+use uuid::Uuid;
 
 pub fn start_compact_prompt_scheduler(state: Arc<AppState>) {
     tokio::spawn(async move {
+        // Initial 30 second delay before first run
+        tokio::time::sleep(Duration::from_secs(30)).await;
         let mut interval = interval(Duration::from_secs(60));
         loop {
             interval.tick().await;
@@ -60,15 +63,22 @@ async fn compact_prompt_for_bot(
         return Ok(());
     }
 
-    let mut session_manager = state.session_manager.lock().await;
-    let sessions = session_manager.get_user_sessions(uuid::Uuid::nil())?;
+    // Get sessions without holding lock
+    let sessions = {
+        let mut session_manager = state.session_manager.lock().await;
+        session_manager.get_user_sessions(Uuid::nil())?
+    };
 
     for session in sessions {
         if session.bot_id != automation.bot_id {
             continue;
         }
 
-        let history = session_manager.get_conversation_history(session.id, session.user_id)?;
+        // Get history without holding lock
+        let history = {
+            let mut session_manager = state.session_manager.lock().await;
+            session_manager.get_conversation_history(session.id, session.user_id)?
+        };
 
         if history.len() > compact_threshold {
             info!(
@@ -82,8 +92,29 @@ async fn compact_prompt_for_bot(
                 compacted.push_str(&format!("{}: {}\n", role, content));
             }
 
-            let summarized = format!("SUMMARY: {}", compacted);
-            session_manager.save_message(session.id, session.user_id, 3, &summarized, 1)?;
+            // Clone needed references for async task
+            let llm_provider = state.llm_provider.clone();
+            let compacted_clone = compacted.clone();
+            
+            // Run LLM summarization
+            let summarized = match llm_provider.generate(&compacted_clone, &serde_json::Value::Null).await {
+                Ok(summary) => format!("SUMMARY: {}", summary),
+                Err(e) => {
+                    error!("Failed to summarize conversation: {}", e);
+                    format!("SUMMARY: {}", compacted) // Fallback
+                }
+            };
+            info!(
+                "Prompt compacted {}: {} messages",
+                session.id,
+                history.len()
+            );
+
+            // Save with minimal lock time
+            {
+                let mut session_manager = state.session_manager.lock().await;
+                session_manager.save_message(session.id, session.user_id, 3, &summarized, 1)?;
+            }
         }
     }
 
