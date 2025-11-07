@@ -362,10 +362,13 @@ impl BotOrchestrator {
             let mut sm = self.state.session_manager.lock().await;
             sm.get_session_by_id(session_id)?
         }
-        .ok_or_else(|| {
-            error!("Failed to create session for streaming");
-            "Failed to create session"
-        })?;
+        .ok_or_else(|| "Failed to create session")?;
+
+        // Save user message to history
+        {
+            let mut sm = self.state.session_manager.lock().await;
+            sm.save_message(session.id, user_id, 1, &message.content, 1)?;
+        }
 
         if message.message_type == 4 {
             if let Some(context_name) = &message.context_name {
@@ -598,7 +601,6 @@ io::stdout().flush().unwrap();
                 };
 
                 if response_tx.send(partial).await.is_err() {
-                    warn!("Response channel closed, stopping stream processing");
                     break;
                 }
             }
