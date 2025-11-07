@@ -566,8 +566,9 @@ let gpu_bar = "█".repeat((metrics.gpu_usage.unwrap_or(0.0) / 5.0).round() as u
 let cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
 let token_ratio = current_tokens as f64 / max_context_size.max(1) as f64;
 let token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
-eprintln!(
-    "\nGPU [{:<20}] {:.1}% | CPU [{:<20}] {:.1}% | TOKENS [{:<20}] {}/{}",
+use std::io::{self, Write};
+print!(
+    "\rGPU [{:<20}] {:.1}% | CPU [{:<20}] {:.1}% | TOKENS [{:<20}] {}/{}",
     gpu_bar,
     metrics.gpu_usage.unwrap_or(0.0),
     cpu_bar,
@@ -576,6 +577,7 @@ eprintln!(
     current_tokens,
     max_context_size
 );
+io::stdout().flush().unwrap();
                     }
                     last_progress_update = Instant::now();
                 }

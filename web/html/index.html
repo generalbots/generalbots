@@ -714,11 +714,7 @@ contextUsage=u;
 const p=Math.min(100,Math.round(u*100));
 contextPercentage.textContent=`${p}%`;
 contextProgressBar.style.width=`${p}%`;
-if(p>=50){
-contextIndicator.classList.add('visible');
-}else{
 contextIndicator.classList.remove('visible');
-}
 }
 
 function flashScreen(){
