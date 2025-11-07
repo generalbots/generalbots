@@ -84,11 +84,14 @@ async fn compact_prompt_for_bot(
     let config_manager = ConfigManager::new(Arc::clone(&state.conn));
     let compact_threshold = config_manager
         .get_config(&automation.bot_id, "prompt-compact", None)?
-        .parse::<usize>()
+        .parse::<i32>()
         .unwrap_or(0);
 
+    // Compact if threshold is negative (always compact) or positive (conditional)
     if compact_threshold == 0 {
         return Ok(());
+    } else if compact_threshold < 0 {
+        info!("Compaction forced for bot {} (threshold = {})", automation.bot_id, compact_threshold);
     }
 
     // Get sessions without holding lock
@@ -153,17 +156,13 @@ async fn compact_prompt_for_bot(
                 history.len()
             );
 
-            // Remove all old messages and save only the summary
-            {
-                let mut session_manager = state.session_manager.lock().await;
-                // First delete all existing messages for this session
-                if let Err(e) = session_manager.clear_messages(session.id) {
-                    error!("Failed to clear messages for session {}: {}", session.id, e);
-                    return Err(e);
-                }
-                // Then save just the summary
-                session_manager.save_message(session.id, session.user_id, 3, &summarized, 1)?;
-            }
+    // Instead of clearing messages, insert a compacted marker message
+    {
+        let mut session_manager = state.session_manager.lock().await;
+        // Save a special compacted message type (9)
+        session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
+        trace!("Inserted compacted message for session {}", session.id);
+    }
     }
 
     Ok(())

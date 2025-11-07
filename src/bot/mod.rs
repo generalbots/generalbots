@@ -405,15 +405,23 @@ impl BotOrchestrator {
         };
 
         // Acquire lock briefly for history retrieval with configurable limit
-        let history = {
-            let mut sm = self.state.session_manager.lock().await;
-            let mut history = sm.get_conversation_history(session.id, user_id)?;
-            if history_limit > 0 && history.len() > history_limit as usize {
-                let start = history.len() - history_limit as usize;
-                history.drain(0..start);
-            }
-            history
-        };
+let history = {
+    let mut sm = self.state.session_manager.lock().await;
+    let mut history = sm.get_conversation_history(session.id, user_id)?;
+
+    // Skip all messages before the most recent compacted message (type 9)
+    if let Some(last_compacted_index) = history.iter().rposition(|(role, content)| {
+        role == "COMPACTED" || content.starts_with("SUMMARY:")
+    }) {
+        history = history.split_off(last_compacted_index);
+    }
+
+    if history_limit > 0 && history.len() > history_limit as usize {
+        let start = history.len() - history_limit as usize;
+        history.drain(0..start);
+    }
+    history
+};
 
         let mut prompt = String::new();
         if !system_prompt.is_empty() {
