@@ -199,6 +199,7 @@ pub async fn start_llm_server(
     let mlock = config_manager.get_config(&default_bot_id, "llm-server-mlock", None).unwrap_or("true".to_string());
     let no_mmap = config_manager.get_config(&default_bot_id, "llm-server-no-mmap", None).unwrap_or("true".to_string());
     let gpu_layers = config_manager.get_config(&default_bot_id, "llm-server-gpu-layers", None).unwrap_or("20".to_string());
+    let reasoning_format = config_manager.get_config(&default_bot_id, "llm-server-reasoning-format", None).unwrap_or("".to_string());
     let n_predict = config_manager.get_config(&default_bot_id, "llm-server-n-predict", None).unwrap_or("50".to_string());
 
     // Build command arguments dynamically
@@ -206,6 +207,9 @@ pub async fn start_llm_server(
         "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 -ngl {}",
         model_path, port,  gpu_layers
     );
+    if !reasoning_format.is_empty() {
+        args.push_str(&format!(" --reasoning-format {}", reasoning_format));
+    }
 
     if n_moe != "0" {
         args.push_str(&format!(" --n-cpu-moe {}", n_moe));
@@ -219,6 +223,7 @@ pub async fn start_llm_server(
     if mlock == "true" {
         args.push_str(" --mlock");
     }
+
     if no_mmap == "true" {
         args.push_str(" --no-mmap");
     }

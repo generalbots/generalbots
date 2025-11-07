@@ -186,7 +186,6 @@ pub async fn execute_compact_prompt(state: Arc<crate::shared::state::AppState>) 
     use crate::shared::models::system_automations::dsl::{is_active, system_automations};
     use diesel::prelude::*;
     use log::info;
-    use std::sync::Arc;
 
     let state_clone = state.clone();
 let service = AutomationService::new(state_clone);

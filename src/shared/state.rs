@@ -2,7 +2,7 @@ use crate::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
 use crate::llm::LLMProvider;
 use crate::session::SessionManager;
-use diesel::{Connection, PgConnection};
+use diesel::{ PgConnection};
 use aws_sdk_s3::Client as S3Client;
 use redis::Client as RedisClient;
 use std::collections::HashMap;
