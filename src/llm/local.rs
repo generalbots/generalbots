@@ -237,6 +237,7 @@ pub async fn start_llm_server(
             "cd {} && .\\llama-server.exe {} --verbose>llm-stdout.log",
             llama_cpp_path, args
         ));
+        info!("Executing LLM server command: cd {} && .\\llama-server.exe {} --verbose", llama_cpp_path, args);
         cmd.spawn()?;
     } else {
         let mut cmd = tokio::process::Command::new("sh");
@@ -244,6 +245,7 @@ pub async fn start_llm_server(
             "cd {} && ./llama-server {} --verbose >llm-stdout.log 2>&1 &",
             llama_cpp_path, args
         ));
+        info!("Executing LLM server command: cd {} && ./llama-server {} --verbose", llama_cpp_path, args);
         cmd.spawn()?;
     }
 
