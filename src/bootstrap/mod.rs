@@ -43,14 +43,13 @@ impl BootstrapManager {
         );
 
         if !Self::is_postgres_running() {
-            warn!("PostgreSQL server is not running. Attempting to start 'tables' component...");
             let pm = PackageManager::new(install_mode.clone(), tenant.clone())
                 .expect("Failed to initialize PackageManager");
             if let Err(e) = pm.start("tables") {
-                error!("Failed to start PostgreSQL component automatically: {}", e);
+                error!("Failed to start Tables server component automatically: {}", e);
                 panic!("Database not available and auto-start failed.");
             } else {
-                info!("PostgreSQL component started successfully.");
+                info!("Tables component started successfully.");
             }
         }
 

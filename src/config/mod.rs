@@ -1,7 +1,7 @@
 use diesel::prelude::*;
 use diesel::pg::PgConnection;
 use uuid::Uuid;
-use log::info;
+use log::{trace};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -321,7 +321,7 @@ impl ConfigManager {
             }
         }
 
-        info!("Synced {} config values for bot {}", updated, bot_id);
+        trace!("Synced {} config values for bot {}", updated, bot_id);
 
         Ok(updated)
     }
