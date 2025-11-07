@@ -407,26 +407,21 @@ impl BotOrchestrator {
                 .unwrap_or(-1)
         };
 
-        // Acquire lock briefly for history retrieval with configurable limit
-let history = "".to_string();
+        let mut sm = self.state.session_manager.lock().await;
+        let mut history = sm.get_conversation_history(session.id, user_id)?;
 
-// {
-//     let mut sm = self.state.session_manager.lock().await;
-//     let mut history = sm.get_conversation_history(session.id, user_id)?;
+        // Skip all messages before the most recent compacted message (type 9)
+        if let Some(last_compacted_index) = history.iter().rposition(|(role, content)| {
+            role == "COMPACTED" || content.starts_with("SUMMARY:")
+        }) {
+            history = history.split_off(last_compacted_index);
+        }
 
-//     // Skip all messages before the most recent compacted message (type 9)
-//     if let Some(last_compacted_index) = history.iter().rposition(|(role, content)| {
-//         role == "COMPACTED" || content.starts_with("SUMMARY:")
-//     }) {
-//         history = history.split_off(last_compacted_index);
-//     }
-
-//     if history_limit > 0 && history.len() > history_limit as usize {
-//         let start = history.len() - history_limit as usize;
-//         history.drain(0..start);
-//     }
-//     history
-// };
+        // Apply history limit if configured
+        if history_limit > 0 && history.len() > history_limit as usize {
+            let start = history.len() - history_limit as usize;
+            history.drain(0..start);
+        }
 
         let mut prompt = String::new();
         if !system_prompt.is_empty() {
@@ -435,15 +430,15 @@ let history = "".to_string();
         if !context_data.is_empty() {
             prompt.push_str(&format!("CONTEXT: *** {} *** \n", context_data));
         }
-        // for (role, content) in &history {
-        //     prompt.push_str(&format!("{}:{}\n", role, content));
-        // }
+        for (role, content) in &history {
+            prompt.push_str(&format!("{}:{}\n", role, content));
+        }
         prompt.push_str(&format!("Human: {}\nBot:", message.content));
 
-        // trace!(
-        //     "Stream prompt constructed with {} history entries",
-        //     history.len()
-        // );
+        trace!(
+            "Stream prompt constructed with {} history entries",
+            history.len()
+        );
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
@@ -1311,6 +1306,11 @@ async fn send_warning_handler(
         error!("Failed to send warning: {}", e);
         return Ok(
             HttpResponse::InternalServerError().json(serde_json::json!({"error": e.to_string()}))
+        );
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({"status": "warning_sent"})))
+}
         );
     }
 

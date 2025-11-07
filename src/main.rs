@@ -1,13 +1,12 @@
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
-use log::error;
 use actix_cors::Cors;
 use actix_web::middleware::Logger;
 use actix_web::{web, App, HttpServer};
 use dotenvy::dotenv;
+use log::error;
 use log::info;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-mod llm;
 mod auth;
 mod automation;
 mod basic;
@@ -19,22 +18,24 @@ mod context;
 mod drive_monitor;
 #[cfg(feature = "email")]
 mod email;
-#[cfg(feature = "desktop")]
-mod ui;
 mod file;
+mod llm;
 mod llm_models;
 mod meet;
+mod nvidia;
 mod package_manager;
 mod session;
 mod shared;
 pub mod tests;
+#[cfg(feature = "desktop")]
+mod ui;
 mod web_server;
-mod nvidia;
 
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
 use crate::bootstrap::BootstrapManager;
-use crate::bot::{websocket_handler};
+use crate::bot::websocket_handler;
+use crate::bot::BotOrchestrator;
 use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
 #[cfg(feature = "email")]
@@ -47,7 +48,6 @@ use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::web_server::{bot_index, index, static_files};
-use crate::bot::BotOrchestrator;
 
 #[cfg(not(feature = "desktop"))]
 #[tokio::main]
@@ -55,7 +55,6 @@ async fn main() -> std::io::Result<()> {
     use botserver::config::ConfigManager;
 
     use crate::llm::local::ensure_llama_servers_running;
-
 
     let args: Vec<String> = std::env::args().collect();
     if args.len() > 1 {
@@ -104,16 +103,16 @@ async fn main() -> std::io::Result<()> {
     let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
 
     // Prevent double bootstrap: skip if environment already initialized
-    let env_path = std::env::current_dir()?.join("botserver-stack").join(".env");
+    let env_path = std::env::current_dir()?
+        .join("botserver-stack")
+        .join(".env");
     let cfg = if env_path.exists() {
         info!("Environment already initialized, skipping bootstrap");
-        
 
-        match diesel::Connection::establish(
-            &std::env::var("DATABASE_URL")
-                .unwrap()
-        ) {
-            Ok(mut conn) => AppConfig::from_database(&mut conn).expect("Failed to load config from DB"),
+        match diesel::Connection::establish(&std::env::var("DATABASE_URL").unwrap()) {
+            Ok(mut conn) => {
+                AppConfig::from_database(&mut conn).expect("Failed to load config from DB")
+            }
             Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
         }
     } else {
@@ -124,13 +123,16 @@ async fn main() -> std::io::Result<()> {
             }
             Err(e) => {
                 log::error!("Bootstrap failed: {}", e);
-        match diesel::Connection::establish(
-            &std::env::var("DATABASE_URL")
-                .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string()),
-        ) {
-            Ok(mut conn) => AppConfig::from_database(&mut conn).expect("Failed to load config from DB"),
-            Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
-        }
+                match diesel::Connection::establish(
+                    &std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+                        "postgres://gbuser:@localhost:5432/botserver".to_string()
+                    }),
+                ) {
+                    Ok(mut conn) => {
+                        AppConfig::from_database(&mut conn).expect("Failed to load config from DB")
+                    }
+                    Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
+                }
             }
         }
     };
@@ -171,8 +173,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
     let web_adapter = Arc::new(WebChannelAdapter::new());
-    let voice_adapter = Arc::new(VoiceAdapter::new(
-    ));
+    let voice_adapter = Arc::new(VoiceAdapter::new());
 
     let drive = init_drive(&config.drive)
         .await
@@ -183,25 +184,20 @@ async fn main() -> std::io::Result<()> {
         redis_client.clone(),
     )));
 
-    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
-    )));
+    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new()));
 
-    
     let conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
-let config_manager = ConfigManager::new(Arc::new(Mutex::new(conn)));
-let mut bot_conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
-let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
-let llm_url = config_manager
-    .get_config(&default_bot_id, "llm-url", Some("https://api.openai.com/v1"))
-    
-    .unwrap_or_else(|_| "https://api.openai.com/v1".to_string());
+    let config_manager = ConfigManager::new(Arc::new(Mutex::new(conn)));
+    let mut bot_conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
+    let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
+    let llm_url = config_manager
+        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081/v1"))
+        .unwrap_or_else(|_| "http://localhost:8081/v1".to_string());
 
     let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
         "empty".to_string(),
         Some(llm_url.clone()),
     ));
-
-
 
     let app_state = Arc::new(AppState {
         drive: Some(drive),
@@ -225,27 +221,29 @@ let llm_url = config_manager
         voice_adapter: voice_adapter.clone(),
     });
 
-    info!("Starting HTTP server on {}:{}", config.server.host, config.server.port);
+    info!(
+        "Starting HTTP server on {}:{}",
+        config.server.host, config.server.port
+    );
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
 
-
     // Initialize bot orchestrator and mount all bots
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
-    
+
     // Mount all active bots from database
     if let Err(e) = bot_orchestrator.mount_all_bots().await {
         log::error!("Failed to mount bots: {}", e);
         // Use BotOrchestrator::send_warning to notify system admins
         let msg = format!("Bot mount failure: {}", e);
-        let _ = bot_orchestrator.send_warning("System", "AdminBot", msg.as_str()).await;
+        let _ = bot_orchestrator
+            .send_warning("System", "AdminBot", msg.as_str())
+            .await;
     } else {
         let _sessions = get_sessions;
         log::info!("Session handler registered successfully");
     }
-
-
 
     let automation_state = app_state.clone();
     std::thread::spawn(move || {
@@ -261,13 +259,10 @@ let llm_url = config_manager
     });
 
     if let Err(e) = ensure_llama_servers_running(&app_state).await {
-
         error!("Failed to stat LLM servers: {}", e);
     }
 
-
     HttpServer::new(move || {
-
         let cors = Cors::default()
             .allow_any_origin()
             .allow_any_method()
@@ -295,7 +290,7 @@ let llm_url = config_manager
             .service(crate::bot::handle_user_input_handler)
             .service(crate::bot::get_user_sessions_handler)
             .service(crate::bot::get_conversation_history_handler);
-        
+
         #[cfg(feature = "email")]
         {
             app = app
@@ -305,12 +300,10 @@ let llm_url = config_manager
                 .service(send_email)
                 .service(save_draft)
                 .service(save_click);
-
         }
         app = app.service(static_files);
         app = app.service(bot_index);
         app
-
     })
     .workers(worker_count)
     .bind((config.server.host.clone(), config.server.port))?
