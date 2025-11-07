@@ -204,7 +204,7 @@ pub async fn start_llm_server(
 
     // Build command arguments dynamically
     let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 -ngl {}",
+        "-m {} --host 0.0.0.0 --port {} --reasoning-format deepseek --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
