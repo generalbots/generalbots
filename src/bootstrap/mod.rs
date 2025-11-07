@@ -4,7 +4,7 @@ use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
 use diesel::{connection::SimpleConnection};
 use dotenvy::dotenv;
-use log::{debug, error, info, trace};
+use log::{debug, error, info, trace, warn};
 use aws_sdk_s3::Client;
 use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
@@ -26,11 +26,34 @@ pub struct BootstrapManager {
 }
 
 impl BootstrapManager {
+    fn is_postgres_running() -> bool {
+        match Command::new("pg_isready").arg("-q").status() {
+            Ok(status) => status.success(),
+            Err(_) => {
+                // fallback check using pgrep
+                Command::new("pgrep").arg("postgres").output().map(|o| !o.stdout.is_empty()).unwrap_or(false)
+            }
+        }
+    }
+
     pub async fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
         info!(
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode, tenant
         );
+
+        if !Self::is_postgres_running() {
+            warn!("PostgreSQL server is not running. Attempting to start 'tables' component...");
+            let pm = PackageManager::new(install_mode.clone(), tenant.clone())
+                .expect("Failed to initialize PackageManager");
+            if let Err(e) = pm.start("tables") {
+                error!("Failed to start PostgreSQL component automatically: {}", e);
+                panic!("Database not available and auto-start failed.");
+            } else {
+                info!("PostgreSQL component started successfully.");
+            }
+        }
+
         let config = AppConfig::from_env().expect("Failed to load config from env");
         let s3_client = futures::executor::block_on(Self::create_s3_operator(&config));
         Self {
