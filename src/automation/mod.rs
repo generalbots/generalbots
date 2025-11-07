@@ -182,14 +182,14 @@ impl AutomationService {
     }
 }
 
-pub async fn execute_compact_prompt() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+pub async fn execute_compact_prompt(state: Arc<crate::shared::state::AppState>) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use crate::shared::models::system_automations::dsl::{is_active, system_automations};
     use diesel::prelude::*;
     use log::info;
     use std::sync::Arc;
 
-    let state = Arc::new(crate::shared::state::AppState::default());
-    let service = AutomationService::new(Arc::clone(&state));
+    let state_clone = state.clone();
+let service = AutomationService::new(state_clone);
 
     let mut conn = state
         .conn
