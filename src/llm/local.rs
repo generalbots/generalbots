@@ -194,7 +194,6 @@ pub async fn start_llm_server(
     };
 
     let n_moe = config_manager.get_config(&default_bot_id, "llm-server-n-moe", None).unwrap_or("4".to_string());
-    let ctx_size = config_manager.get_config(&default_bot_id, "llm-server-ctx-size", None).unwrap_or("4096".to_string());
     let parallel = config_manager.get_config(&default_bot_id, "llm-server-parallel", None).unwrap_or("1".to_string());
     let cont_batching = config_manager.get_config(&default_bot_id, "llm-server-cont-batching", None).unwrap_or("true".to_string());
     let mlock = config_manager.get_config(&default_bot_id, "llm-server-mlock", None).unwrap_or("true".to_string());
@@ -204,8 +203,8 @@ pub async fn start_llm_server(
 
     // Build command arguments dynamically
     let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --ctx-size {} --repeat-penalty 1.2 -ngl {}",
-        model_path, port, ctx_size, gpu_layers
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 -ngl {}",
+        model_path, port,  gpu_layers
     );
 
     if n_moe != "0" {
