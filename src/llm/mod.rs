@@ -47,7 +47,7 @@ impl OpenAIClient {
         Self {
             client: reqwest::Client::new(),
             api_key,
-            base_url: base_url.unwrap_or_else(|| "https://api.openai.com/v1".to_string()),
+            base_url: base_url.unwrap_or_else(|| "http://localhost:8081/v1".to_string()),
         }
     }
 }

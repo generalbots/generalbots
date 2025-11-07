@@ -192,8 +192,8 @@ ON CONFLICT (slug) DO NOTHING;
 -- Add some default model configurations
 -- ============================================================================
 INSERT INTO model_configurations (id, model_name, model_type, provider, endpoint, model_id, context_window, max_tokens, is_default) VALUES
-    (gen_random_uuid()::text, 'gpt-4', 'llm', 'openai', 'https://api.openai.com/v1', 'gpt-4', 8192, 4096, true),
-    (gen_random_uuid()::text, 'gpt-3.5-turbo', 'llm', 'openai', 'https://api.openai.com/v1', 'gpt-3.5-turbo', 4096, 2048, false),
+    (gen_random_uuid()::text, 'gpt-4', 'llm', 'openai', 'http://localhost:8081/v1', 'gpt-4', 8192, 4096, true),
+    (gen_random_uuid()::text, 'gpt-3.5-turbo', 'llm', 'openai', 'http://localhost:8081/v1', 'gpt-3.5-turbo', 4096, 2048, false),
     (gen_random_uuid()::text, 'bge-large', 'embed', 'local', 'http://localhost:8081', 'BAAI/bge-large-en-v1.5', 512, 1024, true)
 ON CONFLICT (model_name) DO NOTHING;
 
