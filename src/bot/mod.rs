@@ -625,14 +625,15 @@ let compact_enabled = config_manager
     .parse::<i32>()
     .unwrap_or(0);
 if compact_enabled > 0 {
-    tokio::task::spawn_blocking(move || {
-        loop {
-            if let Err(e) = tokio::runtime::Handle::current().block_on(crate::automation::execute_compact_prompt()) {
-                error!("Failed to execute compact prompt: {}", e);
-            }
-            std::thread::sleep(Duration::from_secs(60));
+let state = self.state.clone();
+tokio::task::spawn_blocking(move || {
+    loop {
+        if let Err(e) = tokio::runtime::Handle::current().block_on(crate::automation::execute_compact_prompt(state.clone())) {
+            error!("Failed to execute compact prompt: {}", e);
         }
-    });
+        std::thread::sleep(Duration::from_secs(60));
+    }
+});
 }
 
         // Save final message with short lock scope
@@ -881,10 +882,7 @@ if compact_enabled > 0 {
 
 impl Default for BotOrchestrator {
     fn default() -> Self {
-        Self {
-            state: Arc::new(AppState::default()),
-            mounted_bots: Arc::new(AsyncMutex::new(HashMap::new())),
-        }
+        panic!("BotOrchestrator::default is not supported; instantiate with BotOrchestrator::new(state)");
     }
 }
 

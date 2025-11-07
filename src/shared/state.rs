@@ -45,34 +45,3 @@ impl Clone for AppState {
         }
     }
 }
-
-impl Default for AppState {
-    fn default() -> Self {
-        Self {
-            drive: None,
-            bucket_name: "default.gbai".to_string(),
-            config: None,
-            conn: Arc::new(Mutex::new(
-                diesel::PgConnection::establish("postgres://localhost/test").unwrap(),
-            )),
-            
-            cache: None,
-            session_manager: Arc::new(tokio::sync::Mutex::new(SessionManager::new(
-                diesel::PgConnection::establish("postgres://localhost/test").unwrap(),
-                None,
-            ))),
-            llm_provider: Arc::new(crate::llm::OpenAIClient::new(
-                "empty".to_string(),
-                Some("http://localhost:8081".to_string()),
-            )),
-            auth_service: Arc::new(tokio::sync::Mutex::new(AuthService::new(
-                
-            ))),
-            channels: Arc::new(Mutex::new(HashMap::new())),
-            response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
-            web_adapter: Arc::new(WebChannelAdapter::new()),
-            voice_adapter: Arc::new(VoiceAdapter::new(
-            )),
-        }
-    }
-}
