@@ -191,8 +191,8 @@ async fn main() -> std::io::Result<()> {
     let mut bot_conn = diesel::Connection::establish(&cfg.database_url()).unwrap();
     let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
     let llm_url = config_manager
-        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081/"))
-        .unwrap_or_else(|_| "http://localhost:8081/".to_string());
+        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
+        .unwrap_or_else(|_| "http://localhost:8081".to_string());
 
     let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
         "empty".to_string(),
