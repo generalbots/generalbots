@@ -4,7 +4,7 @@ use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
 use diesel::{connection::SimpleConnection};
 use dotenvy::dotenv;
-use log::{debug, error, info, trace, warn};
+use log::{debug, error, info, trace};
 use aws_sdk_s3::Client;
 use aws_config::BehaviorVersion;
 use rand::distr::Alphanumeric;
