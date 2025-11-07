@@ -143,7 +143,7 @@ impl BasicCompiler {
 
         Ok(CompilationResult {
             mcp_tool: mcp_json,
-            openai_tool: tool_json,
+            _openai_tool: tool_json,
         })
     }
 
@@ -438,5 +438,5 @@ impl BasicCompiler {
 #[derive(Debug)]
 pub struct CompilationResult {
     pub mcp_tool: Option<MCPTool>,
-    pub openai_tool: Option<OpenAITool>,
+    pub _openai_tool: Option<OpenAITool>,
 }

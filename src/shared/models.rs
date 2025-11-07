@@ -13,7 +13,7 @@ pub enum TriggerKind {
 }
 
 impl TriggerKind {
-    pub fn from_i32(value: i32) -> Option<Self> {
+    pub fn _from_i32(value: i32) -> Option<Self> {
         match value {
             0 => Some(Self::Scheduled),
             1 => Some(Self::TableUpdate),

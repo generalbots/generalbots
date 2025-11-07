@@ -174,7 +174,7 @@ impl SessionManager {
         Ok(inserted)
     }
 
-    pub fn clear_messages(&mut self, session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
+    pub fn clear_messages(&mut self, _session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
         
         diesel::delete(message_history.filter(session_id.eq(session_id)))
