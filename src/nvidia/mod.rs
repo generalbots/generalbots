@@ -1,5 +1,4 @@
 use anyhow::Result;
-use log::warn;
 use std::collections::HashMap;
 use sysinfo::{System};
 

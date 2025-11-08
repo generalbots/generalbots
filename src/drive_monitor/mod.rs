@@ -297,18 +297,29 @@ impl DriveMonitor {
         let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
         let work_dir = format!("./work/{}.gbai/{}.gbdialog", bot_name, bot_name);
 
-        std::fs::create_dir_all(&work_dir)?;
+        // Offload the blocking compilation work to a blocking thread pool
+        let state_clone = Arc::clone(&self.state);
+        let work_dir_clone = work_dir.clone();
+        let tool_name_clone = tool_name.clone();
+        let source_content_clone = source_content.clone();
+        let bot_id = self.bot_id;
 
-        let local_source_path = format!("{}/{}.bas", work_dir, tool_name);
-        std::fs::write(&local_source_path, &source_content)?;
+        tokio::task::spawn_blocking(move || {
+            std::fs::create_dir_all(&work_dir_clone)?;
 
-        let mut compiler = BasicCompiler::new(Arc::clone(&self.state), self.bot_id);
-        let result = compiler.compile_file(&local_source_path, &work_dir)?;
+            let local_source_path = format!("{}/{}.bas", work_dir_clone, tool_name_clone);
+            std::fs::write(&local_source_path, &source_content_clone)?;
 
-        if let Some(mcp_tool) = result.mcp_tool {
-            info!("MCP tool definition generated with {} parameters", 
-                mcp_tool.input_schema.properties.len());
-        }
+            let mut compiler = BasicCompiler::new(state_clone, bot_id);
+            let result = compiler.compile_file(&local_source_path, &work_dir_clone)?;
+
+            if let Some(mcp_tool) = result.mcp_tool {
+                info!("MCP tool definition generated with {} parameters", 
+                    mcp_tool.input_schema.properties.len());
+            }
+
+            Ok::<(), Box<dyn Error + Send + Sync>>(())
+        }).await??;
 
         Ok(())
     }

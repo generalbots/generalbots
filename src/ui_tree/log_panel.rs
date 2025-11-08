@@ -46,11 +46,11 @@ impl Log for UiLogger {
  if self.enabled(record.metadata()) {
  let timestamp = Local::now().format("%H:%M:%S");
  let level_icon = match record.level() {
- log::Level::Error => "❌",
- log::Level::Warn => "⚠️",
- log::Level::Info => "ℹ️",
- log::Level::Debug => "🔍",
- log::Level::Trace => "📝",
+ log::Level::Error => "ERR",
+ log::Level::Warn => "WRN",
+ log::Level::Info => "INF",
+ log::Level::Debug => "DBG",
+ log::Level::Trace => "TRC",
  };
  let log_entry = format!("[{}] {} {}", timestamp, level_icon, record.args());
  if let Ok(mut panel) = self.log_panel.lock() {
