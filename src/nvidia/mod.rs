@@ -41,7 +41,6 @@ pub fn has_nvidia_gpu() -> bool {
     {
         Ok(output) => output.status.success(),
         Err(_) => {
-            warn!("No NVIDIA GPU detected or nvidia-smi not available");
             false
         }
     }
