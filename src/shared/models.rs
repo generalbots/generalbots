@@ -3,7 +3,7 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
+ 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TriggerKind {
     Scheduled = 0,
@@ -86,6 +86,31 @@ pub struct BotResponse {
     pub context_name: Option<String>,
     pub context_length: usize,
     pub context_max_length: usize,
+}
+
+impl BotResponse {
+    pub fn from_string_ids(
+        bot_id: &str,
+        session_id: &str,
+        user_id: &str,
+        content: String,
+        channel: String,
+    ) -> Result<Self, anyhow::Error> {
+        Ok(Self {
+            bot_id: bot_id.to_string(),
+            user_id: user_id.to_string(),
+            session_id: session_id.to_string(),
+            channel,
+            content,
+            message_type: 2,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]

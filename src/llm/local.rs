@@ -30,22 +30,29 @@ pub async fn embeddings_local(
 pub async fn ensure_llama_servers_running(
     app_state: &Arc<AppState>
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let conn = app_state.conn.clone();
-    let config_manager = ConfigManager::new(conn.clone());
-
-    let default_bot_id = {
-        let mut conn = conn.lock().unwrap();
-        bots.filter(name.eq("default"))
+    // Get all config values before starting async operations
+let config_values = {
+    let conn_arc = app_state.conn.clone();
+    tokio::task::spawn_blocking(move || {
+        let mut conn = conn_arc.lock().unwrap();
+        let config_manager = ConfigManager::new(Arc::clone(&conn_arc));
+        
+        let default_bot_id = bots.filter(name.eq("default"))
             .select(id)
             .first::<uuid::Uuid>(&mut *conn)
-            .unwrap_or_else(|_| uuid::Uuid::nil())
-    };
+            .unwrap_or_else(|_| uuid::Uuid::nil());
 
-    let llm_url = config_manager.get_config(&default_bot_id, "llm-url", None)?;
-    let llm_model = config_manager.get_config(&default_bot_id, "llm-model", None)?;
-    let embedding_url = config_manager.get_config(&default_bot_id, "embedding-url", None)?;
-    let embedding_model = config_manager.get_config(&default_bot_id, "embedding-model", None)?;
-    let llm_server_path = config_manager.get_config(&default_bot_id, "llm-server-path", None)?;
+        (
+            default_bot_id,
+            config_manager.get_config(&default_bot_id, "llm-url", None).unwrap_or_default(),
+            config_manager.get_config(&default_bot_id, "llm-model", None).unwrap_or_default(),
+            config_manager.get_config(&default_bot_id, "embedding-url", None).unwrap_or_default(),
+            config_manager.get_config(&default_bot_id, "embedding-model", None).unwrap_or_default(),
+            config_manager.get_config(&default_bot_id, "llm-server-path", None).unwrap_or_default(),
+        )
+    }).await?
+};
+let (_default_bot_id, llm_url, llm_model, embedding_url, embedding_model, llm_server_path) = config_values;
 
     info!("Starting LLM servers...");
     info!("Configuration:");

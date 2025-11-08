@@ -235,22 +235,20 @@ impl BotOrchestrator {
             channel
         );
 
-        let event_response = BotResponse {
-            bot_id: bot_id.to_string(),
-            user_id: user_id.to_string(),
-            session_id: session_id.to_string(),
-            channel: channel.to_string(),
-            content: serde_json::to_string(&serde_json::json!({
+        let event_response = BotResponse::from_string_ids(
+            bot_id,
+            session_id,
+            user_id,
+            serde_json::to_string(&serde_json::json!({
                 "event": event_type,
                 "data": data
             }))?,
+            channel.to_string(),
+        )?;
+        let event_response = BotResponse {
             message_type: 2,
-            stream_token: None,
             is_complete: true,
-            suggestions: Vec::new(),
-            context_name: None,
-            context_length: 0,
-            context_max_length: 0,
+            ..event_response
         };
 
         if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
@@ -510,7 +508,7 @@ impl BotOrchestrator {
             .unwrap_or(0);
 
         // Show initial progress
-        if let Ok(metrics) = get_system_metrics(initial_tokens, max_context_size) {
+        if let Ok(_metrics) = get_system_metrics(initial_tokens, max_context_size) {
         }
         let model = config_manager
             .get_config(
@@ -563,11 +561,11 @@ impl BotOrchestrator {
                     let current_tokens =
                         initial_tokens + crate::shared::utils::estimate_token_count(&full_response);
                     if let Ok(metrics) = get_system_metrics(current_tokens, max_context_size) {
-                        let gpu_bar =
+                        let _gpu_bar =
                             "█".repeat((metrics.gpu_usage.unwrap_or(0.0) / 5.0).round() as usize);
-                        let cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
+                        let _cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
                         let token_ratio = current_tokens as f64 / max_context_size.max(1) as f64;
-                        let token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
+                        let _token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
                         let mut ui = BotUI::new().unwrap();
                         ui.render_progress(current_tokens, max_context_size).unwrap();
                     }
