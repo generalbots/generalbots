@@ -32,6 +32,7 @@ impl FileTree {
  self.items.clear();
  self.current_bucket = None;
  self.current_path.clear();
+
  if let Some(drive) = &self.app_state.drive {
  let result = drive.list_buckets().send().await;
  match result {
@@ -52,6 +53,7 @@ impl FileTree {
  } else {
  self.items.push(("✗ Drive not connected".to_string(), TreeNode::Bucket { name: String::new() }));
  }
+
  if self.items.is_empty() {
  self.items.push(("(no buckets found)".to_string(), TreeNode::Bucket { name: String::new() }));
  }
@@ -121,6 +123,7 @@ impl FileTree {
  if let Some(token) = continuation_token {
  request = request.continuation_token(token);
  }
+
  let result = request.send().await?;
 
  for obj in result.contents() {
@@ -142,14 +145,17 @@ impl FileTree {
  if key == normalized_prefix {
  continue;
  }
+
  let relative = if !normalized_prefix.is_empty() && key.starts_with(&normalized_prefix) {
  &key[normalized_prefix.len()..]
  } else {
  &key
  };
+
  if relative.is_empty() {
  continue;
  }
+
  if let Some(slash_pos) = relative.find('/') {
  let folder_name = &relative[..slash_pos];
  if !folder_name.is_empty() {
@@ -162,7 +168,6 @@ impl FileTree {
 
  let mut folder_vec: Vec<String> = folders.into_iter().collect();
  folder_vec.sort();
-
  for folder_name in folder_vec {
  let full_path = if normalized_prefix.is_empty() {
  folder_name.clone()
@@ -178,7 +183,6 @@ impl FileTree {
  }
 
  files.sort_by(|(a, _), (b, _)| a.cmp(b));
-
  for (name, full_path) in files {
  let icon = if name.ends_with(".bas") {
  "⚙️"
@@ -224,6 +228,27 @@ impl FileTree {
 
  pub fn get_selected_node(&self) -> Option<&TreeNode> {
  self.items.get(self.selected).map(|(_, node)| node)
+ }
+
+ pub fn get_selected_bot(&self) -> Option<String> {
+ if let Some(bucket) = &self.current_bucket {
+ if bucket.ends_with(".gbai") {
+ return Some(bucket.trim_end_matches(".gbai").to_string());
+ }
+ }
+ 
+ if let Some((_, node)) = self.items.get(self.selected) {
+ match node {
+ TreeNode::Bucket { name } => {
+ if name.ends_with(".gbai") {
+ return Some(name.trim_end_matches(".gbai").to_string());
+ }
+ }
+ _ => {}
+ }
+ }
+ 
+ None
  }
 
  pub fn move_up(&mut self) {

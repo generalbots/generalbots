@@ -54,7 +54,7 @@ impl Editor {
  &self.file_path
  }
 
- pub fn render(&self) -> String {
+ pub fn render(&self, cursor_blink: bool) -> String {
  let lines: Vec<&str> = self.content.lines().collect();
  let total_lines = lines.len().max(1);
  let visible_lines = 25;
@@ -67,26 +67,35 @@ impl Editor {
 
  let start = self.scroll_offset;
  let end = (start + visible_lines).min(total_lines);
- let mut display_lines = Vec::new();
 
+ let mut display_lines = Vec::new();
  for i in start..end {
  let line_num = i + 1;
  let line_content = if i < lines.len() { lines[i] } else { "" };
  let is_cursor_line = i == cursor_line;
- let line_marker = if is_cursor_line { "▶" } else { " " };
- display_lines.push(format!("{} {:4} │ {}", line_marker, line_num, line_content));
+ 
+ let cursor_indicator = if is_cursor_line && cursor_blink {
+ let spaces = " ".repeat(cursor_col);
+ format!("{}█", spaces)
+ } else {
+ String::new()
+ };
+
+ display_lines.push(format!(" {:4} │ {}{}", line_num, line_content, cursor_indicator));
  }
 
  if display_lines.is_empty() {
- display_lines.push(" ▶    1 │ ".to_string());
+ let cursor_indicator = if cursor_blink { "█" } else { "" };
+ display_lines.push(format!("    1 │ {}", cursor_indicator));
  }
 
  display_lines.push("".to_string());
  display_lines.push("─────────────────────────────────────────────────────────────".to_string());
- let status = if self.modified { "●" } else { "✓" };
+ let status = if self.modified { "MODIFIED" } else { "SAVED" };
  display_lines.push(format!(" {} {} │ Line: {}, Col: {}",
  status, self.file_path, cursor_line + 1, cursor_col + 1));
  display_lines.push(" Ctrl+S: Save │ Ctrl+W: Close │ Esc: Close without saving".to_string());
+
  display_lines.join("\n")
  }
 
