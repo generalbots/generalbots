@@ -3,46 +3,49 @@ name = "botserver"
 version = "6.0.7"
 edition = "2021"
 authors = [
-    "Pragmatismo.com.br <contact@pragmatismo.com.br>",
-    "General Bots Community <https://github.com/GeneralBots>",
-    "Alan Perdomo",
-    "Ana Paula Gil",
-    "Arenas.io",
-    "Atylla L",
-    "Christopher de Castilho",
-    "Dario Junior",
-    "David Lerner",
-    "Experimentation Garage",
-    "Flavio Andrade",
-    "Heraldo Almeida",
-    "Joao Parana",
-    "Jonathas C",
-    "J Ramos",
-    "Lucas Picanco",
-    "Marcos Velasco",
-    "Matheus 39x",
-    "Oerlabs Henrique",
-    "Othon Lima",
-    "PH Nascimento",
-    "Phpussente",
-    "Robson Dantas",
-    "Rodrigo Rodriguez <me@rodrigorodriguez.com>",
-    "Sarah Lourenco",
-    "Thi Patriota",
-    "Webgus",
-    "Zuilho Se",
+ "Pragmatismo.com.br <contact@pragmatismo.com.br>",
+ "General Bots Community <https://github.com/GeneralBots>",
+ "Alan Perdomo",
+ "Ana Paula Gil",
+ "Arenas.io",
+ "Atylla L",
+ "Christopher de Castilho",
+ "Dario Junior",
+ "David Lerner",
+ "Experimentation Garage",
+ "Flavio Andrade",
+ "Heraldo Almeida",
+ "Joao Parana",
+ "Jonathas C",
+ "J Ramos",
+ "Lucas Picanco",
+ "Marcos Velasco",
+ "Matheus 39x",
+ "Oerlabs Henrique",
+ "Othon Lima",
+ "PH Nascimento",
+ "Phpussente",
+ "Robson Dantas",
+ "Rodrigo Rodriguez <me@rodrigorodriguez.com>",
+ "Sarah Lourenco",
+ "Thi Patriota",
+ "Webgus",
+ "Zuilho Se",
 ]
 description = "General Bots Server - Open-source bot platform by Pragmatismo.com.br"
 license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
-default = [ "vectordb"]
+default = [ "vectordb", "desktop"]
 vectordb = ["qdrant-client"]
 email = ["imap"]
 desktop = []
 
 [dependencies]
+color-eyre = "0.6.5"
+crossterm = "0.29.0"
+ratatui = "0.29.0"
 scopeguard = "1.2.0"
 once_cell = "1.18.0"
 actix-cors = "0.7"
@@ -101,10 +104,9 @@ urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4"] }
 zip = "2.2"
 
-
 [profile.release]
-lto = true  # Enables Link-Time Optimization
-opt-level = "z"  # Optimizes for size instead of speed
-strip = true  # Strips debug symbols
-panic = "abort"  # Reduces size by removing panic unwinding
-codegen-units = 1  # More aggressive optimization
+lto = true
+opt-level = "z"
+strip = true
+panic = "abort"
+codegen-units = 1

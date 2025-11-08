@@ -16,6 +16,6 @@ impl ModelHandler for GptOss20bHandler {
     }
 
     fn has_analysis_markers(&self, buffer: &str) -> bool {
-        buffer.contains("**")
+        buffer.contains("analysis<|message|>")
     }
 }
