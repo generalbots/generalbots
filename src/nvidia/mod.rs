@@ -4,6 +4,7 @@ use std::collections::HashMap;
 use sysinfo::{System};
 
 /// System monitoring data
+#[derive(Default)]
 pub struct SystemMetrics {
     pub gpu_usage: Option<f32>,
     pub cpu_usage: f32,

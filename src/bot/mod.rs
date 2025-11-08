@@ -1,7 +1,10 @@
+mod ui;
+
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
 use crate::llm_models;
 use crate::nvidia::get_system_metrics;
+use crate::bot::ui::BotUI;
 use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
@@ -508,13 +511,6 @@ impl BotOrchestrator {
 
         // Show initial progress
         if let Ok(metrics) = get_system_metrics(initial_tokens, max_context_size) {
-            eprintln!(
-                "\nNVIDIA: {:.1}% | CPU: {:.1}% | Tokens: {}/{}",
-                metrics.gpu_usage.unwrap_or(0.0),
-                metrics.cpu_usage,
-                initial_tokens,
-                max_context_size
-            );
         }
         let model = config_manager
             .get_config(
@@ -572,18 +568,8 @@ impl BotOrchestrator {
                         let cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
                         let token_ratio = current_tokens as f64 / max_context_size.max(1) as f64;
                         let token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
-                        use std::io::{self, Write};
-                        print!(
-                            "\rGPU [{:<20}] {:.1}% | CPU [{:<20}] {:.1}% | TOKENS [{:<20}] {}/{}",
-                            gpu_bar,
-                            metrics.gpu_usage.unwrap_or(0.0),
-                            cpu_bar,
-                            metrics.cpu_usage,
-                            token_bar,
-                            current_tokens,
-                            max_context_size
-                        );
-                        io::stdout().flush().unwrap();
+                        let mut ui = BotUI::new().unwrap();
+                        ui.render_progress(current_tokens, max_context_size).unwrap();
                     }
                     last_progress_update = Instant::now();
                 }
@@ -795,44 +781,9 @@ impl BotOrchestrator {
             session_id, channel, message
         );
 
-        if channel == "web" {
-            self.send_event(
-                "system",
-                "system",
-                session_id,
-                channel,
-                "warn",
-                serde_json::json!({
-                    "message": message,
-                    "timestamp": Utc::now().to_rfc3339()
-                }),
-            )
-            .await
-        } else {
-            if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
-                let warn_response = BotResponse {
-                    bot_id: "system".to_string(),
-                    user_id: "system".to_string(),
-                    session_id: session_id.to_string(),
-                    channel: channel.to_string(),
-                    content: format!("⚠️ WARNING: {}", message),
-                    message_type: 1,
-                    stream_token: None,
-                    is_complete: true,
-                    suggestions: Vec::new(),
-                    context_name: None,
-                    context_length: 0,
-                    context_max_length: 0,
-                };
-                adapter.send_message(warn_response).await
-            } else {
-                warn!(
-                    "No channel adapter found for warning on channel: {}",
-                    channel
-                );
-                Ok(())
-            }
-        }
+        let mut ui = BotUI::new().unwrap();
+        ui.render_warning(message).unwrap();
+        Ok(())
     }
 
     pub async fn trigger_auto_welcome(
