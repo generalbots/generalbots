@@ -6,6 +6,7 @@ use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use diesel::connection::SimpleConnection;
 use log::{error, info, trace};
+use rand::distr::Alphanumeric;
 use std::io::{self, Write};
 use std::path::Path;
 use std::process::Command;
@@ -17,35 +18,12 @@ pub struct BootstrapManager {
     pub tenant: Option<String>,
 }
 impl BootstrapManager {
-    fn is_postgres_running() -> bool {
-        match Command::new("pg_isready").arg("-q").status() {
-            Ok(status) => status.success(),
-            Err(_) => Command::new("pgrep")
-                .arg("postgres")
-                .output()
-                .map(|o| !o.stdout.is_empty())
-                .unwrap_or(false),
-        }
-    }
     pub async fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
         trace!(
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
             install_mode,
             tenant
         );
-        if !Self::is_postgres_running() {
-            let pm = PackageManager::new(install_mode.clone(), tenant.clone())
-                .expect("Failed to initialize PackageManager");
-            if let Err(e) = pm.start("tables") {
-                error!(
-                    "Failed to start Tables server component automatically: {}",
-                    e
-                );
-                panic!("Database not available and auto-start failed.");
-            } else {
-                trace!("Tables server started successfully");
-            }
-        }
         Self {
             install_mode,
             tenant,
@@ -84,6 +62,18 @@ impl BootstrapManager {
         }
         Ok(())
     }
+
+
+    fn generate_secure_password(&self, length: usize) -> String {
+        let mut rng = rand::rng();
+        (0..length)
+            .map(|_| {
+                let byte = rand::Rng::sample(&mut rng, Alphanumeric);
+                char::from(byte)
+            })
+            .collect()
+    }
+
     pub async fn bootstrap(&mut self) {
         if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
             if !tables_server.is_empty() {
@@ -116,7 +106,30 @@ impl BootstrapManager {
                     }
                 }
             }
+        } else {
+            let db_env_path = std::env::current_dir().unwrap().join(".env");
+            let db_password = self.generate_secure_password(32);
+            let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+                format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
+            });
+            let db_line = format!("DATABASE_URL={}\n", database_url);
+            let drive_password = self.generate_secure_password(16);
+            let drive_user = "gbdriveuser".to_string();
+
+            let env_path = std::env::current_dir().unwrap().join(".env");
+            let env_content = format!(
+                "\nDRIVE_SERVER=http://localhost:9000\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\n",
+                drive_user, drive_password
+            );
+            let _ = std::fs::OpenOptions::new()
+                .create(true)
+                .append(true)
+                .open(&env_path)
+                .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
+
+            let _ = std::fs::write(&db_env_path, db_line);
         }
+
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
         let required_components = vec!["tables", "drive", "cache", "llm"];
         for component in required_components {
@@ -190,8 +203,8 @@ impl BootstrapManager {
             }
         }
     }
-    
-    async fn create_s3_operator(config: &AppConfig) -> Client {
+
+    async fn get_drive_client(config: &AppConfig) -> Client {
         let endpoint = if !config.drive.server.ends_with('/') {
             format!("{}/", config.drive.server)
         } else {
@@ -222,7 +235,7 @@ impl BootstrapManager {
         if !templates_dir.exists() {
             return Ok(());
         }
-        let client = Self::create_s3_operator(_config).await;
+        let client = Self::get_drive_client(_config).await;
         let mut read_dir = tokio::fs::read_dir(templates_dir).await?;
         while let Some(entry) = read_dir.next_entry().await? {
             let path = entry.path();
