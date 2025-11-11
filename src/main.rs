@@ -149,6 +149,15 @@ async fn main() -> std::io::Result<()> {
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
         let env_path = std::env::current_dir().unwrap().join(".env");
         let cfg = if env_path.exists() {
+            
+            
+        progress_tx_clone
+            .send(BootstrapProgress::StartingComponent(
+                "all services".to_string(),
+            ))
+            .ok();
+            bootstrap.start_all().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            
             progress_tx_clone
                 .send(BootstrapProgress::ConnectingDatabase)
                 .ok();
@@ -167,25 +176,21 @@ async fn main() -> std::io::Result<()> {
             }
         } else {
             bootstrap.bootstrap().await;
+
+        progress_tx_clone
+            .send(BootstrapProgress::StartingComponent(
+                "all services".to_string(),
+            ))
+            .ok();
+            bootstrap.start_all().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
             match create_conn() {
                 Ok(pool) => AppConfig::from_database(&pool)
                     .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config")),
                 Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
             }
         };
-        progress_tx_clone
-            .send(BootstrapProgress::StartingComponent(
-                "all services".to_string(),
-            ))
-            .ok();
-        if let Err(e) = bootstrap.start_all() {
-            progress_tx_clone
-                .send(BootstrapProgress::BootstrapError(format!(
-                    "Failed to start services: {}",
-                    e
-                )))
-                .ok();
-        }
+        
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
             .ok();

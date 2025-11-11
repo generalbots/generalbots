@@ -1,9 +1,9 @@
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
+use crate::shared::utils::parse_database_url;
 use anyhow::Result;
 use log::trace;
-use rand::distr::Alphanumeric;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -61,19 +61,8 @@ impl PackageManager {
 
     fn register_drive(&mut self) {
 
-        let drive_password = self.generate_secure_password(16);
-        let drive_user = "gbdriveuser".to_string();
-
-        let env_path = std::env::current_dir().unwrap().join(".env");
-        let env_content = format!(
-            "\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\nDRIVE_SERVER=http://localhost:9000\n",
-            drive_user, drive_password 
-        );
-        let _ = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&env_path)
-            .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
+            let drive_user = std::env::var("DRIVE_ACCESSKEY").unwrap();
+            let drive_password = std::env::var("DRIVE_SECRET").unwrap();
 
         self.components.insert(
             "drive".to_string(),
@@ -95,8 +84,8 @@ impl PackageManager {
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::from([
-                    ("DRIVE_ROOT_USER".to_string(), drive_user.clone()),
-                    ("DRIVE_ROOT_PASSWORD".to_string(), drive_password.clone()),
+                    ("MINIO_ROOT_USER".to_string(), drive_user.clone()),
+                    ("MINIO_ROOT_PASSWORD".to_string(), drive_password.clone()),
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
@@ -110,14 +99,9 @@ impl PackageManager {
 
     fn register_tables(&mut self) {
 
-        let db_env_path = std::env::current_dir().unwrap().join(".env");
-        let db_password = self.generate_secure_password(32);
-        let database_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| format!("postgres://gbuser:{}@localhost:5432/botserver", db_password));
-        let db_line = format!("DATABASE_URL={}\n", database_url);
-
-
-        let _ = std::fs::write(&db_env_path, db_line);
+        let database_url = std::env::var("DATABASE_URL").unwrap();
+        let (_db_username, db_password, _db_server, _db_port, _db_name) =
+            parse_database_url(&database_url);
 
         self.components.insert(
             "tables".to_string(),
@@ -756,10 +740,12 @@ impl PackageManager {
                 rendered_cmd
             );
 
+
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&rendered_cmd)
+                .envs(&component.env_vars)
                 .spawn();
 
             std::thread::sleep(std::time::Duration::from_secs(2));
@@ -785,16 +771,6 @@ impl PackageManager {
         } else {
             Err(anyhow::anyhow!("Component {} not found", component))
         }
-    }
-
-    fn generate_secure_password(&self, length: usize) -> String {
-        let mut rng = rand::rng();
-        (0..length)
-            .map(|_| {
-                let byte = rand::Rng::sample(&mut rng, Alphanumeric);
-                char::from(byte)
-            })
-            .collect()
     }
 
 }
