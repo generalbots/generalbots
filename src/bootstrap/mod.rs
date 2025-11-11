@@ -190,6 +190,7 @@ impl BootstrapManager {
             }
         }
     }
+    
     async fn create_s3_operator(config: &AppConfig) -> Client {
         let endpoint = if !config.drive.server.ends_with('/') {
             format!("{}/", config.drive.server)
@@ -213,6 +214,7 @@ impl BootstrapManager {
             .build();
         aws_sdk_s3::Client::from_conf(s3_config)
     }
+
     pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
         let mut conn = establish_pg_connection()?;
         self.create_bots_from_templates(&mut conn)?;

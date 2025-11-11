@@ -1,14 +1,11 @@
-use crate::config::DriveConfig;
 use crate::shared::state::AppState;
 use actix_multipart::Multipart;
 use actix_web::web;
 use actix_web::{post, HttpResponse};
-use aws_sdk_s3::{Client as S3Client, config::Builder as S3ConfigBuilder};
-use aws_config::BehaviorVersion;
+use aws_sdk_s3::Client;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio_stream::StreamExt as TokioStreamExt;
-// Removed unused import
 
 #[post("/files/upload/{folder_path}")]
 pub async fn upload_file(
@@ -66,37 +63,8 @@ pub async fn upload_file(
     }
 }
 
-pub async fn init_drive(config: &DriveConfig) -> Result<S3Client, Box<dyn std::error::Error>> {
-    let endpoint = if !config.server.ends_with('/') {
-        format!("{}/", config.server)
-    } else {
-        config.server.clone()
-    };
-
-    let base_config = aws_config::defaults(BehaviorVersion::latest())
-        .endpoint_url(endpoint)
-        .region("auto")
-        .credentials_provider(
-            aws_sdk_s3::config::Credentials::new(
-                config.access_key.clone(),
-                config.secret_key.clone(),
-                None,
-                None,
-                "static",
-            )
-        )
-        .load()
-        .await;
-
-    let s3_config = S3ConfigBuilder::from(&base_config)
-        .force_path_style(true)
-        .build();
-
-    Ok(S3Client::from_conf(s3_config))
-}
-
 async fn upload_to_s3(
-    client: &S3Client,
+    client: &Client,
     bucket: &str,
     key: &str,
     file_path: &std::path::Path,

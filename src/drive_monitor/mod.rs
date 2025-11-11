@@ -64,12 +64,21 @@ impl DriveMonitor {
         let mut continuation_token = None;
 
         loop {
-            let list_objects = client
-                .list_objects_v2()
-                .bucket(&self.bucket_name.to_lowercase())
-                .set_continuation_token(continuation_token)
-                .send()
-                .await?;
+            let list_objects = match tokio::time::timeout(
+                Duration::from_secs(30),
+                client
+                    .list_objects_v2()
+                    .bucket(&self.bucket_name.to_lowercase())
+                    .set_continuation_token(continuation_token)
+                    .send()
+            ).await {
+                Ok(Ok(list)) => list,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_) => {
+                    log::error!("Timeout listing objects in bucket {}", self.bucket_name);
+                    return Ok(());
+                }
+            };
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
@@ -136,12 +145,21 @@ impl DriveMonitor {
         let mut continuation_token = None;
 
         loop {
-            let list_objects = client
-                .list_objects_v2()
-                .bucket(&self.bucket_name.to_lowercase())
-                .set_continuation_token(continuation_token)
-                .send()
-                .await?;
+            let list_objects = match tokio::time::timeout(
+                Duration::from_secs(30),
+                client
+                    .list_objects_v2()
+                    .bucket(&self.bucket_name.to_lowercase())
+                    .set_continuation_token(continuation_token)
+                    .send()
+            ).await {
+                Ok(Ok(list)) => list,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_) => {
+                    log::error!("Timeout listing objects in bucket {}", self.bucket_name);
+                    return Ok(());
+                }
+            };
 
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();

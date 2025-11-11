@@ -39,8 +39,9 @@ use crate::config::AppConfig;
 use crate::email::{
     get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
 };
-use crate::file::{init_drive, upload_file};
+use crate::file::upload_file;
 use crate::meet::{voice_start, voice_stop};
+use crate::shared::utils::create_s3_operator;
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
@@ -231,7 +232,7 @@ async fn main() -> std::io::Result<()> {
     };
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new());
-    let drive = init_drive(&config.drive)
+    let drive = create_s3_operator(&config.drive)
         .await
         .expect("Failed to initialize Drive");
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
