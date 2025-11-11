@@ -1,9 +1,7 @@
-use crate::shared::utils::{ DbPool};
+use crate::shared::utils::DbPool;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::collections::HashMap;
-use std::fs::OpenOptions;
-use std::io::Write;
 use uuid::Uuid;
 #[derive(Clone)]
 pub struct AppConfig {
@@ -25,7 +23,6 @@ pub struct DriveConfig {
     pub server: String,
     pub access_key: String,
     pub secret_key: String,
-    pub use_ssl: bool,
 }
 #[derive(Clone)]
 pub struct ServerConfig {
@@ -92,7 +89,7 @@ impl AppConfig {
                 .and_then(|v| v.3.parse().ok())
                 .unwrap_or(default)
         };
-        let get_bool = |key: &str, default: bool| -> bool {
+        let _get_bool = |key: &str, default: bool| -> bool {
             config_map
                 .get(key)
                 .map(|v| v.3.to_lowercase() == "true")
@@ -120,18 +117,11 @@ impl AppConfig {
                 Err(_) => get_str("TABLES_DATABASE", "botserver"),
             },
         };
+
         let drive = DriveConfig {
-            server: {
-                let server = get_str("DRIVE_SERVER", "http://localhost:9000");
-                if !server.starts_with("http://") && !server.starts_with("https://") {
-                    format!("http://{}", server)
-                } else {
-                    server
-                }
-            },
-            access_key: get_str("DRIVE_ACCESSKEY", "minioadmin"),
-            secret_key: get_str("DRIVE_SECRET", "minioadmin"),
-            use_ssl: get_bool("DRIVE_USE_SSL", false),
+            server: std::env::var("DRIVE_SERVER").unwrap(),
+            access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
+            secret_key: std::env::var("DRIVE_SECRET").unwrap(),
         };
         Ok(AppConfig {
             drive,
@@ -159,11 +149,9 @@ impl AppConfig {
             database: db_name,
         };
         let minio = DriveConfig {
-            server: std::env::var("DRIVE_SERVER")
-                .unwrap();
-            access_key: std::env::var("DRIVE_ACCESSKEY")
-                .unwrap();
-            secret_key: std::env::var("DRIVE_SECRET").unwrap_or_else(|_| "minioadmin".to_string()),
+            server: std::env::var("DRIVE_SERVER").unwrap(),
+            access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
+            secret_key: std::env::var("DRIVE_SECRET").unwrap(),
         };
         Ok(AppConfig {
             drive: minio,
