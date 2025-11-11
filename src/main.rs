@@ -41,11 +41,11 @@ use crate::email::{
 };
 use crate::file::upload_file;
 use crate::meet::{voice_start, voice_stop};
-use crate::shared::utils::create_s3_operator;
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions, start_session};
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
+use crate::shared::utils::create_s3_operator;
 use crate::web_server::{bot_index, index, static_files};
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
@@ -60,6 +60,13 @@ pub enum BootstrapProgress {
 }
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    dotenv().ok();
+    println!(
+        "Starting {} {}...",
+        std::env::var("PLATFORM_NAME").unwrap_or("General Bots".to_string()),
+        env!("CARGO_PKG_VERSION")
+    );
+
     use crate::llm::local::ensure_llama_servers_running;
     use botserver::config::ConfigManager;
     let args: Vec<String> = std::env::args().collect();
@@ -149,26 +156,20 @@ async fn main() -> std::io::Result<()> {
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
         let env_path = std::env::current_dir().unwrap().join(".env");
         let cfg = if env_path.exists() {
-            
-            
-        progress_tx_clone
-            .send(BootstrapProgress::StartingComponent(
-                "all services".to_string(),
-            ))
-            .ok();
-            bootstrap.start_all().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
-            
+            progress_tx_clone
+                .send(BootstrapProgress::StartingComponent(
+                    "all services".to_string(),
+                ))
+                .ok();
+            bootstrap
+                .start_all()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+
             progress_tx_clone
                 .send(BootstrapProgress::ConnectingDatabase)
                 .ok();
             match create_conn() {
                 Ok(pool) => {
-                    let mut conn = pool.get().map_err(|e| {
-                        std::io::Error::new(
-                            std::io::ErrorKind::ConnectionRefused,
-                            format!("Database connection failed: {}", e),
-                        )
-                    })?;
                     AppConfig::from_database(&pool)
                         .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config"))
                 }
@@ -177,12 +178,14 @@ async fn main() -> std::io::Result<()> {
         } else {
             bootstrap.bootstrap().await;
 
-        progress_tx_clone
-            .send(BootstrapProgress::StartingComponent(
-                "all services".to_string(),
-            ))
-            .ok();
-            bootstrap.start_all().map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            progress_tx_clone
+                .send(BootstrapProgress::StartingComponent(
+                    "all services".to_string(),
+                ))
+                .ok();
+            bootstrap
+                .start_all()
+                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
             match create_conn() {
                 Ok(pool) => AppConfig::from_database(&pool)
@@ -190,7 +193,7 @@ async fn main() -> std::io::Result<()> {
                 Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
             }
         };
-        
+
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
