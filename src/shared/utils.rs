@@ -13,6 +13,39 @@ use smartstring::SmartString;
 use std::error::Error;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
+use aws_sdk_s3::{Client as S3Client, config::Builder as S3ConfigBuilder};
+use aws_config::BehaviorVersion;
+use crate::config::DriveConfig;
+
+pub async fn create_s3_operator(config: &DriveConfig) -> Result<S3Client, Box<dyn std::error::Error>> {
+    let endpoint = if !config.server.ends_with('/') {
+        format!("{}/", config.server)
+    } else {
+        config.server.clone()
+    };
+
+    let base_config = aws_config::defaults(BehaviorVersion::latest())
+        .endpoint_url(endpoint)
+        .region("auto")
+        .credentials_provider(
+            aws_sdk_s3::config::Credentials::new(
+                config.access_key.clone(),
+                config.secret_key.clone(),
+                None,
+                None,
+                "static",
+            )
+        )
+        .load()
+        .await;
+
+    let s3_config = S3ConfigBuilder::from(&base_config)
+        .force_path_style(true)
+        .build();
+
+    Ok(S3Client::from_conf(s3_config))
+}
+
 pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
     match value {
         Value::Null => Dynamic::UNIT,
@@ -39,6 +72,7 @@ pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
         ),
     }
 }
+
 pub fn to_array(value: Dynamic) -> Array {
     if value.is_array() {
         value.cast::<Array>()
@@ -48,6 +82,7 @@ pub fn to_array(value: Dynamic) -> Array {
         Array::from([value])
     }
 }
+
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     let url = url.to_string();
     let output_path = output_path.to_string();
@@ -60,9 +95,9 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
             let total_size = response.content_length().unwrap_or(0);
             let pb = ProgressBar::new(total_size);
             pb.set_style(ProgressStyle::default_bar()
- .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
- .unwrap()
- .progress_chars("#>-"));
+                .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
+                .unwrap()
+                .progress_chars("#>-"));
             pb.set_message(format!("Downloading {}", url));
             let mut file = TokioFile::create(&output_path).await?;
             let mut downloaded: u64 = 0;
@@ -81,6 +116,7 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     });
     download_handle.await?
 }
+
 pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn Error>> {
     let parts: Vec<&str> = filter_str.split('=').collect();
     if parts.len() != 2 {
@@ -96,15 +132,18 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn E
     }
     Ok((format!("{} = $1", column), vec![value.to_string()]))
 }
+
 pub fn estimate_token_count(text: &str) -> usize {
     let char_count = text.chars().count();
     (char_count / 4).max(1)
 }
+
 pub fn establish_pg_connection() -> Result<PgConnection> {
     let database_url = std::env::var("DATABASE_URL").unwrap();
     PgConnection::establish(&database_url)
         .with_context(|| format!("Failed to connect to database at {}", database_url))
 }
+
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub fn create_conn() -> Result<DbPool, r2d2::Error> {
     let database_url = std::env::var("DATABASE_URL")
