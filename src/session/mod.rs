@@ -4,31 +4,30 @@ use crate::shared::state::AppState;
 use actix_web::{web, HttpResponse, Result};
 use chrono::Utc;
 use diesel::prelude::*;
+use diesel::r2d2::{ConnectionManager, PooledConnection};
 use diesel::PgConnection;
-use log::{debug, error, info, warn};
+use log::trace;
+use log::{error, warn};
 use redis::Client;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
-
 #[derive(Clone, Serialize, Deserialize)]
 pub struct SessionData {
     pub id: Uuid,
     pub user_id: Option<Uuid>,
     pub data: String,
 }
-
 pub struct SessionManager {
-    conn: PgConnection,
+    conn: PooledConnection<ConnectionManager<PgConnection>>,
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
     redis: Option<Arc<Client>>,
 }
-
 impl SessionManager {
-    pub fn new(conn: PgConnection, redis_client: Option<Arc<Client>>) -> Self {
+    pub fn new(conn: PooledConnection<ConnectionManager<PgConnection>>, redis_client: Option<Arc<Client>>) -> Self {
         SessionManager {
             conn,
             sessions: HashMap::new(),
@@ -36,13 +35,12 @@ impl SessionManager {
             redis: redis_client,
         }
     }
-
     pub fn provide_input(
         &mut self,
         session_id: Uuid,
         input: String,
     ) -> Result<Option<String>, Box<dyn Error + Send + Sync>> {
-        info!(
+        trace!(
             "SessionManager.provide_input called for session {}",
             session_id
         );
@@ -61,11 +59,9 @@ impl SessionManager {
             Ok(Some("user_input".to_string()))
         }
     }
-
     pub fn mark_waiting(&mut self, session_id: Uuid) {
         self.waiting_for_input.insert(session_id);
     }
-
     pub fn get_session_by_id(
         &mut self,
         session_id: Uuid,
@@ -77,7 +73,6 @@ impl SessionManager {
             .optional()?;
         Ok(result)
     }
-
     pub fn get_user_session(
         &mut self,
         uid: Uuid,
@@ -92,7 +87,6 @@ impl SessionManager {
             .optional()?;
         Ok(result)
     }
-
     pub fn get_or_create_user_session(
         &mut self,
         uid: Uuid,
@@ -104,24 +98,19 @@ impl SessionManager {
         }
         self.create_session(uid, bid, session_title).map(Some)
     }
-
     pub fn get_or_create_anonymous_user(
         &mut self,
         uid: Option<Uuid>,
     ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::users::dsl as users_dsl;
-
         let user_id = uid.unwrap_or_else(Uuid::new_v4);
-
         let user_exists: Option<Uuid> = users_dsl::users
             .filter(users_dsl::id.eq(user_id))
             .select(users_dsl::id)
             .first(&mut self.conn)
             .optional()?;
-
         if user_exists.is_none() {
             let now = Utc::now();
-            info!("Creating anonymous user with ID {}", user_id);
             diesel::insert_into(users_dsl::users)
                 .values((
                     users_dsl::id.eq(user_id),
@@ -137,10 +126,8 @@ impl SessionManager {
                 ))
                 .execute(&mut self.conn)?;
         }
-
         Ok(user_id)
     }
-
     pub fn create_session(
         &mut self,
         uid: Uuid,
@@ -148,11 +135,8 @@ impl SessionManager {
         session_title: &str,
     ) -> Result<UserSession, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
-
-        // Ensure user exists (create anonymous if needed)
         let verified_uid = self.get_or_create_anonymous_user(Some(uid))?;
         let now = Utc::now();
-
         let inserted: UserSession = diesel::insert_into(user_sessions)
             .values((
                 id.eq(Uuid::new_v4()),
@@ -170,18 +154,14 @@ impl SessionManager {
                 error!("Failed to create session in database: {}", e);
                 e
             })?;
-
         Ok(inserted)
     }
-
     fn _clear_messages(&mut self, _session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
-        
         diesel::delete(message_history.filter(session_id.eq(session_id)))
             .execute(&mut self.conn)?;
         Ok(())
     }
-
     pub fn save_message(
         &mut self,
         sess_id: Uuid,
@@ -191,8 +171,6 @@ impl SessionManager {
         msg_type: i32,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
-
-        // Check if this exact message already exists
         let exists = message_history
             .filter(session_id.eq(sess_id))
             .filter(user_id.eq(uid))
@@ -202,18 +180,14 @@ impl SessionManager {
             .select(id)
             .first::<Uuid>(&mut self.conn)
             .optional()?;
-
         if exists.is_some() {
-            debug!("Duplicate message detected, skipping save");
             return Ok(());
         }
-
         let next_index = message_history
             .filter(session_id.eq(sess_id))
             .count()
             .get_result::<i64>(&mut self.conn)
             .unwrap_or(0);
-
         diesel::insert_into(message_history)
             .values((
                 id.eq(Uuid::new_v4()),
@@ -226,14 +200,13 @@ impl SessionManager {
                 created_at.eq(chrono::Utc::now()),
             ))
             .execute(&mut self.conn)?;
-
-        debug!(
+        trace!(
             "Message saved for session {} with index {}",
-            sess_id, next_index
+            sess_id,
+            next_index
         );
         Ok(())
     }
-
     pub async fn update_session_context(
         &mut self,
         session_id: &Uuid,
@@ -241,25 +214,21 @@ impl SessionManager {
         context_data: String,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use redis::Commands;
-
         let redis_key = format!("context:{}:{}", user_id, session_id);
         if let Some(redis_client) = &self.redis {
             let mut conn = redis_client.get_connection()?;
             conn.set::<_, _, ()>(&redis_key, &context_data)?;
-            info!("Updated context in Redis for key {}", redis_key);
         } else {
             warn!("No Redis client configured, context not persisted");
         }
         Ok(())
     }
-
     pub async fn get_session_context_data(
         &self,
         session_id: &Uuid,
         user_id: &Uuid,
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
         use redis::Commands;
-
         let base_key = format!("context:{}:{}", user_id, session_id);
         if let Some(redis_client) = &self.redis {
             let conn_option = redis_client
@@ -269,17 +238,14 @@ impl SessionManager {
                     e
                 })
                 .ok();
-
             if let Some(mut connection) = conn_option {
-                // First cache trip: get context name
                 match connection.get::<_, Option<String>>(&base_key) {
                     Ok(Some(context_name)) => {
-                        debug!("Found context name '{}' for key {}", context_name, base_key);
-                        // Second cache trip: get actual context value
-                        let full_key = format!("context:{}:{}:{}", user_id, session_id, context_name);
+                        let full_key =
+                            format!("context:{}:{}:{}", user_id, session_id, context_name);
                         match connection.get::<_, Option<String>>(&full_key) {
                             Ok(Some(context_value)) => {
-                                debug!(
+                                trace!(
                                     "Retrieved context value from Cache for key {}: {} chars",
                                     full_key,
                                     context_value.len()
@@ -287,7 +253,7 @@ impl SessionManager {
                                 return Ok(context_value);
                             }
                             Ok(None) => {
-                                debug!("No context value found for key {}", full_key);
+                                trace!("No context value found for key: {}", full_key);
                             }
                             Err(e) => {
                                 warn!("Failed to retrieve context value from Cache: {}", e);
@@ -295,7 +261,7 @@ impl SessionManager {
                         }
                     }
                     Ok(None) => {
-                        debug!("No context name found for key {}", base_key);
+                        trace!("No context name found for key: {}", base_key);
                     }
                     Err(e) => {
                         warn!("Failed to retrieve context name from Cache: {}", e);
@@ -303,25 +269,19 @@ impl SessionManager {
                 }
             }
         }
-
         Ok(String::new())
     }
-
-
-
     pub fn get_conversation_history(
         &mut self,
         sess_id: Uuid,
         _uid: Uuid,
     ) -> Result<Vec<(String, String)>, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
-
         let messages = message_history
             .filter(session_id.eq(sess_id))
             .order(message_index.asc())
             .select((role, content_encrypted))
             .load::<(i32, String)>(&mut self.conn)?;
-
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content) in messages {
             let role_str = match other_role {
@@ -334,13 +294,11 @@ impl SessionManager {
         }
         Ok(history)
     }
-
     pub fn get_user_sessions(
         &mut self,
         uid: Uuid,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
-
         let sessions = if uid == Uuid::nil() {
             user_sessions
                 .order(created_at.desc())
@@ -351,42 +309,33 @@ impl SessionManager {
                 .order(created_at.desc())
                 .load::<UserSession>(&mut self.conn)?
         };
-
         Ok(sessions)
     }
-
-
     pub fn update_user_id(
         &mut self,
         session_id: Uuid,
         new_user_id: Uuid,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
-
         let updated_count = diesel::update(user_sessions.filter(id.eq(session_id)))
             .set((user_id.eq(new_user_id), updated_at.eq(chrono::Utc::now())))
             .execute(&mut self.conn)?;
-
         if updated_count == 0 {
             warn!("No session found with ID: {}", session_id);
         } else {
-            debug!("Updated user ID for session {}", session_id);
+            trace!("Updated user ID for session: {}", session_id);
         }
         Ok(())
     }
 }
-
 #[actix_web::post("/api/sessions")]
 async fn create_session(data: web::Data<AppState>) -> Result<HttpResponse> {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
     let bot_id = Uuid::nil();
-
-    // Acquire lock briefly, then release before performing blocking DB operations
     let session_result = {
         let mut sm = data.session_manager.lock().await;
         sm.get_or_create_user_session(user_id, bot_id, "New Conversation")
     };
-
     let session = match session_result {
         Ok(Some(s)) => s,
         Ok(None) => {
@@ -400,14 +349,12 @@ async fn create_session(data: web::Data<AppState>) -> Result<HttpResponse> {
                 .json(serde_json::json!({"error": e.to_string()})));
         }
     };
-
     Ok(HttpResponse::Ok().json(serde_json::json!({
-        "session_id": session.id,
-        "title": "New Conversation",
-        "created_at": Utc::now()
+    "session_id": session.id,
+    "title": "New Conversation",
+    "created_at": Utc::now()
     })))
 }
-
 #[actix_web::get("/api/sessions")]
 async fn get_sessions(data: web::Data<AppState>) -> Result<HttpResponse> {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
@@ -421,14 +368,9 @@ async fn get_sessions(data: web::Data<AppState>) -> Result<HttpResponse> {
         }
     }
 }
-
 #[actix_web::post("/api/sessions/{session_id}/start")]
-async fn start_session(
-    data: web::Data<AppState>,
-    path: web::Path<String>,
-) -> Result<HttpResponse> {
+async fn start_session(data: web::Data<AppState>, path: web::Path<String>) -> Result<HttpResponse> {
     let session_id = path.into_inner();
-
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
             let mut session_manager = data.session_manager.lock().await;
@@ -436,15 +378,13 @@ async fn start_session(
                 Ok(Some(_session)) => {
                     session_manager.mark_waiting(session_uuid);
                     Ok(HttpResponse::Ok().json(serde_json::json!({
-                        "status": "started",
-                        "session_id": session_id
+                    "status": "started",
+                    "session_id": session_id
                     })))
                 }
-                Ok(None) => {
-                    Ok(HttpResponse::NotFound().json(serde_json::json!({
-                        "error": "Session not found"
-                    })))
-                }
+                Ok(None) => Ok(HttpResponse::NotFound().json(serde_json::json!({
+                "error": "Session not found"
+                }))),
                 Err(e) => {
                     error!("Failed to start session {}: {}", session_id, e);
                     Ok(HttpResponse::InternalServerError()
@@ -458,7 +398,6 @@ async fn start_session(
         }
     }
 }
-
 #[actix_web::get("/api/sessions/{session_id}")]
 async fn get_session_history(
     data: web::Data<AppState>,
@@ -466,7 +405,6 @@ async fn get_session_history(
 ) -> Result<HttpResponse> {
     let session_id = path.into_inner();
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
             let orchestrator = BotOrchestrator::new(Arc::new(data.get_ref().clone()));
@@ -475,7 +413,7 @@ async fn get_session_history(
                 .await
             {
                 Ok(history) => {
-                    info!(
+                    trace!(
                         "Retrieved {} history entries for session {}",
                         history.len(),
                         session_id

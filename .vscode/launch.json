@@ -1,6 +1,7 @@
 {
   "version": "0.2.0",
   "configurations": [
+  
     {
       "type": "lldb",
       "request": "launch",
@@ -12,7 +13,7 @@
           "kind": "bin"
         }
       },
-      "args": [],
+      "args": ["--noui"],
       "env": {
         "RUST_LOG": "trace,actix_web=off,aws_sigv4=off,aws_smithy_checksums=off,actix_http=off,mio=off,reqwest=off,aws_runtime=off,aws_smithy_http_client=off,rustls=off,actix_server=off,hyper_util=off,aws_smithy_runtime=off,aws_smithy_runtime_api=off,tracing=off,aws_sdk_s3=off"
       

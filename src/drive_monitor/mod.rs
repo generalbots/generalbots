@@ -132,7 +132,7 @@ impl DriveMonitor {
     }
 
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let config_manager = ConfigManager::new(self.state.conn.clone());
         let mut continuation_token = None;
 
         loop {
@@ -194,7 +194,7 @@ impl DriveMonitor {
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
 
                             if restart_needed {
-                                if let Err(e) = ensure_llama_servers_running(&self.state).await {
+                                if let Err(e) = ensure_llama_servers_running(Arc::clone(&self.state)).await {
                                     log::error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
                             }
