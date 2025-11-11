@@ -1,44 +1,27 @@
 use crate::shared::state::AppState;
 use crate::shared::models::UserSession;
-use log::info;
 use rhai::{Dynamic, Engine};
 use std::thread;
 use std::time::Duration;
-
 pub fn wait_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
-    engine
-        .register_custom_syntax(
-            &["WAIT", "$expr$"],
-            false,
-            move |context, inputs| {
-                let seconds = context.eval_expression_tree(&inputs[0])?;
-
-                let duration_secs = if seconds.is::<i64>() {
-                    seconds.cast::<i64>() as f64
-                } else if seconds.is::<f64>() {
-                    seconds.cast::<f64>()
-                } else {
-                    return Err(format!("WAIT expects a number, got: {}", seconds).into());
-                };
-
-                if duration_secs < 0.0 {
-                    return Err("WAIT duration cannot be negative".into());
-                }
-
-                let capped_duration = if duration_secs > 300.0 {
-                    300.0
-                } else {
-                    duration_secs
-                };
-
-                info!("WAIT {} seconds (thread sleep)", capped_duration);
-
-                let duration = Duration::from_secs_f64(capped_duration);
-                thread::sleep(duration);
-
-                info!("WAIT completed after {} seconds", capped_duration);
-                Ok(Dynamic::from(format!("Waited {} seconds", capped_duration)))
-            },
-        )
-        .unwrap();
+ engine
+ .register_custom_syntax(&["WAIT", "$expr$"], false, move |context, inputs| {
+ let seconds = context.eval_expression_tree(&inputs[0])?;
+ let duration_secs = if seconds.is::<i64>() {
+ seconds.cast::<i64>() as f64
+ } else if seconds.is::<f64>() {
+ seconds.cast::<f64>()
+ } else {
+ return Err(format!("WAIT expects a number, got: {}", seconds).into());
+ };
+ if duration_secs < 0.0 {
+ return Err("WAIT duration cannot be negative".into());
+ }
+ let capped_duration = if duration_secs > 300.0 { 300.0 } else { duration_secs };
+ let duration = Duration::from_secs_f64(capped_duration);
+ thread::sleep(duration);
+ Ok(Dynamic::from(format!("Waited {} seconds", capped_duration)))
+ },
+ )
+ .unwrap();
 }

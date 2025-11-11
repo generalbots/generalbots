@@ -21,24 +21,24 @@ for file in "${prompts[@]}"; do
 done
 
 dirs=(
-      #"auth"
-      #"automation"
-      #"basic"
+      "auth"
+      "automation"
+      "basic"
       "bootstrap"
       "bot"
       #"channels"
-      #"config"
+      "config"
       #"context"
       "drive_monitor"
       #"email"
-      "file"
-     # "kb"
+      #"file"
+      #"kb"
       "llm"
       #"llm_models"
       #"org"
-      "package_manager"
+      #"package_manager"
       #"riot_compiler"
-      #"session"
+      "session"
       "shared"
       #"tests"
       #"tools"
@@ -48,12 +48,6 @@ dirs=(
       #"web_automation"
  )
 
-filter_rust_file() {
-    sed -E '/^\s*\/\//d' "$1" | \
-    sed -E '/info!\s*\(/d' | \
-    sed -E '/debug!\s*\(/d' | \
-    sed -E '/trace!\s*\(/d'
-}
 
 for dir in "${dirs[@]}"; do
     find "$PROJECT_ROOT/src/$dir" -name "*.rs" | while read -r file; do

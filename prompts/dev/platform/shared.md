@@ -1,15 +1,16 @@
 MOST IMPORTANT CODE GENERATION RULES:
+- KISS, NO TALK, SECURED ENTERPRISE GRADE THREAD SAFE CODE ONLY.
 - Use rustc 1.90.0 (1159e78c4 2025-09-14).
 - Check for warnings related to use of mut where is dispensable.
 - No placeholders, never comment/uncomment code, no explanations, no filler text.
 - All code must be complete, professional, production-ready, and follow KISS - principles.
 - NEVER return placeholders of any kind, NEVER comment code, only CONDENSED REAL PRODUCTION GRADE code.
-- REMOTE ALL COMMENTS FROM GENERATED CODE. DO NOT COMMENT AT ALL, NO TALK!
+- REMOTE ALL COMMENTS FROM GENERATED CODE. DO NOT COMMENT AT ALL, NO TALK, just say you are finished!
 - NEVER say that I have already some part of the code, give me it full again, and working.
 - Always increment logging with (all-in-one-line) info!, debug!, trace! to give birth to the console.
 - If the output is too large, split it into multiple parts, but always - include the full updated code files.
 - Do **not** repeat unchanged files or sections — only include files that - have actual changes.
-- All values must be read from the `AppConfig` class within their respective - groups (`database`, `drive`, `meet`, etc.); never use hardcoded or magic - values.
+- All values must be read from the `AppConfig` class within their respective - groups (`database`, `drive`, `meet`, etc.); never use hardcoded or commercial names like S3, Azure or something like that, preffer Drive, Cloud, instead, never use url or magic - values like api.openai - no unrwap_or_defaul at all!!!
 - Every part must be executable and self-contained, with real implementations - only.
 - DO NOT WRITE ANY ERROR HANDLING CODE LET IT CRASH.
 - Never generate two ore more trace mensages that are equal!
@@ -18,3 +19,5 @@ MOST IMPORTANT CODE GENERATION RULES:
 - NEVER return a untouched file in output. Just files that need to be updated.
 - Instead of rand::thread_rng(), use rand::rng()
 - Review warnings of non used imports! Give me 0 warnings, please.
+- Ensure you remove these: ommon errors borrow of moved value, unused variable, use of moved value.
+

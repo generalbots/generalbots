@@ -28,29 +28,27 @@ pub async fn embeddings_local(
 }
 
 pub async fn ensure_llama_servers_running(
-    app_state: &Arc<AppState>
+    app_state: Arc<AppState>
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Get all config values before starting async operations
 let config_values = {
     let conn_arc = app_state.conn.clone();
-    tokio::task::spawn_blocking(move || {
-        let mut conn = conn_arc.lock().unwrap();
-        let config_manager = ConfigManager::new(Arc::clone(&conn_arc));
-        
-        let default_bot_id = bots.filter(name.eq("default"))
+    let default_bot_id = tokio::task::spawn_blocking(move || {
+        let mut conn = conn_arc.get().unwrap();
+        bots.filter(name.eq("default"))
             .select(id)
             .first::<uuid::Uuid>(&mut *conn)
-            .unwrap_or_else(|_| uuid::Uuid::nil());
-
-        (
-            default_bot_id,
-            config_manager.get_config(&default_bot_id, "llm-url", None).unwrap_or_default(),
-            config_manager.get_config(&default_bot_id, "llm-model", None).unwrap_or_default(),
-            config_manager.get_config(&default_bot_id, "embedding-url", None).unwrap_or_default(),
-            config_manager.get_config(&default_bot_id, "embedding-model", None).unwrap_or_default(),
-            config_manager.get_config(&default_bot_id, "llm-server-path", None).unwrap_or_default(),
-        )
-    }).await?
+            .unwrap_or_else(|_| uuid::Uuid::nil())
+    }).await?;
+    let config_manager = ConfigManager::new(app_state.conn.clone());
+    (
+        default_bot_id,
+        config_manager.get_config(&default_bot_id, "llm-url", None).unwrap_or_default(),
+        config_manager.get_config(&default_bot_id, "llm-model", None).unwrap_or_default(),
+        config_manager.get_config(&default_bot_id, "embedding-url", None).unwrap_or_default(),
+        config_manager.get_config(&default_bot_id, "embedding-model", None).unwrap_or_default(),
+        config_manager.get_config(&default_bot_id, "llm-server-path", None).unwrap_or_default(),
+    )
 };
 let (_default_bot_id, llm_url, llm_model, embedding_url, embedding_model, llm_server_path) = config_values;
 
@@ -90,7 +88,7 @@ let (_default_bot_id, llm_url, llm_model, embedding_url, embedding_model, llm_se
     if !llm_running && !llm_model.is_empty() {
         info!("Starting LLM server...");
         tasks.push(tokio::spawn(start_llm_server(
-            Arc::clone(app_state),
+            Arc::clone(&app_state),
             llm_server_path.clone(),
             llm_model.clone(),
             llm_url.clone(),
@@ -192,14 +190,12 @@ pub async fn start_llm_server(
     let conn = app_state.conn.clone();
     let config_manager = ConfigManager::new(conn.clone());
 
-    let default_bot_id = {
-        let mut conn = conn.lock().unwrap();
-        bots.filter(name.eq("default"))
+        let mut conn = conn.get().unwrap();
+        let default_bot_id = bots.filter(name.eq("default"))
             .select(id)
             .first::<uuid::Uuid>(&mut *conn)
-            .unwrap_or_else(|_| uuid::Uuid::nil())
-    };
-
+            .unwrap_or_else(|_| uuid::Uuid::nil());
+ 
     let n_moe = config_manager.get_config(&default_bot_id, "llm-server-n-moe", None).unwrap_or("4".to_string());
     let parallel = config_manager.get_config(&default_bot_id, "llm-server-parallel", None).unwrap_or("1".to_string());
     let cont_batching = config_manager.get_config(&default_bot_id, "llm-server-cont-batching", None).unwrap_or("true".to_string());

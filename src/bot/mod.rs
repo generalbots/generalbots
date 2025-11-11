@@ -65,7 +65,7 @@ impl BotOrchestrator {
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
 
-        let mut db_conn = self.state.conn.lock().unwrap();
+        let mut db_conn = self.state.conn.get().unwrap();
         let active_bots = bots
             .filter(is_active.eq(true))
             .select(id)
@@ -102,7 +102,7 @@ impl BotOrchestrator {
         use diesel::prelude::*;
 
         let bot_name: String = {
-            let mut db_conn = state.conn.lock().unwrap();
+            let mut db_conn = state.conn.get().unwrap();
             bots.filter(id.eq(Uuid::parse_str(&bot_guid)?))
                 .select(name)
                 .first(&mut *db_conn)
@@ -154,7 +154,7 @@ impl BotOrchestrator {
         use diesel::prelude::*;
 
         let bot_name: String = {
-            let mut db_conn = self.state.conn.lock().unwrap();
+            let mut db_conn = self.state.conn.get().unwrap();
             bots.filter(id.eq(Uuid::parse_str(&bot_guid)?))
                 .select(name)
                 .first(&mut *db_conn)
@@ -251,7 +251,7 @@ impl BotOrchestrator {
             ..event_response
         };
 
-        if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
+        if let Some(adapter) = self.state.channels.lock().await.get(channel) {
             adapter.send_message(event_response).await?;
         } else {
             warn!("No channel adapter found for channel: {}", channel);
@@ -310,7 +310,7 @@ impl BotOrchestrator {
             context_max_length: 0,
         };
 
-        if let Some(adapter) = self.state.channels.lock().unwrap().get(channel) {
+        if let Some(adapter) = self.state.channels.lock().await.get(channel) {
             adapter.send_message(confirmation).await?;
         }
 
@@ -396,7 +396,7 @@ impl BotOrchestrator {
 
         // Get history limit from bot config (default -1 for unlimited)
         let history_limit = {
-            let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+            let config_manager = ConfigManager::new(self.state.conn.clone());
             config_manager
                 .get_config(
                     &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -496,7 +496,7 @@ impl BotOrchestrator {
 
         // Calculate initial token count
         let initial_tokens = crate::shared::utils::estimate_token_count(&prompt);
-        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let config_manager = ConfigManager::new(self.state.conn.clone());
         let max_context_size = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -593,11 +593,11 @@ impl BotOrchestrator {
             }
         }
 
-        trace!(
+        info!(
             "Stream processing completed, {} chunks processed",
             chunk_count
         );
-
+  
         // Sum tokens from all p.push context builds before submission
         let total_tokens = crate::shared::utils::estimate_token_count(&prompt)
             + crate::shared::utils::estimate_token_count(&context_data)
@@ -608,7 +608,7 @@ impl BotOrchestrator {
         );
 
         // Trigger compact prompt if enabled
-        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let config_manager = ConfigManager::new( self.state.conn.clone());
         let compact_enabled = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -636,7 +636,7 @@ impl BotOrchestrator {
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;
         }
 
-        let config_manager = ConfigManager::new(Arc::clone(&self.state.conn));
+        let config_manager = ConfigManager::new(self.state.conn.clone());
         let max_context_size = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -710,7 +710,7 @@ impl BotOrchestrator {
         let bot_id = session.bot_id;
 
         let bot_name: String = {
-            let mut db_conn = state.conn.lock().unwrap();
+            let mut db_conn = state.conn.get().unwrap();
             bots.filter(id.eq(Uuid::parse_str(&bot_id.to_string())?))
                 .select(name)
                 .first(&mut *db_conn)
@@ -896,7 +896,7 @@ async fn websocket_handler(
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
 
-        let mut db_conn = data.conn.lock().unwrap();
+        let mut db_conn = data.conn.get().unwrap();
         match bots
             .filter(is_active.eq(true))
             .select(id)
@@ -1010,7 +1010,7 @@ async fn websocket_handler(
                         use crate::shared::models::schema::bots::dsl::*;
                         use diesel::prelude::*;
 
-                        let mut db_conn = data.conn.lock().unwrap();
+                        let mut db_conn = data.conn.get().unwrap();
                         match bots
                             .filter(is_active.eq(true))
                             .select(id)
@@ -1069,7 +1069,7 @@ async fn websocket_handler(
                         use crate::shared::models::schema::bots::dsl::*;
                         use diesel::prelude::*;
 
-                        let mut db_conn = data.conn.lock().unwrap();
+                        let mut db_conn = data.conn.get().unwrap();
                         match bots
                             .filter(is_active.eq(true))
                             .select(id)

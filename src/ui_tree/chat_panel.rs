@@ -6,8 +6,6 @@ use tokio::sync::mpsc;
 use uuid::Uuid;
 
 pub struct ChatPanel {
- pub id: Uuid,
- pub app_state: Arc<AppState>,
  pub messages: Vec<String>,
  pub input_buffer: String,
  pub session_id: Uuid,
@@ -16,10 +14,8 @@ pub struct ChatPanel {
 }
 
 impl ChatPanel {
- pub fn new(app_state: Arc<AppState>) -> Self {
+ pub fn new(_app_state: Arc<AppState>) -> Self {
  Self {
- id: Uuid::new_v4(),
- app_state,
  messages: vec!["Welcome to General Bots Console Chat!".to_string()],
  input_buffer: String::new(),
  session_id: Uuid::new_v4(),
@@ -95,7 +91,7 @@ let _ = orchestrator.stream_response(user_message, tx).await;
  use crate::shared::models::schema::bots::dsl::*;
  use diesel::prelude::*;
 
- let mut conn = app_state.conn.lock().unwrap();
+ let mut conn = app_state.conn.get().unwrap();
  let bot_id = bots
  .filter(name.eq(bot_name))
  .select(id)

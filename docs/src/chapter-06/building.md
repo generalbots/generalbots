@@ -74,6 +74,8 @@ cargo install cargo-audit
 cargo install cargo-edit
 apt install -y libpq-dev
 apt install -y valkey-cli
+valkey-cli config set stop-writes-on-bgsave-error no
+
 
 # Util
 

@@ -1,18 +1,17 @@
-use crate::shared::state::AppState;
 use crate::basic::keywords::set_schedule::execute_set_schedule;
+use crate::shared::models::TriggerKind;
+use crate::shared::state::AppState;
+use diesel::ExpressionMethods;
+use diesel::QueryDsl;
+use diesel::RunQueryDsl;
 use log::warn;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use diesel::QueryDsl;
-use diesel::ExpressionMethods;
 use std::collections::HashSet;
-use diesel::RunQueryDsl;
-use crate::shared::models::TriggerKind;
 use std::error::Error;
 use std::fs;
 use std::path::Path;
 use std::sync::Arc;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParamDeclaration {
     pub name: String,
@@ -21,7 +20,6 @@ pub struct ParamDeclaration {
     pub description: String,
     pub required: bool,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ToolDefinition {
     pub name: String,
@@ -29,14 +27,12 @@ pub struct ToolDefinition {
     pub parameters: Vec<ParamDeclaration>,
     pub source_file: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MCPTool {
     pub name: String,
     pub description: String,
     pub input_schema: MCPInputSchema,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MCPInputSchema {
     #[serde(rename = "type")]
@@ -44,7 +40,6 @@ pub struct MCPInputSchema {
     pub properties: HashMap<String, MCPProperty>,
     pub required: Vec<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MCPProperty {
     #[serde(rename = "type")]
@@ -53,21 +48,18 @@ pub struct MCPProperty {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAITool {
     #[serde(rename = "type")]
     pub tool_type: String,
     pub function: OpenAIFunction,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIFunction {
     pub name: String,
     pub description: String,
     pub parameters: OpenAIParameters,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIParameters {
     #[serde(rename = "type")]
@@ -75,7 +67,6 @@ pub struct OpenAIParameters {
     pub properties: HashMap<String, OpenAIProperty>,
     pub required: Vec<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAIProperty {
     #[serde(rename = "type")]
@@ -84,13 +75,11 @@ pub struct OpenAIProperty {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
 }
-
 pub struct BasicCompiler {
     state: Arc<AppState>,
     bot_id: uuid::Uuid,
     previous_schedules: HashSet<String>,
 }
-
 impl BasicCompiler {
     pub fn new(state: Arc<AppState>, bot_id: uuid::Uuid) -> Self {
         Self {
@@ -99,7 +88,6 @@ impl BasicCompiler {
             previous_schedules: HashSet::new(),
         }
     }
-
     pub fn compile_file(
         &mut self,
         source_path: &str,
@@ -107,46 +95,35 @@ impl BasicCompiler {
     ) -> Result<CompilationResult, Box<dyn Error + Send + Sync>> {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {}", e))?;
-
         let tool_def = self.parse_tool_definition(&source_content, source_path)?;
-
         let file_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
             .ok_or("Invalid file name")?;
-
         let ast_path = format!("{}/{}.ast", output_dir, file_name);
         let ast_content = self.preprocess_basic(&source_content, source_path, self.bot_id)?;
-
         fs::write(&ast_path, &ast_content)
             .map_err(|e| format!("Failed to write AST file: {}", e))?;
-
         let (mcp_json, tool_json) = if !tool_def.parameters.is_empty() {
             let mcp = self.generate_mcp_tool(&tool_def)?;
             let openai = self.generate_openai_tool(&tool_def)?;
-
             let mcp_path = format!("{}/{}.mcp.json", output_dir, file_name);
             let tool_path = format!("{}/{}.tool.json", output_dir, file_name);
-
             let mcp_json_str = serde_json::to_string_pretty(&mcp)?;
             fs::write(&mcp_path, mcp_json_str)
                 .map_err(|e| format!("Failed to write MCP JSON: {}", e))?;
-
             let tool_json_str = serde_json::to_string_pretty(&openai)?;
             fs::write(&tool_path, tool_json_str)
                 .map_err(|e| format!("Failed to write tool JSON: {}", e))?;
-
             (Some(mcp), Some(openai))
         } else {
             (None, None)
         };
-
         Ok(CompilationResult {
             mcp_tool: mcp_json,
             _openai_tool: tool_json,
         })
     }
-
     pub fn parse_tool_definition(
         &self,
         source: &str,
@@ -156,16 +133,13 @@ impl BasicCompiler {
         let mut description = String::new();
         let lines: Vec<&str> = source.lines().collect();
         let mut i = 0;
-
         while i < lines.len() {
             let line = lines[i].trim();
-
             if line.starts_with("PARAM ") {
                 if let Some(param) = self.parse_param_line(line)? {
                     params.push(param);
                 }
             }
-
             if line.starts_with("DESCRIPTION ") {
                 let desc_start = line.find('"').unwrap_or(0);
                 let desc_end = line.rfind('"').unwrap_or(line.len());
@@ -173,16 +147,13 @@ impl BasicCompiler {
                     description = line[desc_start + 1..desc_end].to_string();
                 }
             }
-
             i += 1;
         }
-
         let tool_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("unknown")
             .to_string();
-
         Ok(ToolDefinition {
             name: tool_name,
             description,
@@ -190,7 +161,6 @@ impl BasicCompiler {
             source_file: source_path.to_string(),
         })
     }
-
     fn parse_param_line(
         &self,
         line: &str,
@@ -199,15 +169,12 @@ impl BasicCompiler {
         if !line.starts_with("PARAM ") {
             return Ok(None);
         }
-
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 4 {
             warn!("Invalid PARAM line: {}", line);
             return Ok(None);
         }
-
         let name = parts[1].to_string();
-
         let as_index = parts.iter().position(|&p| p == "AS");
         let param_type = if let Some(idx) = as_index {
             if idx + 1 < parts.len() {
@@ -218,7 +185,6 @@ impl BasicCompiler {
         } else {
             "string".to_string()
         };
-
         let example = if let Some(like_pos) = line.find("LIKE") {
             let rest = &line[like_pos + 4..].trim();
             if let Some(start) = rest.find('"') {
@@ -233,7 +199,6 @@ impl BasicCompiler {
         } else {
             None
         };
-
         let description = if let Some(desc_pos) = line.find("DESCRIPTION") {
             let rest = &line[desc_pos + 11..].trim();
             if let Some(start) = rest.find('"') {
@@ -248,7 +213,6 @@ impl BasicCompiler {
         } else {
             "".to_string()
         };
-
         Ok(Some(ParamDeclaration {
             name,
             param_type: self.normalize_type(&param_type),
@@ -257,7 +221,6 @@ impl BasicCompiler {
             required: true,
         }))
     }
-
     fn normalize_type(&self, basic_type: &str) -> String {
         match basic_type.to_lowercase().as_str() {
             "string" | "text" => "string".to_string(),
@@ -270,14 +233,12 @@ impl BasicCompiler {
             _ => "string".to_string(),
         }
     }
-
     fn generate_mcp_tool(
         &self,
         tool_def: &ToolDefinition,
     ) -> Result<MCPTool, Box<dyn Error + Send + Sync>> {
         let mut properties = HashMap::new();
         let mut required = Vec::new();
-
         for param in &tool_def.parameters {
             properties.insert(
                 param.name.clone(),
@@ -291,7 +252,6 @@ impl BasicCompiler {
                 required.push(param.name.clone());
             }
         }
-
         Ok(MCPTool {
             name: tool_def.name.clone(),
             description: tool_def.description.clone(),
@@ -302,14 +262,12 @@ impl BasicCompiler {
             },
         })
     }
-
     fn generate_openai_tool(
         &self,
         tool_def: &ToolDefinition,
     ) -> Result<OpenAITool, Box<dyn Error + Send + Sync>> {
         let mut properties = HashMap::new();
         let mut required = Vec::new();
-
         for param in &tool_def.parameters {
             properties.insert(
                 param.name.clone(),
@@ -323,7 +281,6 @@ impl BasicCompiler {
                 required.push(param.name.clone());
             }
         }
-
         Ok(OpenAITool {
             tool_type: "function".to_string(),
             function: OpenAIFunction {
@@ -337,38 +294,45 @@ impl BasicCompiler {
             },
         })
     }
-
-    fn preprocess_basic(&mut self, source: &str, source_path: &str, bot_id: uuid::Uuid) -> Result<String, Box<dyn Error + Send + Sync>> {
+    fn preprocess_basic(
+        &mut self,
+        source: &str,
+        source_path: &str,
+        bot_id: uuid::Uuid,
+    ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let bot_uuid = bot_id;
         let mut result = String::new();
         let mut has_schedule = false;
-
         let script_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("unknown")
             .to_string();
-
         {
-            let mut conn = self.state.conn.lock().unwrap();
+            let mut conn = self
+                .state
+                .conn
+                .get()
+                .map_err(|e| format!("Failed to get database connection: {}", e))?;
             use crate::shared::models::system_automations::dsl::*;
-
-            diesel::delete(system_automations
-                .filter(bot_id.eq(bot_uuid))
-                .filter(kind.eq(TriggerKind::Scheduled as i32))
-                .filter(param.eq(&script_name))
+            diesel::delete(
+                system_automations
+                    .filter(bot_id.eq(bot_uuid))
+                    .filter(kind.eq(TriggerKind::Scheduled as i32))
+                    .filter(param.eq(&script_name)),
             )
-            .execute(&mut *conn)
+            .execute(&mut conn)
             .ok();
         }
-
         for line in source.lines() {
             let trimmed = line.trim();
-
-            if trimmed.is_empty() || trimmed.starts_with("'") || trimmed.starts_with("//") || trimmed.starts_with("REM") {
+            if trimmed.is_empty()
+                || trimmed.starts_with("'")
+                || trimmed.starts_with("//")
+                || trimmed.starts_with("REM")
+            {
                 continue;
             }
-
             let normalized = trimmed
                 .replace("SET SCHEDULE", "SET_SCHEDULE")
                 .replace("ADD TOOL", "ADD_TOOL")
@@ -387,54 +351,58 @@ impl BasicCompiler {
                 .replace("GET BOT MEMORY", "GET_BOT_MEMORY")
                 .replace("SET BOT MEMORY", "SET_BOT_MEMORY")
                 .replace("CREATE DRAFT", "CREATE_DRAFT");
-
             if normalized.starts_with("SET_SCHEDULE") {
                 has_schedule = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 3 {
                     let cron = parts[1];
-                    let mut conn = self.state.conn.lock().unwrap();
-                    if let Err(e) = execute_set_schedule(&mut *conn, cron, &script_name, bot_id) {
-                        log::error!("Failed to schedule SET_SCHEDULE during preprocessing: {}", e);
+                    let mut conn = self
+                        .state
+                        .conn
+                        .get()
+                        .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                    if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
+                        log::error!(
+                            "Failed to schedule SET_SCHEDULE during preprocessing: {}",
+                            e
+                        );
                     }
                 } else {
                     log::warn!("Malformed SET_SCHEDULE line ignored: {}", normalized);
                 }
                 continue;
             }
-
             if normalized.starts_with("PARAM ") || normalized.starts_with("DESCRIPTION ") {
                 continue;
             }
-
             result.push_str(&normalized);
             result.push('\n');
         }
-
         if self.previous_schedules.contains(&script_name) && !has_schedule {
-            let mut conn = self.state.conn.lock().unwrap();
+            let mut conn = self
+                .state
+                .conn
+                .get()
+                .map_err(|e| format!("Failed to get database connection: {}", e))?;
             use crate::shared::models::system_automations::dsl::*;
-
-            diesel::delete(system_automations
-                .filter(bot_id.eq(bot_uuid))
-                .filter(kind.eq(TriggerKind::Scheduled as i32))
-                .filter(param.eq(&script_name))
+            diesel::delete(
+                system_automations
+                    .filter(bot_id.eq(bot_uuid))
+                    .filter(kind.eq(TriggerKind::Scheduled as i32))
+                    .filter(param.eq(&script_name)),
             )
-            .execute(&mut *conn)
+            .execute(&mut conn)
             .map_err(|e| log::error!("Failed to remove schedule for {}: {}", script_name, e))
             .ok();
         }
-
         if has_schedule {
             self.previous_schedules.insert(script_name);
         } else {
             self.previous_schedules.remove(&script_name);
         }
-
         Ok(result)
     }
 }
-
 #[derive(Debug)]
 pub struct CompilationResult {
     pub mcp_tool: Option<MCPTool>,

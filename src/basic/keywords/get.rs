@@ -1,66 +1,57 @@
 use crate::shared::models::schema::bots::dsl::*;
-use diesel::prelude::*;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, error, info, trace};
+use diesel::prelude::*;
+use log::{error, trace};
 use reqwest::{self, Client};
 use rhai::{Dynamic, Engine};
 use std::error::Error;
 use std::path::Path;
 use std::sync::Arc;
 use std::time::Duration;
-
 pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-
     engine
         .register_custom_syntax(&["GET", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?;
             let url_str = url.to_string();
-
-            info!("GET command executed: {}", url_str);
-
             if !is_safe_path(&url_str) {
                 return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                     "URL contains invalid or unsafe path sequences".into(),
                     rhai::Position::NONE,
                 )));
             }
-
             let state_for_blocking = Arc::clone(&state_clone);
             let url_for_blocking = url_str.clone();
-
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_multi_thread()
                     .worker_threads(2)
                     .enable_all()
                     .build();
-
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
                         if url_for_blocking.starts_with("https://")
                             || url_for_blocking.starts_with("http://")
                         {
-                            info!("HTTP(S) GET request: {}", url_for_blocking);
                             execute_get(&url_for_blocking).await
                         } else {
-                            info!("Local file GET request from bucket: {}", url_for_blocking);
-                            get_from_bucket(&state_for_blocking, &url_for_blocking, 
-                                user_session.bot_id)
-                                .await
+                            get_from_bucket(
+                                &state_for_blocking,
+                                &url_for_blocking,
+                                user_session.bot_id,
+                            )
+                            .await
                         }
                     });
                     tx.send(result).err()
                 } else {
                     tx.send(Err("failed to build tokio runtime".into())).err()
                 };
-
                 if send_err.is_some() {
                     error!("Failed to send result from thread");
                 }
             });
-
             match rx.recv_timeout(std::time::Duration::from_secs(40)) {
                 Ok(Ok(content)) => Ok(Dynamic::from(content)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -78,7 +69,6 @@ pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut
         })
         .unwrap();
 }
-
 fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {
         return true;
@@ -105,10 +95,7 @@ fn is_safe_path(path: &str) -> bool {
     }
     true
 }
-
 pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
-    debug!("Starting execute_get with URL: {}", url);
-
     let client = Client::builder()
         .timeout(Duration::from_secs(30))
         .connect_timeout(Duration::from_secs(10))
@@ -118,12 +105,10 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
             error!("Failed to build HTTP client: {}", e);
             e
         })?;
-
     let response = client.get(url).send().await.map_err(|e| {
         error!("HTTP request failed for URL {}: {}", url, e);
         e
     })?;
-
     if !response.status().is_success() {
         let status = response.status();
         let error_body = response.text().await.unwrap_or_default();
@@ -137,35 +122,29 @@ pub async fn execute_get(url: &str) -> Result<String, Box<dyn Error + Send + Syn
         )
         .into());
     }
-
     let content = response.text().await.map_err(|e| {
         error!("Failed to read response text for URL {}: {}", url, e);
         e
     })?;
-
-    debug!(
+    trace!(
         "Successfully executed GET request for URL: {}, content length: {}",
         url,
         content.len()
     );
     Ok(content)
 }
-
 pub async fn get_from_bucket(
     state: &AppState,
     file_path: &str,
     bot_id: uuid::Uuid,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
-    debug!("Getting file from bucket: {}", file_path);
-
     if !is_safe_path(file_path) {
         error!("Unsafe file path detected: {}", file_path);
         return Err("Invalid file path".into());
     }
-
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
     let bot_name: String = {
-        let mut db_conn = state.conn.lock().unwrap();
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
         bots.filter(id.eq(&bot_id))
             .select(name)
             .first(&mut *db_conn)
@@ -174,32 +153,26 @@ pub async fn get_from_bucket(
                 e
             })?
     };
-
     let bucket_name = {
         let bucket = format!("{}.gbai", bot_name);
-        trace!("Resolved GET bucket name: {}", bucket);
         bucket
     };
-
-    let bytes = match tokio::time::timeout(
-        Duration::from_secs(30),
-        async {
-            let result: Result<Vec<u8>, Box<dyn Error + Send + Sync>> = match client
-                .get_object()
-                .bucket(&bucket_name)
-                .key(file_path)
-                .send()
-                .await
-            {
-                Ok(response) => {
-                    let data = response.body.collect().await?.into_bytes();
-                    Ok(data.to_vec())
-                }
-                Err(e) => Err(format!("S3 operation failed: {}", e).into()),
-            };
-            result
-        },
-    )
+    let bytes = match tokio::time::timeout(Duration::from_secs(30), async {
+        let result: Result<Vec<u8>, Box<dyn Error + Send + Sync>> = match client
+            .get_object()
+            .bucket(&bucket_name)
+            .key(file_path)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                let data = response.body.collect().await?.into_bytes();
+                Ok(data.to_vec())
+            }
+            Err(e) => Err(format!("S3 operation failed: {}", e).into()),
+        };
+        result
+    })
     .await
     {
         Ok(Ok(data)) => data.to_vec(),
@@ -212,7 +185,6 @@ pub async fn get_from_bucket(
             return Err("drive operation timed out".into());
         }
     };
-
     let content = if file_path.to_ascii_lowercase().ends_with(".pdf") {
         match pdf_extract::extract_text_from_mem(&bytes) {
             Ok(text) => text,
@@ -230,8 +202,7 @@ pub async fn get_from_bucket(
             }
         }
     };
-
-    info!(
+    trace!(
         "Successfully retrieved file from bucket: {}, content length: {}",
         file_path,
         content.len()
