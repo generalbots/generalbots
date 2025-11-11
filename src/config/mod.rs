@@ -7,16 +7,7 @@ use uuid::Uuid;
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
-    pub database: DatabaseConfig,
     pub site_path: String,
-}
-#[derive(Clone)]
-pub struct DatabaseConfig {
-    pub username: String,
-    pub password: String,
-    pub server: String,
-    pub port: u32,
-    pub database: String,
 }
 #[derive(Clone)]
 pub struct DriveConfig {
@@ -28,18 +19,6 @@ pub struct DriveConfig {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
-}
-impl AppConfig {
-    pub fn database_url(&self) -> String {
-        format!(
-            "postgres://{}:{}@{}:{}/{}",
-            self.database.username,
-            self.database.password,
-            self.database.server,
-            self.database.port,
-            self.database.database
-        )
-    }
 }
 impl AppConfig {
     pub fn from_database(pool: &DbPool) -> Result<Self, diesel::result::Error> {
@@ -77,7 +56,7 @@ impl AppConfig {
                 .first::<String>(&mut conn)
                 .unwrap_or_else(|_| default.to_string())
         };
-        let get_u32 = |key: &str, default: u32| -> u32 {
+        let _get_u32 = |key: &str, default: u32| -> u32 {
             config_map
                 .get(key)
                 .and_then(|v| v.3.parse().ok())
@@ -95,28 +74,6 @@ impl AppConfig {
                 .map(|v| v.3.to_lowercase() == "true")
                 .unwrap_or(default)
         };
-        let database = DatabaseConfig {
-            username: match std::env::var("TABLES_USERNAME") {
-                Ok(v) => v,
-                Err(_) => get_str("TABLES_USERNAME", "gbuser"),
-            },
-            password: match std::env::var("TABLES_PASSWORD") {
-                Ok(v) => v,
-                Err(_) => get_str("TABLES_PASSWORD", ""),
-            },
-            server: match std::env::var("TABLES_SERVER") {
-                Ok(v) => v,
-                Err(_) => get_str("TABLES_SERVER", "localhost"),
-            },
-            port: std::env::var("TABLES_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or_else(|| get_u32("TABLES_PORT", 5432)),
-            database: match std::env::var("TABLES_DATABASE") {
-                Ok(v) => v,
-                Err(_) => get_str("TABLES_DATABASE", "botserver"),
-            },
-        };
 
         let drive = DriveConfig {
             server: std::env::var("DRIVE_SERVER").unwrap(),
@@ -129,7 +86,6 @@ impl AppConfig {
                 host: get_str("SERVER_HOST", "127.0.0.1"),
                 port: get_u16("SERVER_PORT", 8080),
             },
-            database,
             site_path: {
                 ConfigManager::new(pool.clone())
                     .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?
@@ -138,16 +94,6 @@ impl AppConfig {
         })
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
-        let (db_username, db_password, db_server, db_port, db_name) =
-            crate::shared::utils::parse_database_url(&database_url);
-        let database = DatabaseConfig {
-            username: db_username,
-            password: db_password,
-            server: db_server,
-            port: db_port,
-            database: db_name,
-        };
         let minio = DriveConfig {
             server: std::env::var("DRIVE_SERVER").unwrap(),
             access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
@@ -162,7 +108,6 @@ impl AppConfig {
                     .and_then(|p| p.parse().ok())
                     .unwrap_or(8080),
             },
-            database,
             site_path: {
                 let pool = create_conn()?;
                 ConfigManager::new(pool).get_config(

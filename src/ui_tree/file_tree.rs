@@ -5,8 +5,8 @@ use crate::shared::state::AppState;
 #[derive(Debug, Clone)]
 pub enum TreeNode {
  Bucket { name: String },
- Folder { bucket: String, path: String, name: String },
- File { bucket: String, path: String, name: String },
+ Folder { bucket: String, path: String },
+ File { bucket: String, path: String },
 }
 
 pub struct FileTree {
@@ -100,7 +100,6 @@ impl FileTree {
  self.items.push(("⬆️  .. (go back)".to_string(), TreeNode::Folder {
  bucket: bucket.to_string(),
  path: "..".to_string(),
- name: "..".to_string(),
  }));
 
  if let Some(drive) = &self.app_state.drive {
@@ -178,7 +177,6 @@ impl FileTree {
  self.items.push((display, TreeNode::Folder {
  bucket: bucket.to_string(),
  path: full_path,
- name: folder_name,
  }));
  }
 
@@ -201,7 +199,6 @@ impl FileTree {
  self.items.push((display, TreeNode::File {
  bucket: bucket.to_string(),
  path: full_path,
- name,
  }));
  }
  }
@@ -210,7 +207,6 @@ impl FileTree {
  self.items.push(("(empty folder)".to_string(), TreeNode::Folder {
  bucket: bucket.to_string(),
  path: String::new(),
- name: String::new(),
  }));
  }
 

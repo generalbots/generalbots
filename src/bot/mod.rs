@@ -416,7 +416,7 @@ impl BotOrchestrator {
             // Skip all messages before the most recent compacted message (type 9)
             if let Some(last_compacted_index) = history
                 .iter()
-                .rposition(|(role, content)| role == "COMPACTED" || content.starts_with("SUMMARY:"))
+                .rposition(|(role, _content)| role == "compact")
             {
                 history = history.split_off(last_compacted_index);
             }
