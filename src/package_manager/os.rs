@@ -1,5 +1,4 @@
 use crate::package_manager::OsType;
-
 pub fn detect_os() -> OsType {
     if cfg!(target_os = "linux") {
         OsType::Linux

@@ -27,7 +27,6 @@ use file_tree::{FileTree, TreeNode};
 use log_panel::{init_logger, LogPanel};
 use status_panel::StatusPanel;
 use chat_panel::ChatPanel;
-
 pub struct XtreeUI {
 app_state: Option<Arc<AppState>>,
 file_tree: Option<FileTree>,
@@ -40,7 +39,6 @@ should_quit: bool,
 progress_channel: Option<Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<crate::BootstrapProgress>>>>,
 bootstrap_status: String,
 }
-
 #[derive(Debug, Clone, Copy, PartialEq)]
 enum ActivePanel {
 FileTree,
@@ -49,7 +47,6 @@ Status,
 Logs,
 Chat,
 }
-
 impl XtreeUI {
 pub fn new() -> Self {
 let log_panel = Arc::new(Mutex::new(LogPanel::new()));
@@ -66,11 +63,9 @@ progress_channel: None,
 bootstrap_status: "Initializing...".to_string(),
 }
 }
-
 pub fn set_progress_channel(&mut self, rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<crate::BootstrapProgress>>>) {
 self.progress_channel = Some(rx);
 }
-
 pub fn set_app_state(&mut self, app_state: Arc<AppState>) {
 self.file_tree = Some(FileTree::new(app_state.clone()));
 self.status_panel = Some(StatusPanel::new(app_state.clone()));
@@ -79,7 +74,6 @@ self.app_state = Some(app_state);
 self.active_panel = ActivePanel::FileTree;
 self.bootstrap_status = "Ready".to_string();
 }
-
 pub fn start_ui(&mut self) -> Result<()> {
 color_eyre::install()?;
 if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
@@ -98,13 +92,12 @@ execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
 terminal.show_cursor()?;
 result
 }
-
 fn run_event_loop(&mut self, terminal: &mut Terminal<CrosstermBackend<io::Stdout>>) -> Result<()> {
 let mut last_update = std::time::Instant::now();
 let update_interval = std::time::Duration::from_millis(1000);
 let mut cursor_blink = false;
 let mut last_blink = std::time::Instant::now();
-let rt = tokio::runtime::Runtime::new()?; // create runtime once
+let rt = tokio::runtime::Runtime::new()?; 
 loop {
 if let Some(ref progress_rx) = self.progress_channel {
 if let Ok(mut rx) = progress_rx.try_lock() {
@@ -148,7 +141,6 @@ break;
 }
 Ok(())
 }
-
 fn render(&mut self, f: &mut Frame, cursor_blink: bool) {
 let bg = Color::Rgb(0, 30, 100);
 let border_active = Color::Rgb(85, 255, 255);
@@ -195,7 +187,6 @@ self.render_chat(f, content_chunks[2], bg, text, border_active, border_inactive,
 }
 self.render_logs(f, main_chunks[2], bg, text, border_active, border_inactive, highlight, title_bg, title_fg);
 }
-
 fn render_header(&self, f: &mut Frame, area: Rect, _bg: Color, title_bg: Color, title_fg: Color) {
 let block = Block::default()
 .style(Style::default().bg(title_bg));
@@ -242,7 +233,6 @@ height: 1,
 }
 );
 }
-
 fn render_loading(&self, f: &mut Frame, bg: Color, text: Color, border: Color, title_bg: Color, title_fg: Color) {
 let chunks = Layout::default()
 .direction(Direction::Vertical)
@@ -267,7 +257,6 @@ let paragraph = Paragraph::new(loading_text)
 .wrap(Wrap { trim: false });
 f.render_widget(paragraph, center);
 }
-
 fn render_file_tree(&self, f: &mut Frame, area: Rect, bg: Color, text: Color, border_active: Color, border_inactive: Color, highlight: Color, title_bg: Color, title_fg: Color) {
 if let Some(file_tree) = &self.file_tree {
 let items = file_tree.render_items();
@@ -296,7 +285,6 @@ let list = List::new(list_items).block(block);
 f.render_widget(list, area);
 }
 }
-
 fn render_status(&mut self, f: &mut Frame, area: Rect, bg: Color, text: Color, border_active: Color, border_inactive: Color, _highlight: Color, title_bg: Color, title_fg: Color) {
 let selected_bot_opt = self.file_tree.as_ref().and_then(|ft| ft.get_selected_bot());
 let status_text = if let Some(status_panel) = &mut self.status_panel {
@@ -325,7 +313,6 @@ let paragraph = Paragraph::new(status_text)
 .wrap(Wrap { trim: false });
 f.render_widget(paragraph, area);
 }
-
 fn render_editor(&self, f: &mut Frame, area: Rect, editor: &Editor, bg: Color, text: Color, border_active: Color, border_inactive: Color, _highlight: Color, title_bg: Color, title_fg: Color, cursor_blink: bool) {
 let is_active = self.active_panel == ActivePanel::Editor;
 let border_color = if is_active { border_active } else { border_inactive };
@@ -347,7 +334,6 @@ let paragraph = Paragraph::new(content)
 .wrap(Wrap { trim: false });
 f.render_widget(paragraph, area);
 }
-
 fn render_chat(&self, f: &mut Frame, area: Rect, bg: Color, text: Color, border_active: Color, border_inactive: Color, _highlight: Color, title_bg: Color, title_fg: Color) {
 if let Some(chat_panel) = &self.chat_panel {
 let is_active = self.active_panel == ActivePanel::Chat;
@@ -376,7 +362,6 @@ let paragraph = Paragraph::new(content)
 f.render_widget(paragraph, area);
 }
 }
-
 fn render_logs(&self, f: &mut Frame, area: Rect, bg: Color, text: Color, border_active: Color, border_inactive: Color, _highlight: Color, title_bg: Color, title_fg: Color) {
 let log_panel = self.log_panel.try_lock();
 let log_lines = if let Ok(panel) = log_panel {
@@ -402,7 +387,6 @@ let paragraph = Paragraph::new(log_lines)
 .wrap(Wrap { trim: false });
 f.render_widget(paragraph, area);
 }
-
 async fn handle_input(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<()> {
 if modifiers.contains(KeyModifiers::CONTROL) {
 match key {
@@ -550,7 +534,6 @@ _ => {}
 }
 Ok(())
 }
-
 async fn handle_tree_enter(&mut self) -> Result<()> {
 if let (Some(file_tree), Some(app_state)) = (&mut self.file_tree, &self.app_state) {
 if let Some(node) = file_tree.get_selected_node().cloned() {
@@ -584,7 +567,6 @@ log_panel.add_log(&format!("Failed to load file: {}", e));
 }
 Ok(())
 }
-
 async fn update_data(&mut self) -> Result<()> {
 if let Some(status_panel) = &mut self.status_panel {
 status_panel.update().await?;

@@ -5,7 +5,6 @@ use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
-
 pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -77,7 +76,6 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
         })
         .unwrap();
 }
-
 pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
