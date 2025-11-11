@@ -6,7 +6,6 @@ use aws_sdk_s3::Client;
 use std::io::Write;
 use tempfile::NamedTempFile;
 use tokio_stream::StreamExt as TokioStreamExt;
-
 #[post("/files/upload/{folder_path}")]
 pub async fn upload_file(
     folder_path: web::Path<String>,
@@ -17,7 +16,6 @@ pub async fn upload_file(
     let mut temp_file = NamedTempFile::new().map_err(|e| {
         actix_web::error::ErrorInternalServerError(format!("Failed to create temp file: {}", e))
     })?;
-
     let mut file_name: Option<String> = None;
     while let Some(mut field) = payload.try_next().await? {
         if let Some(disposition) = field.content_disposition() {
@@ -25,7 +23,6 @@ pub async fn upload_file(
                 file_name = Some(name.to_string());
             }
         }
-
         while let Some(chunk) = field.try_next().await? {
             temp_file.write_all(&chunk).map_err(|e| {
                 actix_web::error::ErrorInternalServerError(format!(
@@ -35,16 +32,12 @@ pub async fn upload_file(
             })?;
         }
     }
-
     let file_name = file_name.unwrap_or_else(|| "unnamed_file".to_string());
     let temp_file_path = temp_file.into_temp_path();
-
     let client = state.get_ref().drive.as_ref().ok_or_else(|| {
         actix_web::error::ErrorInternalServerError("S3 client is not initialized")
     })?;
-
     let s3_key = format!("{}/{}", folder_path, file_name);
-
     match upload_to_s3(client, &state.get_ref().bucket_name, &s3_key, &temp_file_path).await {
         Ok(_) => {
             let _ = std::fs::remove_file(&temp_file_path);
@@ -62,7 +55,6 @@ pub async fn upload_file(
         }
     }
 }
-
 async fn upload_to_s3(
     client: &Client,
     bucket: &str,

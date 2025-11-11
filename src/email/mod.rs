@@ -1,16 +1,13 @@
 use crate::{config::EmailConfig, shared::state::AppState};
 use log::info;
-
 use actix_web::error::ErrorInternalServerError;
 use actix_web::http::header::ContentType;
 use actix_web::{web, HttpResponse, Result};
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use serde::Serialize;
-
 use imap::types::Seq;
 use mailparse::{parse_mail, MailHeaderMap};
 use diesel::prelude::*;
-
 #[derive(Debug, Serialize)]
 pub struct EmailResponse {
     pub id: String,
@@ -22,7 +19,6 @@ pub struct EmailResponse {
     read: bool,
     labels: Vec<String>,
 }
-
 async fn internal_send_email(config: &EmailConfig, to: &str, subject: &str, body: &str) {
     let email = Message::builder()
         .from(config.from.parse().unwrap())
@@ -30,9 +26,7 @@ async fn internal_send_email(config: &EmailConfig, to: &str, subject: &str, body
         .subject(subject)
         .body(body.to_string())
         .unwrap();
-
     let creds = Credentials::new(config.username.clone(), config.password.clone());
-
     SmtpTransport::relay(&config.server)
         .unwrap()
         .port(config.port)
@@ -41,7 +35,6 @@ async fn internal_send_email(config: &EmailConfig, to: &str, subject: &str, body
         .send(&email)
         .unwrap();
 }
-
 #[actix_web::get("/emails/list")]
 pub async fn list_emails(
     state: web::Data<AppState>,
@@ -50,61 +43,41 @@ pub async fn list_emails(
         .config
         .as_ref()
         .ok_or_else(|| ErrorInternalServerError("Configuration not available"))?;
-
-    // Establish connection
     let tls = native_tls::TlsConnector::builder().build().map_err(|e| {
         ErrorInternalServerError(format!("Failed to create TLS connector: {:?}", e))
     })?;
-
     let client = imap::connect(
         (_config.email.server.as_str(), 993),
         _config.email.server.as_str(),
         &tls,
     )
     .map_err(|e| ErrorInternalServerError(format!("Failed to connect to IMAP: {:?}", e)))?;
-
-    // Login
     let mut session = client
         .login(&_config.email.username, &_config.email.password)
         .map_err(|e| ErrorInternalServerError(format!("Login failed: {:?}", e)))?;
-
-    // Select INBOX
     session
         .select("INBOX")
         .map_err(|e| ErrorInternalServerError(format!("Failed to select INBOX: {:?}", e)))?;
-
-    // Search for all messages
     let messages = session
         .search("ALL")
         .map_err(|e| ErrorInternalServerError(format!("Failed to search emails: {:?}", e)))?;
-
     let mut email_list = Vec::new();
-
-    // Get last 20 messages
     let recent_messages: Vec<_> = messages.iter().cloned().collect();
     let recent_messages: Vec<Seq> = recent_messages.into_iter().rev().take(20).collect();
     for seq in recent_messages {
-        // Fetch the entire message (headers + body)
         let fetch_result = session.fetch(seq.to_string(), "RFC822");
         let messages = fetch_result
             .map_err(|e| ErrorInternalServerError(format!("Failed to fetch email: {:?}", e)))?;
-
         for msg in messages.iter() {
             let body = msg
                 .body()
                 .ok_or_else(|| ErrorInternalServerError("No body found"))?;
-
-            // Parse the complete email message
             let parsed = parse_mail(body)
                 .map_err(|e| ErrorInternalServerError(format!("Failed to parse email: {:?}", e)))?;
-
-            // Extract headers
             let headers = parsed.get_headers();
             let subject = headers.get_first_value("Subject").unwrap_or_default();
             let from = headers.get_first_value("From").unwrap_or_default();
             let date = headers.get_first_value("Date").unwrap_or_default();
-
-            // Extract body text (handles both simple and multipart emails)
             let body_text = if let Some(body_part) = parsed
                 .subparts
                 .iter()
@@ -114,18 +87,13 @@ pub async fn list_emails(
             } else {
                 parsed.get_body().unwrap_or_default()
             };
-
-            // Create preview
             let preview = body_text.lines().take(3).collect::<Vec<_>>().join(" ");
             let preview_truncated = if preview.len() > 150 {
                 format!("{}...", &preview[..150])
             } else {
                 preview
             };
-
-            // Parse From field
             let (from_name, from_email) = parse_from_field(&from);
-
             email_list.push(EmailResponse {
                 id: seq.to_string(),
                 name: from_name,
@@ -146,15 +114,11 @@ pub async fn list_emails(
             });
         }
     }
-
     session
         .logout()
         .map_err(|e| ErrorInternalServerError(format!("Failed to logout: {:?}", e)))?;
-
     Ok(web::Json(email_list))
 }
-
-// Helper function to parse From field
 fn parse_from_field(from: &str) -> (String, String) {
     if let Some(start) = from.find('<') {
         if let Some(end) = from.find('>') {
@@ -165,7 +129,6 @@ fn parse_from_field(from: &str) -> (String, String) {
     }
     ("Unknown".to_string(), from.to_string())
 }
-
 #[derive(serde::Deserialize)]
 pub struct SaveDraftRequest {
     pub to: String,
@@ -173,26 +136,22 @@ pub struct SaveDraftRequest {
     pub cc: Option<String>,
     pub text: String,
 }
-
 #[derive(serde::Serialize)]
 pub struct SaveDraftResponse {
     pub success: bool,
     pub message: String,
     pub draft_id: Option<String>,
 }
-
 #[derive(serde::Deserialize)]
 pub struct GetLatestEmailRequest {
     pub from_email: String,
 }
-
 #[derive(serde::Serialize)]
 pub struct LatestEmailResponse {
     pub success: bool,
     pub email_text: Option<String>,
     pub message: String,
 }
-
 #[actix_web::post("/emails/save_draft")]
 pub async fn save_draft(
     state: web::Data<AppState>,
@@ -202,7 +161,6 @@ pub async fn save_draft(
         .config
         .as_ref()
         .ok_or_else(|| ErrorInternalServerError("Configuration not available"))?;
-
     match save_email_draft(&config.email, &draft_data).await {
         Ok(draft_id) => Ok(web::Json(SaveDraftResponse {
             success: true,
@@ -216,32 +174,23 @@ pub async fn save_draft(
         })),
     }
 }
-
 pub async fn save_email_draft(
     email_config: &EmailConfig,
     draft_data: &SaveDraftRequest,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    // Establish connection
     let tls = native_tls::TlsConnector::builder().build()?;
     let client = imap::connect(
         (email_config.server.as_str(), 993),
         email_config.server.as_str(),
         &tls,
     )?;
-
-    // Login
     let mut session = client
         .login(&email_config.username, &email_config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
-
-    // Select or create Drafts folder
     if session.select("Drafts").is_err() {
-        // Try to create Drafts folder if it doesn't exist
         session.create("Drafts")?;
         session.select("Drafts")?;
     }
-
-    // Create email message
     let cc_header = draft_data
         .cc
         .as_deref()
@@ -257,68 +206,43 @@ pub async fn save_email_draft(
         chrono::Utc::now().format("%a, %d %b %Y %H:%M:%S +0000"),
         draft_data.text
     );
-
-    // Append to Drafts folder
     session.append("Drafts", &email_message)?;
-
     session.logout()?;
-
     Ok(chrono::Utc::now().timestamp().to_string())
 }
-
 async fn fetch_latest_email_from_sender(
     email_config: &EmailConfig,
     from_email: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    // Establish connection
     let tls = native_tls::TlsConnector::builder().build()?;
     let client = imap::connect(
         (email_config.server.as_str(), 993),
         email_config.server.as_str(),
         &tls,
     )?;
-
-    // Login
     let mut session = client
         .login(&email_config.username, &email_config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
-
-    // Try to select Archive folder first, then fall back to INBOX
     if session.select("Archive").is_err() {
         session.select("INBOX")?;
     }
-
-    // Search for emails from the specified sender
     let search_query = format!("FROM \"{}\"", from_email);
     let messages = session.search(&search_query)?;
-
     if messages.is_empty() {
         session.logout()?;
         return Err(format!("No emails found from {}", from_email).into());
     }
-
-    // Get the latest message (highest sequence number)
     let latest_seq = messages.iter().max().unwrap();
-
-    // Fetch the entire message
     let messages = session.fetch(latest_seq.to_string(), "RFC822")?;
-
     let mut email_text = String::new();
-
     for msg in messages.iter() {
         let body = msg.body().ok_or("No body found in email")?;
-
-        // Parse the complete email message
         let parsed = parse_mail(body)?;
-
-        // Extract headers
         let headers = parsed.get_headers();
         let subject = headers.get_first_value("Subject").unwrap_or_default();
         let from = headers.get_first_value("From").unwrap_or_default();
         let date = headers.get_first_value("Date").unwrap_or_default();
         let to = headers.get_first_value("To").unwrap_or_default();
-
-        // Extract body text
         let body_text = if let Some(body_part) = parsed
             .subparts
             .iter()
@@ -328,25 +252,19 @@ async fn fetch_latest_email_from_sender(
         } else {
             parsed.get_body().unwrap_or_default()
         };
-
-        // Format the email text ready for reply with headers
         email_text = format!(
             "--- Original Message ---\nFrom: {}\nTo: {}\nDate: {}\nSubject: {}\n\n{}\n\n--- Reply Above This Line ---\n\n",
             from, to, date, subject, body_text
         );
-
         break;
     }
-
     session.logout()?;
-
     if email_text.is_empty() {
         Err("Failed to extract email content".into())
     } else {
         Ok(email_text)
     }
 }
-
 #[actix_web::post("/emails/get_latest_from")]
 pub async fn get_latest_email_from(
     state: web::Data<AppState>,
@@ -356,7 +274,6 @@ pub async fn get_latest_email_from(
         .config
         .as_ref()
         .ok_or_else(|| ErrorInternalServerError("Configuration not available"))?;
-
     match fetch_latest_email_from_sender(&config.email, &request.from_email).await {
         Ok(email_text) => Ok(web::Json(LatestEmailResponse {
             success: true,
@@ -376,59 +293,39 @@ pub async fn get_latest_email_from(
         }
     }
 }
-
 pub async fn fetch_latest_sent_to(
     email_config: &EmailConfig,
     to_email: &str,
 ) -> Result<String, Box<dyn std::error::Error>> {
-    // Establish connection
     let tls = native_tls::TlsConnector::builder().build()?;
     let client = imap::connect(
         (email_config.server.as_str(), 993),
         email_config.server.as_str(),
         &tls,
     )?;
-
-    // Login
     let mut session = client
         .login(&email_config.username, &email_config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
-
-    // Try to select Archive folder first, then fall back to INBOX
     if session.select("Sent").is_err() {
         session.select("Sent Items")?;
     }
-
-    // Search for emails from the specified sender
     let search_query = format!("TO \"{}\"", to_email);
     let messages = session.search(&search_query)?;
-
     if messages.is_empty() {
         session.logout()?;
         return Err(format!("No emails found to {}", to_email).into());
     }
-
-    // Get the latest message (highest sequence number)
     let latest_seq = messages.iter().max().unwrap();
-
-    // Fetch the entire message
     let messages = session.fetch(latest_seq.to_string(), "RFC822")?;
-
     let mut email_text = String::new();
-
     for msg in messages.iter() {
         let body = msg.body().ok_or("No body found in email")?;
-
-        // Parse the complete email message
         let parsed = parse_mail(body)?;
-
-        // Extract headers
         let headers = parsed.get_headers();
         let subject = headers.get_first_value("Subject").unwrap_or_default();
         let from = headers.get_first_value("From").unwrap_or_default();
         let date = headers.get_first_value("Date").unwrap_or_default();
         let to = headers.get_first_value("To").unwrap_or_default();
-
         if !to
             .trim()
             .to_lowercase()
@@ -436,7 +333,6 @@ pub async fn fetch_latest_sent_to(
         {
             continue;
         }
-        // Extract body text (handles both simple and multipart emails)
         let body_text = if let Some(body_part) = parsed
             .subparts
             .iter()
@@ -446,52 +342,38 @@ pub async fn fetch_latest_sent_to(
         } else {
             parsed.get_body().unwrap_or_default()
         };
-
-        // Only format if we have actual content
         if !body_text.trim().is_empty() && body_text != "No readable content found" {
-            // Format the email text ready for reply with headers
             email_text = format!(
                 "--- Original Message ---\nFrom: {}\nTo: {}\nDate: {}\nSubject: {}\n\n{}\n\n--- Reply Above This Line ---\n\n",
                 from, to, date, subject, body_text.trim()
             );
         } else {
-            // Still provide headers even if body is empty
             email_text = format!(
                 "--- Original Message ---\nFrom: {}\nTo: {}\nDate: {}\nSubject: {}\n\n[No readable content]\n\n--- Reply Above This Line ---\n\n",
                 from, to, date, subject
             );
         }
-
         break;
     }
-
     session.logout()?;
-
-    // Always return something, even if it's just headers
     if email_text.is_empty() {
         Err("Failed to extract email content".into())
     } else {
         Ok(email_text)
     }
 }
-
 #[actix_web::post("/emails/send")]
 pub async fn send_email(
     payload: web::Json<(String, String, String)>,
     state: web::Data<AppState>,
 ) -> Result<HttpResponse, actix_web::Error> {
     let (to, subject, body) = payload.into_inner();
-
     info!("To: {}", to);
     info!("Subject: {}", subject);
     info!("Body: {}", body);
-
-    // Send via SMTP
     internal_send_email(&state.config.clone().unwrap().email, &to, &subject, &body).await;
-
     Ok(HttpResponse::Ok().finish())
 }
-
 #[actix_web::get("/campaigns/{campaign_id}/click/{email}")]
 pub async fn save_click(
     path: web::Path<(String, String)>,
@@ -499,7 +381,6 @@ pub async fn save_click(
 ) -> HttpResponse {
     let (campaign_id, email) = path.into_inner();
     use crate::shared::models::clicks;
-    
     let _ = diesel::insert_into(clicks::table)
         .values((
             clicks::campaign_id.eq(campaign_id),
@@ -510,7 +391,6 @@ pub async fn save_click(
         .do_update()
         .set(clicks::updated_at.eq(diesel::dsl::now))
         .execute(&state.conn);
-
     let pixel = [
         0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
         0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -522,17 +402,14 @@ pub async fn save_click(
         0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4E, 0x44,
         0xAE, 0x42, 0x60, 0x82,
     ];
-
     HttpResponse::Ok()
         .content_type(ContentType::png())
         .body(pixel.to_vec())
 }
-
 #[actix_web::get("/campaigns/{campaign_id}/emails")]
 pub async fn get_emails(path: web::Path<String>, state: web::Data<AppState>) -> String {
     let campaign_id = path.into_inner();
     use crate::shared::models::clicks::dsl::*;
-    
     let rows = clicks
         .filter(campaign_id.eq(campaign_id))
         .select(email)

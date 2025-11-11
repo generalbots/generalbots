@@ -1,11 +1,8 @@
-
 #[cfg(test)]
 mod tests {
     use super::*;
     use diesel::Connection;
     use std::sync::Mutex;
-
-    // Test-only AppState that skips database operations
     #[cfg(test)]
     mod test_utils {
         use super::*;
@@ -17,51 +14,39 @@ mod tests {
         use diesel::sql_types::Untyped;
         use diesel::deserialize::Queryable;
         use std::sync::{Arc, Mutex};
-
-        // Mock PgConnection that implements required traits
         struct MockPgConnection;
-        
         impl Connection for MockPgConnection {
             type Backend = Pg;
             type TransactionManager = diesel::connection::AnsiTransactionManager;
-
             fn establish(_: &str) -> diesel::ConnectionResult<Self> {
                 Ok(MockPgConnection {
                     transaction_manager: diesel::connection::AnsiTransactionManager::default()
                 })
             }
-
             fn execute(&self, _: &str) -> QueryResult<usize> {
                 Ok(0)
             }
-
             fn load<T>(&self, _: &diesel::query_builder::SqlQuery) -> QueryResult<T>
             where
                 T: Queryable<Untyped, Pg>,
             {
                 unimplemented!()
             }
-
             fn execute_returning_count<T>(&self, _: &T) -> QueryResult<usize>
             where
                 T: QueryFragment<Pg> + QueryId,
             {
                 Ok(0)
             }
-
             fn transaction_state(&self) -> &diesel::connection::AnsiTransactionManager {
                 &self.transaction_manager
             }
-
             fn instrumentation(&self) -> &dyn diesel::connection::Instrumentation {
                 &diesel::connection::NoopInstrumentation
             }
-
             fn set_instrumentation(&mut self, _: Box<dyn diesel::connection::Instrumentation>) {}
-
             fn set_prepared_statement_cache_size(&mut self, _: usize) {}
         }
-
         impl AppState {
             pub fn test_default() -> Self {
                 let mut state = Self::default();
@@ -70,11 +55,9 @@ mod tests {
             }
         }
     }
-
     #[test]
     fn test_normalize_type() {
         let state = AppState::test_default();
-        
         let compiler = BasicCompiler::new(Arc::new(state), uuid::Uuid::nil());
         assert_eq!(compiler.normalize_type("string"), "string");
         assert_eq!(compiler.normalize_type("integer"), "integer");
@@ -82,16 +65,12 @@ mod tests {
         assert_eq!(compiler.normalize_type("boolean"), "boolean");
         assert_eq!(compiler.normalize_type("date"), "string");
     }
-
     #[test]
     fn test_parse_param_line() {
         let state = AppState::test_default();
-        
         let compiler = BasicCompiler::new(Arc::new(state), uuid::Uuid::nil());
-
         let line = r#"PARAM name AS string LIKE "John Doe" DESCRIPTION "User's full name""#;
         let result = compiler.parse_param_line(line).unwrap();
-
         assert!(result.is_some());
         let param = result.unwrap();
         assert_eq!(param.name, "name");

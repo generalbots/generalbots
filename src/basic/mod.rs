@@ -5,10 +5,8 @@ use crate::shared::state::AppState;
 use log::info;
 use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
-
 pub mod compiler;
 pub mod keywords;
-
 use self::keywords::add_tool::add_tool_keyword;
 use self::keywords::add_website::add_website_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
@@ -30,25 +28,18 @@ use self::keywords::set::set_keyword;
 use self::keywords::set_kb::{add_kb_keyword, set_kb_keyword};
 use self::keywords::wait::wait_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
-
 #[cfg(feature = "email")]
 use self::keywords::create_draft_keyword;
-
-
 pub struct ScriptService {
     pub engine: Engine,
  }
-
 impl ScriptService {
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
         let mut engine = Engine::new();
-
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
-
         #[cfg(feature = "email")]
         create_draft_keyword(&state, user.clone(), &mut engine);
-
         set_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         create_site_keyword(&state, user.clone(), &mut engine);
@@ -68,8 +59,6 @@ impl ScriptService {
         set_context_keyword(state.clone(), user.clone(), &mut engine);
         set_user_keyword(state.clone(), user.clone(), &mut engine);
         clear_suggestions_keyword(state.clone(), user.clone(), &mut engine);
-
-        // KB and Tools keywords
         set_kb_keyword(state.clone(), user.clone(), &mut engine);
         add_kb_keyword(state.clone(), user.clone(), &mut engine);
         add_tool_keyword(state.clone(), user.clone(), &mut engine);
@@ -77,26 +66,19 @@ impl ScriptService {
         list_tools_keyword(state.clone(), user.clone(), &mut engine);
         add_website_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
-
-
         ScriptService {
             engine,
-            
         }
     }
-
     fn preprocess_basic_script(&self, script: &str) -> String {
         let mut result = String::new();
         let mut for_stack: Vec<usize> = Vec::new();
         let mut current_indent = 0;
-
         for line in script.lines() {
             let trimmed = line.trim();
-
-            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("REM") {
+            if trimmed.is_empty() || trimmed.starts_with("//"){
                 continue;
             }
-
             if trimmed.starts_with("FOR EACH") {
                 for_stack.push(current_indent);
                 result.push_str(&" ".repeat(current_indent));
@@ -107,7 +89,6 @@ impl ScriptService {
                 result.push('\n');
                 continue;
             }
-
             if trimmed.starts_with("NEXT") {
                 if let Some(expected_indent) = for_stack.pop() {
                     if (current_indent - 4) != expected_indent {
@@ -125,16 +106,13 @@ impl ScriptService {
                     panic!("NEXT without matching FOR EACH");
                 }
             }
-
             if trimmed == "EXIT FOR" {
                 result.push_str(&" ".repeat(current_indent));
                 result.push_str(trimmed);
                 result.push('\n');
                 continue;
             }
-
             result.push_str(&" ".repeat(current_indent));
-
             let basic_commands = [
                 "SET",
                 "CREATE",
@@ -158,12 +136,10 @@ impl ScriptService {
                 "GET BOT MEMORY",
                 "SET BOT MEMORY",
             ];
-
             let is_basic_command = basic_commands.iter().any(|&cmd| trimmed.starts_with(cmd));
             let is_control_flow = trimmed.starts_with("IF")
                 || trimmed.starts_with("ELSE")
                 || trimmed.starts_with("END IF");
-
             if is_basic_command || !for_stack.is_empty() || is_control_flow {
                 result.push_str(trimmed);
                 result.push(';');
@@ -175,14 +151,11 @@ impl ScriptService {
             }
             result.push('\n');
         }
-
         if !for_stack.is_empty() {
             panic!("Unclosed FOR EACH loop");
         }
-
         result
     }
-
     pub fn compile(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
         let processed_script = self.preprocess_basic_script(script);
         info!("Processed Script:\n{}", processed_script);
@@ -191,7 +164,6 @@ impl ScriptService {
             Err(parse_error) => Err(Box::new(parse_error.into())),
         }
     }
-
     pub fn run(&self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
         self.engine.eval_ast(ast)
     }

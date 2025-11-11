@@ -11,8 +11,6 @@ use std::time::{Duration, Instant};
 use notify_rust::Notification;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
-
-// App state
 #[derive(Debug, Clone)]
 struct AppState {
     name: String,
@@ -26,13 +24,11 @@ struct AppState {
     show_about_dialog: bool,
     current_screen: Screen,
 }
-
 #[derive(Debug, Clone)]
 enum Screen {
     Main,
     Status,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct RcloneConfig {
     name: String,
@@ -41,7 +37,6 @@ struct RcloneConfig {
     access_key: String,
     secret_key: String,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct SyncStatus {
     name: String,
@@ -51,7 +46,6 @@ struct SyncStatus {
     errors: usize,
     last_updated: String,
 }
-
 #[derive(Debug, Clone)]
 enum Message {
     NameChanged(String),
@@ -67,15 +61,12 @@ enum Message {
     BackToMain,
     None,
 }
-
 fn main() {
     dioxus_desktop::launch(app);
 }
-
 fn app(cx: Scope) -> Element {
     let window = use_window();
     window.set_inner_size(LogicalSize::new(800, 600));
-
     let state = use_ref(cx, || AppState {
         name: String::new(),
         access_key: String::new(),
@@ -88,27 +79,20 @@ fn app(cx: Scope) -> Element {
         show_about_dialog: false,
         current_screen: Screen::Main,
     });
-
-    // Monitor sync status
     use_future( async move {
         let state = state.clone();
         async move {
             let mut last_check = Instant::now();
             let check_interval = Duration::from_secs(5);
-
             loop {
                 tokio::time::sleep(Duration::from_secs(1)).await;
-
                 if !*state.read().sync_active.lock().unwrap() {
                     continue;
                 }
-
                 if last_check.elapsed() < check_interval {
                     continue;
                 }
-
                 last_check = Instant::now();
-
                 match read_rclone_configs() {
                     Ok(configs) => {
                         let mut new_statuses = Vec::new();
@@ -126,11 +110,9 @@ fn app(cx: Scope) -> Element {
             }
         }
     });
-
     cx.render(rsx! {
         div {
             class: "app",
-            // Main menu bar
             div {
                 class: "menu-bar",
                 button {
@@ -142,8 +124,6 @@ fn app(cx: Scope) -> Element {
                     "About"
                 }
             }
-
-            // Main content
             {match state.read().current_screen {
                 Screen::Main => rsx! {
                     div {
@@ -189,8 +169,6 @@ fn app(cx: Scope) -> Element {
                     }
                 }
             }}
-
-            // Config dialog
             if state.read().show_config_dialog {
                 div {
                     class: "dialog",
@@ -223,8 +201,6 @@ fn app(cx: Scope) -> Element {
                     }
                 }
             }
-
-            // About dialog
             if state.read().show_about_dialog {
                 div {
                     class: "dialog",
@@ -240,34 +216,27 @@ fn app(cx: Scope) -> Element {
         }
     })
 }
-
-// Save sync configuration
 fn save_config(state: &UseRef<AppState>) {
     if state.read().name.is_empty() || state.read().access_key.is_empty() || state.read().secret_key.is_empty() {
         state.write_with(|state| state.status_text = "All fields are required!".to_string());
         return;
     }
-
     let new_config = RcloneConfig {
         name: state.read().name.clone(),
-        remote_path: format!("s3://{}", state.read().name),
+        remote_path: format!("s3:
         local_path: Path::new(&env::var("HOME").unwrap()).join("General Bots").join(&state.read().name).to_string_lossy().to_string(),
         access_key: state.read().access_key.clone(),
         secret_key: state.read().secret_key.clone(),
     };
-
     if let Err(e) = save_rclone_config(&new_config) {
         state.write_with(|state| state.status_text = format!("Failed to save config: {}", e));
     } else {
         state.write_with(|state| state.status_text = "New sync saved!".to_string());
     }
 }
-
-// Start sync process
 fn start_sync(state: &UseRef<AppState>) {
     let mut processes = state.write_with(|state| state.sync_processes.lock().unwrap());
     processes.clear();
-
     match read_rclone_configs() {
         Ok(configs) => {
             for config in configs {
@@ -282,8 +251,6 @@ fn start_sync(state: &UseRef<AppState>) {
         Err(e) => state.write_with(|state| state.status_text = format!("Failed to read configurations: {}", e)),
     }
 }
-
-// Stop sync process
 fn stop_sync(state: &UseRef<AppState>) {
     let mut processes = state.write_with(|state| state.sync_processes.lock().unwrap());
     for child in processes.iter_mut() {
@@ -293,47 +260,38 @@ fn stop_sync(state: &UseRef<AppState>) {
     state.write_with(|state| *state.sync_active.lock().unwrap() = false);
     state.write_with(|state| state.status_text = "Sync stopped.".to_string());
 }
-
-// Utility functions (rclone, notifications, etc.)
 fn save_rclone_config(config: &RcloneConfig) -> Result<(), String> {
     let home_dir = env::var("HOME").map_err(|_| "HOME environment variable not set".to_string())?;
     let config_path = Path::new(&home_dir).join(".config/rclone/rclone.conf");
-
     let mut file = OpenOptions::new()
         .create(true)
         .append(true)
         .open(&config_path)
         .map_err(|e| format!("Failed to open config file: {}", e))?;
-
     writeln!(file, "[{}]", config.name)
         .and_then(|_| writeln!(file, "type = s3"))
         .and_then(|_| writeln!(file, "provider = Other"))
         .and_then(|_| writeln!(file, "access_key_id = {}", config.access_key))
         .and_then(|_| writeln!(file, "secret_access_key = {}", config.secret_key))
-        .and_then(|_| writeln!(file, "endpoint = https://drive-api.pragmatismo.com.br"))
+        .and_then(|_| writeln!(file, "endpoint = https:
         .and_then(|_| writeln!(file, "acl = private"))
         .map_err(|e| format!("Failed to write config: {}", e))
 }
-
 fn read_rclone_configs() -> Result<Vec<RcloneConfig>, String> {
     let home_dir = env::var("HOME").map_err(|_| "HOME environment variable not set".to_string())?;
     let config_path = Path::new(&home_dir).join(".config/rclone/rclone.conf");
-
     if !config_path.exists() {
         return Ok(Vec::new());
     }
-
     let file = File::open(&config_path).map_err(|e| format!("Failed to open config file: {}", e))?;
     let reader = BufReader::new(file);
     let mut configs = Vec::new();
     let mut current_config: Option<RcloneConfig> = None;
-
     for line in reader.lines() {
         let line = line.map_err(|e| format!("Failed to read line: {}", e))?;
         if line.is_empty() || line.starts_with('#') {
             continue;
         }
-
         if line.starts_with('[') && line.ends_with(']') {
             if let Some(config) = current_config.take() {
                 configs.push(config);
@@ -341,7 +299,7 @@ fn read_rclone_configs() -> Result<Vec<RcloneConfig>, String> {
             let name = line[1..line.len()-1].to_string();
             current_config = Some(RcloneConfig {
                 name: name.clone(),
-                remote_path: format!("s3://{}", name),
+                remote_path: format!("s3:
                 local_path: Path::new(&home_dir).join("General Bots").join(&name).to_string_lossy().to_string(),
                 access_key: String::new(),
                 secret_key: String::new(),
@@ -358,20 +316,16 @@ fn read_rclone_configs() -> Result<Vec<RcloneConfig>, String> {
             }
         }
     }
-
     if let Some(config) = current_config {
         configs.push(config);
     }
-
     Ok(configs)
 }
-
 fn run_sync(config: &RcloneConfig) -> Result<Child, std::io::Error> {
     let local_path = Path::new(&config.local_path);
     if !local_path.exists() {
         create_dir_all(local_path)?;
     }
-
     ProcCommand::new("rclone")
         .arg("sync")
         .arg(&config.remote_path)
@@ -383,7 +337,6 @@ fn run_sync(config: &RcloneConfig) -> Result<Child, std::io::Error> {
         .stderr(Stdio::null())
         .spawn()
 }
-
 fn get_rclone_status(remote_name: &str) -> Result<SyncStatus, String> {
     let output = ProcCommand::new("rclone")
         .arg("rc")
@@ -391,11 +344,9 @@ fn get_rclone_status(remote_name: &str) -> Result<SyncStatus, String> {
         .arg("--json")
         .output()
         .map_err(|e| format!("Failed to execute rclone rc: {}", e))?;
-
     if !output.status.success() {
         return Err(format!("rclone rc failed: {}", String::from_utf8_lossy(&output.stderr)));
     }
-
     let json = String::from_utf8_lossy(&output.stdout);
     let parsed: Result<Value, _> = serde_json::from_str(&json);
     match parsed {
@@ -403,7 +354,6 @@ fn get_rclone_status(remote_name: &str) -> Result<SyncStatus, String> {
             let transferred = value.get("bytes").and_then(|v| v.as_u64()).unwrap_or(0);
             let errors = value.get("errors").and_then(|v| v.as_u64()).unwrap_or(0);
             let speed = value.get("speed").and_then(|v| v.as_f64()).unwrap_or(0.0);
-
             let status = if errors > 0 {
                 "Error occurred".to_string()
             } else if speed > 0.0 {
@@ -413,7 +363,6 @@ fn get_rclone_status(remote_name: &str) -> Result<SyncStatus, String> {
             } else {
                 "Initializing".to_string()
             };
-
             Ok(SyncStatus {
                 name: remote_name.to_string(),
                 status,
@@ -426,12 +375,10 @@ fn get_rclone_status(remote_name: &str) -> Result<SyncStatus, String> {
         Err(e) => Err(format!("Failed to parse rclone status: {}", e)),
     }
 }
-
 fn format_bytes(bytes: u64) -> String {
     const KB: u64 = 1024;
     const MB: u64 = KB * 1024;
     const GB: u64 = MB * 1024;
-
     if bytes >= GB {
         format!("{:.2} GB", bytes as f64 / GB as f64)
     } else if bytes >= MB {

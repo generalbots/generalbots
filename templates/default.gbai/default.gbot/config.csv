@@ -8,6 +8,8 @@ llm-key,none
 llm-url,http://localhost:8081
 llm-model,../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf
 
+prompt-compact,4
+
 mcp-server,false
 
 embedding-url,http://localhost:8082

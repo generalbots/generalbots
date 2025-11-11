@@ -1,7 +1,6 @@
 use color_eyre::Result;
 use std::sync::Arc;
 use crate::shared::state::AppState;
-
 pub struct Editor {
  file_path: String,
  bucket: String,
@@ -11,7 +10,6 @@ pub struct Editor {
  scroll_offset: usize,
  modified: bool,
 }
-
 impl Editor {
  pub async fn load(app_state: &Arc<AppState>, bucket: &str, path: &str) -> Result<Self> {
  let content = if let Some(drive) = &app_state.drive {
@@ -25,7 +23,6 @@ impl Editor {
  } else {
  String::new()
  };
-
  Ok(Self {
  file_path: format!("{}/{}", bucket, path),
  bucket: bucket.to_string(),
@@ -36,7 +33,6 @@ impl Editor {
  modified: false,
  })
  }
-
  pub async fn save(&mut self, app_state: &Arc<AppState>) -> Result<()> {
  if let Some(drive) = &app_state.drive {
  drive.put_object()
@@ -49,11 +45,9 @@ impl Editor {
  }
  Ok(())
  }
-
  pub fn file_path(&self) -> &str {
  &self.file_path
  }
-
  pub fn render(&self, cursor_blink: bool) -> String {
  let lines: Vec<&str> = self.content.lines().collect();
  let total_lines = lines.len().max(1);
@@ -64,41 +58,33 @@ impl Editor {
  .last()
  .map(|line| line.len())
  .unwrap_or(0);
-
  let start = self.scroll_offset;
  let end = (start + visible_lines).min(total_lines);
-
  let mut display_lines = Vec::new();
  for i in start..end {
  let line_num = i + 1;
  let line_content = if i < lines.len() { lines[i] } else { "" };
  let is_cursor_line = i == cursor_line;
- 
  let cursor_indicator = if is_cursor_line && cursor_blink {
  let spaces = " ".repeat(cursor_col);
  format!("{}█", spaces)
  } else {
  String::new()
  };
-
  display_lines.push(format!(" {:4} │ {}{}", line_num, line_content, cursor_indicator));
  }
-
  if display_lines.is_empty() {
  let cursor_indicator = if cursor_blink { "█" } else { "" };
  display_lines.push(format!("    1 │ {}", cursor_indicator));
  }
-
  display_lines.push("".to_string());
  display_lines.push("─────────────────────────────────────────────────────────────".to_string());
  let status = if self.modified { "MODIFIED" } else { "SAVED" };
  display_lines.push(format!(" {} {} │ Line: {}, Col: {}",
  status, self.file_path, cursor_line + 1, cursor_col + 1));
  display_lines.push(" Ctrl+S: Save │ Ctrl+W: Close │ Esc: Close without saving".to_string());
-
  display_lines.join("\n")
  }
-
  pub fn move_up(&mut self) {
  if let Some(prev_line_end) = self.content[..self.cursor_pos].rfind('\n') {
  if let Some(prev_prev_line_end) = self.content[..prev_line_end].rfind('\n') {
@@ -111,7 +97,6 @@ impl Editor {
  }
  }
  }
-
  pub fn move_down(&mut self) {
  if let Some(next_line_start) = self.content[self.cursor_pos..].find('\n') {
  let current_line_start = self.content[..self.cursor_pos].rfind('\n').map(|pos| pos + 1).unwrap_or(0);
@@ -127,25 +112,21 @@ impl Editor {
  }
  }
  }
-
  pub fn move_left(&mut self) {
  if self.cursor_pos > 0 {
  self.cursor_pos -= 1;
  }
  }
-
  pub fn move_right(&mut self) {
  if self.cursor_pos < self.content.len() {
  self.cursor_pos += 1;
  }
  }
-
  pub fn insert_char(&mut self, c: char) {
  self.modified = true;
  self.content.insert(self.cursor_pos, c);
  self.cursor_pos += 1;
  }
-
  pub fn backspace(&mut self) {
  if self.cursor_pos > 0 {
  self.modified = true;
@@ -153,7 +134,6 @@ impl Editor {
  self.cursor_pos -= 1;
  }
  }
-
  pub fn insert_newline(&mut self) {
  self.modified = true;
  self.content.insert(self.cursor_pos, '\n');

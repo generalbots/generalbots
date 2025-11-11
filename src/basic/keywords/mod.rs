@@ -21,6 +21,5 @@ pub mod wait;
 pub mod add_suggestion;
 pub mod set_user;
 pub mod set_context;
-
 #[cfg(feature = "email")]
 pub mod create_draft_keyword;

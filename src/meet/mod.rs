@@ -1,8 +1,6 @@
 use actix_web::{web, HttpResponse, Result};
 use log::{error, info};
-
 use crate::shared::state::AppState;
-
 #[actix_web::post("/api/voice/start")]
 async fn voice_start(
     data: web::Data<AppState>,
@@ -20,7 +18,6 @@ async fn voice_start(
         "Voice session start request - session: {}, user: {}",
         session_id, user_id
     );
-
     match data
         .voice_adapter
         .start_voice_session(session_id, user_id)
@@ -43,7 +40,6 @@ async fn voice_start(
         }
     }
 }
-
 #[actix_web::post("/api/voice/stop")]
 async fn voice_stop(
     data: web::Data<AppState>,
