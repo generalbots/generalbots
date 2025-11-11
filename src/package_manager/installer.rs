@@ -4,7 +4,6 @@ use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
 use log::trace;
 use rand::distr::Alphanumeric;
-use sha2::{Digest, Sha256};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -61,18 +60,20 @@ impl PackageManager {
     }
 
     fn register_drive(&mut self) {
+
         let drive_password = self.generate_secure_password(16);
         let drive_user = "gbdriveuser".to_string();
-        let farm_password =
-            std::env::var("FARM_PASSWORD").unwrap_or_else(|_| self.generate_secure_password(32));
-        let encrypted_drive_password = self.encrypt_password(&drive_password, &farm_password);
 
-        let env_path = self.base_path.join(".env");
+        let env_path = std::env::current_dir().unwrap().join(".env");
         let env_content = format!(
-            "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
-            drive_user, drive_password, farm_password, drive_user, drive_password
+            "\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\nDRIVE_SERVER=http://localhost:9000\n",
+            drive_user, drive_password 
         );
-        let _ = std::fs::write(&env_path, env_content);
+        let _ = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&env_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
 
         self.components.insert(
             "drive".to_string(),
@@ -103,72 +104,20 @@ impl PackageManager {
             },
         );
 
-        // Delay updating drive credentials until database is created
-        let db_env_path = self.base_path.join(".env");
-        let database_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
-        let db_line = format!("DATABASE_URL={}\n", database_url);
-        let _ = std::fs::write(&db_env_path, db_line);
 
-        // Append drive credentials after database creation
-        let env_path = self.base_path.join(".env");
-        let drive_lines = format!(
-            "DRIVE_USER={}\nDRIVE_PASSWORD={}\nFARM_PASSWORD={}\nDRIVE_ROOT_USER={}\nDRIVE_ROOT_PASSWORD={}\n",
-            drive_user, drive_password, farm_password, drive_user, drive_password
-        );
-        let _ = std::fs::OpenOptions::new()
-            .append(true)
-            .open(&env_path)
-            .and_then(|mut file| std::io::Write::write_all(&mut file, drive_lines.as_bytes()));
-
-        // Update drive credentials in database only after database is ready
-        if std::process::Command::new("pg_isready")
-            .arg("-h")
-            .arg("localhost")
-            .arg("-p")
-            .arg("5432")
-            .output()
-            .map(|o| o.status.success())
-            .unwrap_or(false)
-        {
-            self.update_drive_credentials_in_database(&encrypted_drive_password)
-                .ok();
-        }
     }
 
-    fn update_drive_credentials_in_database(&self, encrypted_drive_password: &str) -> Result<()> {
-        use crate::shared::models::schema::bots::dsl::*;
-        use diesel::pg::PgConnection;
-        use diesel::prelude::*;
-        use uuid::Uuid;
-
-        let database_url = std::env::var("DATABASE_URL")
-            .unwrap_or_else(|_| "postgres://gbuser:@localhost:5432/botserver".to_string());
-
-        if let Ok(mut conn) = PgConnection::establish(&database_url) {
-            let system_bot_id = Uuid::parse_str("00000000-0000-0000-0000-000000000000")?;
-            diesel::update(bots)
-                .filter(id.eq(system_bot_id))
-                .set(llm_config.eq(serde_json::json!({
-                    "encrypted_drive_password": encrypted_drive_password,
-                })))
-                .execute(&mut conn)?;
-            trace!("Updated drive credentials in database for system bot");
-        }
-        Ok(())
-    }
 
     fn register_tables(&mut self) {
-        let db_password = std::env::var("DATABASE_URL")
-            .ok()
-            .and_then(|url| {
-                if let Some(stripped) = url.strip_prefix("postgres://gbuser:") {
-                    stripped.split('@').next().map(|s| s.to_string())
-                } else {
-                    None
-                }
-            })
-            .unwrap_or_else(|| self.generate_secure_password(16));
+
+        let db_env_path = std::env::current_dir().unwrap().join(".env");
+        let db_password = self.generate_secure_password(32);
+        let database_url = std::env::var("DATABASE_URL")
+            .unwrap_or_else(|_| format!("postgres://gbuser:{}@localhost:5432/botserver", db_password));
+        let db_line = format!("DATABASE_URL={}\n", database_url);
+
+
+        let _ = std::fs::write(&db_env_path, db_line);
 
         self.components.insert(
             "tables".to_string(),
@@ -848,10 +797,4 @@ impl PackageManager {
             .collect()
     }
 
-    fn encrypt_password(&self, password: &str, key: &str) -> String {
-        let mut hasher = Sha256::new();
-        hasher.update(key.as_bytes());
-        hasher.update(password.as_bytes());
-        format!("{:x}", hasher.finalize())
-    }
 }

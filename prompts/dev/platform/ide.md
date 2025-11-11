@@ -1,5 +1,6 @@
-- On code return identifiers/chars in english language.
-- Do not emmit any comment, and remove any existants in Rust/html.
+- On code return identifiers/characters in English language, no invalid tokens!
+- Do not emit any comments, and remove any existing ones in Rust/HTML.
 - Compact the code emission where possible.
-- On change code, ensure cargo check cycle to remove warnings and errors. 
-- Never use defaults or magic values in code (never unwrap_or_else or similars)
+- On code change, ensure cargo check cycle to remove warnings and errors.
+- Never use defaults or magic values in code (never unwrap_or_else or similar)
+- Check borrow, clone, types, common Rust errors! Return 0 warning code!
