@@ -444,7 +444,7 @@ impl BotOrchestrator {
             "Stream prompt constructed with {} history entries",
             history.len()
         );
-
+        trace!("LLM prompt: [{}]", prompt);
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
 
