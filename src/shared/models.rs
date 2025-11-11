@@ -2,8 +2,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-
- 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TriggerKind {
     Scheduled = 0,
@@ -11,7 +9,6 @@ pub enum TriggerKind {
     TableInsert = 2,
     TableDelete = 3,
 }
-
 impl TriggerKind {
     pub fn _from_i32(value: i32) -> Option<Self> {
         match value {
@@ -23,7 +20,6 @@ impl TriggerKind {
         }
     }
 }
-
 #[derive(Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = system_automations)]
 pub struct Automation {
@@ -36,7 +32,6 @@ pub struct Automation {
     pub is_active: bool,
     pub last_triggered: Option<chrono::DateTime<chrono::Utc>>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = user_sessions)]
 pub struct UserSession {
@@ -49,10 +44,6 @@ pub struct UserSession {
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
 }
-
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UserMessage {
     pub bot_id: String,
@@ -65,13 +56,11 @@ pub struct UserMessage {
     pub timestamp: DateTime<Utc>,
     pub context_name: Option<String>,
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Suggestion {
-    pub text: String,  // The button text that will be sent as message
-    pub context: String,  // The context name to set when clicked
+    pub text: String,  
+    pub context: String,  
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotResponse {
     pub bot_id: String,
@@ -87,7 +76,6 @@ pub struct BotResponse {
     pub context_length: usize,
     pub context_max_length: usize,
 }
-
 impl BotResponse {
     pub fn from_string_ids(
         bot_id: &str,
@@ -112,7 +100,6 @@ impl BotResponse {
         })
     }
 }
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = bot_memories)]
 pub struct BotMemory {
@@ -123,7 +110,6 @@ pub struct BotMemory {
     pub created_at: chrono::DateTime<Utc>,
     pub updated_at: chrono::DateTime<Utc>,
 }
-
 pub mod schema {
     diesel::table! {
         organizations (org_id) {
@@ -133,7 +119,6 @@ pub mod schema {
             created_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         bots (id) {
             id -> Uuid,
@@ -149,7 +134,6 @@ pub mod schema {
             tenant_id -> Nullable<Uuid>,
         }
     }
-
     diesel::table! {
         system_automations (id) {
             id -> Uuid,
@@ -162,7 +146,6 @@ pub mod schema {
             last_triggered -> Nullable<Timestamptz>,
         }
     }
-
     diesel::table! {
         user_sessions (id) {
             id -> Uuid,
@@ -175,7 +158,6 @@ pub mod schema {
             updated_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         message_history (id) {
             id -> Uuid,
@@ -188,7 +170,6 @@ pub mod schema {
             created_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         users (id) {
             id -> Uuid,
@@ -200,7 +181,6 @@ pub mod schema {
             updated_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         clicks (id) {
             id -> Uuid,
@@ -209,7 +189,6 @@ pub mod schema {
             updated_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         bot_memories (id) {
             id -> Uuid,
@@ -220,7 +199,6 @@ pub mod schema {
             updated_at -> Timestamptz,
         }
     }
-
     diesel::table! {
         kb_documents (id) {
             id -> Text,
@@ -238,7 +216,6 @@ pub mod schema {
             updated_at -> Text,
         }
     }
-
     diesel::table! {
         basic_tools (id) {
             id -> Text,
@@ -255,7 +232,6 @@ pub mod schema {
             updated_at -> Text,
         }
     }
-
     diesel::table! {
         kb_collections (id) {
             id -> Text,
@@ -270,7 +246,6 @@ pub mod schema {
             updated_at -> Text,
         }
     }
-
     diesel::table! {
         user_kb_associations (id) {
             id -> Text,
@@ -283,7 +258,6 @@ pub mod schema {
             updated_at -> Text,
         }
     }
-
     diesel::table! {
         session_tool_associations (id) {
             id -> Text,
@@ -292,21 +266,17 @@ pub mod schema {
             added_at -> Text,
         }
     }
-
     diesel::table! {
         bot_configuration (id) {
             id -> Uuid,
             bot_id -> Uuid,
             config_key -> Text,
             config_value -> Text,
- 
             is_encrypted -> Bool,
-
             config_type -> Text,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
         }
     }
 }
-
 pub use schema::*;

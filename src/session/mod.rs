@@ -285,8 +285,8 @@ impl SessionManager {
         let mut history: Vec<(String, String)> = Vec::new();
         for (other_role, content) in messages {
             let role_str = match other_role {
-                1 => "user".to_string(),
-                2 => "assistant".to_string(),
+                1 => "human".to_string(),
+                2 => "bot".to_string(),
                 3 => "system".to_string(),
                 9 => "compact".to_string(),
                 _ => "unknown".to_string(),

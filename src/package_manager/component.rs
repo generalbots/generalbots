@@ -1,5 +1,4 @@
 use std::collections::HashMap;
-
 #[derive(Debug, Clone)]
 pub struct ComponentConfig {
     pub name: String,

@@ -1,7 +1,6 @@
 use actix_web::{HttpRequest, HttpResponse, Result};
 use log::{debug, error, warn};
 use std::fs;
-
 #[actix_web::get("/")]
 async fn index() -> Result<HttpResponse> {
     match fs::read_to_string("web/html/index.html") {
@@ -12,7 +11,6 @@ async fn index() -> Result<HttpResponse> {
         }
     }
 }
-
 #[actix_web::get("/{botname}")]
 async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
     let botname = req.match_info().query("botname");
@@ -25,7 +23,6 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
         }
     }
 }
-
 #[actix_web::get("/static/{filename:.*}")]
 async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
     let filename = req.match_info().query("filename");

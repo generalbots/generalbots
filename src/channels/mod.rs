@@ -3,9 +3,7 @@ use log::{debug, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-
 use crate::shared::models::BotResponse;
-
 #[async_trait]
 pub trait ChannelAdapter: Send + Sync {
     async fn send_message(
@@ -13,22 +11,18 @@ pub trait ChannelAdapter: Send + Sync {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
-
 pub struct WebChannelAdapter {
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
-
 impl WebChannelAdapter {
     pub fn new() -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-
     pub async fn add_connection(&self, session_id: String, tx: mpsc::Sender<BotResponse>) {
         self.connections.lock().await.insert(session_id, tx);
     }
-
     pub async fn remove_connection(&self, session_id: &str) {
         self.connections.lock().await.remove(session_id);
     }
@@ -55,7 +49,6 @@ impl WebChannelAdapter {
         }
     }
 }
-
 #[async_trait]
 impl ChannelAdapter for WebChannelAdapter {
     async fn send_message(
@@ -69,12 +62,10 @@ impl ChannelAdapter for WebChannelAdapter {
         Ok(())
     }
 }
-
 pub struct VoiceAdapter {
     rooms: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
-
 impl VoiceAdapter {
     pub fn new() -> Self {
         Self {
@@ -82,7 +73,6 @@ impl VoiceAdapter {
             connections: Arc::new(Mutex::new(HashMap::new())),
         }
     }
-
     pub async fn start_voice_session(
         &self,
         session_id: &str,
@@ -92,16 +82,13 @@ impl VoiceAdapter {
             "Starting voice session for user: {} with session: {}",
             user_id, session_id
         );
-
         let token = format!("mock_token_{}_{}", session_id, user_id);
         self.rooms
             .lock()
             .await
             .insert(session_id.to_string(), token.clone());
-
         Ok(token)
     }
-
     pub async fn stop_voice_session(
         &self,
         session_id: &str,
@@ -109,11 +96,9 @@ impl VoiceAdapter {
         self.rooms.lock().await.remove(session_id);
         Ok(())
     }
-
     pub async fn add_connection(&self, session_id: String, tx: mpsc::Sender<BotResponse>) {
         self.connections.lock().await.insert(session_id, tx);
     }
-
     pub async fn send_voice_response(
         &self,
         session_id: &str,
@@ -123,7 +108,6 @@ impl VoiceAdapter {
         Ok(())
     }
 }
-
 #[async_trait]
 impl ChannelAdapter for VoiceAdapter {
     async fn send_message(

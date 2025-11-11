@@ -74,7 +74,6 @@ impl AppConfig {
                 .map(|v| v.3.to_lowercase() == "true")
                 .unwrap_or(default)
         };
-
         let drive = DriveConfig {
             server: std::env::var("DRIVE_SERVER").unwrap(),
             access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
@@ -119,8 +118,6 @@ impl AppConfig {
         })
     }
 }
-
-
 pub struct ConfigManager {
     conn: DbPool,
 }

@@ -14,80 +14,58 @@ pub fn start_compact_prompt_scheduler(state: Arc<AppState>) {
         let mut interval = interval(Duration::from_secs(60));
         loop {
             interval.tick().await;
-            if let Err(e) = execute_compact_prompt(Arc::clone(&state)).await {
+            if let Err(e) = compact_prompt_for_bots(&Arc::clone(&state)).await {
                 error!("Prompt compaction failed: {}", e);
             }
         }
     });
 }
-async fn execute_compact_prompt(
-    state: Arc<AppState>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use crate::shared::models::system_automations::dsl::{is_active, system_automations};
-    let automations: Vec<Automation> = {
-        let mut conn = state
-            .conn
-            .get()
-            .map_err(|e| format!("Failed to acquire lock: {}", e))?;
-        system_automations
-            .filter(is_active.eq(true))
-            .load::<Automation>(&mut *conn)?
-    };
-    for automation in automations {
-        if let Err(e) = compact_prompt_for_bot(&state, &automation).await {
-            error!(
-                "Failed to compact prompt for bot {}: {}",
-                automation.bot_id, e
-            );
-        }
-    }
-    Ok(())
-}
-async fn compact_prompt_for_bot(
+async fn compact_prompt_for_bots(
     state: &Arc<AppState>,
-    automation: &Automation,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use once_cell::sync::Lazy;
     use scopeguard::guard;
-    static IN_PROGRESS: Lazy<tokio::sync::Mutex<HashSet<Uuid>>> =
+    static SESSION_IN_PROGRESS: Lazy<tokio::sync::Mutex<HashSet<Uuid>>> =
         Lazy::new(|| tokio::sync::Mutex::new(HashSet::new()));
-    {
-        let mut in_progress = IN_PROGRESS.lock().await;
-        if in_progress.contains(&automation.bot_id) {
-            return Ok(());
-        }
-        in_progress.insert(automation.bot_id);
-    }
-    let bot_id = automation.bot_id;
-    let _cleanup = guard((), |_| {
-        tokio::spawn(async move {
-            let mut in_progress = IN_PROGRESS.lock().await;
-            in_progress.remove(&bot_id);
-        });
-    });
-    let config_manager = ConfigManager::new(state.conn.clone());
-    let compact_threshold = config_manager
-        .get_config(&automation.bot_id, "prompt-compact", None)?
-        .parse::<i32>()
-        .unwrap_or(0);
-    if compact_threshold == 0 {
-        return Ok(());
-    } else if compact_threshold < 0 {
-        trace!(
-            "Negative compact threshold detected for bot {}, skipping",
-            automation.bot_id
-        );
-    }
+
     let sessions = {
         let mut session_manager = state.session_manager.lock().await;
         session_manager.get_user_sessions(Uuid::nil())?
     };
     for session in sessions {
-        if session.bot_id != automation.bot_id {
-            trace!("Skipping session {} - bot_id {} doesn't match automation bot_id {}", 
-                session.id, session.bot_id, automation.bot_id);
-            continue;
+        {
+            let mut session_in_progress = SESSION_IN_PROGRESS.lock().await;
+            if session_in_progress.contains(&session.id) {
+                trace!(
+                    "Skipping session {} - compaction already in progress",
+                    session.id
+                );
+                continue;
+            }
+            session_in_progress.insert(session.id);
         }
+
+        let config_manager = ConfigManager::new(state.conn.clone());
+        let compact_threshold = config_manager
+            .get_config(&session.bot_id, "prompt-compact", None)?
+            .parse::<i32>()
+            .unwrap_or(0);
+
+        if compact_threshold == 0 {
+            return Ok(());
+        } else if compact_threshold < 0 {
+            trace!(
+                "Negative compact threshold detected for bot {}, skipping",
+                session.bot_id
+            );
+        }
+        let session_id = session.id;
+        let _session_cleanup = guard((), |_| {
+            tokio::spawn(async move {
+                let mut in_progress = SESSION_IN_PROGRESS.lock().await;
+                in_progress.remove(&session_id);
+            });
+        });
         let history = {
             let mut session_manager = state.session_manager.lock().await;
             session_manager.get_conversation_history(session.id, session.user_id)?
@@ -95,11 +73,16 @@ async fn compact_prompt_for_bot(
 
         let mut messages_since_summary = 0;
         let mut has_new_messages = false;
-        let mut last_summary_index = history.iter().position(|(role, _)|
-         role == "compact")
-            .unwrap_or(0);
-        
-        for (i, (role, _)) in history.iter().enumerate().skip(last_summary_index + 1) {
+        let last_summary_index = history
+            .iter()
+            .rev()
+            .position(|(role, _)| role == "compact")
+            .map(|pos| history.len() - pos - 1);
+
+        // Calculate start index: if there's a summary, start after it; otherwise start from 0
+        let start_index = last_summary_index.map(|idx| idx + 1).unwrap_or(0);
+
+        for (i, (role, _)) in history.iter().enumerate().skip(start_index) {
             if role == "compact" {
                 continue;
             }
@@ -107,8 +90,11 @@ async fn compact_prompt_for_bot(
             has_new_messages = true;
         }
 
-        if !has_new_messages {
-            trace!("Skipping session {} - no new messages since last summary", session.id);
+        if !has_new_messages && last_summary_index.is_some() {
+            trace!(
+                "Skipping session {} - no new messages since last summary",
+                session.id
+            );
             continue;
         }
         if messages_since_summary < compact_threshold as usize {
@@ -123,11 +109,14 @@ async fn compact_prompt_for_bot(
             messages_since_summary
         );
         let mut compacted = String::new();
-        let messages_to_include = history.iter()
-            .skip(history.len().saturating_sub(messages_since_summary ))
-            .take(messages_since_summary + 1);
-        
+
+        // Include messages from start_index onward
+        let messages_to_include = history.iter().skip(start_index);
+
         for (role, content) in messages_to_include {
+            if role == "compact" {
+                continue;
+            }
             compacted.push_str(&format!("{}: {}\n", role, content));
         }
         let llm_provider = state.llm_provider.clone();
@@ -141,7 +130,7 @@ async fn compact_prompt_for_bot(
                 );
                 let handler = llm_models::get_handler(
                     &config_manager
-                        .get_config(&automation.bot_id, "llm-model", None)
+                        .get_config(&session.bot_id, "llm-model", None)
                         .unwrap_or_default(),
                 );
                 let filtered = handler.process_content(&summary);
