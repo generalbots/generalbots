@@ -171,18 +171,6 @@ impl SessionManager {
         msg_type: i32,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
-        let exists = message_history
-            .filter(session_id.eq(sess_id))
-            .filter(user_id.eq(uid))
-            .filter(role.eq(ro))
-            .filter(content_encrypted.eq(content))
-            .filter(message_type.eq(msg_type))
-            .select(id)
-            .first::<Uuid>(&mut self.conn)
-            .optional()?;
-        if exists.is_some() {
-            return Ok(());
-        }
         let next_index = message_history
             .filter(session_id.eq(sess_id))
             .count()

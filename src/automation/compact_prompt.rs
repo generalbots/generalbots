@@ -1,9 +1,7 @@
 use crate::config::ConfigManager;
 use crate::llm_models;
-use crate::shared::models::Automation;
 use crate::shared::state::AppState;
-use diesel::prelude::*;
-use log::{error, trace};
+use log::{error, info, trace};
 use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
@@ -33,18 +31,6 @@ async fn compact_prompt_for_bots(
         session_manager.get_user_sessions(Uuid::nil())?
     };
     for session in sessions {
-        {
-            let mut session_in_progress = SESSION_IN_PROGRESS.lock().await;
-            if session_in_progress.contains(&session.id) {
-                trace!(
-                    "Skipping session {} - compaction already in progress",
-                    session.id
-                );
-                continue;
-            }
-            session_in_progress.insert(session.id);
-        }
-
         let config_manager = ConfigManager::new(state.conn.clone());
         let compact_threshold = config_manager
             .get_config(&session.bot_id, "prompt-compact", None)?
@@ -60,12 +46,6 @@ async fn compact_prompt_for_bots(
             );
         }
         let session_id = session.id;
-        let _session_cleanup = guard((), |_| {
-            tokio::spawn(async move {
-                let mut in_progress = SESSION_IN_PROGRESS.lock().await;
-                in_progress.remove(&session_id);
-            });
-        });
         let history = {
             let mut session_manager = state.session_manager.lock().await;
             session_manager.get_conversation_history(session.id, session.user_id)?
@@ -103,11 +83,24 @@ async fn compact_prompt_for_bots(
             continue;
         }
 
+        {
+            let mut session_in_progress = SESSION_IN_PROGRESS.lock().await;
+            if session_in_progress.contains(&session.id) {
+                trace!(
+                    "Skipping session {} - compaction already in progress",
+                    session.id
+                );
+                continue;
+            }
+            session_in_progress.insert(session.id);
+        }
+
         trace!(
             "Compacting prompt for session {}: {} messages since last summary",
             session.id,
             messages_since_summary
         );
+
         let mut compacted = String::new();
 
         // Include messages from start_index onward
@@ -120,19 +113,21 @@ async fn compact_prompt_for_bots(
             compacted.push_str(&format!("{}: {}\n", role, content));
         }
         let llm_provider = state.llm_provider.clone();
-        let compacted_clone = compacted.clone();
-        let summarized = match llm_provider.summarize(&compacted_clone).await {
+        trace!("Starting summarization for session {}", session.id);
+        let summarized = match llm_provider.generate(&compacted, &serde_json::Value::Null).await {
             Ok(summary) => {
                 trace!(
-                    "Successfully summarized conversation for session {}, summary length: {}",
+                    "Successfully summarized session {} ({} chars)",
                     session.id,
                     summary.len()
                 );
+                // Use handler to filter <think> content
                 let handler = llm_models::get_handler(
-                    &config_manager
+                    config_manager
                         .get_config(&session.bot_id, "llm-model", None)
-                        .unwrap_or_default(),
+                        .unwrap().as_str(),
                 );
+
                 let filtered = handler.process_content(&summary);
                 format!("SUMMARY: {}", filtered)
             }
@@ -141,10 +136,11 @@ async fn compact_prompt_for_bots(
                     "Failed to summarize conversation for session {}: {}",
                     session.id, e
                 );
-                format!("SUMMARY: {}", compacted)
+                trace!("Using fallback summary for session {}", session.id);
+                format!("SUMMARY: {}", compacted) // Fallback
             }
         };
-        trace!(
+        info!(
             "Prompt compacted {}: {} messages",
             session.id,
             history.len()
@@ -153,6 +149,13 @@ async fn compact_prompt_for_bots(
             let mut session_manager = state.session_manager.lock().await;
             session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
         }
+
+        let _session_cleanup = guard((), |_| {
+            tokio::spawn(async move {
+                let mut in_progress = SESSION_IN_PROGRESS.lock().await;
+                in_progress.remove(&session_id);
+            });
+        });
     }
     Ok(())
 }
