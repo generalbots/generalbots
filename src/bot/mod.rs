@@ -371,7 +371,7 @@ impl BotOrchestrator {
         for (role, content) in &history {
             prompt.push_str(&format!("{}:{}\n", role, content));
         }
-        prompt.push_str(&format!("Human: {}\nBot:", message.content));
+        prompt.push_str(&format!("\nbot:"));
         trace!(
             "Stream prompt constructed with {} history entries",
             history.len()
