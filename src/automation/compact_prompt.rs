@@ -123,7 +123,11 @@ async fn compact_prompt_for_bot(
             messages_since_summary
         );
         let mut compacted = String::new();
-        for (role, content) in &history {
+        let messages_to_include = history.iter()
+            .skip(history.len().saturating_sub(messages_since_summary ))
+            .take(messages_since_summary + 1);
+        
+        for (role, content) in messages_to_include {
             compacted.push_str(&format!("{}: {}\n", role, content));
         }
         let llm_provider = state.llm_provider.clone();
