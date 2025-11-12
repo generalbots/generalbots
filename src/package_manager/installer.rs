@@ -61,8 +61,6 @@ impl PackageManager {
 
     fn register_drive(&mut self) {
 
-            let drive_user = std::env::var("DRIVE_ACCESSKEY").unwrap();
-            let drive_password = std::env::var("DRIVE_SECRET").unwrap();
 
         self.components.insert(
             "drive".to_string(),
@@ -84,8 +82,8 @@ impl PackageManager {
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::from([
-                    ("MINIO_ROOT_USER".to_string(), drive_user.clone()),
-                    ("MINIO_ROOT_PASSWORD".to_string(), drive_password.clone()),
+                    ("MINIO_ROOT_USER".to_string(), "$DRIVE_USER".to_string()),
+                    ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_ACCESSKEY".to_string()),
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
@@ -741,11 +739,23 @@ impl PackageManager {
             );
 
 
+
+            // Create new env vars map with evaluated $VAR references
+            let mut evaluated_envs = HashMap::new();
+            for (k, v) in &component.env_vars {
+                if v.starts_with('$') {
+                    let var_name = &v[1..];
+                    evaluated_envs.insert(k.clone(), std::env::var(var_name).unwrap_or_default());
+                } else {
+                    evaluated_envs.insert(k.clone(), v.clone());
+                }
+            }
+
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&rendered_cmd)
-                .envs(&component.env_vars)
+                .envs(&evaluated_envs)
                 .spawn();
 
             std::thread::sleep(std::time::Duration::from_secs(2));
