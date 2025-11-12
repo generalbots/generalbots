@@ -10,9 +10,17 @@ source "$HOME/.cargo/env"
 git clone https://alm.pragmatismo.com.br/generalbots/gbserver
 
 apt install -y build-essential \
+    libcap2-bin \ 
     pkg-config \
     libssl-dev \
     gcc-multilib \
+git-fs \
+curl \
+coturn \
+gnupg \
+ca-certificates \
+build-essential \
+
     g++-multilib \
     clang \
     lld \

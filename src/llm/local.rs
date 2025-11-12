@@ -69,11 +69,6 @@ pub async fn ensure_llama_servers_running(
     info!("  LLM Server Path: {}", llm_server_path);
     info!("Restarting any existing llama-server processes...");
     
-    
-
-    
-    
-    
     if let Err(e) = tokio::process::Command::new("sh")
         .arg("-c")
         .arg("pkill llama-server -9 || true")
@@ -168,7 +163,7 @@ pub async fn ensure_llama_servers_running(
         info!("All llama.cpp servers are ready and responding!");
         
         // Update LLM provider with new endpoints
-        let llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
+        let _llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
             llm_model.clone(),
             Some(llm_url.clone()),
         ));

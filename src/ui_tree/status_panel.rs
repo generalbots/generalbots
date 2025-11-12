@@ -27,11 +27,11 @@ impl StatusPanel {
     pub async fn update(&mut self) -> Result<(), std::io::Error> {
         self.system.refresh_all();
         // Force fresh metrics by using different token counts
-        let tokens = (std::time::SystemTime::now()
+        let _tokens = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
             .as_secs() % 1000) as usize;
-        let system_metrics = nvidia::get_system_metrics().unwrap_or_default();
+        let _system_metrics = nvidia::get_system_metrics().unwrap_or_default();
         self.cached_content = self.render(None);
         self.last_update = std::time::Instant::now();
         Ok(())

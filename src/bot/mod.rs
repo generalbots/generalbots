@@ -1,5 +1,4 @@
 mod ui;
-use crate::bot::ui::BotUI;
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
 use crate::llm::OpenAIClient;
@@ -355,7 +354,7 @@ impl BotOrchestrator {
                 .rposition(|(role, _content)| role == "compact")
             {
                 history = history.split_off(last_compacted_index);
-                for (role, content) in history.iter_mut() {
+                for (role, _content) in history.iter_mut() {
                     if role == "compact" {
                         *role = "user".to_string();
                     }
@@ -513,7 +512,6 @@ impl BotOrchestrator {
             "Total tokens (context + prompt + response): {}",
             total_tokens
         );
-        let config_manager = ConfigManager::new(self.state.conn.clone());
         {
             let mut sm = self.state.session_manager.lock().await;
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;
