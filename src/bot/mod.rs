@@ -1,10 +1,10 @@
 mod ui;
+use crate::bot::ui::BotUI;
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
 use crate::llm::OpenAIClient;
 use crate::llm_models;
 use crate::nvidia::get_system_metrics;
-use crate::bot::ui::BotUI;
 use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use actix_web::{web, HttpRequest, HttpResponse, Result};
@@ -397,11 +397,17 @@ impl BotOrchestrator {
             };
             response_tx.send(thinking_response).await?;
         }
+        let config_manager = ConfigManager::new(self.state.conn.clone());
+        let model = config_manager
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-model",
+                None,
+            )
+            .unwrap_or_default();
+        let model1 = model.clone();
         tokio::spawn(async move {
-            if let Err(e) = llm
-                .generate_stream("", &messages, stream_tx)
-                .await
-            {
+            if let Err(e) = llm.generate_stream("", &messages, stream_tx, &model).await {
                 error!("LLM streaming error: {}", e);
             }
         });
@@ -413,7 +419,6 @@ impl BotOrchestrator {
         let mut last_progress_update = Instant::now();
         let progress_interval = Duration::from_secs(1);
         let initial_tokens = crate::shared::utils::estimate_token_count(&message.content);
-        let config_manager = ConfigManager::new(self.state.conn.clone());
         let max_context_size = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -423,14 +428,7 @@ impl BotOrchestrator {
             .unwrap_or_default()
             .parse::<usize>()
             .unwrap_or(0);
-        let model = config_manager
-            .get_config(
-                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
-                "llm-model",
-                None,
-            )
-            .unwrap_or_default();
-        let handler = llm_models::get_handler(&model);
+        let handler = llm_models::get_handler(&model1);
         while let Some(chunk) = stream_rx.recv().await {
             chunk_count += 1;
             if !first_word_received && !chunk.trim().is_empty() {
@@ -503,7 +501,7 @@ impl BotOrchestrator {
             "Total tokens (context + prompt + response): {}",
             total_tokens
         );
-        let config_manager = ConfigManager::new( self.state.conn.clone());
+        let config_manager = ConfigManager::new(self.state.conn.clone());
         {
             let mut sm = self.state.session_manager.lock().await;
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;

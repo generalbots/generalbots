@@ -123,7 +123,11 @@ async fn compact_prompt_for_bots(
         let llm_provider = state.llm_provider.clone();
         trace!("Starting summarization for session {}", session.id);
         let mut filtered = String::new();
-        let summarized = match llm_provider.generate("", &serde_json::Value::Array(messages)).await {
+         let config_manager = crate::config::ConfigManager::new(state.conn.clone());
+ let model = config_manager.get_config(&Uuid::nil(), "llm-model", None).unwrap_or_default();
+
+        let summarized = match llm_provider.generate(
+            "", &serde_json::Value::Array(messages), &model).await {
             Ok(summary) => {
                 trace!(
                     "Successfully summarized session {} ({} chars)",

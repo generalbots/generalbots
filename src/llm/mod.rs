@@ -10,21 +10,15 @@ pub trait LLMProvider: Send + Sync {
         &self,
         prompt: &str,
         config: &Value,
+        model: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
     async fn generate_stream(
         &self,
         prompt: &str,
         config: &Value,
         tx: mpsc::Sender<String>,
+        model: &str
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
-    async fn summarize(
-        &self,
-        text: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let prompt = format!("Summarize the following conversation while preserving key details:\n\n{}", text);
-        self.generate(&prompt, &serde_json::json!({"max_tokens": 500}))
-            .await
-    }
     async fn cancel_job(
         &self,
         session_id: &str,
@@ -34,6 +28,7 @@ pub struct OpenAIClient {
     client: reqwest::Client,
     api_key: String,
     base_url: String,
+
 }
 #[async_trait]
 impl LLMProvider for OpenAIClient {
@@ -41,6 +36,7 @@ impl LLMProvider for OpenAIClient {
         &self,
         prompt: &str,
         messages: &Value,
+        model: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
@@ -48,7 +44,7 @@ impl LLMProvider for OpenAIClient {
             .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
-                "model": "gpt-3.5-turbo",
+                "model": model,
                 "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
                     messages
                 } else {
@@ -74,6 +70,7 @@ impl LLMProvider for OpenAIClient {
         prompt: &str,
         messages: &Value,
         tx: mpsc::Sender<String>,
+        model: &str
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
@@ -81,7 +78,7 @@ impl LLMProvider for OpenAIClient {
             .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
-                "model": "gpt-3.5-turbo",
+                "model": model.clone(),
                 "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
                     info!("Using provided messages: {:?}", messages);
                     messages
