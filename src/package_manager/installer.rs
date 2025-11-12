@@ -693,7 +693,7 @@ impl PackageManager {
 
             // Create new env vars map with evaluated $VAR references
             let mut evaluated_envs = HashMap::new();
-            for (k, v) in C&component.env_vars {
+            for (k, v) in &component.env_vars {
                 if v.starts_with('$') {
                     let var_name = &v[1..];
                     evaluated_envs.insert(k.clone(), std::env::var(var_name).unwrap_or_default());
