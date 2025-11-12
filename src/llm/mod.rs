@@ -81,7 +81,6 @@ impl LLMProvider for OpenAIClient {
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
                 "messages": messages,
-                "max_tokens": 1000,
                 "stream": true
             }))
             .send()
@@ -135,18 +134,20 @@ impl OpenAIClient {
                     "compact" => "system",
                     _ => continue
                 };
-                {
-                    if let Some(r) = current_role.take() {
+                
+                if let Some(r) = current_role.take() {
+                    if !current_content.is_empty() {
                         messages.push(serde_json::json!({
                             "role": r,
                             "content": current_content.trim()
                         }));
                     }
-                    current_role = Some(role);
-                    current_content = line[role_end + 1..].trim_start().to_string();
-                    continue;
                 }
+                current_role = Some(role);
+                current_content = line[role_end + 1..].trim_start().to_string();
+                continue;
             }
+            
             if let Some(_) = current_role {
                 if !current_content.is_empty() {
                     current_content.push('\n');
@@ -156,10 +157,12 @@ impl OpenAIClient {
         }
 
         if let Some(role) = current_role {
-            messages.push(serde_json::json!({
-                "role": role,
-                "content": current_content.trim()
-            }));
+            if !current_content.is_empty() {
+                messages.push(serde_json::json!({
+                    "role": role,
+                    "content": current_content.trim()
+                }));
+            }
         }
         messages
     }
