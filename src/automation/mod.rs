@@ -18,7 +18,7 @@ impl AutomationService {
         Self { state }
     }
     pub async fn spawn(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut ticker = interval(Duration::from_secs(60));
+        let mut ticker = interval(Duration::from_secs(5));
         loop {
             ticker.tick().await;
             if let Err(e) = self.check_scheduled_tasks().await {
@@ -41,22 +41,32 @@ impl AutomationService {
             .load::<Automation>(&mut conn)?;
         for automation in automations {
             if let Some(schedule_str) = &automation.schedule {
-                if let Ok(parsed_schedule) = Schedule::from_str(schedule_str) {
-                    let now = Utc::now();
-                    let next_run = parsed_schedule.upcoming(Utc).next();
-                    if let Some(next_time) = next_run {
-                        let time_until_next = next_time - now;
-                        if time_until_next.num_minutes() < 1 {
-                            if let Some(last_triggered) = automation.last_triggered {
-                                if (now - last_triggered).num_minutes() < 1 {
-                                    continue;
+                match Schedule::from_str(schedule_str.trim()) {
+                    Ok(parsed_schedule) => {
+                        let now = Utc::now();
+                        let next_run = parsed_schedule.upcoming(Utc).next();
+                        if let Some(next_time) = next_run {
+                            let time_until_next = next_time - now;
+                            if time_until_next.num_minutes() < 1 {
+                                if let Some(last_triggered) = automation.last_triggered {
+                                    if (now - last_triggered).num_minutes() < 1 {
+                                        continue;
+                                    }
+                                }
+                                if let Err(e) = self.execute_automation(&automation).await {
+                                    error!("Error executing automation {}: {}", automation.id, e);
+                                }
+                                if let Err(e) = diesel::update(system_automations.filter(id.eq(automation.id)))
+                                    .set(lt_column.eq(Some(now)))
+                                    .execute(&mut conn)
+                                {
+                                    error!("Error updating last_triggered for automation {}: {}", automation.id, e);
                                 }
                             }
-                            self.execute_automation(&automation).await?;
-                            diesel::update(system_automations.filter(id.eq(automation.id)))
-                                .set(lt_column.eq(Some(now)))
-                                .execute(&mut conn)?;
                         }
+                    }
+                    Err(e) => {
+                        error!("Error parsing schedule for automation {} ({}): {}", automation.id, schedule_str, e);
                     }
                 }
             }
@@ -91,7 +101,7 @@ impl AutomationService {
         };
         let session = {
             let mut sm = self.state.session_manager.lock().await;
-            let admin_user = uuid::Uuid::nil();
+            let admin_user = automation.bot_id;
             sm.get_or_create_user_session(admin_user, automation.bot_id, "Automation")?
                 .ok_or("Failed to create session")?
         };
