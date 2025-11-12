@@ -355,6 +355,11 @@ impl BotOrchestrator {
                 .rposition(|(role, _content)| role == "compact")
             {
                 history = history.split_off(last_compacted_index);
+                for (role, content) in history.iter_mut() {
+                    if role == "compact" {
+                        *role = "user".to_string();
+                    }
+                }
             }
             if history_limit > 0 && history.len() > history_limit as usize {
                 let start = history.len() - history_limit as usize;
@@ -405,9 +410,16 @@ impl BotOrchestrator {
                 None,
             )
             .unwrap_or_default();
+        let key = config_manager
+            .get_config(
+                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
+                "llm-key",
+                None,
+            )
+            .unwrap_or_default();
         let model1 = model.clone();
         tokio::spawn(async move {
-            if let Err(e) = llm.generate_stream("", &messages, stream_tx, &model).await {
+            if let Err(e) = llm.generate_stream("", &messages, stream_tx, &model, &key).await {
                 error!("LLM streaming error: {}", e);
             }
         });
