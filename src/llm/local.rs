@@ -265,7 +265,7 @@ pub async fn start_llm_server(
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/C").arg(format!(
-            "cd {} && .\\llama-server.exe {} --verbose>llm-stdout.log",
+            "cd {} && .\\llama-server.exe {}",
             llama_cpp_path, args
         ));
         info!(
@@ -276,7 +276,7 @@ pub async fn start_llm_server(
     } else {
         let mut cmd = tokio::process::Command::new("sh");
         cmd.arg("-c").arg(format!(
-            "cd {} && ./llama-server {} --verbose >../../../../logs/llm/stdout.log 2>&1 &",
+            "cd {} && ./llama-server {} --verbose >llm-stdout.log 2>&1 &",
             llama_cpp_path, args
         ));
         info!(
@@ -303,7 +303,7 @@ pub async fn start_embedding_server(
     } else {
         let mut cmd = tokio::process::Command::new("sh");
         cmd.arg("-c").arg(format!(
-            "cd {} && ./llama-server -m {} --verbose --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99 >stdout.log 2>&1 &",
+            "cd {} && ./llama-server -m {} --verbose --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99 >llmembd-stdout.log 2>&1 &",
             llama_cpp_path, model_path, port
         ));
         cmd.spawn()?;
