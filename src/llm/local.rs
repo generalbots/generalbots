@@ -229,7 +229,7 @@ pub async fn start_llm_server(
         .get_config(&default_bot_id, "llm-server-n-predict", None)
         .unwrap_or("50".to_string());
     let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --reasoning-format deepseek --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
