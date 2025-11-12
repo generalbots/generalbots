@@ -6,7 +6,7 @@ pub struct SystemMetrics {
     pub gpu_usage: Option<f32>,
     pub cpu_usage: f32,
 }
-pub fn get_system_metrics(_current_tokens: usize, _max_tokens: usize) -> Result<SystemMetrics> {
+pub fn get_system_metrics() -> Result<SystemMetrics> {
     let mut sys = System::new();
     sys.refresh_cpu_usage();
     let cpu_usage = sys.global_cpu_usage();

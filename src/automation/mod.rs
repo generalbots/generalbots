@@ -5,7 +5,7 @@ use crate::shared::state::AppState;
 use chrono::Utc;
 use cron::Schedule;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::{error};
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
