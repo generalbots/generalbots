@@ -58,7 +58,7 @@ CREATE TABLE public.system_automations (
 	bot_id uuid NOT NULL,
 	kind int4 NOT NULL,
 	"target" varchar(32) NULL,
-	schedule bpchar(12) NULL,
+	schedule bpchar(20) NULL,
 	param varchar(32) NOT NULL,
 	is_active bool DEFAULT true NOT NULL,
 	last_triggered timestamptz NULL,
