@@ -230,7 +230,7 @@ pub async fn start_llm_server(
         .unwrap_or("50".to_string());
 
         let n_ctx_size = config_manager
-        .get_config(&default_bot_id, "llm-server-n-ctx-size", None)
+        .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or("4096".to_string());
 
 
@@ -259,7 +259,7 @@ pub async fn start_llm_server(
     if n_predict != "0" {
         args.push_str(&format!(" --n-predict {}", n_predict));
     }
-        args.push_str(&format!(" --n-ctx-size {}", n_ctx_size));
+        args.push_str(&format!(" --ctx-size {}", n_ctx_size));
     
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
