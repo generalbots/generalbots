@@ -45,7 +45,7 @@ impl LLMProvider for OpenAIClient {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
             .client
-            .post(&format!("{}/v1/chat/completions/", self.base_url))
+            .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
