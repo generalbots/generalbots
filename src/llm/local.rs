@@ -228,7 +228,13 @@ pub async fn start_llm_server(
     let n_predict = config_manager
         .get_config(&default_bot_id, "llm-server-n-predict", None)
         .unwrap_or("50".to_string());
-    let mut args = format!(
+
+        let n_ctx_size = config_manager
+        .get_config(&default_bot_id, "llm-server-n_ctx_size", None)
+        .unwrap_or("4096".to_string());
+
+
+        let mut args = format!(
         "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
@@ -253,6 +259,8 @@ pub async fn start_llm_server(
     if n_predict != "0" {
         args.push_str(&format!(" --n-predict {}", n_predict));
     }
+        args.push_str(&format!(" --n-ctx-size {}", n_ctx_size));
+    
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/C").arg(format!(
