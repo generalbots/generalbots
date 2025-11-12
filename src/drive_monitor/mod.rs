@@ -44,7 +44,7 @@ impl DriveMonitor {
             None => return Ok(()),
         };
         self.check_gbdialog_changes(client).await?;
-        self.check_gbot(client).await?;
+        // TODO: Remove self.check_gbot(client).await?;
         Ok(())
     }
     async fn check_gbdialog_changes(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
