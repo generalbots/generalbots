@@ -5,7 +5,7 @@ use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use diesel::connection::SimpleConnection;
-use log::{error, info, trace};
+use log::{error, trace};
 use rand::distr::Alphanumeric;
 use std::io::{self, Write};
 use std::path::Path;

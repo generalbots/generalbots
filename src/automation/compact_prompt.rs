@@ -102,14 +102,16 @@ async fn compact_prompt_for_bots(
         );
 
         let mut conversation = String::new();
-        conversation.push_str("Please summarize this conversation between user and bot: \n\n [[[***** \n");
-        
+        conversation
+            .push_str("Please summarize this conversation between user and bot: \n\n [[[***** \n");
+
         for (role, content) in history.iter().skip(start_index) {
             if role == "compact" {
                 continue;
             }
-            conversation.push_str(&format!("{}: {}\n", 
-                if role == "user" { "User" } else { "Bot" },
+            conversation.push_str(&format!(
+                "{}: {}\n",
+                if role == "user" { "user" } else { "assistant" },
                 content
             ));
         }
@@ -123,11 +125,18 @@ async fn compact_prompt_for_bots(
         let llm_provider = state.llm_provider.clone();
         trace!("Starting summarization for session {}", session.id);
         let mut filtered = String::new();
-         let config_manager = crate::config::ConfigManager::new(state.conn.clone());
- let model = config_manager.get_config(&Uuid::nil(), "llm-model", None).unwrap_or_default();
+        let config_manager = crate::config::ConfigManager::new(state.conn.clone());
+        let model = config_manager
+            .get_config(&Uuid::nil(), "llm-model", None)
+            .unwrap_or_default();
+        let key = config_manager
+            .get_config(&Uuid::nil(), "llm-key", None)
+            .unwrap_or_default();
 
-        let summarized = match llm_provider.generate(
-            "", &serde_json::Value::Array(messages), &model).await {
+        let summarized = match llm_provider
+            .generate("", &serde_json::Value::Array(messages), &model, &key)
+            .await
+        {
             Ok(summary) => {
                 trace!(
                     "Successfully summarized session {} ({} chars)",
@@ -138,7 +147,8 @@ async fn compact_prompt_for_bots(
                 let handler = llm_models::get_handler(
                     config_manager
                         .get_config(&session.bot_id, "llm-model", None)
-                        .unwrap().as_str(),
+                        .unwrap()
+                        .as_str(),
                 );
 
                 filtered = handler.process_content(&summary);
