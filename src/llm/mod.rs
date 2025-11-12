@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
-use log::info;
+use log::{info, trace};
 use serde_json::Value;
 use tokio::sync::mpsc;
 pub mod local;
@@ -11,13 +11,15 @@ pub trait LLMProvider: Send + Sync {
         prompt: &str,
         config: &Value,
         model: &str,
+        key: &str
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
     async fn generate_stream(
         &self,
         prompt: &str,
         config: &Value,
         tx: mpsc::Sender<String>,
-        model: &str
+        model: &str,
+        key: &str
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     async fn cancel_job(
         &self,
@@ -37,12 +39,14 @@ impl LLMProvider for OpenAIClient {
         prompt: &str,
         messages: &Value,
         model: &str,
+        key: &str
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
-        let response = self
+        let response = 
+        self
             .client
             .post(&format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", key))
             .json(&serde_json::json!({
                 "model": model,
                 "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
@@ -70,13 +74,14 @@ impl LLMProvider for OpenAIClient {
         prompt: &str,
         messages: &Value,
         tx: mpsc::Sender<String>,
-        model: &str
+        model: &str,
+        key: &str
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
             .client
             .post(&format!("{}/v1/chat/completions", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Authorization", format!("Bearer {}", key))
             .json(&serde_json::json!({
                 "model": model.clone(),
                 "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
@@ -89,6 +94,12 @@ impl LLMProvider for OpenAIClient {
             }))
             .send()
             .await?;
+        let status = response.status();
+        if status != reqwest::StatusCode::OK {
+            let error_text = response.text().await.unwrap_or_default();
+            trace!("LLM generate_stream error: {}", error_text);
+            return Err(format!("LLM request failed with status: {}", status).into());
+        }
         let mut stream = response.bytes_stream();
         let mut buffer = String::new();
         while let Some(chunk) = stream.next().await {
