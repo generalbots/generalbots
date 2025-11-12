@@ -1,8 +1,8 @@
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::installer::PackageManager;
-use crate::package_manager::OsType;
-use crate::shared::utils;
 use crate::package_manager::InstallMode;
+use crate::package_manager::OsType;
+use crate::shared::utils::{self, parse_database_url};
 use anyhow::{Context, Result};
 use log::{error, trace, warn};
 use reqwest::Client;
@@ -69,7 +69,11 @@ impl PackageManager {
         if !component.data_download_list.is_empty() {
             for url in &component.data_download_list {
                 let filename = url.split('/').last().unwrap_or("download.tmp");
-                let output_path = self.base_path.join("data").join(&component.name).join(filename);
+                let output_path = self
+                    .base_path
+                    .join("data")
+                    .join(&component.name)
+                    .join(filename);
                 utils::download_file(url, output_path.to_str().unwrap()).await?;
             }
         }
@@ -123,7 +127,7 @@ impl PackageManager {
             let pkg_list = packages.join(" ");
             self.exec_in_container(
                 &container_name,
-                &format!("apt-get update && apt-get install -y {}", pkg_list),
+                &format!("apt-get install -y {}", pkg_list),
             )?;
         }
         if let Some(url) = &component.download_url {
@@ -552,7 +556,12 @@ impl PackageManager {
         exec_cmd: &str,
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
+        let database_url = std::env::var("DATABASE_URL").unwrap();
+        let (_db_username, db_password, _db_server, _db_port, _db_name) =
+            parse_database_url(&database_url);
+
         let rendered_cmd = exec_cmd
+            .replace("{{DB_PASSWORD}}", &db_password)
             .replace("{{BIN_PATH}}", "/opt/gbo/bin")
             .replace("{{DATA_PATH}}", "/opt/gbo/data")
             .replace("{{CONF_PATH}}", "/opt/gbo/conf")

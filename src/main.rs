@@ -176,7 +176,7 @@ async fn main() -> std::io::Result<()> {
                 Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
             }
         } else {
-            bootstrap.bootstrap().await;
+            _ = bootstrap.bootstrap().await;
 
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(

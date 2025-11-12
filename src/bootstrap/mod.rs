@@ -4,7 +4,7 @@ use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
-use diesel::connection::SimpleConnection;
+use dotenvy::dotenv;
 use log::{error, trace};
 use rand::distr::Alphanumeric;
 use std::io::{self, Write};
@@ -73,28 +73,23 @@ impl BootstrapManager {
             .collect()
     }
 
-    pub async fn bootstrap(&mut self) {
-        let db_env_path = std::env::current_dir().unwrap().join(".env");
+    pub async fn bootstrap(&mut self) -> Result<()> {
+        let env_path = std::env::current_dir().unwrap().join(".env");
         let db_password = self.generate_secure_password(32);
         let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
             format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
         });
-        let db_line = format!("DATABASE_URL={}\n", database_url);
+        
         let drive_password = self.generate_secure_password(16);
         let drive_user = "gbdriveuser".to_string();
-
-        let env_path = std::env::current_dir().unwrap().join(".env");
-        let env_content = format!(
+        let drive_env = format!(
             "\nDRIVE_SERVER=http://localhost:9000\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\n",
             drive_user, drive_password
         );
-        let _ = std::fs::OpenOptions::new()
-            .create(true)
-            .append(true)
-            .open(&env_path)
-            .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
+        let contents_env = format!("DATABASE_URL={}\n{}", database_url, drive_env);
+        let _ = std::fs::write(&env_path, contents_env);
+        dotenv().ok();
 
-        let _ = std::fs::write(&db_env_path, db_line);
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
         let required_components = vec!["tables", "drive", "cache", "llm"];
@@ -136,38 +131,11 @@ impl BootstrapManager {
                 _ = pm.install(component).await;
                 if component == "tables" {
                     let mut conn = establish_pg_connection().unwrap();
-                    let migration_dir = include_dir::include_dir!("./migrations");
-                    let mut migration_files: Vec<_> = migration_dir
-                        .files()
-                        .filter_map(|file| {
-                            let path = file.path();
-                            if path.extension()? == "sql" {
-                                Some(file)
-                            } else {
-                                None
-                            }
-                        })
-                        .collect();
-                    migration_files.sort_by_key(|f| f.path());
-                    for migration_file in migration_files {
-                        let migration = migration_file
-                            .contents_utf8()
-                            .ok_or_else(|| anyhow::anyhow!("Migration file is not valid UTF-8"));
-                        if let Err(e) = conn.batch_execute(migration.unwrap()) {
-                            log::error!(
-                                "Failed to execute migration {}: {}",
-                                migration_file.path().display(),
-                                e
-                            );
-                        }
-                        trace!(
-                            "Successfully executed migration: {}",
-                            migration_file.path().display()
-                        );
-                    }
+                    self.apply_migrations(&mut conn)?;
                 }
             }
         }
+        Ok(())
     }
 
     async fn get_drive_client(config: &AppConfig) -> Client {
@@ -304,38 +272,18 @@ impl BootstrapManager {
             Ok(())
         })
     }
-    fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
-        let migrations_dir = std::path::Path::new("migrations");
-        if !migrations_dir.exists() {
-            return Ok(());
+    pub fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
+        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+        use diesel_migrations::HarnessWithOutput;
+        
+        const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+        
+        let mut harness = HarnessWithOutput::write_to_stdout(conn);
+        if let Err(e) = harness.run_pending_migrations(MIGRATIONS) {
+            error!("Failed to apply migrations: {}", e);
+            return Err(anyhow::anyhow!("Migration error: {}", e));
         }
-        let mut sql_files: Vec<_> = std::fs::read_dir(migrations_dir)?
-            .filter_map(|entry| entry.ok())
-            .filter(|entry| {
-                entry
-                    .path()
-                    .extension()
-                    .and_then(|s| s.to_str())
-                    .map(|s| s == "sql")
-                    .unwrap_or(false)
-            })
-            .collect();
-        sql_files.sort_by_key(|entry| entry.path());
-        for entry in sql_files {
-            let path = entry.path();
-            let filename = path.file_name().unwrap().to_string_lossy();
-            match std::fs::read_to_string(&path) {
-                Ok(sql) => match conn.batch_execute(&sql) {
-                    Err(e) => {
-                        log::warn!("Migration {} failed: {}", filename, e);
-                    }
-                    _ => {}
-                },
-                Err(e) => {
-                    log::warn!("Failed to read migration {}: {}", filename, e);
-                }
-            }
-        }
+        
         Ok(())
     }
 }

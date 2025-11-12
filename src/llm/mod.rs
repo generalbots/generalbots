@@ -28,7 +28,6 @@ pub trait LLMProvider: Send + Sync {
 }
 pub struct OpenAIClient {
     client: reqwest::Client,
-    api_key: String,
     base_url: String,
 
 }
@@ -83,7 +82,7 @@ impl LLMProvider for OpenAIClient {
             .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", key))
             .json(&serde_json::json!({
-                "model": model.clone(),
+                "model": model,
                 "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
                     info!("Using provided messages: {:?}", messages);
                     messages
@@ -127,10 +126,9 @@ impl LLMProvider for OpenAIClient {
 }
 
 impl OpenAIClient {
-    pub fn new(api_key: String, base_url: Option<String>) -> Self {
+    pub fn new(_api_key: String, base_url: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
-            api_key,
             base_url: base_url.unwrap()
         }
     }
