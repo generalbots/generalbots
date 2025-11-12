@@ -234,14 +234,18 @@ pub async fn start_llm_server(
         .unwrap_or("4096".to_string());
 
         // TODO: Move flash-attn, temp, top_p, repeat-penalty to config as well.
-
+        // TODO: Create --jinja.
+        
         let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --flash-attn on --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --jinja --flash-attn on --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
         args.push_str(&format!(" --reasoning-format {}", reasoning_format));
     }
+
+
+
     if n_moe != "0" {
         args.push_str(&format!(" --n-cpu-moe {}", n_moe));
     }
