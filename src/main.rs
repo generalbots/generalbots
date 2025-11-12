@@ -229,7 +229,6 @@ async fn main() -> std::io::Result<()> {
         }
     };
     let cache_url = std::env::var("CACHE_URL")
-        .or_else(|_| std::env::var("REDIS_URL"))
         .unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),

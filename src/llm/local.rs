@@ -54,7 +54,7 @@ let (_default_bot_id, llm_url, llm_model, embedding_url, embedding_model, llm_se
     info!("Restarting any existing llama-server processes...");
     if let Err(e) = tokio::process::Command::new("sh")
         .arg("-c")
-        .arg("pkill -f llama-server || true")
+        .arg("pkill llama-server -9 || true")
         .spawn()
     {
         error!("Failed to execute pkill for llama-server: {}", e);
