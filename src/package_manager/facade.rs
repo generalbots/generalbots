@@ -78,10 +78,6 @@ impl PackageManager {
             }
         }
         self.run_commands(post_cmds, "local", &component.name)?;
-        trace!(
-            "Component '{}' installation completed successfully",
-            component.name
-        );
         Ok(())
     }
     pub fn install_container(&self, component: &ComponentConfig) -> Result<()> {
