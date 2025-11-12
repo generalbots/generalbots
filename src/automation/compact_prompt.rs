@@ -101,21 +101,24 @@ async fn compact_prompt_for_bots(
             messages_since_summary
         );
 
-        let mut messages = Vec::new();
-        messages.push(serde_json::json!({
-            "role": "system",
-            "content": "Please summarize the following conversation between a user and a bot"
-        }));
-
+        let mut conversation = String::new();
+        conversation.push_str("Please summarize this conversation between user and bot: \n\n [[[***** \n");
+        
         for (role, content) in history.iter().skip(start_index) {
             if role == "compact" {
                 continue;
             }
-            messages.push(serde_json::json!({
-                "role": role,
-                "content": content
-            }));
+            conversation.push_str(&format!("{}: {}\n", 
+                if role == "user" { "User" } else { "Bot" },
+                content
+            ));
         }
+        conversation.push_str("\n *****]]] \n Give me full points only, no explanations.");
+
+        let messages = vec![serde_json::json!({
+            "role": "user",
+            "content": conversation
+        })];
 
         let llm_provider = state.llm_provider.clone();
         trace!("Starting summarization for session {}", session.id);
