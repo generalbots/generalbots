@@ -101,7 +101,7 @@ async fn compact_prompt_for_bots(
             messages_since_summary
         );
 
-        let mut compacted = String::new();
+        let mut compacted = "Please summarize the following conversation between a human and an AI assistant:\n".to_string();
 
         // Include messages from start_index onward
         let messages_to_include = history.iter().skip(start_index);
@@ -114,6 +114,7 @@ async fn compact_prompt_for_bots(
         }
         let llm_provider = state.llm_provider.clone();
         trace!("Starting summarization for session {}", session.id);
+        let mut filtered = String::new();
         let summarized = match llm_provider.generate(&compacted, &serde_json::Value::Null).await {
             Ok(summary) => {
                 trace!(
@@ -128,7 +129,7 @@ async fn compact_prompt_for_bots(
                         .unwrap().as_str(),
                 );
 
-                let filtered = handler.process_content(&summary);
+                filtered = handler.process_content(&summary);
                 format!("SUMMARY: {}", filtered)
             }
             Err(e) => {
@@ -147,7 +148,7 @@ async fn compact_prompt_for_bots(
         );
         {
             let mut session_manager = state.session_manager.lock().await;
-            session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
+            session_manager.save_message(session.id, session.user_id, 9, &filtered, 1)?;
         }
 
         let _session_cleanup = guard((), |_| {
