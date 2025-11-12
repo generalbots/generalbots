@@ -240,15 +240,15 @@ impl DriveMonitor {
         Ok(())
     }
     async fn compile_tool(&self, client: &Client, file_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("Fetching object from S3: bucket={}, key={}", &self.bucket_name, file_path);
+        info!("Fetching object from Drive: bucket={}, key={}", &self.bucket_name, file_path);
         let response = match client.get_object().bucket(&self.bucket_name).key(file_path).send().await {
             Ok(res) => {
-                info!("Successfully fetched object from S3: bucket={}, key={}, size={}", 
+                info!("Successfully fetched object from Drive: bucket={}, key={}, size={}", 
                     &self.bucket_name, file_path, res.content_length().unwrap_or(0));
                 res
             }
             Err(e) => {
-                log::error!("Failed to fetch object from S3: bucket={}, key={}, error={:?}", 
+                log::error!("Failed to fetch object from Drive: bucket={}, key={}, error={:?}", 
                     &self.bucket_name, file_path, e);
                 return Err(e.into());
             }

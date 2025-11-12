@@ -63,7 +63,6 @@ impl BootstrapManager {
         Ok(())
     }
 
-
     fn generate_secure_password(&self, length: usize) -> String {
         let mut rng = rand::rng();
         (0..length)
@@ -75,60 +74,27 @@ impl BootstrapManager {
     }
 
     pub async fn bootstrap(&mut self) {
-        if let Ok(tables_server) = std::env::var("TABLES_SERVER") {
-            if !tables_server.is_empty() {
-                info!(
-                    "Legacy mode detected (TABLES_SERVER present), skipping bootstrap installation"
-                );
-                let _database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-                    let username =
-                        std::env::var("TABLES_USERNAME").unwrap_or_else(|_| "gbuser".to_string());
-                    let password =
-                        std::env::var("TABLES_PASSWORD").unwrap_or_else(|_| "postgres".to_string());
-                    let server =
-                        std::env::var("TABLES_SERVER").unwrap_or_else(|_| "localhost".to_string());
-                    let port = std::env::var("TABLES_PORT").unwrap_or_else(|_| "5432".to_string());
-                    let database =
-                        std::env::var("TABLES_DATABASE").unwrap_or_else(|_| "gbserver".to_string());
-                    format!(
-                        "postgres://{}:{}@{}:{}/{}",
-                        username, password, server, port, database
-                    )
-                });
-                match establish_pg_connection() {
-                    Ok(mut conn) => {
-                        if let Err(e) = self.apply_migrations(&mut conn) {
-                            log::warn!("Failed to apply migrations: {}", e);
-                        }
-                    }
-                    Err(e) => {
-                        log::warn!("Failed to connect to database: {}", e);
-                    }
-                }
-            }
-        } else {
-            let db_env_path = std::env::current_dir().unwrap().join(".env");
-            let db_password = self.generate_secure_password(32);
-            let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-                format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
-            });
-            let db_line = format!("DATABASE_URL={}\n", database_url);
-            let drive_password = self.generate_secure_password(16);
-            let drive_user = "gbdriveuser".to_string();
+        let db_env_path = std::env::current_dir().unwrap().join(".env");
+        let db_password = self.generate_secure_password(32);
+        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
+        });
+        let db_line = format!("DATABASE_URL={}\n", database_url);
+        let drive_password = self.generate_secure_password(16);
+        let drive_user = "gbdriveuser".to_string();
 
-            let env_path = std::env::current_dir().unwrap().join(".env");
-            let env_content = format!(
-                "\nDRIVE_SERVER=http://localhost:9000\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\n",
-                drive_user, drive_password
-            );
-            let _ = std::fs::OpenOptions::new()
-                .create(true)
-                .append(true)
-                .open(&env_path)
-                .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
+        let env_path = std::env::current_dir().unwrap().join(".env");
+        let env_content = format!(
+            "\nDRIVE_SERVER=http://localhost:9000\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\n",
+            drive_user, drive_password
+        );
+        let _ = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open(&env_path)
+            .and_then(|mut file| std::io::Write::write_all(&mut file, env_content.as_bytes()));
 
-            let _ = std::fs::write(&db_env_path, db_line);
-        }
+        let _ = std::fs::write(&db_env_path, db_line);
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
         let required_components = vec!["tables", "drive", "cache", "llm"];
