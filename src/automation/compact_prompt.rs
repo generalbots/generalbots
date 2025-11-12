@@ -62,7 +62,7 @@ async fn compact_prompt_for_bots(
         // Calculate start index: if there's a summary, start after it; otherwise start from 0
         let start_index = last_summary_index.map(|idx| idx + 1).unwrap_or(0);
 
-        for (i, (role, _)) in history.iter().enumerate().skip(start_index) {
+        for (_i, (role, _)) in history.iter().enumerate().skip(start_index) {
             if role == "compact" {
                 continue;
             }
@@ -101,21 +101,26 @@ async fn compact_prompt_for_bots(
             messages_since_summary
         );
 
-        let mut compacted = "Please summarize the following conversation between a human and an AI assistant:\n".to_string();
+        let mut messages = Vec::new();
+        messages.push(serde_json::json!({
+            "role": "system",
+            "content": "Please summarize the following conversation between a user and a bot"
+        }));
 
-        // Include messages from start_index onward
-        let messages_to_include = history.iter().skip(start_index);
-
-        for (role, content) in messages_to_include {
+        for (role, content) in history.iter().skip(start_index) {
             if role == "compact" {
                 continue;
             }
-            compacted.push_str(&format!("{}: {}\n", role, content));
+            messages.push(serde_json::json!({
+                "role": role,
+                "content": content
+            }));
         }
+
         let llm_provider = state.llm_provider.clone();
         trace!("Starting summarization for session {}", session.id);
         let mut filtered = String::new();
-        let summarized = match llm_provider.generate(&compacted, &serde_json::Value::Null).await {
+        let summarized = match llm_provider.generate("", &serde_json::Value::Array(messages)).await {
             Ok(summary) => {
                 trace!(
                     "Successfully summarized session {} ({} chars)",
@@ -138,7 +143,7 @@ async fn compact_prompt_for_bots(
                     session.id, e
                 );
                 trace!("Using fallback summary for session {}", session.id);
-                format!("SUMMARY: {}", compacted) // Fallback
+                format!("SUMMARY: {}", filtered) // Fallback
             }
         };
         info!(
@@ -148,7 +153,7 @@ async fn compact_prompt_for_bots(
         );
         {
             let mut session_manager = state.session_manager.lock().await;
-            session_manager.save_message(session.id, session.user_id, 9, &filtered, 1)?;
+            session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
         }
 
         let _session_cleanup = guard((), |_| {

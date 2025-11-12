@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use futures::StreamExt;
+use log::info;
 use serde_json::Value;
 use tokio::sync::mpsc;
 pub mod local;
@@ -39,18 +40,20 @@ impl LLMProvider for OpenAIClient {
     async fn generate(
         &self,
         prompt: &str,
-        _config: &Value,
+        messages: &Value,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        let messages = self.parse_messages(prompt);
-
+        let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
             .client
             .post(&format!("{}/v1/chat/completions/", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
-                "messages": messages,
-                "max_tokens": 1000
+                "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
+                    messages
+                } else {
+                    &default_messages
+                }
             }))
             .send()
             .await?;
@@ -69,18 +72,22 @@ impl LLMProvider for OpenAIClient {
     async fn generate_stream(
         &self,
         prompt: &str,
-        _config: &Value,
+        messages: &Value,
         tx: mpsc::Sender<String>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let messages = self.parse_messages(prompt);
-
+        let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
             .client
             .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .json(&serde_json::json!({
                 "model": "gpt-3.5-turbo",
-                "messages": messages,
+                "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
+                    info!("Using provided messages: {:?}", messages);
+                    messages
+                } else {
+                    &default_messages
+                },
                 "stream": true
             }))
             .send()
@@ -120,50 +127,26 @@ impl OpenAIClient {
         }
     }
 
-    fn parse_messages(&self, prompt: &str) -> Vec<Value> {
+    pub fn build_messages(system_prompt: &str, context_data: &str, history: &[(String, String)]) -> Value {
         let mut messages = Vec::new();
-        let mut current_role = None;
-        let mut current_content = String::new();
-
-        for line in prompt.lines() {
-            if let Some(role_end) = line.find(':') {
-                let role_part = &line[..role_end].trim().to_lowercase();
-                let role = match role_part.as_str() {
-                    "human" => "user",
-                    "bot" => "assistant", 
-                    "compact" => "system",
-                    _ => continue
-                };
-                
-                if let Some(r) = current_role.take() {
-                    if !current_content.is_empty() {
-                        messages.push(serde_json::json!({
-                            "role": r,
-                            "content": current_content.trim()
-                        }));
-                    }
-                }
-                current_role = Some(role);
-                current_content = line[role_end + 1..].trim_start().to_string();
-                continue;
-            }
-            
-            if let Some(_) = current_role {
-                if !current_content.is_empty() {
-                    current_content.push('\n');
-                }
-                current_content.push_str(line);
-            }
+        if !system_prompt.is_empty() {
+            messages.push(serde_json::json!({
+                "role": "system",
+                "content": system_prompt
+            }));
         }
-
-        if let Some(role) = current_role {
-            if !current_content.is_empty() {
-                messages.push(serde_json::json!({
-                    "role": role,
-                    "content": current_content.trim()
-                }));
-            }
+        if !context_data.is_empty() {
+            messages.push(serde_json::json!({
+                "role": "system", 
+                "content": context_data
+            }));
         }
-        messages
+        for (role, content) in history {
+            messages.push(serde_json::json!({
+                "role": role,
+                "content": content
+            }));
+        }
+        serde_json::Value::Array(messages)
     }
 }

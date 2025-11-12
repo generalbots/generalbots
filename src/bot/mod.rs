@@ -1,6 +1,7 @@
 mod ui;
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
+use crate::llm::OpenAIClient;
 use crate::llm_models;
 use crate::nvidia::get_system_metrics;
 use crate::bot::ui::BotUI;
@@ -361,22 +362,12 @@ impl BotOrchestrator {
             }
             history
         };
-        let mut prompt = String::new();
-        if !system_prompt.is_empty() {
-            prompt.push_str(&format!("SYSTEM: *** {} *** \n", system_prompt));
-        }
-        if !context_data.is_empty() {
-            prompt.push_str(&format!("CONTEXT: *** {} *** \n", context_data));
-        }
-        for (role, content) in &history {
-            prompt.push_str(&format!("{}:{}\n", role, content));
-        }
-        prompt.push_str(&format!("\nbot:"));
+        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
         trace!(
-            "Stream prompt constructed with {} history entries",
+            "Stream messages constructed with {} history entries",
             history.len()
         );
-        trace!("LLM prompt: [{}]", prompt);
+        trace!("LLM messages: {:?}", messages);
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
         if message.channel == "web" {
@@ -406,10 +397,9 @@ impl BotOrchestrator {
             };
             response_tx.send(thinking_response).await?;
         }
-        let prompt_clone = prompt.clone();
         tokio::spawn(async move {
             if let Err(e) = llm
-                .generate_stream(&prompt_clone, &serde_json::Value::Null, stream_tx)
+                .generate_stream("", &messages, stream_tx)
                 .await
             {
                 error!("LLM streaming error: {}", e);
@@ -422,7 +412,7 @@ impl BotOrchestrator {
         let mut first_word_received = false;
         let mut last_progress_update = Instant::now();
         let progress_interval = Duration::from_secs(1);
-        let initial_tokens = crate::shared::utils::estimate_token_count(&prompt);
+        let initial_tokens = crate::shared::utils::estimate_token_count(&message.content);
         let config_manager = ConfigManager::new(self.state.conn.clone());
         let max_context_size = config_manager
             .get_config(
@@ -482,8 +472,6 @@ impl BotOrchestrator {
                         let _cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
                         let token_ratio = current_tokens as f64 / max_context_size.max(1) as f64;
                         let _token_bar = "█".repeat((token_ratio * 20.0).round() as usize);
-                        let mut ui = BotUI::new().unwrap();
-                        ui.render_progress(current_tokens, max_context_size).unwrap();
                     }
                     last_progress_update = Instant::now();
                 }
@@ -510,7 +498,7 @@ impl BotOrchestrator {
             "Stream processing completed, {} chunks processed",
             chunk_count
         );
-        let total_tokens = crate::shared::utils::estimate_token_count(&prompt)
+        let total_tokens = crate::shared::utils::estimate_token_count(&message.content)
             + crate::shared::utils::estimate_token_count(&context_data)
             + crate::shared::utils::estimate_token_count(&full_response);
         info!(
@@ -518,26 +506,6 @@ impl BotOrchestrator {
             total_tokens
         );
         let config_manager = ConfigManager::new( self.state.conn.clone());
-        let compact_enabled = config_manager
-            .get_config(
-                &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
-                "prompt-compact",
-                None,
-            )
-            .unwrap_or_default()
-            .parse::<i32>()
-            .unwrap_or(0);
-        if compact_enabled > 0 {
-            let state = self.state.clone();
-            tokio::task::spawn_blocking(move || loop {
-                if let Err(e) = tokio::runtime::Handle::current()
-                    .block_on(crate::automation::execute_compact_prompt(state.clone()))
-                {
-                    error!("Failed to execute compact prompt: {}", e);
-                }
-                std::thread::sleep(Duration::from_secs(60));
-            });
-        }
         {
             let mut sm = self.state.session_manager.lock().await;
             sm.save_message(session.id, user_id, 2, &full_response, 1)?;
@@ -668,8 +636,6 @@ impl BotOrchestrator {
             "Sending warning to session {} on channel {}: {}",
             session_id, channel, message
         );
-        let mut ui = BotUI::new().unwrap();
-        ui.render_warning(message).unwrap();
         Ok(())
     }
     pub async fn trigger_auto_welcome(
