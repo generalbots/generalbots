@@ -71,15 +71,9 @@ async fn compact_prompt_for_bots(
         }
 
         if !has_new_messages && last_summary_index.is_some() {
-            trace!(
-                "Skipping session {} - no new messages since last summary",
-                session.id
-            );
             continue;
         }
         if messages_since_summary < compact_threshold as usize {
-            trace!("Skipping compaction for session {} - only {} new messages since last summary (threshold: {})", 
-                session.id, messages_since_summary, compact_threshold);
             continue;
         }
 
@@ -123,7 +117,6 @@ async fn compact_prompt_for_bots(
         })];
 
         let llm_provider = state.llm_provider.clone();
-        trace!("Starting summarization for session {}", session.id);
         let mut filtered = String::new();
         let config_manager = crate::config::ConfigManager::new(state.conn.clone());
         let model = config_manager
