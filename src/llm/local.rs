@@ -233,9 +233,10 @@ pub async fn start_llm_server(
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or("4096".to_string());
 
+        // TODO: Move flash-attn, temp, top_p, repeat-penalty to config as well.
 
         let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --flash-attn on --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
