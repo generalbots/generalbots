@@ -674,7 +674,7 @@ impl PackageManager {
 
             if check_status.is_ok() && check_status.unwrap().success() {
                 trace!("Component {} is already running", component.name);
-                return Ok(std::process::Command::new("sh").arg("-c").spawn()?);
+                return Ok(std::process::Command::new("sh").arg("-c").arg("true").spawn()?);
             }
 
             // If not running, execute the main command
