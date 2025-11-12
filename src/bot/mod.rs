@@ -423,8 +423,6 @@ impl BotOrchestrator {
             .unwrap_or_default()
             .parse::<usize>()
             .unwrap_or(0);
-        if let Ok(_metrics) = get_system_metrics(initial_tokens, max_context_size) {
-        }
         let model = config_manager
             .get_config(
                 &Uuid::parse_str(&message.bot_id).unwrap_or_default(),
@@ -466,7 +464,7 @@ impl BotOrchestrator {
                 if last_progress_update.elapsed() >= progress_interval {
                     let current_tokens =
                         initial_tokens + crate::shared::utils::estimate_token_count(&full_response);
-                    if let Ok(metrics) = get_system_metrics(current_tokens, max_context_size) {
+                    if let Ok(metrics) = get_system_metrics() {
                         let _gpu_bar =
                             "█".repeat((metrics.gpu_usage.unwrap_or(0.0) / 5.0).round() as usize);
                         let _cpu_bar = "█".repeat((metrics.cpu_usage / 5.0).round() as usize);
