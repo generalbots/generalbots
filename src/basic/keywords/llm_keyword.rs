@@ -45,7 +45,7 @@ pub async fn execute_llm_generation(state: Arc<AppState>, prompt: String) -> Res
  let config_manager = crate::config::ConfigManager::new(state.conn.clone());
  let model = config_manager.get_config(&Uuid::nil(), "llm-model", None).unwrap_or_default();
  let handler = crate::llm_models::get_handler(&model);
- let raw_response = state.llm_provider.generate(&prompt, &serde_json::Value::Null).await?;
+ let raw_response = state.llm_provider.generate(&prompt, &serde_json::Value::Null, &model).await?;
  let processed = handler.process_content(&raw_response);
  Ok(processed)
 }

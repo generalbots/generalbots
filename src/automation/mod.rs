@@ -1,5 +1,4 @@
 use crate::basic::ScriptService;
-use crate::config::ConfigManager;
 use crate::shared::models::{Automation, TriggerKind};
 use crate::shared::state::AppState;
 use chrono::Utc;
