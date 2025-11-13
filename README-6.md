@@ -285,22 +285,6 @@ Licensed under terms specified in workspace configuration.
 - Bi-annual disaster recovery testing
 
 
-### **Key Open Source Tools in Rust/Go**:
-1. **Zitadel (Go)**: Identity and access management for secure authentication.
-2. **Stalwart (Rust)**: Secure email server for threat detection.
-3. **MinIO (Go)**: High-performance object storage for unstructured data.
-4. **Ubuntu Advantage (Go/Rust tools)**: Compliance and security tools for Ubuntu.
-5. **Tantivy (Rust)**: Full-text search engine for data discovery.
-6. **Drone (Go)**: CI/CD platform for DevOps automation.
-7. **Temporal (Go)**: Workflow orchestration engine.
-8. **Caddy (Go)**: Web server for seamless customer experiences.
-9. **SeaweedFS (Go)**: Distributed file system for secure file sharing.
-10. **Vector (Rust)**: Observability pipeline for monitoring.
-11. **Tyk (Go)**: API gateway for secure API management.
-12. **Vault (Go)**: Secrets management and encryption.
-13. **Hugging Face Transformers (Rust/Go bindings)**: LLM integration and fine-tuning.
-14. **Kubernetes (Go)**: Container orchestration for scalable deployments.
-15. **Matrix (Rust)**: Real-time communication and collaboration.
 
 # API:
 

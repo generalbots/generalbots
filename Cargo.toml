@@ -1,6 +1,6 @@
 [package]
 name = "botserver"
-version = "6.0.7"
+version = "6.0.8"
 edition = "2021"
 authors = [
  "Pragmatismo.com.br <contact@pragmatismo.com.br>",
@@ -41,8 +41,7 @@ default = []
 
 vectordb = ["qdrant-client"]
 email = ["imap"]
-desktop = ["tauri"]
-official = ["tauri"]
+desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 
 [dependencies]
 
