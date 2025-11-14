@@ -1156,7 +1156,7 @@ await stopVoiceSession();
 async function startVoiceSession(){
 if(!currentSessionId)return;
 try{
-const r=await fetch("/api/voice/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId,user_id:currentUserId})}),d=await r.json();
+const r=await fetch("th/voice/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId,user_id:currentUserId})}),d=await r.json();
 if(d.token){
 await connectToVoiceRoom(d.token);
 startVoiceRecording();
