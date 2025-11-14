@@ -37,7 +37,7 @@ license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
-default = []
+default = ["desktop"]
 
 vectordb = ["qdrant-client"]
 email = ["imap"]

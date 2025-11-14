@@ -1,0 +1,24 @@
+<template x-data="{ items: [] }">
+  <div class="todo-stats">
+    <span x-text="`${items.filter(i => !i.done).length} items left`"></span>
+    <button @click="$store.todo.clearCompleted()">
+      Clear completed
+    </button>
+  </div>
+</template>
+
+<style>
+  .todo-stats {
+    display: flex;
+    justify-content: space-between;
+    color: #666;
+    font-size: 14px;
+  }
+  
+  .todo-stats button {
+    background: none;
+    color: #666;
+    padding: 0;
+    text-decoration: underline;
+  }
+</style>
