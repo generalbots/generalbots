@@ -295,7 +295,7 @@ async fn main() -> std::io::Result<()> {
                     match WebviewWindowBuilder::new(
                         app,
                         "main",
-                        tauri::WebviewUrl::App("tables.html".into()),
+                        tauri::WebviewUrl::App("index.html".into()),
                     )
                 .build() {
                     Ok(_window) => Ok(()),
