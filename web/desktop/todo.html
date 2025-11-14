@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Todo App</title>
+  <script src="./store.js"></script>
+  <script defer src="js/cdn.min.js"></script>
+  <style>
+    .todo-container {
+      max-width: 500px;
+      margin: 0 auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    .todo-controls {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 15px;
+      margin-left: 10px;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .todo-item {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .todo-list {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 20px;
+    }
+    .completed span {
+      text-decoration: line-through;
+      opacity: 0.6;
+    }
+    .delete-btn {
+      background: #f44336;
+      padding: 2px 6px;
+      border-radius: 50%;
+      font-size: 14px;
+      line-height: 1;
+    }
+  </style>
+</head>
+<body>
+  <div x-data class="todo-container">
+    <h3 x-text="$store.todo.title + ' App'"></h3>
+    
+    <div class="todo-controls" x-data="{ text: '' }">
+      <input 
+        type="text" 
+        x-model="text" 
+        @keyup.enter="$store.todo.addTodo(text); text = ''"
+        placeholder="Add new todo..."
+      />
+      <button 
+        @click="$store.todo.addTodo(text); text = ''" 
+        :disabled="!text.trim()"
+      >
+        Add
+      </button>
+    </div>
+
+    <ul class="todo-list">
+      <template x-for="item in $store.todo.items" :key="item.id">
+        <li :class="{ 'completed': item.done }">
+          <div class="todo-item">
+            <input
+              type="checkbox"
+              :checked="item.done"
+              @click="$store.todo.toggleTodo(item.id)"
+            />
+            <span x-text="item.title"></span>
+            <button 
+              class="delete-btn" 
+              @click="$store.todo.removeTodo(item.id)"
+            >
+              ×
+            </button>
+          </div>
+        </li>
+      </template>
+    </ul>
+  </div>
+</body>
+</html>

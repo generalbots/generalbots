@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tables - Excel Clone</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+
+    .app-container {
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background: white;
+    }
+
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 20px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .header .subtitle {
+      font-size: 12px;
+      opacity: 0.9;
+    }
+
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      padding: 10px;
+      background: #fafafa;
+      border-bottom: 1px solid #ddd;
+      flex-wrap: wrap;
+    }
+
+    .toolbar button {
+      padding: 8px 15px;
+      border: 1px solid #ccc;
+      background: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .toolbar button:hover {
+      background: #f0f0f0;
+      border-color: #999;
+    }
+
+    .toolbar button:active {
+      transform: scale(0.98);
+    }
+
+    .formula-bar {
+      display: flex;
+      align-items: center;
+      padding: 8px 10px;
+      background: white;
+      border-bottom: 2px solid #ddd;
+      gap: 10px;
+    }
+
+    .cell-ref {
+      font-weight: bold;
+      min-width: 60px;
+      padding: 6px 10px;
+      background: #f0f0f0;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+
+    .formula-input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .spreadsheet-container {
+      flex: 1;
+      overflow: auto;
+      position: relative;
+      background: #fff;
+    }
+
+    .spreadsheet {
+      display: inline-block;
+      border-collapse: collapse;
+      background: white;
+    }
+
+    .spreadsheet th,
+    .spreadsheet td {
+      border: 1px solid #d0d0d0;
+      min-width: 100px;
+      height: 25px;
+      padding: 4px 8px;
+      text-align: left;
+      position: relative;
+    }
+
+    .spreadsheet th {
+      background: #f0f0f0;
+      font-weight: 600;
+      text-align: center;
+      position: sticky;
+      z-index: 10;
+      font-size: 12px;
+    }
+
+    .spreadsheet thead th {
+      top: 0;
+    }
+
+    .spreadsheet tbody th {
+      left: 0;
+      min-width: 50px;
+      background: #f0f0f0;
+    }
+
+    .spreadsheet td {
+      cursor: cell;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .spreadsheet td.selected {
+      outline: 2px solid #667eea;
+      outline-offset: -2px;
+      background: #e8eaf6;
+    }
+
+    .spreadsheet td.editing {
+      padding: 0;
+    }
+
+    .cell-editor {
+      width: 100%;
+      height: 100%;
+      border: none;
+      padding: 4px 8px;
+      font-family: inherit;
+      font-size: inherit;
+      outline: 2px solid #667eea;
+    }
+
+    .status-bar {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 15px;
+      background: #f8f8f8;
+      border-top: 1px solid #ddd;
+      font-size: 12px;
+      color: #666;
+    }
+
+    .status-bar .stats {
+      display: flex;
+      gap: 20px;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .header {
+      animation: fadeIn 0.5s ease;
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <div class="header">
+      <h1>📊 Tables</h1>
+      <div class="subtitle">Excel Clone - Celebrating Lotus 1-2-3 Legacy 🎉</div>
+    </div>
+
+    <div class="toolbar">
+      <button onclick="app.bold()">📝 Bold</button>
+      <button onclick="app.addRow()">➕ Add Row</button>
+      <button onclick="app.addColumn()">➕ Add Column</button>
+      <button onclick="app.deleteRow()">➖ Delete Row</button>
+      <button onclick="app.deleteColumn()">➖ Delete Column</button>
+      <button onclick="app.sort()">🔽 Sort A-Z</button>
+      <button onclick="app.sum()">Σ Sum</button>
+      <button onclick="app.average()">📊 Average</button>
+      <button onclick="app.clearCell()">🗑️ Clear</button>
+      <button onclick="app.exportData()">💾 Export</button>
+    </div>
+
+    <div class="formula-bar">
+      <div class="cell-ref" id="cellRef">A1</div>
+      <input type="text" class="formula-input" id="formulaInput" placeholder="Enter value or formula (=SUM, =AVERAGE, etc.)">
+    </div>
+
+    <div class="spreadsheet-container" id="spreadsheetContainer">
+      <table class="spreadsheet" id="spreadsheet">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="status-bar">
+      <div class="stats">
+        <span>Rows: <strong id="rowCount">0</strong></span>
+        <span>Cols: <strong id="colCount">0</strong></span>
+        <span>Selected: <strong id="selectedCell">None</strong></span>
+      </div>
+      <div>Ready | Lotus 1-2-3 Mode Active ✨</div>
+    </div>
+  </div>
+
+  <script>
+    class TablesApp {
+      constructor() {
+        this.data = this.generateMockData(100, 26);
+        this.selectedCell = null;
+        this.cols = 26;
+        this.rows = 100;
+        this.visibleRows = 30;
+        this.rowOffset = 0;
+        
+        this.init();
+      }
+
+      generateMockData(rows, cols) {
+        const data = [];
+        const products = ['Laptop', 'Mouse', 'Keyboard', 'Monitor', 'Headphones', 'Webcam', 'Desk', 'Chair'];
+        const regions = ['North', 'South', 'East', 'West'];
+        
+        for (let i = 0; i < rows; i++) {
+          const row = {};
+          for (let j = 0; j < cols; j++) {
+            const col = this.getColumnName(j);
+            if (i === 0) {
+              if (j === 0) row[col] = 'Product';
+              else if (j === 1) row[col] = 'Region';
+              else if (j === 2) row[col] = 'Q1';
+              else if (j === 3) row[col] = 'Q2';
+              else if (j === 4) row[col] = 'Q3';
+              else if (j === 5) row[col] = 'Q4';
+              else if (j === 6) row[col] = 'Total';
+              else row[col] = `Col ${col}`;
+            } else {
+              if (j === 0) row[col] = products[i % products.length];
+              else if (j === 1) row[col] = regions[i % regions.length];
+              else if (j >= 2 && j <= 5) row[col] = Math.floor(Math.random() * 10000) + 1000;
+              else if (j === 6) {
+                row[col] = `=C${i+1}+D${i+1}+E${i+1}+F${i+1}`;
+              }
+              else row[col] = Math.random() > 0.5 ? Math.floor(Math.random() * 1000) : '';
+            }
+          }
+          data.push(row);
+        }
+        return data;
+      }
+
+      getColumnName(index) {
+        let name = '';
+        while (index >= 0) {
+          name = String.fromCharCode(65 + (index % 26)) + name;
+          index = Math.floor(index / 26) - 1;
+        }
+        return name;
+      }
+
+      init() {
+        this.renderTable();
+        this.setupEventListeners();
+        this.updateStats();
+      }
+
+      renderTable() {
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('tableBody');
+        
+        let headerHTML = '<tr><th></th>';
+        for (let i = 0; i < this.cols; i++) {
+          headerHTML += `<th>${this.getColumnName(i)}</th>`;
+        }
+        headerHTML += '</tr>';
+        thead.innerHTML = headerHTML;
+
+        let bodyHTML = '';
+        const endRow = Math.min(this.rowOffset + this.visibleRows, this.rows);
+        
+        for (let i = this.rowOffset; i < endRow; i++) {
+          bodyHTML += `<tr><th>${i + 1}</th>`;
+          for (let j = 0; j < this.cols; j++) {
+            const col = this.getColumnName(j);
+            const value = this.data[i][col] || '';
+            const displayValue = this.calculateCell(value, i, j);
+            bodyHTML += `<td data-row="${i}" data-col="${j}" data-cell="${col}${i+1}">${displayValue}</td>`;
+          }
+          bodyHTML += '</tr>';
+        }
+        tbody.innerHTML = bodyHTML;
+      }
+
+      calculateCell(value, row, col) {
+        if (typeof value === 'string' && value.startsWith('=')) {
+          try {
+            const formula = value.substring(1).toUpperCase();
+            
+            if (formula.includes('SUM')) {
+              const match = formula.match(/SUM\(([A-Z]+\d+):([A-Z]+\d+)\)/);
+              if (match) {
+                const sum = this.calculateRange(match[1], match[2], 'sum');
+                return sum.toFixed(2);
+              }
+            }
+            
+            if (formula.includes('AVERAGE')) {
+              const match = formula.match(/AVERAGE\(([A-Z]+\d+):([A-Z]+\d+)\)/);
+              if (match) {
+                const avg = this.calculateRange(match[1], match[2], 'avg');
+                return avg.toFixed(2);
+              }
+            }
+            
+            let expression = formula;
+            const cellRefs = expression.match(/[A-Z]+\d+/g);
+            if (cellRefs) {
+              cellRefs.forEach(ref => {
+                const val = this.getCellValue(ref);
+                expression = expression.replace(ref, val);
+              });
+              return eval(expression).toFixed(2);
+            }
+          } catch (e) {
+            return '#ERROR';
+          }
+        }
+        return value;
+      }
+
+      getCellValue(cellRef) {
+        const col = cellRef.match(/[A-Z]+/)[0];
+        const row = parseInt(cellRef.match(/\d+/)[0]) - 1;
+        const value = this.data[row][col];
+        
+        if (typeof value === 'string' && value.startsWith('=')) {
+          return this.calculateCell(value, row, this.getColIndex(col));
+        }
+        return parseFloat(value) || 0;
+      }
+
+      getColIndex(colName) {
+        let index = 0;
+        for (let i = 0; i < colName.length; i++) {
+          index = index * 26 + (colName.charCodeAt(i) - 64);
+        }
+        return index - 1;
+      }
+
+      calculateRange(start, end, operation) {
+        const startCol = start.match(/[A-Z]+/)[0];
+        const startRow = parseInt(start.match(/\d+/)[0]) - 1;
+        const endCol = end.match(/[A-Z]+/)[0];
+        const endRow = parseInt(end.match(/\d+/)[0]) - 1;
+        
+        let values = [];
+        for (let r = startRow; r <= endRow; r++) {
+          for (let c = this.getColIndex(startCol); c <= this.getColIndex(endCol); c++) {
+            const col = this.getColumnName(c);
+            const val = parseFloat(this.data[r][col]) || 0;
+            values.push(val);
+          }
+        }
+        
+        if (operation === 'sum') {
+          return values.reduce((a, b) => a + b, 0);
+        } else if (operation === 'avg') {
+          return values.reduce((a, b) => a + b, 0) / values.length;
+        }
+        return 0;
+      }
+
+      setupEventListeners() {
+        const container = document.getElementById('spreadsheetContainer');
+        const formulaInput = document.getElementById('formulaInput');
+
+        container.addEventListener('scroll', () => {
+          const scrollPercentage = (container.scrollTop + container.clientHeight) / container.scrollHeight;
+          if (scrollPercentage > 0.8 && this.rowOffset + this.visibleRows < this.rows) {
+            this.rowOffset += 10;
+            this.renderTable();
+          }
+        });
+
+        document.getElementById('tableBody').addEventListener('click', (e) => {
+          if (e.target.tagName === 'TD') {
+            this.selectCell(e.target);
+          }
+        });
+
+        document.getElementById('tableBody').addEventListener('dblclick', (e) => {
+          if (e.target.tagName === 'TD') {
+            this.editCell(e.target);
+          }
+        });
+
+        formulaInput.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter' && this.selectedCell) {
+            this.updateCellValue(formulaInput.value);
+          }
+        });
+      }
+
+      selectCell(cell) {
+        if (this.selectedCell) {
+          this.selectedCell.classList.remove('selected');
+        }
+        this.selectedCell = cell;
+        cell.classList.add('selected');
+        
+        const cellRef = cell.dataset.cell;
+        document.getElementById('cellRef').textContent = cellRef;
+        document.getElementById('selectedCell').textContent = cellRef;
+        
+        const row = parseInt(cell.dataset.row);
+        const col = this.getColumnName(parseInt(cell.dataset.col));
+        const value = this.data[row][col] || '';
+        document.getElementById('formulaInput').value = value;
+      }
+
+      editCell(cell) {
+        const row = parseInt(cell.dataset.row);
+        const col = this.getColumnName(parseInt(cell.dataset.col));
+        const value = this.data[row][col] || '';
+        
+        cell.classList.add('editing');
+        cell.innerHTML = `<input type="text" class="cell-editor" value="${value}" />`;
+        const input = cell.querySelector('.cell-editor');
+        input.focus();
+        input.select();
+        
+        input.addEventListener('blur', () => {
+          this.updateCellValue(input.value);
+        });
+        
+        input.addEventListener('keypress', (e) => {
+          if (e.key === 'Enter') {
+            this.updateCellValue(input.value);
+          }
+        });
+      }
+
+      updateCellValue(value) {
+        if (!this.selectedCell) return;
+        
+        const row = parseInt(this.selectedCell.dataset.row);
+        const col = this.getColumnName(parseInt(this.selectedCell.dataset.col));
+        
+        this.data[row][col] = value;
+        this.renderTable();
+        
+        const newCell = document.querySelector(`td[data-row="${row}"][data-col="${this.selectedCell.dataset.col}"]`);
+        if (newCell) this.selectCell(newCell);
+      }
+
+      bold() {
+        if (this.selectedCell) {
+          this.selectedCell.style.fontWeight = this.selectedCell.style.fontWeight === 'bold' ? 'normal' : 'bold';
+        }
+      }
+
+      addRow() {
+        const newRow = {};
+        for (let i = 0; i < this.cols; i++) {
+          newRow[this.getColumnName(i)] = '';
+        }
+        this.data.push(newRow);
+        this.rows++;
+        this.renderTable();
+        this.updateStats();
+      }
+
+      addColumn() {
+        const newCol = this.getColumnName(this.cols);
+        this.data.forEach(row => row[newCol] = '');
+        this.cols++;
+        this.renderTable();
+        this.updateStats();
+      }
+
+      deleteRow() {
+        if (this.selectedCell && this.rows > 1) {
+          const row = parseInt(this.selectedCell.dataset.row);
+          this.data.splice(row, 1);
+          this.rows--;
+          this.renderTable();
+          this.updateStats();
+        }
+      }
+
+      deleteColumn() {
+        if (this.selectedCell && this.cols > 1) {
+          const col = this.getColumnName(parseInt(this.selectedCell.dataset.col));
+          this.data.forEach(row => delete row[col]);
+          this.cols--;
+          this.renderTable();
+          this.updateStats();
+        }
+      }
+
+      sort() {
+        if (this.selectedCell) {
+          const col = this.getColumnName(parseInt(this.selectedCell.dataset.col));
+          const header = this.data[0];
+          const dataRows = this.data.slice(1);
+          
+          dataRows.sort((a, b) => {
+            const aVal = a[col] || '';
+            const bVal = b[col] || '';
+            return aVal.toString().localeCompare(bVal.toString());
+          });
+          
+          this.data = [header, ...dataRows];
+          this.renderTable();
+        }
+      }
+
+      sum() {
+        if (this.selectedCell) {
+          const col = this.getColumnName(parseInt(this.selectedCell.dataset.col));
+          document.getElementById('formulaInput').value = `=SUM(${col}2:${col}${this.rows})`;
+        }
+      }
+
+      average() {
+        if (this.selectedCell) {
+          const col = this.getColumnName(parseInt(this.selectedCell.dataset.col));
+          document.getElementById('formulaInput').value = `=AVERAGE(${col}2:${col}${this.rows})`;
+        }
+      }
+
+      clearCell() {
+        if (this.selectedCell) {
+          this.updateCellValue('');
+        }
+      }
+
+      exportData() {
+        const csv = this.data.map(row => {
+          return Object.values(row).join(',');
+        }).join('\n');
+        
+        const blob = new Blob([csv], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'tables_export.csv';
+        a.click();
+      }
+
+      updateStats() {
+        document.getElementById('rowCount').textContent = this.rows;
+        document.getElementById('colCount').textContent = this.cols;
+      }
+    }
+
+    const app = new TablesApp();
+  </script>
+</body>
+</html>
