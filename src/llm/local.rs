@@ -235,9 +235,10 @@ pub async fn start_llm_server(
 
         // TODO: Move flash-attn, temp, top_p, repeat-penalty to config as well.
         // TODO: Create --jinja.
+        // --jinja --flash-attn on 
         
         let mut args = format!(
-        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --jinja --flash-attn on --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
+        "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
@@ -246,25 +247,25 @@ pub async fn start_llm_server(
 
 
 
-    if n_moe != "0" {
-        args.push_str(&format!(" --n-cpu-moe {}", n_moe));
-    }
-    if parallel != "1" {
-        args.push_str(&format!(" --parallel {}", parallel));
-    }
-    if cont_batching == "true" {
-        args.push_str(" --cont-batching");
-    }
-    if mlock == "true" {
-        args.push_str(" --mlock");
-    }
-    if no_mmap == "true" {
-        args.push_str(" --no-mmap");
-    }
-    if n_predict != "0" {
-        args.push_str(&format!(" --n-predict {}", n_predict));
-    }
-        args.push_str(&format!(" --ctx-size {}", n_ctx_size));
+    // if n_moe != "0" {
+    //     args.push_str(&format!(" --n-cpu-moe {}", n_moe));
+    // }
+    // if parallel != "1" {
+    //     args.push_str(&format!(" --parallel {}", parallel));
+    // }
+    // if cont_batching == "true" {
+    //     args.push_str(" --cont-batching");
+    // }
+    // if mlock == "true" {
+    //     args.push_str(" --mlock");
+    // }
+    // if no_mmap == "true" {
+    //     args.push_str(" --no-mmap");
+    // }
+    // if n_predict != "0" {
+    //     args.push_str(&format!(" --n-predict {}", n_predict));
+    // }
+    //     args.push_str(&format!(" --ctx-size {}", n_ctx_size));
     
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
