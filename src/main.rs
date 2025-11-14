@@ -71,31 +71,7 @@ async fn main() -> std::io::Result<()> {
     use botserver::config::ConfigManager;
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
-    if args.len() > 1 {
-        let command = &args[1];
-        match command.as_str() {
-            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
-            | "-h" => match package_manager::cli::run().await {
-                Ok(_) => return Ok(()),
-                Err(e) => {
-                    eprintln!("CLI error: {}", e);
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!("CLI command failed: {}", e),
-                    ));
-                }
-            },
-            "--noui" => {}
-            _ => {
-                eprintln!("Unknown command: {}", command);
-                eprintln!("Run 'botserver --help' for usage information");
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
-                    format!("Unknown command: {}", command),
-                ));
-            }
-        }
-    }
+    let desktop_mode = args.contains(&"--desktop".to_string());
     dotenv().ok();
     let (progress_tx, progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
@@ -169,10 +145,8 @@ async fn main() -> std::io::Result<()> {
                 .send(BootstrapProgress::ConnectingDatabase)
                 .ok();
             match create_conn() {
-                Ok(pool) => {
-                    AppConfig::from_database(&pool)
-                        .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config"))
-                }
+                Ok(pool) => AppConfig::from_database(&pool)
+                    .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config")),
                 Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
             }
         } else {
@@ -228,8 +202,8 @@ async fn main() -> std::io::Result<()> {
             ));
         }
     };
-    let cache_url = std::env::var("CACHE_URL")
-        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+    let cache_url =
+        std::env::var("CACHE_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -311,6 +285,40 @@ async fn main() -> std::io::Result<()> {
             error!("Failed to start LLM servers: {}", e);
         }
     });
+    #[cfg(feature = "desktop")]
+    if desktop_mode {
+        // Tauri desktop mode
+        let tauri_app = tauri::Builder::default()
+            .setup(|app| {
+                use tauri::WebviewWindowBuilder;
+
+                match WebviewWindowBuilder::new(
+                    app,
+                    "main",
+                    tauri::WebviewUrl::App("../web/desktop/tables.html".into()),
+                )
+                .build() {
+                    Ok(_window) => Ok(()),
+                    Err(e) if e.to_string().contains("WebviewLabelAlreadyExists") => {
+                        log::warn!("Main window already exists, reusing existing window");
+                        Ok(())
+                    }
+                    Err(e) => Err(e.into())
+                }
+            })
+            .build(tauri::generate_context!())
+            .expect("error while running tauri application");
+
+        tauri_app.run(|_app_handle, event| match event {
+            tauri::RunEvent::ExitRequested { api, .. } => {
+                api.prevent_exit();
+            }
+            _ => {}
+        });
+        return Ok(());
+    }
+
+    // Normal server start continues here
     let server_result = HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
