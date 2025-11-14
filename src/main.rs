@@ -292,11 +292,11 @@ async fn main() -> std::io::Result<()> {
             .setup(|app| {
                 use tauri::WebviewWindowBuilder;
 
-                match WebviewWindowBuilder::new(
-                    app,
-                    "main",
-                    tauri::WebviewUrl::App("../web/desktop/tables.html".into()),
-                )
+                    match WebviewWindowBuilder::new(
+                        app,
+                        "main",
+                        tauri::WebviewUrl::App("tables.html".into()),
+                    )
                 .build() {
                     Ok(_window) => Ok(()),
                     Err(e) if e.to_string().contains("WebviewLabelAlreadyExists") => {
@@ -318,7 +318,7 @@ async fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    // Normal server start continues here
+    // Normal server start continues here``
     let server_result = HttpServer::new(move || {
         let cors = Cors::default()
             .allow_any_origin()
