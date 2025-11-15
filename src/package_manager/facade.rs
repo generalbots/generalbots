@@ -156,6 +156,7 @@ impl PackageManager {
         );
         Ok(())
     }
+    
     pub fn remove(&self, component_name: &str) -> Result<()> {
         let component = self
             .components

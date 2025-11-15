@@ -1,56 +1,37 @@
-class Layout {
-  static currentPage = 'chat';
+const sections = {
+  drive: 'drive/index.html',
+  tasks: 'tasks/index.html', 
+  mail: 'mail/index.html'
+};
+
+async function loadSectionHTML(path) {
+  const response = await fetch(path);
+  if (!response.ok) throw new Error('Failed to load section');
+  return await response.text();
+}
+
+async function switchSection(section) {
+  const mainContent = document.getElementById('main-content');
   
-  static init() {
-    this.setCurrentPage();
-    this.loadNavbar();
-    this.setupNavigation();
-  }
-
-  static setCurrentPage() {
-    const hash = window.location.hash.substring(1) || 'chat';
-    this.currentPage = hash;
-    this.updateContent();
-  }
-
-  static async loadNavbar() {
-    try {
-      const response = await fetch('shared/navbar.html');
-      const html = await response.text();
-      
-      if (!document.querySelector('.navbar')) {
-        document.body.insertAdjacentHTML('afterbegin', html);
-      }
-      
-      document.querySelectorAll('.nav-link').forEach(link => {
-        link.classList.toggle('active', link.dataset.target === this.currentPage);
-      });
-    } catch (error) {
-      console.error('Failed to load navbar:', error);
-    }
-  }
-
-  static updateContent() {
-    // Add your content loading logic here
-    // For example: fetch(`pages/${this.currentPage}.html`)
-    // and update the main content area
-  }
-
-  static setupNavigation() {
-    document.addEventListener('click', (e) => {
-      const navLink = e.target.closest('.nav-link');
-      if (navLink) {
-        e.preventDefault();
-        const target = navLink.dataset.target;
-        window.location.hash = target;
-        this.currentPage = target;
-        this.loadNavbar();
-        this.updateContent();
-      }
-    });
+  try {
+    const html = await loadSectionHTML(sections[section]);
+    mainContent.innerHTML = html;
+    window.history.pushState({}, '', `#${section}`);
+    Alpine.initTree(mainContent);
+  } catch (err) {
+    console.error('Error loading section:', err);
+    mainContent.innerHTML = `<div class="error">Failed to load ${section} section</div>`;
   }
 }
 
-// Initialize on load and also on navigation
-Layout.init();
-window.addEventListener('popstate', () => Layout.init());
+// Handle initial load based on URL hash
+window.addEventListener('DOMContentLoaded', () => {
+  const initialSection = window.location.hash.substring(1) || 'drive';
+  switchSection(initialSection);
+});
+
+// Handle browser back/forward navigation
+window.addEventListener('popstate', () => {
+  const section = window.location.hash.substring(1) || 'drive';
+  switchSection(section);
+});

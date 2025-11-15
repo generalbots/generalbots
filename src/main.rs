@@ -46,7 +46,7 @@ use crate::session::{create_session, get_session_history, get_sessions, start_se
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
-use crate::web_server::{bot_index, index, static_files};
+use crate::web_server::{bot_index, index};
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
     StartingBootstrap,
@@ -77,7 +77,29 @@ async fn main() -> std::io::Result<()> {
     let (state_tx, state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
     let (http_tx, http_rx) = tokio::sync::oneshot::channel();
 
-    let ui_handle = if !no_ui {
+
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() > 1 {
+        let command = &args[1];
+        match command.as_str() {
+            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
+            | "-h" => match package_manager::cli::run().await {
+                Ok(_) => return Ok(()),
+                Err(e) => {
+                    eprintln!("CLI error: {}", e);
+                    return Err(std::io::Error::new(
+                        std::io::ErrorKind::Other,
+                        format!("CLI command failed: {}", e),
+                    ));
+                }
+            },
+            _ => {
+            }
+        }
+    }
+
+
+    if !no_ui {
         let progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
         let state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
         let handle = std::thread::Builder::new()
@@ -284,11 +306,11 @@ async fn main() -> std::io::Result<()> {
                         .wrap(Logger::default())
                         .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
                         .app_data(web::Data::from(app_state_clone))
+                        .configure(web_server::configure_app)
                         .service(auth_handler)
                         .service(create_session)
                         .service(get_session_history)
                         .service(get_sessions)
-                        .service(index)
                         .service(start_session)
                         .service(upload_file)
                         .service(voice_start)
@@ -310,7 +332,6 @@ async fn main() -> std::io::Result<()> {
                             .service(save_draft)
                             .service(save_click);
                     }
-                    app = app.service(static_files);
                     app = app.service(bot_index);
                     app
                 })

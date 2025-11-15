@@ -29,7 +29,7 @@ impl DriveMonitor {
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
             info!("Drive Monitor service started for bucket: {}", self.bucket_name);
-            let mut tick = interval(Duration::from_secs(30));
+            let mut tick = interval(Duration::from_secs(90));
             loop {
                 tick.tick().await;
                 if let Err(e) = self.check_for_changes().await {
@@ -44,7 +44,7 @@ impl DriveMonitor {
             None => return Ok(()),
         };
         self.check_gbdialog_changes(client).await?;
-        // TODO: Remove self.check_gbot(client).await?;
+        self.check_gbot(client).await?;
         Ok(())
     }
     async fn check_gbdialog_changes(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {

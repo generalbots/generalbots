@@ -1,0 +1,55 @@
+<div class="app-container" x-data="tablesApp()" x-init="init()">
+  <div class="navbar-container">
+    <div x-html="(await fetch('./components/navbar.html')).text()"></div>
+  </div>
+  
+  <div class="content-container">
+    <div class="header">
+      <h1>📊 Tables</h1>
+      <div class="subtitle">Excel Clone - Celebrating Lotus 1-2-3 Legacy 🎉</div>
+    </div>
+
+    <div class="resizable-container">
+      <div class="resizable-panel left" style="width: 30%">
+        <!-- Left panel content -->
+      </div>
+      <div class="resizable-handle"></div>
+      <div class="resizable-panel right" style="width: 70%">
+        <div class="spreadsheet-content">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Formula bar -->
+  <div class="formula-bar">
+    <span id="cellRef">A1</span>
+    <input type="text" 
+           id="formulaInput" 
+           placeholder="Enter formula..."
+           @keypress.enter="updateCellValue($event.target.value)"
+           x-model="formulaInputValue">
+  </div>
+
+  <!-- Status bar -->
+  <div class="status-bar">
+    <span>Rows: <span id="rowCount" x-text="rows"></span></span>
+    <span>Columns: <span id="colCount" x-text="cols"></span></span>
+  </div>
+
+  <!-- Toolbar -->
+  <div class="toolbar">
+    <button @click="addRow()">Add Row</button>
+    <button @click="addColumn()">Add Column</button>
+    <button @click="deleteRow()">Delete Row</button>
+    <button @click="deleteColumn()">Delete Column</button>
+    <button @click="sort()">Sort</button>
+    <button @click="sum()">Sum</button>
+    <button @click="average()">Average</button>
+    <button @click="exportData()">Export</button>
+  </div>
+</div>
