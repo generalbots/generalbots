@@ -1,7 +1,14 @@
 const sections = {
-  drive: 'drive/index.html',
-  tasks: 'tasks/index.html', 
-  mail: 'mail/index.html'
+  drive: 'drive/drive.html',
+  tasks: 'tasks/tasks.html',
+  mail: 'mail/mail.html',
+  dashboard: 'dashboard/dashboard.html',
+  editor: 'editor/editor.html',
+  player: 'player/player.html',
+  paper: 'paper/paper.html',
+  settings: 'settings/settings.html',
+  tables: 'tablesv2/tables.html',
+  news: 'news/news.html'
 };
 
 async function loadSectionHTML(path) {
