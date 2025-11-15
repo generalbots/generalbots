@@ -1,0 +1,39 @@
+/* Paper specific styles */
+.editor-content {
+  outline: none;
+  min-height: 100%;
+}
+
+.prose {
+  max-width: 100%;
+}
+
+.floating-toolbar {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  /* Smooth transition */
+  transition: all 0.2s ease;
+}
+
+/* Paper shadow effect */
+.bg-card {
+  background-color: hsl(var(--card));
+  color: hsl(var(--card-foreground));
+}
+
+.border-border {
+  border-color: hsl(var(--border));
+}
+
+/* Toolbar button styles */
+button {
+  transition: all 0.2s;
+}
+
+button:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
+}

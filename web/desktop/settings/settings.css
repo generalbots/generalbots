@@ -1,0 +1,33 @@
+/* Settings specific styles */
+input, textarea {
+  border-color: hsl(var(--border));
+  background-color: hsl(var(--input));
+  color: hsl(var(--foreground));
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: hsl(var(--ring));
+  box-shadow: 0 0 0 2px hsl(var(--ring)/0.2);
+}
+
+button {
+  transition: background-color 0.2s;
+}
+
+.text-gray-500 {
+  color: hsl(var(--muted-foreground));
+}
+
+.border-gray-200 {
+  border-color: hsl(var(--border));
+}
+
+.bg-blue-500 {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.hover\:bg-blue-600:hover {
+  background-color: hsl(var(--primary)/0.9);
+}

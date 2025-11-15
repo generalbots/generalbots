@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Editor</title>
+  <link rel="stylesheet" href="../css/global.css">
+  <link rel="stylesheet" href="editor.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body x-data="editor" x-init="init()">
+  <div id="main-content">
+    <div class="content-section active">
+      <!-- Quick Access Toolbar -->
+      <div class="quick-access">
+        <button class="quick-access-btn" @click="document.execCommand('undo', false)">
+          <svg><!-- Undo icon --></svg>
+        </button>
+        <button class="quick-access-btn" @click="document.execCommand('redo', false)">
+          <svg><!-- Redo icon --></svg>
+        </button>
+        <div class="title-controls">
+          <input type="text" class="title-input" x-model="fileName" placeholder="Document name">
+          <button class="quick-access-btn" @click="saveDocument">
+            <svg><!-- Save icon --></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Ribbon -->
+      <div class="ribbon">
+        <div class="ribbon-tabs">
+          <button class="ribbon-tab-button" 
+                  :class="{ 'active': activeTab === 'home' }"
+                  @click="setActiveTab('home')">Home</button>
+          <button class="ribbon-tab-button"
+                  :class="{ 'active': activeTab === 'insert' }"
+                  @click="setActiveTab('insert')">Insert</button>
+          <button class="ribbon-tab-button"
+                  :class="{ 'active': activeTab === 'view' }"
+                  @click="setActiveTab('view')">View</button>
+        </div>
+
+        <div class="ribbon-content" x-show="activeTab === 'home'">
+          <div class="ribbon-group">
+            <div class="ribbon-group-title">Format</div>
+            <div class="ribbon-group-content">
+              <button class="ribbon-button" @click="formatBold">B</button>
+              <button class="ribbon-button" @click="formatItalic">I</button>
+              <button class="ribbon-button" @click="formatUnderline">U</button>
+            </div>
+          </div>
+          <div class="ribbon-group">
+            <div class="ribbon-group-title">Alignment</div>
+            <div class="ribbon-group-content">
+              <button class="ribbon-button" @click="alignLeft">Left</button>
+              <button class="ribbon-button" @click="alignCenter">Center</button>
+              <button class="ribbon-button" @click="alignRight">Right</button>
+              <button class="ribbon-button" @click="alignJustify">Justify</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Area -->
+      <div class="editor-container">
+        <div class="editor-main">
+          <div class="pages-container">
+            <div class="page">
+              <div class="page-number">Page 1</div>
+              <div class="page-content" id="editor-content" contenteditable="true" x-html="content"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="status-bar">
+        <div>Page <span x-text="pages.length"></span> of <span x-text="pages.length"></span></div>
+        <div class="zoom-controls">
+          <button @click="zoomOut">-</button>
+          <span x-text="zoom + '%'"></span>
+          <button @click="zoomIn">+</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="editor.js"></script>
+</body>
+</html>
