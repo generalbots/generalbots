@@ -1,0 +1,66 @@
+/* Editor specific styles */
+#editor-content {
+  min-height: 100%;
+  outline: none;
+  padding: 1rem;
+}
+
+#editor-content h1,
+#editor-content h2,
+#editor-content h3,
+#editor-content p {
+  margin: 0.5rem 0;
+}
+
+#editor-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Ribbon button active state */
+.ribbon-button.active {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+/* Ribbon group styling */
+.ribbon-group {
+  padding: 0.5rem;
+  border-right: 1px solid hsl(var(--border));
+  &:last-child {
+    border-right: none;
+  }
+}
+
+.ribbon-group-title {
+  font-size: 0.8rem;
+  text-align: center;
+  margin-bottom: 0.5rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.ribbon-group-content {
+  display: flex;
+  gap: 0.25rem;
+}
+
+/* Page simulation */
+.page {
+  width: 210mm;
+  min-height: 297mm;
+  background: white;
+  box-shadow:
+    0 0 0 1px hsl(var(--border)),
+    0 4px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+  margin: 1rem auto;
+}
+
+.page-number {
+  position: absolute;
+  top: -1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.8rem;
+  color: hsl(var(--muted-foreground));
+}

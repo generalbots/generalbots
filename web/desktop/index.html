@@ -16,6 +16,20 @@
        :class="{ active: current === 'tasks' }">✓ Tasks</a>
     <a href="#mail" @click.prevent="current = 'mail'; window.switchSection('mail')" 
        :class="{ active: current === 'mail' }">✉ Mail</a>
+    <a href="#dashboard" @click.prevent="current = 'dashboard'; window.switchSection('dashboard')" 
+       :class="{ active: current === 'dashboard' }">📊 Dashboard</a>
+    <a href="#editor" @click.prevent="current = 'editor'; window.switchSection('editor')" 
+       :class="{ active: current === 'editor' }">📝 Editor</a>
+    <a href="#player" @click.prevent="current = 'player'; window.switchSection('player')" 
+       :class="{ active: current === 'player' }">🎬 Player</a>
+    <a href="#paper" @click.prevent="current = 'paper'; window.switchSection('paper')" 
+       :class="{ active: current === 'paper' }">📄 Paper</a>
+    <a href="#settings" @click.prevent="current = 'settings'; window.switchSection('settings')" 
+       :class="{ active: current === 'settings' }">⚙️ Settings</a>
+    <a href="#tables" @click.prevent="current = 'tables'; window.switchSection('tables')" 
+       :class="{ active: current === 'tables' }">📋 Tables</a>
+    <a href="#news" @click.prevent="current = 'news'; window.switchSection('news')" 
+       :class="{ active: current === 'news' }">📰 News</a>
   </nav>
 
   <div id="main-content">
