@@ -1,0 +1,66 @@
+body, .card, .popover, .input, .button, .menu, .dialog {
+  font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+  background: #c0c0c0 !important;
+  color: #000 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+.card, .popover, .menu, .dialog {
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+  padding: 8px !important;
+  background: #e0e0e0 !important;
+}
+
+.button, button, input[type="button"], input[type="submit"] {
+  background: #e0e0e0 !important;
+  color: #000 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+  padding: 4px 12px !important;
+  font-weight: bold !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+input, textarea, select {
+  background: #fff !important;
+  color: #000 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+  font-family: inherit !important;
+  box-shadow: none !important;
+}
+
+.menu {
+  background: #d0d0d0 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+}
+
+::-webkit-scrollbar {
+  width: 16px !important;
+  background: #c0c0c0 !important;
+}
+::-webkit-scrollbar-thumb {
+  background: #404040 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+}
+
+a {
+  color: #0000aa !important;
+  text-decoration: underline !important;
+}
+
+hr {
+  border: none !important;
+  border-top: 2px solid #404040 !important;
+  margin: 8px 0 !important;
+}

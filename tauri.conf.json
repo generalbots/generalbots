@@ -4,7 +4,7 @@
   "version": "6.0.8",
   "identifier": "br.com.pragmatismo",
   "build": {
-    "frontendDist": "./web/html"
+    "frontendDist": "./web/desktop"
   },
   "app": {
     "security": {

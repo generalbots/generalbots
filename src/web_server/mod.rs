@@ -1,9 +1,20 @@
 use actix_web::{HttpRequest, HttpResponse, Result};
 use log::{debug, error, warn};
 use std::fs;
+
+#[actix_web::get("/auth")]
+async fn auth() -> Result<HttpResponse> {
+    match fs::read_to_string("web/desktop/auth/index.html") {
+        Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
+        Err(e) => {
+            error!("Failed to load auth page: {}", e);
+            Ok(HttpResponse::InternalServerError().body("Failed to load auth page"))
+        }
+    }
+}
 #[actix_web::get("/")]
 async fn index() -> Result<HttpResponse> {
-    match fs::read_to_string("web/html/index.html") {
+    match fs::read_to_string("web/desktop/auth/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page: {}", e);

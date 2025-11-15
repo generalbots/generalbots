@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Email Client</title>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="./data.js"></script>
+  <script src="./store.js"></script>
+  <style>
+    [x-cloak] { display: none !important; }
+    :root {
+      --bg-primary: #1a1a2e;
+      --bg-secondary: #16213e;
+      --text-primary: #e94560;
+      --text-secondary: #00d9ff;
+    }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: var(--bg-primary);
+      color: white;
+    }
+    .email-container {
+      display: flex;
+      height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: var(--bg-secondary);
+      padding: 1rem;
+    }
+    .email-list {
+      flex: 1;
+      overflow-y: auto;
+    }
+    .email-content {
+      flex: 2;
+      padding: 1rem;
+    }
+    .email-item {
+      padding: 1rem;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+    .email-item:hover {
+      background: rgba(255,255,255,0.1);
+    }
+    .email-item.unread {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body x-data="{
+  mails,
+  accounts,
+  contacts,
+  ...mailStore
+}" x-cloak>
+  <div class="email-container">
+    <div class="sidebar">
+      <h2>Accounts</h2>
+      <div x-text="accounts[0].label"></div>
+      
+      <h2>Folders</h2>
+      <div>Inbox</div>
+      <div>Sent</div>
+      <div>Drafts</div>
+    </div>
+    
+    <div class="email-list">
+      <template x-for="mail in mails" :key="mail.id">
+        <div 
+          class="email-item" 
+          :class="{ 'unread': !mail.read }"
+          @click="setSelected(mail.id)"
+        >
+          <div x-text="mail.name"></div>
+          <div x-text="mail.subject"></div>
+          <div x-text="mail.date"></div>
+        </div>
+      </template>
+    </div>
+    
+    <div class="email-content">
+      <template x-if="selected">
+        <div>
+          <h2 x-text="mails.find(m => m.id === selected).subject"></h2>
+          <div x-text="mails.find(m => m.id === selected).text"></div>
+        </div>
+      </template>
+    </div>
+  </div>
+</body>
+</html>
