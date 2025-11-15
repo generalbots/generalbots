@@ -1,0 +1,37 @@
+<div class="tasks-container" x-data="tasksApp()" x-init="init()" x-cloak>
+  <h1>Tasks</h1>
+  <div class="task-input">
+    <input type="text" 
+           x-model="newTask" 
+           @keyup.enter="addTask()"
+           placeholder="Add a new task...">
+    <button @click="addTask()">Add Task</button>
+  </div>
+
+  <ul class="task-list">
+    <template x-for="task in filteredTasks" :key="task.id">
+      <li class="task-item" :class="{ completed: task.completed }">
+        <input type="checkbox" 
+               :checked="task.completed"
+               @change="toggleTask(task.id)">
+        <span x-text="task.text"></span>
+        <button @click="deleteTask(task.id)">×</button>
+      </li>
+    </template>
+  </ul>
+
+  <div class="task-filters" x-show="tasks.length > 0">
+    <button :class="{ active: filter === 'all' }" @click="filter = 'all'">
+      All (<span x-text="tasks.length"></span>)
+    </button>
+    <button :class="{ active: filter === 'active' }" @click="filter = 'active'">
+      Active (<span x-text="activeTasks"></span>)
+    </button>
+    <button :class="{ active: filter === 'completed' }" @click="filter = 'completed'">
+      Completed (<span x-text="completedTasks"></span>)
+    </button>
+    <button @click="clearCompleted()" x-show="completedTasks > 0">
+      Clear Completed
+    </button>
+  </div>
+</div>

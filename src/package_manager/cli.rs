@@ -9,6 +9,8 @@ pub async fn run() -> Result<()> {
         print_usage();
         return Ok(());
     }
+use tracing::info;
+fn print_usage(){info!("usage: botserver <command> [options]")}
     let command = &args[1];
     match command.as_str() {
         "start" => {
@@ -163,7 +165,4 @@ pub async fn run() -> Result<()> {
         }
     }
     Ok(())
-}
-fn print_usage() {
-    println!("BotServer Package Manager\n\nUSAGE:\n  botserver <command> [options]\n\nCOMMANDS:\n  start                  Start all installed components\n  stop                   Stop all running components\n  restart                Restart all components\n  install <component>    Install component\n  remove <component>     Remove component\n  list                   List all components\n  status <component>     Check component status\n\nOPTIONS:\n  --container            Use container mode (LXC)\n  --tenant <name>        Specify tenant (default: 'default')\n\nCOMPONENTS:\n  Required: drive cache tables llm\n  Optional: email proxy directory alm alm-ci dns webmail meeting table-editor doc-editor desktop devtools bot system vector-db host\n\nEXAMPLES:\n  botserver start\n  botserver stop\n  botserver restart\n  botserver install email\n  botserver install email --container --tenant myorg\n  botserver remove email\n  botserver list");
 }

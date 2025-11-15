@@ -1,35 +1,31 @@
 <!doctype html>
-<html lang="pt-br">
+<html lang="en">
 <head>
-<meta charset="utf-8"/>
-<title>General Bots</title>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<link rel="stylesheet" href="css/app.css" type="text/css">
-<script src="js/lib/gsap.min.js"></script>
-<script src="js/lib/marked.min.js"></script>
-<script src="js/mock-data.js"></script>
-<script src="js/auth.js"></script>
+  <meta charset="utf-8" />
+  <title>General Bots Desktop</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+  <link rel="stylesheet" href="css/app.css" />
+  <script defer src="js/alpine.js"></script>
 </head>
 <body>
-<div id="navbar-container"></div>
+  <nav x-data="{ current: 'drive' }">
+    <div class="logo">⚡ General Bots</div>
+    <a href="#drive" @click.prevent="current = 'drive'; window.switchSection('drive')" 
+       :class="{ active: current === 'drive' }">📁 Drive</a>
+    <a href="#tasks" @click.prevent="current = 'tasks'; window.switchSection('tasks')" 
+       :class="{ active: current === 'tasks' }">✓ Tasks</a>
+    <a href="#mail" @click.prevent="current = 'mail'; window.switchSection('mail')" 
+       :class="{ active: current === 'mail' }">✉ Mail</a>
+  </nav>
 
-<!-- Main chat content -->
-<div class="chat-container">
-  <div class="connection-status connecting" id="connectionStatus"></div>
-  <div class="flash-overlay" id="flashOverlay"></div>
-  
-  <main id="messages"></main>
-  
-  <footer class="chat-footer">
-    <div class="suggestions-container" id="suggestions"></div>
-    <div class="input-container">
-      <input id="messageInput" type="text" placeholder="Message..." autofocus/>
-      <button id="voiceBtn" title="Voice">🎤</button>
-      <button id="sendBtn" title="Send">↑</button>
-    </div>
-  </footer>
-</div>
+  <div id="main-content">
+    <!-- Sections will be loaded dynamically -->
+  </div>
 
-<script src="js/layout.js"></script>
+  <!-- Load Module Scripts -->
+  <script src="js/layout.js"></script>
+  <script src="drive/drive.js"></script>
+  <script src="tasks/tasks.js"></script>
+  <script src="mail/mail.js"></script>
 </body>
 </html>

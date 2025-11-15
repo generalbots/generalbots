@@ -1,20 +1,11 @@
+use actix_files::Files;
 use actix_web::{HttpRequest, HttpResponse, Result};
-use log::{debug, error, warn};
-use std::fs;
+use log::{debug, error};
+use std::{fs, path::Path};
 
-#[actix_web::get("/auth")]
-async fn auth() -> Result<HttpResponse> {
-    match fs::read_to_string("web/desktop/auth/index.html") {
-        Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
-        Err(e) => {
-            error!("Failed to load auth page: {}", e);
-            Ok(HttpResponse::InternalServerError().body("Failed to load auth page"))
-        }
-    }
-}
 #[actix_web::get("/")]
 async fn index() -> Result<HttpResponse> {
-    match fs::read_to_string("web/desktop/auth/index.html") {
+    match fs::read_to_string("web/desktop/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page: {}", e);
@@ -22,11 +13,12 @@ async fn index() -> Result<HttpResponse> {
         }
     }
 }
+
 #[actix_web::get("/{botname}")]
 async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
     let botname = req.match_info().query("botname");
     debug!("Serving bot interface for: {}", botname);
-    match fs::read_to_string("web/html/index.html") {
+    match fs::read_to_string("web/desktop/index.html") {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
             error!("Failed to load index page for bot {}: {}", botname, e);
@@ -34,31 +26,39 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
         }
     }
 }
-#[actix_web::get("/static/{filename:.*}")]
-async fn static_files(req: HttpRequest) -> Result<HttpResponse> {
-    let filename = req.match_info().query("filename");
-    let path = format!("web/html/{}", filename);
-    match fs::read(&path) {
-        Ok(content) => {
-            debug!(
-                "Static file {} loaded successfully, size: {} bytes",
-                filename,
-                content.len()
-            );
-            let content_type = match filename {
-                f if f.ends_with(".js") => "application/javascript",
-                f if f.ends_with(".riot") => "application/javascript",
-                f if f.ends_with(".html") => "application/javascript",
-                f if f.ends_with(".css") => "text/css",
-                f if f.ends_with(".png") => "image/png",
-                f if f.ends_with(".jpg") | f.ends_with(".jpeg") => "image/jpeg",
-                _ => "text/plain",
-            };
-            Ok(HttpResponse::Ok().content_type(content_type).body(content))
-        }
-        Err(e) => {
-            warn!("Static file not found: {} - {}", filename, e);
-            Ok(HttpResponse::NotFound().body("File not found"))
-        }
-    }
+
+pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
+    let static_path = Path::new("/home/rodriguez/src/botserver/web/desktop");
+    
+    // Serve all static files from desktop directory
+    cfg.service(
+        Files::new("/", static_path)
+            .index_file("index.html")
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+            .show_files_listing()
+    );
+    
+    // Serve all JS files
+    cfg.service(
+        Files::new("/js", static_path.join("js"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+    
+    // Serve all component directories
+    ["drive", "tasks", "mail"].iter().for_each(|dir| {
+        cfg.service(
+            Files::new(&format!("/{}", dir), static_path.join(dir))
+                .prefer_utf8(true)
+                .use_last_modified(true)
+                .use_etag(true)
+        );
+    });
+    
+    // Serve index routes
+    cfg.service(index);
+    cfg.service(bot_index);
 }

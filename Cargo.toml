@@ -46,6 +46,7 @@ desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 [dependencies]
 
 actix-cors = "0.7"
+actix-files = "0.6.8"
 actix-multipart = "0.7"
 actix-web = "4.9"
 actix-ws = "0.3"
