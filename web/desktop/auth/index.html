@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>General Bots - Authentication</title>
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <div class="auth-container" x-data="auth">
+    <div class="auth-left-panel">
+      <div class="auth-logo">
+        <h1>Welcome to General Bots</h1>
+      </div>
+      <div class="auth-quote">
+        <p>"Errar é Humano."</p>
+        <p>General Bots</p>
+      </div>
+    </div>
+
+    <div class="auth-form-container">
+      <div class="auth-form-header">
+        <h2>Sign in to your account</h2>
+        <p>Choose your preferred login method</p>
+      </div>
+
+      <div x-show="error" class="auth-error" x-text="error"></div>
+
+      <div class="auth-social-buttons">
+        <button class="auth-social-button google" @click="socialLogin('google')">
+          <span class="auth-social-icon">G</span>
+          Continue with Google
+        </button>
+        
+        <button class="auth-social-button microsoft" @click="socialLogin('microsoft')">
+          <span class="auth-social-icon">M</span>
+          Continue with Microsoft
+        </button>
+        
+        <button class="auth-social-button pragmatismo" @click="socialLogin('pragmatismo')">
+          <span class="auth-social-icon">P</span>
+          Continue with Pragmatismo
+        </button>
+      </div>
+
+      <div class="auth-divider">
+        <span>OR</span>
+      </div>
+
+      <form @submit.prevent="emailLogin" class="auth-form">
+        <div class="auth-form-group">
+          <label for="email">Email</label>
+          <input id="email" type="email" x-model="email" placeholder="your@email.com" required>
+        </div>
+
+        <div class="auth-form-group">
+          <label for="password">Password</label>
+          <input id="password" type="password" x-model="password" placeholder="••••••••" required>
+        </div>
+
+        <div class="auth-form-options">
+          <div class="auth-remember-me">
+            <input type="checkbox" id="remember" x-model="rememberMe">
+            <label for="remember">Remember me</label>
+          </div>
+          <a href="#" class="auth-forgot-password">Forgot password?</a>
+        </div>
+
+        <button type="submit" class="auth-submit-button" :disabled="isLoading">
+          <span x-text="isLoading ? 'Signing in...' : 'Sign in with Email'"></span>
+        </button>
+      </form>
+
+      <div class="auth-signup-link">
+        Don't have an account? <a href="#">Sign up</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

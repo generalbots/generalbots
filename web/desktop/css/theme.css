@@ -1,0 +1,114 @@
+:root {
+  /* Main theme */
+  --background: #ffffff;
+  --foreground: #000000;
+  --card: #f8f9fa;
+  --popover: #ffffff;
+  --primary: #2563eb;
+  --secondary: #f1f5f9;
+  --muted: #64748b;
+  --accent: #f59e0b;
+  --destructive: #ef4444;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #93c5fd;
+  --radius: 0.5rem;
+  --chart-1: #3b82f6;
+  --chart-2: #10b981;
+  --chart-3: #f59e0b;
+  --chart-4: #ef4444;
+  --chart-5: #8b5cf6;
+
+  /* File manager theme */
+  --bg-primary: #1a1a2e;
+  --bg-secondary: #16213e;
+  --bg-tertiary: #0f3460;
+  --text-primary: #e94560;
+  --text-secondary: #00d9ff;
+  --filemanager-border: #533483;
+}
+
+.navbar {
+  background: var(--background);
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.mobile-menu-btn {
+  display: none;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1rem;
+}
+
+.nav-links a {
+  color: var(--foreground);
+  text-decoration: none;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+}
+
+.nav-links a:hover {
+  background: var(--secondary);
+}
+
+.footer {
+  background: var(--background);
+  padding: 1rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 2rem;
+  justify-content: center;
+}
+
+.shortcut-group {
+  display: flex;
+  gap: 1rem;
+}
+
+.shortcut-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.shortcut-btn .key {
+  font-weight: bold;
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  .nav-links {
+    display: none;
+    flex-direction: column;
+    position: absolute;
+    background: var(--background);
+    width: 100%;
+    left: 0;
+    padding: 1rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  .nav-links.hidden {
+    display: none;
+  }
+  
+  .nav-links:not(.hidden) {
+    display: flex;
+  }
+  
+  .shortcut-group {
+    flex-wrap: wrap;
+  }
+}

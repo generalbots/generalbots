@@ -1,0 +1,79 @@
+<div x-data="{ 
+  leftWidth: '30%',
+  rightWidth: '70%',
+  isDragging: false,
+  
+  startDrag() {
+    this.isDragging = true;
+    document.body.style.cursor = 'col-resize';
+    document.addEventListener('mousemove', this.drag.bind(this));
+    document.addEventListener('mouseup', this.stopDrag.bind(this));
+  },
+  
+  drag(e) {
+    if (!this.isDragging) return;
+    const container = this.$el.parentElement;
+    const containerRect = container.getBoundingClientRect();
+    const newLeftWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100;
+    
+    if (newLeftWidth > 20 && newLeftWidth < 80) {
+      this.leftWidth = `${newLeftWidth}%`;
+      this.rightWidth = `${100 - newLeftWidth}%`;
+    }
+  },
+  
+  stopDrag() {
+    this.isDragging = false;
+    document.body.style.cursor = '';
+    document.removeEventListener('mousemove', this.drag);
+    document.removeEventListener('mouseup', this.stopDrag);
+  }
+}" class="resizable-container">
+  <div class="resizable-panel left" :style="{ width: leftWidth }">
+    <slot name="left"></slot>
+  </div>
+  <div class="resizable-handle" @mousedown="startDrag"></div>
+  <div class="resizable-panel right" :style="{ width: rightWidth }">
+    <slot name="right"></slot>
+  </div>
+</div>
+
+<style>
+.resizable-container {
+  display: flex;
+  height: 100%;
+  width: 100%;
+}
+
+.resizable-panel {
+  height: 100%;
+  overflow: auto;
+}
+
+.resizable-handle {
+  width: 8px;
+  background: var(--border);
+  cursor: col-resize;
+  transition: background 0.2s;
+}
+
+.resizable-handle:hover {
+  background: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .resizable-container {
+    flex-direction: column;
+  }
+  
+  .resizable-panel {
+    width: 100% !important;
+    height: auto;
+  }
+  
+  .resizable-handle {
+    width: 100%;
+    height: 8px;
+  }
+}
+</style>

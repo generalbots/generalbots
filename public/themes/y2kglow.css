@@ -1,0 +1,28 @@
+:root {
+  /* Y2KGlow Theme */
+  --background: 240 10% 10%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 13%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 10%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 190 90% 50%;
+  --primary-foreground: 240 10% 10%;
+  --secondary: 240 10% 20%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 10% 15%;
+  --muted-foreground: 240 5% 60%;
+  --accent: 280 89% 65%;
+  --accent-foreground: 240 10% 10%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 10% 20%;
+  --input: 240 10% 20%;
+  --ring: 190 90% 50%;
+  --radius: 0.5rem;
+  --chart-1: 190 90% 50%;
+  --chart-2: 280 89% 65%;
+  --chart-3: 80 75% 55%;
+  --chart-4: 334 89% 62%;
+  --chart-5: 41 99% 60%;
+}

@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<title>General Bots</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<link rel="stylesheet" href="shared/styles.css" type="text/css">
+<link rel="stylesheet" href="css/chat.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="js/mock-data.js"></script>
+<script src="js/auth.js"></script>
+</head>
+<body>
+<!-- Include shared navbar -->
+<div id="navbar-container"></div>
+
+<!-- Main chat content -->
+<div class="chat-container">
+  <div class="connection-status connecting" id="connectionStatus"></div>
+  <div class="flash-overlay" id="flashOverlay"></div>
+  
+  <main id="messages"></main>
+  
+  <footer class="chat-footer">
+    <div class="suggestions-container" id="suggestions"></div>
+    <div class="input-container">
+      <input id="messageInput" type="text" placeholder="Message..." autofocus/>
+      <button id="voiceBtn" title="Voice">🎤</button>
+      <button id="sendBtn" title="Send">↑</button>
+    </div>
+  </footer>
+</div>
+
+<!-- Load navbar template -->
+<script>
+fetch('shared/navbar.html')
+  .then(response => response.text())
+  .then(html => {
+    document.getElementById('navbar-container').innerHTML = html;
+    // Set active nav link
+    document.querySelector(`.nav-link[data-target="chat"]`).classList.add('active');
+  });
+</script>
+</body>
+</html>
