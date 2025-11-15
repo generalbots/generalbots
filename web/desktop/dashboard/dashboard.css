@@ -1,4 +1,4 @@
-/* Dashboard specific styles */
+/* Dashboard styles - updated to match visual identity */
 .container {
   max-width: 1200px;
   margin: 0 auto;
@@ -13,26 +13,26 @@
 
 .card {
   padding: 1.5rem;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: #1e293b;
+  border: 1px solid #334155;
   border-radius: 0.5rem;
 }
 
 .card h3 {
   font-size: 0.875rem;
-  color: var(--muted-foreground);
+  color: #94a3b8;
   margin-bottom: 0.5rem;
 }
 
 .card .value {
   font-size: 1.5rem;
   font-weight: bold;
-  color: var(--card-foreground);
+  color: #e2e8f0;
 }
 
 .card .subtext {
   font-size: 0.75rem;
-  color: var(--muted-foreground);
+  color: #94a3b8;
   margin-top: 0.25rem;
 }
 
@@ -45,8 +45,8 @@
 .overview-container,
 .recent-sales-container {
   padding: 1.5rem;
-  background: var(--card);
-  border: 1px solid var(--border);
+  background: #1e293b;
+  border: 1px solid #334155;
   border-radius: 0.5rem;
 }
 
@@ -54,20 +54,20 @@
 .recent-sales-container h3 {
   font-size: 1.125rem;
   font-weight: 500;
-  color: var(--card-foreground);
+  color: #e2e8f0;
   margin-bottom: 1rem;
 }
 
 .download-btn {
   padding: 0.5rem 1rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: #3b82f6;
+  color: white;
   border: none;
   border-radius: 0.375rem;
   cursor: pointer;
-  transition: opacity 0.2s;
+  transition: background 0.2s;
 }
 
 .download-btn:hover {
-  opacity: 0.9;
+  background: #2563eb;
 }
