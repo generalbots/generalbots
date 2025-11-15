@@ -1,0 +1,27 @@
+<div x-data="{
+  shortcuts: [
+    [
+      { key: 'Q', label: 'Rename', action: () => console.log('Rename') },
+      { key: 'W', label: 'View', action: () => console.log('View') },
+      { key: 'E', label: 'Edit', action: () => console.log('Edit') },
+      { key: 'I', label: 'Cut', action: () => console.log('Cut') },
+      { key: 'O', label: 'Paste', action: () => console.log('Paste') },
+      { key: 'P', label: 'Duplicate', action: () => console.log('Duplicate') }
+    ],
+    [
+      { key: 'K', label: 'Star', action: () => console.log('Star') },
+      { key: 'L', label: 'Download', action: () => console.log('Download') },
+      { key: 'Z', label: 'Upload', action: () => console.log('Upload') },
+      { key: 'X', label: 'Refresh', action: () => console.log('Refresh') }
+    ]
+  ]
+}" class="footer">
+  <div class="shortcut-group" x-for="group in shortcuts">
+    <template x-for="shortcut in group">
+      <button @click="shortcut.action()" class="shortcut-btn">
+        <span x-text="shortcut.key" class="key"></span>
+        <span x-text="shortcut.label" class="label"></span>
+      </button>
+    </template>
+  </div>
+</div>

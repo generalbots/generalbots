@@ -1,0 +1,28 @@
+:root {
+  /* SeasidePostcard Theme */
+  --background: 200 50% 95%;
+  --foreground: 200 50% 20%;
+  --card: 200 50% 90%;
+  --card-foreground: 200 50% 20%;
+  --popover: 200 50% 95%;
+  --popover-foreground: 200 50% 20%;
+  --primary: 30 100% 55%;
+  --primary-foreground: 200 50% 95%;
+  --secondary: 200 50% 85%;
+  --secondary-foreground: 200 50% 20%;
+  --muted: 200 50% 80%;
+  --muted-foreground: 200 50% 40%;
+  --accent: 350 100% 55%;
+  --accent-foreground: 200 50% 95%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 200 50% 85%;
+  --input: 200 50% 85%;
+  --ring: 30 100% 55%;
+  --radius: 0.5rem;
+  --chart-1: 30 100% 55%;
+  --chart-2: 350 100% 55%;
+  --chart-3: 200 100% 55%;
+  --chart-4: 140 100% 55%;
+  --chart-5: 260 100% 55%;
+}

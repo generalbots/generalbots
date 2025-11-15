@@ -1,0 +1,228 @@
+:root {
+  /* XTree Gold DOS File Manager Theme - Authentic 1980s Interface */
+  
+  /* Core XTree Gold Palette - Exact Match */
+  --background: 240 100% 16%;           /* Classic XTree blue background */
+  --foreground: 60 100% 88%;            /* Bright yellow text */
+  
+  /* Card Elements - File Panels */
+  --card: 240 100% 16%;                 /* Same blue as main background */
+  --card-foreground: 60 100% 88%;       /* Bright yellow panel text */
+  
+  /* Popover Elements - Context Menus */
+  --popover: 240 100% 12%;              /* Slightly darker blue for menus */
+  --popover-foreground: 60 100% 90%;    /* Bright yellow menu text */
+  
+  /* Primary - XTree Gold Highlight (Cyan Selection) */
+  --primary: 180 100% 70%;              /* Bright cyan for selections */
+  --primary-foreground: 240 100% 10%;   /* Dark blue text on cyan */
+  
+  /* Secondary - Directory Highlights */
+  --secondary: 180 100% 50%;            /* Pure cyan for directories */
+  --secondary-foreground: 240 100% 10%; /* Dark blue on cyan */
+  
+  /* Muted - Status Areas */
+  --muted: 240 100% 14%;                /* Slightly darker blue */
+  --muted-foreground: 60 80% 75%;       /* Dimmed yellow */
+  
+  /* Accent - Function Keys & Highlights */
+  --accent: 60 100% 50%;                /* Pure yellow for F-keys */
+  --accent-foreground: 240 100% 10%;    /* Dark blue on yellow */
+  
+  /* Destructive - Delete/Error */
+  --destructive: 0 100% 60%;            /* Bright red for warnings */
+  --destructive-foreground: 60 90% 95%; /* Light yellow on red */
+  
+  /* Interactive Elements */
+  --border: 60 100% 70%;                /* Yellow border lines */
+  --input: 240 100% 14%;                /* Dark blue input fields */
+  --ring: 180 100% 70%;                 /* Cyan focus ring */
+  
+  /* Border Radius - Sharp DOS aesthetic */
+  --radius: 0rem;                       /* No rounding - pure DOS */
+  
+  /* Chart Colors - Authentic DOS 16-color palette */
+  --chart-1: 180 100% 70%;              /* Bright cyan */
+  --chart-2: 60 100% 50%;               /* Yellow */
+  --chart-3: 120 100% 50%;              /* Green */
+  --chart-4: 300 100% 50%;              /* Magenta */
+  --chart-5: 0 100% 60%;                /* Red */
+  
+  /* Authentic XTree Gold Colors */
+  --xtree-blue: 240 100% 16%;           /* Main background blue */
+  --xtree-yellow: 60 100% 88%;          /* Text yellow */
+  --xtree-cyan: 180 100% 70%;           /* Selection cyan */
+  --xtree-white: 0 0% 100%;             /* Pure white */
+  --xtree-green: 120 100% 50%;          /* DOS green */
+  --xtree-magenta: 300 100% 50%;        /* DOS magenta */
+  --xtree-red: 0 100% 60%;              /* DOS red */
+  
+  /* File Type Colors - Authentic XTree */
+  --executable-color: 0 0% 100%;        /* White for executables */
+  --directory-color: 180 100% 70%;      /* Cyan for directories */
+  --archive-color: 300 100% 50%;        /* Magenta for archives */
+  --text-color: 60 100% 88%;            /* Yellow for text */
+  --system-color: 0 100% 60%;           /* Red for system files */
+  
+  /* Menu Bar Colors */
+  --menu-bar: 240 100% 8%;              /* Dark blue menu bar */
+  --menu-text: 60 100% 88%;             /* Yellow menu text */
+  --menu-highlight: 180 100% 50%;       /* Cyan menu highlight */
+}
+
+/* Authentic XTree Gold Enhancement Classes */
+.xtree-main-panel {
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  font-family: 'Perfect DOS VGA 437', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 1;
+  border: none;
+}
+
+.xtree-menu-bar {
+  background: hsl(var(--menu-bar));
+  color: hsl(var(--menu-text));
+  padding: 0;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  font-weight: normal;
+}
+
+.xtree-menu-item {
+  padding: 0 8px;
+  color: hsl(var(--xtree-yellow));
+  background: transparent;
+}
+
+.xtree-menu-item:hover,
+.xtree-menu-item.active {
+  background: hsl(var(--xtree-cyan));
+  color: hsl(240 100% 10%);
+}
+
+.xtree-dual-pane {
+  display: flex;
+  height: calc(100vh - 60px);
+}
+
+.xtree-left-pane,
+.xtree-right-pane {
+  flex: 1;
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  padding: 0;
+  margin: 0;
+}
+
+.xtree-directory-tree {
+  color: hsl(var(--directory-color));
+  background: hsl(var(--xtree-blue));
+  padding: 4px;
+}
+
+.xtree-file-list {
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  font-family: 'Perfect DOS VGA 437', 'Courier New', monospace;
+  font-size: 16px;
+  line-height: 20px;
+  padding: 4px;
+}
+
+.xtree-file-selected {
+  background: hsl(var(--xtree-cyan));
+  color: hsl(240 100% 10%);
+}
+
+.xtree-directory {
+  color: hsl(var(--directory-color));
+}
+
+.xtree-executable {
+  color: hsl(var(--executable-color));
+}
+
+.xtree-archive {
+  color: hsl(var(--archive-color));
+}
+
+.xtree-text-file {
+  color: hsl(var(--text-color));
+}
+
+.xtree-system-file {
+  color: hsl(var(--system-color));
+}
+
+.xtree-status-line {
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  height: 20px;
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+}
+
+.xtree-function-bar {
+  background: hsl(var(--menu-bar));
+  color: hsl(var(--xtree-yellow));
+  height: 20px;
+  display: flex;
+  padding: 0;
+  font-size: 14px;
+}
+
+.xtree-function-key {
+  padding: 0 4px;
+  color: hsl(var(--xtree-yellow));
+  border-right: 1px solid hsl(var(--xtree-yellow));
+}
+
+.xtree-function-key:last-child {
+  border-right: none;
+}
+
+.xtree-path-bar {
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  padding: 2px 8px;
+  border-bottom: 1px solid hsl(var(--xtree-yellow));
+}
+
+.xtree-disk-info {
+  background: hsl(var(--xtree-blue));
+  color: hsl(var(--xtree-yellow));
+  padding: 4px 8px;
+  text-align: right;
+  font-size: 14px;
+}
+
+/* Authentic DOS Box Drawing Characters */
+.xtree-box-char {
+  font-family: 'Perfect DOS VGA 437', 'Courier New', monospace;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+/* Classic Text Mode Cursor */
+.xtree-cursor {
+  background: hsl(var(--xtree-yellow));
+  color: hsl(var(--xtree-blue));
+  animation: blink 1s infinite;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Authentic DOS Window Styling */
+.xtree-window {
+  border: 2px outset hsl(var(--xtree-blue));
+  background: hsl(var(--xtree-blue));
+  box-shadow: none;
+  border-radius: 0;
+}

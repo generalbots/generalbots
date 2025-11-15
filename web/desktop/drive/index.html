@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XTree Gold File Manager</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [x-cloak] { display: none !important; }
+        
+        /* XTree Gold inspired theme */
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-tertiary: #0f3460;
+            --text-primary: #e94560;
+            --text-secondary: #00d9ff;
+            --border: #533483;
+        }
+        
+        body {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-primary);
+            color: var(--text-secondary);
+        }
+        
+        .panel {
+            border: 2px solid var(--border);
+            background: var(--bg-secondary);
+        }
+        
+        .tree-line {
+            color: var(--border);
+        }
+        
+        .selected {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+        
+        .shortcut-key {
+            display: inline-block;
+            min-width: 2rem;
+            padding: 0.25rem 0.5rem;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 0.25rem;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        .file-icon {
+            display: inline-block;
+            width: 1.5rem;
+            text-align: center;
+        }
+        
+        .folder-icon::before { content: '📁'; }
+        .file-icon.pdf::before { content: '📄'; }
+        .file-icon.xlsx::before { content: '📊'; }
+        .file-icon.json::before { content: '{}'; }
+        .file-icon.md::before { content: '📝'; }
+        .file-icon.jpg::before, .file-icon.jpeg::before, .file-icon.png::before { content: '🖼️'; }
+        .file-icon.mp4::before { content: '🎬'; }
+        .file-icon.mp3::before { content: '🎵'; }
+        .file-icon.default::before { content: '📋'; }
+    </style>
+</head>
+<body class="h-screen flex flex-col overflow-hidden" x-data="fileManager()" x-cloak>
+    <!-- Main Container -->
+    <div class="flex-1 flex overflow-hidden">
+        <!-- Left Sidebar - Folder Tree -->
+        <div class="panel w-64 flex flex-col overflow-hidden" :class="{ 'w-16': collapsed }">
+            <!-- Navigation Links -->
+            <div class="p-2 space-y-1">
+                <template x-for="link in navLinks" :key="link.path">
+                    <button 
+                        @click="selectPath(link.path)"
+                        :class="currentPath === link.path ? 'selected' : ''"
+                        class="w-full px-3 py-2 text-left hover:bg-gray-700 rounded flex items-center gap-2"
+                    >
+                        <span x-text="link.icon" class="text-xl"></span>
+                        <span x-show="!collapsed" x-text="link.title"></span>
+                    </button>
+                </template>
+            </div>
+            
+            <div class="border-t border-gray-600 my-2"></div>
+            
+            <!-- Folder Tree -->
+            <div class="flex-1 overflow-auto p-2" x-show="!collapsed">
+                <template x-for="item in rootFolders" :key="item.id">
+                    <div>
+                        <button 
+                            @click="toggleFolder(item.path); selectPath(item.path)"
+                            :class="currentPath === item.path ? 'selected' : ''"
+                            class="w-full px-2 py-1 text-left hover:bg-gray-700 rounded flex items-center gap-1 text-sm"
+                        >
+                            <span x-show="item.is_dir" x-text="expanded[item.path] ? '▼' : '▶'" class="w-4"></span>
+                            <span class="folder-icon"></span>
+                            <span x-text="item.name"></span>
+                            <span x-show="item.starred" class="ml-auto text-yellow-400">★</span>
+                        </button>
+                        
+                        <div x-show="expanded[item.path]" class="ml-4">
+                            <template x-for="child in getChildren(item.path)" :key="child.id">
+                                <button 
+                                    @click="selectPath(child.path)"
+                                    :class="currentPath === child.path ? 'selected' : ''"
+                                    class="w-full px-2 py-1 text-left hover:bg-gray-700 rounded flex items-center gap-1 text-sm"
+                                >
+                                    <span :class="child.is_dir ? 'folder-icon' : 'file-icon ' + (child.type || 'default')"></span>
+                                    <span x-text="child.name"></span>
+                                </button>
+                            </template>
+                        </div>
+                    </div>
+                </template>
+            </div>
+            
+            <!-- Collapse Toggle -->
+            <button 
+                @click="collapsed = !collapsed"
+                class="p-2 border-t border-gray-600 hover:bg-gray-700 text-center"
+            >
+                <span x-text="collapsed ? '▶' : '◀'"></span>
+            </button>
+        </div>
+        
+        <!-- Middle Panel - File List -->
+        <div class="panel flex-1 flex flex-col overflow-hidden mx-2">
+            <!-- Header -->
+            <div class="p-4 border-b border-gray-600">
+                <h1 class="text-2xl font-bold mb-2" x-text="currentItem?.name || 'My Drive'"></h1>
+                
+                <!-- Search and Filter -->
+                <div class="flex gap-2">
+                    <input 
+                        type="text" 
+                        x-model="searchTerm"
+                        placeholder="Search files (Ctrl+F)"
+                        class="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded focus:outline-none focus:border-blue-500"
+                    />
+                    <select 
+                        x-model="filterType"
+                        class="px-3 py-2 bg-gray-800 border border-gray-600 rounded focus:outline-none"
+                    >
+                        <option value="all">All items</option>
+                        <option value="folders">Folders</option>
+                        <option value="files">Files</option>
+                        <option value="starred">Starred</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- File List -->
+            <div class="flex-1 overflow-auto p-2">
+                <template x-for="file in filteredFiles" :key="file.id">
+                    <button
+                        @click="selectFile(file)"
+                        @dblclick="openFile(file)"
+                        @contextmenu.prevent="showContextMenu($event, file)"
+                        :class="selectedFile?.id === file.id ? 'selected' : ''"
+                        class="w-full p-3 text-left hover:bg-gray-700 rounded border-b border-gray-700 flex items-center gap-3"
+                    >
+                        <span :class="file.is_dir ? 'folder-icon' : 'file-icon ' + (file.type || 'default')"></span>
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2">
+                                <span x-text="file.name" class="font-semibold"></span>
+                                <span x-show="file.starred" class="text-yellow-400 text-sm">★</span>
+                                <span x-show="file.shared" class="text-blue-400 text-sm">👥</span>
+                            </div>
+                            <div class="text-xs text-gray-400">
+                                <span x-text="file.is_dir ? 'Folder' : formatFileSize(file.size)"></span>
+                            </div>
+                        </div>
+                        <div class="text-xs text-gray-400" x-text="formatDate(file.modified)"></div>
+                    </button>
+                </template>
+                
+                <div x-show="filteredFiles.length === 0" class="text-center text-gray-500 py-8">
+                    No files found
+                </div>
+            </div>
+        </div>
+        
+        <!-- Right Panel - File Details -->
+        <div class="panel w-80 flex flex-col overflow-hidden">
+            <div class="p-2 border-b border-gray-600 flex gap-2">
+                <button @click="downloadFile()" :disabled="!selectedFile" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded disabled:opacity-50">
+                    ⬇ Download
+                </button>
+                <button @click="shareFile()" :disabled="!selectedFile" class="px-3 py-1 bg-green-600 hover:bg-green-700 rounded disabled:opacity-50">
+                    🔗 Share
+                </button>
+                <button @click="toggleStar()" :disabled="!selectedFile" class="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 rounded disabled:opacity-50">
+                    ★ Star
+                </button>
+            </div>
+            
+            <div class="flex-1 overflow-auto p-4">
+                <template x-if="selectedFile">
+                    <div>
+                        <div class="flex items-start gap-4 mb-4">
+                            <div class="p-3 bg-gray-700 rounded">
+                                <span :class="selectedFile.is_dir ? 'folder-icon' : 'file-icon ' + (selectedFile.type || 'default')" class="text-3xl"></span>
+                            </div>
+                            <div>
+                                <h3 class="font-bold text-lg" x-text="selectedFile.name"></h3>
+                                <p class="text-sm text-gray-400" x-text="selectedFile.is_dir ? 'Folder' : (selectedFile.type?.toUpperCase() || 'File') + ' • ' + formatFileSize(selectedFile.size)"></p>
+                            </div>
+                        </div>
+                        
+                        <div class="space-y-3 text-sm">
+                            <div>
+                                <div class="font-semibold mb-1">Location</div>
+                                <div class="text-gray-400" x-text="'/' + (selectedFile.path || '')"></div>
+                            </div>
+                            <div>
+                                <div class="font-semibold mb-1">Modified</div>
+                                <div class="text-gray-400" x-text="formatDateTime(selectedFile.modified)"></div>
+                            </div>
+                            <div x-show="!selectedFile.is_dir">
+                                <div class="font-semibold mb-1">Size</div>
+                                <div class="text-gray-400" x-text="formatFileSize(selectedFile.size)"></div>
+                            </div>
+                        </div>
+                    </div>
+                </template>
+                
+                <template x-if="!selectedFile">
+                    <div class="text-center text-gray-500 py-8">
+                        <div class="text-4xl mb-4">📄</div>
+                        <div class="text-lg font-semibold">No file selected</div>
+                        <div class="text-sm">Select a file to view details</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer - Status Bar with Keyboard Shortcuts -->
+    <div class="panel p-2 border-t-2 border-gray-600">
+        <div class="grid grid-cols-2 gap-2 text-xs">
+            <!-- Row 1 -->
+            <div class="flex flex-wrap gap-1">
+                <template x-for="shortcut in shortcuts[0]" :key="shortcut.key">
+                    <button 
+                        @click="shortcut.action()"
+                        class="shortcut-key hover:bg-gray-600"
+                        :title="'Ctrl+' + shortcut.key"
+                    >
+                        <span x-text="shortcut.key"></span>
+                        <span class="text-xs ml-1" x-text="shortcut.label"></span>
+                    </button>
+                </template>
+            </div>
+            
+            <!-- Row 2 -->
+            <div class="flex flex-wrap gap-1">
+                <template x-for="shortcut in shortcuts[1]" :key="shortcut.key">
+                    <button 
+                        @click="shortcut.action()"
+                        class="shortcut-key hover:bg-gray-600"
+                        :title="'Ctrl+' + shortcut.key"
+                    >
+                        <span x-text="shortcut.key"></span>
+                        <span class="text-xs ml-1" x-text="shortcut.label"></span>
+                    </button>
+                </template>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div 
+        x-show="contextMenu.show"
+        @click.away="contextMenu.show = false"
+        :style="`top: ${contextMenu.y}px; left: ${contextMenu.x}px`"
+        class="fixed bg-gray-800 border border-gray-600 rounded shadow-lg z-50 py-1 min-w-48"
+    >
+        <template x-for="item in contextMenuItems" :key="item.label">
+            <button
+                @click="handleContextAction(item.action)"
+                class="w-full px-4 py-2 text-left hover:bg-gray-700 flex items-center gap-2"
+            >
+                <span x-text="item.icon"></span>
+                <span x-text="item.label"></span>
+            </button>
+        </template>
+    </div>
+
+    <script>
+        function fileManager() {
+            return {
+                collapsed: false,
+                currentPath: '',
+                searchTerm: '',
+                filterType: 'all',
+                selectedFile: null,
+                expanded: { '': true, 'projects': true },
+                contextMenu: { show: false, x: 0, y: 0, file: null },
+                
+                navLinks: [
+                    { title: 'My Drive', path: '', icon: '🏠' },
+                    { title: 'Shared', path: 'shared', icon: '👥' },
+                    { title: 'Starred', path: 'starred', icon: '⭐' },
+                    { title: 'Recent', path: 'recent', icon: '🕐' },
+                    { title: 'Trash', path: 'trash', icon: '🗑️' },
+                ],
+                
+                fileSystem: {
+                    "": {
+                        id: "root", name: "My Drive", path: "", is_dir: true,
+                        children: ["projects", "documents", "media", "shared"]
+                    },
+                    "projects": {
+                        id: "projects", name: "Projects", path: "projects", is_dir: true,
+                        modified: "2025-01-15T10:30:00Z", starred: true, shared: false,
+                        children: ["web-apps", "mobile-apps", "ai-research"]
+                    },
+                    "projects/web-apps": {
+                        id: "web-apps", name: "Web Applications", path: "projects/web-apps", is_dir: true,
+                        modified: "2025-01-14T16:45:00Z", starred: false, shared: true,
+                        children: ["package.json", "README.md"]
+                    },
+                    "projects/web-apps/package.json": {
+                        id: "package-json", name: "package.json", path: "projects/web-apps/package.json",
+                        is_dir: false, size: 2048, type: "json", modified: "2025-01-13T14:20:00Z"
+                    },
+                    "projects/web-apps/README.md": {
+                        id: "readme-md", name: "README.md", path: "projects/web-apps/README.md",
+                        is_dir: false, size: 5120, type: "md", modified: "2025-01-12T09:30:00Z", shared: true
+                    },
+                    "documents": {
+                        id: "documents", name: "Documents", path: "documents", is_dir: true,
+                        modified: "2025-01-14T12:00:00Z",
+                        children: ["Q1-Strategy.pdf", "Budget-2025.xlsx"]
+                    },
+                    "documents/Q1-Strategy.pdf": {
+                        id: "q1-strategy", name: "Q1 Strategy.pdf", path: "documents/Q1-Strategy.pdf",
+                        is_dir: false, size: 1048576, type: "pdf", modified: "2025-01-10T15:30:00Z", starred: true, shared: true
+                    },
+                    "documents/Budget-2025.xlsx": {
+                        id: "budget-xlsx", name: "Budget-2025.xlsx", path: "documents/Budget-2025.xlsx",
+                        is_dir: false, size: 524288, type: "xlsx", modified: "2025-01-09T11:00:00Z"
+                    },
+                    "media": {
+                        id: "media", name: "Media", path: "media", is_dir: true,
+                        modified: "2025-01-13T18:45:00Z",
+                        children: ["vacation-2024.jpg"]
+                    },
+                    "media/vacation-2024.jpg": {
+                        id: "vacation-photo", name: "vacation-2024.jpg", path: "media/vacation-2024.jpg",
+                        is_dir: false, size: 3145728, type: "jpg", modified: "2024-12-25T20:00:00Z", starred: true
+                    },
+                    "shared": {
+                        id: "shared", name: "Shared", path: "shared", is_dir: true,
+                        modified: "2025-01-12T11:20:00Z", shared: true,
+                        children: []
+                    }
+                },
+                
+                shortcuts: [
+                    [
+                        { key: 'Q', label: 'Rename', action: () => this.renameFile() },
+                        { key: 'W', label: 'View', action: () => this.viewFile() },
+                        { key: 'E', label: 'Edit', action: () => this.editFile() },
+                        { key: 'R', label: 'Move', action: () => this.moveFile() },
+                        { key: 'T', label: 'MkDir', action: () => this.makeDirectory() },
+                        { key: 'Y', label: 'Delete', action: () => this.deleteFile() },
+                        { key: 'U', label: 'Copy', action: () => this.copyFile() },
+                        { key: 'I', label: 'Cut', action: () => this.cutFile() },
+                        { key: 'O', label: 'Paste', action: () => this.pasteFile() },
+                        { key: 'P', label: 'Duplicate', action: () => this.duplicateFile() },
+                    ],
+                    [
+                        { key: 'A', label: 'Select', action: () => this.toggleSelect() },
+                        { key: 'S', label: 'Select All', action: () => this.selectAll() },
+                        { key: 'D', label: 'Deselect', action: () => this.deselectAll() },
+                        { key: 'G', label: 'Details', action: () => this.showDetails() },
+                        { key: 'H', label: 'History', action: () => this.showHistory() },
+                        { key: 'J', label: 'Share', action: () => this.shareFile() },
+                        { key: 'K', label: 'Star', action: () => this.toggleStar() },
+                        { key: 'L', label: 'Download', action: () => this.downloadFile() },
+                        { key: 'Z', label: 'Upload', action: () => this.uploadFile() },
+                        { key: 'X', label: 'Refresh', action: () => this.refresh() },
+                    ]
+                ],
+                
+                contextMenuItems: [
+                    { icon: '👁️', label: 'Open', action: 'open' },
+                    { icon: '⬇', label: 'Download', action: 'download' },
+                    { icon: '🔗', label: 'Share', action: 'share' },
+                    { icon: '⭐', label: 'Star/Unstar', action: 'star' },
+                    { icon: '📋', label: 'Copy', action: 'copy' },
+                    { icon: '✂️', label: 'Cut', action: 'cut' },
+                    { icon: '✏️', label: 'Rename', action: 'rename' },
+                    { icon: '🗑️', label: 'Delete', action: 'delete' },
+                ],
+                
+                get currentItem() {
+                    return this.fileSystem[this.currentPath];
+                },
+                
+                get rootFolders() {
+                    const root = this.fileSystem[''];
+                    if (!root || !root.children) return [];
+                    return root.children.map(name => this.fileSystem[name]).filter(Boolean);
+                },
+                
+                get filteredFiles() {
+                    const current = this.currentItem;
+                    if (!current || !current.is_dir || !current.children) return [];
+                    
+                    let files = current.children
+                        .map(childName => {
+                            const path = this.currentPath ? `${this.currentPath}/${childName}` : childName;
+                            return this.fileSystem[path];
+                        })
+                        .filter(Boolean);
+                    
+                    if (this.searchTerm) {
+                        files = files.filter(f => 
+                            f.name.toLowerCase().includes(this.searchTerm.toLowerCase())
+                        );
+                    }
+                    
+                    if (this.filterType !== 'all') {
+                        if (this.filterType === 'folders') files = files.filter(f => f.is_dir);
+                        else if (this.filterType === 'files') files = files.filter(f => !f.is_dir);
+                        else if (this.filterType === 'starred') files = files.filter(f => f.starred);
+                    }
+                    
+                    return files.sort((a, b) => {
+                        if (a.is_dir && !b.is_dir) return -1;
+                        if (!a.is_dir && b.is_dir) return 1;
+                        return a.name.localeCompare(b.name);
+                    });
+                },
+                
+                getChildren(path) {
+                    const item = this.fileSystem[path];
+                    if (!item || !item.children) return [];
+                    return item.children.map(name => {
+                        const childPath = path ? `${path}/${name}` : name;
+                        return this.fileSystem[childPath];
+                    }).filter(Boolean);
+                },
+                
+                selectPath(path) {
+                    this.currentPath = path;
+                    this.selectedFile = null;
+                },
+                
+                selectFile(file) {
+                    this.selectedFile = file;
+                },
+                
+                openFile(file) {
+                    if (file.is_dir) {
+                        this.currentPath = file.path;
+                        this.expanded[file.path] = true;
+                    } else {
+                        console.log('Opening file:', file.name);
+                    }
+                },
+                
+                toggleFolder(path) {
+                    this.expanded[path] = !this.expanded[path];
+                },
+                
+                showContextMenu(event, file) {
+                    this.contextMenu = {
+                        show: true,
+                        x: event.clientX,
+                        y: event.clientY,
+                        file: file
+                    };
+                    this.selectedFile = file;
+                },
+                
+                handleContextAction(action) {
+                    console.log('Action:', action, 'File:', this.contextMenu.file);
+                    this.contextMenu.show = false;
+                    
+                    switch(action) {
+                        case 'open': this.openFile(this.contextMenu.file); break;
+                        case 'download': this.downloadFile(); break;
+                        case 'share': this.shareFile(); break;
+                        case 'star': this.toggleStar(); break;
+                        case 'copy': this.copyFile(); break;
+                        case 'cut': this.cutFile(); break;
+                        case 'rename': this.renameFile(); break;
+                        case 'delete': this.deleteFile(); break;
+                    }
+                },
+                
+                formatFileSize(bytes) {
+                    if (!bytes) return '';
+                    const sizes = ['B', 'KB', 'MB', 'GB'];
+                    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+                    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+                },
+                
+                formatDate(dateString) {
+                    if (!dateString) return '';
+                    const date = new Date(dateString);
+                    const now = new Date();
+                    const diff = now - date;
+                    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+                    
+                    if (days === 0) return 'Today';
+                    if (days === 1) return 'Yesterday';
+                    if (days < 7) return `${days}d ago`;
+                    return date.toLocaleDateString();
+                },
+                
+                formatDateTime(dateString) {
+                    if (!dateString) return '';
+                    return new Date(dateString).toLocaleString();
+                },
+                
+                // Action methods
+                renameFile() { console.log('Rename:', this.selectedFile?.name); },
+                viewFile() { console.log('View:', this.selectedFile?.name); },
+                editFile() { console.log('Edit:', this.selectedFile?.name); },
+                moveFile() { console.log('Move:', this.selectedFile?.name); },
+                makeDirectory() { console.log('Make Directory'); },
+                deleteFile() { console.log('Delete:', this.selectedFile?.name); },
+                copyFile() { console.log('Copy:', this.selectedFile?.name); },
+                cutFile() { console.log('Cut:', this.selectedFile?.name); },
+                pasteFile() { console.log('Paste'); },
+                duplicateFile() { console.log('Duplicate:', this.selectedFile?.name); },
+                toggleSelect() { console.log('Toggle Select'); },
+                selectAll() { console.log('Select All'); },
+                deselectAll() { this.selectedFile = null; },
+                showDetails() { console.log('Show Details'); },
+                showHistory() { console.log('Show History'); },
+                shareFile() { console.log('Share:', this.selectedFile?.name); },
+                toggleStar() { 
+                    if (this.selectedFile) {
+                        this.selectedFile.starred = !this.selectedFile.starred;
+                    }
+                },
+                downloadFile() { console.log('Download:', this.selectedFile?.name); },
+                uploadFile() { console.log('Upload'); },
+                refresh() { console.log('Refresh'); },
+                
+                init() {
+                    // Keyboard shortcuts
+                    document.addEventListener('keydown', (e) => {
+                        if (e.ctrlKey || e.metaKey) {
+                            const key = e.key.toUpperCase();
+                            
+                            // Find and execute shortcut
+                            for (const row of this.shortcuts) {
+                                const shortcut = row.find(s => s.key === key);
+                                if (shortcut) {
+                                    e.preventDefault();
+                                    shortcut.action();
+                                    break;
+                                }
+                            }
+                            
+                            // Special shortcuts
+                            if (key === 'F') {
+                                e.preventDefault();
+                                document.querySelector('input[placeholder*="Search"]')?.focus();
+                            }
+                        } else if (e.key === 'Delete' && this.selectedFile) {
+                            e.preventDefault();
+                            this.deleteFile();
+                        } else if (e.key === 'F2' && this.selectedFile) {
+                            e.preventDefault();
+                            this.renameFile();
+                        }
+                    });
+                }
+            };
+        }
+    </script>
+</body>
+</html>

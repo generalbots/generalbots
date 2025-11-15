@@ -10,7 +10,7 @@ mod auth;
 mod automation;
 mod basic;
 mod bootstrap;
-mod bot;
+mod bot; 
 mod channels;
 mod config;
 mod context;
@@ -75,6 +75,8 @@ async fn main() -> std::io::Result<()> {
     dotenv().ok();
     let (progress_tx, progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
+    let (http_tx, http_rx) = tokio::sync::oneshot::channel();
+
     let ui_handle = if !no_ui {
         let progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
         let state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
@@ -89,17 +91,18 @@ async fn main() -> std::io::Result<()> {
                     .expect("Failed to create UI runtime");
                 rt.block_on(async {
                     tokio::select! {
-                    result = async {
-                    let mut rx = state_rx.lock().await;
-                    rx.recv().await
-                    } => {
-                    if let Some(app_state) = result {
-                    ui.set_app_state(app_state);
-                    }
-                    }
-                    _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
-                    eprintln!("UI initialization timeout");
-                    }
+                        result = async {
+                            let mut rx = state_rx.lock().await;
+                            rx.recv().await
+                        } => {
+                            if let Some(app_state) = result {
+                                ui.set_app_state(app_state);
+                            }
+                        }
+                        _ = http_rx => {}
+                        _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
+                            eprintln!("UI initialization timeout");
+                        }
                     }
                 });
                 if let Err(e) = ui.start_ui() {
@@ -261,6 +264,65 @@ async fn main() -> std::io::Result<()> {
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
+    
+    let http_handle = {
+        let app_state = app_state.clone();
+        let config = config.clone();
+        let worker_count = worker_count;
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create HTTP runtime");
+            rt.block_on(async {
+                let server = HttpServer::new(move || {
+                    let cors = Cors::default()
+                        .allow_any_origin()
+                        .allow_any_method()
+                        .allow_any_header()
+                        .max_age(3600);
+                    let app_state_clone = app_state.clone();
+                    let mut app = App::new()
+                        .wrap(cors)
+                        .wrap(Logger::default())
+                        .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
+                        .app_data(web::Data::from(app_state_clone))
+                        .service(auth_handler)
+                        .service(create_session)
+                        .service(get_session_history)
+                        .service(get_sessions)
+                        .service(index)
+                        .service(start_session)
+                        .service(upload_file)
+                        .service(voice_start)
+                        .service(voice_stop)
+                        .service(websocket_handler)
+                        .service(crate::bot::create_bot_handler)
+                        .service(crate::bot::mount_bot_handler)
+                        .service(crate::bot::handle_user_input_handler)
+                        .service(crate::bot::get_user_sessions_handler)
+                        .service(crate::bot::get_conversation_history_handler)
+                        .service(crate::bot::send_warning_handler);
+                    #[cfg(feature = "email")]
+                    {
+                        app = app
+                            .service(get_latest_email_from)
+                            .service(get_emails)
+                            .service(list_emails)
+                            .service(send_email)
+                            .service(save_draft)
+                            .service(save_click);
+                    }
+                    app = app.service(static_files);
+                    app = app.service(bot_index);
+                    app
+                })
+                .workers(worker_count)
+                .bind((config.server.host.clone(), config.server.port))?
+                .run();
+                let _ = http_tx.send(());
+                server.await
+            })
+        })
+    };
+
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
     tokio::spawn(async move {
         if let Err(e) = bot_orchestrator.mount_all_bots().await {
@@ -318,55 +380,6 @@ async fn main() -> std::io::Result<()> {
         return Ok(());
     }
 
-    // Normal server start continues here``
-    let server_result = HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
-        let app_state_clone = app_state.clone();
-        let mut app = App::new()
-            .wrap(cors)
-            .wrap(Logger::default())
-            .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
-            .app_data(web::Data::from(app_state_clone))
-            .service(auth_handler)
-            .service(create_session)
-            .service(get_session_history)
-            .service(get_sessions)
-            .service(index)
-            .service(start_session)
-            .service(upload_file)
-            .service(voice_start)
-            .service(voice_stop)
-            .service(websocket_handler)
-            .service(crate::bot::create_bot_handler)
-            .service(crate::bot::mount_bot_handler)
-            .service(crate::bot::handle_user_input_handler)
-            .service(crate::bot::get_user_sessions_handler)
-            .service(crate::bot::get_conversation_history_handler)
-            .service(crate::bot::send_warning_handler);
-        #[cfg(feature = "email")]
-        {
-            app = app
-                .service(get_latest_email_from)
-                .service(get_emails)
-                .service(list_emails)
-                .service(send_email)
-                .service(save_draft)
-                .service(save_click);
-        }
-        app = app.service(static_files);
-        app = app.service(bot_index);
-        app
-    })
-    .workers(worker_count)
-    .bind((config.server.host.clone(), config.server.port))?
-    .run()
-    .await;
-    if let Some(handle) = ui_handle {
-        handle.join().ok();
-    }
-    server_result
+    http_handle.join().ok();
+    Ok(())
 }

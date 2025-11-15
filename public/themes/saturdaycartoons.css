@@ -1,0 +1,28 @@
+:root {
+  /* SaturdayCartoons Theme */
+  --background: 220 50% 95%;
+  --foreground: 220 50% 20%;
+  --card: 220 50% 90%;
+  --card-foreground: 220 50% 20%;
+  --popover: 220 50% 95%;
+  --popover-foreground: 220 50% 20%;
+  --primary: 30 100% 55%;
+  --primary-foreground: 220 50% 95%;
+  --secondary: 220 50% 85%;
+  --secondary-foreground: 220 50% 20%;
+  --muted: 220 50% 80%;
+  --muted-foreground: 220 50% 40%;
+  --accent: 120 100% 55%;
+  --accent-foreground: 220 50% 95%;
+  --destructive: 0 85% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 220 50% 85%;
+  --input: 220 50% 85%;
+  --ring: 30 100% 55%;
+  --radius: 0.5rem;
+  --chart-1: 30 100% 55%;
+  --chart-2: 120 100% 55%;
+  --chart-3: 240 100% 55%;
+  --chart-4: 330 100% 55%;
+  --chart-5: 60 100% 55%;
+}

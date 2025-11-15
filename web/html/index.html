@@ -732,14 +732,14 @@ connectionStatus.className=`connection-status ${s}`;
 }
 
 function getWebSocketUrl(){
-const p=window.location.protocol==="https:"?"wss:":"ws:",s=currentSessionId||crypto.randomUUID(),u=currentUserId||crypto.randomUUID();
-return`${p}//${window.location.host}/ws?session_id=${s}&user_id=${u}`;
+const p="ws:",s=currentSessionId||crypto.randomUUID(),u=currentUserId||crypto.randomUUID();
+return`${p}//localhost:8080/ws?session_id=${s}&user_id=${u}`;
 }
 
 async function initializeAuth(){
 try{
 updateConnectionStatus("connecting");
-const p=window.location.pathname.split('/').filter(s=>s),b=p.length>0?p[0]:'default',r=await fetch(`/api/auth?bot_name=${encodeURIComponent(b)}`),a=await r.json();
+const p=window.location.pathname.split('/').filter(s=>s),b=p.length>0?p[0]:'default',r=await fetch(`http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`),a=await r.json();
 currentUserId=a.user_id;
 currentSessionId=a.session_id;
 connectWebSocket();
@@ -753,7 +753,7 @@ setTimeout(initializeAuth,3000);
 
 async function loadSessions(){
 try{
-const r=await fetch("/api/sessions"),s=await r.json(),h=document.getElementById("history");
+const r=await fetch("http://localhost:8080/api/sessions"),s=await r.json(),h=document.getElementById("history");
 h.innerHTML="";
 s.forEach(session=>{
 const item=document.createElement('div');
@@ -769,7 +769,7 @@ console.error("Failed to load sessions:",e);
 
 async function createNewSession(){
 try{
-const r=await fetch("/api/sessions",{method:"POST"}),s=await r.json();
+const r=await fetch("http://localhost:8080/api/sessions",{method:"POST"}),s=await r.json();
 currentSessionId=s.session_id;
 hasReceivedInitialMessage=false;
 connectWebSocket();
@@ -802,7 +802,7 @@ sidebar.classList.remove('open');
 
 async function loadSessionHistory(s){
 try{
-const r=await fetch("/api/sessions/"+s),h=await r.json(),m=document.getElementById("messages");
+const r=await fetch("http://localhost:8080/api/sessions/"+s),h=await r.json(),m=document.getElementById("messages");
 m.innerHTML="";
 if(h.length===0){
 updateContextUsage(0);
@@ -1156,7 +1156,7 @@ await stopVoiceSession();
 async function startVoiceSession(){
 if(!currentSessionId)return;
 try{
-const r=await fetch("th/voice/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId,user_id:currentUserId})}),d=await r.json();
+const r=await fetch("http://localhost:8080/api/voice/start",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId,user_id:currentUserId})}),d=await r.json();
 if(d.token){
 await connectToVoiceRoom(d.token);
 startVoiceRecording();
@@ -1170,7 +1170,7 @@ showWarning("Falha ao iniciar modo de voz");
 async function stopVoiceSession(){
 if(!currentSessionId)return;
 try{
-await fetch("/api/voice/stop",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId})});
+await fetch("http://localhost:8080/api/voice/stop",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({session_id:currentSessionId})});
 if(voiceRoom){
 voiceRoom.disconnect();
 voiceRoom=null;
@@ -1185,7 +1185,7 @@ console.error("Failed to stop voice session:",e);
 
 async function connectToVoiceRoom(t){
 try{
-const r=new LiveKitClient.Room(),p=window.location.protocol==="https:"?"wss:":"ws:",u=`${p}//${window.location.host}/voice`;
+const r=new LiveKitClient.Room(),p="ws:",u=`${p}//localhost:8080/voice`;
 await r.connect(u,t);
 
 voiceRoom=r;
