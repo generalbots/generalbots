@@ -247,25 +247,25 @@ pub async fn start_llm_server(
 
 
 
-    // if n_moe != "0" {
-    //     args.push_str(&format!(" --n-cpu-moe {}", n_moe));
-    // }
-    // if parallel != "1" {
-    //     args.push_str(&format!(" --parallel {}", parallel));
-    // }
-    // if cont_batching == "true" {
-    //     args.push_str(" --cont-batching");
-    // }
-    // if mlock == "true" {
-    //     args.push_str(" --mlock");
-    // }
-    // if no_mmap == "true" {
-    //     args.push_str(" --no-mmap");
-    // }
-    // if n_predict != "0" {
-    //     args.push_str(&format!(" --n-predict {}", n_predict));
-    // }
-    //     args.push_str(&format!(" --ctx-size {}", n_ctx_size));
+    if n_moe != "0" {
+        args.push_str(&format!(" --n-cpu-moe {}", n_moe));
+    }
+    if parallel != "1" {
+        args.push_str(&format!(" --parallel {}", parallel));
+    }
+    if cont_batching == "true" {
+        args.push_str(" --cont-batching");
+    }
+    if mlock == "true" {
+        args.push_str(" --mlock");
+    }
+    if no_mmap == "true" {
+        args.push_str(" --no-mmap");
+    }
+    if n_predict != "0" {
+        args.push_str(&format!(" --n-predict {}", n_predict));
+    }
+        args.push_str(&format!(" --ctx-size {}", n_ctx_size));
     
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
