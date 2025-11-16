@@ -21,10 +21,18 @@ document.addEventListener('DOMContentLoaded', () => {
     ]
   };
 
-  // Initialize dashboard
+  // Initialize dashboard safely
   function init() {
-    renderCards();
-    document.querySelector('.download-btn').addEventListener('click', handleDownload);
+    const ensure = setInterval(() => {
+      const main = document.querySelector('#main-content');
+      const section = main && main.querySelector('.cards-grid');
+      const btn = main && main.querySelector('.download-btn');
+      if (section && btn) {
+        clearInterval(ensure);
+        renderCards();
+        btn.addEventListener('click', handleDownload);
+      }
+    }, 100);
   }
 
   // Render dashboard cards
@@ -54,5 +62,5 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Initialize dashboard
-  init();
+  document.addEventListener('DOMContentLoaded',()=>{init();});
 });

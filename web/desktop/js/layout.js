@@ -7,7 +7,7 @@ const sections = {
   player: 'player/player.html',
   paper: 'paper/paper.html',
   settings: 'settings/settings.html',
-  tables: 'tablesv2/tables.html',
+  tables: 'tables/tables.html',
   news: 'news/news.html'
 };
 
@@ -21,8 +21,34 @@ async function switchSection(section) {
   const mainContent = document.getElementById('main-content');
   
   try {
-    const html = await loadSectionHTML(sections[section]);
+    const htmlPath = sections[section];
+    console.log('Loading section:', section, 'from', htmlPath);
+    const cssPath = 
+       htmlPath.replace('.html', '.css');
+    
+    // Remove any existing section CSS
+    document.querySelectorAll('link[data-section-css]').forEach(link => link.remove());
+    
+    // Load CSS first
+    const cssLink = document.createElement('link');
+    cssLink.rel = 'stylesheet';
+    cssLink.href = cssPath;
+    cssLink.setAttribute('data-section-css', 'true');
+    document.head.appendChild(cssLink);
+
+    // First load HTML
+    const html = await loadSectionHTML(htmlPath);
     mainContent.innerHTML = html;
+
+    // Then load JS after HTML is inserted
+    const jsPath = htmlPath.replace('.html', '.js');
+    const existingScript = document.querySelector(`script[src="${jsPath}"]`);
+    if (!existingScript) {
+      const script = document.createElement('script');
+      script.src = jsPath;
+      script.defer = true;
+      document.body.appendChild(script);
+    }
     window.history.pushState({}, '', `#${section}`);
     Alpine.initTree(mainContent);
   } catch (err) {
