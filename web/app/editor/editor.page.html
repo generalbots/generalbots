@@ -186,16 +186,22 @@ import './style.css';
 
 export default {
   // Reactive state
-  fileName: 'Document 1',
-  fontSize: '12',
-  fontFamily: 'Calibri',
-  textColor: '#000000',
-  highlightColor: '#ffff00',
-  activeTab: 'home',
-  zoom: 100,
-  pages: [1],
-  editor: null,
-  fileInputRef: null,
+  data() {
+    return {
+      fileName: 'Document 1',
+      fontSize: '12',
+      fontFamily: 'Calibri',
+      textColor: '#000000',
+      highlightColor: '#ffff00',
+      activeTab: 'home',
+      zoom: 100,
+      pages: [1],
+      editor: null,
+      fileInputRef: null,
+      content: '',
+      activeTab: 'home'
+    }
+  },
 
   // Lifecycle
   async mounted() {
@@ -334,7 +340,3 @@ export default {
   },
 };
 </script>
-
-<style>
-/* Original styles moved to global CSS */
-</style>
