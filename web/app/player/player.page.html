@@ -1,0 +1,39 @@
+<!-- Basic player page -->
+<template>
+  <div class="player-container">
+    <h1>Player</h1>
+    <div class="player-content">
+      <p>Player functionality will be implemented here</p>
+    </div>
+  </div>
+</template>
+
+<script>
+import './style.css';
+
+export default {
+  data() {
+    return {
+      currentTrack: null,
+      isPlaying: false,
+      volume: 80,
+      currentTime: 0,
+      duration: 0,
+      playlist: [],
+      shuffle: false,
+      repeat: false
+    }
+  },
+  methods: {
+    play() {
+      this.isPlaying = true;
+    },
+    pause() {
+      this.isPlaying = false;
+    },
+    setVolume(vol) {
+      this.volume = Math.max(0, Math.min(100, vol));
+    }
+  }
+};
+</script>

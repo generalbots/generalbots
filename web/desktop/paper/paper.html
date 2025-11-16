@@ -1,77 +1,55 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Paper</title>
-  <link rel="stylesheet" href="../css/global.css">
-  <link rel="stylesheet" href="paper.css">
-  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-</head>
-<body x-data="paper">
-  <div id="main-content">
-    <div class="content-section active">
-      <div class="max-w-4xl mx-auto">
-        <!-- Paper Shadow Effect -->
-        <div class="mx-4 my-8 bg-card rounded-lg shadow-2xl shadow-black/20 border border-border">
-          <div class="editor-content" 
-               x-ref="editor" 
-               contenteditable="true" 
-               x-init="initEditor()"
-               class="min-h-[calc(100vh-12rem)] p-8 prose max-w-none focus:outline-none">
-            Start writing your thoughts here...
-          </div>
-        </div>
-      </div>
-
-      <!-- Floating Toolbar -->
-      <div class="floating-toolbar" x-show="showToolbar" x-transition>
-        <div class="flex items-center bg-card border border-border rounded-lg shadow-lg p-1">
-          <!-- Text Formatting -->
-          <button @click="formatText('bold')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isActive('bold')}">
-            B
-          </button>
-          <button @click="formatText('italic')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isActive('italic')}">
-            I
-          </button>
-          <button @click="formatText('underline')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isActive('underline')}">
-            U
-          </button>
-
-          <div class="w-px h-6 bg-border mx-1"></div>
-
-          <!-- Text Alignment -->
-          <button @click="alignText('left')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isAligned('left')}">
-            Left
-          </button>
-          <button @click="alignText('center')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isAligned('center')}">
-            Center
-          </button>
-          <button @click="alignText('right')" 
-                  class="p-2 rounded hover:bg-accent transition-colors"
-                  :class="{'bg-primary text-primary-foreground': isAligned('right')}">
-            Right
-          </button>
-
-          <div class="w-px h-6 bg-border mx-1"></div>
-
-          <!-- Link -->
-          <button @click="addLink" 
-                  class="p-2 rounded hover:bg-accent transition-colors">
-            Link
-          </button>
+<div id="main-content">
+  <div class="content-section active">
+    <div class="max-w-4xl mx-auto">
+      <!-- Paper Shadow Effect -->
+      <div class="mx-4 my-8 bg-card rounded-lg shadow-2xl shadow-black/20 border border-border">
+        <div class="editor-content" x-ref="editor" contenteditable="true" x-init="initEditor()"
+          class="min-h-[calc(100vh-12rem)] p-8 prose max-w-none focus:outline-none">
+          Start writing your thoughts here...
         </div>
       </div>
     </div>
+
+    <!-- Floating Toolbar -->
+    <div class="floating-toolbar" x-show="showToolbar" x-transition>
+      <div class="flex items-center bg-card border border-border rounded-lg shadow-lg p-1">
+        <!-- Text Formatting -->
+        <button @click="formatText('bold')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isActive('bold')}">
+          B
+        </button>
+        <button @click="formatText('italic')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isActive('italic')}">
+          I
+        </button>
+        <button @click="formatText('underline')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isActive('underline')}">
+          U
+        </button>
+
+        <div class="w-px h-6 bg-border mx-1"></div>
+
+        <!-- Text Alignment -->
+        <button @click="alignText('left')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isAligned('left')}">
+          Left
+        </button>
+        <button @click="alignText('center')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isAligned('center')}">
+          Center
+        </button>
+        <button @click="alignText('right')" class="p-2 rounded hover:bg-accent transition-colors"
+          :class="{'bg-primary text-primary-foreground': isAligned('right')}">
+          Right
+        </button>
+
+        <div class="w-px h-6 bg-border mx-1"></div>
+
+        <!-- Link -->
+        <button @click="addLink" class="p-2 rounded hover:bg-accent transition-colors">
+          Link
+        </button>
+      </div>
+    </div>
   </div>
-  <script src="paper.js"></script>
-</body>
-</html>
+</div>

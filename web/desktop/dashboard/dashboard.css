@@ -71,3 +71,7 @@
 .download-btn:hover {
   background: #2563eb;
 }
+
+.dashboard-section {
+  padding: 1rem;
+}
