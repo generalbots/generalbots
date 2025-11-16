@@ -46,7 +46,7 @@ use crate::session::{create_session, get_session_history, get_sessions, start_se
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
-use crate::web_server::{bot_index, index};
+use crate::web_server::{bot_index};
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
     StartingBootstrap,
