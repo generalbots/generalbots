@@ -28,7 +28,7 @@ async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
 }
 
 pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
-    let static_path = Path::new("/home/rodriguez/src/botserver/web/desktop");
+    let static_path = Path::new("./web/desktop");
     
     // Serve all static files from desktop directory
     cfg.service(
