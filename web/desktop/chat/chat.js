@@ -2,7 +2,7 @@ function chatApp() {
 
   // Core state variables (shared via closure)
   let ws = null,
-  pendingContextChange = null,  
+  pendingContextChange = null,o  
   currentSessionId = null,
     currentUserId = null,
     currentBotId = "default_bot",
@@ -127,7 +127,9 @@ function chatApp() {
             this.applyTheme();
           }
         });
-        messageInputEl.focus();
+        if (messageInputEl) {
+          messageInputEl.focus();
+        }
 
         // UI event listeners
         document.addEventListener('click', (e) => {

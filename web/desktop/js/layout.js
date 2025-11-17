@@ -12,6 +12,19 @@ function getBasePath() {
   // with the Actix static file configuration.
   return '/';
 }
+
+// Preload chat CSS to avoid flash on first load
+function preloadChatCSS() {
+  const chatCssPath = getBasePath() + 'chat/chat.css';
+  const existing = document.querySelector(`link[href="${chatCssPath}"]`);
+  if (!existing) {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = chatCssPath;
+    document.head.appendChild(link);
+  }
+}
+
 async function loadSectionHTML(path) {
   const fullPath = getBasePath() + path;
   const response = await fetch(fullPath);
@@ -27,6 +40,11 @@ async function switchSection(section) {
     console.log('Loading section:', section, 'from', htmlPath);
     // Resolve CSS path relative to the base directory.
     const cssPath = getBasePath() + htmlPath.replace('.html', '.css');
+
+    // Preload chat CSS if the target is chat
+    if (section === 'chat') {
+      preloadChatCSS();
+    }
 
     // Remove any existing section CSS
     document.querySelectorAll('link[data-section-css]').forEach(link => link.remove());
@@ -85,8 +103,12 @@ async function switchSection(section) {
       container.appendChild(wrapper);
       sectionCache[section] = wrapper;
 
-      // Ensure the new section is visible
-      wrapper.style.display = 'block';
+      // Ensure the new section is visible with a fast GSAP fade-in
+      gsap.fromTo(
+        wrapper,
+        { opacity: 0 },
+        { opacity: 1, duration: 0.15, ease: 'power2.out' }
+      );
     }
 
     // Then load JS after HTML is inserted (skip if already loaded)
@@ -101,6 +123,10 @@ async function switchSection(section) {
     }
     window.history.pushState({}, '', `#${section}`);
     Alpine.initTree(mainContent);
+    const inputEl = document.getElementById('messageInput');
+    if (inputEl) {
+      inputEl.focus();
+    }
   } catch (err) {
     console.error('Error loading section:', err);
     mainContent.innerHTML = `<div class="error">Failed to load ${section} section</div>`;
@@ -126,8 +152,8 @@ function getInitialSection() {
       section = match[1].toLowerCase();
     }
   }
-  // Default to drive if nothing matches
-  return section || 'drive';
+  // Default to chat if nothing matches
+  return section || 'chat';
 }
 window.addEventListener('DOMContentLoaded', () => {
   switchSection(getInitialSection());
