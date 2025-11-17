@@ -14,32 +14,19 @@ async fn index() -> Result<HttpResponse> {
     }
 }
 
-#[actix_web::get("/{botname}")]
-async fn bot_index(req: HttpRequest) -> Result<HttpResponse> {
-    let botname = req.match_info().query("botname");
-    debug!("Serving bot interface for: {}", botname);
-    match fs::read_to_string("web/desktop/index.html") {
+async fn serve_html(path: &str) -> Result<HttpResponse> {
+    match fs::read_to_string(format!("web/desktop/{}", path)) {
         Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
         Err(e) => {
-            error!("Failed to load index page for bot {}: {}", botname, e);
-            Ok(HttpResponse::InternalServerError().body("Failed to load index page"))
+            error!("Failed to load page {}: {}", path, e);
+            Ok(HttpResponse::InternalServerError().body("Failed to load page"))
         }
     }
 }
 
 pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
     let static_path = Path::new("./web/desktop");
-    
-    // Serve all static files from desktop directory
-    cfg.service(
-        Files::new("/", static_path)
-            .index_file("index.html")
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-            .show_files_listing()
-    );
-    
+
     // Serve all JS files
     cfg.service(
         Files::new("/js", static_path.join("js"))
@@ -47,18 +34,43 @@ pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
             .use_last_modified(true)
             .use_etag(true)
     );
-    
-    // Serve all component directories
-    ["drive", "tasks", "mail"].iter().for_each(|dir| {
-        cfg.service(
-            Files::new(&format!("/{}", dir), static_path.join(dir))
-                .prefer_utf8(true)
-                .use_last_modified(true)
-                .use_etag(true)
-        );
-    });
-    
-    // Serve index routes
+
+    // Serve CSS files
+    cfg.service(
+        Files::new("/css", static_path.join("css"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+
+    cfg.service(
+        Files::new("/drive", static_path.join("drive"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+
+
+    cfg.service(
+        Files::new("/chat", static_path.join("chat"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+
+    cfg.service(
+        Files::new("/mail", static_path.join("mail"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+
+    cfg.service(
+        Files::new("/tasks", static_path.join("tasks"))
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
     cfg.service(index);
-    cfg.service(bot_index);
+
 }
