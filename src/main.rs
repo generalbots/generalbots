@@ -46,7 +46,6 @@ use crate::session::{create_session, get_session_history, get_sessions, start_se
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
-use crate::web_server::{bot_index};
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
     StartingBootstrap,
@@ -306,7 +305,6 @@ async fn main() -> std::io::Result<()> {
                         .wrap(Logger::default())
                         .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
                         .app_data(web::Data::from(app_state_clone))
-                        .configure(web_server::configure_app)
                         .service(auth_handler)
                         .service(create_session)
                         .service(get_session_history)
@@ -332,7 +330,8 @@ async fn main() -> std::io::Result<()> {
                             .service(save_draft)
                             .service(save_click);
                     }
-                    app = app.service(bot_index);
+                    app = app.configure(web_server::configure_app);
+
                     app
                 })
                 .workers(worker_count)
