@@ -14,15 +14,6 @@ async fn index() -> Result<HttpResponse> {
     }
 }
 
-async fn serve_html(path: &str) -> Result<HttpResponse> {
-    match fs::read_to_string(format!("web/desktop/{}", path)) {
-        Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
-        Err(e) => {
-            error!("Failed to load page {}: {}", path, e);
-            Ok(HttpResponse::InternalServerError().body("Failed to load page"))
-        }
-    }
-}
 
 pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
     let static_path = Path::new("./web/desktop");
@@ -50,7 +41,6 @@ pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
             .use_etag(true)
     );
 
-
     cfg.service(
         Files::new("/chat", static_path.join("chat"))
             .prefer_utf8(true)
@@ -71,6 +61,15 @@ pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
             .use_last_modified(true)
             .use_etag(true)
     );
-    cfg.service(index);
 
+    // Fallback: serve index.html for any other path to enable SPA routing
+    cfg.service(
+        Files::new("/", static_path)
+            .index_file("index.html")
+            .prefer_utf8(true)
+            .use_last_modified(true)
+            .use_etag(true)
+    );
+
+    cfg.service(index);
 }

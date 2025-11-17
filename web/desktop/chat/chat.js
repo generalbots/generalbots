@@ -2,7 +2,8 @@ function chatApp() {
 
   // Core state variables (shared via closure)
   let ws = null,
-    currentSessionId = null,
+  pendingContextChange = null,  
+  currentSessionId = null,
     currentUserId = null,
     currentBotId = "default_bot",
     isStreaming = false,
@@ -29,7 +30,7 @@ function chatApp() {
   const maxReconnectAttempts = 5;
 
   // DOM references (cached for performance)
-  let messagesDiv, input, sendBtn, voiceBtn, connectionStatus, flashOverlay, suggestionsContainer, floatLogo, sidebar, themeBtn, scrollToBottomBtn, contextIndicator, contextPercentage, contextProgressBar, sidebarTitle;
+  let messagesDiv, messageInputEl, sendBtn, voiceBtn, connectionStatus, flashOverlay, suggestionsContainer, floatLogo, sidebar, themeBtn, scrollToBottomBtn, contextIndicator, contextPercentage, contextProgressBar, sidebarTitle;
 
   marked.setOptions({ breaks: true, gfm: true });
 
@@ -98,10 +99,11 @@ function chatApp() {
     // Lifecycle / event handlers
     // ----------------------------------------------------------------------
     init() {
-      document.addEventListener('ready', () => {
+      window.addEventListener('load', () => {
         // Assign DOM elements after the document is ready
         messagesDiv = document.getElementById("messages");
-        input = document.getElementById("messageInput");
+        
+        messageInputEl = document.getElementById("messageInput");
         sendBtn = document.getElementById("sendBtn");
         voiceBtn = document.getElementById("voiceBtn");
         connectionStatus = document.getElementById("connectionStatus");
@@ -125,13 +127,11 @@ function chatApp() {
             this.applyTheme();
           }
         });
-        input.focus();
+        messageInputEl.focus();
 
         // UI event listeners
         document.addEventListener('click', (e) => {
-          if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !floatLogo.contains(e.target)) {
-            sidebar.classList.remove('open');
-          }
+          
         });
 
         messagesDiv.addEventListener('scroll', () => {
@@ -150,7 +150,7 @@ function chatApp() {
         });
 
         sendBtn.onclick = () => this.sendMessage();
-        input.addEventListener("keypress", e => { if (e.key === "Enter") this.sendMessage(); });
+        messageInputEl.addEventListener("keypress", e => { if (e.key === "Enter") this.sendMessage(); });
         window.addEventListener("focus", () => {
           if (!ws || ws.readyState !== WebSocket.OPEN) {
             this.connectWebSocket();
@@ -195,7 +195,6 @@ function chatApp() {
         currentUserId = a.user_id;
         currentSessionId = a.session_id;
         this.connectWebSocket();
-        this.loadSessions();
       } catch (e) {
         console.error("Failed to initialize auth:", e);
         this.updateConnectionStatus("disconnected");
@@ -247,7 +246,6 @@ function chatApp() {
     switchSession(s) {
       currentSessionId = s;
       hasReceivedInitialMessage = false;
-      this.loadSessionHistory(s);
       this.connectWebSocket();
       if (isVoiceMode) {
         this.startVoiceSession();
@@ -255,24 +253,6 @@ function chatApp() {
       sidebar.classList.remove('open');
     },
 
-    async loadSessionHistory(s) {
-      try {
-        const r = await fetch(`http://localhost:8080/api/sessions/${s}`);
-        const h = await r.json();
-        const m = document.getElementById("messages");
-        m.innerHTML = "";
-        if (h.length === 0) {
-          this.updateContextUsage(0);
-        } else {
-          h.forEach(([role, content]) => {
-            this.addMessage(role, content, false);
-          });
-          this.updateContextUsage(h.length / 20);
-        }
-      } catch (e) {
-        console.error("Failed to load session history:", e);
-      }
-    },
 
     connectWebSocket() {
       if (ws) {
@@ -526,7 +506,7 @@ function chatApp() {
         const b = document.createElement('button');
         b.textContent = v.text;
         b.className = 'suggestion-button';
-        b.onclick = () => { this.setContext(v.context); input.value = ''; };
+        b.onclick = () => { this.setContext(v.context); messageInputEl.value = ''; };
         suggestionsContainer.appendChild(b);
       });
     },
@@ -535,7 +515,8 @@ function chatApp() {
       try {
         const t = event?.target?.textContent || c;
         this.addMessage("user", t);
-        input.value = '';
+        messageInputEl.value = '';
+messageInputEl.value = '';
         if (ws && ws.readyState === WebSocket.OPEN) {
           pendingContextChange = new Promise(r => {
             const h = e => {
@@ -566,7 +547,7 @@ function chatApp() {
         await pendingContextChange;
         pendingContextChange = null;
       }
-      const m = input.value.trim();
+      const m = messageInputEl.value.trim();
       if (!m || !ws || ws.readyState !== WebSocket.OPEN) {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
           this.showWarning("Conexão não disponível. Tentando reconectar...");
@@ -580,8 +561,8 @@ function chatApp() {
       this.addMessage("user", m);
       const d = { bot_id: currentBotId, user_id: currentUserId, session_id: currentSessionId, channel: "web", content: m, message_type: 1, media_url: null, timestamp: new Date().toISOString() };
       ws.send(JSON.stringify(d));
-      input.value = "";
-      input.focus();
+      messageInputEl.value = "";
+      messageInputEl.focus();
     },
 
     async toggleVoiceMode() {
