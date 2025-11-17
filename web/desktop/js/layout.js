@@ -2,6 +2,7 @@ const sections = {
   drive: 'drive/drive.html',
   tasks: 'tasks/tasks.html',
   mail: 'mail/mail.html',
+  chat: 'chat/chat.html',
   dashboard: 'dashboard/dashboard.html',
   editor: 'editor/editor.html',
   player: 'player/player.html',

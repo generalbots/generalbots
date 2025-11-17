@@ -10,6 +10,9 @@
 <body>
   <nav x-data="{ current: 'drive' }">
     <div class="logo">⚡ General Bots</div>
+    <a href="#chat" @click.prevent="current = 'chat'; window.switchSection('chat')" 
+       :class="{ active: current === 'chat' }">💬 Chat</a>
+    
     <a href="#drive" @click.prevent="current = 'drive'; window.switchSection('drive')" 
        :class="{ active: current === 'drive' }">📁 Drive</a>
     <a href="#tasks" @click.prevent="current = 'tasks'; window.switchSection('tasks')" 

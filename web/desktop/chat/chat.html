@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8"/>
+<title>General Bots Chat</title>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="stylesheet" href="chat.css">
+</head>
+<body>
+<div class="connection-status connecting" id="connectionStatus"></div>
+<div class="flash-overlay" id="flashOverlay"></div>
+<div class="float-menu">
+<div class="float-logo" id="floatLogo" title="Menu"></div>
+<div class="menu-button" id="themeBtn" title="Theme">⚙</div>
+</div>
+<div class="sidebar" id="sidebar">
+<div class="sidebar-header">
+<div class="sidebar-logo"></div>
+<div class="sidebar-title" id="sidebarTitle">General Bots Chat</div>
+</div>
+<button class="sidebar-button" id="voiceToggle" onclick="toggleVoiceMode()">🎤 Voice Mode</button>
+<div class="history-section">
+<div class="history-title">History</div>
+<div id="history"></div>
+</div>
+</div>
+
+<!-- Chat layout analogous to Drive layout -->
+<div class="chat-layout" x-data="chatApp()" x-cloak>
+  <div class="panel chat-sidebar">
+    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
+      <h3>General Bots Chat</h3>
+    </div>
+    <template x-for="item in navItems" :key="item.name">
+      <div class="nav-item"
+           :class="{ active: current === item.name }"
+           @click="current = item.name">
+        <span x-text="item.icon"></span>
+        <span x-text="item.name"></span>
+      </div>
+    </template>
+  </div>
+
+  <div class="panel chat-main">
+    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
+      <h2 x-text="current"></h2>
+      <input type="text" x-model="search" placeholder="Search chats..."
+             style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.375rem; color: #e2e8f0;">
+    </div>
+    <div class="chat-list">
+      <template x-for="chat in filteredChats" :key="chat.id">
+        <div class="chat-item"
+             :class="{ selected: selectedChat?.id === chat.id }"
+             @click="selectedChat = chat">
+          <span class="chat-icon" x-text="chat.icon"></span>
+          <div style="flex: 1;">
+            <div style="font-weight: 600;" x-text="chat.name"></div>
+            <div class="text-xs text-gray" x-text="chat.lastMessage"></div>
+          </div>
+          <div class="text-sm text-gray" x-text="chat.time"></div>
+        </div>
+      </template>
+    </div>
+  </div>
+
+  <div class="panel chat-details">
+    <template x-if="selectedChat">
+      <div style="padding: 2rem;">
+        <div style="text-align: center; margin-bottom: 2rem;">
+          <div style="font-size: 4rem; margin-bottom: 1rem;" x-text="selectedChat.icon"></div>
+          <h3 x-text="selectedChat.name"></h3>
+          <p class="text-sm text-gray" x-text="selectedChat.status"></p>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <div class="text-sm" style="margin-bottom: 0.5rem;">Last Message</div>
+          <div class="text-gray" x-text="selectedChat.lastMessage"></div>
+        </div>
+        <div style="margin-bottom: 1rem;">
+          <div class="text-sm" style="margin-bottom: 0.5rem;">Time</div>
+          <div class="text-gray" x-text="selectedChat.time"></div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
+          <button style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Reply</button>
+          <button style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Close</button>
+        </div>
+      </div>
+    </template>
+    <template x-if="!selectedChat">
+      <div style="padding: 2rem; text-align: center; color: #64748b;">
+        <div style="font-size: 4rem; margin-bottom: 1rem;">💬</div>
+        <p>Select a chat to view details</p>
+      </div>
+    </template>
+  </div>
+</div>
+
+<footer>
+<div class="suggestions-container" id="suggestions"></div>
+<div class="input-container">
+<input id="messageInput" type="text" placeholder="Message..." autofocus/>
+<button id="voiceBtn" title="Voice">🎤</button>
+<button id="sendBtn" title="Send">↑</button>
+</div>
+</footer>
+
+<script src="chat.js"></script>
+</body>
+</html>
