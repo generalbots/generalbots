@@ -6,9 +6,16 @@ const sections = {
 };
 const sectionCache = {};
 
+function getBasePath() {
+  // All static assets (HTML, CSS, JS) are served from the site root.
+  // Returning a leading slash ensures URLs like "/drive/drive.html" resolve correctly
+  // with the Actix static file configuration.
+  return '/';
+}
 async function loadSectionHTML(path) {
-  const response = await fetch(path);
-  if (!response.ok) throw new Error('Failed to load section');
+  const fullPath = getBasePath() + path;
+  const response = await fetch(fullPath);
+  if (!response.ok) throw new Error('Failed to load section: ' + fullPath);
   return await response.text();
 }
 
@@ -18,7 +25,8 @@ async function switchSection(section) {
   try {
     const htmlPath = sections[section];
     console.log('Loading section:', section, 'from', htmlPath);
-    const cssPath = htmlPath.replace('.html', '.css');
+    // Resolve CSS path relative to the base directory.
+    const cssPath = getBasePath() + htmlPath.replace('.html', '.css');
 
     // Remove any existing section CSS
     document.querySelectorAll('link[data-section-css]').forEach(link => link.remove());
@@ -82,7 +90,8 @@ async function switchSection(section) {
     }
 
     // Then load JS after HTML is inserted (skip if already loaded)
-    const jsPath = htmlPath.replace('.html', '.js');
+    // Resolve JS path relative to the base directory.
+    const jsPath = getBasePath() + htmlPath.replace('.html', '.js');
     const existingScript = document.querySelector(`script[src="${jsPath}"]`);
     if (!existingScript) {
       const script = document.createElement('script');
@@ -99,13 +108,32 @@ async function switchSection(section) {
 }
 
 // Handle initial load based on URL hash
+function getInitialSection() {
+  // 1️⃣ Prefer hash fragment (e.g., #chat)
+  let section = window.location.hash.substring(1);
+  // 2️⃣ Fallback to pathname segments (e.g., /chat)
+  if (!section) {
+    const parts = window.location.pathname.split('/').filter(p => p);
+    const last = parts[parts.length - 1];
+    if (['drive', 'tasks', 'mail', 'chat'].includes(last)) {
+      section = last;
+    }
+  }
+  // 3️⃣ As a last resort, inspect the full URL for known sections
+  if (!section) {
+    const match = window.location.href.match(/\/(drive|tasks|mail|chat)(?:\.html)?(?:[?#]|$)/i);
+    if (match) {
+      section = match[1].toLowerCase();
+    }
+  }
+  // Default to drive if nothing matches
+  return section || 'drive';
+}
 window.addEventListener('DOMContentLoaded', () => {
-  const initialSection = window.location.hash.substring(1) || 'drive';
-  switchSection(initialSection);
+  switchSection(getInitialSection());
 });
 
 // Handle browser back/forward navigation
 window.addEventListener('popstate', () => {
-  const section = window.location.hash.substring(1) || 'drive';
-  switchSection(section);
+  switchSection(getInitialSection());
 });
