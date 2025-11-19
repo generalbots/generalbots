@@ -1,6 +1,6 @@
 use actix_files::Files;
-use actix_web::{HttpRequest, HttpResponse, Result};
-use log::{debug, error};
+use actix_web::{HttpResponse, Result};
+use log::error;
 use std::{fs, path::Path};
 
 #[actix_web::get("/")]

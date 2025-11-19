@@ -6,11 +6,12 @@ use dotenvy::dotenv;
 use log::{error, info};
 use std::collections::HashMap;
 use std::sync::Arc;
+
 mod auth;
 mod automation;
 mod basic;
 mod bootstrap;
-mod bot; 
+mod bot;
 mod channels;
 mod config;
 mod context;
@@ -28,6 +29,7 @@ mod shared;
 pub mod tests;
 mod ui_tree;
 mod web_server;
+
 use crate::auth::auth_handler;
 use crate::automation::AutomationService;
 use crate::bootstrap::BootstrapManager;
@@ -46,6 +48,7 @@ use crate::session::{create_session, get_session_history, get_sessions, start_se
 use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
+
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
     StartingBootstrap,
@@ -57,6 +60,59 @@ pub enum BootstrapProgress {
     BootstrapComplete,
     BootstrapError(String),
 }
+
+
+async fn run_http_server(
+    app_state: Arc<AppState>,
+    port: u16,
+    worker_count: usize,
+) -> std::io::Result<()> {
+    HttpServer::new(move || {
+        let cors = Cors::default()
+            .allow_any_origin()
+            .allow_any_method()
+            .allow_any_header()
+            .max_age(3600);
+
+        let mut app = App::new()
+            .wrap(cors)
+            .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
+            .app_data(web::Data::from(app_state.clone()))
+            .service(auth_handler)
+            .service(create_session)
+            .service(get_session_history)
+            .service(get_sessions)
+            .service(start_session)
+            .service(upload_file)
+            .service(voice_start)
+            .service(voice_stop)
+            .service(websocket_handler)
+            .service(crate::bot::create_bot_handler)
+            .service(crate::bot::mount_bot_handler)
+            .service(crate::bot::handle_user_input_handler)
+            .service(crate::bot::get_user_sessions_handler)
+            .service(crate::bot::get_conversation_history_handler)
+            .service(crate::bot::send_warning_handler);
+
+        #[cfg(feature = "email")]
+        {
+            app = app
+                .service(get_latest_email_from)
+                .service(get_emails)
+                .service(list_emails)
+                .service(send_email)
+                .service(save_draft)
+                .service(save_click);
+        }
+
+        app.configure(web_server::configure_app)
+    })
+        .workers(worker_count)
+        .bind(("0.0.0.0", port))?
+        .run()
+        .await
+}
+
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
@@ -68,21 +124,22 @@ async fn main() -> std::io::Result<()> {
 
     use crate::llm::local::ensure_llama_servers_running;
     use botserver::config::ConfigManager;
+
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
     let desktop_mode = args.contains(&"--desktop".to_string());
+
     dotenv().ok();
+
     let (progress_tx, progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
-    let (http_tx, http_rx) = tokio::sync::oneshot::channel();
 
-
-    let args: Vec<String> = std::env::args().collect();
+    // Handle CLI commands
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
-            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
-            | "-h" => match package_manager::cli::run().await {
+            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart"
+            | "--help" | "-h" => match package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     eprintln!("CLI error: {}", e);
@@ -92,69 +149,78 @@ async fn main() -> std::io::Result<()> {
                     ));
                 }
             },
-            _ => {
-            }
+            _ => {}
         }
     }
 
-
-    if !no_ui {
+    // Start UI thread if not in no-ui mode and not in desktop mode
+    let ui_handle = if !no_ui && !desktop_mode {
         let progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
         let state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
-        let handle = std::thread::Builder::new()
-            .name("ui-thread".to_string())
-            .spawn(move || {
-                let mut ui = crate::ui_tree::XtreeUI::new();
-                ui.set_progress_channel(progress_rx.clone());
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build()
-                    .expect("Failed to create UI runtime");
-                rt.block_on(async {
-                    tokio::select! {
-                        result = async {
-                            let mut rx = state_rx.lock().await;
-                            rx.recv().await
-                        } => {
-                            if let Some(app_state) = result {
-                                ui.set_app_state(app_state);
+
+        Some(
+            std::thread::Builder::new()
+                .name("ui-thread".to_string())
+                .spawn(move || {
+                    let mut ui = crate::ui_tree::XtreeUI::new();
+                    ui.set_progress_channel(progress_rx.clone());
+
+                    let rt = tokio::runtime::Builder::new_current_thread()
+                        .enable_all()
+                        .build()
+                        .expect("Failed to create UI runtime");
+
+                    rt.block_on(async {
+                        tokio::select! {
+                            result = async {
+                                let mut rx = state_rx.lock().await;
+                                rx.recv().await
+                            } => {
+                                if let Some(app_state) = result {
+                                    ui.set_app_state(app_state);
+                                }
+                            }
+                            _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
+                                eprintln!("UI initialization timeout");
                             }
                         }
-                        _ = http_rx => {}
-                        _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
-                            eprintln!("UI initialization timeout");
-                        }
+                    });
+
+                    if let Err(e) = ui.start_ui() {
+                        eprintln!("UI error: {}", e);
                     }
-                });
-                if let Err(e) = ui.start_ui() {
-                    eprintln!("UI error: {}", e);
-                }
-            })
-            .expect("Failed to spawn UI thread");
-        Some(handle)
+                })
+                .expect("Failed to spawn UI thread"),
+        )
     } else {
         env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
             .write_style(env_logger::WriteStyle::Always)
             .init();
         None
     };
+
     let install_mode = if args.contains(&"--container".to_string()) {
         InstallMode::Container
     } else {
         InstallMode::Local
     };
+
     let tenant = if let Some(idx) = args.iter().position(|a| a == "--tenant") {
         args.get(idx + 1).cloned()
     } else {
         None
     };
+
+    // Bootstrap
     let progress_tx_clone = progress_tx.clone();
     let cfg = {
         progress_tx_clone
             .send(BootstrapProgress::StartingBootstrap)
             .ok();
+
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
         let env_path = std::env::current_dir().unwrap().join(".env");
+
         let cfg = if env_path.exists() {
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
@@ -168,6 +234,7 @@ async fn main() -> std::io::Result<()> {
             progress_tx_clone
                 .send(BootstrapProgress::ConnectingDatabase)
                 .ok();
+
             match create_conn() {
                 Ok(pool) => AppConfig::from_database(&pool)
                     .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config")),
@@ -175,7 +242,6 @@ async fn main() -> std::io::Result<()> {
             }
         } else {
             _ = bootstrap.bootstrap().await;
-
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
                     "all services".to_string(),
@@ -195,6 +261,7 @@ async fn main() -> std::io::Result<()> {
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
+
         if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
             progress_tx_clone
                 .send(BootstrapProgress::BootstrapError(format!(
@@ -203,13 +270,18 @@ async fn main() -> std::io::Result<()> {
                 )))
                 .ok();
         }
+
         Ok::<AppConfig, std::io::Error>(cfg)
     };
+
     let cfg = cfg?;
     dotenv().ok();
+
     let refreshed_cfg = AppConfig::from_env().expect("Failed to load config from env");
     let config = std::sync::Arc::new(refreshed_cfg.clone());
+
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
+
     let pool = match create_conn() {
         Ok(pool) => pool,
         Err(e) => {
@@ -226,8 +298,9 @@ async fn main() -> std::io::Result<()> {
             ));
         }
     };
-    let cache_url =
-        std::env::var("CACHE_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
+
+    let cache_url = std::env::var("CACHE_URL")
+        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -235,26 +308,34 @@ async fn main() -> std::io::Result<()> {
             None
         }
     };
+
     let web_adapter = Arc::new(WebChannelAdapter::new());
     let voice_adapter = Arc::new(VoiceAdapter::new());
+
     let drive = create_s3_operator(&config.drive)
         .await
         .expect("Failed to initialize Drive");
+
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
         pool.get().unwrap(),
         redis_client.clone(),
     )));
+
     let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new()));
     let config_manager = ConfigManager::new(pool.clone());
+
     let mut bot_conn = pool.get().expect("Failed to get database connection");
     let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
+
     let llm_url = config_manager
         .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
         .unwrap_or_else(|_| "http://localhost:8081".to_string());
+
     let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
         "empty".to_string(),
         Some(llm_url.clone()),
     ));
+
     let app_state = Arc::new(AppState {
         drive: Some(drive),
         config: Some(cfg.clone()),
@@ -276,116 +357,75 @@ async fn main() -> std::io::Result<()> {
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
     });
+
     state_tx.send(app_state.clone()).await.ok();
     progress_tx.send(BootstrapProgress::BootstrapComplete).ok();
+
     info!(
         "Starting HTTP server on {}:{}",
         config.server.host, config.server.port
     );
+
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
-    
-    let http_handle = {
-        let app_state = app_state.clone();
-        let config = config.clone();
-        let worker_count = worker_count;
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().expect("Failed to create HTTP runtime");
-            rt.block_on(async {
-                let server = HttpServer::new(move || {
-                    let cors = Cors::default()
-                        .allow_any_origin()
-                        .allow_any_method()
-                        .allow_any_header()
-                        .max_age(3600);
-                    let app_state_clone = app_state.clone();
-                    let mut app = App::new()
-                        .wrap(cors)
-                        .wrap(Logger::default())
-                        .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
-                        .app_data(web::Data::from(app_state_clone))
-                        .service(auth_handler)
-                        .service(create_session)
-                        .service(get_session_history)
-                        .service(get_sessions)
-                        .service(start_session)
-                        .service(upload_file)
-                        .service(voice_start)
-                        .service(voice_stop)
-                        .service(websocket_handler)
-                        .service(crate::bot::create_bot_handler)
-                        .service(crate::bot::mount_bot_handler)
-                        .service(crate::bot::handle_user_input_handler)
-                        .service(crate::bot::get_user_sessions_handler)
-                        .service(crate::bot::get_conversation_history_handler)
-                        .service(crate::bot::send_warning_handler);
-                    #[cfg(feature = "email")]
-                    {
-                        app = app
-                            .service(get_latest_email_from)
-                            .service(get_emails)
-                            .service(list_emails)
-                            .service(send_email)
-                            .service(save_draft)
-                            .service(save_click);
-                    }
-                    app = app.configure(web_server::configure_app);
 
-                    app
-                })
-                .workers(worker_count)
-                .bind((config.server.host.clone(), config.server.port))?
-                .run();
-                let _ = http_tx.send(());
-                server.await
-            })
-        })
-    };
-
+    // Mount bots
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
     tokio::spawn(async move {
         if let Err(e) = bot_orchestrator.mount_all_bots().await {
             error!("Failed to mount bots: {}", e);
         }
     });
+
+    // Start automation service
     let automation_state = app_state.clone();
-    std::thread::spawn(move || {
-        let rt = tokio::runtime::Builder::new_current_thread()
-            .enable_all()
-            .build()
-            .expect("Failed to create runtime for automation");
-        let local = tokio::task::LocalSet::new();
-        local.block_on(&rt, async move {
-            let automation = AutomationService::new(automation_state);
-            automation.spawn().await.ok();
-        });
+    tokio::spawn(async move {
+        let automation = AutomationService::new(automation_state);
+        automation.spawn().await.ok();
     });
+
+    // Start LLM servers
     let app_state_for_llm = app_state.clone();
     tokio::spawn(async move {
         if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
             error!("Failed to start LLM servers: {}", e);
         }
     });
+
+    // Handle desktop mode vs server mode
     #[cfg(feature = "desktop")]
     if desktop_mode {
-        // Tauri desktop mode
+        // For desktop mode: Run HTTP server in a separate thread with its own runtime
+        let app_state_for_server = app_state.clone();
+        let port = config.server.port;
+        
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Runtime::new().expect("Failed to create HTTP runtime");
+            rt.block_on(async move {
+                if let Err(e) = run_http_server(app_state_for_server, port, worker_count).await {
+                    error!("HTTP server error: {}", e);
+                }
+            });
+        });
+
+        // Run Tauri on main thread (GUI requires main thread)
         let tauri_app = tauri::Builder::default()
             .setup(|app| {
                 use tauri::WebviewWindowBuilder;
-
-                    match WebviewWindowBuilder::new(
-                        app,
-                        "main",
-                        tauri::WebviewUrl::App("index.html".into()),
-                    )
-                .build() {
+                match WebviewWindowBuilder::new(
+                    app,
+                    "main",
+                    tauri::WebviewUrl::App("index.html".into()),
+                )
+                .build()
+                {
                     Ok(_window) => Ok(()),
                     Err(e) if e.to_string().contains("WebviewLabelAlreadyExists") => {
                         log::warn!("Main window already exists, reusing existing window");
                         Ok(())
                     }
-                    Err(e) => Err(e.into())
+                    Err(e) => Err(e.into()),
                 }
             })
             .build(tauri::generate_context!())
@@ -397,9 +437,17 @@ async fn main() -> std::io::Result<()> {
             }
             _ => {}
         });
+
         return Ok(());
     }
 
-    http_handle.join().ok();
+    // Non-desktop mode: Run HTTP server directly
+    run_http_server(app_state, config.server.port, worker_count).await?;
+
+    // Wait for UI thread to finish if it was started
+    if let Some(handle) = ui_handle {
+        handle.join().ok();
+    }
+
     Ok(())
 }
