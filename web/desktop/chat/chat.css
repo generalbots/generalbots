@@ -618,7 +618,7 @@ footer {
 }
 /* Claude-style scrollbar - thin, subtle, always visible but more prominent on hover */
 #messages::-webkit-scrollbar {
-    width: 8px;
+    width: 12px;
 }
 #messages::-webkit-scrollbar-track {
     background: transparent;
@@ -646,7 +646,7 @@ footer {
 
 /* Fallback for other elements */
 ::-webkit-scrollbar {
-    width: 6px;
+    width: 10px;
 }
 ::-webkit-scrollbar-track {
     background: transparent;
