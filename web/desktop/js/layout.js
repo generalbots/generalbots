@@ -34,6 +34,20 @@ async function loadSectionHTML(path) {
 async function switchSection(section) {
   const mainContent = document.getElementById("main-content");
 
+  // Validate section exists
+  if (!sections[section]) {
+    console.warn(`Section "${section}" does not exist, defaulting to chat`);
+    section = "chat";
+  }
+
+  // Clean up any existing WebSocket connections from chat
+  if (
+    window.chatAppInstance &&
+    typeof window.chatAppInstance.cleanup === "function"
+  ) {
+    window.chatAppInstance.cleanup();
+  }
+
   try {
     const htmlPath = sections[section];
     console.log("Loading section:", section, "from", htmlPath);
@@ -78,6 +92,11 @@ async function switchSection(section) {
       });
       targetDiv.style.display = "block";
     } else {
+      // Remove any existing loading divs first
+      container.querySelectorAll(".loading").forEach((div) => {
+        div.remove();
+      });
+
       // Show loading placeholder inside the container
       const loadingDiv = document.createElement("div");
       loadingDiv.className = "loading";
@@ -95,14 +114,21 @@ async function switchSection(section) {
       // Hide any existing sections
       container.querySelectorAll(".section").forEach((div) => {
         div.style.display = "none";
+        // Dispatch a custom event to notify sections they're being hidden
+        div.dispatchEvent(new CustomEvent("section-hidden"));
       });
 
-      // Remove loading placeholder
-      container.removeChild(loadingDiv);
+      // Remove loading placeholder if it still exists
+      if (loadingDiv && loadingDiv.parentNode) {
+        container.removeChild(loadingDiv);
+      }
 
       // Add the new section to the container and cache it
       container.appendChild(wrapper);
       sectionCache[section] = wrapper;
+
+      // Dispatch a custom event to notify the section it's being shown
+      wrapper.dispatchEvent(new CustomEvent("section-shown"));
 
       // Ensure the new section is visible with a fast GSAP fade-in
       gsap.fromTo(
@@ -178,13 +204,27 @@ function getInitialSection() {
 window.addEventListener("DOMContentLoaded", () => {
   // Small delay to ensure all resources are loaded
   setTimeout(() => {
-    switchSection(getInitialSection());
+    const section = getInitialSection();
+    // Ensure valid section
+    if (!sections[section]) {
+      window.location.hash = "#chat";
+      switchSection("chat");
+    } else {
+      switchSection(section);
+    }
   }, 50);
 });
 
 // Handle browser back/forward navigation
 window.addEventListener("popstate", () => {
-  switchSection(getInitialSection());
+  const section = getInitialSection();
+  // Ensure valid section
+  if (!sections[section]) {
+    window.location.hash = "#chat";
+    switchSection("chat");
+  } else {
+    switchSection(section);
+  }
 });
 
 // Make switchSection globally accessible

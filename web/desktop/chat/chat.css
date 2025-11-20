@@ -199,7 +199,7 @@ body::before {
     top: 0;
     left: 50%;
     transform: translateX(-50%);
-    bottom: 100px;
+    bottom: 75px;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 80px 20px 40px;
@@ -208,6 +208,7 @@ body::before {
     z-index: 1;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
+    height: calc(100vh - 75px);
 }
 .message-container {
     margin-bottom: 24px;
@@ -322,7 +323,7 @@ footer {
     z-index: 100;
     transition: all 0.3s;
     backdrop-filter: blur(20px);
-    height: 90px;
+    height: 75px;
 }
 .suggestions-container {
     display: flex;
@@ -424,7 +425,7 @@ footer {
 }
 .scroll-to-bottom {
     position: fixed;
-    bottom: 80px;
+    bottom: 85px;
     right: 20px;
     width: 40px;
     height: 40px;
@@ -475,37 +476,6 @@ footer {
     background: var(--fg);
     color: var(--bg);
     transform: translateY(-2px);
-}
-.context-indicator {
-    position: fixed;
-    bottom: 130px;
-    right: 20px;
-    width: 120px;
-    border-radius: 12px;
-    padding: 10px;
-    font-size: 10px;
-    text-align: center;
-    z-index: 90;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    display: none;
-    backdrop-filter: blur(10px);
-}
-.context-indicator.visible {
-    display: block;
-}
-.context-progress {
-    height: 3px;
-    background: var(--glass);
-    border-radius: 2px;
-    margin-top: 6px;
-    overflow: hidden;
-}
-.context-progress-bar {
-    height: 100%;
-    background: var(--accent);
-    border-radius: 2px;
-    transition: width 0.3s;
 }
 .connection-status {
     position: fixed;
@@ -706,7 +676,8 @@ footer {
     #messages {
         padding: 80px 16px 40px;
         top: 0;
-        bottom: 100px;
+        bottom: 75px;
+        height: calc(100vh - 75px);
     }
     .float-menu {
         left: 12px;
@@ -721,12 +692,7 @@ footer {
     .scroll-to-bottom {
         width: 36px;
         height: 36px;
-        bottom: 70px;
+        bottom: 85px;
         right: 12px;
-    }
-    .context-indicator {
-        bottom: 120px;
-        right: 12px;
-        width: 100px;
     }
 }

@@ -55,9 +55,6 @@ function chatApp() {
     sidebar,
     themeBtn,
     scrollToBottomBtn,
-    contextIndicator,
-    contextPercentage,
-    contextProgressBar,
     sidebarTitle;
 
   marked.setOptions({ breaks: true, gfm: true });
@@ -194,9 +191,6 @@ function chatApp() {
         sidebar = document.getElementById("sidebar");
         themeBtn = document.getElementById("themeBtn");
         scrollToBottomBtn = document.getElementById("scrollToBottom");
-        contextIndicator = document.getElementById("contextIndicator");
-        contextPercentage = document.getElementById("contextPercentage");
-        contextProgressBar = document.getElementById("contextProgressBar");
         sidebarTitle = document.getElementById("sidebarTitle");
 
         // Theme initialization and focus
@@ -248,14 +242,6 @@ function chatApp() {
         // Initialize auth only once
         this.initializeAuth();
       });
-    },
-
-    updateContextUsage(u) {
-      contextUsage = u;
-      const p = Math.min(100, Math.round(u * 100));
-      contextPercentage.textContent = `${p}%`;
-      contextProgressBar.style.width = `${p}%`;
-      contextIndicator.classList.remove("visible");
     },
 
     flashScreen() {
@@ -355,7 +341,6 @@ function chatApp() {
         this.loadSessions();
         messagesDiv.innerHTML = "";
         this.clearSuggestions();
-        this.updateContextUsage(0);
         if (isVoiceMode) {
           await this.stopVoiceSession();
           isVoiceMode = false;
@@ -469,9 +454,6 @@ function chatApp() {
         return;
       }
 
-      if (r.context_usage !== undefined) {
-        this.updateContextUsage(r.context_usage);
-      }
       if (r.suggestions && r.suggestions.length > 0) {
         this.handleSuggestions(r.suggestions);
       }
@@ -516,7 +498,7 @@ function chatApp() {
           this.showWarning(d.message);
           break;
         case "context_usage":
-          this.updateContextUsage(d.usage);
+          // Context usage removed
           break;
         case "change_theme":
           if (d.color1) themeColor1 = d.color1;
@@ -632,10 +614,8 @@ function chatApp() {
       m.className = "message-container";
       if (role === "user") {
         m.innerHTML = `<div class="user-message"><div class="user-message-content">${this.escapeHtml(content)}</div></div>`;
-        this.updateContextUsage(contextUsage + 0.05);
       } else if (role === "assistant") {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content markdown-content" id="${msgId || ""}">${streaming ? "" : marked.parse(content)}</div></div>`;
-        this.updateContextUsage(contextUsage + 0.03);
       } else if (role === "voice") {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar">🎤</div><div class="assistant-message-content">${content}</div></div>`;
       } else {
@@ -728,10 +708,6 @@ function chatApp() {
             ws.send(JSON.stringify(s));
           });
           await pendingContextChange;
-          const x = document.getElementById("contextIndicator");
-          if (x) {
-            document.getElementById("contextPercentage").textContent = c;
-          }
         } else {
           console.warn("WebSocket não está conectado. Tentando reconectar...");
           this.connectWebSocket();
@@ -948,7 +924,6 @@ function chatApp() {
     toggleSidebar: toggleSidebar,
     toggleTheme: toggleTheme,
     applyTheme: applyTheme,
-    updateContextUsage: updateContextUsage,
     flashScreen: flashScreen,
     updateConnectionStatus: updateConnectionStatus,
     getWebSocketUrl: getWebSocketUrl,
@@ -979,6 +954,16 @@ function chatApp() {
     startVoiceRecording: startVoiceRecording,
     simulateVoiceTranscription: simulateVoiceTranscription,
     scrollToBottom: scrollToBottom,
+    cleanup: function () {
+      // Cleanup WebSocket connection
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+      // Clear any pending timeouts/intervals
+      isConnecting = false;
+      isInitialized = false;
+    },
   };
 
   // Cache and return the singleton instance
@@ -988,3 +973,14 @@ function chatApp() {
 
 // Initialize the app
 chatApp().init();
+
+// Listen for section changes to cleanup when leaving chat
+document.addEventListener("section-hidden", function (e) {
+  if (
+    e.target.id === "section-chat" &&
+    chatAppInstance &&
+    chatAppInstance.cleanup
+  ) {
+    chatAppInstance.cleanup();
+  }
+});
