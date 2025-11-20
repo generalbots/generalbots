@@ -11,41 +11,42 @@
     </head>
 
     <body>
-        <nav x-data="{ current: 'chat' }">
+        <nav id="main-nav">
             <div class="logo">⚡ General Bots</div>
-            <a
-                href="#chat"
-                @click.prevent="current = 'chat'; window.switchSection('chat')"
-                :class="{ active: current === 'chat' }"
+            <a href="#chat" class="nav-link active" data-section="chat"
                 >💬 Chat</a
             >
-
-            <a
-                href="#drive"
-                @click.prevent="current = 'drive'; window.switchSection('drive')"
-                :class="{ active: current === 'drive' }"
-                >📁 Drive</a
-            >
-            <a
-                href="#tasks"
-                @click.prevent="current = 'tasks'; window.switchSection('tasks')"
-                :class="{ active: current === 'tasks' }"
-                >✓ Tasks</a
-            >
-            <a
-                href="#mail"
-                @click.prevent="current = 'mail'; window.switchSection('mail')"
-                :class="{ active: current === 'mail' }"
-                >✉ Mail</a
-            >
+            <a href="#drive" class="nav-link" data-section="drive">📁 Drive</a>
+            <a href="#tasks" class="nav-link" data-section="tasks">✓ Tasks</a>
+            <a href="#mail" class="nav-link" data-section="mail">✉ Mail</a>
         </nav>
 
         <div id="main-content">
             <!-- Sections will be loaded dynamically -->
         </div>
 
-        <!-- Load Layout Script first, then Alpine - module scripts are loaded dynamically -->
+        <!-- Load scripts -->
         <script src="js/layout.js"></script>
-        <script src="js/alpine.js"></script>
+        <script>
+            // Simple navigation state management without Alpine
+            document.addEventListener("DOMContentLoaded", () => {
+                const nav = document.getElementById("main-nav");
+                const links = nav.querySelectorAll(".nav-link");
+
+                links.forEach((link) => {
+                    link.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const section = link.dataset.section;
+
+                        // Update active state
+                        links.forEach((l) => l.classList.remove("active"));
+                        link.classList.add("active");
+
+                        // Switch section
+                        window.switchSection(section);
+                    });
+                });
+            });
+        </script>
     </body>
 </html>

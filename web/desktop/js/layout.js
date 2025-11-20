@@ -132,7 +132,15 @@ async function switchSection(section) {
     }
 
     window.history.pushState({}, "", `#${section}`);
-    Alpine.initTree(mainContent);
+
+    // Start Alpine on first load, then just init the tree for new sections
+    if (typeof window.startAlpine === "function") {
+      window.startAlpine();
+      delete window.startAlpine;
+    } else if (window.Alpine) {
+      window.Alpine.initTree(mainContent);
+    }
+
     const inputEl = document.getElementById("messageInput");
     if (inputEl) {
       inputEl.focus();
