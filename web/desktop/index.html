@@ -295,18 +295,35 @@
     </head>
 
     <body>
+        <!-- Loading overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+        </div>
+
         <!-- Minimal floating header -->
         <div class="float-header">
             <!-- Left: General Bots logo -->
             <div class="header-left">
-                <div class="logo-wrapper" onclick="window.location.reload()">
+                <div
+                    class="logo-wrapper"
+                    onclick="window.location.reload()"
+                    title="General Bots"
+                >
                     <div class="logo-icon"></div>
+                    <span class="logo-text">General Bots</span>
                 </div>
             </div>
 
-            <!-- Right: Apps menu and user avatar -->
+            <!-- Right: Theme selector, Theme toggle, Apps menu and user avatar -->
             <div class="header-right">
-                <button class="apps-menu-btn" id="appsMenuBtn" title="Apps">
+                <!-- Theme dropdown selector -->
+                <div id="themeSelectorContainer"></div>
+
+                <button
+                    class="icon-button apps-button"
+                    id="appsButton"
+                    title="Apps"
+                >
                     <svg
                         width="24"
                         height="24"
@@ -324,7 +341,9 @@
                         <circle cx="19" cy="19" r="2"></circle>
                     </svg>
                 </button>
+                <!-- Apps dropdown -->
                 <div class="apps-dropdown" id="appsDropdown">
+                    <div class="apps-dropdown-title">Applications</div>
                     <div class="app-grid">
                         <a
                             class="app-item active"
@@ -339,7 +358,7 @@
                             <span>Drive</span>
                         </a>
                         <a class="app-item" href="#tasks" data-section="tasks">
-                            <div class="app-icon">✔</div>
+                            <div class="app-icon">✓</div>
                             <span>Tasks</span>
                         </a>
                         <a class="app-item" href="#mail" data-section="mail">
@@ -348,6 +367,8 @@
                         </a>
                     </div>
                 </div>
+
+                <!-- User avatar -->
                 <div class="user-avatar" id="userAvatar" title="User Account">
                     <span>U</span>
                 </div>
@@ -359,13 +380,24 @@
         </div>
 
         <!-- Load scripts -->
+        <script src="js/theme-manager.js"></script>
         <script src="js/layout.js"></script>
         <script>
-            // Apps menu toggle
+            // Initialize ThemeManager and Apps menu
             document.addEventListener("DOMContentLoaded", () => {
-                const appsBtn = document.getElementById("appsMenuBtn");
+                // Initialize ThemeManager
+                if (window.ThemeManager) {
+                    ThemeManager.init();
+                }
+
+                const appsBtn = document.getElementById("appsButton");
                 const appsDropdown = document.getElementById("appsDropdown");
                 const appItems = document.querySelectorAll(".app-item");
+
+                if (!appsBtn || !appsDropdown) {
+                    console.error("Apps button or dropdown not found");
+                    return;
+                }
 
                 // Toggle apps menu
                 appsBtn.addEventListener("click", (e) => {
@@ -403,12 +435,14 @@
                     });
                 });
 
-                // Load default section (chat) after a short delay to ensure layout.js is loaded
+                // Hide loading overlay after layout.js initializes
                 setTimeout(() => {
-                    if (window.switchSection) {
-                        window.switchSection("chat");
+                    const loadingOverlay =
+                        document.getElementById("loadingOverlay");
+                    if (loadingOverlay) {
+                        loadingOverlay.classList.add("hidden");
                     }
-                }, 100);
+                }, 500);
             });
         </script>
     </body>

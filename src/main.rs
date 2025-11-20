@@ -137,6 +137,7 @@ async fn run_axum_server(
         // Static file services must come first to match before other routes
         .nest_service("/js", ServeDir::new(static_path.join("js")))
         .nest_service("/css", ServeDir::new(static_path.join("css")))
+        .nest_service("/public", ServeDir::new(static_path.join("public")))
         .nest_service("/drive", ServeDir::new(static_path.join("drive")))
         .nest_service("/chat", ServeDir::new(static_path.join("chat")))
         .nest_service("/mail", ServeDir::new(static_path.join("mail")))

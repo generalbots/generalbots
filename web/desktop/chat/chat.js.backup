@@ -177,7 +177,7 @@ function chatApp() {
       }
       isInitialized = true;
 
-      const initializeDOM = () => {
+      window.addEventListener("load", () => {
         // Assign DOM elements after the document is ready
         messagesDiv = document.getElementById("messages");
 
@@ -241,15 +241,7 @@ function chatApp() {
 
         // Initialize auth only once
         this.initializeAuth();
-      };
-
-      // Check if DOM is already loaded (for dynamic script loading)
-      if (document.readyState === "loading") {
-        window.addEventListener("load", initializeDOM);
-      } else {
-        // DOM is already loaded, initialize immediately
-        initializeDOM();
-      }
+      });
     },
 
     flashScreen() {
@@ -979,32 +971,8 @@ function chatApp() {
   return returnValue;
 }
 
-// Initialize the app - expose globally for dynamic loading
-window.chatAppInstance = chatApp();
-
-// Auto-initialize if we're already on the chat section
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", () => {
-    const hash = window.location.hash.substring(1);
-    if (hash === "chat" || hash === "" || !hash) {
-      window.chatAppInstance.init();
-    }
-  });
-} else {
-  // If script is loaded dynamically, section-shown event will trigger init
-  const chatSection = document.getElementById("section-chat");
-  if (chatSection) {
-    window.chatAppInstance.init();
-  }
-}
-
-// Listen for section being shown
-document.addEventListener("section-shown", function (e) {
-  if (e.target.id === "section-chat" && window.chatAppInstance) {
-    console.log("Chat section shown, initializing...");
-    window.chatAppInstance.init();
-  }
-});
+// Initialize the app
+chatApp().init();
 
 // Listen for section changes to cleanup when leaving chat
 document.addEventListener("section-hidden", function (e) {
