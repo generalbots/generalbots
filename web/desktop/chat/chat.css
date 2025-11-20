@@ -195,14 +195,16 @@ body::before {
     position: relative;
 }
 #messages {
-    flex: 1;
-    overflow-y: scroll;
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 100px;
+    overflow-y: auto;
     overflow-x: hidden;
-    padding: 20px 20px 140px;
+    padding: 80px 20px 40px;
     max-width: 680px;
-    margin: 0 auto;
     width: 100%;
-    position: relative;
     z-index: 1;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
@@ -320,6 +322,7 @@ footer {
     z-index: 100;
     transition: all 0.3s;
     backdrop-filter: blur(20px);
+    height: 90px;
 }
 .suggestions-container {
     display: flex;
@@ -617,47 +620,83 @@ footer {
     text-decoration: underline;
 }
 /* Claude-style scrollbar - thin, subtle, always visible but more prominent on hover */
-#messages::-webkit-scrollbar {
-    width: 12px;
+#messages {
+    /* Firefox scrollbar */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(128, 128, 128, 0.3) transparent;
 }
+
+[data-theme="dark"] #messages {
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+/* Webkit (Chrome, Safari, Edge) scrollbar */
+#messages::-webkit-scrollbar {
+    width: 14px;
+}
+
 #messages::-webkit-scrollbar-track {
     background: transparent;
 }
+
 #messages::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.2);
-    border-radius: 4px;
+    background: rgba(128, 128, 128, 0.3);
+    border-radius: 6px;
+    border: 3px solid transparent;
+    background-clip: padding-box;
     transition: background 0.2s;
 }
+
 #messages:hover::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.4);
+    background: rgba(128, 128, 128, 0.5);
+    background-clip: padding-box;
 }
+
 #messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 128, 128, 0.6);
+    background: rgba(128, 128, 128, 0.7);
+    background-clip: padding-box;
 }
+
 [data-theme="dark"] #messages::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.2);
+    background-clip: padding-box;
 }
+
 [data-theme="dark"] #messages:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.3);
+    background-clip: padding-box;
 }
+
 [data-theme="dark"] #messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.4);
+    background-clip: padding-box;
 }
 
 /* Fallback for other elements */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+}
+
 ::-webkit-scrollbar {
     width: 10px;
 }
+
 ::-webkit-scrollbar-track {
     background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
     background: var(--border);
-    border-radius: 3px;
+    border-radius: 5px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
 }
+
 ::-webkit-scrollbar-thumb:hover {
     background: var(--fg);
-    opacity: 0.3;
+    opacity: 0.5;
+    background-clip: padding-box;
 }
 @media (max-width: 768px) {
     .sidebar {
@@ -665,7 +704,9 @@ footer {
         left: -100%;
     }
     #messages {
-        padding: 20px 16px 140px;
+        padding: 80px 16px 40px;
+        top: 0;
+        bottom: 100px;
     }
     .float-menu {
         left: 12px;
