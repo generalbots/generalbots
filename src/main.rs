@@ -134,16 +134,19 @@ async fn run_axum_server(
     let static_path = std::path::Path::new("./web/desktop");
 
     let app = Router::new()
-        .route("/", get(crate::web_server::index))
-        .merge(api_router)
-        .with_state(app_state.clone())
+        // Static file services must come first to match before other routes
         .nest_service("/js", ServeDir::new(static_path.join("js")))
         .nest_service("/css", ServeDir::new(static_path.join("css")))
         .nest_service("/drive", ServeDir::new(static_path.join("drive")))
         .nest_service("/chat", ServeDir::new(static_path.join("chat")))
         .nest_service("/mail", ServeDir::new(static_path.join("mail")))
         .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
-        .fallback_service(ServeDir::new(static_path))
+        // API routes
+        .merge(api_router)
+        .with_state(app_state.clone())
+        // Root index route - only matches exact "/"
+        .route("/", get(crate::web_server::index))
+        // Layers
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
