@@ -1,11 +1,16 @@
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
-use actix_cors::Cors;
-use actix_web::middleware::Logger;
-use actix_web::{web, App, HttpServer};
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use dotenvy::dotenv;
 use log::{error, info};
 use std::collections::HashMap;
+use std::net::SocketAddr;
 use std::sync::Arc;
+use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
+use tower_http::trace::TraceLayer;
 
 mod auth;
 mod automation;
@@ -61,56 +66,97 @@ pub enum BootstrapProgress {
     BootstrapError(String),
 }
 
-
-async fn run_http_server(
+async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
-    worker_count: usize,
+    _worker_count: usize,
 ) -> std::io::Result<()> {
-    HttpServer::new(move || {
-        let cors = Cors::default()
-            .allow_any_origin()
-            .allow_any_method()
-            .allow_any_header()
-            .max_age(3600);
+    // CORS configuration
+    let cors = CorsLayer::new()
+        .allow_origin(tower_http::cors::Any)
+        .allow_methods(tower_http::cors::Any)
+        .allow_headers(tower_http::cors::Any)
+        .max_age(std::time::Duration::from_secs(3600));
 
-        let mut app = App::new()
-            .wrap(cors)
-            .wrap(Logger::new("HTTP REQUEST: %a %{User-Agent}i"))
-            .app_data(web::Data::from(app_state.clone()))
-            .service(auth_handler)
-            .service(create_session)
-            .service(get_session_history)
-            .service(get_sessions)
-            .service(start_session)
-            .service(upload_file)
-            .service(voice_start)
-            .service(voice_stop)
-            .service(websocket_handler)
-            .service(crate::bot::create_bot_handler)
-            .service(crate::bot::mount_bot_handler)
-            .service(crate::bot::handle_user_input_handler)
-            .service(crate::bot::get_user_sessions_handler)
-            .service(crate::bot::get_conversation_history_handler)
-            .service(crate::bot::send_warning_handler);
+    // Build API routes with State
+    let api_router = Router::new()
+        // Auth route
+        .route("/api/auth", get(auth_handler))
+        // Session routes
+        .route("/api/sessions", post(create_session))
+        .route("/api/sessions", get(get_sessions))
+        .route(
+            "/api/sessions/{session_id}/history",
+            get(get_session_history),
+        )
+        .route("/api/sessions/{session_id}/start", post(start_session))
+        // File routes
+        .route("/api/files/upload/{folder_path}", post(upload_file))
+        // Voice/Meet routes
+        .route("/api/voice/start", post(voice_start))
+        .route("/api/voice/stop", post(voice_stop))
+        // WebSocket route
+        .route("/ws", get(websocket_handler))
+        // Bot routes
+        .route("/api/bots", post(crate::bot::create_bot_handler))
+        .route(
+            "/api/bots/{bot_id}/mount",
+            post(crate::bot::mount_bot_handler),
+        )
+        .route(
+            "/api/bots/{bot_id}/input",
+            post(crate::bot::handle_user_input_handler),
+        )
+        .route(
+            "/api/bots/{bot_id}/sessions",
+            get(crate::bot::get_user_sessions_handler),
+        )
+        .route(
+            "/api/bots/{bot_id}/history",
+            get(crate::bot::get_conversation_history_handler),
+        )
+        .route(
+            "/api/bots/{bot_id}/warning",
+            post(crate::bot::send_warning_handler),
+        );
 
-        #[cfg(feature = "email")]
-        {
-            app = app
-                .service(get_latest_email_from)
-                .service(get_emails)
-                .service(list_emails)
-                .service(send_email)
-                .service(save_draft)
-                .service(save_click);
-        }
+    // Add email routes if feature is enabled
+    #[cfg(feature = "email")]
+    let api_router = api_router
+        .route("/api/email/latest", post(get_latest_email_from))
+        .route("/api/email/get/{campaign_id}", get(get_emails))
+        .route("/api/email/list", get(list_emails))
+        .route("/api/email/send", post(send_email))
+        .route("/api/email/draft", post(save_draft))
+        .route("/api/email/click/{campaign_id}/{email}", get(save_click));
 
-        app.configure(web_server::configure_app)
-    })
-        .workers(worker_count)
-        .bind(("0.0.0.0", port))?
-        .run()
+    // Build static file serving
+    let static_path = std::path::Path::new("./web/desktop");
+
+    let app = Router::new()
+        .route("/", get(crate::web_server::index))
+        .merge(api_router)
+        .with_state(app_state.clone())
+        .nest_service("/js", ServeDir::new(static_path.join("js")))
+        .nest_service("/css", ServeDir::new(static_path.join("css")))
+        .nest_service("/drive", ServeDir::new(static_path.join("drive")))
+        .nest_service("/chat", ServeDir::new(static_path.join("chat")))
+        .nest_service("/mail", ServeDir::new(static_path.join("mail")))
+        .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
+        .fallback_service(ServeDir::new(static_path))
+        .layer(cors)
+        .layer(TraceLayer::new_for_http());
+
+    // Bind to address
+    let addr = SocketAddr::from(([0, 0, 0, 0], port));
+    let listener = tokio::net::TcpListener::bind(addr).await?;
+
+    info!("HTTP server listening on {}", addr);
+
+    // Serve the app
+    axum::serve(listener, app.into_make_service())
         .await
+        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
 }
 
 #[tokio::main]
@@ -138,8 +184,8 @@ async fn main() -> std::io::Result<()> {
     if args.len() > 1 {
         let command = &args[1];
         match command.as_str() {
-            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart"
-            | "--help" | "-h" => match package_manager::cli::run().await {
+            "install" | "remove" | "list" | "status" | "start" | "stop" | "restart" | "--help"
+            | "-h" => match package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
                     eprintln!("CLI error: {}", e);
@@ -299,8 +345,8 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let cache_url = std::env::var("CACHE_URL")
-        .unwrap_or_else(|_| "redis://localhost:6379".to_string());
+    let cache_url =
+        std::env::var("CACHE_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -399,15 +445,33 @@ async fn main() -> std::io::Result<()> {
         // For desktop mode: Run HTTP server in a separate thread with its own runtime
         let app_state_for_server = app_state.clone();
         let port = config.server.port;
-        
+        let workers = worker_count; // Capture worker_count for the thread
+
+        info!(
+            "Desktop mode: Starting HTTP server on port {} in background thread",
+            port
+        );
+
         std::thread::spawn(move || {
+            info!("HTTP server thread started, initializing runtime...");
             let rt = tokio::runtime::Runtime::new().expect("Failed to create HTTP runtime");
             rt.block_on(async move {
-                if let Err(e) = run_http_server(app_state_for_server, port, worker_count).await {
+                info!(
+                    "HTTP server runtime created, starting axum server on port {}...",
+                    port
+                );
+                if let Err(e) = run_axum_server(app_state_for_server, port, workers).await {
                     error!("HTTP server error: {}", e);
+                    eprintln!("HTTP server error: {}", e);
+                } else {
+                    info!("HTTP server started successfully");
                 }
             });
         });
+
+        // Give the server thread a moment to start
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        info!("Launching Tauri desktop application...");
 
         // Run Tauri on main thread (GUI requires main thread)
         let tauri_app = tauri::Builder::default()
@@ -442,7 +506,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Non-desktop mode: Run HTTP server directly
-    run_http_server(app_state, config.server.port, worker_count).await?;
+    run_axum_server(app_state, config.server.port, worker_count).await?;
 
     // Wait for UI thread to finish if it was started
     if let Some(handle) = ui_handle {

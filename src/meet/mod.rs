@@ -1,11 +1,18 @@
-use actix_web::{web, HttpResponse, Result};
+use axum::{
+    extract::State,
+    http::StatusCode,
+    response::{IntoResponse, Json},
+};
 use log::{error, info};
+use serde_json::Value;
+use std::sync::Arc;
+
 use crate::shared::state::AppState;
-#[actix_web::post("/api/voice/start")]
-async fn voice_start(
-    data: web::Data<AppState>,
-    info: web::Json<serde_json::Value>,
-) -> Result<HttpResponse> {
+
+pub async fn voice_start(
+    State(data): State<Arc<AppState>>,
+    Json(info): Json<Value>,
+) -> impl IntoResponse {
     let session_id = info
         .get("session_id")
         .and_then(|s| s.as_str())
@@ -14,10 +21,12 @@ async fn voice_start(
         .get("user_id")
         .and_then(|u| u.as_str())
         .unwrap_or("user");
+
     info!(
         "Voice session start request - session: {}, user: {}",
         session_id, user_id
     );
+
     match data
         .voice_adapter
         .start_voice_session(session_id, user_id)
@@ -28,42 +37,53 @@ async fn voice_start(
                 "Voice session started successfully for session {}",
                 session_id
             );
-            Ok(HttpResponse::Ok().json(serde_json::json!({"token": token, "status": "started"})))
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"token": token, "status": "started"})),
+            )
         }
         Err(e) => {
             error!(
                 "Failed to start voice session for session {}: {}",
                 session_id, e
             );
-            Ok(HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": e.to_string()})))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": e.to_string()})),
+            )
         }
     }
 }
-#[actix_web::post("/api/voice/stop")]
-async fn voice_stop(
-    data: web::Data<AppState>,
-    info: web::Json<serde_json::Value>,
-) -> Result<HttpResponse> {
+
+pub async fn voice_stop(
+    State(data): State<Arc<AppState>>,
+    Json(info): Json<Value>,
+) -> impl IntoResponse {
     let session_id = info
         .get("session_id")
         .and_then(|s| s.as_str())
         .unwrap_or("");
+
     match data.voice_adapter.stop_voice_session(session_id).await {
         Ok(()) => {
             info!(
                 "Voice session stopped successfully for session {}",
                 session_id
             );
-            Ok(HttpResponse::Ok().json(serde_json::json!({"status": "stopped"})))
+            (
+                StatusCode::OK,
+                Json(serde_json::json!({"status": "stopped"})),
+            )
         }
         Err(e) => {
             error!(
                 "Failed to stop voice session for session {}: {}",
                 session_id, e
             );
-            Ok(HttpResponse::InternalServerError()
-                .json(serde_json::json!({"error": e.to_string()})))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": e.to_string()})),
+            )
         }
     }
 }

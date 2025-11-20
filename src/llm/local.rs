@@ -1,28 +1,30 @@
 use crate::config::ConfigManager;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
-use actix_web::{post, web, HttpResponse, Result};
+use axum::{extract::State, http::StatusCode, response::Json};
 use diesel::prelude::*;
 use log::{error, info};
 use reqwest;
 use std::sync::Arc;
 use tokio;
-#[post("/api/chat/completions")]
+
 pub async fn chat_completions_local(
-    _data: web::Data<AppState>,
-    _payload: web::Json<serde_json::Value>,
-) -> Result<HttpResponse> {
-    Ok(HttpResponse::Ok()
-        .json(serde_json::json!({ "status": "chat_completions_local not implemented" })))
+    State(_data): State<Arc<AppState>>,
+    Json(_payload): Json<serde_json::Value>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "chat_completions_local not implemented" })),
+    )
 }
-#[post("/api/embeddings")]
+
 pub async fn embeddings_local(
-    _data: web::Data<AppState>,
-    _payload: web::Json<serde_json::Value>,
-) -> Result<HttpResponse> {
-    Ok(
-        HttpResponse::Ok()
-            .json(serde_json::json!({ "status": "embeddings_local not implemented" })),
+    State(_data): State<Arc<AppState>>,
+    Json(_payload): Json<serde_json::Value>,
+) -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({ "status": "embeddings_local not implemented" })),
     )
 }
 pub async fn ensure_llama_servers_running(
@@ -68,7 +70,7 @@ pub async fn ensure_llama_servers_running(
     info!("  Embedding Model: {}", embedding_model);
     info!("  LLM Server Path: {}", llm_server_path);
     info!("Restarting any existing llama-server processes...");
-    
+
     if let Err(e) = tokio::process::Command::new("sh")
         .arg("-c")
         .arg("pkill llama-server -9 || true")
@@ -161,7 +163,7 @@ pub async fn ensure_llama_servers_running(
     }
     if llm_ready && embedding_ready {
         info!("All llama.cpp servers are ready and responding!");
-        
+
         // Update LLM provider with new endpoints
         let _llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
             llm_model.clone(),
@@ -229,23 +231,21 @@ pub async fn start_llm_server(
         .get_config(&default_bot_id, "llm-server-n-predict", None)
         .unwrap_or("50".to_string());
 
-        let n_ctx_size = config_manager
+    let n_ctx_size = config_manager
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or("4096".to_string());
 
-        // TODO: Move flash-attn, temp, top_p, repeat-penalty to config as well.
-        // TODO: Create --jinja.
-        // --jinja --flash-attn on 
-        
-        let mut args = format!(
+    // TODO: Move flash-attn, temp, top_p, repeat-penalty to config as well.
+    // TODO: Create --jinja.
+    // --jinja --flash-attn on
+
+    let mut args = format!(
         "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
         model_path, port,  gpu_layers
     );
     if !reasoning_format.is_empty() {
         args.push_str(&format!(" --reasoning-format {}", reasoning_format));
     }
-
-
 
     if n_moe != "0" {
         args.push_str(&format!(" --n-cpu-moe {}", n_moe));
@@ -265,8 +265,8 @@ pub async fn start_llm_server(
     if n_predict != "0" {
         args.push_str(&format!(" --n-predict {}", n_predict));
     }
-        args.push_str(&format!(" --ctx-size {}", n_ctx_size));
-    
+    args.push_str(&format!(" --ctx-size {}", n_ctx_size));
+
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/C").arg(format!(
