@@ -94,32 +94,19 @@ pub async fn execute_talk(
     };
     let user_id = user_session.id.to_string();
     let response_clone = response.clone();
-    match state.response_channels.try_lock() {
-        Ok(response_channels) => {
-            if let Some(tx) = response_channels.get(&user_id) {
-                if let Err(e) = tx.try_send(response_clone) {
-                    error!("Failed to send TALK message via WebSocket: {}", e);
-                } else {
-                    trace!("TALK message sent via WebSocket");
-                }
-            } else {
-                let web_adapter = Arc::clone(&state.web_adapter);
-                tokio::spawn(async move {
-                    if let Err(e) = web_adapter
-                        .send_message_to_session(&user_id, response_clone)
-                        .await
-                    {
-                        error!("Failed to send TALK message via web adapter: {}", e);
-                    } else {
-                        trace!("TALK message sent via web adapter");
-                    }
-                });
-            }
+
+    // Use web adapter which handles the connection properly
+    let web_adapter = Arc::clone(&state.web_adapter);
+    tokio::spawn(async move {
+        if let Err(e) = web_adapter
+            .send_message_to_session(&user_id, response_clone)
+            .await
+        {
+            error!("Failed to send TALK message via web adapter: {}", e);
+        } else {
+            trace!("TALK message sent via web adapter");
         }
-        Err(_) => {
-            error!("Failed to acquire lock on response_channels for TALK command");
-        }
-    }
+    });
     Ok(response)
 }
 pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
