@@ -1,8 +1,22 @@
+// Singleton instance to prevent multiple initializations
+let chatAppInstance = null;
+
 function chatApp() {
+  // Return existing instance if already created
+  if (chatAppInstance) {
+    console.log("Returning existing chatApp instance");
+    return chatAppInstance;
+  }
+
+  console.log("Creating new chatApp instance");
+
   // Core state variables (shared via closure)
   let ws = null,
     pendingContextChange = null,
-    o;
+    o,
+    isConnecting = false,
+    isInitialized = false,
+    authPromise = null;
   ((currentSessionId = null),
     (currentUserId = null),
     (currentBotId = "default_bot"),
@@ -159,6 +173,13 @@ function chatApp() {
     // Lifecycle / event handlers
     // ----------------------------------------------------------------------
     init() {
+      // Prevent multiple initializations
+      if (isInitialized) {
+        console.log("Already initialized, skipping...");
+        return;
+      }
+      isInitialized = true;
+
       window.addEventListener("load", () => {
         // Assign DOM elements after the document is ready
         messagesDiv = document.getElementById("messages");
@@ -196,34 +217,35 @@ function chatApp() {
         // UI event listeners
         document.addEventListener("click", (e) => {});
 
-        messagesDiv.addEventListener("scroll", () => {
-          const isAtBottom =
-            messagesDiv.scrollHeight - messagesDiv.scrollTop <=
-            messagesDiv.clientHeight + 100;
-          if (!isAtBottom) {
-            isUserScrolling = true;
-            scrollToBottomBtn.classList.add("visible");
-          } else {
-            isUserScrolling = false;
-            scrollToBottomBtn.classList.remove("visible");
-          }
-        });
+        // Scroll detection
+        if (messagesDiv && scrollToBottomBtn) {
+          messagesDiv.addEventListener("scroll", () => {
+            const isAtBottom =
+              messagesDiv.scrollHeight - messagesDiv.scrollTop <=
+              messagesDiv.clientHeight + 100;
+            if (!isAtBottom) {
+              isUserScrolling = true;
+              scrollToBottomBtn.classList.add("visible");
+            } else {
+              isUserScrolling = false;
+              scrollToBottomBtn.classList.remove("visible");
+            }
+          });
 
-        scrollToBottomBtn.addEventListener("click", () => {
-          this.scrollToBottom();
-        });
+          scrollToBottomBtn.addEventListener("click", () => {
+            this.scrollToBottom();
+          });
+        }
 
         sendBtn.onclick = () => this.sendMessage();
         messageInputEl.addEventListener("keypress", (e) => {
           if (e.key === "Enter") this.sendMessage();
         });
-        window.addEventListener("focus", () => {
-          if (!ws || ws.readyState !== WebSocket.OPEN) {
-            this.connectWebSocket();
-          }
-        });
 
-        // Start authentication flow
+        // Don't auto-reconnect on focus in browser to prevent multiple connections
+        // Tauri doesn't fire focus events the same way
+
+        // Initialize auth only once
         this.initializeAuth();
       });
     },
@@ -258,22 +280,48 @@ function chatApp() {
     },
 
     async initializeAuth() {
-      try {
-        this.updateConnectionStatus("connecting");
-        const p = window.location.pathname.split("/").filter((s) => s);
-        const b = p.length > 0 ? p[0] : "default";
-        const r = await fetch(
-          `http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`,
-        );
-        const a = await r.json();
-        currentUserId = a.user_id;
-        currentSessionId = a.session_id;
-        this.connectWebSocket();
-      } catch (e) {
-        console.error("Failed to initialize auth:", e);
-        this.updateConnectionStatus("disconnected");
-        setTimeout(() => this.initializeAuth(), 3000);
+      // Return existing promise if auth is in progress
+      if (authPromise) {
+        console.log("Auth already in progress, waiting...");
+        return authPromise;
       }
+
+      // Already authenticated
+      if (
+        currentSessionId &&
+        currentUserId &&
+        ws &&
+        ws.readyState === WebSocket.OPEN
+      ) {
+        console.log("Already authenticated and connected");
+        return;
+      }
+
+      // Create auth promise to prevent concurrent calls
+      authPromise = (async () => {
+        try {
+          this.updateConnectionStatus("connecting");
+          const p = window.location.pathname.split("/").filter((s) => s);
+          const b = p.length > 0 ? p[0] : "default";
+          const r = await fetch(
+            `http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`,
+          );
+          const a = await r.json();
+          currentUserId = a.user_id;
+          currentSessionId = a.session_id;
+          console.log("Auth successful:", { currentUserId, currentSessionId });
+          this.connectWebSocket();
+        } catch (e) {
+          console.error("Failed to initialize auth:", e);
+          this.updateConnectionStatus("disconnected");
+          authPromise = null;
+          setTimeout(() => this.initializeAuth(), 3000);
+        } finally {
+          authPromise = null;
+        }
+      })();
+
+      return authPromise;
     },
 
     async loadSessions() {
@@ -331,14 +379,37 @@ function chatApp() {
     },
 
     connectWebSocket() {
-      if (ws) {
+      // Prevent multiple simultaneous connection attempts
+      if (isConnecting) {
+        console.log("Already connecting to WebSocket, skipping...");
+        return;
+      }
+      if (
+        ws &&
+        (ws.readyState === WebSocket.OPEN ||
+          ws.readyState === WebSocket.CONNECTING)
+      ) {
+        console.log("WebSocket already connected or connecting");
+        return;
+      }
+      if (ws && ws.readyState !== WebSocket.CLOSED) {
         ws.close();
       }
       clearTimeout(reconnectTimeout);
+      isConnecting = true;
+
       const u = this.getWebSocketUrl();
+      console.log("Connecting to WebSocket:", u);
       ws = new WebSocket(u);
       ws.onmessage = (e) => {
         const r = JSON.parse(e.data);
+
+        // Filter out welcome/connection messages that aren't BotResponse
+        if (r.type === "connected" || !r.message_type) {
+          console.log("Ignoring non-message:", r);
+          return;
+        }
+
         if (r.bot_id) {
           currentBotId = r.bot_id;
         }
@@ -357,12 +428,14 @@ function chatApp() {
       };
       ws.onopen = () => {
         console.log("Connected to WebSocket");
+        isConnecting = false;
         this.updateConnectionStatus("connected");
         reconnectAttempts = 0;
         hasReceivedInitialMessage = false;
       };
       ws.onclose = (e) => {
         console.log("WebSocket disconnected:", e.code, e.reason);
+        isConnecting = false;
         this.updateConnectionStatus("disconnected");
         if (isStreaming) {
           this.showContinueButton();
@@ -380,6 +453,7 @@ function chatApp() {
       };
       ws.onerror = (e) => {
         console.error("WebSocket error:", e);
+        isConnecting = false;
         this.updateConnectionStatus("disconnected");
       };
     },
@@ -389,6 +463,12 @@ function chatApp() {
         isContextChange = false;
         return;
       }
+
+      // Ignore messages without content
+      if (!r.content && r.is_complete !== true) {
+        return;
+      }
+
       if (r.context_usage !== undefined) {
         this.updateContextUsage(r.context_usage);
       }
@@ -401,7 +481,8 @@ function chatApp() {
           isStreaming = false;
           streamingMessageId = null;
           currentStreamingContent = "";
-        } else {
+        } else if (r.content) {
+          // Only add message if there's actual content
           this.addMessage("assistant", r.content, false);
         }
       } else {
@@ -842,11 +923,67 @@ function chatApp() {
     },
 
     scrollToBottom() {
-      messagesDiv.scrollTop = messagesDiv.scrollHeight;
-      isUserScrolling = false;
-      scrollToBottomBtn.classList.remove("visible");
+      if (messagesDiv) {
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        isUserScrolling = false;
+        if (scrollToBottomBtn) {
+          scrollToBottomBtn.classList.remove("visible");
+        }
+      }
     },
   };
+
+  const returnValue = {
+    init: init,
+    current: current,
+    search: search,
+    selectedChat: selectedChat,
+    navItems: navItems,
+    chats: chats,
+    get filteredChats() {
+      return chats.filter((chat) =>
+        chat.name.toLowerCase().includes(search.toLowerCase()),
+      );
+    },
+    toggleSidebar: toggleSidebar,
+    toggleTheme: toggleTheme,
+    applyTheme: applyTheme,
+    updateContextUsage: updateContextUsage,
+    flashScreen: flashScreen,
+    updateConnectionStatus: updateConnectionStatus,
+    getWebSocketUrl: getWebSocketUrl,
+    initializeAuth: initializeAuth,
+    loadSessions: loadSessions,
+    createNewSession: createNewSession,
+    switchSession: switchSession,
+    connectWebSocket: connectWebSocket,
+    processMessageContent: processMessageContent,
+    handleEvent: handleEvent,
+    showThinkingIndicator: showThinkingIndicator,
+    hideThinkingIndicator: hideThinkingIndicator,
+    showWarning: showWarning,
+    showContinueButton: showContinueButton,
+    continueInterruptedResponse: continueInterruptedResponse,
+    addMessage: addMessage,
+    updateStreamingMessage: updateStreamingMessage,
+    finalizeStreamingMessage: finalizeStreamingMessage,
+    escapeHtml: escapeHtml,
+    clearSuggestions: clearSuggestions,
+    handleSuggestions: handleSuggestions,
+    setContext: setContext,
+    sendMessage: sendMessage,
+    toggleVoiceMode: toggleVoiceMode,
+    startVoiceSession: startVoiceSession,
+    stopVoiceSession: stopVoiceSession,
+    connectToVoiceRoom: connectToVoiceRoom,
+    startVoiceRecording: startVoiceRecording,
+    simulateVoiceTranscription: simulateVoiceTranscription,
+    scrollToBottom: scrollToBottom,
+  };
+
+  // Cache and return the singleton instance
+  chatAppInstance = returnValue;
+  return returnValue;
 }
 
 // Initialize the app

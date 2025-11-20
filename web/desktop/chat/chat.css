@@ -196,7 +196,7 @@ body::before {
 }
 #messages {
     flex: 1;
-    overflow-y: auto;
+    overflow-y: scroll;
     overflow-x: hidden;
     padding: 20px 20px 140px;
     max-width: 680px;
@@ -431,17 +431,21 @@ footer {
     color: var(--bg);
     font-size: 18px;
     cursor: pointer;
-    display: none;
+    display: flex;
     align-items: center;
     justify-content: center;
     transition: all 0.3s;
     z-index: 90;
+    opacity: 0;
+    pointer-events: none;
+    box-shadow: 0 2px 8px var(--shadow);
 }
 .scroll-to-bottom.visible {
-    display: flex;
+    opacity: 1;
+    pointer-events: auto;
 }
 .scroll-to-bottom:hover {
-    transform: scale(1.1) rotate(180deg);
+    transform: scale(1.15);
 }
 .warning-message {
     border-radius: 12px;
@@ -612,7 +616,7 @@ footer {
     opacity: 0.7;
     text-decoration: underline;
 }
-/* Claude-style scrollbar - thin, subtle, hover-only */
+/* Claude-style scrollbar - thin, subtle, always visible but more prominent on hover */
 #messages::-webkit-scrollbar {
     width: 8px;
 }
@@ -620,21 +624,24 @@ footer {
     background: transparent;
 }
 #messages::-webkit-scrollbar-thumb {
-    background: transparent;
+    background: rgba(128, 128, 128, 0.2);
     border-radius: 4px;
     transition: background 0.2s;
 }
 #messages:hover::-webkit-scrollbar-thumb {
-    background: rgba(128, 128, 128, 0.3);
+    background: rgba(128, 128, 128, 0.4);
 }
 #messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(128, 128, 128, 0.5);
+    background: rgba(128, 128, 128, 0.6);
+}
+[data-theme="dark"] #messages::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.15);
 }
 [data-theme="dark"] #messages:hover::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.25);
 }
 [data-theme="dark"] #messages::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.35);
 }
 
 /* Fallback for other elements */
