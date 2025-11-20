@@ -8,8 +8,8 @@ const sectionCache = {};
 
 function getBasePath() {
   // All static assets (HTML, CSS, JS) are served from the site root.
-  // Returning a leading slash ensures URLs like "/drive/drive.html" resolve correctly
-  return "/";
+  // Returning empty string for relative paths when served from same directory
+  return "";
 }
 
 // Preload chat CSS to avoid flash on first load
@@ -176,10 +176,16 @@ function getInitialSection() {
   return section || "chat";
 }
 window.addEventListener("DOMContentLoaded", () => {
-  switchSection(getInitialSection());
+  // Small delay to ensure all resources are loaded
+  setTimeout(() => {
+    switchSection(getInitialSection());
+  }, 50);
 });
 
 // Handle browser back/forward navigation
 window.addEventListener("popstate", () => {
   switchSection(getInitialSection());
 });
+
+// Make switchSection globally accessible
+window.switchSection = switchSection;
