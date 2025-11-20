@@ -136,8 +136,8 @@ async function switchSection(section) {
         // Wait for the component function to be registered
         const appFunctionName = section + "App";
         let retries = 0;
-        while (typeof window[appFunctionName] !== "function" && retries < 50) {
-          await new Promise((resolve) => setTimeout(resolve, 50));
+        while (typeof window[appFunctionName] !== "function" && retries < 100) {
+          await new Promise((resolve) => setTimeout(resolve, 100));
           retries++;
         }
 
@@ -189,10 +189,18 @@ async function switchSection(section) {
         // Remove x-ignore to allow Alpine to process
         wrapper.removeAttribute("x-ignore");
 
+        // Verify component function is available
+        const appFunctionName = section + "App";
+        if (typeof window[appFunctionName] !== "function") {
+          console.error(`${appFunctionName} not available during Alpine init!`);
+          throw new Error(`Component ${appFunctionName} missing`);
+        }
+
         // Small delay to ensure DOM is ready
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 100));
 
         try {
+          console.log(`Calling Alpine.initTree for ${section}`);
           window.Alpine.initTree(wrapper);
           console.log(`✓ Alpine initialized for ${section}`);
         } catch (err) {
