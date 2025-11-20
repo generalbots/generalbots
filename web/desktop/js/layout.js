@@ -1,24 +1,24 @@
 const sections = {
-  drive: 'drive/drive.html',
-  tasks: 'tasks/tasks.html',
-  mail: 'mail/mail.html',
-  chat: 'chat/chat.html',
+  drive: "drive/drive.html",
+  tasks: "tasks/tasks.html",
+  mail: "mail/mail.html",
+  chat: "chat/chat.html",
 };
 const sectionCache = {};
 
 function getBasePath() {
   // All static assets (HTML, CSS, JS) are served from the site root.
   // Returning a leading slash ensures URLs like "/drive/drive.html" resolve correctly
-  return '/';
+  return "/";
 }
 
 // Preload chat CSS to avoid flash on first load
 function preloadChatCSS() {
-  const chatCssPath = getBasePath() + 'chat/chat.css';
+  const chatCssPath = getBasePath() + "chat/chat.css";
   const existing = document.querySelector(`link[href="${chatCssPath}"]`);
   if (!existing) {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
     link.href = chatCssPath;
     document.head.appendChild(link);
   }
@@ -27,43 +27,45 @@ function preloadChatCSS() {
 async function loadSectionHTML(path) {
   const fullPath = getBasePath() + path;
   const response = await fetch(fullPath);
-  if (!response.ok) throw new Error('Failed to load section: ' + fullPath);
+  if (!response.ok) throw new Error("Failed to load section: " + fullPath);
   return await response.text();
 }
 
 async function switchSection(section) {
-  const mainContent = document.getElementById('main-content');
+  const mainContent = document.getElementById("main-content");
 
   try {
     const htmlPath = sections[section];
-    console.log('Loading section:', section, 'from', htmlPath);
+    console.log("Loading section:", section, "from", htmlPath);
     // Resolve CSS path relative to the base directory.
-    const cssPath = getBasePath() + htmlPath.replace('.html', '.css');
+    const cssPath = getBasePath() + htmlPath.replace(".html", ".css");
 
     // Preload chat CSS if the target is chat
-    if (section === 'chat') {
+    if (section === "chat") {
       preloadChatCSS();
     }
 
     // Remove any existing section CSS
-    document.querySelectorAll('link[data-section-css]').forEach(link => link.remove());
+    document
+      .querySelectorAll("link[data-section-css]")
+      .forEach((link) => link.remove());
 
     // Load CSS first (skip if already loaded)
     let cssLink = document.querySelector(`link[href="${cssPath}"]`);
     if (!cssLink) {
-      cssLink = document.createElement('link');
-      cssLink.rel = 'stylesheet';
+      cssLink = document.createElement("link");
+      cssLink.rel = "stylesheet";
       cssLink.href = cssPath;
-      cssLink.setAttribute('data-section-css', 'true');
+      cssLink.setAttribute("data-section-css", "true");
       document.head.appendChild(cssLink);
     }
 
     // Hide previously loaded sections and show the requested one
     // Ensure a container exists for sections
-    let container = document.getElementById('section-container');
+    let container = document.getElementById("section-container");
     if (!container) {
-      container = document.createElement('div');
-      container.id = 'section-container';
+      container = document.createElement("div");
+      container.id = "section-container";
       mainContent.appendChild(container);
     }
 
@@ -71,28 +73,28 @@ async function switchSection(section) {
 
     if (targetDiv) {
       // Section already loaded: hide others, show this one
-      container.querySelectorAll('.section').forEach(div => {
-        div.style.display = 'none';
+      container.querySelectorAll(".section").forEach((div) => {
+        div.style.display = "none";
       });
-      targetDiv.style.display = 'block';
+      targetDiv.style.display = "block";
     } else {
       // Show loading placeholder inside the container
-      const loadingDiv = document.createElement('div');
-      loadingDiv.className = 'loading';
-      loadingDiv.textContent = 'Loading…';
+      const loadingDiv = document.createElement("div");
+      loadingDiv.className = "loading";
+      loadingDiv.textContent = "Loading…";
       container.appendChild(loadingDiv);
 
       // Load HTML
       const html = await loadSectionHTML(htmlPath);
       // Create wrapper for the new section
-      const wrapper = document.createElement('div');
+      const wrapper = document.createElement("div");
       wrapper.id = `section-${section}`;
-      wrapper.className = 'section';
+      wrapper.className = "section";
       wrapper.innerHTML = html;
 
       // Hide any existing sections
-      container.querySelectorAll('.section').forEach(div => {
-        div.style.display = 'none';
+      container.querySelectorAll(".section").forEach((div) => {
+        div.style.display = "none";
       });
 
       // Remove loading placeholder
@@ -106,28 +108,37 @@ async function switchSection(section) {
       gsap.fromTo(
         wrapper,
         { opacity: 0 },
-        { opacity: 1, duration: 0.15, ease: 'power2.out' }
+        { opacity: 1, duration: 0.15, ease: "power2.out" },
       );
     }
 
     // Then load JS after HTML is inserted (skip if already loaded)
     // Resolve JS path relative to the base directory.
-    const jsPath = getBasePath() + htmlPath.replace('.html', '.js');
+    const jsPath = getBasePath() + htmlPath.replace(".html", ".js");
     const existingScript = document.querySelector(`script[src="${jsPath}"]`);
+
     if (!existingScript) {
-      const script = document.createElement('script');
+      // Create script and wait for it to load before initializing Alpine
+      const script = document.createElement("script");
       script.src = jsPath;
       script.defer = true;
-      document.body.appendChild(script);
+
+      // Wait for script to load before initializing Alpine
+      await new Promise((resolve, reject) => {
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
     }
-    window.history.pushState({}, '', `#${section}`);
+
+    window.history.pushState({}, "", `#${section}`);
     Alpine.initTree(mainContent);
-    const inputEl = document.getElementById('messageInput');
+    const inputEl = document.getElementById("messageInput");
     if (inputEl) {
       inputEl.focus();
     }
   } catch (err) {
-    console.error('Error loading section:', err);
+    console.error("Error loading section:", err);
     mainContent.innerHTML = `<div class="error">Failed to load ${section} section</div>`;
   }
 }
@@ -138,27 +149,29 @@ function getInitialSection() {
   let section = window.location.hash.substring(1);
   // 2️⃣ Fallback to pathname segments (e.g., /chat)
   if (!section) {
-    const parts = window.location.pathname.split('/').filter(p => p);
+    const parts = window.location.pathname.split("/").filter((p) => p);
     const last = parts[parts.length - 1];
-    if (['drive', 'tasks', 'mail', 'chat'].includes(last)) {
+    if (["drive", "tasks", "mail", "chat"].includes(last)) {
       section = last;
     }
   }
   // 3️⃣ As a last resort, inspect the full URL for known sections
   if (!section) {
-    const match = window.location.href.match(/\/(drive|tasks|mail|chat)(?:\.html)?(?:[?#]|$)/i);
+    const match = window.location.href.match(
+      /\/(drive|tasks|mail|chat)(?:\.html)?(?:[?#]|$)/i,
+    );
     if (match) {
       section = match[1].toLowerCase();
     }
   }
   // Default to chat if nothing matches
-  return section || 'chat';
+  return section || "chat";
 }
-window.addEventListener('DOMContentLoaded', () => {
+window.addEventListener("DOMContentLoaded", () => {
   switchSection(getInitialSection());
 });
 
 // Handle browser back/forward navigation
-window.addEventListener('popstate', () => {
+window.addEventListener("popstate", () => {
   switchSection(getInitialSection());
 });
