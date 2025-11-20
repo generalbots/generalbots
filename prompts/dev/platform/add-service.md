@@ -2,7 +2,7 @@ Generate a Rust service module following these patterns:
 
 Core Structure:
 
-Use actix-web for HTTP endpoints (get, post, etc.)
+Use Axum for HTTP endpoints (get, post, etc.)
 
 Isolate shared resources (DB, clients, config) in AppState
 
@@ -21,8 +21,6 @@ Return consistent responses (e.g., HttpResponse::Ok().json(data))
 Error Handling:
 
 Wrap fallible operations in Result
-
-Use map_err to convert errors to actix_web::Error
 
 Provide clear error messages (e.g., ErrorInternalServerError)
 

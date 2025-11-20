@@ -9,7 +9,6 @@ const sectionCache = {};
 function getBasePath() {
   // All static assets (HTML, CSS, JS) are served from the site root.
   // Returning a leading slash ensures URLs like "/drive/drive.html" resolve correctly
-  // with the Actix static file configuration.
   return '/';
 }
 

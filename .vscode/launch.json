@@ -15,7 +15,7 @@
       },
       "args": ["--desktop"],
       "env": {
-        "RUST_LOG": "trace,actix_web=off,aws_sigv4=off,aws_smithy_checksums=off,actix_http=off,mio=off,reqwest=off,aws_runtime=off,aws_smithy_http_client=off,rustls=off,actix_server=off,hyper_util=off,aws_smithy_runtime=off,aws_smithy_runtime_api=off,tracing=off,aws_sdk_s3=off"
+        "RUST_LOG": "trace,aws_sigv4=off,aws_smithy_checksums=off,mio=off,reqwest=off,aws_runtime=off,aws_smithy_http_client=off,rustls=off,hyper_util=off,aws_smithy_runtime=off,aws_smithy_runtime_api=off,tracing=off,aws_sdk_s3=off"
       
       },
       "cwd": "${workspaceFolder}"

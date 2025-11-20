@@ -22,19 +22,20 @@ done
 
 dirs=(
       "auth"
-      "automation"
-      "basic"
-      "bootstrap"
+      #"automation"
+      #"basic"
+      #"bootstrap"
       "bot"
       #"channels"
-      "config"
+      #"config"
       #"context"
-      "drive_monitor"
-      #"email"
-      #"file"
+      #"drive_monitor"
+      "email"
+      "file"
       #"kb"
       "llm"
       #"llm_models"
+      "meet"
       #"org"
       #"package_manager"
       #"riot_compiler"
@@ -43,7 +44,7 @@ dirs=(
       #"tests"
       #"tools"
       #"ui"
-      "ui_tree"
+      #"ui_tree"
       #"web_server"
       #"web_automation"
  )
@@ -52,8 +53,7 @@ dirs=(
 for dir in "${dirs[@]}"; do
     find "$PROJECT_ROOT/src/$dir" -name "*.rs" | while read -r file; do
         echo "$file" >> "$OUTPUT_FILE"
-        filter_rust_file "$file" >> "$OUTPUT_FILE"
-        echo "" >> "$OUTPUT_FILE"
+        cat "$file" >> "$OUTPUT_FILE"
     done
 done
 
@@ -65,13 +65,8 @@ files=(
 )
 
 for file in "${files[@]}"; do
-    if [[ "$file" == *.rs ]]; then
-        echo "$file" >> "$OUTPUT_FILE"
-        filter_rust_file "$file" >> "$OUTPUT_FILE"
-    else
         echo "$file" >> "$OUTPUT_FILE"
         cat "$file" >> "$OUTPUT_FILE"
-    fi
 done
 
 # Remove all blank lines and reduce whitespace greater than 1 space
