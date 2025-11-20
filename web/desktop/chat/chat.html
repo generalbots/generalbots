@@ -1,12 +1,16 @@
-<div class="chat-layout" x-data="chatApp()" x-cloak>
-
+<div class="chat-layout" id="chat-app">
     <div id="connectionStatus" class="connection-status disconnected"></div>
     <main id="messages"></main>
 
     <footer>
         <div class="suggestions-container" id="suggestions"></div>
         <div class="input-container">
-            <input id="messageInput" type="text" placeholder="Message..." autofocus />
+            <input
+                id="messageInput"
+                type="text"
+                placeholder="Message..."
+                autofocus
+            />
             <button id="voiceBtn" title="Voice">🎤</button>
             <button id="sendBtn" title="Send">↑</button>
         </div>
@@ -16,8 +20,11 @@
         <div>Context</div>
         <div id="contextPercentage">0%</div>
         <div class="context-progress">
-            <div class="context-progress-bar" id="contextProgressBar" style="width:0%"></div>
+            <div
+                class="context-progress-bar"
+                id="contextProgressBar"
+                style="width: 0%"
+            ></div>
         </div>
     </div>
-
 </div>
