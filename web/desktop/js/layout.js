@@ -31,6 +31,29 @@ async function loadSectionHTML(path) {
   return await response.text();
 }
 
+async function loadScript(jsPath) {
+  return new Promise((resolve, reject) => {
+    const existingScript = document.querySelector(`script[src="${jsPath}"]`);
+    if (existingScript) {
+      console.log(`Script already loaded: ${jsPath}`);
+      resolve();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = jsPath;
+    script.onload = () => {
+      console.log(`✓ Script loaded: ${jsPath}`);
+      resolve();
+    };
+    script.onerror = (err) => {
+      console.error(`✗ Script failed to load: ${jsPath}`, err);
+      reject(err);
+    };
+    document.body.appendChild(script);
+  });
+}
+
 async function switchSection(section) {
   const mainContent = document.getElementById("main-content");
 
@@ -51,8 +74,8 @@ async function switchSection(section) {
   try {
     const htmlPath = sections[section];
     console.log("Loading section:", section, "from", htmlPath);
-    // Resolve CSS path relative to the base directory.
     const cssPath = getBasePath() + htmlPath.replace(".html", ".css");
+    const jsPath = getBasePath() + htmlPath.replace(".html", ".js");
 
     // Preload chat CSS if the target is chat
     if (section === "chat") {
@@ -103,12 +126,44 @@ async function switchSection(section) {
       loadingDiv.textContent = "Loading…";
       container.appendChild(loadingDiv);
 
+      // For Alpine sections, load JavaScript FIRST before HTML
+      const isAlpineSection = ["drive", "tasks", "mail"].includes(section);
+
+      if (isAlpineSection) {
+        console.log(`Loading JS before HTML for Alpine section: ${section}`);
+        await loadScript(jsPath);
+
+        // Wait for the component function to be registered
+        const appFunctionName = section + "App";
+        let retries = 0;
+        while (typeof window[appFunctionName] !== "function" && retries < 50) {
+          await new Promise((resolve) => setTimeout(resolve, 50));
+          retries++;
+        }
+
+        if (typeof window[appFunctionName] !== "function") {
+          console.error(`${appFunctionName} function not found after waiting!`);
+          throw new Error(
+            `Component function ${appFunctionName} not available`,
+          );
+        }
+
+        console.log(`✓ Component function registered: ${appFunctionName}`);
+      }
+
       // Load HTML
       const html = await loadSectionHTML(htmlPath);
+
       // Create wrapper for the new section
       const wrapper = document.createElement("div");
       wrapper.id = `section-${section}`;
       wrapper.className = "section";
+
+      // For Alpine sections, mark for manual initialization
+      if (isAlpineSection) {
+        wrapper.setAttribute("x-ignore", "");
+      }
+
       wrapper.innerHTML = html;
 
       // Hide any existing sections
@@ -127,6 +182,28 @@ async function switchSection(section) {
       container.appendChild(wrapper);
       sectionCache[section] = wrapper;
 
+      // For Alpine sections, initialize after DOM insertion
+      if (isAlpineSection && window.Alpine) {
+        console.log(`Initializing Alpine for section: ${section}`);
+
+        // Remove x-ignore to allow Alpine to process
+        wrapper.removeAttribute("x-ignore");
+
+        // Small delay to ensure DOM is ready
+        await new Promise((resolve) => setTimeout(resolve, 50));
+
+        try {
+          window.Alpine.initTree(wrapper);
+          console.log(`✓ Alpine initialized for ${section}`);
+        } catch (err) {
+          console.error(`Error initializing Alpine for ${section}:`, err);
+        }
+      } else if (!isAlpineSection) {
+        // For non-Alpine sections (like chat), load JS after HTML
+        await loadScript(jsPath);
+        await new Promise((resolve) => setTimeout(resolve, 100));
+      }
+
       // Dispatch a custom event to notify the section it's being shown
       wrapper.dispatchEvent(new CustomEvent("section-shown"));
 
@@ -138,34 +215,7 @@ async function switchSection(section) {
       );
     }
 
-    // Then load JS after HTML is inserted (skip if already loaded)
-    // Resolve JS path relative to the base directory.
-    const jsPath = getBasePath() + htmlPath.replace(".html", ".js");
-    const existingScript = document.querySelector(`script[src="${jsPath}"]`);
-
-    if (!existingScript) {
-      // Create script and wait for it to load before initializing Alpine
-      const script = document.createElement("script");
-      script.src = jsPath;
-      script.defer = true;
-
-      // Wait for script to load before initializing Alpine
-      await new Promise((resolve, reject) => {
-        script.onload = resolve;
-        script.onerror = reject;
-        document.body.appendChild(script);
-      });
-    }
-
     window.history.pushState({}, "", `#${section}`);
-
-    // Start Alpine on first load, then just init the tree for new sections
-    if (typeof window.startAlpine === "function") {
-      window.startAlpine();
-      delete window.startAlpine;
-    } else if (window.Alpine) {
-      window.Alpine.initTree(mainContent);
-    }
 
     const inputEl = document.getElementById("messageInput");
     if (inputEl) {
@@ -201,18 +251,49 @@ function getInitialSection() {
   // Default to chat if nothing matches
   return section || "chat";
 }
+
 window.addEventListener("DOMContentLoaded", () => {
-  // Small delay to ensure all resources are loaded
-  setTimeout(() => {
+  console.log("DOM Content Loaded");
+
+  const initApp = () => {
     const section = getInitialSection();
+    console.log(`Initializing app with section: ${section}`);
+
     // Ensure valid section
     if (!sections[section]) {
+      console.warn(`Invalid section: ${section}, defaulting to chat`);
       window.location.hash = "#chat";
       switchSection("chat");
     } else {
       switchSection(section);
     }
-  }, 50);
+  };
+
+  // Check if Alpine sections might be needed and wait for Alpine
+  const hash = window.location.hash.substring(1);
+  if (["drive", "tasks", "mail"].includes(hash)) {
+    console.log(`Waiting for Alpine to load for section: ${hash}`);
+
+    const waitForAlpine = () => {
+      if (window.Alpine) {
+        console.log("Alpine is ready");
+        setTimeout(initApp, 100);
+      } else {
+        console.log("Waiting for Alpine...");
+        setTimeout(waitForAlpine, 100);
+      }
+    };
+
+    // Also listen for alpine:init event
+    document.addEventListener("alpine:init", () => {
+      console.log("Alpine initialized via event");
+    });
+
+    waitForAlpine();
+  } else {
+    // For chat, don't need to wait for Alpine
+    setTimeout(initApp, 100);
+  }
 });
 
 // Handle browser back/forward navigation
