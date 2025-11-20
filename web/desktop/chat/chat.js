@@ -1,36 +1,50 @@
 function chatApp() {
-
   // Core state variables (shared via closure)
   let ws = null,
-  pendingContextChange = null,o  
-  currentSessionId = null,
-    currentUserId = null,
-    currentBotId = "default_bot",
-    isStreaming = false,
-    voiceRoom = null,
-    isVoiceMode = false,
-    mediaRecorder = null,
-    audioChunks = [],
-    streamingMessageId = null,
-    isThinking = false,
-    currentStreamingContent = "",
-    hasReceivedInitialMessage = false,
-    reconnectAttempts = 0,
-    reconnectTimeout = null,
-    thinkingTimeout = null,
-    currentTheme = 'auto',
-    themeColor1 = null,
-    themeColor2 = null,
-    customLogoUrl = null,
-    contextUsage = 0,
-    isUserScrolling = false,
-    autoScrollEnabled = true,
-    isContextChange = false;
+    pendingContextChange = null,
+    o;
+  ((currentSessionId = null),
+    (currentUserId = null),
+    (currentBotId = "default_bot"),
+    (isStreaming = false),
+    (voiceRoom = null),
+    (isVoiceMode = false),
+    (mediaRecorder = null),
+    (audioChunks = []),
+    (streamingMessageId = null),
+    (isThinking = false),
+    (currentStreamingContent = ""),
+    (hasReceivedInitialMessage = false),
+    (reconnectAttempts = 0),
+    (reconnectTimeout = null),
+    (thinkingTimeout = null),
+    (currentTheme = "auto"),
+    (themeColor1 = null),
+    (themeColor2 = null),
+    (customLogoUrl = null),
+    (contextUsage = 0),
+    (isUserScrolling = false),
+    (autoScrollEnabled = true),
+    (isContextChange = false));
 
   const maxReconnectAttempts = 5;
 
   // DOM references (cached for performance)
-  let messagesDiv, messageInputEl, sendBtn, voiceBtn, connectionStatus, flashOverlay, suggestionsContainer, floatLogo, sidebar, themeBtn, scrollToBottomBtn, contextIndicator, contextPercentage, contextProgressBar, sidebarTitle;
+  let messagesDiv,
+    messageInputEl,
+    sendBtn,
+    voiceBtn,
+    connectionStatus,
+    flashOverlay,
+    suggestionsContainer,
+    floatLogo,
+    sidebar,
+    themeBtn,
+    scrollToBottomBtn,
+    contextIndicator,
+    contextPercentage,
+    contextProgressBar,
+    sidebarTitle;
 
   marked.setOptions({ breaks: true, gfm: true });
 
@@ -38,25 +52,60 @@ function chatApp() {
     // ----------------------------------------------------------------------
     // UI state (mirrors the structure used in driveApp)
     // ----------------------------------------------------------------------
-    current: 'All Chats',
-    search: '',
+    current: "All Chats",
+    search: "",
     selectedChat: null,
     navItems: [
-      { name: 'All Chats', icon: '💬' },
-      { name: 'Direct', icon: '👤' },
-      { name: 'Groups', icon: '👥' },
-      { name: 'Archived', icon: '🗄' }
+      { name: "All Chats", icon: "💬" },
+      { name: "Direct", icon: "👤" },
+      { name: "Groups", icon: "👥" },
+      { name: "Archived", icon: "🗄" },
     ],
     chats: [
-      { id: 1, name: 'General Bot Support', icon: '🤖', lastMessage: 'How can I help you?', time: '10:15 AM', status: 'Online' },
-      { id: 2, name: 'Project Alpha', icon: '🚀', lastMessage: 'Launch scheduled for tomorrow.', time: 'Yesterday', status: 'Active' },
-      { id: 3, name: 'Team Stand‑up', icon: '🗣️', lastMessage: 'Done with the UI updates.', time: '2 hrs ago', status: 'Active' },
-      { id: 4, name: 'Random Chat', icon: '🎲', lastMessage: 'Did you see the game last night?', time: '5 hrs ago', status: 'Idle' },
-      { id: 5, name: 'Support Ticket #1234', icon: '🛠️', lastMessage: 'Issue resolved, closing ticket.', time: '3 days ago', status: 'Closed' }
+      {
+        id: 1,
+        name: "General Bot Support",
+        icon: "🤖",
+        lastMessage: "How can I help you?",
+        time: "10:15 AM",
+        status: "Online",
+      },
+      {
+        id: 2,
+        name: "Project Alpha",
+        icon: "🚀",
+        lastMessage: "Launch scheduled for tomorrow.",
+        time: "Yesterday",
+        status: "Active",
+      },
+      {
+        id: 3,
+        name: "Team Stand‑up",
+        icon: "🗣️",
+        lastMessage: "Done with the UI updates.",
+        time: "2 hrs ago",
+        status: "Active",
+      },
+      {
+        id: 4,
+        name: "Random Chat",
+        icon: "🎲",
+        lastMessage: "Did you see the game last night?",
+        time: "5 hrs ago",
+        status: "Idle",
+      },
+      {
+        id: 5,
+        name: "Support Ticket #1234",
+        icon: "🛠️",
+        lastMessage: "Issue resolved, closing ticket.",
+        time: "3 days ago",
+        status: "Closed",
+      },
     ],
     get filteredChats() {
-      return this.chats.filter(chat =>
-        chat.name.toLowerCase().includes(this.search.toLowerCase())
+      return this.chats.filter((chat) =>
+        chat.name.toLowerCase().includes(this.search.toLowerCase()),
       );
     },
 
@@ -64,34 +113,45 @@ function chatApp() {
     // UI helpers (formerly standalone functions)
     // ----------------------------------------------------------------------
     toggleSidebar() {
-      sidebar.classList.toggle('open');
+      sidebar.classList.toggle("open");
     },
 
     toggleTheme() {
-      const themes = ['auto', 'dark', 'light'];
-      const savedTheme = localStorage.getItem('gb-theme') || 'auto';
+      const themes = ["auto", "dark", "light"];
+      const savedTheme = localStorage.getItem("gb-theme") || "auto";
       const idx = themes.indexOf(savedTheme);
       const newTheme = themes[(idx + 1) % themes.length];
-      localStorage.setItem('gb-theme', newTheme);
+      localStorage.setItem("gb-theme", newTheme);
       currentTheme = newTheme;
       this.applyTheme();
       this.updateThemeButton();
     },
 
     applyTheme() {
-      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const prefersDark = window.matchMedia(
+        "(prefers-color-scheme: dark)",
+      ).matches;
       let theme = currentTheme;
-      if (theme === 'auto') {
-        theme = prefersDark ? 'dark' : 'light';
+      if (theme === "auto") {
+        theme = prefersDark ? "dark" : "light";
       }
-      document.documentElement.setAttribute('data-theme', theme);
+      document.documentElement.setAttribute("data-theme", theme);
       if (themeColor1 && themeColor2) {
         const root = document.documentElement;
-        root.style.setProperty('--bg', theme === 'dark' ? themeColor2 : themeColor1);
-        root.style.setProperty('--fg', theme === 'dark' ? themeColor1 : themeColor2);
+        root.style.setProperty(
+          "--bg",
+          theme === "dark" ? themeColor2 : themeColor1,
+        );
+        root.style.setProperty(
+          "--fg",
+          theme === "dark" ? themeColor1 : themeColor2,
+        );
       }
       if (customLogoUrl) {
-        document.documentElement.style.setProperty('--logo-url', `url('${customLogoUrl}')`);
+        document.documentElement.style.setProperty(
+          "--logo-url",
+          `url('${customLogoUrl}')`,
+        );
       }
     },
 
@@ -99,10 +159,10 @@ function chatApp() {
     // Lifecycle / event handlers
     // ----------------------------------------------------------------------
     init() {
-      window.addEventListener('load', () => {
+      window.addEventListener("load", () => {
         // Assign DOM elements after the document is ready
         messagesDiv = document.getElementById("messages");
-        
+
         messageInputEl = document.getElementById("messageInput");
         sendBtn = document.getElementById("sendBtn");
         voiceBtn = document.getElementById("voiceBtn");
@@ -119,40 +179,44 @@ function chatApp() {
         sidebarTitle = document.getElementById("sidebarTitle");
 
         // Theme initialization and focus
-        const savedTheme = localStorage.getItem('gb-theme') || 'auto';
+        const savedTheme = localStorage.getItem("gb-theme") || "auto";
         currentTheme = savedTheme;
         this.applyTheme();
-        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
-          if (currentTheme === 'auto') {
-            this.applyTheme();
-          }
-        });
+        window
+          .matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", () => {
+            if (currentTheme === "auto") {
+              this.applyTheme();
+            }
+          });
         if (messageInputEl) {
           messageInputEl.focus();
         }
 
         // UI event listeners
-        document.addEventListener('click', (e) => {
-          
-        });
+        document.addEventListener("click", (e) => {});
 
-        messagesDiv.addEventListener('scroll', () => {
-          const isAtBottom = messagesDiv.scrollHeight - messagesDiv.scrollTop <= messagesDiv.clientHeight + 100;
+        messagesDiv.addEventListener("scroll", () => {
+          const isAtBottom =
+            messagesDiv.scrollHeight - messagesDiv.scrollTop <=
+            messagesDiv.clientHeight + 100;
           if (!isAtBottom) {
             isUserScrolling = true;
-            scrollToBottomBtn.classList.add('visible');
+            scrollToBottomBtn.classList.add("visible");
           } else {
             isUserScrolling = false;
-            scrollToBottomBtn.classList.remove('visible');
+            scrollToBottomBtn.classList.remove("visible");
           }
         });
 
-        scrollToBottomBtn.addEventListener('click', () => {
+        scrollToBottomBtn.addEventListener("click", () => {
           this.scrollToBottom();
         });
 
         sendBtn.onclick = () => this.sendMessage();
-        messageInputEl.addEventListener("keypress", e => { if (e.key === "Enter") this.sendMessage(); });
+        messageInputEl.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") this.sendMessage();
+        });
         window.addEventListener("focus", () => {
           if (!ws || ws.readyState !== WebSocket.OPEN) {
             this.connectWebSocket();
@@ -169,13 +233,17 @@ function chatApp() {
       const p = Math.min(100, Math.round(u * 100));
       contextPercentage.textContent = `${p}%`;
       contextProgressBar.style.width = `${p}%`;
-      contextIndicator.classList.remove('visible');
+      contextIndicator.classList.remove("visible");
     },
 
     flashScreen() {
-      gsap.to(flashOverlay, { opacity: 0.15, duration: 0.1, onComplete: () => {
-        gsap.to(flashOverlay, { opacity: 0, duration: 0.2 });
-      } });
+      gsap.to(flashOverlay, {
+        opacity: 0.15,
+        duration: 0.1,
+        onComplete: () => {
+          gsap.to(flashOverlay, { opacity: 0, duration: 0.2 });
+        },
+      });
     },
 
     updateConnectionStatus(s) {
@@ -183,16 +251,20 @@ function chatApp() {
     },
 
     getWebSocketUrl() {
-      const p = "ws:", s = currentSessionId || crypto.randomUUID(), u = currentUserId || crypto.randomUUID();
+      const p = "ws:",
+        s = currentSessionId || crypto.randomUUID(),
+        u = currentUserId || crypto.randomUUID();
       return `${p}//localhost:8080/ws?session_id=${s}&user_id=${u}`;
     },
 
     async initializeAuth() {
       try {
         this.updateConnectionStatus("connecting");
-        const p = window.location.pathname.split('/').filter(s => s);
-        const b = p.length > 0 ? p[0] : 'default';
-        const r = await fetch(`http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`);
+        const p = window.location.pathname.split("/").filter((s) => s);
+        const b = p.length > 0 ? p[0] : "default";
+        const r = await fetch(
+          `http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`,
+        );
         const a = await r.json();
         currentUserId = a.user_id;
         currentSessionId = a.session_id;
@@ -210,10 +282,11 @@ function chatApp() {
         const s = await r.json();
         const h = document.getElementById("history");
         h.innerHTML = "";
-        s.forEach(session => {
-          const item = document.createElement('div');
-          item.className = 'history-item';
-          item.textContent = session.title || `Session ${session.session_id.substring(0, 8)}`;
+        s.forEach((session) => {
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.textContent =
+            session.title || `Session ${session.session_id.substring(0, 8)}`;
           item.onclick = () => this.switchSession(session.session_id);
           h.appendChild(item);
         });
@@ -224,7 +297,9 @@ function chatApp() {
 
     async createNewSession() {
       try {
-        const r = await fetch("http://localhost:8080/api/sessions", { method: "POST" });
+        const r = await fetch("http://localhost:8080/api/sessions", {
+          method: "POST",
+        });
         const s = await r.json();
         currentSessionId = s.session_id;
         hasReceivedInitialMessage = false;
@@ -252,9 +327,8 @@ function chatApp() {
       if (isVoiceMode) {
         this.startVoiceSession();
       }
-      sidebar.classList.remove('open');
+      sidebar.classList.remove("open");
     },
-
 
     connectWebSocket() {
       if (ws) {
@@ -268,13 +342,15 @@ function chatApp() {
         if (r.bot_id) {
           currentBotId = r.bot_id;
         }
-        if (r.message_type === 2) {
-          const d = JSON.parse(r.content);
-          this.handleEvent(d.event, d.data);
-          return;
-        }
+        // Message type 2 is a bot response (not an event)
+        // Message type 5 is context change
         if (r.message_type === 5) {
           isContextChange = true;
+          return;
+        }
+        // Check if this is a special event message (has event field)
+        if (r.event) {
+          this.handleEvent(r.event, r.data || {});
           return;
         }
         this.processMessageContent(r);
@@ -333,7 +409,12 @@ function chatApp() {
           isStreaming = true;
           streamingMessageId = "streaming-" + Date.now();
           currentStreamingContent = r.content || "";
-          this.addMessage("assistant", currentStreamingContent, true, streamingMessageId);
+          this.addMessage(
+            "assistant",
+            currentStreamingContent,
+            true,
+            streamingMessageId,
+          );
         } else {
           currentStreamingContent += r.content || "";
           this.updateStreamingMessage(currentStreamingContent);
@@ -376,14 +457,16 @@ function chatApp() {
       t.className = "message-container";
       t.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="thinking-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
       messagesDiv.appendChild(t);
-      gsap.to(t, { opacity: 1, y: 0, duration: .3, ease: "power2.out" });
+      gsap.to(t, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
       if (!isUserScrolling) {
         this.scrollToBottom();
       }
       thinkingTimeout = setTimeout(() => {
         if (isThinking) {
           this.hideThinkingIndicator();
-          this.showWarning("O servidor pode estar ocupado. A resposta está demorando demais.");
+          this.showWarning(
+            "O servidor pode estar ocupado. A resposta está demorando demais.",
+          );
         }
       }, 60000);
       isThinking = true;
@@ -393,7 +476,15 @@ function chatApp() {
       if (!isThinking) return;
       const t = document.getElementById("thinking-indicator");
       if (t) {
-        gsap.to(t, { opacity: 0, duration: .2, onComplete: () => { if (t.parentNode) { t.remove(); } } });
+        gsap.to(t, {
+          opacity: 0,
+          duration: 0.2,
+          onComplete: () => {
+            if (t.parentNode) {
+              t.remove();
+            }
+          },
+        });
       }
       if (thinkingTimeout) {
         clearTimeout(thinkingTimeout);
@@ -407,13 +498,17 @@ function chatApp() {
       w.className = "warning-message";
       w.innerHTML = `⚠️ ${m}`;
       messagesDiv.appendChild(w);
-      gsap.from(w, { opacity: 0, y: 20, duration: .4, ease: "power2.out" });
+      gsap.from(w, { opacity: 0, y: 20, duration: 0.4, ease: "power2.out" });
       if (!isUserScrolling) {
         this.scrollToBottom();
       }
       setTimeout(() => {
         if (w.parentNode) {
-          gsap.to(w, { opacity: 0, duration: .3, onComplete: () => w.remove() });
+          gsap.to(w, {
+            opacity: 0,
+            duration: 0.3,
+            onComplete: () => w.remove(),
+          });
         }
       }, 5000);
     },
@@ -423,7 +518,7 @@ function chatApp() {
       c.className = "message-container";
       c.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content"><p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p><button class="continue-button" onclick="this.parentElement.parentElement.parentElement.remove();">Continuar</button></div></div>`;
       messagesDiv.appendChild(c);
-      gsap.to(c, { opacity: 1, y: 0, duration: .5, ease: "power2.out" });
+      gsap.to(c, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
       if (!isUserScrolling) {
         this.scrollToBottom();
       }
@@ -442,11 +537,13 @@ function chatApp() {
           content: "continue",
           message_type: 3,
           media_url: null,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         };
         ws.send(JSON.stringify(d));
       }
-      document.querySelectorAll(".continue-button").forEach(b => { b.parentElement.parentElement.parentElement.remove(); });
+      document.querySelectorAll(".continue-button").forEach((b) => {
+        b.parentElement.parentElement.parentElement.remove();
+      });
     },
 
     addMessage(role, content, streaming = false, msgId = null) {
@@ -454,17 +551,17 @@ function chatApp() {
       m.className = "message-container";
       if (role === "user") {
         m.innerHTML = `<div class="user-message"><div class="user-message-content">${this.escapeHtml(content)}</div></div>`;
-        this.updateContextUsage(contextUsage + .05);
+        this.updateContextUsage(contextUsage + 0.05);
       } else if (role === "assistant") {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content markdown-content" id="${msgId || ""}">${streaming ? "" : marked.parse(content)}</div></div>`;
-        this.updateContextUsage(contextUsage + .03);
+        this.updateContextUsage(contextUsage + 0.03);
       } else if (role === "voice") {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar">🎤</div><div class="assistant-message-content">${content}</div></div>`;
       } else {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content">${content}</div></div>`;
       }
       messagesDiv.appendChild(m);
-      gsap.to(m, { opacity: 1, y: 0, duration: .5, ease: "power2.out" });
+      gsap.to(m, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
       if (!isUserScrolling) {
         this.scrollToBottom();
       }
@@ -498,17 +595,24 @@ function chatApp() {
     },
 
     clearSuggestions() {
-      suggestionsContainer.innerHTML = '';
+      suggestionsContainer.innerHTML = "";
     },
 
     handleSuggestions(s) {
-      const uniqueSuggestions = s.filter((v, i, a) => i === a.findIndex(t => t.text === v.text && t.context === v.context));
-      suggestionsContainer.innerHTML = '';
-      uniqueSuggestions.forEach(v => {
-        const b = document.createElement('button');
+      const uniqueSuggestions = s.filter(
+        (v, i, a) =>
+          i ===
+          a.findIndex((t) => t.text === v.text && t.context === v.context),
+      );
+      suggestionsContainer.innerHTML = "";
+      uniqueSuggestions.forEach((v) => {
+        const b = document.createElement("button");
         b.textContent = v.text;
-        b.className = 'suggestion-button';
-        b.onclick = () => { this.setContext(v.context); messageInputEl.value = ''; };
+        b.className = "suggestion-button";
+        b.onclick = () => {
+          this.setContext(v.context);
+          messageInputEl.value = "";
+        };
         suggestionsContainer.appendChild(b);
       });
     },
@@ -517,30 +621,42 @@ function chatApp() {
       try {
         const t = event?.target?.textContent || c;
         this.addMessage("user", t);
-        messageInputEl.value = '';
-messageInputEl.value = '';
+        messageInputEl.value = "";
+        messageInputEl.value = "";
         if (ws && ws.readyState === WebSocket.OPEN) {
-          pendingContextChange = new Promise(r => {
-            const h = e => {
+          pendingContextChange = new Promise((r) => {
+            const h = (e) => {
               const d = JSON.parse(e.data);
               if (d.message_type === 5 && d.context_name === c) {
-                ws.removeEventListener('message', h);
+                ws.removeEventListener("message", h);
                 r();
               }
             };
-            ws.addEventListener('message', h);
-            const s = { bot_id: currentBotId, user_id: currentUserId, session_id: currentSessionId, channel: "web", content: t, message_type: 4, is_suggestion: true, context_name: c, timestamp: new Date().toISOString() };
+            ws.addEventListener("message", h);
+            const s = {
+              bot_id: currentBotId,
+              user_id: currentUserId,
+              session_id: currentSessionId,
+              channel: "web",
+              content: t,
+              message_type: 4,
+              is_suggestion: true,
+              context_name: c,
+              timestamp: new Date().toISOString(),
+            };
             ws.send(JSON.stringify(s));
           });
           await pendingContextChange;
-          const x = document.getElementById('contextIndicator');
-          if (x) { document.getElementById('contextPercentage').textContent = c; }
+          const x = document.getElementById("contextIndicator");
+          if (x) {
+            document.getElementById("contextPercentage").textContent = c;
+          }
         } else {
           console.warn("WebSocket não está conectado. Tentando reconectar...");
           this.connectWebSocket();
         }
       } catch (err) {
-        console.error('Failed to set context:', err);
+        console.error("Failed to set context:", err);
       }
     },
 
@@ -561,7 +677,16 @@ messageInputEl.value = '';
         this.hideThinkingIndicator();
       }
       this.addMessage("user", m);
-      const d = { bot_id: currentBotId, user_id: currentUserId, session_id: currentSessionId, channel: "web", content: m, message_type: 1, media_url: null, timestamp: new Date().toISOString() };
+      const d = {
+        bot_id: currentBotId,
+        user_id: currentUserId,
+        session_id: currentSessionId,
+        channel: "web",
+        content: m,
+        message_type: 1,
+        media_url: null,
+        timestamp: new Date().toISOString(),
+      };
       ws.send(JSON.stringify(d));
       messageInputEl.value = "";
       messageInputEl.focus();
@@ -587,7 +712,10 @@ messageInputEl.value = '';
         const r = await fetch("http://localhost:8080/api/voice/start", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: currentSessionId, user_id: currentUserId })
+          body: JSON.stringify({
+            session_id: currentSessionId,
+            user_id: currentUserId,
+          }),
         });
         const d = await r.json();
         if (d.token) {
@@ -606,7 +734,7 @@ messageInputEl.value = '';
         await fetch("http://localhost:8080/api/voice/stop", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ session_id: currentSessionId })
+          body: JSON.stringify({ session_id: currentSessionId }),
         });
         if (voiceRoom) {
           voiceRoom.disconnect();
@@ -623,11 +751,13 @@ messageInputEl.value = '';
     async connectToVoiceRoom(t) {
       try {
         const r = new LiveKitClient.Room();
-        const p = "ws:", u = `${p}//localhost:8080/voice`;
+        const p = "ws:",
+          u = `${p}//localhost:8080/voice`;
         await r.connect(u, t);
         voiceRoom = r;
-        r.on("dataReceived", d => {
-          const dc = new TextDecoder(), m = dc.decode(d);
+        r.on("dataReceived", (d) => {
+          const dc = new TextDecoder(),
+            m = dc.decode(d);
           try {
             const j = JSON.parse(m);
             if (j.type === "voice_response") {
@@ -637,7 +767,10 @@ messageInputEl.value = '';
             console.log("Voice data:", m);
           }
         });
-        const l = await LiveKitClient.createLocalTracks({ audio: true, video: false });
+        const l = await LiveKitClient.createLocalTracks({
+          audio: true,
+          video: false,
+        });
         for (const k of l) {
           await r.localParticipant.publishTrack(k);
         }
@@ -652,34 +785,58 @@ messageInputEl.value = '';
         console.log("Media devices not supported");
         return;
       }
-      navigator.mediaDevices.getUserMedia({ audio: true }).then(s => {
-        mediaRecorder = new MediaRecorder(s);
-        audioChunks = [];
-        mediaRecorder.ondataavailable = e => { audioChunks.push(e.data); };
-        mediaRecorder.onstop = () => { const a = new Blob(audioChunks, { type: "audio/wav" }); this.simulateVoiceTranscription(); };
-        mediaRecorder.start();
-        setTimeout(() => {
-          if (mediaRecorder && mediaRecorder.state === "recording") {
-            mediaRecorder.stop();
-            setTimeout(() => {
-              if (isVoiceMode) {
-                this.startVoiceRecording();
-              }
-            }, 1000);
-          }
-        }, 5000);
-      }).catch(e => {
-        console.error("Error accessing microphone:", e);
-        this.showWarning("Erro ao acessar microfone");
-      });
+      navigator.mediaDevices
+        .getUserMedia({ audio: true })
+        .then((s) => {
+          mediaRecorder = new MediaRecorder(s);
+          audioChunks = [];
+          mediaRecorder.ondataavailable = (e) => {
+            audioChunks.push(e.data);
+          };
+          mediaRecorder.onstop = () => {
+            const a = new Blob(audioChunks, { type: "audio/wav" });
+            this.simulateVoiceTranscription();
+          };
+          mediaRecorder.start();
+          setTimeout(() => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+              mediaRecorder.stop();
+              setTimeout(() => {
+                if (isVoiceMode) {
+                  this.startVoiceRecording();
+                }
+              }, 1000);
+            }
+          }, 5000);
+        })
+        .catch((e) => {
+          console.error("Error accessing microphone:", e);
+          this.showWarning("Erro ao acessar microfone");
+        });
     },
 
     simulateVoiceTranscription() {
-      const p = ["Olá, como posso ajudá-lo hoje?", "Entendo o que você está dizendo", "Esse é um ponto interessante", "Deixe-me pensar sobre isso", "Posso ajudá-lo com isso", "O que você gostaria de saber?", "Isso parece ótimo", "Estou ouvindo sua voz"];
+      const p = [
+        "Olá, como posso ajudá-lo hoje?",
+        "Entendo o que você está dizendo",
+        "Esse é um ponto interessante",
+        "Deixe-me pensar sobre isso",
+        "Posso ajudá-lo com isso",
+        "O que você gostaria de saber?",
+        "Isso parece ótimo",
+        "Estou ouvindo sua voz",
+      ];
       const r = p[Math.floor(Math.random() * p.length)];
       if (voiceRoom) {
-        const m = { type: "voice_input", content: r, timestamp: new Date().toISOString() };
-        voiceRoom.localParticipant.publishData(new TextEncoder().encode(JSON.stringify(m)), LiveKitClient.DataPacketKind.RELIABLE);
+        const m = {
+          type: "voice_input",
+          content: r,
+          timestamp: new Date().toISOString(),
+        };
+        voiceRoom.localParticipant.publishData(
+          new TextEncoder().encode(JSON.stringify(m)),
+          LiveKitClient.DataPacketKind.RELIABLE,
+        );
       }
       this.addMessage("voice", `🎤 ${r}`);
     },
@@ -687,8 +844,8 @@ messageInputEl.value = '';
     scrollToBottom() {
       messagesDiv.scrollTop = messagesDiv.scrollHeight;
       isUserScrolling = false;
-      scrollToBottomBtn.classList.remove('visible');
-    }
+      scrollToBottomBtn.classList.remove("visible");
+    },
   };
 }
 

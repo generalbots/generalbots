@@ -67,13 +67,156 @@ impl BotOrchestrator {
         Ok(())
     }
 
-    // Placeholder for stream_response used by UI
+    // Stream response to user via LLM
     pub async fn stream_response(
         &self,
-        _user_message: UserMessage,
-        _response_tx: mpsc::Sender<BotResponse>,
+        message: UserMessage,
+        response_tx: mpsc::Sender<BotResponse>,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // No-op placeholder
+        trace!(
+            "Streaming response for user: {}, session: {}",
+            message.user_id,
+            message.session_id
+        );
+
+        let user_id = Uuid::parse_str(&message.user_id)?;
+        let session_id = Uuid::parse_str(&message.session_id)?;
+        let bot_id = Uuid::parse_str(&message.bot_id).unwrap_or_default();
+
+        // All database operations in one blocking section
+        let (session, context_data, history, model, key) = {
+            let state_clone = self.state.clone();
+            tokio::task::spawn_blocking(
+                move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
+                    // Get session
+                    let session = {
+                        let mut sm = state_clone.session_manager.blocking_lock();
+                        sm.get_session_by_id(session_id)?
+                    }
+                    .ok_or_else(|| "Session not found")?;
+
+                    // Save user message
+                    {
+                        let mut sm = state_clone.session_manager.blocking_lock();
+                        sm.save_message(session.id, user_id, 1, &message.content, 1)?;
+                    }
+
+                    // Get context and history
+                    let context_data = {
+                        let sm = state_clone.session_manager.blocking_lock();
+                        let rt = tokio::runtime::Handle::current();
+                        rt.block_on(async {
+                            sm.get_session_context_data(&session.id, &session.user_id)
+                                .await
+                        })?
+                    };
+
+                    let history = {
+                        let mut sm = state_clone.session_manager.blocking_lock();
+                        sm.get_conversation_history(session.id, user_id)?
+                    };
+
+                    // Get model config
+                    let config_manager = ConfigManager::new(state_clone.conn.clone());
+                    let model = config_manager
+                        .get_config(&bot_id, "llm-model", Some("gpt-3.5-turbo"))
+                        .unwrap_or_else(|_| "gpt-3.5-turbo".to_string());
+                    let key = config_manager
+                        .get_config(&bot_id, "llm-key", Some(""))
+                        .unwrap_or_default();
+
+                    Ok((session, context_data, history, model, key))
+                },
+            )
+            .await??
+        };
+
+        // Build messages
+        let system_prompt = std::env::var("SYSTEM_PROMPT")
+            .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
+        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        // Stream from LLM
+        let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
+        let llm = self.state.llm_provider.clone();
+
+        tokio::spawn(async move {
+            if let Err(e) = llm
+                .generate_stream("", &messages, stream_tx, &model, &key)
+                .await
+            {
+                error!("LLM streaming error: {}", e);
+            }
+        });
+
+        let mut full_response = String::new();
+        let mut chunk_count = 0;
+
+        while let Some(chunk) = stream_rx.recv().await {
+            chunk_count += 1;
+            info!("Received LLM chunk #{}: {:?}", chunk_count, chunk);
+            full_response.push_str(&chunk);
+
+            let response = BotResponse {
+                bot_id: message.bot_id.clone(),
+                user_id: message.user_id.clone(),
+                session_id: message.session_id.clone(),
+                channel: message.channel.clone(),
+                content: chunk,
+                message_type: 2,
+                stream_token: None,
+                is_complete: false,
+                suggestions: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+
+            info!("Sending streaming chunk to WebSocket");
+            if let Err(e) = response_tx.send(response).await {
+                error!("Failed to send streaming chunk: {}", e);
+                break;
+            }
+        }
+
+        info!(
+            "LLM streaming complete, received {} chunks, total length: {}",
+            chunk_count,
+            full_response.len()
+        );
+
+        // Send final complete response
+        let final_response = BotResponse {
+            bot_id: message.bot_id.clone(),
+            user_id: message.user_id.clone(),
+            session_id: message.session_id.clone(),
+            channel: message.channel.clone(),
+            content: full_response.clone(),
+            message_type: 2,
+            stream_token: None,
+            is_complete: true,
+            suggestions: Vec::new(),
+            context_name: None,
+            context_length: 0,
+            context_max_length: 0,
+        };
+
+        info!("Sending final complete response to WebSocket");
+        response_tx.send(final_response).await?;
+        info!("Final response sent successfully");
+
+        // Save bot response in blocking context
+        let state_for_save = self.state.clone();
+        let full_response_clone = full_response.clone();
+        tokio::task::spawn_blocking(
+            move || -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+                let mut sm = state_for_save.session_manager.blocking_lock();
+                sm.save_message(session.id, user_id, 2, &full_response_clone, 2)?;
+                Ok(())
+            },
+        )
+        .await??;
+
         Ok(())
     }
 
@@ -145,6 +288,12 @@ async fn handle_websocket(
         .web_adapter
         .add_connection(session_id.to_string(), tx.clone())
         .await;
+
+    // Also register in response_channels for BotOrchestrator
+    {
+        let mut channels = state.response_channels.lock().await;
+        channels.insert(session_id.to_string(), tx.clone());
+    }
 
     info!(
         "WebSocket connected for session: {}, user: {}",
@@ -232,19 +381,16 @@ async fn handle_websocket(
                                 session_id, user_msg.content
                             );
                             // Process the message through the bot system
-                            let state_for_task = state_clone.clone();
-                            tokio::spawn(async move {
-                                if let Err(e) = process_user_message(
-                                    state_for_task,
-                                    session_id,
-                                    user_id,
-                                    user_msg,
-                                )
-                                .await
-                                {
-                                    error!("Error processing user message: {}", e);
-                                }
-                            });
+                            if let Err(e) = process_user_message(
+                                state_clone.clone(),
+                                session_id,
+                                user_id,
+                                user_msg,
+                            )
+                            .await
+                            {
+                                error!("Error processing user message: {}", e);
+                            }
                         }
                         Err(e) => {
                             error!(
@@ -288,6 +434,12 @@ async fn handle_websocket(
         .remove_connection(&session_id.to_string())
         .await;
 
+    // Also remove from response_channels
+    {
+        let mut channels = state.response_channels.lock().await;
+        channels.remove(&session_id.to_string());
+    }
+
     info!("WebSocket disconnected for session: {}", session_id);
 }
 
@@ -303,64 +455,20 @@ async fn process_user_message(
         user_id, session_id, user_msg.content
     );
 
-    // Get the session from the session manager
-    let session = {
-        let mut sm = state.session_manager.lock().await;
-        sm.get_session_by_id(session_id)
-            .map_err(|e| format!("Session error: {}", e))?
-            .ok_or("Session not found")?
+    // Get the response channel for this session
+    let tx = {
+        let channels = state.response_channels.lock().await;
+        channels.get(&session_id.to_string()).cloned()
     };
 
-    let content = user_msg.content.clone();
-    let bot_id = session.bot_id;
-
-    info!("Sending message to LLM for processing");
-
-    // Call the LLM to generate a response
-    let messages = serde_json::json!([{"role": "user", "content": content}]);
-    let llm_response = match state
-        .llm_provider
-        .generate(&content, &messages, "gpt-3.5-turbo", "")
-        .await
-    {
-        Ok(response) => response,
-        Err(e) => {
-            error!("LLM generation failed: {}", e);
-            format!(
-                "I'm sorry, I encountered an error processing your message: {}",
-                e
-            )
+    if let Some(response_tx) = tx {
+        // Use BotOrchestrator to stream the response
+        let orchestrator = BotOrchestrator::new(state.clone());
+        if let Err(e) = orchestrator.stream_response(user_msg, response_tx).await {
+            error!("Failed to stream response: {}", e);
         }
-    };
-
-    info!("LLM response received: {}", llm_response);
-
-    // Create and send the bot response
-    let response = BotResponse {
-        bot_id: bot_id.to_string(),
-        user_id: user_id.to_string(),
-        session_id: session_id.to_string(),
-        channel: "web".to_string(),
-        content: llm_response,
-        message_type: 2,
-        stream_token: None,
-        is_complete: true,
-        suggestions: Vec::new(),
-        context_name: None,
-        context_length: 0,
-        context_max_length: 0,
-    };
-
-    // Send response back through WebSocket
-    info!("Sending response to WebSocket session {}", session_id);
-    if let Err(e) = state
-        .web_adapter
-        .send_message_to_session(&session_id.to_string(), response)
-        .await
-    {
-        error!("Failed to send LLM response: {:?}", e);
     } else {
-        info!("Response sent successfully to session {}", session_id);
+        error!("No response channel found for session {}", session_id);
     }
 
     Ok(())
