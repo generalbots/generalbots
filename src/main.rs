@@ -471,7 +471,7 @@ async fn main() -> std::io::Result<()> {
 
         // Give the server thread a moment to start
         std::thread::sleep(std::time::Duration::from_millis(500));
-        info!("Launching Tauri desktop application...");
+        info!("Launching General Bots desktop application...");
 
         // Run Tauri on main thread (GUI requires main thread)
         let tauri_app = tauri::Builder::default()
@@ -482,6 +482,7 @@ async fn main() -> std::io::Result<()> {
                     "main",
                     tauri::WebviewUrl::App("index.html".into()),
                 )
+                .title("General Bots")
                 .build()
                 {
                     Ok(_window) => Ok(()),
@@ -493,7 +494,7 @@ async fn main() -> std::io::Result<()> {
                 }
             })
             .build(tauri::generate_context!())
-            .expect("error while running tauri application");
+            .expect("error while running Desktop application");
 
         tauri_app.run(|_app_handle, event| match event {
             tauri::RunEvent::ExitRequested { api, .. } => {
