@@ -1,67 +1,125 @@
 <div class="drive-layout" x-data="driveApp()" x-cloak>
-  <div class="panel drive-sidebar">
-    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
-      <h3>General Bots Drive</h3>
+    <div class="drive-sidebar">
+        <div
+            style="
+                padding: 1rem;
+                border-bottom: 1px solid var(--border, #e0e0e0);
+            "
+        >
+            <h3>General Bots Drive</h3>
+        </div>
+        <template x-for="item in navItems" :key="item.name">
+            <div
+                class="nav-item"
+                :class="{ active: current === item.name }"
+                @click="current = item.name"
+            >
+                <span x-text="item.icon"></span>
+                <span x-text="item.name"></span>
+            </div>
+        </template>
     </div>
-    <template x-for="item in navItems" :key="item.name">
-      <div class="nav-item" 
-           :class="{ active: current === item.name }"
-           @click="current = item.name">
-        <span x-text="item.icon"></span>
-        <span x-text="item.name"></span>
-      </div>
-    </template>
-  </div>
 
-  <div class="panel drive-main">
-    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
-      <h2 x-text="current"></h2>
-      <input type="text" x-model="search" placeholder="Search files..." 
-             style="width: 100%; margin-top: 0.5rem; padding: 0.5rem; background: #0f172a; border: 1px solid #334155; border-radius: 0.375rem; color: #e2e8f0;">
-    </div>
-    <div class="file-list">
-      <template x-for="file in filteredFiles" :key="file.id">
-        <div class="file-item" 
-             :class="{ selected: selectedFile?.id === file.id }"
-             @click="selectedFile = file">
-          <span class="file-icon" x-text="file.icon"></span>
-          <div style="flex: 1;">
-            <div style="font-weight: 600;" x-text="file.name"></div>
-            <div class="text-xs text-gray" x-text="file.date"></div>
-          </div>
-          <div class="text-sm text-gray" x-text="file.size"></div>
+    <div class="drive-main">
+        <div
+            style="
+                padding: 1rem;
+                border-bottom: 1px solid var(--border, #e0e0e0);
+            "
+        >
+            <h2 x-text="current"></h2>
+            <input
+                type="text"
+                x-model="search"
+                placeholder="Search files..."
+                style="
+                    width: 100%;
+                    margin-top: 0.5rem;
+                    padding: 0.75rem;
+                    border: 1px solid #e0e0e0;
+                    border-radius: 8px;
+                    font-family: inherit;
+                "
+            />
         </div>
-      </template>
+        <div class="file-list">
+            <template x-for="file in filteredFiles" :key="file.id">
+                <div
+                    class="file-item"
+                    :class="{ selected: selectedFile?.id === file.id }"
+                    @click="selectedFile = file"
+                >
+                    <span class="file-icon" x-text="file.icon"></span>
+                    <div style="flex: 1">
+                        <div style="font-weight: 600" x-text="file.name"></div>
+                        <div class="text-xs text-gray" x-text="file.date"></div>
+                    </div>
+                    <div class="text-sm text-gray" x-text="file.size"></div>
+                </div>
+            </template>
+        </div>
     </div>
-  </div>
 
-  <div class="panel drive-details">
-    <template x-if="selectedFile">
-      <div style="padding: 2rem;">
-        <div style="text-align: center; margin-bottom: 2rem;">
-          <div style="font-size: 4rem; margin-bottom: 1rem;" x-text="selectedFile.icon"></div>
-          <h3 x-text="selectedFile.name"></h3>
-          <p class="text-sm text-gray" x-text="selectedFile.type"></p>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <div class="text-sm" style="margin-bottom: 0.5rem;">Size</div>
-          <div class="text-gray" x-text="selectedFile.size"></div>
-        </div>
-        <div style="margin-bottom: 1rem;">
-          <div class="text-sm" style="margin-bottom: 0.5rem;">Modified</div>
-          <div class="text-gray" x-text="selectedFile.date"></div>
-        </div>
-        <div style="display: flex; gap: 0.5rem; margin-top: 2rem;">
-          <button style="flex: 1; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Download</button>
-          <button style="flex: 1; padding: 0.75rem; background: #10b981; color: white; border: none; border-radius: 0.375rem; cursor: pointer;">Share</button>
-        </div>
-      </div>
-    </template>
-    <template x-if="!selectedFile">
-      <div style="padding: 2rem; text-align: center; color: #64748b;">
-        <div style="font-size: 4rem; margin-bottom: 1rem;">📄</div>
-        <p>Select a file to view details</p>
-      </div>
-    </template>
-  </div>
+    <div class="drive-details">
+        <template x-if="selectedFile">
+            <div style="padding: 2rem">
+                <div style="text-align: center; margin-bottom: 2rem">
+                    <div
+                        style="font-size: 4rem; margin-bottom: 1rem"
+                        x-text="selectedFile.icon"
+                    ></div>
+                    <h3 x-text="selectedFile.name"></h3>
+                    <p class="text-sm text-gray" x-text="selectedFile.type"></p>
+                </div>
+                <div style="margin-bottom: 1rem">
+                    <div class="text-sm" style="margin-bottom: 0.5rem">
+                        Size
+                    </div>
+                    <div class="text-gray" x-text="selectedFile.size"></div>
+                </div>
+                <div style="margin-bottom: 1rem">
+                    <div class="text-sm" style="margin-bottom: 0.5rem">
+                        Modified
+                    </div>
+                    <div class="text-gray" x-text="selectedFile.date"></div>
+                </div>
+                <div style="display: flex; gap: 0.5rem; margin-top: 2rem">
+                    <button
+                        style="
+                            flex: 1;
+                            padding: 0.75rem;
+                            background: #1a73e8;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-family: inherit;
+                        "
+                    >
+                        Download
+                    </button>
+                    <button
+                        style="
+                            flex: 1;
+                            padding: 0.75rem;
+                            background: #34a853;
+                            color: white;
+                            border: none;
+                            border-radius: 8px;
+                            cursor: pointer;
+                            font-family: inherit;
+                        "
+                    >
+                        Share
+                    </button>
+                </div>
+            </div>
+        </template>
+        <template x-if="!selectedFile">
+            <div style="padding: 2rem; text-align: center; color: #5f6368">
+                <div style="font-size: 4rem; margin-bottom: 1rem">📄</div>
+                <p>Select a file to view details</p>
+            </div>
+        </template>
+    </div>
 </div>
