@@ -3,34 +3,34 @@ name = "botserver"
 version = "6.0.8"
 edition = "2021"
 authors = [
- "Pragmatismo.com.br <contact@pragmatismo.com.br>",
- "General Bots Community <https://github.com/GeneralBots>",
- "Alan Perdomo",
- "Ana Paula Gil",
- "Arenas.io",
- "Atylla L",
- "Christopher de Castilho",
- "Dario Junior",
- "David Lerner",
- "Experimentation Garage",
- "Flavio Andrade",
- "Heraldo Almeida",
- "Joao Parana",
- "Jonathas C",
- "J Ramos",
- "Lucas Picanco",
- "Marcos Velasco",
- "Matheus 39x",
- "Oerlabs Henrique",
- "Othon Lima",
- "PH Nascimento",
- "Phpussente",
- "Robson Dantas",
- "Rodrigo Rodriguez <me@rodrigorodriguez.com>",
- "Sarah Lourenco",
- "Thi Patriota",
- "Webgus",
- "Zuilho Se",
+    "Pragmatismo.com.br ",
+    "General Bots Community ",
+    "Alan Perdomo",
+    "Ana Paula Gil",
+    "Arenas.io",
+    "Atylla L",
+    "Christopher de Castilho",
+    "Dario Junior",
+    "David Lerner",
+    "Experimentation Garage",
+    "Flavio Andrade",
+    "Heraldo Almeida",
+    "Joao Parana",
+    "Jonathas C",
+    "J Ramos",
+    "Lucas Picanco",
+    "Marcos Velasco",
+    "Matheus 39x",
+    "Oerlabs Henrique",
+    "Othon Lima",
+    "PH Nascimento",
+    "Phpussente",
+    "Robson Dantas",
+    "Rodrigo Rodriguez ",
+    "Sarah Lourenco",
+    "Thi Patriota",
+    "Webgus",
+    "Zuilho Se",
 ]
 description = "General Bots Server - Open-source bot platform by Pragmatismo.com.br"
 license = "AGPL-3.0"
@@ -38,18 +38,11 @@ repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
 default = ["desktop"]
-
 vectordb = ["qdrant-client"]
 email = ["imap"]
 desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 
 [dependencies]
-
-actix-cors = "0.7"
-actix-files = "0.6.8"
-actix-multipart = "0.7"
-actix-web = "4.9"
-actix-ws = "0.3"
 aes-gcm = "0.10"
 anyhow = "1.0"
 argon2 = "0.5"
@@ -58,6 +51,7 @@ async-stream = "0.3"
 async-trait = "0.1"
 aws-config = "1.8.8"
 aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"] }
+axum = { version = "0.8.7", features = ["ws", "multipart", "macros"] }
 base64 = "0.22"
 bytes = "1.8"
 chrono = { version = "0.4", features = ["serde"] }
@@ -73,6 +67,7 @@ env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
 hmac = "0.12.1"
+hyper = { version = "1.8.1", features = ["full"] }
 imap = { version = "3.0.0-alpha.15", optional = true }
 include_dir = "0.7"
 indicatif = "0.18.0"
@@ -106,6 +101,8 @@ tempfile = "3"
 time = "0.3.44"
 tokio = { version = "1.41", features = ["full"] }
 tokio-stream = "0.1"
+tower = "0.5"
+tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 ureq = "3.1.2"
@@ -115,8 +112,6 @@ zip = "2.2"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
-
-
 
 [profile.release]
 lto = true

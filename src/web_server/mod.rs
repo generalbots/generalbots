@@ -1,75 +1,39 @@
-use actix_files::Files;
-use actix_web::{HttpResponse, Result};
+use axum::{
+    Router,
+    routing::get,
+    response::{Html, IntoResponse},
+    http::StatusCode,
+};
+use tower_http::services::ServeDir;
 use log::error;
-use std::{fs, path::Path};
+use std::{fs, path::PathBuf};
 
-#[actix_web::get("/")]
-async fn index() -> Result<HttpResponse> {
+pub async fn index() -> impl IntoResponse {
     match fs::read_to_string("web/desktop/index.html") {
-        Ok(html) => Ok(HttpResponse::Ok().content_type("text/html").body(html)),
+        Ok(html) => (StatusCode::OK, [("content-type", "text/html")], Html(html)),
         Err(e) => {
             error!("Failed to load index page: {}", e);
-            Ok(HttpResponse::InternalServerError().body("Failed to load index page"))
+            (StatusCode::INTERNAL_SERVER_ERROR, [("content-type", "text/plain")], Html("Failed to load index page".to_string()))
         }
     }
 }
 
+pub fn configure_router() -> Router {
+    let static_path = PathBuf::from("./web/desktop");
 
-pub fn configure_app(cfg: &mut actix_web::web::ServiceConfig) {
-    let static_path = Path::new("./web/desktop");
-
-    // Serve all JS files
-    cfg.service(
-        Files::new("/js", static_path.join("js"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    // Serve CSS files
-    cfg.service(
-        Files::new("/css", static_path.join("css"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    cfg.service(
-        Files::new("/drive", static_path.join("drive"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    cfg.service(
-        Files::new("/chat", static_path.join("chat"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    cfg.service(
-        Files::new("/mail", static_path.join("mail"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    cfg.service(
-        Files::new("/tasks", static_path.join("tasks"))
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    // Fallback: serve index.html for any other path to enable SPA routing
-    cfg.service(
-        Files::new("/", static_path)
-            .index_file("index.html")
-            .prefer_utf8(true)
-            .use_last_modified(true)
-            .use_etag(true)
-    );
-
-    cfg.service(index);
+    Router::new()
+        // Serve all JS files
+        .nest_service("/js", ServeDir::new(static_path.join("js")))
+        // Serve CSS files
+        .nest_service("/css", ServeDir::new(static_path.join("css")))
+        .nest_service("/drive", ServeDir::new(static_path.join("drive")))
+        .nest_service("/chat", ServeDir::new(static_path.join("chat")))
+        .nest_service("/mail", ServeDir::new(static_path.join("mail")))
+        .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
+        // Fallback: serve static files and index.html for SPA routing
+        .fallback_service(
+            ServeDir::new(static_path.clone())
+                .fallback(ServeDir::new(static_path.clone()).append_index_html_on_directories(true))
+        )
+        .route("/", get(index))
 }

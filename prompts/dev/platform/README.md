@@ -18,5 +18,5 @@ When initial attempts fail, sequentially try these LLMs:
 - Fix manually in case of dangerous trouble.
 - Keep in the source codebase only deployed and tested source, no lab source code in main project. At least, use optional features to introduce new behaviour gradually in PRODUCTION.
 - Transform good articles into prompts for the coder.
-- Switch to libraries that have LLM affinity.
+- Switch to libraries that have LLM affinity (LLM knows the library, was well trained).
 - Ensure 'continue' on LLMs, they can EOF and say are done, but got more to output.
