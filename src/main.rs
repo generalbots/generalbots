@@ -44,7 +44,8 @@ use crate::channels::{VoiceAdapter, WebChannelAdapter};
 use crate::config::AppConfig;
 #[cfg(feature = "email")]
 use crate::email::{
-    get_emails, get_latest_email_from, list_emails, save_click, save_draft, send_email,
+    add_email_account, delete_email_account, get_emails, get_latest_email_from,
+    list_email_accounts, list_emails, list_folders, save_click, save_draft, send_email,
 };
 use crate::file::upload_file;
 use crate::meet::{voice_start, voice_stop};
@@ -123,11 +124,18 @@ async fn run_axum_server(
     // Add email routes if feature is enabled
     #[cfg(feature = "email")]
     let api_router = api_router
-        .route("/api/email/latest", post(get_latest_email_from))
-        .route("/api/email/get/{campaign_id}", get(get_emails))
-        .route("/api/email/list", get(list_emails))
+        .route("/api/email/accounts", get(list_email_accounts))
+        .route("/api/email/accounts/add", post(add_email_account))
+        .route(
+            "/api/email/accounts/{account_id}",
+            axum::routing::delete(delete_email_account),
+        )
+        .route("/api/email/list", post(list_emails))
         .route("/api/email/send", post(send_email))
         .route("/api/email/draft", post(save_draft))
+        .route("/api/email/folders/{account_id}", get(list_folders))
+        .route("/api/email/latest", post(get_latest_email_from))
+        .route("/api/email/get/{campaign_id}", get(get_emails))
         .route("/api/email/click/{campaign_id}/{email}", get(save_click));
 
     // Build static file serving

@@ -58,8 +58,8 @@ pub struct UserMessage {
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Suggestion {
-    pub text: String,  
-    pub context: String,  
+    pub text: String,
+    pub context: String,
 }
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotResponse {
@@ -276,6 +276,75 @@ pub mod schema {
             config_type -> Text,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
+        }
+    }
+    diesel::table! {
+        user_email_accounts (id) {
+            id -> Uuid,
+            user_id -> Uuid,
+            email -> Varchar,
+            display_name -> Nullable<Varchar>,
+            imap_server -> Varchar,
+            imap_port -> Int4,
+            smtp_server -> Varchar,
+            smtp_port -> Int4,
+            username -> Varchar,
+            password_encrypted -> Text,
+            is_primary -> Bool,
+            is_active -> Bool,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+    diesel::table! {
+        email_drafts (id) {
+            id -> Uuid,
+            user_id -> Uuid,
+            account_id -> Uuid,
+            to_address -> Text,
+            cc_address -> Nullable<Text>,
+            bcc_address -> Nullable<Text>,
+            subject -> Nullable<Varchar>,
+            body -> Nullable<Text>,
+            attachments -> Jsonb,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+    diesel::table! {
+        email_folders (id) {
+            id -> Uuid,
+            account_id -> Uuid,
+            folder_name -> Varchar,
+            folder_path -> Varchar,
+            unread_count -> Int4,
+            total_count -> Int4,
+            last_synced -> Nullable<Timestamptz>,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+    diesel::table! {
+        user_preferences (id) {
+            id -> Uuid,
+            user_id -> Uuid,
+            preference_key -> Varchar,
+            preference_value -> Jsonb,
+            created_at -> Timestamptz,
+            updated_at -> Timestamptz,
+        }
+    }
+    diesel::table! {
+        user_login_tokens (id) {
+            id -> Uuid,
+            user_id -> Uuid,
+            token_hash -> Varchar,
+            expires_at -> Timestamptz,
+            created_at -> Timestamptz,
+            last_used -> Timestamptz,
+            user_agent -> Nullable<Text>,
+            ip_address -> Nullable<Varchar>,
+            is_active -> Bool,
         }
     }
 }

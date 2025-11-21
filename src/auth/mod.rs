@@ -9,6 +9,9 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub mod zitadel;
+pub use zitadel::{UserWorkspace, ZitadelAuth, ZitadelConfig, ZitadelUser};
+
 pub struct AuthService {}
 
 impl AuthService {
