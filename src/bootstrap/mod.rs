@@ -1,14 +1,15 @@
 use crate::config::AppConfig;
+use crate::package_manager::setup::{DirectorySetup, EmailSetup};
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use dotenvy::dotenv;
-use log::{error, trace};
+use log::{error, info, trace};
 use rand::distr::Alphanumeric;
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::Command;
 pub struct ComponentInfo {
     pub name: &'static str,
@@ -79,7 +80,7 @@ impl BootstrapManager {
         let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
             format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
         });
-        
+
         let drive_password = self.generate_secure_password(16);
         let drive_user = "gbdriveuser".to_string();
         let drive_env = format!(
@@ -90,9 +91,8 @@ impl BootstrapManager {
         let _ = std::fs::write(&env_path, contents_env);
         dotenv().ok();
 
-
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
-        let required_components = vec!["tables", "drive", "cache", "llm"];
+        let required_components = vec!["tables", "drive", "cache", "llm", "directory", "email"];
         for component in required_components {
             if !pm.is_installed(component) {
                 let termination_cmd = pm
@@ -133,8 +133,75 @@ impl BootstrapManager {
                     let mut conn = establish_pg_connection().unwrap();
                     self.apply_migrations(&mut conn)?;
                 }
+
+                // Auto-configure Directory after installation
+                if component == "directory" {
+                    info!("🔧 Auto-configuring Directory (Zitadel)...");
+                    if let Err(e) = self.setup_directory().await {
+                        error!("Failed to setup Directory: {}", e);
+                    }
+                }
+
+                // Auto-configure Email after installation and Directory setup
+                if component == "email" {
+                    info!("🔧 Auto-configuring Email (Stalwart)...");
+                    if let Err(e) = self.setup_email().await {
+                        error!("Failed to setup Email: {}", e);
+                    }
+                }
             }
         }
+        Ok(())
+    }
+
+    /// Setup Directory (Zitadel) with default organization and user
+    async fn setup_directory(&self) -> Result<()> {
+        let config_path = PathBuf::from("./config/directory_config.json");
+        let work_root = PathBuf::from("./work");
+
+        // Ensure config directory exists
+        tokio::fs::create_dir_all("./config").await?;
+
+        let mut setup = DirectorySetup::new("http://localhost:8080".to_string(), config_path);
+
+        let config = setup.initialize().await?;
+
+        info!("✅ Directory initialized successfully!");
+        info!("   Organization: {}", config.default_org.name);
+        info!(
+            "   Default User: {} / {}",
+            config.default_user.email, config.default_user.password
+        );
+        info!("   Client ID: {}", config.client_id);
+        info!("   Login URL: {}", config.base_url);
+
+        Ok(())
+    }
+
+    /// Setup Email (Stalwart) with Directory integration
+    async fn setup_email(&self) -> Result<()> {
+        let config_path = PathBuf::from("./config/email_config.json");
+        let directory_config_path = PathBuf::from("./config/directory_config.json");
+
+        let mut setup = EmailSetup::new("http://localhost:8080".to_string(), config_path);
+
+        // Try to integrate with Directory if it exists
+        let directory_config = if directory_config_path.exists() {
+            Some(directory_config_path)
+        } else {
+            None
+        };
+
+        let config = setup.initialize(directory_config).await?;
+
+        info!("✅ Email server initialized successfully!");
+        info!("   SMTP: {}:{}", config.smtp_host, config.smtp_port);
+        info!("   IMAP: {}:{}", config.imap_host, config.imap_port);
+        info!("   Admin: {} / {}", config.admin_user, config.admin_pass);
+        if config.directory_integration {
+            info!("   🔗 Integrated with Directory for authentication");
+        }
+
         Ok(())
     }
 
@@ -273,17 +340,17 @@ impl BootstrapManager {
         })
     }
     pub fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
-        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
         use diesel_migrations::HarnessWithOutput;
-        
+        use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
         const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
-        
+
         let mut harness = HarnessWithOutput::write_to_stdout(conn);
         if let Err(e) = harness.run_pending_migrations(MIGRATIONS) {
             error!("Failed to apply migrations: {}", e);
             return Err(anyhow::anyhow!("Migration error: {}", e));
         }
-        
+
         Ok(())
     }
 }

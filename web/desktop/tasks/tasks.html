@@ -1,37 +1,265 @@
 <div class="tasks-container" x-data="tasksApp()" x-init="init()" x-cloak>
-  <h1>Tasks</h1>
-  <div class="task-input">
-    <input type="text" 
-           x-model="newTask" 
-           @keyup.enter="addTask()"
-           placeholder="Add a new task...">
-    <button @click="addTask()">Add Task</button>
-  </div>
+    <!-- Header -->
+    <div class="tasks-header">
+        <div class="header-content">
+            <h1 class="tasks-title">
+                <span class="tasks-icon">✓</span>
+                Tasks
+            </h1>
+            <div class="header-stats">
+                <span class="stat-item">
+                    <span class="stat-value" x-text="tasks.length"></span>
+                    <span class="stat-label">Total</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-value" x-text="activeTasks"></span>
+                    <span class="stat-label">Active</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-value" x-text="completedTasks"></span>
+                    <span class="stat-label">Done</span>
+                </span>
+            </div>
+        </div>
+    </div>
 
-  <ul class="task-list">
-    <template x-for="task in filteredTasks" :key="task.id">
-      <li class="task-item" :class="{ completed: task.completed }">
-        <input type="checkbox" 
-               :checked="task.completed"
-               @change="toggleTask(task.id)">
-        <span x-text="task.text"></span>
-        <button @click="deleteTask(task.id)">×</button>
-      </li>
-    </template>
-  </ul>
+    <!-- Task Input -->
+    <div class="task-input-section">
+        <div class="input-wrapper">
+            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="8" x2="12" y2="16"></line>
+                <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            <input
+                type="text"
+                class="task-input"
+                x-model="newTask"
+                @keyup.enter="addTask()"
+                placeholder="Add a new task... (Press Enter)"
+                :disabled="!newTask.trim()"
+            />
+            <button
+                class="button-primary add-task-btn"
+                @click="addTask()"
+                :disabled="!newTask.trim()"
+            >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+                Add Task
+            </button>
+        </div>
+    </div>
 
-  <div class="task-filters" x-show="tasks.length > 0">
-    <button :class="{ active: filter === 'all' }" @click="filter = 'all'">
-      All (<span x-text="tasks.length"></span>)
-    </button>
-    <button :class="{ active: filter === 'active' }" @click="filter = 'active'">
-      Active (<span x-text="activeTasks"></span>)
-    </button>
-    <button :class="{ active: filter === 'completed' }" @click="filter = 'completed'">
-      Completed (<span x-text="completedTasks"></span>)
-    </button>
-    <button @click="clearCompleted()" x-show="completedTasks > 0">
-      Clear Completed
-    </button>
-  </div>
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <button
+            class="filter-tab"
+            :class="{ active: filter === 'all' }"
+            @click="filter = 'all'"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="8" y1="6" x2="21" y2="6"></line>
+                <line x1="8" y1="12" x2="21" y2="12"></line>
+                <line x1="8" y1="18" x2="21" y2="18"></line>
+                <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                <line x1="3" y1="18" x2="3.01" y2="18"></line>
+            </svg>
+            All
+            <span class="tab-badge" x-text="tasks.length"></span>
+        </button>
+        <button
+            class="filter-tab"
+            :class="{ active: filter === 'active' }"
+            @click="filter = 'active'"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"></circle>
+            </svg>
+            Active
+            <span class="tab-badge" x-text="activeTasks"></span>
+        </button>
+        <button
+            class="filter-tab"
+            :class="{ active: filter === 'completed' }"
+            @click="filter = 'completed'"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Completed
+            <span class="tab-badge" x-text="completedTasks"></span>
+        </button>
+        <button
+            class="filter-tab priority-tab"
+            :class="{ active: filter === 'priority' }"
+            @click="filter = 'priority'"
+        >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+            </svg>
+            Priority
+            <span class="tab-badge" x-text="priorityTasks"></span>
+        </button>
+    </div>
+
+    <!-- Task List -->
+    <div class="tasks-main">
+        <div class="task-list">
+            <template x-if="filteredTasks.length === 0">
+                <div class="empty-state">
+                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                        <polyline points="9 11 12 14 22 4"></polyline>
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                    </svg>
+                    <h3 x-show="filter === 'all'">No tasks yet</h3>
+                    <h3 x-show="filter === 'active'">No active tasks</h3>
+                    <h3 x-show="filter === 'completed'">No completed tasks</h3>
+                    <h3 x-show="filter === 'priority'">No priority tasks</h3>
+                    <p x-show="filter === 'all'">Create your first task to get started</p>
+                    <p x-show="filter !== 'all'">Switch to another view or add new tasks</p>
+                </div>
+            </template>
+
+            <template x-for="task in filteredTasks" :key="task.id">
+                <div
+                    class="task-item"
+                    :class="{
+                        completed: task.completed,
+                        priority: task.priority,
+                        editing: editingTask === task.id
+                    }"
+                    @dblclick="startEdit(task)"
+                >
+                    <!-- Checkbox -->
+                    <div class="task-checkbox-wrapper">
+                        <input
+                            type="checkbox"
+                            class="task-checkbox"
+                            :id="'task-' + task.id"
+                            :checked="task.completed"
+                            @change="toggleTask(task.id)"
+                        />
+                        <label :for="'task-' + task.id" class="checkbox-label">
+                            <svg class="checkbox-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </label>
+                    </div>
+
+                    <!-- Task Content -->
+                    <div class="task-content">
+                        <template x-if="editingTask !== task.id">
+                            <div class="task-text-wrapper">
+                                <span class="task-text" x-text="task.text"></span>
+                                <div class="task-meta" x-show="task.category || task.dueDate">
+                                    <span class="task-category" x-show="task.category" x-text="task.category"></span>
+                                    <span class="task-due-date" x-show="task.dueDate">
+                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                                        </svg>
+                                        <span x-text="task.dueDate"></span>
+                                    </span>
+                                </div>
+                            </div>
+                        </template>
+
+                        <template x-if="editingTask === task.id">
+                            <input
+                                type="text"
+                                class="task-edit-input"
+                                x-model="editingText"
+                                @keyup.enter="saveEdit(task)"
+                                @keyup.escape="cancelEdit()"
+                                @blur="saveEdit(task)"
+                                x-ref="editInput"
+                            />
+                        </template>
+                    </div>
+
+                    <!-- Task Actions -->
+                    <div class="task-actions">
+                        <button
+                            class="action-btn priority-btn"
+                            :class="{ active: task.priority }"
+                            @click.stop="togglePriority(task.id)"
+                            title="Priority"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                            </svg>
+                        </button>
+                        <button
+                            class="action-btn edit-btn"
+                            @click.stop="startEdit(task)"
+                            title="Edit"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                            </svg>
+                        </button>
+                        <button
+                            class="action-btn delete-btn"
+                            @click.stop="deleteTask(task.id)"
+                            title="Delete"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="tasks-footer" x-show="tasks.length > 0">
+        <div class="footer-info">
+            <span class="info-text">
+                <template x-if="activeTasks > 0">
+                    <span>
+                        <strong</span> x-text="activeTasks"></strong>
+                        <span x-text="activeTasks === 1 ? 'task' : 'tasks'"></span>
+                        remaining
+                    </span>
+                </template>
+                <template x-if="activeTasks === 0">
+                    <span>All tasks completed! 🎉</span>
+                </template>
+            </span>
+        </div>
+        <div class="footer-actions">
+            <button
+                class="button-secondary"
+                @click="clearCompleted()"
+                x-show="completedTasks > 0"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Clear Completed (<span x-text="completedTasks"></span>)
+            </button>
+            <button
+                class="button-secondary"
+                @click="exportTasks()"
+                title="Export as JSON"
+            >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                Export
+            </button>
+        </div>
+    </div>
 </div>

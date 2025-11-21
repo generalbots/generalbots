@@ -7,6 +7,7 @@ use uuid::Uuid;
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
+    pub email: EmailConfig,
     pub site_path: String,
 }
 #[derive(Clone)]
@@ -19,6 +20,16 @@ pub struct DriveConfig {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+}
+#[derive(Clone)]
+pub struct EmailConfig {
+    pub server: String,
+    pub port: u16,
+    pub username: String,
+    pub password: String,
+    pub from: String,
+    pub smtp_server: String,
+    pub smtp_port: u16,
 }
 impl AppConfig {
     pub fn from_database(pool: &DbPool) -> Result<Self, diesel::result::Error> {
@@ -79,8 +90,18 @@ impl AppConfig {
             access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
             secret_key: std::env::var("DRIVE_SECRET").unwrap(),
         };
+        let email = EmailConfig {
+            server: get_str("EMAIL_IMAP_SERVER", "imap.gmail.com"),
+            port: get_u16("EMAIL_IMAP_PORT", 993),
+            username: get_str("EMAIL_USERNAME", ""),
+            password: get_str("EMAIL_PASSWORD", ""),
+            from: get_str("EMAIL_FROM", ""),
+            smtp_server: get_str("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
+            smtp_port: get_u16("EMAIL_SMTP_PORT", 587),
+        };
         Ok(AppConfig {
             drive,
+            email,
             server: ServerConfig {
                 host: get_str("SERVER_HOST", "127.0.0.1"),
                 port: get_u16("SERVER_PORT", 8080),
@@ -98,8 +119,26 @@ impl AppConfig {
             access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
             secret_key: std::env::var("DRIVE_SECRET").unwrap(),
         };
+        let email = EmailConfig {
+            server: std::env::var("EMAIL_IMAP_SERVER")
+                .unwrap_or_else(|_| "imap.gmail.com".to_string()),
+            port: std::env::var("EMAIL_IMAP_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(993),
+            username: std::env::var("EMAIL_USERNAME").unwrap_or_default(),
+            password: std::env::var("EMAIL_PASSWORD").unwrap_or_default(),
+            from: std::env::var("EMAIL_FROM").unwrap_or_default(),
+            smtp_server: std::env::var("EMAIL_SMTP_SERVER")
+                .unwrap_or_else(|_| "smtp.gmail.com".to_string()),
+            smtp_port: std::env::var("EMAIL_SMTP_PORT")
+                .ok()
+                .and_then(|p| p.parse().ok())
+                .unwrap_or(587),
+        };
         Ok(AppConfig {
             drive: minio,
+            email,
             server: ServerConfig {
                 host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
                 port: std::env::var("SERVER_PORT")

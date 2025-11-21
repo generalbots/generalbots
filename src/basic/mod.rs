@@ -7,10 +7,15 @@ use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
 pub mod compiler;
 pub mod keywords;
+use self::keywords::add_kb::register_add_kb_keyword;
+use self::keywords::add_suggestion::add_suggestion_keyword;
 use self::keywords::add_tool::add_tool_keyword;
 use self::keywords::add_website::add_website_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
+use self::keywords::clear_kb::register_clear_kb_keyword;
 use self::keywords::clear_tools::clear_tools_keyword;
+#[cfg(feature = "email")]
+use self::keywords::create_draft_keyword;
 use self::keywords::create_site::create_site_keyword;
 use self::keywords::find::find_keyword;
 use self::keywords::first::first_keyword;
@@ -18,21 +23,18 @@ use self::keywords::for_next::for_keyword;
 use self::keywords::format::format_keyword;
 use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
-use self::keywords::set_context::set_context_keyword;
 use self::keywords::last::last_keyword;
 use self::keywords::list_tools::list_tools_keyword;
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
 use self::keywords::print::print_keyword;
 use self::keywords::set::set_keyword;
+use self::keywords::set_context::set_context_keyword;
 use self::keywords::set_kb::{add_kb_keyword, set_kb_keyword};
 use self::keywords::wait::wait_keyword;
-use self::keywords::add_suggestion::add_suggestion_keyword;
-#[cfg(feature = "email")]
-use self::keywords::create_draft_keyword;
 pub struct ScriptService {
     pub engine: Engine,
- }
+}
 impl ScriptService {
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
         let mut engine = Engine::new();
@@ -45,6 +47,8 @@ impl ScriptService {
         create_site_keyword(&state, user.clone(), &mut engine);
         find_keyword(&state, user.clone(), &mut engine);
         for_keyword(&state, user.clone(), &mut engine);
+        let _ = register_add_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
+        let _ = register_clear_kb_keyword(&mut engine, state.clone(), Arc::new(user.clone()));
         first_keyword(&mut engine);
         last_keyword(&mut engine);
         format_keyword(&mut engine);
@@ -66,9 +70,7 @@ impl ScriptService {
         list_tools_keyword(state.clone(), user.clone(), &mut engine);
         add_website_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
-        ScriptService {
-            engine,
-        }
+        ScriptService { engine }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {
         let mut result = String::new();
@@ -76,7 +78,7 @@ impl ScriptService {
         let mut current_indent = 0;
         for line in script.lines() {
             let trimmed = line.trim();
-            if trimmed.is_empty() || trimmed.starts_with("//"){
+            if trimmed.is_empty() || trimmed.starts_with("//") {
                 continue;
             }
             if trimmed.starts_with("FOR EACH") {
