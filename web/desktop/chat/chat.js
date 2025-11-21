@@ -187,11 +187,15 @@ function chatApp() {
         connectionStatus = document.getElementById("connectionStatus");
         flashOverlay = document.getElementById("flashOverlay");
         suggestionsContainer = document.getElementById("suggestions");
-        floatLogo = document.getElementById("floatLogo");
-        sidebar = document.getElementById("sidebar");
-        themeBtn = document.getElementById("themeBtn");
         scrollToBottomBtn = document.getElementById("scrollToBottom");
-        sidebarTitle = document.getElementById("sidebarTitle");
+
+        console.log("Chat DOM elements initialized:", {
+          messagesDiv: !!messagesDiv,
+          messageInputEl: !!messageInputEl,
+          sendBtn: !!sendBtn,
+          voiceBtn: !!voiceBtn,
+          connectionStatus: !!connectionStatus,
+        });
 
         // Theme initialization and focus
         const savedTheme = localStorage.getItem("gb-theme") || "auto";
@@ -231,10 +235,15 @@ function chatApp() {
           });
         }
 
-        sendBtn.onclick = () => this.sendMessage();
-        messageInputEl.addEventListener("keypress", (e) => {
-          if (e.key === "Enter") this.sendMessage();
-        });
+        if (sendBtn) {
+          sendBtn.onclick = () => this.sendMessage();
+        }
+
+        if (messageInputEl) {
+          messageInputEl.addEventListener("keypress", (e) => {
+            if (e.key === "Enter") this.sendMessage();
+          });
+        }
 
         // Don't auto-reconnect on focus in browser to prevent multiple connections
         // Tauri doesn't fire focus events the same way
@@ -263,7 +272,14 @@ function chatApp() {
     },
 
     updateConnectionStatus(s) {
+      if (!connectionStatus) return;
       connectionStatus.className = `connection-status ${s}`;
+      const statusText = {
+        connected: "Connected",
+        connecting: "Connecting...",
+        disconnected: "Disconnected",
+      };
+      connectionStatus.innerHTML = `<span>${statusText[s] || s}</span>`;
     },
 
     getWebSocketUrl() {
@@ -513,9 +529,6 @@ function chatApp() {
           if (d.color2) themeColor2 = d.color2;
           if (d.logo_url) customLogoUrl = d.logo_url;
           if (d.title) document.title = d.title;
-          if (d.logo_text) {
-            sidebarTitle.textContent = d.logo_text;
-          }
           this.applyTheme();
           break;
       }
@@ -526,40 +539,28 @@ function chatApp() {
       const t = document.createElement("div");
       t.id = "thinking-indicator";
       t.className = "message-container";
-      t.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="thinking-indicator"><div class="typing-dots"><div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div></div></div></div>`;
-      messagesDiv.appendChild(t);
-      gsap.to(t, { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" });
-      if (!isUserScrolling) {
-        this.scrollToBottom();
+      t.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="thinking-indicator"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div></div>`;
+      if (messagesDiv) {
+        messagesDiv.appendChild(t);
+        if (!isUserScrolling) {
+          this.scrollToBottom();
+        }
       }
+      isThinking = true;
+
       thinkingTimeout = setTimeout(() => {
         if (isThinking) {
           this.hideThinkingIndicator();
-          this.showWarning(
-            "O servidor pode estar ocupado. A resposta está demorando demais.",
-          );
+          this.showWarning("A resposta está demorando mais que o esperado...");
         }
-      }, 60000);
-      isThinking = true;
+      }, 30000);
     },
 
     hideThinkingIndicator() {
       if (!isThinking) return;
       const t = document.getElementById("thinking-indicator");
-      if (t) {
-        gsap.to(t, {
-          opacity: 0,
-          duration: 0.2,
-          onComplete: () => {
-            if (t.parentNode) {
-              t.remove();
-            }
-          },
-        });
-      }
-      if (thinkingTimeout) {
-        clearTimeout(thinkingTimeout);
-        thinkingTimeout = null;
+      if (t && t.parentNode) {
+        t.remove();
       }
       isThinking = false;
     },
@@ -568,30 +569,28 @@ function chatApp() {
       const w = document.createElement("div");
       w.className = "warning-message";
       w.innerHTML = `⚠️ ${m}`;
-      messagesDiv.appendChild(w);
-      gsap.from(w, { opacity: 0, y: 20, duration: 0.4, ease: "power2.out" });
-      if (!isUserScrolling) {
-        this.scrollToBottom();
-      }
-      setTimeout(() => {
-        if (w.parentNode) {
-          gsap.to(w, {
-            opacity: 0,
-            duration: 0.3,
-            onComplete: () => w.remove(),
-          });
+      if (messagesDiv) {
+        messagesDiv.appendChild(w);
+        if (!isUserScrolling) {
+          this.scrollToBottom();
         }
-      }, 5000);
+        setTimeout(() => {
+          if (w.parentNode) {
+            w.remove();
+          }
+        }, 5000);
+      }
     },
 
     showContinueButton() {
       const c = document.createElement("div");
       c.className = "message-container";
       c.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content"><p>A conexão foi interrompida. Clique em "Continuar" para tentar recuperar a resposta.</p><button class="continue-button" onclick="this.parentElement.parentElement.parentElement.remove();">Continuar</button></div></div>`;
-      messagesDiv.appendChild(c);
-      gsap.to(c, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
-      if (!isUserScrolling) {
-        this.scrollToBottom();
+      if (messagesDiv) {
+        messagesDiv.appendChild(c);
+        if (!isUserScrolling) {
+          this.scrollToBottom();
+        }
       }
     },
 
@@ -629,10 +628,11 @@ function chatApp() {
       } else {
         m.innerHTML = `<div class="assistant-message"><div class="assistant-avatar"></div><div class="assistant-message-content">${content}</div></div>`;
       }
-      messagesDiv.appendChild(m);
-      gsap.to(m, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" });
-      if (!isUserScrolling) {
-        this.scrollToBottom();
+      if (messagesDiv) {
+        messagesDiv.appendChild(m);
+        if (!isUserScrolling) {
+          this.scrollToBottom();
+        }
       }
     },
 
@@ -680,9 +680,13 @@ function chatApp() {
         b.className = "suggestion-button";
         b.onclick = () => {
           this.setContext(v.context);
-          messageInputEl.value = "";
+          if (messageInputEl) {
+            messageInputEl.value = "";
+          }
         };
-        suggestionsContainer.appendChild(b);
+        if (suggestionsContainer) {
+          suggestionsContainer.appendChild(b);
+        }
       });
     },
 
