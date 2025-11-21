@@ -7,21 +7,18 @@
     width: 100%;
     position: relative;
     background: var(--primary-bg);
+    padding-top: var(--header-height);
 }
 
 /* Messages Container */
 #messages {
-    position: fixed;
-    top: var(--header-height);
-    left: 50%;
-    transform: translateX(-50%);
-    bottom: 90px;
+    flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
     padding: 40px 20px;
     max-width: 800px;
     width: 100%;
-    z-index: 1;
+    margin: 0 auto;
     scroll-behavior: smooth;
     -webkit-overflow-scrolling: touch;
 }
@@ -204,16 +201,12 @@
 
 /* Footer */
 footer {
-    position: fixed;
-    bottom: 0;
-    left: 0;
-    right: 0;
+    flex-shrink: 0;
     background: var(--header-bg);
     backdrop-filter: blur(20px) saturate(180%);
     -webkit-backdrop-filter: blur(20px) saturate(180%);
     border-top: 1px solid var(--border-color);
     padding: 16px;
-    z-index: 100;
     box-shadow: var(--shadow-md);
 }
 
@@ -341,8 +334,8 @@ footer {
 
 /* Scroll to Bottom Button */
 .scroll-to-bottom {
-    position: fixed;
-    bottom: 110px;
+    position: absolute;
+    bottom: 100px;
     right: 24px;
     width: 40px;
     height: 40px;
@@ -374,8 +367,8 @@ footer {
 
 /* Connection Status */
 .connection-status {
-    position: fixed;
-    top: calc(var(--header-height) + 16px);
+    position: absolute;
+    top: 16px;
     right: 24px;
     padding: 6px 12px;
     border-radius: var(--radius-full);

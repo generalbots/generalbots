@@ -170,14 +170,17 @@ function chatApp() {
     // Lifecycle / event handlers
     // ----------------------------------------------------------------------
     init() {
+      console.log("🔧 init() called, isInitialized:", isInitialized);
       // Prevent multiple initializations
       if (isInitialized) {
-        console.log("Already initialized, skipping...");
+        console.log("⚠️ Already initialized, skipping...");
         return;
       }
       isInitialized = true;
+      console.log("✅ Starting chat initialization...");
 
       const initializeDOM = () => {
+        console.log("🔨 initializeDOM() called");
         // Assign DOM elements after the document is ready
         messagesDiv = document.getElementById("messages");
 
@@ -189,13 +192,24 @@ function chatApp() {
         suggestionsContainer = document.getElementById("suggestions");
         scrollToBottomBtn = document.getElementById("scrollToBottom");
 
-        console.log("Chat DOM elements initialized:", {
+        console.log("📊 Chat DOM elements initialized:", {
           messagesDiv: !!messagesDiv,
           messageInputEl: !!messageInputEl,
           sendBtn: !!sendBtn,
           voiceBtn: !!voiceBtn,
           connectionStatus: !!connectionStatus,
+          flashOverlay: !!flashOverlay,
+          suggestionsContainer: !!suggestionsContainer,
+          scrollToBottomBtn: !!scrollToBottomBtn,
         });
+
+        if (!messagesDiv || !messageInputEl || !sendBtn) {
+          console.error("❌ CRITICAL: Missing required DOM elements!");
+          console.error("messagesDiv:", messagesDiv);
+          console.error("messageInputEl:", messageInputEl);
+          console.error("sendBtn:", sendBtn);
+          return;
+        }
 
         // Theme initialization and focus
         const savedTheme = localStorage.getItem("gb-theme") || "auto";
@@ -248,16 +262,23 @@ function chatApp() {
         // Don't auto-reconnect on focus in browser to prevent multiple connections
         // Tauri doesn't fire focus events the same way
 
+        console.log("🔐 Initializing auth...");
         // Initialize auth only once
         this.initializeAuth();
       };
 
       // Check if DOM is already loaded (for dynamic script loading)
+      console.log("📄 document.readyState:", document.readyState);
       if (document.readyState === "loading") {
+        console.log("⏳ Waiting for window.load event...");
         window.addEventListener("load", initializeDOM);
       } else {
+        console.log("✅ DOM already loaded, initializing immediately...");
         // DOM is already loaded, initialize immediately
-        initializeDOM();
+        setTimeout(() => {
+          console.log("⏰ Delayed initializeDOM call (50ms)");
+          initializeDOM();
+        }, 50);
       }
     },
 
@@ -984,28 +1005,42 @@ function chatApp() {
 }
 
 // Initialize the app - expose globally for dynamic loading
+console.log("📱 Chat.js loaded, creating chatApp instance...");
 window.chatAppInstance = chatApp();
+console.log("✅ chatAppInstance created:", !!window.chatAppInstance);
 
 // Auto-initialize if we're already on the chat section
 if (document.readyState === "loading") {
+  console.log("⏳ Document still loading, waiting for DOMContentLoaded...");
   document.addEventListener("DOMContentLoaded", () => {
+    console.log("📄 DOMContentLoaded event fired");
     const hash = window.location.hash.substring(1);
+    console.log("🔗 Current hash:", hash);
     if (hash === "chat" || hash === "" || !hash) {
+      console.log("🚀 Auto-initializing chat...");
       window.chatAppInstance.init();
     }
   });
 } else {
+  console.log("✅ Document already loaded, checking for chat section...");
   // If script is loaded dynamically, section-shown event will trigger init
   const chatSection = document.getElementById("section-chat");
+  console.log("🔍 Found section-chat?", !!chatSection);
   if (chatSection) {
+    console.log("🚀 Initializing chat immediately...");
     window.chatAppInstance.init();
+  } else {
+    console.log(
+      "⚠️ section-chat not found, waiting for section-shown event...",
+    );
   }
 }
 
 // Listen for section being shown
 document.addEventListener("section-shown", function (e) {
+  console.log("📢 section-shown event:", e.target.id);
   if (e.target.id === "section-chat" && window.chatAppInstance) {
-    console.log("Chat section shown, initializing...");
+    console.log("🎯 Chat section shown, initializing...");
     window.chatAppInstance.init();
   }
 });
