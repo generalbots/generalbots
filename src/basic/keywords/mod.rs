@@ -25,3 +25,4 @@ pub mod set_kb;
 pub mod set_schedule;
 pub mod set_user;
 pub mod wait;
+pub mod weather;
