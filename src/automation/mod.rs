@@ -4,11 +4,15 @@ use crate::shared::state::AppState;
 use chrono::Utc;
 use cron::Schedule;
 use diesel::prelude::*;
-use log::{error};
+use log::error;
 use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 mod compact_prompt;
+pub mod vectordb_indexer;
+
+pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
+
 pub struct AutomationService {
     state: Arc<AppState>,
 }
@@ -56,17 +60,24 @@ impl AutomationService {
                                 if let Err(e) = self.execute_automation(&automation).await {
                                     error!("Error executing automation {}: {}", automation.id, e);
                                 }
-                                if let Err(e) = diesel::update(system_automations.filter(id.eq(automation.id)))
-                                    .set(lt_column.eq(Some(now)))
-                                    .execute(&mut conn)
+                                if let Err(e) =
+                                    diesel::update(system_automations.filter(id.eq(automation.id)))
+                                        .set(lt_column.eq(Some(now)))
+                                        .execute(&mut conn)
                                 {
-                                    error!("Error updating last_triggered for automation {}: {}", automation.id, e);
+                                    error!(
+                                        "Error updating last_triggered for automation {}: {}",
+                                        automation.id, e
+                                    );
                                 }
                             }
                         }
                     }
                     Err(e) => {
-                        error!("Error parsing schedule for automation {} ({}): {}", automation.id, schedule_str, e);
+                        error!(
+                            "Error parsing schedule for automation {} ({}): {}",
+                            automation.id, schedule_str, e
+                        );
                     }
                 }
             }
