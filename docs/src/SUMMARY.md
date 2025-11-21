@@ -79,10 +79,10 @@
 
 # Part VI - Extending BotServer
 
-- [Chapter 06: gbapp Reference](./chapter-06/README.md)
-  - [Rust Architecture](./chapter-06/architecture.md)
+- [Chapter 06: Rust Architecture Reference](./chapter-06/README.md)
+  - [Architecture Overview](./chapter-06/architecture.md)
   - [Building from Source](./chapter-06/building.md)
-  - [Crate Structure](./chapter-06/crates.md)
+  - [Module Structure](./chapter-06/crates.md)
   - [Service Layer](./chapter-06/services.md)
   - [Creating Custom Keywords](./chapter-06/custom-keywords.md)
   - [Adding Dependencies](./chapter-06/dependencies.md)

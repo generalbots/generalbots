@@ -1,29 +1,178 @@
-# GeneralBots Documentation
+# BotServer Documentation
 
-Welcome to the **GeneralBots** documentation for BASIC enthusiasts.  
-This guide explains how to run, extend, and interact with the GeneralBots system using BASIC-style commands and Rust-powered automation.
+Welcome to the **BotServer** documentation. This guide explains how to install, configure, extend, and deploy conversational AI bots using BotServer's template-based package system and BASIC scripting language.
+
+---
+
+## About This Documentation
+
+This documentation has been **recently updated** to accurately reflect the actual implementation of BotServer version 6.0.8. The following sections are now accurate:
+
+✅ **Accurate Documentation:**
+- Chapter 02: Package system (template-based `.gbai` structure)
+- Chapter 06: Rust architecture (single-crate structure, module overview)
+- Chapter 09: Core features
+- Introduction: Architecture and capabilities
+
+⚠️ **Partial Documentation:**
+- Chapter 05: BASIC keywords (examples exist, full reference needs expansion)
+- Chapter 08: Tool integration (concepts documented, implementation details needed)
+- Chapter 11: Authentication (implemented but needs detail)
+
+📝 **Needs Documentation:**
+- UI module (`src/ui/`)
+- UI tree module (`src/ui_tree/`)
+- Riot compiler module (`src/riot_compiler/`)
+- Prompt manager (`src/prompt_manager/`)
+- API endpoints and web server routes
+- MinIO/S3 drive integration details
+- Video conferencing (LiveKit) integration
+
+---
+
+## What is BotServer?
+
+BotServer is an open-source conversational AI platform written in Rust. It enables users to create intelligent chatbots using:
+
+- **BASIC Scripting**: Simple `.bas` scripts for conversation flows
+- **Template Packages**: Organize bots as `.gbai` directories with dialogs, knowledge bases, and configuration
+- **Vector Search**: Semantic document retrieval with Qdrant
+- **LLM Integration**: OpenAI, local models, and custom providers
+- **Auto-Bootstrap**: Automated installation of PostgreSQL, Redis, MinIO, and more
+- **Multi-Bot Hosting**: Run multiple isolated bots on a single server
+
+---
+
+## Quick Start
+
+1. **Installation**: Follow [Chapter 01: Run and Talk](chapter-01/README.md)
+2. **Explore Templates**: Check `templates/announcements.gbai/` for examples
+3. **Create a Bot**: Copy a template and modify it
+4. **Learn BASIC**: Read [Chapter 05: BASIC Reference](chapter-05/README.md)
+5. **Configure**: Edit `config.csv` in your `.gbot/` directory
+6. **Deploy**: Restart BotServer to activate changes
 
 ---
 
 ## Table of Contents
-- [Run and Talk](chapter-01/README.md)
-- [About Packages](chapter-02/README.md)
-- [gbkb Reference](chapter-03/README.md)
-- [gbtheme Reference](chapter-04/README.md)
-- [gbdialog Reference](chapter-05/README.md)
-- [gbapp Reference](chapter-06/README.md)
-- [gbot Reference](chapter-07/README.md)
-- [Tooling](chapter-08/README.md)
-- [Feature-Matrix](chapter-09/README.md)
-- [Contributing](chapter-10/README.md)
-- [Database Model](chapter-11/README.md)
-- [Glossary](glossary.md)
+
+### Part I - Getting Started
+- [Chapter 01: Run and Talk](chapter-01/README.md) - Installation and first conversation
+
+### Part II - Package System
+- [Chapter 02: About Packages](chapter-02/README.md) - Overview of template-based packages
+  - [.gbai Architecture](chapter-02/gbai.md) - Package structure and lifecycle
+  - [.gbdialog Dialogs](chapter-02/gbdialog.md) - BASIC scripts
+  - [.gbkb Knowledge Base](chapter-02/gbkb.md) - Document collections
+  - [.gbot Configuration](chapter-02/gbot.md) - Bot parameters
+  - [.gbtheme UI Theming](chapter-02/gbtheme.md) - Web interface customization
+  - [.gbdrive File Storage](chapter-02/gbdrive.md) - MinIO/S3 integration
+
+### Part III - Knowledge Base
+- [Chapter 03: gbkb Reference](chapter-03/README.md) - Semantic search and vector database
+
+### Part IV - Themes and UI
+- [Chapter 04: gbtheme Reference](chapter-04/README.md) - Customizing the web interface
+
+### Part V - BASIC Dialogs
+- [Chapter 05: gbdialog Reference](chapter-05/README.md) - Complete BASIC scripting reference
+  - Keywords: `TALK`, `HEAR`, `LLM`, `SET_CONTEXT`, `ADD_KB`, and more
+
+### Part VI - Extending BotServer
+- [Chapter 06: Rust Architecture Reference](chapter-06/README.md) - Internal architecture
+  - [Architecture Overview](chapter-06/architecture.md) - Bootstrap process
+  - [Building from Source](chapter-06/building.md) - Compilation and features
+  - [Module Structure](chapter-06/crates.md) - Single-crate organization
+  - [Service Layer](chapter-06/services.md) - Module descriptions
+  - [Creating Custom Keywords](chapter-06/custom-keywords.md) - Extending BASIC
+  - [Adding Dependencies](chapter-06/dependencies.md) - Cargo.toml management
+
+### Part VII - Bot Configuration
+- [Chapter 07: gbot Reference](chapter-07/README.md) - Configuration parameters
+
+### Part VIII - Tools and Integration
+- [Chapter 08: Tooling](chapter-08/README.md) - External APIs and tool integration
+
+### Part IX - Feature Reference
+- [Chapter 09: Feature Matrix](chapter-09/README.md) - Complete feature list
+  - [Core Features](chapter-09/core-features.md) - Platform capabilities
+
+### Part X - Community
+- [Chapter 10: Contributing](chapter-10/README.md) - Development guidelines
+
+### Part XI - Authentication and Security
+- [Chapter 11: Authentication](chapter-11/README.md) - Security features
+
+### Appendices
+- [Appendix I: Database Model](appendix-i/README.md) - Schema reference
+- [Glossary](glossary.md) - Terms and definitions
 
 ---
 
-## Introduction
+## Architecture Overview
 
-GeneralBots is a modular automation platform that combines BASIC scripting with Rust-based backend logic.  
-It allows users to define bots, automate tasks, and interact with knowledge bases using simple commands like `ADD_WEBSITE`, `SET_KB`, and `TALK`.
+BotServer is a **monolithic Rust application** (single crate) with the following structure:
 
-Each chapter below provides detailed explanations, examples, and references based on the actual source code.
+### Core Modules
+- `auth` - Argon2 password hashing, session tokens
+- `bot` - Bot lifecycle and management
+- `session` - Persistent conversation state
+- `basic` - BASIC interpreter (powered by Rhai)
+- `llm` / `llm_models` - LLM provider integration
+- `context` - Conversation memory management
+
+### Infrastructure
+- `bootstrap` - Auto-installation of components
+- `package_manager` - Manages PostgreSQL, Redis, MinIO, etc.
+- `web_server` - Axum HTTP API and WebSocket
+- `drive` - MinIO/S3 storage and vector DB
+- `config` - Environment configuration
+
+### Features
+- `automation` - Cron scheduling and events
+- `email` - IMAP/SMTP integration (optional)
+- `meet` - LiveKit video conferencing
+- `channels` - Multi-channel support
+- `file` - Document processing (PDF, etc.)
+- `drive_monitor` - File system watching
+
+---
+
+## Technology Stack
+
+- **Language**: Rust 2021 edition
+- **Web**: Axum + Tower + Tokio
+- **Database**: Diesel ORM + PostgreSQL
+- **Cache**: Redis/Valkey
+- **Storage**: AWS SDK S3 (MinIO)
+- **Vector DB**: Qdrant (optional)
+- **Scripting**: Rhai engine
+- **Security**: Argon2, AES-GCM
+- **Desktop**: Tauri (optional)
+
+---
+
+## Project Information
+
+- **Version**: 6.0.8
+- **License**: AGPL-3.0
+- **Repository**: https://github.com/GeneralBots/BotServer
+- **Community**: Open-source contributors from Pragmatismo.com.br
+
+---
+
+## Documentation Status
+
+This documentation is a **living document** that evolves with the codebase. Contributions are welcome! If you find inaccuracies or gaps:
+
+1. Check the source code in `src/` for ground truth
+2. Submit documentation improvements via pull requests
+3. Report issues on GitHub
+
+See [TODO.txt](TODO.txt) for known documentation gaps and future enhancements.
+
+---
+
+## Next Steps
+
+Start with [Introduction](introduction.md) for a comprehensive overview, or jump directly to [Chapter 01: Run and Talk](chapter-01/README.md) to install and run BotServer.
