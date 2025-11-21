@@ -26,7 +26,7 @@
 | Samples                      | [BASIC](https://github.com/GeneralBots/BotServer/tree/master/packages/default.gbdialog) or [![TypeScript](https://badges.frapsoft.com/typescript/code/typescript.svg?v=101)](https://github.com/GeneralBots/AzureADPasswordReset.gbapp)
 | [Docker Image](https://github.com/lpicanco/docker-botserver)  ![Docker Pulls](https://img.shields.io/docker/pulls/lpicanco/botserver.svg) <br/> *Provided by [@lpicanco](https://github.com/lpicanco/docker-botserver)* |
 
-# General Bots
+# BotServer - Just Run It! 🚀
 
 ![General Bot Logo](https://github.com/GeneralBots/BotServer/blob/main/logo.png?raw=true))
 
