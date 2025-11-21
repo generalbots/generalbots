@@ -16,8 +16,8 @@
                 font-family:
                     -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
                     Helvetica, Arial, sans-serif;
-                background: #ffffff;
-                color: #202124;
+                background: var(--primary-bg);
+                color: var(--primary-fg);
                 overflow: hidden;
             }
 
@@ -55,14 +55,14 @@
                 padding: 8px;
                 border-radius: 12px;
                 transition: all 0.3s;
-                background: rgba(255, 255, 255, 0.9);
+                background: var(--glass-bg);
                 backdrop-filter: blur(10px);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-sm);
             }
 
             .logo-wrapper:hover {
-                background: rgba(255, 255, 255, 1);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                background: var(--bg-hover);
+                box-shadow: var(--shadow-md);
             }
 
             .logo-icon {
@@ -75,7 +75,7 @@
             .logo-text {
                 font-size: 18px;
                 font-weight: 500;
-                color: #202124;
+                color: var(--text-primary);
             }
 
             /* Right side - Apps menu and avatar */
@@ -97,20 +97,20 @@
                 align-items: center;
                 justify-content: center;
                 transition: all 0.3s;
-                color: #5f6368;
+                color: var(--text-secondary);
                 position: relative;
-                background: rgba(255, 255, 255, 0.9);
+                background: var(--glass-bg);
                 backdrop-filter: blur(10px);
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                box-shadow: var(--shadow-sm);
             }
 
             .apps-menu-btn:hover {
-                background: rgba(255, 255, 255, 1);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                background: var(--bg-hover);
+                box-shadow: var(--shadow-md);
             }
 
             .apps-menu-btn:active {
-                background: rgba(255, 255, 255, 0.95);
+                background: var(--bg-active);
                 transform: scale(0.95);
             }
 
@@ -120,11 +120,9 @@
                 top: 60px;
                 right: 80px;
                 width: 320px;
-                background: white;
+                background: var(--glass-bg);
                 border-radius: 16px;
-                box-shadow:
-                    0 1px 2px 0 rgba(60, 64, 67, 0.3),
-                    0 2px 6px 2px rgba(60, 64, 67, 0.15);
+                box-shadow: var(--shadow-xl);
                 padding: 20px;
                 opacity: 0;
                 visibility: hidden;
