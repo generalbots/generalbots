@@ -1,6 +1,6 @@
-# Architecture
+# Architecture Overview
 
-## Auto Bootstrap Process Overview
+## Auto Bootstrap Process
 
 The Auto Bootstrap process is responsible for initializing and configuring the entire BotServer environment after installation. It ensures that all system components are installed, configured, and started automatically, and that bots are created from predefined templates.
 
