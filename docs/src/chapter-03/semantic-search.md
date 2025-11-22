@@ -11,12 +11,12 @@ Semantic search enables the bot to retrieve information based on meaning rather 
 ## Using the `FIND` Keyword
 
 ```basic
-SET_KB "company-policies"
+USE_KB "company-policies"
 FIND "how many vacation days do I have?" INTO RESULT
 TALK RESULT
 ```
 
-- `SET_KB` selects the collection.
+- `USE_KB` adds the collection to the session.
 - `FIND` performs the semantic search.
 - `RESULT` receives the best matching snippet.
 

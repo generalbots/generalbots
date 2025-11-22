@@ -97,8 +97,8 @@ Custom keywords include:
 - `TALK` / `HEAR` - Conversation I/O
 - `LLM` - Call language models
 - `GET_BOT_MEMORY` / `SET_BOT_MEMORY` - Persistent storage
-- `SET_CONTEXT` / `ADD_KB` - Knowledge base management
-- `ADD_TOOL` / `LIST_TOOLS` - Tool integration
+- `SET_CONTEXT` / `USE_KB` - Knowledge base management
+- `USE_TOOL` / `LIST_TOOLS` - Tool integration
 - `SET_SCHEDULE` / `ON` - Automation and events
 - `GET` / `FIND` / `SET` - Data operations
 - `FOR EACH` / `EXIT FOR` - Control flow

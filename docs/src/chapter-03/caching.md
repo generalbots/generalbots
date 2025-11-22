@@ -23,7 +23,7 @@ cache_max_entries,500
 ## Usage Example
 
 ```basic
-SET_KB "company-policies"
+USE_KB "company-policies"
 FIND "vacation policy" INTO RESULT   ' first call hits VectorDB
 FIND "vacation policy" INTO RESULT   ' second call hits cache
 TALK RESULT

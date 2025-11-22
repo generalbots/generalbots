@@ -9,9 +9,12 @@ use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
 use crate::auth::UserWorkspace;
-use crate::drive::vectordb::{FileContentExtractor, FileDocument, UserDriveVectorDB};
-use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator, UserEmailVectorDB};
 use crate::shared::utils::DbPool;
+
+#[cfg(feature = "vectordb")]
+use crate::drive::vectordb::{FileContentExtractor, FileDocument, UserDriveVectorDB};
+#[cfg(all(feature = "vectordb", feature = "email"))]
+use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator, UserEmailVectorDB};
 
 /// Indexing job status
 #[derive(Debug, Clone, PartialEq)]
@@ -39,7 +42,9 @@ struct UserIndexingJob {
     user_id: Uuid,
     bot_id: Uuid,
     workspace: UserWorkspace,
+    #[cfg(all(feature = "vectordb", feature = "email"))]
     email_db: Option<UserEmailVectorDB>,
+    #[cfg(feature = "vectordb")]
     drive_db: Option<UserDriveVectorDB>,
     stats: IndexingStats,
     status: IndexingStatus,
@@ -405,10 +410,11 @@ impl VectorDBIndexer {
             .load(&mut db_conn)?
             .into_iter()
             .filter_map(|row: diesel::QueryableByName<diesel::pg::Pg>| {
-                use diesel::deserialize::{self, FromSql};
                 use diesel::sql_types::Text;
-                let id: Result<String, _> =
-                    <String as FromSql<Text, diesel::pg::Pg>>::from_sql(row.get("id").ok()?);
+                let id: Result<String, _> = <String as diesel::deserialize::FromSql<
+                    Text,
+                    diesel::pg::Pg,
+                >>::from_sql(row.get("id").ok()?);
                 id.ok()
             })
             .collect();

@@ -54,11 +54,11 @@
     - [LLM](./chapter-05/keyword-llm.md)
     - [GET_BOT_MEMORY](./chapter-05/keyword-get-bot-memory.md)
     - [SET_BOT_MEMORY](./chapter-05/keyword-set-bot-memory.md)
-    - [SET_KB](./chapter-05/keyword-set-kb.md)
-    - [ADD_KB](./chapter-05/keyword-add-kb.md)
+
+    - [USE_KB](./chapter-05/keyword-use-kb.md)
     - [ADD_WEBSITE](./chapter-05/keyword-add-website.md)
-    - [ADD_TOOL](./chapter-05/keyword-add-tool.md)
-    - [LIST_TOOLS](./chapter-05/keyword-list-tools.md)
+    - [USE_TOOL](./chapter-05/keyword-use-tool.md)
+
     - [REMOVE_TOOL](./chapter-05/keyword-remove-tool.md)
     - [CLEAR_TOOLS](./chapter-05/keyword-clear-tools.md)
     - [GET](./chapter-05/keyword-get.md)

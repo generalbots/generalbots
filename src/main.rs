@@ -96,6 +96,37 @@ async fn run_axum_server(
         // Voice/Meet routes
         .route("/api/voice/start", post(voice_start))
         .route("/api/voice/stop", post(voice_stop))
+        .route("/api/meet/create", post(crate::meet::create_meeting))
+        .route("/api/meet/rooms", get(crate::meet::list_rooms))
+        .route("/api/meet/rooms/:room_id", get(crate::meet::get_room))
+        .route(
+            "/api/meet/rooms/:room_id/join",
+            post(crate::meet::join_room),
+        )
+        .route(
+            "/api/meet/rooms/:room_id/transcription/start",
+            post(crate::meet::start_transcription),
+        )
+        .route("/api/meet/token", post(crate::meet::get_meeting_token))
+        .route("/api/meet/invite", post(crate::meet::send_meeting_invites))
+        .route("/ws/meet", get(crate::meet::meeting_websocket))
+        // Media/Multimedia routes
+        .route(
+            "/api/media/upload",
+            post(crate::bot::multimedia::upload_media_handler),
+        )
+        .route(
+            "/api/media/:media_id",
+            get(crate::bot::multimedia::download_media_handler),
+        )
+        .route(
+            "/api/media/:media_id/thumbnail",
+            get(crate::bot::multimedia::generate_thumbnail_handler),
+        )
+        .route(
+            "/api/media/search",
+            post(crate::bot::multimedia::web_search_handler),
+        )
         // WebSocket route
         .route("/ws", get(websocket_handler))
         // Bot routes
