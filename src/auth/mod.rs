@@ -10,6 +10,8 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 pub mod facade;
+pub mod groups;
+pub mod users;
 pub mod zitadel;
 
 use self::facade::{AuthFacade, ZitadelAuthFacade};
