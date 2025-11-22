@@ -20,6 +20,7 @@
   - [.gbot Bot Configuration](./chapter-02/gbot.md)
   - [.gbtheme UI Theming](./chapter-02/gbtheme.md)
   - [.gbdrive File Storage](./chapter-02/gbdrive.md)
+  - [Bot Templates](./chapter-02/templates.md)
 
 # Part III - Knowledge Base
 
@@ -59,12 +60,10 @@
     - [LLM](./chapter-05/keyword-llm.md)
     - [GET_BOT_MEMORY](./chapter-05/keyword-get-bot-memory.md)
     - [SET_BOT_MEMORY](./chapter-05/keyword-set-bot-memory.md)
-
     - [USE_KB](./chapter-05/keyword-use-kb.md)
+    - [CLEAR_KB](./chapter-05/keyword-clear-kb.md)
     - [ADD_WEBSITE](./chapter-05/keyword-add-website.md)
     - [USE_TOOL](./chapter-05/keyword-use-tool.md)
-
-    - [REMOVE_TOOL](./chapter-05/keyword-remove-tool.md)
     - [CLEAR_TOOLS](./chapter-05/keyword-clear-tools.md)
     - [GET](./chapter-05/keyword-get.md)
     - [FIND](./chapter-05/keyword-find.md)
@@ -73,7 +72,7 @@
     - [SET_SCHEDULE](./chapter-05/keyword-set-schedule.md)
     - [CREATE_SITE](./chapter-05/keyword-create-site.md)
     - [CREATE_DRAFT](./chapter-05/keyword-create-draft.md)
-    - [WEBSITE OF](./chapter-05/keyword-website-of.md)
+    - [CREATE_TASK](./chapter-05/keyword-create-task.md)
     - [PRINT](./chapter-05/keyword-print.md)
     - [WAIT](./chapter-05/keyword-wait.md)
     - [FORMAT](./chapter-05/keyword-format.md)
@@ -81,6 +80,14 @@
     - [LAST](./chapter-05/keyword-last.md)
     - [FOR EACH](./chapter-05/keyword-for-each.md)
     - [EXIT FOR](./chapter-05/keyword-exit-for.md)
+    - [ADD_MEMBER](./chapter-05/keyword-add-member.md)
+    - [ADD_SUGGESTION](./chapter-05/keyword-add-suggestion.md)
+    - [CLEAR_SUGGESTIONS](./chapter-05/keyword-clear-suggestions.md)
+    - [BOOK](./chapter-05/keyword-book.md)
+    - [REMEMBER](./chapter-05/keyword-remember.md)
+    - [SAVE_FROM_UNSTRUCTURED](./chapter-05/keyword-save-from-unstructured.md)
+    - [SEND_MAIL](./chapter-05/keyword-send-mail.md)
+    - [WEATHER](./chapter-05/keyword-weather.md)
 
 # Part VI - Extending BotServer
 
@@ -93,6 +100,7 @@
   - [Service Layer](./chapter-06/services.md)
   - [Creating Custom Keywords](./chapter-06/custom-keywords.md)
   - [Adding Dependencies](./chapter-06/dependencies.md)
+  - [Prompt Manager](./chapter-06/prompt-manager.md)
 
 # Part VII - Bot Configuration
 

@@ -1,69 +1,472 @@
 # Architecture Overview
 
-## Auto Bootstrap Process
+BotServer follows a modular architecture designed for scalability, maintainability, and extensibility. Each module handles specific responsibilities and communicates through well-defined interfaces.
 
-The Auto Bootstrap process is responsible for initializing and configuring the entire BotServer environment after installation. It ensures that all system components are installed, configured, and started automatically, and that bots are created from predefined templates.
+## Core Architecture
 
-### 1. Bootstrap Initialization
+```
+BotServer
+├── Core Engine
+│   ├── BASIC Interpreter
+│   ├── Session Manager
+│   ├── Context Manager
+│   └── Bootstrap System
+├── AI & NLP Layer
+│   ├── LLM Integration
+│   ├── Prompt Management
+│   ├── Knowledge Base
+│   └── Vector Search
+├── Communication Layer
+│   ├── Multi-Channel Support
+│   ├── WebSocket Server
+│   ├── REST API
+│   └── Event Bus
+├── Storage Layer
+│   ├── PostgreSQL
+│   ├── MinIO/S3
+│   ├── Redis Cache
+│   └── Qdrant Vector DB
+└── Services Layer
+    ├── Authentication
+    ├── Email Service
+    ├── Calendar Engine
+    └── Task Engine
+```
 
-The process begins with the `BootstrapManager`, which is instantiated with an installation mode (`Local` or `Container`) and an optional tenant name. It initializes the `PackageManager`, which detects the operating system and sets up the base installation path (e.g., `/opt/gbo` or `botserver-stack`).
+## Module Organization
 
-### 2. Component Registration and Installation
+### Core Modules
 
-The `PackageManager` registers all system components such as:
+#### `auth/`
+Authentication and authorization system handling:
+- User management
+- Group/organization management
+- Role-based access control (RBAC)
+- JWT token management
+- OAuth integration
+- Two-factor authentication
 
-- **tables** (PostgreSQL database)
-- **cache** (Valkey/Redis)
-- **drive** (MinIO object storage)
-- **llm** (local LLM server)
-- **email**, **proxy**, **directory**, **alm**, **dns**, **meeting**, **table_editor**, **doc_editor**, **desktop**, **devtools**, **bot**, **system**, **vector_db**, **host**
+#### `automation/`
+Workflow automation engine providing:
+- Process automation
+- Scheduled tasks
+- Event-driven automation
+- Workflow orchestration
+- Integration with external systems
 
-Each component has a `ComponentConfig` defining:
-- Ports and dependencies
-- Download URLs and binaries
-- Pre/post-install commands
+#### `basic/`
+BASIC dialect interpreter and runtime:
+- Keyword implementation
+- Script compilation
+- Variable management
+- Flow control
+- Tool integration
+- Error handling
+
+#### `bootstrap/`
+System initialization and startup:
+- Component verification
+- Service startup sequencing
+- Database migrations
+- Template deployment
+- Health checks
+- Configuration loading
+
+#### `bot/`
+Bot instance management:
+- Bot lifecycle (create, mount, unmount)
+- Conversation handling
+- User input processing
+- Response generation
+- Multi-bot coordination
+- Session isolation
+
+### Communication Modules
+
+#### `channels/`
+Multi-channel messaging adapters:
+- Web interface
+- WhatsApp Business API
+- Microsoft Teams
+- Slack
+- Instagram
+- SMS
+- Voice
+
+#### `meet/`
+Real-time communication features:
+- Video conferencing
+- Voice calls
+- Screen sharing
+- Recording
+- Transcription
+- Meeting scheduling
+
+#### `web_server/`
+HTTP server and web interface:
+- Static file serving
+- WebSocket handling
+- REST API routing
+- CORS management
+- Request/response processing
+
+### AI & Knowledge Modules
+
+#### `llm/`
+Large Language Model integration:
+- Model selection
+- Prompt formatting
+- Token management
+- Response streaming
+- Cost tracking
+- Model fallbacks
+
+#### `llm_models/`
+Specific model implementations:
+- OpenAI (GPT-3.5, GPT-4)
+- Anthropic (Claude)
+- Google (Gemini)
+- Meta (Llama)
+- Local models
+- Custom models
+
+#### `prompt_manager/`
+Centralized prompt management:
+- Prompt templates
+- Variable substitution
+- Model-specific optimization
+- Version control
+- A/B testing
+- Performance tracking
+
+#### `context/`
+Conversation context management:
+- Context window optimization
+- History management
+- Context compression
+- Relevance filtering
+- Multi-turn tracking
+
+### Storage & Data Modules
+
+#### `drive/`
+File and document management:
+- File upload/download
+- Document processing
+- Version control
+- Sharing permissions
+- Quota management
+- Search indexing
+
+#### `drive_monitor/`
+Storage monitoring and sync:
+- Change detection
+- Auto-sync
+- Conflict resolution
+- Backup management
+- Storage analytics
+
+#### `package_manager/`
+Bot package management:
+- Package loading
+- Dependency resolution
+- Version management
+- Hot reload
+- Package validation
+
+### Processing Modules
+
+#### `engines/`
+Various processing engines:
+- Rule engine
+- Workflow engine
+- Event processor
+- Message queue
+- Job scheduler
+
+#### `calendar_engine/`
+Calendar and scheduling:
+- Event management
+- Availability checking
+- Meeting coordination
+- Reminder system
+- Timezone handling
+
+#### `task_engine/`
+Task management system:
+- Task creation
+- Assignment
+- Status tracking
+- Dependencies
+- Notifications
+
+#### `email/`
+Email integration:
+- SMTP sending
+- IMAP receiving
+- Template management
+- Tracking
+- Bounce handling
+
+### Utility Modules
+
+#### `session/`
+User session management:
+- Session creation
+- State persistence
+- Session timeout
+- Concurrent sessions
+- Session recovery
+
+#### `config/`
+Configuration management:
+- Config loading
 - Environment variables
-- Execution commands
+- Hot reload
+- Validation
+- Defaults
 
-During bootstrap, required components (`tables`, `drive`, `cache`) are installed and started automatically.  
-For example:
-- The **tables** component generates secure database credentials, writes them to `.env`, and applies SQL migrations to initialize the schema.
-- The **drive** component creates secure credentials and stores them encrypted in the database.
+#### `shared/`
+Shared utilities and models:
+- Database models
+- Common types
+- Helper functions
+- Constants
+- Error types
 
-### 3. Bot Configuration
+#### `compliance/`
+Regulatory compliance:
+- GDPR compliance
+- Data retention
+- Audit logging
+- Privacy controls
+- Consent management
 
-After components are installed, the bootstrap process updates the bot configuration in the database.  
-The method `update_bot_config()` ensures each component’s configuration is linked to a bot record in the `bot_configuration` table.  
-If no bot exists, a new UUID is generated to associate configuration entries.
+#### `nvidia/` 
+GPU acceleration support:
+- CUDA integration
+- Model inference
+- Batch processing
+- Performance optimization
 
-### 4. Template-Based Bot Creation
+#### `ui_tree/`
+UI component tree management:
+- Virtual DOM
+- Component lifecycle
+- State management
+- Event handling
+- Rendering optimization
 
-The method `create_bots_from_templates()` scans the `templates/` directory for folders ending in `.gbai` (e.g., `default.gbai`, `announcements.gbai`).  
-Each `.gbai` folder represents a bot template.
+#### `web_automation/`
+Web scraping and automation:
+- Browser automation
+- Content extraction
+- Form filling
+- Screenshot capture
+- Change monitoring
 
-For each template:
-- The folder name is converted into a human-readable bot name (e.g., `default.gbai` → “Default”).
-- If the bot doesn’t exist in the `bots` table, a new record is inserted with:
-  - Default LLM provider (`openai`)
-  - Default configuration (`{"model": "gpt-4", "temperature": 0.7}`)
-  - Context provider (`database`)
-  - Active status (`true`)
+## Data Flow
 
-This automatically creates bots from templates during bootstrap.
+### Request Processing Pipeline
 
-### 5. Template Upload to MinIO
+1. **Channel Adapter** receives user input
+2. **Session Manager** identifies/creates session
+3. **Context Manager** loads conversation history
+4. **BASIC Interpreter** executes dialog script
+5. **LLM Integration** processes natural language
+6. **Knowledge Base** provides relevant information
+7. **Response Generator** formats output
+8. **Channel Adapter** delivers response
 
-After bots are created, the method `upload_templates_to_minio()` uploads all template files recursively to a MinIO bucket (S3-compatible storage).  
-This makes templates accessible for runtime bot operations and ensures persistence across environments.
+### Storage Architecture
 
-### 6. Summary
+#### Primary Database (PostgreSQL)
+- User accounts
+- Bot configurations
+- Session data
+- Conversation history
+- System metadata
 
-The Auto Bootstrap process performs the following steps automatically:
-1. Detects environment and installation mode.
-2. Registers and installs required components.
-3. Initializes the database and applies migrations.
-4. Updates bot configuration records.
-5. Creates bots from `.gbai` templates.
-6. Uploads templates to MinIO for storage.
+#### Object Storage (MinIO/S3)
+- File uploads
+- Document storage
+- Media files
+- Backups
+- Logs
 
-This process ensures that after installation, the system is fully operational with preconfigured bots derived from templates, ready to serve requests immediately.
+#### Cache Layer (Redis)
+- Session cache
+- Frequently accessed data
+- Rate limiting
+- Temporary storage
+- Pub/sub messaging
+
+#### Vector Database (Qdrant)
+- Document embeddings
+- Semantic search index
+- Knowledge base vectors
+- Similarity matching
+
+## Security Architecture
+
+### Authentication Flow
+1. User provides credentials
+2. Auth module validates
+3. JWT token issued
+4. Token verified on each request
+5. Session established
+6. Permissions checked
+
+### Data Protection
+- Encryption at rest (database, files)
+- Encryption in transit (TLS/SSL)
+- Sensitive data masking
+- PII detection
+- Secure key management
+
+### Access Control
+- Role-based permissions
+- Resource-level authorization
+- API rate limiting
+- IP allowlisting
+- Audit logging
+
+## Deployment Architecture
+
+### Container Structure
+- Main application container
+- PostgreSQL database
+- MinIO storage
+- Redis cache
+- Qdrant vector DB
+- Nginx reverse proxy
+
+### Scaling Strategy
+- Horizontal scaling for web servers
+- Read replicas for database
+- Distributed cache
+- Load balancing
+- Auto-scaling policies
+
+### High Availability
+- Multi-zone deployment
+- Database replication
+- Storage redundancy
+- Health monitoring
+- Automatic failover
+
+## Performance Optimization
+
+### Caching Strategy
+- Response caching
+- Query result caching
+- Static asset caching
+- API response caching
+- Knowledge base caching
+
+### Async Processing
+- Background jobs
+- Message queues
+- Event-driven architecture
+- Non-blocking I/O
+- Worker pools
+
+### Resource Management
+- Connection pooling
+- Memory management
+- Token optimization
+- Query optimization
+- Lazy loading
+
+## Monitoring & Observability
+
+### Metrics Collection
+- System metrics
+- Application metrics
+- Business metrics
+- User analytics
+- Performance tracking
+
+### Logging
+- Structured logging
+- Log aggregation
+- Error tracking
+- Audit trails
+- Debug logging
+
+### Health Checks
+- Liveness probes
+- Readiness probes
+- Dependency checks
+- Performance monitoring
+- Alert system
+
+## Extension Points
+
+### Plugin System
+- Custom keywords
+- External tools
+- API integrations
+- Custom channels
+- Model providers
+
+### Webhook Support
+- Incoming webhooks
+- Outgoing webhooks
+- Event subscriptions
+- Callback handling
+- Retry mechanisms
+
+### API Integration
+- REST API
+- GraphQL (planned)
+- WebSocket
+- gRPC (planned)
+- OpenAPI spec
+
+## Development Workflow
+
+### Local Development
+1. Clone repository
+2. Install dependencies
+3. Configure environment
+4. Run migrations
+5. Start services
+6. Load templates
+
+### Testing Strategy
+- Unit tests
+- Integration tests
+- End-to-end tests
+- Load testing
+- Security testing
+
+### CI/CD Pipeline
+- Automated testing
+- Code quality checks
+- Security scanning
+- Build process
+- Deployment automation
+
+## Future Architecture Plans
+
+### Planned Enhancements
+- Microservices migration
+- Kubernetes native
+- Multi-region support
+- Edge deployment
+- Serverless functions
+
+### Performance Goals
+- Sub-100ms response time
+- 10,000+ concurrent users
+- 99.99% uptime
+- Elastic scaling
+- Global CDN
+
+### Feature Roadmap
+- GraphQL API
+- Real-time collaboration
+- Advanced analytics
+- Machine learning pipeline
+- Blockchain integration
