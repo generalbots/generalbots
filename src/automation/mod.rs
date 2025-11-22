@@ -9,8 +9,10 @@ use std::str::FromStr;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 mod compact_prompt;
+#[cfg(feature = "vectordb")]
 pub mod vectordb_indexer;
 
+#[cfg(feature = "vectordb")]
 pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
 
 pub struct AutomationService {

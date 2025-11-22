@@ -47,8 +47,8 @@ END IF
 
 ### 4. AI Integration
 - `LLM prompt` for AI-generated responses
-- `ADD_TOOL tool_name` to enable functionality
-- `SET_KB collection` to use knowledge bases
+- `USE_TOOL tool_name` to enable functionality
+- `USE_KB collection` to use knowledge bases
 
 ## Script Execution
 

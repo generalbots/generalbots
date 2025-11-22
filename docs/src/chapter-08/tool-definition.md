@@ -60,9 +60,9 @@ In your `start.bas`, explicitly add tools:
 
 ```bas
 ' Register tools for this conversation
-ADD_TOOL "get-weather"
-ADD_TOOL "send-email"
-ADD_TOOL "create-task"
+USE_TOOL "get-weather"
+USE_TOOL "send-email"
+USE_TOOL "create-task"
 
 TALK "Hello! I can help with weather, email, and tasks."
 ```
@@ -77,12 +77,12 @@ TALK "What do you need help with?"
 HEAR user_input
 
 IF user_input CONTAINS "weather" THEN
-    ADD_TOOL "get-weather"
+    USE_TOOL "get-weather"
     TALK "I've loaded the weather tool."
 ENDIF
 
 IF user_input CONTAINS "email" THEN
-    ADD_TOOL "send-email"
+    USE_TOOL "send-email"
     TALK "I can help with email now."
 ENDIF
 ```

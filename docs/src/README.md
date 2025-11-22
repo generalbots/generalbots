@@ -76,7 +76,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 
 ### Part V - BASIC Dialogs
 - [Chapter 05: gbdialog Reference](chapter-05/README.md) - Complete BASIC scripting reference
-  - Keywords: `TALK`, `HEAR`, `LLM`, `SET_CONTEXT`, `ADD_KB`, and more
+  - Keywords: `TALK`, `HEAR`, `LLM`, `SET_CONTEXT`, `USE_KB`, and more
 
 ### Part VI - Extending BotServer
 - [Chapter 06: Rust Architecture Reference](chapter-06/README.md) - Internal architecture

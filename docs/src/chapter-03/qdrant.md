@@ -32,7 +32,7 @@ Each `.gbkb` collection maps to a VectorDB collection with the same name. For ex
 ## Example `FIND` Usage
 
 ```basic
-SET_KB "company-policies"
+USE_KB "company-policies"
 FIND "vacation policy" INTO RESULT
 TALK RESULT
 ```

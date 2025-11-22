@@ -1,3 +1,15 @@
+## [6.0.9](https://github.com/GeneralBots/BotServer/compare/6.0.8...6.0.9) (2024-01-10)
+
+### Features
+
+* **llm:** Semantic caching with Valkey for LLM responses
+  * Configurable per-bot via `llm-cache` setting in config.csv
+  * Exact match and semantic similarity matching
+  * Embedding-based similarity computation with configurable threshold
+  * TTL-based cache expiration
+  * Reduces API costs by up to 70% through intelligent response reuse
+  * Full documentation in docs/SEMANTIC_CACHE.md
+
 ## [2.4.42](https://github.com/GeneralBots/BotServer/compare/2.4.41...2.4.42) (2023-08-01)
 
 

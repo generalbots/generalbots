@@ -39,7 +39,7 @@ The `session` module maintains conversation state:
 The `basic` module implements a BASIC-like scripting language for creating dialog flows:
 
 - **Simple Syntax**: English-like commands that are easy to learn
-- **Custom Keywords**: Specialized commands like `TALK`, `HEAR`, `LLM`, `ADD_KB`
+- **Custom Keywords**: Specialized commands like `TALK`, `HEAR`, `LLM`, `USE_KB`
 - **Rhai-Powered**: Built on the Rhai scripting engine for Rust
 - **Variable Management**: Store and manipulate data within scripts
 - **Control Flow**: Conditions, loops, and branching logic

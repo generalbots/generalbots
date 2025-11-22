@@ -226,7 +226,7 @@ The LLM can load tools based on context:
 
 ```bas
 ' In start.bas - minimal setup
-ADD_KB "general"  ' Load general knowledge base
+USE_KB "general"  ' Load general knowledge base
 ' Tools are auto-discovered from .gbdialog/ folder
 ```
 
