@@ -8,7 +8,7 @@ REMOVE_TOOL "tool-path.bas"
 
 **Parameters**
 
-- `"tool-path.bas"` – Relative path to a `.bas` file that was previously added with `ADD_TOOL`.
+- `"tool-path.bas"` – Relative path to a `.bas` file that was previously added with `USE_TOOL`.
 
 **Description**
 

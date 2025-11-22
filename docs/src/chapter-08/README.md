@@ -6,11 +6,11 @@ The **Tooling** chapter lists all built‑in keywords and their one‑line descr
 | `TALK` | Send a message to the user. |
 | `HEAR` | Receive user input. |
 | `LLM` | Invoke the configured large‑language‑model. |
-| `ADD_TOOL` | Register a custom tool at runtime. |
+| `USE_TOOL` | Register a custom tool at runtime. |
 | `GET` | Retrieve a value from the session store. |
 | `SET` | Store a value in the session store. |
 | `FORMAT` | Format numbers, dates, or text. |
-| `ADD_KB` | Create a new knowledge‑base collection. |
+| `USE_KB` | Create a new knowledge‑base collection. |
 | `SET_KB` | Switch the active knowledge‑base. |
 | `ADD_WEBSITE` | Crawl and index a website. |
 | `CALL` | Invoke a registered tool synchronously. |

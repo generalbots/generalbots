@@ -335,9 +335,8 @@ impl BasicCompiler {
             }
             let normalized = trimmed
                 .replace("SET SCHEDULE", "SET_SCHEDULE")
-                .replace("ADD TOOL", "ADD_TOOL")
+                .replace("USE TOOL", "USE_TOOL")
                 .replace("CLEAR TOOLS", "CLEAR_TOOLS")
-                .replace("LIST TOOLS", "LIST_TOOLS")
                 .replace("CREATE SITE", "CREATE_SITE")
                 .replace("FOR EACH", "FOR_EACH")
                 .replace("EXIT FOR", "EXIT_FOR")
@@ -345,8 +344,7 @@ impl BasicCompiler {
                 .replace("SET CONTEXT", "SET_CONTEXT")
                 .replace("CLEAR SUGGESTIONS", "CLEAR_SUGGESTIONS")
                 .replace("ADD SUGGESTION", "ADD_SUGGESTION")
-                .replace("SET KB", "SET_KB")
-                .replace("ADD KB", "ADD_KB")
+                .replace("USE KB", "USE_KB")
                 .replace("ADD WEBSITE", "ADD_WEBSITE")
                 .replace("GET BOT MEMORY", "GET_BOT_MEMORY")
                 .replace("SET BOT MEMORY", "SET_BOT_MEMORY")

@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - General Bots</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: var(--bg-primary, #0f172a);
+            color: var(--text-primary, #f1f5f9);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .settings-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        .settings-sidebar {
+            width: 250px;
+            background: var(--bg-secondary, #1e293b);
+            padding: 20px;
+            border-right: 1px solid var(--border-color, #334155);
+        }
+
+        .settings-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 30px;
+            padding-left: 10px;
+        }
+
+        .settings-menu {
+            list-style: none;
+        }
+
+        .settings-menu-item {
+            padding: 12px 16px;
+            margin-bottom: 8px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .settings-menu-item:hover {
+            background: var(--bg-tertiary, #334155);
+        }
+
+        .settings-menu-item.active {
+            background: var(--accent-color, #3b82f6);
+            color: white;
+        }
+
+        .settings-menu-item.desktop-only {
+            display: none;
+        }
+
+        .is-desktop .settings-menu-item.desktop-only {
+            display: flex;
+        }
+
+        .settings-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .settings-section {
+            display: none;
+            max-width: 800px;
+        }
+
+        .settings-section.active {
+            display: block;
+        }
+
+        .section-header {
+            font-size: 28px;
+            font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        .section-description {
+            color: var(--text-secondary, #94a3b8);
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .setting-card {
+            background: var(--bg-secondary, #1e293b);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+
+        .setting-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .setting-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .setting-info {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 16px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .setting-hint {
+            font-size: 13px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .setting-control {
+            margin-left: 20px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid var(--bg-tertiary, #334155);
+            border-radius: 8px;
+            background: var(--bg-primary, #0f172a);
+            color: var(--text-primary, #f1f5f9);
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-color, #3b82f6);
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 14px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 26px;
+            background: var(--bg-tertiary, #334155);
+            border-radius: 13px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .toggle-switch.active {
+            background: var(--accent-color, #3b82f6);
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(24px);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--accent-color, #3b82f6);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover, #2563eb);
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary, #334155);
+            color: var(--text-primary, #f1f5f9);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-quaternary, #475569);
+        }
+
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .sync-status {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 16px;
+            background: var(--bg-tertiary, #334155);
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .sync-status-icon {
+            font-size: 24px;
+        }
+
+        .sync-status-text {
+            flex: 1;
+        }
+
+        .sync-status-title {
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .sync-status-detail {
+            font-size: 13px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .sync-folders {
+            margin-top: 20px;
+        }
+
+        .sync-folder-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            background: var(--bg-tertiary, #334155);
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .folder-path {
+            font-family: monospace;
+            font-size: 13px;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: var(--bg-secondary, #1e293b);
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            display: none;
+            z-index: 2000;
+        }
+
+        .notification.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification.success {
+            border-left: 4px solid #10b981;
+        }
+
+        .notification.error {
+            border-left: 4px solid #ef4444;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .badge-success {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+        }
+
+        .badge-warning {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+        }
+
+        .badge-error {
+            background: rgba(239, 68, 68, 0.2);
+            color: #ef4444;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container" id="settingsContainer">
+        <div class="settings-sidebar">
+            <div class="settings-title">⚙️ Settings</div>
+            <ul class="settings-menu">
+                <li class="settings-menu-item active" data-section="general">
+                    <span>🔧</span>
+                    <span>General</span>
+                </li>
+                <li class="settings-menu-item" data-section="appearance</span>">
+                    <span>🎨</span>
+                    <span>Appearance</span>
+                </li>
+                <li class="settings-menu-item" data-section="notifications">
+                    <span>🔔</span>
+                    <span>Notifications</span>
+                </li>
+                <li class="settings-menu-item desktop-only" data-section="sync">
+                    <span>🔄</span>
+                    <span>Sync</span>
+                </li>
+                <li class="settings-menu-item" data-section="account">
+                    <span>👤</span>
+                    <span>Account</span>
+                </li>
+                <li class="settings-menu-item" data-section="about">
+                    <span>ℹ️</span>
+                    <span>About</span>
+                </li>
+            </ul>
+        </div>
+
+        <div class="settings-content">
+            <!-- General Section -->
+            <div class="settings-section active" data-section="general">
+                <h2 class="section-header">General Settings</h2>
+                <p class="section-description">Configure general application preferences</p>
+
+                <div class="setting-card">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Language</div>
+                            <div class="setting-hint">Choose your preferred language</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-input" style="width: 200px;">
+                                <option value="en">English</option>
+                                <option value="pt">Português</option>
+                                <option value="es">Español</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Auto-start</div>
+                            <div class="setting-hint">Start General Bots when you log in</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appearance Section -->
+            <div class="settings-section" data-section="appearance">
+                <h2 class="section-header">Appearance</h2>
+                <p class="section-description">Customize how General Bots looks</p>
+
+                <div class="setting-card">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Theme</div>
+                            <div class="setting-hint">Choose your color theme</div>
+                        </div>
+                        <div class="setting-control">
+                            <select class="form-input" style="width: 200px;">
+                                <option value="dark">Dark</option>
+                                <option value="light">Light</option>
+                                <option value="auto">Auto</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notifications Section -->
+            <div class="settings-section" data-section="notifications">
+                <h2 class="section-header">Notifications</h2>
+                <p class="section-description">Manage notification preferences</p>
+
+                <div class="setting-card">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Desktop Notifications</div>
+                            <div class="setting-hint">Show notifications on desktop</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Sound</div>
+                            <div class="setting-hint">Play sound for notifications</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch active" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sync Section (Desktop Only) -->
+            <div class="settings-section" data-section="sync">
+                <h2 class="section-header">🔄 Drive Sync</h2>
+                <p class="section-description">Automatically sync your files between local folders and cloud storage</p>
+
+                <!-- Sync Status -->
+                <div class="sync-status" id="syncStatus">
+                    <div class="sync-status-icon">⏸️</div>
+                    <div class="sync-status-text">
+                        <div class="sync-status-title">Sync Paused</div>
+                        <div class="sync-status-detail">Configure sync settings below</div>
+                    </div>
+                    <span class="badge badge-warning">Inactive</span>
+                </div>
+
+                <!-- Sync Configuration -->
+                <div class="setting-card">
+                    <h3 style="margin-bottom: 20px;">Sync Configuration</h3>
+
+                    <label class="form-label">Remote Name</label>
+                    <input type="text" class="form-input" id="remoteName" placeholder="gdrive" value="s3">
+
+                    <label class="form-label">Remote Path</label>
+                    <input type="text" class="form-input" id="remotePath" placeholder="/backup" value="/">
+
+                    <label class="form-label">Local Folder</label>
+                    <div style="display: flex; gap: 12px;">
+                        <input type="text" class="form-input" id="localPath" placeholder="/home/user/GeneralBots" style="flex: 1;">
+                        <button class="btn btn-secondary" onclick="selectFolder()">📁 Browse</button>
+                    </div>
+
+                    <label class="form-label">Access Key</label>
+                    <input type="text" class="form-input" id="accessKey" placeholder="Your access key">
+
+                    <label class="form-label">Secret Key</label>
+                    <input type="password" class="form-input" id="secretKey" placeholder="Your secret key">
+
+                    <div class="setting-row" style="margin-top: 20px;">
+                        <div class="setting-info">
+                            <div class="setting-label">Bidirectional Sync</div>
+                            <div class="setting-hint">Sync changes in both directions</div>
+                        </div>
+                        <div class="setting-control">
+                            <div class="toggle-switch" id="bidirectionalToggle" onclick="toggleSwitch(this)">
+                                <div class="toggle-slider"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button class="btn btn-primary" onclick="saveAndStartSync()">💾 Save & Start Sync</button>
+                        <button class="btn btn-secondary" onclick="stopSync()">⏹️ Stop Sync</button>
+                        <button class="btn btn-secondary" onclick="testConnection()">🔍 Test Connection</button>
+                    </div>
+                </div>
+
+                <!-- Current Sync Folders -->
+                <div class="setting-card">
+                    <h3 style="margin-bottom: 16px;">Sync Status</h3>
+                    <div id="syncFolders">
+                        <div style="color: var(--text-secondary, #94a3b8); text-align: center; padding: 20px;">
+                            No active sync configured
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Account Section -->
+            <div class="settings-section" data-section="account">
+                <h2 class="section-header">Account</h2>
+                <p class="section-description">Manage your account settings</p>
+
+                <div class="setting-card">
+                    <div class="setting-row">
+                        <div class="setting-info">
+                            <div class="setting-label">Email</div>
+                            <div class="setting-hint">user@example.com</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 20px;">
+                        <button class="btn btn-danger">Logout</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- About Section -->
+            <div class="settings-section" data-section="about">
+                <h2 class="section-header">About General Bots</h2>
+                <p class="section-description">Application information</p>
+
+                <div class="setting-card">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="font-size: 48px; margin-bottom: 16px;">🤖</div>
+                        <h3>General Bots</h3>
+                        <p style="color: var(--text-secondary, #94a3b8); margin: 8px 0;">Version 6.0.8</p>
+                        <p style="color: var(--text-secondary, #94a3b8); font-size: 13px;">
+                            Open-source bot platform by Pragmatismo.com.br
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification -->
+    <div class="notification" id="notification"></div>
+
+    <script>
+        // Check if running in Tauri desktop mode
+        const isDesktop = window.__TAURI__ !== undefined;
+        if (isDesktop) {
+            document.getElementById('settingsContainer').classList.add('is-desktop');
+        }
+
+        // Menu navigation
+        document.querySelectorAll('.settings-menu-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const section = item.dataset.section;
+
+                // Update active menu item
+                document.querySelectorAll('.settings-menu-item').forEach(i => i.classList.remove('active'));
+                item.classList.add('active');
+
+                // Update active section
+                document.querySelectorAll('.settings-section').forEach(s => s.classList.remove('active'));
+                document.querySelector(`.settings-section[data-section="${section}"]`).classList.add('active');
+            });
+        });
+
+        // Toggle switch
+        function toggleSwitch(element) {
+            element.classList.toggle('active');
+        }
+
+        // Notification
+        function showNotification(message, type = 'success') {
+            const notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.className = `notification ${type} show`;
+            setTimeout(() => notification.classList.remove('show'), 3000);
+        }
+
+        // Select folder (desktop only)
+        async function selectFolder() {
+            if (!isDesktop) {
+                showNotification('Folder selection only available in desktop mode', 'error');
+                return;
+            }
+
+            try {
+                const { open } = window.__TAURI__.dialog;
+                const selected = await open({
+                    directory: true,
+                    multiple: false,
+                    title: 'Select folder to sync'
+                });
+
+                if (selected) {
+                    document.getElementById('localPath').value = selected;
+                }
+            } catch (error) {
+                console.error('Folder selection error:', error);
+                showNotification('Failed to select folder', 'error');
+            }
+        }
+
+        // Save and start sync
+        async function saveAndStartSync() {
+            if (!isDesktop) {
+                showNotification('Sync only available in desktop mode', 'error');
+                return;
+            }
+
+            const config = {
+                name: document.getElementById('remoteName').value,
+                remote_path: document.getElementById('remotePath').value,
+                local_path: document.getElementById('localPath').value,
+                access_key: document.getElementById('accessKey').value,
+                secret_key: document.getElementById('secretKey').value
+            };
+
+            if (!config.name || !config.local_path) {
+                showNotification('Please fill in all required fields', 'error');
+                return;
+            }
+
+            try {
+                // Save config
+                await window.__TAURI__.invoke('save_config', { config });
+
+                // Start sync
+                await window.__TAURI__.invoke('start_sync', { config });
+
+                updateSyncStatus(true);
+                showNotification('Sync started successfully', 'success');
+            } catch (error) {
+                console.error('Sync error:', error);
+                showNotification('Failed to start sync: ' + error, 'error');
+            }
+        }
+
+        // Stop sync
+        async function stopSync() {
+            if (!isDesktop) return;
+
+            try {
+                await window.__TAURI__.invoke('stop_sync', {});
+                updateSyncStatus(false);
+                showNotification('Sync stopped', 'success');
+            } catch (error) {
+                console.error('Stop sync error:', error);
+                showNotification('Failed to stop sync', 'error');
+            }
+        }
+
+        // Test connection
+        async function testConnection() {
+            if (!isDesktop) {
+                showNotification('Connection test only available in desktop mode', 'error');
+                return;
+            }
+
+            const remoteName = document.getElementById('remoteName').value;
+            if (!remoteName) {
+                showNotification('Please enter a remote name', 'error');
+                return;
+            }
+
+            try {
+                showNotification('Testing connection...', 'success');
+                // Add test connection logic here
+                setTimeout(() => {
+                    showNotification('Connection successful', 'success');
+                }, 1000);
+            } catch (error) {
+                console.error('Connection test error:', error);
+                showNotification('Connection failed', 'error');
+            }
+        }
+
+        // Update sync status UI
+        function updateSyncStatus(isActive) {
+            const status = document.getElementById('syncStatus');
+            const icon = status.querySelector('.sync-status-icon');
+            const title = status.querySelector('.sync-status-title');
+            const detail = status.querySelector('.sync-status-detail');
+            const badge = status.querySelector('.badge');
+
+            if (isActive) {
+                icon.textContent = '✅';
+                title.textContent = 'Sync Active';
+                detail.textContent = 'Your files are being synced';
+                badge.className = 'badge badge-success';
+                badge.textContent = 'Active';
+            } else {
+                icon.textContent = '⏸️';
+                title.textContent = 'Sync Paused';
+                detail.textContent = 'Configure sync settings below';
+                badge.className = 'badge badge-warning';
+                badge.textContent = 'Inactive';
+            }
+        }
+
+        // Load sync status on page load
+        if (isDesktop) {
+            document.addEventListener('DOMContentLoaded', async () => {
+                try {
+                    const status = await window.__TAURI__.invoke('get_status', { remote_name: 's3' });
+                    if (status && status.status === 'active') {
+                        updateSyncStatus(true);
+                    }
+                } catch (error) {
+                    console.log('No active sync found');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

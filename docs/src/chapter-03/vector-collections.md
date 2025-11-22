@@ -4,10 +4,10 @@ A **vector collection** is a set of documents that have been transformed into ve
 
 ## Creating a Collection
 
-Use the `ADD_KB` keyword in a dialog script:
+Use the `USE_KB` keyword in a dialog script:
 
 ```basic
-ADD_KB "company-policies"
+USE_KB "company-policies"
 ```
 
 This creates a new collection named `company-policies` in the bot’s knowledge base.
@@ -17,7 +17,7 @@ This creates a new collection named `company-policies` in the bot’s knowledge 
 Documents can be added directly from files or by crawling a website:
 
 ```basic
-ADD_KB "company-policies"   ' adds a new empty collection
+USE_KB "company-policies"   ' loads and embeds all files from .gbkb/company-policies/ folder
 ADD_WEBSITE "https://example.com/policies"
 ```
 
@@ -25,15 +25,15 @@ The system will download the content, split it into chunks, generate embeddings 
 
 ## Managing Collections
 
-- `SET_KB "collection-name"` – selects the active collection for subsequent `ADD_KB` or `FIND` calls.
-- `LIST_KB` – (not a keyword, but you can query via API) lists all collections.
+- `USE_KB "collection-name"` – loads and embeds files from the `.gbkb/collection-name` folder into the vector database, making them available for semantic search in the current session.
+- `CLEAR_KB "collection-name"` – removes the collection from the current session (files remain embedded in vector database).
 
 ## Use in Dialogs
 
-When a collection is active, the `FIND` keyword searches across its documents, and the `GET_BOT_MEMORY` keyword can retrieve relevant snippets to inject into LLM prompts.
+When a KB is added to a session, the vector database is queried to retrieve relevant document chunks/excerpts that are automatically injected into LLM prompts, providing context-aware responses.
 
 ```basic
-SET_KB "company-policies"
+USE_KB "company-policies"
 FIND "vacation policy" INTO RESULT
 TALK RESULT
 ```

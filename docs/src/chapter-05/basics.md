@@ -31,6 +31,6 @@ ENDIF
 
 ## Best Practices
 
-* Keep scripts short; split complex flows into multiple `.gbdialog` files and `ADD_TOOL` them.
+* Keep scripts short; split complex flows into multiple `.gbdialog` files and `USE_TOOL` them.
 * Use `SET_BOT_MEMORY` for data that must persist across sessions.
 * Avoid heavy computation inside the script; offload to LLM or external tools.

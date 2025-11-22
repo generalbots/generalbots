@@ -32,11 +32,11 @@ SET_KB "marketing_data"
 **Description:**  
 Links the bot’s context to a specific KB collection, enabling focused queries and responses.
 
-### `ADD_KB`
+### `USE_KB`
 Adds a new knowledge base collection.
 
 ```basic
-ADD_KB "customer_feedback"
+USE_KB "customer_feedback"
 ```
 
 **Description:**  
@@ -80,11 +80,11 @@ SET_CONTEXT "sales_mode"
 **Description:**  
 Switches the bot’s internal logic to a specific context, affecting how commands are interpreted.
 
-### `ADD_TOOL`
+### `USE_TOOL`
 Registers a new tool for automation.
 
 ```basic
-ADD_TOOL "email_sender"
+USE_TOOL "email_sender"
 ```
 
 **Description:**  

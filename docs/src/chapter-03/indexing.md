@@ -1,6 +1,6 @@
 # Document Indexing
 
-When a document is added to a knowledge‑base collection with `ADD_KB` or `ADD_WEBSITE`, the system performs several steps to make it searchable:
+When a document is added to a knowledge‑base collection with `USE_KB` or `ADD_WEBSITE`, the system performs several steps to make it searchable:
 
 1. **Content Extraction** – Files are read and plain‑text is extracted (PDF, DOCX, HTML, etc.).
 2. **Chunking** – The text is split into 500‑token chunks to keep embeddings manageable.
@@ -15,7 +15,7 @@ If a document is updated, the system re‑processes the file and replaces the ol
 ## Example
 
 ```basic
-ADD_KB "company-policies"
+USE_KB "company-policies"
 ADD_WEBSITE "https://example.com/policies"
 ```
 

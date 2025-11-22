@@ -1,27 +1,22 @@
 use crate::config::ConfigManager;
 use crate::drive_monitor::DriveMonitor;
 use crate::llm::OpenAIClient;
-use crate::llm_models;
-use crate::nvidia::get_system_metrics;
-use crate::shared::models::{BotResponse, Suggestion, UserMessage, UserSession};
+use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use axum::extract::ws::{Message, WebSocket};
 use axum::{
-    extract::{ws::WebSocketUpgrade, Extension, Path, Query, State},
+    extract::{ws::WebSocketUpgrade, Extension, Query, State},
     http::StatusCode,
     response::{IntoResponse, Json},
 };
-use chrono::Utc;
 use diesel::PgConnection;
 use futures::{sink::SinkExt, stream::StreamExt};
 use log::{error, info, trace, warn};
 use serde_json;
 use std::collections::HashMap;
 use std::sync::Arc;
-use std::time::Duration;
 use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
-use tokio::time::Instant;
 use uuid::Uuid;
 
 /// Retrieves the default bot (first active bot) from the database.
@@ -491,7 +486,7 @@ pub async fn create_bot_handler(
 
 /// Mount an existing bot (placeholder implementation)
 pub async fn mount_bot_handler(
-    Extension(state): Extension<Arc<AppState>>,
+    Extension(_state): Extension<Arc<AppState>>,
     Json(payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let bot_guid = payload.get("bot_guid").cloned().unwrap_or_default();
@@ -503,7 +498,7 @@ pub async fn mount_bot_handler(
 
 /// Handle user input for a bot (placeholder implementation)
 pub async fn handle_user_input_handler(
-    Extension(state): Extension<Arc<AppState>>,
+    Extension(_state): Extension<Arc<AppState>>,
     Json(payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let session_id = payload.get("session_id").cloned().unwrap_or_default();
@@ -518,24 +513,24 @@ pub async fn handle_user_input_handler(
 
 /// Retrieve user sessions (placeholder implementation)
 pub async fn get_user_sessions_handler(
-    Extension(state): Extension<Arc<AppState>>,
-    Json(payload): Json<HashMap<String, String>>,
+    Extension(_state): Extension<Arc<AppState>>,
+    Json(_payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({ "sessions": [] })))
 }
 
 /// Retrieve conversation history (placeholder implementation)
 pub async fn get_conversation_history_handler(
-    Extension(state): Extension<Arc<AppState>>,
-    Json(payload): Json<HashMap<String, String>>,
+    Extension(_state): Extension<Arc<AppState>>,
+    Json(_payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     (StatusCode::OK, Json(serde_json::json!({ "history": [] })))
 }
 
 /// Send warning (placeholder implementation)
 pub async fn send_warning_handler(
-    Extension(state): Extension<Arc<AppState>>,
-    Json(payload): Json<HashMap<String, String>>,
+    Extension(_state): Extension<Arc<AppState>>,
+    Json(_payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     (
         StatusCode::OK,

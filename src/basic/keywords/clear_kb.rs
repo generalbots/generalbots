@@ -6,6 +6,12 @@ use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
 use uuid::Uuid;
 
+#[derive(QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    count: i64,
+}
+
 /// Register CLEAR_KB keyword
 /// Removes one or all Knowledge Bases from the current session's context
 /// Usage:
@@ -29,9 +35,10 @@ pub fn register_clear_kb_keyword(
 
         let session_id = session_clone.id;
         let conn = state_clone.conn.clone();
+        let kb_name_clone = kb_name.clone();
 
         let result =
-            std::thread::spawn(move || clear_specific_kb(conn, session_id, &kb_name)).join();
+            std::thread::spawn(move || clear_specific_kb(conn, session_id, &kb_name_clone)).join();
 
         match result {
             Ok(Ok(_)) => {
@@ -161,17 +168,16 @@ pub fn get_active_kb_count(
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
-    let count: i64 = diesel::sql_query(
+    let result: CountResult = diesel::sql_query(
         "SELECT COUNT(*) as count
          FROM session_kb_associations
          WHERE session_id = $1 AND is_active = true",
     )
     .bind::<diesel::sql_types::Uuid, _>(session_id)
-    .get_result::<(i64,)>(&mut conn)
-    .map_err(|e| format!("Failed to get KB count: {}", e))?
-    .0;
+    .get_result(&mut conn)
+    .map_err(|e| format!("Failed to get KB count: {}", e))?;
 
-    Ok(count)
+    Ok(result.count)
 }
 
 #[cfg(test)]

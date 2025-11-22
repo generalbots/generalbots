@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting Room - General Bots</title>
+    <link rel="stylesheet" href="../css/common.css">
+    <link rel="stylesheet" href="meet.css">
+</head>
+<body>
+    <div id="meetApp">
+        <!-- Meeting Header -->
+        <header class="meet-header">
+            <div class="meet-info">
+                <h2 id="meetingTitle">Meeting Room</h2>
+                <span id="meetingId" class="meeting-id"></span>
+                <span id="meetingTimer" class="meeting-timer">00:00:00</span>
+            </div>
+            <div class="meet-controls-top">
+                <button id="recordBtn" class="control-btn" title="Record Meeting">
+                    <span class="icon">🔴</span>
+                    <span class="label">Record</span>
+                </button>
+                <button id="transcribeBtn" class="control-btn active" title="Toggle Transcription">
+                    <span class="icon">📝</span>
+                    <span class="label">Transcribe</span>
+                </button>
+                <button id="participantsBtn" class="control-btn" title="Show Participants">
+                    <span class="icon">👥</span>
+                    <span class="badge" id="participantCount">0</span>
+                </button>
+                <button id="chatBtn" class="control-btn" title="Toggle Chat">
+                    <span class="icon">💬</span>
+                    <span class="badge hidden" id="unreadCount">0</span>
+                </button>
+                <button id="settingsBtn" class="control-btn" title="Settings">
+                    <span class="icon">⚙️</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main Meeting Area -->
+        <main class="meet-main">
+            <!-- Video Grid -->
+            <div class="video-grid" id="videoGrid">
+                <!-- Local Video -->
+                <div class="video-container local-video" id="localVideoContainer">
+                    <video id="localVideo" autoplay muted></video>
+                    <div class="video-overlay">
+                        <span class="participant-name">You</span>
+                        <div class="video-indicators">
+                            <span class="indicator mic-indicator" id="localMicIndicator">🎤</span>
+                            <span class="indicator video-indicator" id="localVideoIndicator">📹</span>
+                        </div>
+                    </div>
+                    <div class="speaking-indicator hidden"></div>
+                </div>
+
+                <!-- Remote participants will be added here dynamically -->
+            </div>
+
+            <!-- Sidebar Panels -->
+            <aside class="meet-sidebar" id="meetSidebar">
+                <!-- Participants Panel -->
+                <div class="sidebar-panel" id="participantsPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h3>Participants</h3>
+                        <button class="close-btn" onclick="togglePanel('participants')">×</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="participants-list" id="participantsList">
+                            <!-- Participants will be added dynamically -->
+                        </div>
+                        <div class="panel-actions">
+                            <button class="action-btn" id="inviteBtn">
+                                <span class="icon">➕</span> Invite
+                            </button>
+                            <button class="action-btn" id="muteAllBtn">
+                                <span class="icon">🔇</span> Mute All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Panel -->
+                <div class="sidebar-panel" id="chatPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h3>Chat</h3>
+                        <button class="close-btn" onclick="togglePanel('chat')">×</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="chat-messages" id="chatMessages">
+                            <!-- Chat messages will be added dynamically -->
+                        </div>
+                        <div class="chat-input-container">
+                            <input type="text" id="chatInput" placeholder="Type a message..." />
+                            <button id="sendChatBtn" class="send-btn">
+                                <span class="icon">📤</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Transcription Panel -->
+                <div class="sidebar-panel" id="transcriptionPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h3>Live Transcription</h3>
+                        <button class="close-btn" onclick="togglePanel('transcription')">×</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="transcription-container" id="transcriptionContainer">
+                            <!-- Transcriptions will be added dynamically -->
+                        </div>
+                        <div class="panel-actions">
+                            <button class="action-btn" id="downloadTranscriptBtn">
+                                <span class="icon">💾</span> Download
+                            </button>
+                            <button class="action-btn" id="clearTranscriptBtn">
+                                <span class="icon">🗑️</span> Clear
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Assistant Panel -->
+                <div class="sidebar-panel" id="botPanel" style="display: none;">
+                    <div class="panel-header">
+                        <h3>Meeting Assistant</h3>
+                        <button class="close-btn" onclick="togglePanel('bot')">×</button>
+                    </div>
+                    <div class="panel-content">
+                        <div class="bot-status">
+                            <span class="bot-avatar">🤖</span>
+                            <span class="bot-name">AI Assistant</span>
+                            <span class="bot-state active">Active</span>
+                        </div>
+                        <div class="bot-commands">
+                            <button class="bot-cmd-btn" data-command="summarize">
+                                <span class="icon">📋</span> Summarize Discussion
+                            </button>
+                            <button class="bot-cmd-btn" data-command="action_items">
+                                <span class="icon">✅</span> Extract Action Items
+                            </button>
+                            <button class="bot-cmd-btn" data-command="key_points">
+                                <span class="icon">🎯</span> Key Points
+                            </button>
+                            <button class="bot-cmd-btn" data-command="questions">
+                                <span class="icon">❓</span> Pending Questions
+                            </button>
+                        </div>
+                        <div class="bot-responses" id="botResponses">
+                            <!-- Bot responses will be added here -->
+                        </div>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Screen Share Overlay -->
+            <div class="screen-share-overlay hidden" id="screenShareOverlay">
+                <div class="screen-share-container">
+                    <video id="screenShareVideo" autoplay></video>
+                    <div class="screen-share-controls">
+                        <button id="stopScreenShareBtn" class="control-btn">
+                            <span class="icon">⏹️</span> Stop Sharing
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Meeting Controls -->
+        <footer class="meet-controls">
+            <div class="controls-left">
+                <button id="micBtn" class="control-btn primary" title="Toggle Microphone">
+                    <span class="icon">🎤</span>
+                </button>
+                <button id="videoBtn" class="control-btn primary" title="Toggle Video">
+                    <span class="icon">📹</span>
+                </button>
+                <button id="screenShareBtn" class="control-btn" title="Share Screen">
+                    <span class="icon">🖥️</span>
+                    <span class="label">Share</span>
+                </button>
+            </div>
+
+            <div class="controls-center">
+                <button id="leaveBtn" class="control-btn danger" title="Leave Meeting">
+                    <span class="icon">📞</span>
+                    <span class="label">Leave</span>
+                </button>
+            </div>
+
+            <div class="controls-right">
+                <button id="botBtn" class="control-btn" title="Meeting Assistant">
+                    <span class="icon">🤖</span>
+                    <span class="label">Assistant</span>
+                </button>
+                <button id="moreBtn" class="control-btn" title="More Options">
+                    <span class="icon">⋯</span>
+                </button>
+            </div>
+        </footer>
+
+        <!-- Modals -->
+        <!-- Join Meeting Modal -->
+        <div class="modal hidden" id="joinModal">
+            <div class="modal-content">
+                <h2>Join Meeting</h2>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="userName">Your Name</label>
+                        <input type="text" id="userName" placeholder="Enter your name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="meetingCode">Meeting Code</label>
+                        <input type="text" id="meetingCode" placeholder="Enter meeting code or URL" />
+                    </div>
+                    <div class="form-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="joinWithVideo" checked />
+                            Join with video
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="joinWithAudio" checked />
+                            Join with audio
+                        </label>
+                    </div>
+                    <div class="preview-container">
+                        <video id="previewVideo" autoplay muted></video>
+                        <div class="preview-controls">
+                            <button class="preview-btn" id="testAudioBtn">
+                                <span class="icon">🔊</span> Test Audio
+                            </button>
+                            <button class="preview-btn" id="testVideoBtn">
+                                <span class="icon">📹</span> Test Video
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('joinModal')">Cancel</button>
+                    <button class="btn btn-primary" id="joinMeetingBtn">Join Meeting</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Create Meeting Modal -->
+        <div class="modal hidden" id="createModal">
+            <div class="modal-content">
+                <h2>Create Meeting</h2>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label for="meetingName">Meeting Name</label>
+                        <input type="text" id="meetingName" placeholder="Enter meeting name" />
+                    </div>
+                    <div class="form-group">
+                        <label for="meetingDescription">Description (Optional)</label>
+                        <textarea id="meetingDescription" placeholder="Meeting description"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <h4>Meeting Settings</h4>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableTranscription" checked />
+                            Enable live transcription
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableRecording" />
+                            Record meeting
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableBot" checked />
+                            Enable AI assistant
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="enableWaitingRoom" />
+                            Use waiting room
+                        </label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('createModal')">Cancel</button>
+                    <button class="btn btn-primary" id="createMeetingBtn">Create Meeting</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Invite Modal -->
+        <div class="modal hidden" id="inviteModal">
+            <div class="modal-content">
+                <h2>Invite Participants</h2>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>Meeting Link</label>
+                        <div class="copy-container">
+                            <input type="text" id="meetingLink" readonly />
+                            <button class="copy-btn" onclick="copyMeetingLink()">
+                                <span class="icon">📋</span> Copy
+                            </button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="inviteEmails">Invite by Email</label>
+                        <textarea id="inviteEmails" placeholder="Enter email addresses (one per line)"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Share via</label>
+                        <div class="share-buttons">
+                            <button class="share-btn" onclick="shareVia('whatsapp')">
+                                <span class="icon">💬</span> WhatsApp
+                            </button>
+                            <button class="share-btn" onclick="shareVia('teams')">
+                                <span class="icon">👥</span> Teams
+                            </button>
+                            <button class="share-btn" onclick="shareVia('email')">
+                                <span class="icon">📧</span> Email
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" onclick="closeModal('inviteModal')">Close</button>
+                    <button class="btn btn-primary" id="sendInvitesBtn">Send Invites</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Redirect Handler for Teams/WhatsApp -->
+        <div class="redirect-handler hidden" id="redirectHandler">
+            <div class="redirect-content">
+                <h2>Incoming Video Call</h2>
+                <p>You</h2> have an incoming video call from <span id="callerName"></span></p>
+                <p>Platform: <span id="callerPlatform"></span></p>
+                <div class="redirect-actions">
+                    <button class="btn btn-danger" onclick="rejectCall()">Reject</button>
+                    <button class="btn btn-success" onclick="acceptCall()">Accept</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://unpkg.com/livekit-client/dist/livekit-client.umd.min.js"></script>
+    <script src="meet.js"></script>
+</body>
+</html>

@@ -2,7 +2,6 @@ use anyhow::Result;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::Arc;
 use tokio::fs;
 use uuid::Uuid;
 
@@ -318,7 +317,8 @@ pub fn extract_user_id_from_token(token: &str) -> Result<String> {
         anyhow::bail!("Invalid JWT format");
     }
 
-    let payload = base64::decode_config(parts[1], base64::URL_SAFE_NO_PAD)?;
+    use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
+    let payload = URL_SAFE_NO_PAD.decode(parts[1])?;
     let json: serde_json::Value = serde_json::from_slice(&payload)?;
 
     json.get("sub")

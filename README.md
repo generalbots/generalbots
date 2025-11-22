@@ -1,3 +1,21 @@
+# General Bots - KB and TOOL System
+
+## Core System: 4 Essential Keywords
+
+General Bots provides a minimal, focused system for dynamically managing Knowledge Bases and Tools:
+
+### Knowledge Base (KB) Commands
+
+- **`USE_KB "kb-name"`** - Loads and embeds files from `.gbkb/kb-name/` folder into vector database, making them available for semantic search in the current conversation session
+- **`CLEAR_KB "kb-name"`** - Removes a specific KB from current session (or `CLEAR_KB` to remove all)
+
+### Tool Commands  
+
+- **`USE_TOOL "tool-name"`** - Makes a tool (`.bas` file) available for the LLM to call in the current session. Must be called in `start.bas` or from another tool. The tool's `DESCRIPTION` field is what the LLM reads to know when to call the tool.
+- **`CLEAR_TOOLS`** - Removes all tools from current session
+
+---
+
 ### Key Facts
 - LLM Orchestrator AGPL licensed (to use as custom-label SaaS, contributing back)
 - True community governance
@@ -38,7 +56,7 @@ General Bot is a strongly typed LLM conversational platform package based chat b
 |---------|--------|---------------------|-----------------|
 | **Multi-Vendor LLM API** | ✅ DEPLOYED | Unified interface for OpenAI, Groq, Claude, Anthropic | Vendor lock-in |
 | **MCP + LLM Tools Generation** | ✅ DEPLOYED | Instant tool creation from code/functions | Manual tool development |
-| **Semantic Caching System** | ✅ DEPLOYED | 70% cost reduction via intelligent caching | No caching or basic key-value |
+| **Semantic Caching with Valkey** | ✅ DEPLOYED | Intelligent LLM response caching with semantic similarity matching - 70% cost reduction | No caching or basic key-value |
 | **Cross-Platform Desktop** | ⚡ NEAR-TERM | Native MacOS/Windows/Linux applications | Web-only interfaces |
 | **Git-like Version Control** | ✅ DEPLOYED | Full history with rollback capabilities | Basic undo/redo |
 | **Web Automation Engine** | ✅ DEPLOYED | Browser automation + AI intelligence | Separate RPA tools |
