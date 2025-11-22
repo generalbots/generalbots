@@ -2,7 +2,7 @@ use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
-use log::{info};
+use log::info;
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -11,6 +11,7 @@ use tokio::time::{interval, Duration};
 pub struct FileState {
     pub etag: String,
 }
+#[derive(Debug)]
 pub struct DriveMonitor {
     state: Arc<AppState>,
     bucket_name: String,
@@ -28,7 +29,10 @@ impl DriveMonitor {
     }
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
-            info!("Drive Monitor service started for bucket: {}", self.bucket_name);
+            info!(
+                "Drive Monitor service started for bucket: {}",
+                self.bucket_name
+            );
             let mut tick = interval(Duration::from_secs(90));
             loop {
                 tick.tick().await;
@@ -47,7 +51,10 @@ impl DriveMonitor {
         self.check_gbot(client).await?;
         Ok(())
     }
-    async fn check_gbdialog_changes(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn check_gbdialog_changes(
+        &self,
+        client: &Client,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let prefix = ".gbdialog/";
         let mut current_files = HashMap::new();
         let mut continuation_token = None;
@@ -58,8 +65,10 @@ impl DriveMonitor {
                     .list_objects_v2()
                     .bucket(&self.bucket_name.to_lowercase())
                     .set_continuation_token(continuation_token)
-                    .send()
-            ).await {
+                    .send(),
+            )
+            .await
+            {
                 Ok(Ok(list)) => list,
                 Ok(Err(e)) => return Err(e.into()),
                 Err(_) => {
@@ -125,8 +134,10 @@ impl DriveMonitor {
                     .list_objects_v2()
                     .bucket(&self.bucket_name.to_lowercase())
                     .set_continuation_token(continuation_token)
-                    .send()
-            ).await {
+                    .send(),
+            )
+            .await
+            {
                 Ok(Ok(list)) => list,
                 Ok(Err(e)) => return Err(e.into()),
                 Err(_) => {
@@ -143,9 +154,20 @@ impl DriveMonitor {
                 if !path.ends_with("config.csv") {
                     continue;
                 }
-                match client.head_object().bucket(&self.bucket_name).key(&path).send().await {
+                match client
+                    .head_object()
+                    .bucket(&self.bucket_name)
+                    .key(&path)
+                    .send()
+                    .await
+                {
                     Ok(_head_res) => {
-                        let response = client.get_object().bucket(&self.bucket_name).key(&path).send().await?;
+                        let response = client
+                            .get_object()
+                            .bucket(&self.bucket_name)
+                            .key(&path)
+                            .send()
+                            .await?;
                         let bytes = response.body.collect().await?.into_bytes();
                         let csv_content = String::from_utf8(bytes.to_vec())
                             .map_err(|e| format!("UTF-8 error in {}: {}", path, e))?;
@@ -164,7 +186,10 @@ impl DriveMonitor {
                                     match config_manager.get_config(&self.bot_id, key, None) {
                                         Ok(old_value) => {
                                             if old_value != new_value {
-                                                info!("Detected change in {} (old: {}, new: {})", key, old_value, new_value);
+                                                info!(
+                                                    "Detected change in {} (old: {}, new: {})",
+                                                    key, old_value, new_value
+                                                );
                                                 restart_needed = true;
                                             }
                                         }
@@ -176,7 +201,9 @@ impl DriveMonitor {
                             }
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
                             if restart_needed {
-                                if let Err(e) = ensure_llama_servers_running(Arc::clone(&self.state)).await {
+                                if let Err(e) =
+                                    ensure_llama_servers_running(Arc::clone(&self.state)).await
+                                {
                                     log::error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
                             }
@@ -199,7 +226,10 @@ impl DriveMonitor {
         }
         Ok(())
     }
-    async fn broadcast_theme_change(&self, csv_content: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
+    async fn broadcast_theme_change(
+        &self,
+        csv_content: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let mut theme_data = serde_json::json!({
             "event": "change_theme",
             "data": {}
@@ -210,11 +240,23 @@ impl DriveMonitor {
                 let key = parts[0].trim();
                 let value = parts[1].trim();
                 match key {
-                    "theme-color1" => theme_data["data"]["color1"] = serde_json::Value::String(value.to_string()),
-                    "theme-color2" => theme_data["data"]["color2"] = serde_json::Value::String(value.to_string()),
-                    "theme-logo" => theme_data["data"]["logo_url"] = serde_json::Value::String(value.to_string()),
-                    "theme-title" => theme_data["data"]["title"] = serde_json::Value::String(value.to_string()),
-                    "theme-logo-text" => theme_data["data"]["logo_text"] = serde_json::Value::String(value.to_string()),
+                    "theme-color1" => {
+                        theme_data["data"]["color1"] = serde_json::Value::String(value.to_string())
+                    }
+                    "theme-color2" => {
+                        theme_data["data"]["color2"] = serde_json::Value::String(value.to_string())
+                    }
+                    "theme-logo" => {
+                        theme_data["data"]["logo_url"] =
+                            serde_json::Value::String(value.to_string())
+                    }
+                    "theme-title" => {
+                        theme_data["data"]["title"] = serde_json::Value::String(value.to_string())
+                    }
+                    "theme-logo-text" => {
+                        theme_data["data"]["logo_text"] =
+                            serde_json::Value::String(value.to_string())
+                    }
                     _ => {}
                 }
             }
@@ -239,17 +281,38 @@ impl DriveMonitor {
         }
         Ok(())
     }
-    async fn compile_tool(&self, client: &Client, file_path: &str) -> Result<(), Box<dyn Error + Send + Sync>> {
-        info!("Fetching object from Drive: bucket={}, key={}", &self.bucket_name, file_path);
-        let response = match client.get_object().bucket(&self.bucket_name).key(file_path).send().await {
+    async fn compile_tool(
+        &self,
+        client: &Client,
+        file_path: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        info!(
+            "Fetching object from Drive: bucket={}, key={}",
+            &self.bucket_name, file_path
+        );
+        let response = match client
+            .get_object()
+            .bucket(&self.bucket_name)
+            .key(file_path)
+            .send()
+            .await
+        {
             Ok(res) => {
-                info!("Successfully fetched object from Drive: bucket={}, key={}, size={}", 
-                    &self.bucket_name, file_path, res.content_length().unwrap_or(0));
+                info!(
+                    "Successfully fetched object from Drive: bucket={}, key={}, size={}",
+                    &self.bucket_name,
+                    file_path,
+                    res.content_length().unwrap_or(0)
+                );
                 res
             }
             Err(e) => {
-                log::error!("Failed to fetch object from Drive: bucket={}, key={}, error={:?}", 
-                    &self.bucket_name, file_path, e);
+                log::error!(
+                    "Failed to fetch object from Drive: bucket={}, key={}, error={:?}",
+                    &self.bucket_name,
+                    file_path,
+                    e
+                );
                 return Err(e.into());
             }
         };
@@ -262,7 +325,10 @@ impl DriveMonitor {
             .strip_suffix(".bas")
             .unwrap_or(file_path)
             .to_string();
-        let bot_name = self.bucket_name.strip_suffix(".gbai").unwrap_or(&self.bucket_name);
+        let bot_name = self
+            .bucket_name
+            .strip_suffix(".gbai")
+            .unwrap_or(&self.bucket_name);
         let work_dir = format!("./work/{}.gbai/{}.gbdialog", bot_name, bot_name);
         let state_clone = Arc::clone(&self.state);
         let work_dir_clone = work_dir.clone();
@@ -276,11 +342,14 @@ impl DriveMonitor {
             let mut compiler = BasicCompiler::new(state_clone, bot_id);
             let result = compiler.compile_file(&local_source_path, &work_dir_clone)?;
             if let Some(mcp_tool) = result.mcp_tool {
-                info!("MCP tool definition generated with {} parameters", 
-                    mcp_tool.input_schema.properties.len());
+                info!(
+                    "MCP tool definition generated with {} parameters",
+                    mcp_tool.input_schema.properties.len()
+                );
             }
             Ok::<(), Box<dyn Error + Send + Sync>>(())
-        }).await??;
+        })
+        .await??;
         Ok(())
     }
 }

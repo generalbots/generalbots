@@ -7,8 +7,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use std::time::Duration;
 
-#[derive(Debug, Deserialize, Serialize)]
-struct WeatherData {
+#[derive(Debug, Clone, Deserialize, Serialize)]
+pub struct WeatherData {
     pub location: String,
     pub temperature: String,
     pub condition: String,
@@ -16,7 +16,7 @@ struct WeatherData {
 }
 
 /// Fetches weather data from 7Timer! API (free, no auth)
-async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error::Error>> {
+pub async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error::Error>> {
     // Parse location to get coordinates (simplified - in production use geocoding)
     let (lat, lon) = parse_location(location)?;
 
@@ -28,9 +28,7 @@ async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error
 
     trace!("Fetching weather from: {}", url);
 
-    let client = Client::builder()
-        .timeout(Duration::from_secs(10))
-        .build()?;
+    let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
 
     let response = client.get(&url).send().await?;
 
@@ -68,10 +66,7 @@ async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error
     // Build forecast string
     let mut forecast_parts = Vec::new();
     for (i, item) in dataseries.iter().take(3).enumerate() {
-        if let (Some(temp), Some(weather)) = (
-            item["temp2m"].as_i64(),
-            item["weather"].as_str(),
-        ) {
+        if let (Some(temp), Some(weather)) = (item["temp2m"].as_i64(), item["weather"].as_str()) {
             forecast_parts.push(format!("{}h: {}°C, {}", i * 3, temp, weather));
         }
     }
@@ -86,7 +81,7 @@ async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error
 }
 
 /// Simple location parser (lat,lon or city name)
-fn parse_location(location: &str) -> Result<(f64, f64), Box<dyn std::error::Error>> {
+pub fn parse_location(location: &str) -> Result<(f64, f64), Box<dyn std::error::Error>> {
     // Check if it's coordinates (lat,lon)
     if let Some((lat_str, lon_str)) = location.split_once(',') {
         let lat = lat_str.trim().parse::<f64>()?;
@@ -116,74 +111,72 @@ fn parse_location(location: &str) -> Result<(f64, f64), Box<dyn std::error::Erro
         "chicago" => (41.8781, -87.6298),
         "toronto" => (43.6532, -79.3832),
         "mexico city" => (19.4326, -99.1332),
-        _ => return Err(format!("Unknown location: {}. Use 'lat,lon' format or known city", location).into()),
+        _ => {
+            return Err(format!(
+                "Unknown location: {}. Use 'lat,lon' format or known city",
+                location
+            )
+            .into())
+        }
     };
 
     Ok(coords)
 }
 
 /// Register WEATHER keyword in Rhai engine
-pub fn weather_keyword(
-    _state: Arc<AppState>,
-    _user_session: UserSession,
-    engine: &mut Engine,
-) {
-    engine.register_custom_syntax(
-        &["WEATHER", "$expr$"],
-        false,
-        move |context, inputs| {
-            let location = context.eval_expression_tree(&inputs[0])?;
-            let location_str = location.to_string();
+pub fn weather_keyword(_state: Arc<AppState>, _user_session: UserSession, engine: &mut Engine) {
+    let _ = engine.register_custom_syntax(&["WEATHER", "$expr$"], false, move |context, inputs| {
+        let location = context.eval_expression_tree(&inputs[0])?;
+        let location_str = location.to_string();
 
-            trace!("WEATHER keyword called for: {}", location_str);
+        trace!("WEATHER keyword called for: {}", location_str);
 
-            // Create channel for async result
-            let (tx, rx) = std::sync::mpsc::channel();
+        // Create channel for async result
+        let (tx, rx) = std::sync::mpsc::channel();
 
-            // Spawn blocking task
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_current_thread()
-                    .enable_all()
-                    .build();
+        // Spawn blocking task
+        std::thread::spawn(move || {
+            let rt = tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build();
 
-                let result = if let Ok(rt) = rt {
-                    rt.block_on(async {
-                        match fetch_weather(&location_str).await {
-                            Ok(weather) => {
-                                let msg = format!(
-                                    "Weather for {}: {} ({}). Forecast: {}",
-                                    weather.location,
-                                    weather.temperature,
-                                    weather.condition,
-                                    weather.forecast
-                                );
-                                Ok(msg)
-                            }
-                            Err(e) => {
-                                error!("Weather fetch failed: {}", e);
-                                Err(format!("Could not fetch weather: {}", e))
-                            }
+            let result = if let Ok(rt) = rt {
+                rt.block_on(async {
+                    match fetch_weather(&location_str).await {
+                        Ok(weather) => {
+                            let msg = format!(
+                                "Weather for {}: {} ({}). Forecast: {}",
+                                weather.location,
+                                weather.temperature,
+                                weather.condition,
+                                weather.forecast
+                            );
+                            Ok(msg)
                         }
-                    })
-                } else {
-                    Err("Failed to create runtime".to_string())
-                };
+                        Err(e) => {
+                            error!("Weather fetch failed: {}", e);
+                            Err(format!("Could not fetch weather: {}", e))
+                        }
+                    }
+                })
+            } else {
+                Err("Failed to create runtime".to_string())
+            };
 
-                let _ = tx.send(result);
-            });
+            let _ = tx.send(result);
+        });
 
-            // Wait for result
-            match rx.recv() {
-                Ok(Ok(weather_msg)) => Ok(Dynamic::from(weather_msg)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    e.into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    "Weather request timeout".into(),
-                    rhai::Position::NONE,
-                ))),
-            }
-        },
-    );
+        // Wait for result
+        match rx.recv() {
+            Ok(Ok(weather_msg)) => Ok(Dynamic::from(weather_msg)),
+            Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                e.into(),
+                rhai::Position::NONE,
+            ))),
+            Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                "Weather request timeout".into(),
+                rhai::Position::NONE,
+            ))),
+        }
+    });
 }

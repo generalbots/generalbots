@@ -15,6 +15,7 @@ pub trait ChannelAdapter: Send + Sync {
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
+#[derive(Debug)]
 pub struct WebChannelAdapter {
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
@@ -66,6 +67,7 @@ impl ChannelAdapter for WebChannelAdapter {
         Ok(())
     }
 }
+#[derive(Debug)]
 pub struct VoiceAdapter {
     rooms: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,

@@ -18,7 +18,7 @@ use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Clone, Serialize, Deserialize)]
+#[derive(Clone, Serialize, Deserialize, Debug)]
 pub struct SessionData {
     pub id: Uuid,
     pub user_id: Option<Uuid>,
@@ -30,6 +30,17 @@ pub struct SessionManager {
     sessions: HashMap<Uuid, SessionData>,
     waiting_for_input: HashSet<Uuid>,
     redis: Option<Arc<Client>>,
+}
+
+impl std::fmt::Debug for SessionManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionManager")
+            .field("conn", &"PooledConnection<PgConnection>")
+            .field("sessions", &self.sessions)
+            .field("waiting_for_input", &self.waiting_for_input)
+            .field("redis", &self.redis.is_some())
+            .finish()
+    }
 }
 
 impl SessionManager {
@@ -175,7 +186,8 @@ impl SessionManager {
 
     fn _clear_messages(&mut self, _session_id: Uuid) -> Result<(), Box<dyn Error + Send + Sync>> {
         use crate::shared::models::message_history::dsl::*;
-        diesel::delete(message_history.filter(session_id.eq(session_id))).execute(&mut self.conn)?;
+        diesel::delete(message_history.filter(session_id.eq(session_id)))
+            .execute(&mut self.conn)?;
         Ok(())
     }
 
@@ -343,9 +355,7 @@ impl SessionManager {
 /* Axum handlers */
 
 /// Create a new session (anonymous user)
-pub async fn create_session(
-    Extension(state): Extension<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
     // Using a fixed anonymous user ID for simplicity
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
     let bot_id = Uuid::nil();
@@ -374,9 +384,7 @@ pub async fn create_session(
 }
 
 /// Get list of sessions for the anonymous user
-pub async fn get_sessions(
-    Extension(state): Extension<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
     let orchestrator = BotOrchestrator::new(state.clone());
     match orchestrator.get_user_sessions(user_id).await {

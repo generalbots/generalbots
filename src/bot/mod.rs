@@ -19,6 +19,8 @@ use tokio::sync::mpsc;
 use tokio::sync::Mutex as AsyncMutex;
 use uuid::Uuid;
 
+pub mod multimedia;
+
 /// Retrieves the default bot (first active bot) from the database.
 pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
     use crate::shared::models::schema::bots::dsl::*;
@@ -41,6 +43,7 @@ pub fn get_default_bot(conn: &mut PgConnection) -> (Uuid, String) {
     }
 }
 
+#[derive(Debug)]
 pub struct BotOrchestrator {
     pub state: Arc<AppState>,
     pub mounted_bots: Arc<AsyncMutex<HashMap<String, Arc<DriveMonitor>>>>,
@@ -478,10 +481,47 @@ pub async fn create_bot_handler(
         .get("bot_name")
         .cloned()
         .unwrap_or_else(|| "default".to_string());
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({ "status": format!("bot '{}' created", bot_name) })),
-    )
+
+    // Use state to create the bot in the database
+    let mut conn = match state.conn.get() {
+        Ok(conn) => conn,
+        Err(e) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
+            )
+        }
+    };
+
+    use crate::shared::models::schema::bots::dsl::*;
+    use diesel::prelude::*;
+
+    let new_bot = (
+        name.eq(&bot_name),
+        description.eq(format!("Bot created via API: {}", bot_name)),
+        llm_provider.eq("openai"),
+        llm_config.eq(serde_json::json!({"model": "gpt-4"})),
+        context_provider.eq("none"),
+        context_config.eq(serde_json::json!({})),
+        is_active.eq(true),
+    );
+
+    match diesel::insert_into(bots)
+        .values(&new_bot)
+        .execute(&mut conn)
+    {
+        Ok(_) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "status": format!("bot '{}' created successfully", bot_name),
+                "bot_name": bot_name
+            })),
+        ),
+        Err(e) => (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(serde_json::json!({ "error": format!("Failed to create bot: {}", e) })),
+        ),
+    }
 }
 
 /// Mount an existing bot (placeholder implementation)

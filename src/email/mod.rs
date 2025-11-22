@@ -5,6 +5,10 @@ use axum::{
     response::{IntoResponse, Response},
     Json,
 };
+use axum::{
+    routing::{get, post},
+    Router,
+};
 use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
 use imap::types::Seq;
@@ -14,6 +18,28 @@ use mailparse::{parse_mail, MailHeaderMap};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
+
+pub mod vectordb;
+
+// ===== Router Configuration =====
+
+/// Configure email API routes
+pub fn configure() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/email/accounts", get(list_email_accounts))
+        .route("/api/email/accounts/add", post(add_email_account))
+        .route(
+            "/api/email/accounts/:account_id",
+            axum::routing::delete(delete_email_account),
+        )
+        .route("/api/email/list", post(list_emails))
+        .route("/api/email/send", post(send_email))
+        .route("/api/email/draft", post(save_draft))
+        .route("/api/email/folders/:account_id", get(list_folders))
+        .route("/api/email/latest", post(get_latest_email_from))
+        .route("/api/email/get/:campaign_id", get(get_emails))
+        .route("/api/email/click/:campaign_id/:email", get(save_click))
+}
 
 // Export SaveDraftRequest for other modules
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -69,7 +95,17 @@ pub struct EmailResponse {
     pub has_attachments: bool,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmailRequest {
+    pub to: String,
+    pub subject: String,
+    pub body: String,
+    pub cc: Option<String>,
+    pub bcc: Option<String>,
+    pub attachments: Option<Vec<String>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
 pub struct SendEmailRequest {
     pub account_id: String,
     pub to: String,
@@ -389,12 +425,11 @@ pub async fn list_emails(
         .build()
         .map_err(|e| EmailError(format!("Failed to create TLS connector: {:?}", e)))?;
 
-    let client = imap::connect(
-        (imap_server.as_str(), imap_port as u16),
-        imap_server.as_str(),
-        &tls,
-    )
-    .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
+    let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
+        .native_tls(&tls)
+        .map_err(|e| EmailError(format!("Failed to create IMAP client: {:?}", e)))?
+        .connect()
+        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
 
     let mut session = client
         .login(&username, &password)
@@ -669,12 +704,11 @@ pub async fn list_folders(
         .build()
         .map_err(|e| EmailError(format!("TLS error: {:?}", e)))?;
 
-    let client = imap::connect(
-        (imap_server.as_str(), imap_port as u16),
-        imap_server.as_str(),
-        &tls,
-    )
-    .map_err(|e| EmailError(format!("IMAP connection error: {:?}", e)))?;
+    let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
+        .native_tls(&tls)
+        .map_err(|e| EmailError(format!("Failed to create IMAP client: {:?}", e)))?
+        .connect()
+        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
 
     let mut session = client
         .login(&username, &password)
@@ -810,9 +844,45 @@ impl EmailService {
 
 // Helper functions for draft system
 pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
-    // This would fetch the latest email sent to the recipient
-    // For threading/reply purposes
-    // For now, return empty string
+    use native_tls::TlsConnector;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    session
+        .select("INBOX")
+        .map_err(|e| format!("Select INBOX failed: {}", e))?;
+
+    // Search for emails to this recipient
+    let search_query = format!("TO \"{}\"", to);
+    let message_ids = session
+        .search(&search_query)
+        .map_err(|e| format!("Search failed: {}", e))?;
+
+    if let Some(last_id) = message_ids.last() {
+        let messages = session
+            .fetch(last_id.to_string(), "BODY[TEXT]")
+            .map_err(|e| format!("Fetch failed: {}", e))?;
+
+        if let Some(message) = messages.iter().next() {
+            if let Some(body) = message.text() {
+                return Ok(String::from_utf8_lossy(body).to_string());
+            }
+        }
+    }
+
+    session.logout().ok();
     Ok(String::new())
 }
 
@@ -820,8 +890,59 @@ pub async fn save_email_draft(
     config: &EmailConfig,
     draft: &SaveDraftRequest,
 ) -> Result<(), String> {
-    // This would save the draft to the email server or local storage
-    // For now, just log and return success
-    info!("Saving draft to: {}, subject: {}", draft.to, draft.subject);
+    use chrono::Utc;
+    use native_tls::TlsConnector;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    // Create draft email in RFC822 format
+    let date = Utc::now().to_rfc2822();
+    let message_id = format!("<{}.{}@botserver>", Uuid::new_v4(), config.server);
+    let cc_header = if let Some(cc) = &draft.cc {
+        format!("Cc: {}\r\n", cc)
+    } else {
+        String::new()
+    };
+
+    let email_content = format!(
+        "Date: {}\r\n\
+         From: {}\r\n\
+         To: {}\r\n\
+         {}\
+         Subject: {}\r\n\
+         Message-ID: {}\r\n\
+         Content-Type: text/html; charset=UTF-8\r\n\
+         \r\n\
+         {}",
+        date, config.from, draft.to, cc_header, draft.subject, message_id, draft.text
+    );
+
+    // Try to save to Drafts folder, fall back to INBOX if not available
+    let folder = session
+        .list(None, Some("Drafts"))
+        .map_err(|e| format!("List folders failed: {}", e))?
+        .iter()
+        .find(|name| name.name().to_lowercase().contains("draft"))
+        .map(|n| n.name().to_string())
+        .unwrap_or_else(|| "INBOX".to_string());
+
+    session
+        .append(&folder, email_content.as_bytes())
+        .map_err(|e| format!("Append draft failed: {}", e))?;
+
+    session.logout().ok();
+    info!("Draft saved to: {}, subject: {}", draft.to, draft.subject);
     Ok(())
 }

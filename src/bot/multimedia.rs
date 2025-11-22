@@ -16,7 +16,6 @@ use anyhow::Result;
 use async_trait::async_trait;
 use base64::{engine::general_purpose::STANDARD, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -115,6 +114,7 @@ pub trait MultimediaHandler: Send + Sync {
 }
 
 /// Default implementation for multimedia handling
+#[derive(Debug)]
 pub struct DefaultMultimediaHandler {
     storage_client: Option<aws_sdk_s3::Client>,
     search_api_key: Option<String>,

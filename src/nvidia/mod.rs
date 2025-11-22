@@ -1,7 +1,8 @@
 use anyhow::Result;
 use std::collections::HashMap;
-use sysinfo::{System};
-#[derive(Default)]
+use sysinfo::System;
+/// System performance metrics
+#[derive(Debug, Default)]
 pub struct SystemMetrics {
     pub gpu_usage: Option<f32>,
     pub cpu_usage: f32,
@@ -27,9 +28,7 @@ pub fn has_nvidia_gpu() -> bool {
         .output()
     {
         Ok(output) => output.status.success(),
-        Err(_) => {
-            false
-        }
+        Err(_) => false,
     }
 }
 pub fn get_gpu_utilization() -> Result<HashMap<String, f32>> {

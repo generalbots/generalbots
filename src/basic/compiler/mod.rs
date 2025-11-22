@@ -75,6 +75,7 @@ pub struct OpenAIProperty {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub example: Option<String>,
 }
+#[derive(Debug)]
 pub struct BasicCompiler {
     state: Arc<AppState>,
     bot_id: uuid::Uuid,

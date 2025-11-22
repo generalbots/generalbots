@@ -11,10 +11,9 @@ use uuid::Uuid;
 use crate::auth::UserWorkspace;
 use crate::shared::utils::DbPool;
 
+// VectorDB types are defined locally in this module
 #[cfg(feature = "vectordb")]
-use crate::drive::vectordb::{FileContentExtractor, FileDocument, UserDriveVectorDB};
-#[cfg(all(feature = "vectordb", feature = "email"))]
-use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator, UserEmailVectorDB};
+use qdrant_client::prelude::*;
 
 /// Indexing job status
 #[derive(Debug, Clone, PartialEq)]

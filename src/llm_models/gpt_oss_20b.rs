@@ -1,4 +1,5 @@
 use super::ModelHandler;
+#[derive(Debug)]
 pub struct GptOss20bHandler;
 impl ModelHandler for GptOss20bHandler {
     fn is_analysis_complete(&self, buffer: &str) -> bool {

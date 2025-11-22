@@ -19,7 +19,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::sync::Arc;
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppWebhook {
     #[serde(rename = "hub.mode")]
     pub hub_mode: Option<String>,
@@ -29,24 +29,24 @@ pub struct WhatsAppWebhook {
     pub hub_challenge: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppMessage {
     pub entry: Vec<WhatsAppEntry>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppEntry {
     pub id: String,
     pub changes: Vec<WhatsAppChange>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppChange {
     pub value: WhatsAppValue,
     pub field: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppValue {
     pub messaging_product: String,
     pub metadata: WhatsAppMetadata,
@@ -54,24 +54,24 @@ pub struct WhatsAppValue {
     pub messages: Option<Vec<WhatsAppIncomingMessage>>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppMetadata {
     pub display_phone_number: String,
     pub phone_number_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppContact {
     pub profile: WhatsAppProfile,
     pub wa_id: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppProfile {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppIncomingMessage {
     pub from: String,
     pub id: String,
@@ -86,12 +86,12 @@ pub struct WhatsAppIncomingMessage {
     pub location: Option<WhatsAppLocation>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppText {
     pub body: String,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppMedia {
     pub id: String,
     pub mime_type: Option<String>,
@@ -99,7 +99,7 @@ pub struct WhatsAppMedia {
     pub caption: Option<String>,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct WhatsAppLocation {
     pub latitude: f64,
     pub longitude: f64,
@@ -107,6 +107,7 @@ pub struct WhatsAppLocation {
     pub address: Option<String>,
 }
 
+#[derive(Debug)]
 pub struct WhatsAppAdapter {
     pub state: Arc<AppState>,
     pub access_token: String,
