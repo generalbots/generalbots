@@ -114,14 +114,14 @@ BotServer uses Zitadel as the primary identity provider:
 
 ### API Security
 
-1. **Rate Limiting**
+1. **Rate Limiting** (via Caddy)
    - Per-IP: 100 requests/minute
    - Per-user: 1000 requests/hour
-   - Configurable via environment variables
+   - Configured in Caddyfile
 
-2. **CORS Configuration**
-   ```rust
-   // Strict CORS policy
+2. **CORS Configuration** (via Caddy)
+   ```
+   # Strict CORS policy in Caddyfile
    - Origins: Whitelist only
    - Credentials: true for authenticated requests
    - Methods: Explicitly allowed
@@ -129,7 +129,7 @@ BotServer uses Zitadel as the primary identity provider:
 
 3. **Input Validation**
    - Schema validation for all inputs
-   - SQL injection prevention via Diesel ORM
+   - SQL injection prevention via PostgreSQL prepared statements
    - XSS protection with output encoding
    - Path traversal prevention
 
@@ -149,17 +149,19 @@ BotServer uses Zitadel as the primary identity provider:
 - Row-level security (RLS)
 - Column encryption for PII
 - Audit logging
-- Connection pooling with r2d2
+- Connection pooling
 - Prepared statements only
+- SSL/TLS connections enforced
 ```
 
-### File Storage Security
+### File Storage Security (MinIO)
 
-- **S3 Configuration**:
-  - Bucket encryption: SSE-S3
-  - Access: IAM roles only
+- **MinIO Configuration**:
+  - Bucket encryption: AES-256
+  - Access: Policy-based access control
   - Versioning: Enabled
-  - MFA delete: Required
+  - Immutable objects support
+  - TLS encryption in transit
 
 - **Local Storage**:
   - Directory permissions: 700
@@ -217,10 +219,24 @@ BOTSERVER_JWT_SECRET="[256-bit hex string]"
 BOTSERVER_ENCRYPTION_KEY="[256-bit hex string]"
 DATABASE_ENCRYPTION_KEY="[256-bit hex string]"
 
-# Zitadel configuration
+# Zitadel (Directory) configuration
 ZITADEL_DOMAIN="https://your-instance.zitadel.cloud"
 ZITADEL_CLIENT_ID="your-client-id"
 ZITADEL_CLIENT_SECRET="your-client-secret"
+
+# MinIO (Drive) configuration
+MINIO_ENDPOINT="http://localhost:9000"
+MINIO_ACCESS_KEY="minioadmin"
+MINIO_SECRET_KEY="minioadmin"
+MINIO_USE_SSL=true
+
+# Qdrant (Vector Database) configuration
+QDRANT_URL="http://localhost:6333"
+QDRANT_API_KEY="your-api-key"
+
+# Valkey (Cache) configuration
+VALKEY_URL="redis://localhost:6379"
+VALKEY_PASSWORD="your-password"
 
 # Optional security enhancements
 BOTSERVER_ENABLE_AUDIT=true
@@ -229,16 +245,11 @@ BOTSERVER_SESSION_TIMEOUT=3600
 BOTSERVER_MAX_LOGIN_ATTEMPTS=5
 BOTSERVER_LOCKOUT_DURATION=900
 
-# Network security
+# Network security (Caddy handles TLS automatically)
 BOTSERVER_ALLOWED_ORIGINS="https://app.example.com"
 BOTSERVER_RATE_LIMIT_PER_IP=100
 BOTSERVER_RATE_LIMIT_PER_USER=1000
 BOTSERVER_MAX_UPLOAD_SIZE=104857600  # 100MB
-
-# TLS configuration
-BOTSERVER_TLS_CERT="/path/to/cert.pem"
-BOTSERVER_TLS_KEY="/path/to/key.pem"
-BOTSERVER_TLS_MIN_VERSION="1.3"
 ```
 
 ### Database Configuration
@@ -255,6 +266,57 @@ ssl_ecdh_curve = 'prime256v1'
 
 -- Connection string:
 DATABASE_URL="postgres://user:pass@localhost/db?sslmode=require"
+```
+
+### Caddy Configuration
+
+```
+# Caddyfile for secure reverse proxy
+{
+    # Global options
+    admin off
+    auto_https on
+}
+
+app.example.com {
+    # TLS 1.3 only
+    tls {
+        protocols tls1.3
+        ciphers TLS_AES_256_GCM_SHA384 TLS_CHACHA20_POLY1305_SHA256
+    }
+    
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Frame-Options "SAMEORIGIN"
+        X-Content-Type-Options "nosniff"
+        X-XSS-Protection "1; mode=block"
+        Referrer-Policy "strict-origin-when-cross-origin"
+        Content-Security-Policy "default-src 'self'"
+    }
+    
+    # Rate limiting
+    rate_limit {
+        zone static {
+            key {remote_host}
+            events 100
+            window 1m
+        }
+    }
+    
+    # Reverse proxy to BotServer
+    reverse_proxy localhost:3000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-For {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+    
+    # Access logging
+    log {
+        output file /var/log/caddy/access.log
+        format json
+    }
+}
 ```
 
 ## Best Practices
@@ -302,24 +364,28 @@ DATABASE_URL="postgres://user:pass@localhost/db?sslmode=require"
    USER nonroot:nonroot
    ```
 
-2. **Kubernetes Security**
+2. **LXD/LXC Container Security**
    ```yaml
-   # Security context
-   securityContext:
-     runAsNonRoot: true
-     runAsUser: 1000
-     fsGroup: 1000
-     capabilities:
-       drop: ["ALL"]
-     readOnlyRootFilesystem: true
+   # Container security profile
+   config:
+     security.nesting: "false"
+     security.privileged: "false"
+     limits.cpu: "4"
+     limits.memory: "8GB"
+   devices:
+     root:
+       path: /
+       pool: default
+       type: disk
    ```
 
 3. **Network Policies**
-   ```yaml
-   # Restrict traffic
-   - Ingress: Only from load balancer
-   - Egress: Only to required services
-   - Internal: Service mesh with mTLS
+   ```
+   # Firewall rules (UFW/iptables)
+   - Ingress: Only from Caddy proxy
+   - Egress: PostgreSQL, MinIO, Qdrant, Valkey
+   - Block: All other traffic
+   - Internal: Component isolation
    ```
 
 ### Monitoring
@@ -347,28 +413,34 @@ DATABASE_URL="postgres://user:pass@localhost/db?sslmode=require"
 ### Pre-Production
 
 - [ ] All secrets in environment variables
-- [ ] Database encryption enabled
-- [ ] TLS certificates configured
-- [ ] Rate limiting enabled
-- [ ] CORS properly configured
+- [ ] Database encryption enabled (PostgreSQL)
+- [ ] MinIO encryption enabled
+- [ ] Caddy TLS configured (automatic with Let's Encrypt)
+- [ ] Rate limiting enabled (Caddy)
+- [ ] CORS properly configured (Caddy)
 - [ ] Audit logging enabled
 - [ ] Backup encryption verified
-- [ ] Security headers configured
+- [ ] Security headers configured (Caddy)
 - [ ] Input validation complete
 - [ ] Error messages sanitized
+- [ ] Zitadel MFA configured
+- [ ] Qdrant authentication enabled
+- [ ] Valkey password protection enabled
 
 ### Production
 
-- [ ] MFA enabled for admin accounts
-- [ ] Regular security updates scheduled
+- [ ] MFA enabled for all admin accounts (Zitadel)
+- [ ] Regular security updates scheduled (all components)
 - [ ] Monitoring alerts configured
 - [ ] Incident response plan documented
 - [ ] Regular security audits scheduled
 - [ ] Penetration testing completed
 - [ ] Compliance requirements met
-- [ ] Disaster recovery tested
-- [ ] Access reviews scheduled
+- [ ] Disaster recovery tested (PostgreSQL, MinIO backups)
+- [ ] Access reviews scheduled (Zitadel)
 - [ ] Security training completed
+- [ ] Stalwart email security configured (DKIM, SPF, DMARC)
+- [ ] LiveKit secure signaling enabled
 
 ## Contact
 
@@ -376,6 +448,20 @@ For security issues or questions:
 - Security Email: security@pragmatismo.com.br
 - Bug Bounty: See SECURITY.md
 - Emergency: Use PGP-encrypted email
+
+## Component Security Documentation
+
+### Core Components
+- [Caddy Security](https://caddyserver.com/docs/security) - Reverse proxy and TLS
+- [PostgreSQL Security](https://www.postgresql.org/docs/current/security.html) - Database
+- [Zitadel Security](https://zitadel.com/docs/guides/manage/security) - Identity and access
+- [MinIO Security](https://min.io/docs/minio/linux/operations/security.html) - Object storage
+- [Qdrant Security](https://qdrant.tech/documentation/guides/security/) - Vector database
+- [Valkey Security](https://valkey.io/topics/security/) - Cache
+
+### Communication Components
+- [Stalwart Security](https://stalw.art/docs/security/) - Email server
+- [LiveKit Security](https://docs.livekit.io/realtime/server/security/) - Video conferencing
 
 ## References
 
