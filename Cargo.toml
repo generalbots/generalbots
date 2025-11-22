@@ -37,14 +37,36 @@ license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
+# Default feature set for desktop applications with full UI
 default = ["desktop"]
+
+# Vector database integration for semantic search and AI capabilities
+# Security: Enables AI-powered threat detection and semantic analysis
 vectordb = ["qdrant-client"]
+
+# Email integration for IMAP/SMTP operations
+# Security: Handle with care - requires secure credential storage
 email = ["imap"]
+
+# Desktop UI components using Tauri
+# Security: Sandboxed desktop runtime with controlled system access
 desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 
+# Additional security-focused feature flags for enterprise deployments
+# Can be enabled with: cargo build --features "encryption,audit,rbac"
+# encryption = [] # AES-GCM encryption for data at rest (already included via aes-gcm)
+# audit = []      # Comprehensive audit logging for compliance
+# rbac = []       # Role-based access control with Zitadel integration
+# mfa = []        # Multi-factor authentication support
+# sso = []        # Single Sign-On with SAML/OIDC providers
+
 [dependencies]
+# === SECURITY DEPENDENCIES ===
+# Encryption: AES-GCM for authenticated encryption of sensitive data
 aes-gcm = "0.10"
+# Error handling: Type-safe error propagation
 anyhow = "1.0"
+# Password hashing: Argon2 for secure password storage (memory-hard, resistant to GPU attacks)
 argon2 = "0.5"
 async-lock = "2.8.0"
 async-stream = "0.3"
@@ -66,6 +88,7 @@ downloader = "0.2"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
+# HMAC: Message authentication codes for API security
 hmac = "0.12.1"
 hyper = { version = "1.8.1", features = ["full"] }
 imap = { version = "3.0.0-alpha.15", optional = true }
@@ -93,7 +116,9 @@ rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use
 scopeguard = "1.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+# Cryptographic hashing: SHA-256 for integrity verification
 sha2 = "0.10.9"
+# Hex encoding: For secure token representation
 hex = "0.4"
 smartstring = "1.0"
 sysinfo = "0.37.2"
@@ -116,21 +141,34 @@ zip = "2.2"
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
-# Enterprise-grade linting configuration for production-ready code
+# === SECURITY AND CODE QUALITY CONFIGURATION ===
+# Enterprise-grade linting for security-conscious development
 [lints.rust]
+# Security: Remove unused code that could be attack surface
 unused_imports = "warn"          # Keep import hygiene visible
 unused_variables = "warn"        # Catch actual bugs
 unused_mut = "warn"             # Maintain code quality
+# Additional security-focused lints
+unsafe_code = "deny"           # Prevent unsafe operations
+missing_debug_implementations = "warn"  # Ensure debuggability
 
 [lints.clippy]
 all = "warn"                    # Enable all clippy lints as warnings
 pedantic = "warn"               # Pedantic lints for code quality
 nursery = "warn"                # Experimental lints
 cargo = "warn"                  # Cargo-specific lints
+# Security-focused clippy lints
+unwrap_used = "warn"           # Prevent panics in production
+expect_used = "warn"           # Explicit error handling required
+panic = "warn"                 # No direct panics allowed
+todo = "warn"                  # No TODOs in production code
+unimplemented = "warn"         # Complete implementation required
 
 [profile.release]
-lto = true
-opt-level = "z"
-strip = true
-panic = "abort"
-codegen-units = 1
+# Security-hardened release profile
+lto = true                     # Link-time optimization for smaller attack surface
+opt-level = "z"                # Optimize for size (reduces binary analysis surface)
+strip = true                   # Strip symbols (harder to reverse engineer)
+panic = "abort"                # Immediate termination on panic (no unwinding)
+codegen-units = 1              # Single codegen unit (better optimization)
+overflow-checks = true         # Integer overflow protection

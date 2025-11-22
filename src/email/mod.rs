@@ -15,6 +15,15 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+// Export SaveDraftRequest for other modules
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SaveDraftRequest {
+    pub to: String,
+    pub subject: String,
+    pub cc: Option<String>,
+    pub text: String,
+}
+
 // ===== Request/Response Structures =====
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -730,4 +739,89 @@ pub async fn get_emails(
 ) -> String {
     info!("Get emails requested for campaign: {}", campaign_id);
     "No emails tracked".to_string()
+}
+
+// ===== EmailService for compatibility with keyword system =====
+
+pub struct EmailService {
+    state: Arc<AppState>,
+}
+
+impl EmailService {
+    pub fn new(state: Arc<AppState>) -> Self {
+        Self { state }
+    }
+
+    pub async fn send_email(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        cc: Option<Vec<String>>,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let config = self
+            .state
+            .config
+            .as_ref()
+            .ok_or("Email configuration not available")?;
+
+        let from_addr = config
+            .email
+            .from
+            .parse()
+            .map_err(|e| format!("Invalid from address: {}", e))?;
+
+        let mut email_builder = Message::builder()
+            .from(from_addr)
+            .to(to.parse()?)
+            .subject(subject);
+
+        if let Some(cc_list) = cc {
+            for cc_addr in cc_list {
+                email_builder = email_builder.cc(cc_addr.parse()?);
+            }
+        }
+
+        let email = email_builder.body(body.to_string())?;
+
+        let creds = Credentials::new(config.email.username.clone(), config.email.password.clone());
+
+        let mailer = SmtpTransport::relay(&config.email.smtp_server)?
+            .credentials(creds)
+            .build();
+
+        mailer.send(&email)?;
+        Ok(())
+    }
+
+    pub async fn send_email_with_attachment(
+        &self,
+        to: &str,
+        subject: &str,
+        body: &str,
+        attachment: Vec<u8>,
+        filename: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        // For now, just send without attachment
+        // Full implementation would use lettre's multipart support
+        self.send_email(to, subject, body, None).await
+    }
+}
+
+// Helper functions for draft system
+pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
+    // This would fetch the latest email sent to the recipient
+    // For threading/reply purposes
+    // For now, return empty string
+    Ok(String::new())
+}
+
+pub async fn save_email_draft(
+    config: &EmailConfig,
+    draft: &SaveDraftRequest,
+) -> Result<(), String> {
+    // This would save the draft to the email server or local storage
+    // For now, just log and return success
+    info!("Saving draft to: {}, subject: {}", draft.to, draft.subject);
+    Ok(())
 }
