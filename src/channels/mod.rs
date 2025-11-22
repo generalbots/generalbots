@@ -1,9 +1,13 @@
+pub mod instagram;
+pub mod teams;
+pub mod whatsapp;
+
+use crate::shared::models::BotResponse;
 use async_trait::async_trait;
 use log::{debug, info};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
-use crate::shared::models::BotResponse;
 #[async_trait]
 pub trait ChannelAdapter: Send + Sync {
     async fn send_message(
