@@ -9,7 +9,13 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub mod facade;
 pub mod zitadel;
+
+pub use facade::{
+    AuthFacade, AuthResult, CreateGroupRequest, CreateUserRequest, Group, Permission, Session,
+    SimpleAuthFacade, UpdateUserRequest, User, ZitadelAuthFacade,
+};
 pub use zitadel::{UserWorkspace, ZitadelAuth, ZitadelConfig, ZitadelUser};
 
 pub struct AuthService {}

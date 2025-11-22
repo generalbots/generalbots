@@ -7,14 +7,16 @@ use rhai::{Dynamic, Engine, EvalAltResult};
 use std::sync::Arc;
 pub mod compiler;
 pub mod keywords;
+use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
 use self::keywords::add_website::add_website_keyword;
+use self::keywords::book::book_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
 use self::keywords::clear_kb::register_clear_kb_keyword;
 use self::keywords::clear_tools::clear_tools_keyword;
-#[cfg(feature = "email")]
-use self::keywords::create_draft_keyword;
+use self::keywords::create_draft::create_draft_keyword;
 use self::keywords::create_site::create_site_keyword;
+use self::keywords::create_task::create_task_keyword;
 use self::keywords::find::find_keyword;
 use self::keywords::first::first_keyword;
 use self::keywords::for_next::for_keyword;
@@ -22,6 +24,9 @@ use self::keywords::format::format_keyword;
 use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::last::last_keyword;
+use self::keywords::remember::remember_keyword;
+use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
+use self::keywords::send_mail::send_mail_keyword;
 use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
 
@@ -40,7 +45,6 @@ impl ScriptService {
         let mut engine = Engine::new();
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
-        #[cfg(feature = "email")]
         create_draft_keyword(&state, user.clone(), &mut engine);
         set_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
@@ -69,6 +73,15 @@ impl ScriptService {
 
         add_website_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
+
+        // Register the 6 new power keywords
+        remember_keyword(state.clone(), user.clone(), &mut engine);
+        book_keyword(state.clone(), user.clone(), &mut engine);
+        send_mail_keyword(state.clone(), user.clone(), &mut engine);
+        save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
+        create_task_keyword(state.clone(), user.clone(), &mut engine);
+        add_member_keyword(state.clone(), user.clone(), &mut engine);
+
         ScriptService { engine }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {

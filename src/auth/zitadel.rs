@@ -50,6 +50,463 @@ pub struct ZitadelAuth {
     work_root: PathBuf,
 }
 
+/// Zitadel API client for direct API interactions
+pub struct ZitadelClient {
+    config: ZitadelConfig,
+    client: Client,
+    base_url: String,
+    access_token: Option<String>,
+}
+
+impl ZitadelClient {
+    /// Create a new Zitadel client
+    pub fn new(config: ZitadelConfig) -> Self {
+        let base_url = config.issuer_url.trim_end_matches('/').to_string();
+        Self {
+            config,
+            client: Client::new(),
+            base_url,
+            access_token: None,
+        }
+    }
+
+    /// Authenticate and get access token
+    pub async fn authenticate(&self, email: &str, password: &str) -> Result<serde_json::Value> {
+        let response = self
+            .client
+            .post(format!("{}/oauth/v2/token", self.base_url))
+            .form(&[
+                ("grant_type", "password"),
+                ("client_id", &self.config.client_id),
+                ("client_secret", &self.config.client_secret),
+                ("username", email),
+                ("password", password),
+                ("scope", "openid profile email"),
+            ])
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+
+    /// Create a new user
+    pub async fn create_user(
+        &self,
+        email: &str,
+        password: Option<&str>,
+        first_name: Option<&str>,
+        last_name: Option<&str>,
+    ) -> Result<serde_json::Value> {
+        let mut user_data = serde_json::json!({
+            "email": email,
+            "emailVerified": false,
+        });
+
+        if let Some(pwd) = password {
+            user_data["password"] = serde_json::json!(pwd);
+        }
+        if let Some(fname) = first_name {
+            user_data["firstName"] = serde_json::json!(fname);
+        }
+        if let Some(lname) = last_name {
+            user_data["lastName"] = serde_json::json!(lname);
+        }
+
+        let response = self
+            .client
+            .post(format!("{}/management/v1/users", self.base_url))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&user_data)
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+
+    /// Get user by ID
+    pub async fn get_user(&self, user_id: &str) -> Result<serde_json::Value> {
+        let response = self
+            .client
+            .get(format!("{}/management/v1/users/{}", self.base_url, user_id))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+
+    /// Search users
+    pub async fn search_users(&self, query: &str) -> Result<Vec<serde_json::Value>> {
+        let response = self
+            .client
+            .post(format!("{}/management/v1/users/_search", self.base_url))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "query": query
+            }))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data["result"].as_array().cloned().unwrap_or_default())
+    }
+
+    /// Update user profile
+    pub async fn update_user_profile(
+        &self,
+        user_id: &str,
+        first_name: Option<&str>,
+        last_name: Option<&str>,
+        display_name: Option<&str>,
+    ) -> Result<()> {
+        let mut profile_data = serde_json::json!({});
+
+        if let Some(fname) = first_name {
+            profile_data["firstName"] = serde_json::json!(fname);
+        }
+        if let Some(lname) = last_name {
+            profile_data["lastName"] = serde_json::json!(lname);
+        }
+        if let Some(dname) = display_name {
+            profile_data["displayName"] = serde_json::json!(dname);
+        }
+
+        self.client
+            .put(format!(
+                "{}/management/v1/users/{}/profile",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&profile_data)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Deactivate user
+    pub async fn deactivate_user(&self, user_id: &str) -> Result<()> {
+        self.client
+            .put(format!(
+                "{}/management/v1/users/{}/deactivate",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// List users
+    pub async fn list_users(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<serde_json::Value>> {
+        let response = self
+            .client
+            .post(format!("{}/management/v1/users/_search", self.base_url))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "limit": limit.unwrap_or(100),
+                "offset": offset.unwrap_or(0)
+            }))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data["result"].as_array().cloned().unwrap_or_default())
+    }
+
+    /// Create organization
+    pub async fn create_organization(
+        &self,
+        name: &str,
+        description: Option<&str>,
+    ) -> Result<String> {
+        let mut org_data = serde_json::json!({
+            "name": name
+        });
+
+        if let Some(desc) = description {
+            org_data["description"] = serde_json::json!(desc);
+        }
+
+        let response = self
+            .client
+            .post(format!("{}/management/v1/orgs", self.base_url))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&org_data)
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data["id"].as_str().unwrap_or("").to_string())
+    }
+
+    /// Get organization
+    pub async fn get_organization(&self, org_id: &str) -> Result<serde_json::Value> {
+        let response = self
+            .client
+            .get(format!("{}/management/v1/orgs/{}", self.base_url, org_id))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+
+    /// Update organization
+    pub async fn update_organization(
+        &self,
+        org_id: &str,
+        name: &str,
+        description: Option<&str>,
+    ) -> Result<()> {
+        let mut org_data = serde_json::json!({
+            "name": name
+        });
+
+        if let Some(desc) = description {
+            org_data["description"] = serde_json::json!(desc);
+        }
+
+        self.client
+            .put(format!("{}/management/v1/orgs/{}", self.base_url, org_id))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&org_data)
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Deactivate organization
+    pub async fn deactivate_organization(&self, org_id: &str) -> Result<()> {
+        self.client
+            .put(format!(
+                "{}/management/v1/orgs/{}/deactivate",
+                self.base_url, org_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// List organizations
+    pub async fn list_organizations(
+        &self,
+        limit: Option<usize>,
+        offset: Option<usize>,
+    ) -> Result<Vec<serde_json::Value>> {
+        let response = self
+            .client
+            .post(format!("{}/management/v1/orgs/_search", self.base_url))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "limit": limit.unwrap_or(100),
+                "offset": offset.unwrap_or(0)
+            }))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data["result"].as_array().cloned().unwrap_or_default())
+    }
+
+    /// Add organization member
+    pub async fn add_org_member(&self, org_id: &str, user_id: &str) -> Result<()> {
+        self.client
+            .post(format!(
+                "{}/management/v1/orgs/{}/members",
+                self.base_url, org_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "userId": user_id
+            }))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Remove organization member
+    pub async fn remove_org_member(&self, org_id: &str, user_id: &str) -> Result<()> {
+        self.client
+            .delete(format!(
+                "{}/management/v1/orgs/{}/members/{}",
+                self.base_url, org_id, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Get organization members
+    pub async fn get_org_members(&self, org_id: &str) -> Result<Vec<String>> {
+        let response = self
+            .client
+            .get(format!(
+                "{}/management/v1/orgs/{}/members",
+                self.base_url, org_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        let members = data["result"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|m| m["userId"].as_str().map(String::from))
+            .collect();
+
+        Ok(members)
+    }
+
+    /// Get user memberships
+    pub async fn get_user_memberships(&self, user_id: &str) -> Result<Vec<String>> {
+        let response = self
+            .client
+            .get(format!(
+                "{}/management/v1/users/{}/memberships",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        let memberships = data["result"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|m| m["orgId"].as_str().map(String::from))
+            .collect();
+
+        Ok(memberships)
+    }
+
+    /// Grant role to user
+    pub async fn grant_role(&self, user_id: &str, role: &str) -> Result<()> {
+        self.client
+            .post(format!(
+                "{}/management/v1/users/{}/grants",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "roleKey": role
+            }))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Revoke role from user
+    pub async fn revoke_role(&self, user_id: &str, role: &str) -> Result<()> {
+        self.client
+            .delete(format!(
+                "{}/management/v1/users/{}/grants/{}",
+                self.base_url, user_id, role
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        Ok(())
+    }
+
+    /// Get user grants
+    pub async fn get_user_grants(&self, user_id: &str) -> Result<Vec<String>> {
+        let response = self
+            .client
+            .get(format!(
+                "{}/management/v1/users/{}/grants",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        let grants = data["result"]
+            .as_array()
+            .unwrap_or(&vec![])
+            .iter()
+            .filter_map(|g| g["roleKey"].as_str().map(String::from))
+            .collect();
+
+        Ok(grants)
+    }
+
+    /// Check permission
+    pub async fn check_permission(&self, user_id: &str, permission: &str) -> Result<bool> {
+        let response = self
+            .client
+            .post(format!(
+                "{}/management/v1/users/{}/permissions/check",
+                self.base_url, user_id
+            ))
+            .bearer_auth(self.access_token.as_ref().unwrap_or(&String::new()))
+            .json(&serde_json::json!({
+                "permission": permission
+            }))
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data["allowed"].as_bool().unwrap_or(false))
+    }
+
+    /// Introspect token
+    pub async fn introspect_token(&self, token: &str) -> Result<serde_json::Value> {
+        let response = self
+            .client
+            .post(format!("{}/oauth/v2/introspect", self.base_url))
+            .form(&[
+                ("client_id", self.config.client_id.as_str()),
+                ("client_secret", self.config.client_secret.as_str()),
+                ("token", token),
+            ])
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+
+    /// Refresh token
+    pub async fn refresh_token(&self, refresh_token: &str) -> Result<serde_json::Value> {
+        let response = self
+            .client
+            .post(format!("{}/oauth/v2/token", self.base_url))
+            .form(&[
+                ("grant_type", "refresh_token"),
+                ("client_id", self.config.client_id.as_str()),
+                ("client_secret", self.config.client_secret.as_str()),
+                ("refresh_token", refresh_token),
+            ])
+            .send()
+            .await?;
+
+        let data = response.json::<serde_json::Value>().await?;
+        Ok(data)
+    }
+}
+
 impl ZitadelAuth {
     pub fn new(config: ZitadelConfig, work_root: PathBuf) -> Self {
         Self {
