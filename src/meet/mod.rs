@@ -13,6 +13,7 @@ use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
+pub mod conversations;
 pub mod service;
 use service::{DefaultTranscriptionService, MeetingService};
 
@@ -34,6 +35,95 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/meet/token", post(get_meeting_token))
         .route("/api/meet/invite", post(send_meeting_invites))
         .route("/ws/meet", get(meeting_websocket))
+        // Conversations routes
+        .route(
+            "/conversations/create",
+            post(conversations::create_conversation),
+        )
+        .route(
+            "/conversations/:id/join",
+            post(conversations::join_conversation),
+        )
+        .route(
+            "/conversations/:id/leave",
+            post(conversations::leave_conversation),
+        )
+        .route(
+            "/conversations/:id/members",
+            get(conversations::get_conversation_members),
+        )
+        .route(
+            "/conversations/:id/messages",
+            get(conversations::get_conversation_messages),
+        )
+        .route(
+            "/conversations/:id/messages/send",
+            post(conversations::send_message),
+        )
+        .route(
+            "/conversations/:id/messages/:message_id/edit",
+            post(conversations::edit_message),
+        )
+        .route(
+            "/conversations/:id/messages/:message_id/delete",
+            post(conversations::delete_message),
+        )
+        .route(
+            "/conversations/:id/messages/:message_id/react",
+            post(conversations::react_to_message),
+        )
+        .route(
+            "/conversations/:id/messages/:message_id/pin",
+            post(conversations::pin_message),
+        )
+        .route(
+            "/conversations/:id/messages/search",
+            get(conversations::search_messages),
+        )
+        .route(
+            "/conversations/:id/calls/start",
+            post(conversations::start_call),
+        )
+        .route(
+            "/conversations/:id/calls/join",
+            post(conversations::join_call),
+        )
+        .route(
+            "/conversations/:id/calls/leave",
+            post(conversations::leave_call),
+        )
+        .route(
+            "/conversations/:id/calls/mute",
+            post(conversations::mute_call),
+        )
+        .route(
+            "/conversations/:id/calls/unmute",
+            post(conversations::unmute_call),
+        )
+        .route(
+            "/conversations/:id/screen/share",
+            post(conversations::start_screen_share),
+        )
+        .route(
+            "/conversations/:id/screen/stop",
+            post(conversations::stop_screen_share),
+        )
+        .route(
+            "/conversations/:id/recording/start",
+            post(conversations::start_recording),
+        )
+        .route(
+            "/conversations/:id/recording/stop",
+            post(conversations::stop_recording),
+        )
+        .route(
+            "/conversations/:id/whiteboard/create",
+            post(conversations::create_whiteboard),
+        )
+        .route(
+            "/conversations/:id/whiteboard/collaborate",
+            post(conversations::collaborate_whiteboard),
+        )
 }
 
 // ===== Request/Response Structures =====

@@ -5,6 +5,8 @@
 # Part I - Getting Started
 
 - [Chapter 01: Run and Talk](./chapter-01/README.md)
+  - [Overview](./chapter-01/overview.md)
+  - [Quick Start](./chapter-01/quick-start.md)
   - [Installation](./chapter-01/installation.md)
   - [First Conversation](./chapter-01/first-conversation.md)
   - [Understanding Sessions](./chapter-01/sessions.md)
@@ -22,12 +24,14 @@
 # Part III - Knowledge Base
 
 - [Chapter 03: gbkb Reference](./chapter-03/README.md)
+  - [KB and Tools System](./chapter-03/kb-and-tools.md)
   - [Vector Collections](./chapter-03/vector-collections.md)
   - [Document Indexing](./chapter-03/indexing.md)
   - [Qdrant Integration](./chapter-03/qdrant.md)
   - [Semantic Search](./chapter-03/semantic-search.md)
   - [Context Compaction](./chapter-03/context-compaction.md)
   - [Semantic Caching](./chapter-03/caching.md)
+  - [Semantic Cache with Valkey](./chapter-03/semantic-cache.md)
 
 # Part IV - Themes and UI
 
@@ -41,6 +45,7 @@
 
 - [Chapter 05: gbdialog Reference](./chapter-05/README.md)
   - [Dialog Basics](./chapter-05/basics.md)
+  - [Universal Messaging & Multi-Channel](./chapter-05/universal-messaging.md)
   - [Template Examples](./chapter-05/templates.md)
     - [start.bas](./chapter-05/template-start.md)
     - [auth.bas](./chapter-05/template-auth.md)
@@ -83,6 +88,7 @@
   - [Architecture Overview](./chapter-06/architecture.md)
   - [Building from Source](./chapter-06/building.md)
   - [Container Deployment (LXC)](./chapter-06/containers.md)
+  - [SMB Deployment Guide](./chapter-06/smb-deployment.md)
   - [Module Structure](./chapter-06/crates.md)
   - [Service Layer](./chapter-06/services.md)
   - [Creating Custom Keywords](./chapter-06/custom-keywords.md)
@@ -126,6 +132,9 @@
 
 - [Chapter 10: Contributing](./chapter-10/README.md)
   - [Development Setup](./chapter-10/setup.md)
+  - [Contributing Guidelines](./chapter-10/contributing-guidelines.md)
+  - [Code of Conduct](./chapter-10/code-of-conduct.md)
+  - [Código de Conduta (Português)](./chapter-10/code-of-conduct-pt-br.md)
   - [Code Standards](./chapter-10/standards.md)
   - [Testing](./chapter-10/testing.md)
   - [Pull Requests](./chapter-10/pull-requests.md)
@@ -138,6 +147,37 @@
   - [Password Security](./chapter-11/password-security.md)
   - [API Endpoints](./chapter-11/api-endpoints.md)
   - [Bot Authentication](./chapter-11/bot-auth.md)
+  - [Security Features](./chapter-11/security-features.md)
+  - [Security Policy](./chapter-11/security-policy.md)
+  - [Compliance Requirements](./chapter-11/compliance-requirements.md)
+
+# Part XII - REST API Reference
+
+- [Chapter 12: REST API Reference](./chapter-12/README.md)
+  - [Files API](./chapter-12/files-api.md)
+  - [Document Processing API](./chapter-12/document-processing.md)
+  - [Users API](./chapter-12/users-api.md)
+  - [User Security API](./chapter-12/user-security.md)
+  - [Groups API](./chapter-12/groups-api.md)
+  - [Group Membership API](./chapter-12/group-membership.md)
+  - [Conversations API](./chapter-12/conversations-api.md)
+  - [Calls API](./chapter-12/calls-api.md)
+  - [Whiteboard API](./chapter-12/whiteboard-api.md)
+  - [Email API](./chapter-12/email-api.md)
+  - [Notifications API](./chapter-12/notifications-api.md)
+  - [Calendar API](./chapter-12/calendar-api.md)
+  - [Tasks API](./chapter-12/tasks-api.md)
+  - [Storage API](./chapter-12/storage-api.md)
+  - [Backup API](./chapter-12/backup-api.md)
+  - [Analytics API](./chapter-12/analytics-api.md)
+  - [Reports API](./chapter-12/reports-api.md)
+  - [Admin API](./chapter-12/admin-api.md)
+  - [Monitoring API](./chapter-12/monitoring-api.md)
+  - [AI API](./chapter-12/ai-api.md)
+  - [ML API](./chapter-12/ml-api.md)
+  - [Security API](./chapter-12/security-api.md)
+  - [Compliance API](./chapter-12/compliance-api.md)
+  - [Example Integrations](./chapter-12/examples.md)
 
 # Appendices
 
@@ -145,5 +185,10 @@
   - [Schema Overview](./appendix-i/schema.md)
   - [Tables](./appendix-i/tables.md)
   - [Relationships](./appendix-i/relationships.md)
+
+- [Appendix II: Project Status](./appendix-ii/README.md)
+  - [Build Status](./appendix-ii/build-status.md)
+  - [Production Status](./appendix-ii/production-status.md)
+  - [Integration Status](./appendix-ii/integration-status.md)
 
 [Glossary](./glossary.md)

@@ -12,6 +12,7 @@ use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
+mod api_router;
 mod auth;
 mod automation;
 mod basic;
