@@ -79,6 +79,7 @@ pub struct InstagramQuickReply {
     pub payload: String,
 }
 
+#[derive(Debug)]
 pub struct InstagramAdapter {
     pub state: Arc<AppState>,
     pub access_token: String,

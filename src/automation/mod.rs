@@ -15,6 +15,7 @@ pub mod vectordb_indexer;
 #[cfg(feature = "vectordb")]
 pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
 
+#[derive(Debug)]
 pub struct AutomationService {
     state: Arc<AppState>,
 }

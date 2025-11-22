@@ -192,7 +192,21 @@ pub struct MeetingService {
     pub state: Arc<AppState>,
     pub rooms: Arc<RwLock<HashMap<String, MeetingRoom>>>,
     pub connections: Arc<RwLock<HashMap<String, mpsc::Sender<MeetingMessage>>>>,
-    pub transcription_service: Arc<dyn TranscriptionService>,
+    pub transcription_service: Arc<dyn TranscriptionService + Send + Sync>,
+}
+
+impl std::fmt::Debug for MeetingService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("MeetingService")
+            .field("state", &self.state)
+            .field("rooms", &"Arc<RwLock<HashMap<String, MeetingRoom>>>")
+            .field(
+                "connections",
+                &"Arc<RwLock<HashMap<String, mpsc::Sender<MeetingMessage>>>>",
+            )
+            .field("transcription_service", &"Arc<dyn TranscriptionService>")
+            .finish()
+    }
 }
 
 impl MeetingService {
@@ -498,7 +512,6 @@ impl MeetingService {
 
 /// Trait for transcription services
 #[async_trait]
-#[allow(dead_code)]
 pub trait TranscriptionService: Send + Sync {
     async fn start_transcription(&self, room_id: &str) -> Result<()>;
     async fn stop_transcription(&self, room_id: &str) -> Result<()>;
@@ -506,6 +519,7 @@ pub trait TranscriptionService: Send + Sync {
 }
 
 /// Default transcription service implementation
+#[derive(Debug)]
 pub struct DefaultTranscriptionService;
 
 #[async_trait]

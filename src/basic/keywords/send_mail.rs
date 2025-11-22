@@ -397,7 +397,8 @@ fn apply_template_variables(
     if let Some(obj) = variables.as_object() {
         for (key, value) in obj {
             let placeholder = format!("{{{{{}}}}}", key);
-            let replacement = value.as_str().unwrap_or(&value.to_string());
+            let value_string = value.to_string();
+            let replacement = value.as_str().unwrap_or(&value_string);
             content = content.replace(&placeholder, replacement);
         }
     }

@@ -2,16 +2,68 @@ use axum::{
     extract::{Path, State},
     http::StatusCode,
     response::{IntoResponse, Json},
+    routing::{get, post},
+    Router,
 };
 use log::{error, info};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
 pub mod service;
 use service::{DefaultTranscriptionService, MeetingService};
+
+// ===== Router Configuration =====
+
+/// Configure meet API routes
+pub fn configure() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/voice/start", post(voice_start))
+        .route("/api/voice/stop", post(voice_stop))
+        .route("/api/meet/create", post(create_meeting))
+        .route("/api/meet/rooms", get(list_rooms))
+        .route("/api/meet/rooms/:room_id", get(get_room))
+        .route("/api/meet/rooms/:room_id/join", post(join_room))
+        .route(
+            "/api/meet/rooms/:room_id/transcription/start",
+            post(start_transcription),
+        )
+        .route("/api/meet/token", post(get_meeting_token))
+        .route("/api/meet/invite", post(send_meeting_invites))
+        .route("/ws/meet", get(meeting_websocket))
+}
+
+// ===== Request/Response Structures =====
+
+#[derive(Debug, Deserialize)]
+pub struct CreateMeetingRequest {
+    pub name: String,
+    pub created_by: String,
+    pub settings: Option<service::MeetingSettings>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JoinRoomRequest {
+    pub participant_name: String,
+    pub participant_id: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GetTokenRequest {
+    pub room_id: String,
+    pub user_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SendInvitesRequest {
+    pub room_id: String,
+    pub emails: Vec<String>,
+}
+
+// ===== Voice/Meet Handlers =====
 
 pub async fn voice_start(
     State(data): State<Arc<AppState>>,
@@ -251,30 +303,4 @@ async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Ar
     info!("Meeting WebSocket connection established");
     // Handle WebSocket messages for real-time meeting communication
     // This would integrate with WebRTC signaling
-}
-
-// Request/Response DTOs
-#[derive(Debug, Deserialize)]
-pub struct CreateMeetingRequest {
-    pub name: String,
-    pub created_by: String,
-    pub settings: Option<service::MeetingSettings>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct JoinRoomRequest {
-    pub participant_name: String,
-    pub participant_id: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct GetTokenRequest {
-    pub room_id: String,
-    pub user_id: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SendInvitesRequest {
-    pub room_id: String,
-    pub emails: Vec<String>,
 }

@@ -20,6 +20,7 @@ mod bot;
 mod channels;
 mod config;
 mod context;
+mod drive;
 mod drive_monitor;
 #[cfg(feature = "email")]
 mod email;
@@ -153,21 +154,13 @@ async fn run_axum_server(
         );
 
     // Add email routes if feature is enabled
-    #[cfg(feature = "email")]
+    // Merge drive, email, and meet module routes
     let api_router = api_router
-        .route("/api/email/accounts", get(list_email_accounts))
-        .route("/api/email/accounts/add", post(add_email_account))
-        .route(
-            "/api/email/accounts/{account_id}",
-            axum::routing::delete(delete_email_account),
-        )
-        .route("/api/email/list", post(list_emails))
-        .route("/api/email/send", post(send_email))
-        .route("/api/email/draft", post(save_draft))
-        .route("/api/email/folders/{account_id}", get(list_folders))
-        .route("/api/email/latest", post(get_latest_email_from))
-        .route("/api/email/get/{campaign_id}", get(get_emails))
-        .route("/api/email/click/{campaign_id}/{email}", get(save_click));
+        .merge(crate::drive::configure())
+        .merge(crate::meet::configure());
+
+    #[cfg(feature = "email")]
+    let api_router = api_router.merge(crate::email::configure());
 
     // Build static file serving
     let static_path = std::path::Path::new("./web/desktop");
@@ -410,7 +403,22 @@ async fn main() -> std::io::Result<()> {
         redis_client.clone(),
     )));
 
-    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new()));
+    // Create default Zitadel config (can be overridden with env vars)
+    let zitadel_config = auth::zitadel::ZitadelConfig {
+        issuer_url: std::env::var("ZITADEL_ISSUER_URL")
+            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
+        issuer: std::env::var("ZITADEL_ISSUER")
+            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
+        client_id: std::env::var("ZITADEL_CLIENT_ID").unwrap_or_else(|_| "default".to_string()),
+        client_secret: std::env::var("ZITADEL_CLIENT_SECRET")
+            .unwrap_or_else(|_| "secret".to_string()),
+        redirect_uri: std::env::var("ZITADEL_REDIRECT_URI")
+            .unwrap_or_else(|_| "http://localhost:8080/callback".to_string()),
+        project_id: std::env::var("ZITADEL_PROJECT_ID").unwrap_or_else(|_| "default".to_string()),
+    };
+    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
+        zitadel_config,
+    )));
     let config_manager = ConfigManager::new(pool.clone());
 
     let mut bot_conn = pool.get().expect("Failed to get database connection");

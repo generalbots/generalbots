@@ -1,5 +1,4 @@
 use anyhow::Result;
-use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
@@ -7,11 +6,11 @@ use tokio::fs;
 use tokio::time::sleep;
 
 /// Email (Stalwart) auto-setup manager
+#[derive(Debug)]
 pub struct EmailSetup {
     base_url: String,
     admin_user: String,
     admin_pass: String,
-    client: Client,
     config_path: PathBuf,
 }
 
@@ -44,10 +43,6 @@ impl EmailSetup {
             base_url,
             admin_user,
             admin_pass,
-            client: Client::builder()
-                .timeout(Duration::from_secs(30))
-                .build()
-                .unwrap(),
             config_path,
         }
     }
@@ -75,7 +70,10 @@ impl EmailSetup {
     }
 
     /// Initialize email server with default configuration
-    pub async fn initialize(&mut self, directory_config_path: Option<PathBuf>) -> Result<EmailConfig> {
+    pub async fn initialize(
+        &mut self,
+        directory_config_path: Option<PathBuf>,
+    ) -> Result<EmailConfig> {
         log::info!("🔧 Initializing Email (Stalwart) server...");
 
         // Check if already initialized
@@ -154,7 +152,9 @@ impl EmailSetup {
         let content = fs::read_to_string(directory_config_path).await?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
 
-        let issuer_url = dir_config["base_url"].as_str().unwrap_or("http://localhost:8080");
+        let issuer_url = dir_config["base_url"]
+            .as_str()
+            .unwrap_or("http://localhost:8080");
 
         log::info!("Setting up OIDC authentication with Directory...");
         log::info!("Issuer URL: {}", issuer_url);
@@ -184,7 +184,12 @@ impl EmailSetup {
     }
 
     /// Create email account for Directory user
-    pub async fn create_user_mailbox(&self, username: &str, password: &str, email: &str) -> Result<()> {
+    pub async fn create_user_mailbox(
+        &self,
+        _username: &str,
+        _password: &str,
+        email: &str,
+    ) -> Result<()> {
         log::info!("Creating mailbox for user: {}", email);
 
         // Implement Stalwart mailbox creation

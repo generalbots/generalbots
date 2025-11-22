@@ -1,5 +1,6 @@
 use super::ModelHandler;
 use regex;
+#[derive(Debug)]
 pub struct DeepseekR3Handler;
 impl ModelHandler for DeepseekR3Handler {
     fn is_analysis_complete(&self, buffer: &str) -> bool {

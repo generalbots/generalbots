@@ -403,29 +403,22 @@ async fn save_to_table(
 
     // Build dynamic INSERT query
     let mut fields = vec!["id", "created_at"];
-    let mut placeholders = vec!["$1", "$2"];
+    let mut placeholders = vec!["$1".to_string(), "$2".to_string()];
     let mut bind_index = 3;
 
     let data_obj = data.as_object().ok_or("Invalid data format")?;
 
     for (field, _) in data_obj {
         fields.push(field);
-        placeholders.push(&format!("${}", bind_index));
+        placeholders.push(format!("${}", bind_index));
         bind_index += 1;
     }
 
     // Add user tracking if not already present
     if !data_obj.contains_key("user_id") {
         fields.push("user_id");
-        placeholders.push(&format!("${}", bind_index));
+        placeholders.push(format!("${}", bind_index));
     }
-
-    let insert_query = format!(
-        "INSERT INTO {} ({}) VALUES ({})",
-        table_name,
-        fields.join(", "),
-        placeholders.join(", ")
-    );
 
     // Build values as JSON for simpler handling
     let mut values_map = serde_json::Map::new();

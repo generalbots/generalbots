@@ -2,15 +2,6 @@ use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use rhai::Dynamic;
 use rhai::Engine;
-use serde::{Deserialize, Serialize};
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SaveDraftRequest {
-    pub to: String,
-    pub subject: String,
-    pub cc: Option<String>,
-    pub text: String,
-}
 
 pub fn create_draft_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
     let state_clone = _state.clone();
@@ -34,60 +25,76 @@ pub fn create_draft_keyword(_state: &AppState, _user: UserSession, engine: &mut 
 }
 
 async fn execute_create_draft(
-    _state: &AppState,
+    state: &AppState,
     to: &str,
     subject: &str,
     reply_text: &str,
 ) -> Result<String, String> {
-    // For now, we'll store drafts in the database or just log them
-    // This is a simplified implementation until the email module is fully ready
-
     #[cfg(feature = "email")]
     {
-        // When email feature is enabled, try to use email functionality if available
-        // For now, we'll just simulate draft creation
-        use log::info;
+        use crate::email::{fetch_latest_sent_to, save_email_draft, SaveDraftRequest};
 
-        info!("Creating draft email - To: {}, Subject: {}", to, subject);
+        let config = state.config.as_ref().ok_or("No email config")?;
 
-        // In a real implementation, this would:
-        // 1. Connect to email service
-        // 2. Create draft in IMAP folder or local storage
-        // 3. Return draft ID or confirmation
+        // Fetch any previous emails to this recipient for threading
+        let previous_email = fetch_latest_sent_to(&config.email, to)
+            .await
+            .unwrap_or_default();
 
-        let draft_id = uuid::Uuid::new_v4().to_string();
+        let email_body = if !previous_email.is_empty() {
+            // Create a threaded reply
+            let email_separator = "<br><hr><br>";
+            let formatted_reply = reply_text.replace("FIX", "Fixed");
+            let formatted_old = previous_email.replace("\n", "<br>");
+            format!("{}{}{}", formatted_reply, email_separator, formatted_old)
+        } else {
+            reply_text.to_string()
+        };
 
-        // You could store this in the database
-        // For now, just return success
-        Ok(format!("Draft saved successfully with ID: {}", draft_id))
+        let draft_request = SaveDraftRequest {
+            to: to.to_string(),
+            subject: subject.to_string(),
+            cc: None,
+            text: email_body,
+        };
+
+        save_email_draft(&config.email, &draft_request)
+            .await
+            .map(|_| "Draft saved successfully".to_string())
+            .map_err(|e| e.to_string())
     }
 
     #[cfg(not(feature = "email"))]
     {
-        // When email feature is disabled, return a placeholder message
-        Ok(format!(
-            "Email feature not enabled. Would create draft - To: {}, Subject: {}, Body: {}",
-            to, subject, reply_text
-        ))
+        // Store draft in database when email feature is disabled
+        use chrono::Utc;
+        use diesel::prelude::*;
+        use uuid::Uuid;
+
+        let draft_id = Uuid::new_v4();
+        let conn = state.conn.clone();
+        let to = to.to_string();
+        let subject = subject.to_string();
+        let reply_text = reply_text.to_string();
+
+        tokio::task::spawn_blocking(move || {
+            let mut db_conn = conn.get().map_err(|e| e.to_string())?;
+
+            diesel::sql_query(
+                "INSERT INTO email_drafts (id, recipient, subject, body, created_at)
+                 VALUES ($1, $2, $3, $4, $5)",
+            )
+            .bind::<diesel::sql_types::Uuid, _>(&draft_id)
+            .bind::<diesel::sql_types::Text, _>(&to)
+            .bind::<diesel::sql_types::Text, _>(&subject)
+            .bind::<diesel::sql_types::Text, _>(&reply_text)
+            .bind::<diesel::sql_types::Timestamptz, _>(&Utc::now())
+            .execute(&mut db_conn)
+            .map_err(|e| e.to_string())?;
+
+            Ok::<_, String>(format!("Draft saved with ID: {}", draft_id))
+        })
+        .await
+        .map_err(|e| e.to_string())?
     }
-}
-
-// Helper functions that would be implemented when email module is complete
-#[cfg(feature = "email")]
-async fn fetch_latest_sent_to(
-    _config: &Option<crate::config::Config>,
-    _to: &str,
-) -> Result<String, String> {
-    // This would fetch the latest email sent to the recipient
-    // For threading/reply purposes
-    Ok(String::new())
-}
-
-#[cfg(feature = "email")]
-async fn save_email_draft(
-    _config: &Option<crate::config::Config>,
-    _draft: &SaveDraftRequest,
-) -> Result<(), String> {
-    // This would save the draft to the email server or local storage
-    Ok(())
 }

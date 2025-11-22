@@ -37,6 +37,7 @@ use self::keywords::set::set_keyword;
 use self::keywords::set_context::set_context_keyword;
 
 use self::keywords::wait::wait_keyword;
+#[derive(Debug)]
 pub struct ScriptService {
     pub engine: Engine,
 }
@@ -81,6 +82,13 @@ impl ScriptService {
         save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
         create_task_keyword(state.clone(), user.clone(), &mut engine);
         add_member_keyword(state.clone(), user.clone(), &mut engine);
+
+        // Register universal messaging keywords
+        keywords::universal_messaging::register_universal_messaging(
+            state.clone(),
+            user.clone(),
+            &mut engine,
+        );
 
         ScriptService { engine }
     }
