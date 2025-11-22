@@ -1,6 +1,6 @@
 [package]
 name = "botserver"
-version = "6.0.8"
+version = "6.1.0"
 edition = "2021"
 authors = [
     "Pragmatismo.com.br ",
