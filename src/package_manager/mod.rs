@@ -16,6 +16,7 @@ pub enum OsType {
     MacOS,
     Windows,
 }
+#[derive(Debug)]
 pub struct ComponentInfo {
     pub name: &'static str,
     pub termination_command: &'static str,

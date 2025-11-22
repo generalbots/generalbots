@@ -8,11 +8,29 @@ use tokio::fs;
 use tokio::time::sleep;
 
 /// Directory (Zitadel) auto-setup manager
+#[derive(Debug)]
 pub struct DirectorySetup {
     base_url: String,
     client: Client,
     admin_token: Option<String>,
     config_path: PathBuf,
+}
+
+impl DirectorySetup {
+    /// Set the admin token
+    pub fn set_admin_token(&mut self, token: String) {
+        self.admin_token = Some(token);
+    }
+
+    /// Get or initialize admin token
+    pub async fn ensure_admin_token(&mut self) -> Result<()> {
+        if self.admin_token.is_none() {
+            let token = std::env::var("DIRECTORY_ADMIN_TOKEN")
+                .unwrap_or_else(|_| "zitadel-admin-sa".to_string());
+            self.admin_token = Some(token);
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -99,7 +117,7 @@ impl DirectorySetup {
         self.wait_for_ready(30).await?;
 
         // Get initial admin token (from Zitadel setup)
-        self.get_initial_admin_token().await?;
+        self.ensure_admin_token().await?;
 
         // Create default organization
         let org = self.create_default_organization().await?;
@@ -128,7 +146,7 @@ impl DirectorySetup {
         };
 
         // Save configuration
-        self.save_config(&config).await?;
+        self.save_config_internal(&config).await?;
         log::info!("✅ Saved Directory configuration");
 
         log::info!("🎉 Directory initialization complete!");
@@ -142,15 +160,29 @@ impl DirectorySetup {
         Ok(config)
     }
 
-    /// Get initial admin token from Zitadel
-    async fn get_initial_admin_token(&mut self) -> Result<()> {
-        // In Zitadel, the initial setup creates a service account
-        // For now, use environment variable or default token
-        let token = std::env::var("DIRECTORY_ADMIN_TOKEN")
-            .unwrap_or_else(|_| "zitadel-admin-sa".to_string());
+    /// Create an organization
+    pub async fn create_organization(&mut self, name: &str, description: &str) -> Result<String> {
+        // Ensure we have admin token
+        self.ensure_admin_token().await?;
 
-        self.admin_token = Some(token);
-        Ok(())
+        let response = self
+            .client
+            .post(format!("{}/management/v1/orgs", self.base_url))
+            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .json(&json!({
+                "name": name,
+                "description": description,
+            }))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            anyhow::bail!("Failed to create organization: {}", error_text);
+        }
+
+        let result: serde_json::Value = response.json().await?;
+        Ok(result["id"].as_str().unwrap_or("").to_string())
     }
 
     /// Create default organization
@@ -182,6 +214,67 @@ impl DirectorySetup {
         })
     }
 
+    /// Create a user in an organization
+    pub async fn create_user(
+        &mut self,
+        org_id: &str,
+        username: &str,
+        email: &str,
+        password: &str,
+        first_name: &str,
+        last_name: &str,
+        is_admin: bool,
+    ) -> Result<DefaultUser> {
+        // Ensure we have admin token
+        self.ensure_admin_token().await?;
+
+        let response = self
+            .client
+            .post(format!("{}/management/v1/users/human", self.base_url))
+            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .json(&json!({
+                "userName": username,
+                "profile": {
+                    "firstName": first_name,
+                    "lastName": last_name,
+                    "displayName": format!("{} {}", first_name, last_name)
+                },
+                "email": {
+                    "email": email,
+                    "isEmailVerified": true
+                },
+                "password": password,
+                "organisation": {
+                    "orgId": org_id
+                }
+            }))
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            let error_text = response.text().await?;
+            anyhow::bail!("Failed to create user: {}", error_text);
+        }
+
+        let result: serde_json::Value = response.json().await?;
+
+        let user = DefaultUser {
+            id: result["userId"].as_str().unwrap_or("").to_string(),
+            username: username.to_string(),
+            email: email.to_string(),
+            password: password.to_string(),
+            first_name: first_name.to_string(),
+            last_name: last_name.to_string(),
+        };
+
+        // Grant admin permissions if requested
+        if is_admin {
+            self.grant_user_permissions(org_id, &user.id).await?;
+        }
+
+        Ok(user)
+    }
+
     /// Create default user in organization
     async fn create_default_user(&self, org_id: &str) -> Result<DefaultUser> {
         let username =
@@ -207,6 +300,9 @@ impl DirectorySetup {
                     "isEmailVerified": true
                 },
                 "password": password,
+                "organisation": {
+                    "orgId": org_id
+                }
             }))
             .send()
             .await?;
@@ -229,7 +325,10 @@ impl DirectorySetup {
     }
 
     /// Create OAuth2 application for BotServer
-    async fn create_oauth_application(&self, org_id: &str) -> Result<(String, String, String)> {
+    pub async fn create_oauth_application(
+        &self,
+        _org_id: &str,
+    ) -> Result<(String, String, String)> {
         let app_name = "BotServer";
         let redirect_uri = std::env::var("DIRECTORY_REDIRECT_URI")
             .unwrap_or_else(|_| "http://localhost:8080/auth/callback".to_string());
@@ -275,7 +374,7 @@ impl DirectorySetup {
     }
 
     /// Grant admin permissions to user
-    async fn grant_user_permissions(&self, org_id: &str, user_id: &str) -> Result<()> {
+    pub async fn grant_user_permissions(&self, org_id: &str, user_id: &str) -> Result<()> {
         // Grant ORG_OWNER role
         let _response = self
             .client
@@ -295,7 +394,41 @@ impl DirectorySetup {
     }
 
     /// Save configuration to file
-    async fn save_config(&self, config: &DirectoryConfig) -> Result<()> {
+    pub async fn save_config(
+        &mut self,
+        org_id: String,
+        org_name: String,
+        admin_user: DefaultUser,
+        client_id: String,
+        client_secret: String,
+    ) -> Result<DirectoryConfig> {
+        // Get or create admin token
+        self.ensure_admin_token().await?;
+
+        let config = DirectoryConfig {
+            base_url: self.base_url.clone(),
+            default_org: DefaultOrganization {
+                id: org_id,
+                name: org_name.clone(),
+                domain: format!("{}.localhost", org_name.to_lowercase()),
+            },
+            default_user: admin_user,
+            admin_token: self.admin_token.clone().unwrap_or_default(),
+            project_id: String::new(), // This will be set if OAuth app is created
+            client_id,
+            client_secret,
+        };
+
+        // Save to file
+        let json = serde_json::to_string_pretty(&config)?;
+        fs::write(&self.config_path, json).await?;
+
+        log::info!("Saved Directory configuration to {:?}", self.config_path);
+        Ok(config)
+    }
+
+    /// Internal save configuration to file
+    async fn save_config_internal(&self, config: &DirectoryConfig) -> Result<()> {
         let json = serde_json::to_string_pretty(config)?;
         fs::write(&self.config_path, json).await?;
         Ok(())
@@ -315,7 +448,7 @@ impl DirectorySetup {
 }
 
 /// Generate Zitadel configuration file
-pub async fn generate_directory_config(config_path: PathBuf, db_path: PathBuf) -> Result<()> {
+pub async fn generate_directory_config(config_path: PathBuf, _db_path: PathBuf) -> Result<()> {
     let yaml_config = format!(
         r#"
 Log:

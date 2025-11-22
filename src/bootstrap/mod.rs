@@ -11,9 +11,11 @@ use rand::distr::Alphanumeric;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
+#[derive(Debug)]
 pub struct ComponentInfo {
     pub name: &'static str,
 }
+#[derive(Debug)]
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
     pub tenant: Option<String>,
@@ -157,22 +159,69 @@ impl BootstrapManager {
     /// Setup Directory (Zitadel) with default organization and user
     async fn setup_directory(&self) -> Result<()> {
         let config_path = PathBuf::from("./config/directory_config.json");
-        let work_root = PathBuf::from("./work");
 
         // Ensure config directory exists
         tokio::fs::create_dir_all("./config").await?;
 
         let mut setup = DirectorySetup::new("http://localhost:8080".to_string(), config_path);
 
-        let config = setup.initialize().await?;
+        // Create default organization
+        let org_name = "default";
+        let org_id = setup
+            .create_organization(org_name, "Default Organization")
+            .await?;
+        info!("✅ Created default organization: {}", org_name);
+
+        // Create admin@default account for bot administration
+        let admin_user = setup
+            .create_user(
+                &org_id,
+                "admin",
+                "admin@default",
+                "Admin123!",
+                "Admin",
+                "Default",
+                true, // is_admin
+            )
+            .await?;
+        info!("✅ Created admin user: admin@default");
+
+        // Create user@default account for regular bot usage
+        let regular_user = setup
+            .create_user(
+                &org_id,
+                "user",
+                "user@default",
+                "User123!",
+                "User",
+                "Default",
+                false, // is_admin
+            )
+            .await?;
+        info!("✅ Created regular user: user@default");
+        info!("   Regular user ID: {}", regular_user.id);
+
+        // Create OAuth2 application for BotServer
+        let (project_id, client_id, client_secret) =
+            setup.create_oauth_application(&org_id).await?;
+        info!("✅ Created OAuth2 application in project: {}", project_id);
+
+        // Save configuration
+        let config = setup
+            .save_config(
+                org_id.clone(),
+                org_name.to_string(),
+                admin_user,
+                client_id.clone(),
+                client_secret,
+            )
+            .await?;
 
         info!("✅ Directory initialized successfully!");
-        info!("   Organization: {}", config.default_org.name);
-        info!(
-            "   Default User: {} / {}",
-            config.default_user.email, config.default_user.password
-        );
-        info!("   Client ID: {}", config.client_id);
+        info!("   Organization: default");
+        info!("   Admin User: admin@default / Admin123!");
+        info!("   Regular User: user@default / User123!");
+        info!("   Client ID: {}", client_id);
         info!("   Login URL: {}", config.base_url);
 
         Ok(())

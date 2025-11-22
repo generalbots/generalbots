@@ -563,9 +563,9 @@ async fn send_web_file(
 }
 
 async fn send_email(
-    _state: Arc<AppState>,
-    _email: &str,
-    _message: &str,
+    state: Arc<AppState>,
+    email: &str,
+    message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Send email using the email service
     #[cfg(feature = "email")]
@@ -576,20 +576,22 @@ async fn send_email(
         email_service
             .send_email(email, "Message from Bot", message, None)
             .await?;
+        Ok(())
     }
 
     #[cfg(not(feature = "email"))]
     {
+        let _ = (state, email, message); // Explicitly use variables to avoid warnings
         error!("Email feature not enabled");
-        return Err("Email feature not enabled".into());
+        Err("Email feature not enabled".into())
     }
 }
 
 async fn send_email_attachment(
-    _state: Arc<AppState>,
-    _email: &str,
-    _file_data: Vec<u8>,
-    _caption: &str,
+    state: Arc<AppState>,
+    email: &str,
+    file_data: Vec<u8>,
+    caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     #[cfg(feature = "email")]
     {
@@ -599,12 +601,14 @@ async fn send_email_attachment(
         email_service
             .send_email_with_attachment(email, "File from Bot", caption, file_data, "attachment")
             .await?;
+        Ok(())
     }
 
     #[cfg(not(feature = "email"))]
     {
-        error!("Email feature not enabled");
-        return Err("Email feature not enabled".into());
+        let _ = (state, email, file_data, caption); // Explicitly use variables to avoid warnings
+        error!("Email feature not enabled for attachments");
+        Err("Email feature not enabled".into())
     }
 }
 

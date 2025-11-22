@@ -7,25 +7,25 @@ use uuid::Uuid;
 // Type alias for backward compatibility
 pub type Config = AppConfig;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
     pub email: EmailConfig,
     pub site_path: String,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct DriveConfig {
     pub server: String,
     pub access_key: String,
     pub secret_key: String,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
 }
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct EmailConfig {
     pub server: String,
     pub port: u16,
@@ -161,6 +161,7 @@ impl AppConfig {
         })
     }
 }
+#[derive(Debug)]
 pub struct ConfigManager {
     conn: DbPool,
 }

@@ -52,6 +52,7 @@ pub struct TeamsAttachment {
     pub content: serde_json::Value,
 }
 
+#[derive(Debug)]
 pub struct TeamsAdapter {
     pub state: Arc<AppState>,
     pub app_id: String,

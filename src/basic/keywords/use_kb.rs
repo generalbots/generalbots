@@ -20,14 +20,14 @@ struct KbCollectionResult {
     qdrant_collection: String,
 }
 
-#[derive(QueryableByName)]
-struct ActiveKbResult {
+#[derive(QueryableByName, Debug, Clone)]
+pub struct ActiveKbResult {
     #[diesel(sql_type = diesel::sql_types::Text)]
-    kb_name: String,
+    pub kb_name: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    kb_folder_path: String,
+    pub kb_folder_path: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
-    qdrant_collection: String,
+    pub qdrant_collection: String,
 }
 
 /// Register USE_KB keyword

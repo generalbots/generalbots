@@ -12,17 +12,46 @@ use uuid::Uuid;
 pub mod facade;
 pub mod zitadel;
 
-pub use facade::{
-    AuthFacade, AuthResult, CreateGroupRequest, CreateUserRequest, Group, Permission, Session,
-    SimpleAuthFacade, UpdateUserRequest, User, ZitadelAuthFacade,
-};
-pub use zitadel::{UserWorkspace, ZitadelAuth, ZitadelConfig, ZitadelUser};
+use self::facade::{AuthFacade, ZitadelAuthFacade};
+use self::zitadel::{ZitadelClient, ZitadelConfig};
 
-pub struct AuthService {}
+pub struct AuthService {
+    facade: Box<dyn AuthFacade>,
+}
+
+impl std::fmt::Debug for AuthService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("AuthService")
+            .field("facade", &"Box<dyn AuthFacade>")
+            .finish()
+    }
+}
 
 impl AuthService {
-    pub fn new() -> Self {
-        Self {}
+    pub fn new(config: ZitadelConfig) -> Self {
+        let client = ZitadelClient::new(config);
+        Self {
+            facade: Box::new(ZitadelAuthFacade::new(client)),
+        }
+    }
+
+    pub fn with_zitadel(config: ZitadelConfig) -> Self {
+        let client = ZitadelClient::new(config);
+        Self {
+            facade: Box::new(ZitadelAuthFacade::new(client)),
+        }
+    }
+
+    pub fn with_zitadel_and_cache(config: ZitadelConfig, redis_url: String) -> Self {
+        let client = ZitadelClient::new(config);
+        let facade = ZitadelAuthFacade::with_cache(client, redis_url);
+        Self {
+            facade: Box::new(facade),
+        }
+    }
+
+    pub fn facade(&self) -> &dyn AuthFacade {
+        self.facade.as_ref()
     }
 }
 

@@ -1,8 +1,8 @@
 use crate::config::ConfigManager;
 use crate::nvidia;
+use crate::nvidia::get_system_metrics;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
-use botserver::nvidia::get_system_metrics;
 use diesel::prelude::*;
 use std::sync::Arc;
 use sysinfo::System;
@@ -30,7 +30,8 @@ impl StatusPanel {
         let _tokens = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
-            .as_secs() % 1000) as usize;
+            .as_secs()
+            % 1000) as usize;
         let _system_metrics = nvidia::get_system_metrics().unwrap_or_default();
         self.cached_content = self.render(None);
         self.last_update = std::time::Instant::now();
@@ -39,19 +40,18 @@ impl StatusPanel {
 
     pub fn render(&mut self, selected_bot: Option<String>) -> String {
         let mut lines = Vec::new();
-        
+
         // System metrics section
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         SYSTEM METRICS                ║".to_string());
         lines.push("╚═══════════════════════════════════════╝".to_string());
         lines.push("".to_string());
-        
+
         self.system.refresh_cpu_all();
         let cpu_usage = self.system.global_cpu_usage();
         let cpu_bar = Self::create_progress_bar(cpu_usage, 20);
         lines.push(format!(" CPU: {:5.1}% {}", cpu_usage, cpu_bar));
         let system_metrics = get_system_metrics().unwrap_or_default();
-
 
         if let Some(gpu_usage) = system_metrics.gpu_usage {
             let gpu_bar = Self::create_progress_bar(gpu_usage, 20);
@@ -59,7 +59,7 @@ impl StatusPanel {
         } else {
             lines.push(" GPU: Not available".to_string());
         }
-        
+
         let total_mem = self.system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
         let used_mem = self.system.used_memory() as f32 / 1024.0 / 1024.0 / 1024.0;
         let mem_percentage = (used_mem / total_mem) * 100.0;
@@ -75,14 +75,14 @@ impl StatusPanel {
         lines.push("║         COMPONENTS STATUS             ║".to_string());
         lines.push("╚═══════════════════════════════════════╝".to_string());
         lines.push("".to_string());
-        
+
         let components = vec![
             ("Tables", "postgres", "5432"),
             ("Cache", "valkey-server", "6379"),
             ("Drive", "minio", "9000"),
             ("LLM", "llama-server", "8081"),
         ];
-        
+
         for (comp_name, process, port) in components {
             let status = if Self::check_component_running(process) {
                 format!("🟢 ONLINE  [Port: {}]", port)
@@ -98,7 +98,7 @@ impl StatusPanel {
         lines.push("║         ACTIVE BOTS                   ║".to_string());
         lines.push("╚═══════════════════════════════════════╝".to_string());
         lines.push("".to_string());
-        
+
         if let Ok(mut conn) = self.app_state.conn.get() {
             match bots
                 .filter(is_active.eq(true))
@@ -111,15 +111,22 @@ impl StatusPanel {
                     } else {
                         for (bot_name, bot_id) in bot_list {
                             let marker = if let Some(ref selected) = selected_bot {
-                                if selected == &bot_name { "►" } else { " " }
-                            } else { " " };
+                                if selected == &bot_name {
+                                    "►"
+                                } else {
+                                    " "
+                                }
+                            } else {
+                                " "
+                            };
                             lines.push(format!(" {} 🤖 {}", marker, bot_name));
-                            
+
                             if let Some(ref selected) = selected_bot {
                                 if selected == &bot_name {
                                     lines.push("".to_string());
                                     lines.push(" ┌─ Bot Configuration ─────────┐".to_string());
-                                    let config_manager = ConfigManager::new(self.app_state.conn.clone());
+                                    let config_manager =
+                                        ConfigManager::new(self.app_state.conn.clone());
                                     let llm_model = config_manager
                                         .get_config(&bot_id, "llm-model", None)
                                         .unwrap_or_else(|_| "N/A".to_string());
@@ -151,7 +158,7 @@ impl StatusPanel {
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         SESSIONS                      ║".to_string());
         lines.push("╚═══════════════════════════════════════╝".to_string());
-        
+
         let session_count = self
             .app_state
             .response_channels
@@ -159,7 +166,7 @@ impl StatusPanel {
             .map(|channels| channels.len())
             .unwrap_or(0);
         lines.push(format!(" Active Sessions: {}", session_count));
-        
+
         lines.join("\n")
     }
 

@@ -6,6 +6,7 @@ use log::trace;
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+#[derive(Debug)]
 pub struct PackageManager {
     pub mode: InstallMode,
     pub os_type: OsType,
@@ -58,8 +59,6 @@ impl PackageManager {
     }
 
     fn register_drive(&mut self) {
-
-
         self.components.insert(
             "drive".to_string(),
             ComponentConfig {
@@ -88,14 +87,9 @@ impl PackageManager {
                 check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
-
-
     }
 
-
     fn register_tables(&mut self) {
-
-
         self.components.insert(
             "tables".to_string(),
             ComponentConfig {
@@ -147,7 +141,7 @@ impl PackageManager {
             "cache".to_string(),
             ComponentConfig {
                 name: "cache".to_string(),
-                
+
                 ports: vec![6379],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -178,7 +172,7 @@ impl PackageManager {
             "llm".to_string(),
             ComponentConfig {
                 name: "llm".to_string(),
-                
+
                 ports: vec![8081, 8082],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -212,7 +206,7 @@ impl PackageManager {
                 name: "email".to_string(),
                 ports: vec![25, 80, 110, 143, 465, 587, 993, 995, 4190],
                 dependencies: vec![],
-                linux_packages: vec![], 
+                linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
@@ -270,7 +264,7 @@ impl PackageManager {
             "directory".to_string(),
             ComponentConfig {
                 name: "directory".to_string(),
-                
+
                 ports: vec![8080],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -301,7 +295,7 @@ impl PackageManager {
             "alm".to_string(),
             ComponentConfig {
                 name: "alm".to_string(),
-                
+
                 ports: vec![3000],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -333,7 +327,7 @@ impl PackageManager {
             "alm-ci".to_string(),
             ComponentConfig {
                 name: "alm-ci".to_string(),
-                
+
                 ports: vec![],
                 dependencies: vec!["alm".to_string()],
                 linux_packages: vec![
@@ -364,7 +358,7 @@ impl PackageManager {
             "dns".to_string(),
             ComponentConfig {
                 name: "dns".to_string(),
-                
+
                 ports: vec![53],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -395,7 +389,7 @@ impl PackageManager {
             "webmail".to_string(),
             ComponentConfig {
                 name: "webmail".to_string(),
-                
+
                 ports: vec![8080],
                 dependencies: vec!["email".to_string()],
                 linux_packages: vec![
@@ -429,7 +423,7 @@ impl PackageManager {
             "meeting".to_string(),
             ComponentConfig {
                 name: "meeting".to_string(),
-                
+
                 ports: vec![7880, 3478],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -458,7 +452,7 @@ impl PackageManager {
             "table_editor".to_string(),
             ComponentConfig {
                 name: "table_editor".to_string(),
-                
+
                 ports: vec![5757],
                 dependencies: vec!["tables".to_string()],
                 linux_packages: vec![],
@@ -485,7 +479,7 @@ impl PackageManager {
             "doc_editor".to_string(),
             ComponentConfig {
                 name: "doc_editor".to_string(),
-                
+
                 ports: vec![9980],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -512,7 +506,7 @@ impl PackageManager {
             "desktop".to_string(),
             ComponentConfig {
                 name: "desktop".to_string(),
-                
+
                 ports: vec![3389],
                 dependencies: vec![],
                 linux_packages: vec!["xvfb".to_string(), "xrdp".to_string(), "xfce4".to_string()],
@@ -539,7 +533,7 @@ impl PackageManager {
             "devtools".to_string(),
             ComponentConfig {
                 name: "devtools".to_string(),
-                
+
                 ports: vec![],
                 dependencies: vec![],
                 linux_packages: vec!["xclip".to_string(), "git".to_string(), "curl".to_string()],
@@ -566,7 +560,7 @@ impl PackageManager {
             "system".to_string(),
             ComponentConfig {
                 name: "system".to_string(),
-                
+
                 ports: vec![8000],
                 dependencies: vec![],
                 linux_packages: vec!["curl".to_string(), "unzip".to_string(), "git".to_string()],
@@ -593,7 +587,7 @@ impl PackageManager {
             "vector_db".to_string(),
             ComponentConfig {
                 name: "vector_db".to_string(),
-                
+
                 ports: vec![6333],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -622,7 +616,7 @@ impl PackageManager {
             "host".to_string(),
             ComponentConfig {
                 name: "host".to_string(),
-                
+
                 ports: vec![],
                 dependencies: vec![],
                 linux_packages: vec!["sshfs".to_string(), "bridge-utils".to_string()],
@@ -674,7 +668,10 @@ impl PackageManager {
 
             if check_status.is_ok() && check_status.unwrap().success() {
                 trace!("Component {} is already running", component.name);
-                return Ok(std::process::Command::new("sh").arg("-c").arg("true").spawn()?);
+                return Ok(std::process::Command::new("sh")
+                    .arg("-c")
+                    .arg("true")
+                    .spawn()?);
             }
 
             // If not running, execute the main command
@@ -733,5 +730,4 @@ impl PackageManager {
             Err(anyhow::anyhow!("Component {} not found", component))
         }
     }
-
 }

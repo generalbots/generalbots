@@ -244,17 +244,17 @@ async fn execute_create_team(
 
     let user_id_str = user.user_id.to_string();
     let now = Utc::now();
+    let permissions_json = serde_json::to_value(json!({
+        "workspace_enabled": true,
+        "chat_enabled": true,
+        "file_sharing": true
+    }))
+    .unwrap();
+
     let query = query
         .bind::<diesel::sql_types::Text, _>(&user_id_str)
         .bind::<diesel::sql_types::Timestamptz, _>(&now)
-        .bind::<diesel::sql_types::Jsonb, _>(
-            &serde_json::to_value(json!({
-                "workspace_enabled": true,
-                "chat_enabled": true,
-                "file_sharing": true
-            }))
-            .unwrap(),
-        );
+        .bind::<diesel::sql_types::Jsonb, _>(&permissions_json);
 
     query.execute(&mut *conn).map_err(|e| {
         error!("Failed to create team: {}", e);
@@ -438,11 +438,13 @@ async fn create_workspace_structure(
             "INSERT INTO workspace_folders (id, team_id, path, name, created_at)
              VALUES ($1, $2, $3, $4, $5)",
         )
-        .bind::<diesel::sql_types::Text, _>(&folder_id)
-        .bind::<diesel::sql_types::Text, _>(team_id)
-        .bind::<diesel::sql_types::Text, _>(&folder_path)
-        .bind::<diesel::sql_types::Text, _>(folder)
-        .bind::<diesel::sql_types::Timestamptz, _>(&chrono::Utc::now());
+        .bind::<diesel::sql_types::Text, _>(&folder_id);
+        let now = chrono::Utc::now();
+        let query = query
+            .bind::<diesel::sql_types::Text, _>(team_id)
+            .bind::<diesel::sql_types::Text, _>(&folder_path)
+            .bind::<diesel::sql_types::Text, _>(folder)
+            .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
         query.execute(&mut *conn).map_err(|e| {
             error!("Failed to create workspace folder: {}", e);

@@ -75,9 +75,12 @@ pub fn register_clear_kb_keyword(
 
         match result {
             Ok(Ok(count)) => {
+                // Get the remaining active KB count
+                let remaining_count =
+                    get_active_kb_count(&state_clone2.conn, session_clone2.id).unwrap_or(0);
                 info!(
-                    "✅ Cleared {} KBs from session {}",
-                    count, session_clone2.id
+                    "Successfully cleared {} KB associations for session {}, {} remaining active",
+                    count, session_clone2.id, remaining_count
                 );
                 Ok(Dynamic::UNIT)
             }
@@ -116,13 +119,19 @@ fn clear_specific_kb(
     .execute(&mut conn)
     .map_err(|e| format!("Failed to clear KB: {}", e))?;
 
+    // Get the remaining active KB count after clearing
+    let remaining_count = get_active_kb_count(&conn_pool, session_id).unwrap_or(0);
+
     if rows_affected == 0 {
         info!(
             "KB '{}' was not active in session {} or not found",
             kb_name, session_id
         );
     } else {
-        info!("✅ Cleared KB '{}' from session {}", kb_name, session_id);
+        info!(
+            "✅ Cleared KB '{}' from session {}, {} KB(s) remaining active",
+            kb_name, session_id, remaining_count
+        );
     }
 
     Ok(())

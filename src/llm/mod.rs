@@ -11,7 +11,7 @@ pub trait LLMProvider: Send + Sync {
         prompt: &str,
         config: &Value,
         model: &str,
-        key: &str
+        key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>>;
     async fn generate_stream(
         &self,
@@ -19,17 +19,17 @@ pub trait LLMProvider: Send + Sync {
         config: &Value,
         tx: mpsc::Sender<String>,
         model: &str,
-        key: &str
+        key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
     async fn cancel_job(
         &self,
         session_id: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
 }
+#[derive(Debug)]
 pub struct OpenAIClient {
     client: reqwest::Client,
     base_url: String,
-
 }
 #[async_trait]
 impl LLMProvider for OpenAIClient {
@@ -38,11 +38,10 @@ impl LLMProvider for OpenAIClient {
         prompt: &str,
         messages: &Value,
         model: &str,
-        key: &str
+        key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
-        let response = 
-        self
+        let response = self
             .client
             .post(&format!("{}/v1/chat/completions", self.base_url))
             .header("Authorization", format!("Bearer {}", key))
@@ -74,7 +73,7 @@ impl LLMProvider for OpenAIClient {
         messages: &Value,
         tx: mpsc::Sender<String>,
         model: &str,
-        key: &str
+        key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let default_messages = serde_json::json!([{"role": "user", "content": prompt}]);
         let response = self
@@ -129,11 +128,15 @@ impl OpenAIClient {
     pub fn new(_api_key: String, base_url: Option<String>) -> Self {
         Self {
             client: reqwest::Client::new(),
-            base_url: base_url.unwrap()
+            base_url: base_url.unwrap(),
         }
     }
 
-    pub fn build_messages(system_prompt: &str, context_data: &str, history: &[(String, String)]) -> Value {
+    pub fn build_messages(
+        system_prompt: &str,
+        context_data: &str,
+        history: &[(String, String)],
+    ) -> Value {
         let mut messages = Vec::new();
         if !system_prompt.is_empty() {
             messages.push(serde_json::json!({
@@ -143,7 +146,7 @@ impl OpenAIClient {
         }
         if !context_data.is_empty() {
             messages.push(serde_json::json!({
-                "role": "system", 
+                "role": "system",
                 "content": context_data
             }));
         }

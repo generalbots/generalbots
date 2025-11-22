@@ -9,15 +9,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize)]
-struct BookingRequest {
-    attendees: Vec<String>,
-    date_range: String,
-    duration_minutes: i32,
-    subject: Option<String>,
-    description: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
 struct TimeSlot {
     start: DateTime<Utc>,
     end: DateTime<Utc>,
@@ -357,19 +348,24 @@ async fn create_calendar_event(
     // Store in database
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
+    let user_id_str = user.user_id.to_string();
+    let bot_id_str = user.bot_id.to_string();
+    let attendees_json = json!(attendees);
+    let now = Utc::now();
+
     let query = diesel::sql_query(
         "INSERT INTO calendar_events (id, user_id, bot_id, subject, description, start_time, end_time, attendees, created_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)"
     )
     .bind::<diesel::sql_types::Text, _>(&event_id)
-    .bind::<diesel::sql_types::Text, _>(&user.user_id.to_string())
-    .bind::<diesel::sql_types::Text, _>(&user.bot_id.to_string())
+    .bind::<diesel::sql_types::Text, _>(&user_id_str)
+    .bind::<diesel::sql_types::Text, _>(&bot_id_str)
     .bind::<diesel::sql_types::Text, _>(subject)
     .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&description)
     .bind::<diesel::sql_types::Timestamptz, _>(&start)
     .bind::<diesel::sql_types::Timestamptz, _>(&end)
-    .bind::<diesel::sql_types::Jsonb, _>(&json!(attendees))
-    .bind::<diesel::sql_types::Timestamptz, _>(&Utc::now());
+    .bind::<diesel::sql_types::Jsonb, _>(&attendees_json)
+    .bind::<diesel::sql_types::Timestamptz, _>(&now);
 
     use diesel::RunQueryDsl;
     query.execute(&mut *conn).map_err(|e| {
