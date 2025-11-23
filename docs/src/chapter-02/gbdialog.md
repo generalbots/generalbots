@@ -1,6 +1,6 @@
 # .gbdialog Dialogs
 
-The `.gbdialog` package contains BASIC scripts that define conversation flows, tool integrations, and bot behavior.
+The [`.gbdialog`](../chapter-02/gbdialog.md) package contains BASIC scripts that define conversation flows, tool integrations, and bot behavior.
 
 ## What is .gbdialog?
 
@@ -35,14 +35,15 @@ TALK "Case loaded. You can ask me anything about the case."
 
 ### 1. LLM Integration
 ```basic
-' Direct LLM usage for natural conversation
-response = LLM "Help the user with their question"
-TALK response
+' LLM is for background processing only - generates content once for all users
+' Example: Generate a summary that all users will see
+text = GET "document.pdf"
+summary = LLM "Summarize this document: " + text
+SET BOT MEMORY "daily_summary", summary
 
-' Context-aware responses
+' For interactive conversations, use SET CONTEXT and TALK
 SET CONTEXT "user_type" AS "premium customer"
-answer = LLM "Provide personalized recommendations"
-TALK answer
+TALK "How can I help you today?"
 ```
 
 ### 2. Tool Execution
@@ -57,41 +58,32 @@ TALK "Registration complete!"
 ```
 
 ### 3. Knowledge Base Usage
+See [Knowledge Base documentation](../chapter-03/knowledge-base.md) for details.
 ```basic
 ' Activate knowledge base collections
 USE KB "products"
 USE KB "policies"
 
-' LLM searches these automatically when answering
-answer = LLM "Answer based on our product catalog and policies"
-TALK answer
+' The system AI searches these automatically during conversations
+' No LLM command needed - just TALK to the user
+TALK "What product information can I help you with?"
 ```
 
-### 4. Session Management
-```basic
-' Store session data
-SET "user_name", name
-SET "preferences", "email notifications"
 
-' Retrieve later
-saved_name = GET "user_name"
-TALK "Welcome back, " + saved_name
-```
 
 ## Script Structure
 
 ### Entry Point: start.bas
-Every bot needs a `start.bas` file:
+Every bot needs a `start.bas` file in the [`.gbdialog`](../chapter-02/gbdialog.md) folder:
 
 ```basic
-' Minimal start script - let LLM handle everything
+' Minimal start script - let system AI handle conversations
 USE KB "company_docs"
-response = LLM "Welcome the user and offer assistance"
-TALK response
+TALK "Welcome! How can I assist you today?"
 ```
 
 ### Tool Definitions
-Create separate `.bas` files for each tool:
+Create separate `.bas` files for each tool. See [KB and Tools](../chapter-03/kb-and-tools.md) for more information:
 
 ```basic
 ' enrollment.bas - The LLM knows when to use this
@@ -107,9 +99,9 @@ TALK "Enrolled successfully!"
 
 ### 1. Minimal Logic
 ```basic
-' Good - Let LLM handle the conversation
-answer = LLM "Process the user's request appropriately"
-TALK answer
+' Good - Let system AI handle the conversation naturally
+TALK "How can I help you?"
+' System AI understands context and responds appropriately
 
 ' Avoid - Don't micromanage the flow
 ' IF user_says_this THEN do_that...
@@ -125,33 +117,33 @@ DESCRIPTION "This tool books appointments for customers"
 ```basic
 ' Provide context, not rules
 SET CONTEXT "business_hours" AS "9AM-5PM weekdays"
-response = LLM "Inform about availability"
-' LLM naturally understands to mention hours when relevant
+TALK "When would you like to schedule?"
+' System AI naturally understands to mention hours when relevant
 ```
 
-### 4. Trust the LLM
+### 4. Trust the System AI
 ```basic
-' Simple prompt, sophisticated behavior
-answer = LLM "Be a helpful customer service agent"
-' LLM handles greetings, questions, complaints naturally
+' The system AI handles conversations naturally
+TALK "Hello! I'm here to help."
+' System handles greetings, questions, complaints naturally
 ```
 
 ## Common Patterns
 
-### Document Summarization (from announcements.gbai)
+### Document Summarization - Background Processing (from announcements.gbai)
 ```basic
-' Schedule automatic updates
+' Schedule automatic updates - runs in background
 SET SCHEDULE "59 * * * *"
 
-' Fetch and summarize documents
+' Fetch and summarize documents ONCE for all users
 let text = GET "announcements.gbkb/news/news.pdf"
 let resume = LLM "In a few words, resume this: " + text
-SET BOT MEMORY "resume", resume
+SET BOT MEMORY "resume", resume  ' Stored for all users
 ```
 
-### Interactive Case Analysis (from law.gbai)
+### Interactive Case Analysis - User Conversations (from law.gbai)
 ```basic
-' Ask for case number
+' Ask for case number - interactive with user
 TALK "What is the case number?"
 HEAR cod
 
@@ -159,7 +151,7 @@ HEAR cod
 text = GET "case-" + cod + ".pdf"
 
 IF text THEN 
-    ' Set context for LLM to use
+    ' Set context for system AI to use in conversation
     text = "Based on this document, answer the person's questions:\n\n" + text
     SET CONTEXT text 
     TALK "Case loaded. Ask me anything about it."
@@ -183,16 +175,17 @@ TALK "Successfully enrolled " + name
 ### Multi-Collection Search
 ```basic
 USE KB "products"
-USE KB "reviews"
+USE KB "reviews"  
 USE KB "specifications"
 
-answer = LLM "Answer product questions comprehensively"
-TALK answer
+' System AI searches these collections automatically during conversation
+TALK "What would you like to know about our products?"
 ```
 
 ## Advanced Features
 
 ### Memory Management
+See [Storage documentation](../chapter-09/storage.md) for persistent data options.
 ```basic
 SET BOT MEMORY "company_policy", policy_text
 ' Available across all sessions
@@ -201,13 +194,16 @@ retrieved = GET BOT MEMORY "company_policy"
 ```
 
 ### External APIs
+See [External APIs chapter](../chapter-08/external-apis.md) for integration patterns.
 ```basic
 result = GET "https://api.example.com/data"
-response = LLM "Interpret this data: " + result
-TALK response
+' For background processing only
+summary = LLM "Summarize this data: " + result
+SET BOT MEMORY "api_summary", summary
 ```
 
 ### Suggestions
+See [UI Interface](../chapter-04/ui-interface.md) for UI integration.
 ```basic
 ADD SUGGESTION "Schedule Meeting" AS "schedule"
 ADD SUGGESTION "View Products" AS "products"
@@ -245,12 +241,24 @@ Scripts run in a sandboxed environment with:
 ' END IF
 ```
 
-### New Way (LLM Intelligence)
+### New Way (System AI Intelligence)
 ```basic
-' DO THIS - Let LLM understand naturally
-response = LLM "Handle the customer's order request"
-TALK response
-' LLM understands context and intent automatically
+' DO THIS - Let system AI handle conversation naturally
+TALK "How can I help you with your order?"
+' System AI understands context and intent automatically
 ```
 
-The key is to **trust the LLM** and write less code for more intelligent behavior.
+The key is to **trust the system AI** and write less code for more intelligent behavior.
+
+## Important Distinction
+
+- **[LLM Command](../chapter-09/ai-llm.md)**: For background/batch processing, generates content ONCE, stored in BOT MEMORY for all users
+- **[Interactive Conversations](../chapter-09/conversation.md)**: Use HEAR/TALK/SET CONTEXT, system AI handles the natural conversation flow
+
+## See Also
+
+- [Chapter 1: Quick Start](../chapter-01/quick-start.md) - Getting started with your first bot
+- [Chapter 2: Bot Architecture](../chapter-02/README.md) - Understanding all components
+- [Chapter 3: Knowledge Base](../chapter-03/knowledge-base.md) - Working with KB collections
+- [Chapter 5: Keywords Reference](../chapter-05/README.md) - Complete BASIC command reference
+- [Chapter 9: Conversation Flow](../chapter-09/conversation.md) - Advanced dialog patterns

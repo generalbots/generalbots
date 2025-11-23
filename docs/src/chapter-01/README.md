@@ -1,6 +1,18 @@
 # Chapter 01: Run and Talk
 
-**Zero to chatbot in 60 seconds.** This chapter gets BotServer running with a working bot you can talk to immediately.
+Welcome to General Bots - your journey to AI independence starts here. In a world dominated by expensive, proprietary AI solutions, General Bots offers a refreshing alternative: a complete, open-source AI platform that you control entirely.
+
+## Why General Bots?
+
+Before diving into installation, let's understand what makes General Bots different:
+
+1. **Complete Ownership**: Unlike SaaS solutions that lock your data in the cloud, General Bots runs on your infrastructure. Your conversations, your data, your rules.
+
+2. **Zero-to-AI in Minutes**: Our bootstrap process sets up everything - database, storage, vector search, and AI models - with a single command. No DevOps expertise required.
+
+3. **Cost-Effective**: Running your own AI infrastructure can be 10x cheaper than cloud services at scale.
+
+4. **Privacy First**: Your data never leaves your servers. Perfect for healthcare, finance, or any privacy-conscious application.
 
 ## The One-Command Install
 
@@ -12,7 +24,7 @@ That's literally it. First run triggers auto-bootstrap that:
 - Installs PostgreSQL, cache, storage, vector DB
 - Downloads AI models
 - Creates default bot
-- Starts web server
+- Starts UI server
 
 Takes 2-5 minutes. Grab coffee. Come back to a running bot.
 
@@ -39,7 +51,7 @@ Downloading embeddings...           ✓
 Creating database schema...         ✓
 Generating secure credentials...    ✓
 Loading bot templates...            ✓
-Starting web server on :8080        ✓
+Starting UI server on :8080         ✓
 ```
 
 Everything lands in `botserver-stack/` directory. Fully self-contained.
@@ -147,6 +159,28 @@ rm -rf botserver-stack .env
 ```bash
 ./botserver status
 ```
+
+## See Also
+
+### Documentation
+- [Overview](./overview.md) - Architecture and concepts
+- [Quick Start](./quick-start.md) - Get running in 5 minutes
+- [Installation](./installation.md) - Detailed setup instructions
+- [First Conversation](./first-conversation.md) - Build your first bot
+- [Sessions and Channels](./sessions.md) - Multi-user support
+- [Chapter 2: Packages](../chapter-02/README.md) - Understanding bot components
+
+### Further Reading - Blog Posts
+- [Why We Chose Open Source](https://pragmatismo.cloud/blog/why-pragmatismo-selected-open-source) - Philosophy behind General Bots
+- [Escape from BigTech](https://pragmatismo.cloud/blog/escape-from-bigtech) - Breaking free from proprietary AI platforms
+- [Cost-Effective Bot Orchestration](https://pragmatismo.cloud/blog/cost-effective-bot-orchestration) - Economic benefits of self-hosting
+- [The Hidden Costs of SaaS](https://pragmatismo.cloud/blog/saas-hidden-costs) - Why owning your stack matters
+- [LLM Boom Is Over](https://pragmatismo.cloud/blog/llm-boom-is-over) - Focus on practical AI applications
+
+### Next Chapter
+Continue to [Chapter 2: About Packages](../chapter-02/README.md) to learn about the template system that makes General Bots so powerful.
+- [Chapter 3: Knowledge Base](../chapter-03/README.md) - Document management
+- [Chapter 5: BASIC Reference](../chapter-05/README.md) - Complete command list
 
 ## Container Deployment
 

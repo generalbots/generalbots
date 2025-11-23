@@ -52,7 +52,8 @@ ADD WEBSITE "https://company.com/docs"
 ### Using Collections
 ```basic
 USE KB "company-policies"
-LLM "What is the vacation policy?"
+TALK "What would you like to know about company policies?"
+' The system AI will search the KB automatically when responding
 ```
 
 ### Multiple Collections

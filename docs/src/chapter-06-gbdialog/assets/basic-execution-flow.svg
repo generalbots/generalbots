@@ -1,0 +1,99 @@
+<svg width="700" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="350" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#CBD5E0">BASIC Script Execution Flow</text>
+
+  <!-- start.bas (Raw Text) -->
+  <rect x="250" y="40" width="200" height="40" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
+  <text x="350" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#90CDF4">start.bas</text>
+  <text x="350" y="70" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#CBD5E0">(Raw Text)</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="60" x2="350" y2="90" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Tokenizer -->
+  <rect x="200" y="90" width="300" height="60" fill="none" stroke="#F6AD55" stroke-width="2" rx="8"/>
+  <text x="350" y="110" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FBD38D">Tokenizer (Rhai)</text>
+  <text x="350" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FED7AA">• Split into tokens</text>
+  <text x="350" y="145" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FED7AA">• Identify keywords</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="150" x2="350" y2="160" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Parser -->
+  <rect x="200" y="160" width="300" height="80" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
+  <text x="350" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#D6BCFA">Parser (AST)</text>
+  <text x="350" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#E9D8FD">• Build syntax tree</text>
+  <text x="350" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#E9D8FD">• Validate structure</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="240" x2="350" y2="270" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Keyword Mapping -->
+  <rect x="200" y="270" width="300" height="80" fill="none" stroke="#48BB78" stroke-width="2" rx="8"/>
+  <text x="350" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#68D391">Keyword Mapping</text>
+  <text x="350" y="315" text-anchor="middle" font-family="monospace" font-size="10" fill="#9AE6B4">TALK → talk_handler</text>
+  <text x="350" y="330" text-anchor="middle" font-family="monospace" font-size="10" fill="#9AE6B4">HEAR → hear_handler</text>
+
+  <!-- Arrow down -->
+  <line x1="350" y1="350" x2="350" y2="380" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Runtime Execution -->
+  <rect x="100" y="380" width="500" height="150" fill="none" stroke="#4A5568" stroke-width="2" rx="10" stroke-dasharray="5,5" opacity="0.6"/>
+  <text x="350" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#A0AEC0">Runtime Execution</text>
+
+  <!-- Execution boxes inside -->
+  <g id="execution-flow">
+    <!-- Line 1: TALK -->
+    <rect x="140" y="430" width="100" height="40" fill="none" stroke="#63B3ED" stroke-width="1" rx="5"/>
+    <text x="190" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#90CDF4">Line 1</text>
+    <text x="190" y="460" text-anchor="middle" font-family="monospace" font-size="10" fill="#CBD5E0">TALK</text>
+
+    <!-- Arrow -->
+    <line x1="240" y1="450" x2="280" y2="450" stroke="#888" stroke-width="1" marker-end="url(#arrow)"/>
+
+    <!-- Line 2: HEAR -->
+    <rect x="280" y="430" width="100" height="40" fill="none" stroke="#F6AD55" stroke-width="1" rx="5"/>
+    <text x="330" y="445" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FBD38D">Line 2</text>
+    <text x="330" y="460" text-anchor="middle" font-family="monospace" font-size="10" fill="#CBD5E0">HEAR</text>
+
+    <!-- Arrow down -->
+    <line x1="330" y1="470" x2="330" y2="480" stroke="#888" stroke-width="1" marker-end="url(#arrow)"/>
+
+    <!-- Line 3: IF/THEN -->
+    <rect x="280" y="480" width="100" height="40" fill="none" stroke="#B794F4" stroke-width="1" rx="5"/>
+    <text x="330" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#D6BCFA">Line 3</text>
+    <text x="330" y="510" text-anchor="middle" font-family="monospace" font-size="10" fill="#CBD5E0">IF/THEN</text>
+
+    <!-- Arrow -->
+    <line x1="380" y1="500" x2="420" y2="500" stroke="#888" stroke-width="1" marker-end="url(#arrow)"/>
+
+    <!-- Line 4: Action -->
+    <rect x="420" y="480" width="100" height="40" fill="none" stroke="#48BB78" stroke-width="1" rx="5"/>
+    <text x="470" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#68D391">Line 4</text>
+    <text x="470" y="510" text-anchor="middle" font-family="monospace" font-size="10" fill="#CBD5E0">Action</text>
+  </g>
+
+  <!-- Arrow down from Runtime -->
+  <line x1="350" y1="530" x2="350" y2="560" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- User Response -->
+  <rect x="250" y="560" width="200" height="60" fill="none" stroke="#FC8181" stroke-width="2" rx="8"/>
+  <text x="350" y="585" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FC8181">User Response</text>
+  <text x="350" y="605" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FEB2B2">Output/Interaction</text>
+
+  <!-- Process steps on the side -->
+  <g id="process-steps" font-family="Arial, sans-serif" font-size="12" fill="#718096">
+    <text x="50" y="60" text-anchor="end">1. Source</text>
+    <text x="50" y="120" text-anchor="end">2. Tokenize</text>
+    <text x="50" y="200" text-anchor="end">3. Parse</text>
+    <text x="50" y="310" text-anchor="end">4. Map</text>
+    <text x="50" y="450" text-anchor="end">5. Execute</text>
+    <text x="50" y="580" text-anchor="end">6. Output</text>
+  </g>
+</svg>

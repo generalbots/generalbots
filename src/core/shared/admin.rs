@@ -215,7 +215,7 @@ pub async fn get_system_status(
         version: "1.0.0".to_string(),
         services: vec![
             ServiceStatus {
-                name: "web_server".to_string(),
+                name: "ui_server".to_string(),
                 status: "running".to_string(),
                 uptime_seconds: 3600 * 24 * 7,
                 memory_mb: 256.5,
@@ -303,7 +303,7 @@ pub async fn view_logs(
             id: Uuid::new_v4(),
             timestamp: now,
             level: "info".to_string(),
-            service: "web_server".to_string(),
+            service: "ui_server".to_string(),
             message: "Request processed successfully".to_string(),
             metadata: Some(serde_json::json!({
                 "endpoint": "/api/files/list",
@@ -313,7 +313,9 @@ pub async fn view_logs(
         },
         LogEntry {
             id: Uuid::new_v4(),
-            timestamp: now.checked_sub_signed(chrono::Duration::minutes(5)).unwrap(),
+            timestamp: now
+                .checked_sub_signed(chrono::Duration::minutes(5))
+                .unwrap(),
             level: "warning".to_string(),
             service: "database".to_string(),
             message: "Slow query detected".to_string(),
@@ -324,7 +326,9 @@ pub async fn view_logs(
         },
         LogEntry {
             id: Uuid::new_v4(),
-            timestamp: now.checked_sub_signed(chrono::Duration::minutes(10)).unwrap(),
+            timestamp: now
+                .checked_sub_signed(chrono::Duration::minutes(10))
+                .unwrap(),
             level: "error".to_string(),
             service: "storage".to_string(),
             message: "Failed to upload file".to_string(),
@@ -399,7 +403,10 @@ pub async fn update_config(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
-        message: Some(format!("Configuration '{}' updated successfully", req.config_key)),
+        message: Some(format!(
+            "Configuration '{}' updated successfully",
+            req.config_key
+        )),
     }))
 }
 
@@ -590,23 +597,21 @@ pub async fn get_licenses(
 ) -> Result<Json<Vec<LicenseResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
-    let licenses = vec![
-        LicenseResponse {
-            id: Uuid::new_v4(),
-            license_type: "enterprise".to_string(),
-            status: "active".to_string(),
-            max_users: 1000,
-            current_users: 850,
-            features: vec![
-                "unlimited_storage".to_string(),
-                "advanced_analytics".to_string(),
-                "priority_support".to_string(),
-                "custom_integrations".to_string(),
-            ],
-            issued_at: now.checked_sub_signed(chrono::Duration::days(180)).unwrap(),
-            expires_at: Some(now.checked_add_signed(chrono::Duration::days(185)).unwrap()),
-        },
-    ];
+    let licenses = vec![LicenseResponse {
+        id: Uuid::new_v4(),
+        license_type: "enterprise".to_string(),
+        status: "active".to_string(),
+        max_users: 1000,
+        current_users: 850,
+        features: vec![
+            "unlimited_storage".to_string(),
+            "advanced_analytics".to_string(),
+            "priority_support".to_string(),
+            "custom_integrations".to_string(),
+        ],
+        issued_at: now.checked_sub_signed(chrono::Duration::days(180)).unwrap(),
+        expires_at: Some(now.checked_add_signed(chrono::Duration::days(185)).unwrap()),
+    }];
 
     Ok(Json(licenses))
 }
@@ -618,6 +623,9 @@ pub async fn manage_licenses(
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
-        message: Some(format!("License '{}' activated successfully", req.license_type)),
+        message: Some(format!(
+            "License '{}' activated successfully",
+            req.license_type
+        )),
     }))
 }

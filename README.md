@@ -54,10 +54,10 @@ General Bots is a **self-hosted AI automation platform** that provides:
 General Bots provides a minimal, focused system for managing Knowledge Bases and Tools:
 
 ```basic
-USE_KB "kb-name"        # Load knowledge base into vector database
-CLEAR_KB "kb-name"      # Remove KB from session
-USE_TOOL "tool-name"    # Make tool available to LLM
-CLEAR_TOOLS             # Remove all tools from session
+USE KB "kb-name"        # Load knowledge base into vector database
+CLEAR KB "kb-name"      # Remove KB from session
+USE TOOL "tool-name"    # Make tool available to LLM
+CLEAR TOOLS             # Remove all tools from session
 ```
 
 ### Strategic Advantages

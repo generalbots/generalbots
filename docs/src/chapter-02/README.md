@@ -184,9 +184,9 @@ The migration philosophy is to "open hand" (abrir mão) - release control and tr
 
 Example: Instead of 100 lines of intent matching and routing, just:
 ```basic
-' Let LLM understand and respond naturally
-answer = LLM "Help the user with their request"
-TALK answer
+' Let system AI handle conversations naturally
+TALK "How can I help you with your request?"
+' System AI understands context and responds appropriately
 ```
 
 ## Troubleshooting
@@ -218,3 +218,16 @@ TALK answer
 - Verify `start.bas` exists
 - Review runtime logs for errors
 - Test with simple dialog first
+
+## See Also
+
+- [.gbai Architecture](./gbai.md) - Root package structure
+- [.gbdialog Dialogs](./gbdialog.md) - BASIC conversation scripts
+- [.gbkb Knowledge Base](./gbkb.md) - Document collections
+- [.gbot Configuration](./gbot.md) - Bot settings
+- [.gbtheme Theming](./gbtheme.md) - UI customization
+- [.gbdrive Storage](./gbdrive.md) - File management
+- [Bot Templates](./templates.md) - Pre-built examples
+- [Chapter 3: Knowledge Base](../chapter-03/README.md) - Advanced KB features
+- [Chapter 5: BASIC Reference](../chapter-05/README.md) - Complete command list
+- [Chapter 7: Configuration](../chapter-07/config-csv.md) - Detailed config options

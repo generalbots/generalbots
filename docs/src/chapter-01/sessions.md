@@ -15,7 +15,7 @@ Think of it like a phone call that can pause and resume anytime.
 
 ## How Sessions Start
 
-### Web Interface
+### UI Interface
 1. User opens `http://localhost:8080`
 2. Browser gets a session token (UUID)
 3. Token stored in localStorage
@@ -205,35 +205,15 @@ Default limits (configurable):
 
 ## Advanced Features
 
-### Session Handoff
-Transfer conversation between channels:
-```basic
-' Start on web
-TRANSFER_SESSION "email"
-' Continue via email
-```
+### Session Persistence
+Sessions persist across server restarts by default through the cache layer. The session state is automatically restored when users reconnect.
 
-### Session Merge
-Combine anonymous session with login:
+### Session Context
+Each session maintains its own context for knowledge base and tool usage:
 ```basic
-ON LOGIN
-  MERGE_SESSION anonymous_id, user_id
-END
-```
-
-### Session Export
-Download conversation history:
-```basic
-history = GET "session.history"
-SAVE "conversation.txt", history
-```
-
-### Session Templates
-Pre-configure sessions:
-```basic
-' In start.bas
-LOAD_TEMPLATE "customer_support"
-' Sets up context, tools, initial message
+' Each session has isolated context
+USE KB "docs"
+' Only affects current session
 ```
 
 ## How It Works Automatically
@@ -251,13 +231,13 @@ You never need to manage sessions directly - just use the conversation keywords 
 
 ### Welcome Back
 ```basic
-last_visit = GET_BOT_MEMORY("last_visit_" + session_id)
+last_visit = GET BOT MEMORY("last_visit_" + session_id)
 if last_visit
   TALK "Welcome back! Last seen: " + last_visit
 else
   TALK "Welcome! First time here?"
 end
-SET_BOT_MEMORY "last_visit_" + session_id, NOW()
+SET BOT MEMORY "last_visit_" + session_id, NOW()
 ```
 
 ### Progressive Disclosure
@@ -272,16 +252,10 @@ else
 end
 ```
 
-### Session Persistence
+### Multi-User Support
 ```basic
-' Save progress
-SET checkpoint = "step_3_complete"
-
-' Later, restore progress
-GET checkpoint
-if checkpoint == "step_3_complete"
-  TALK "Let's continue from step 4"
-end
+' Each user has their own isolated session
+' The system automatically handles user separation
 ```
 
 ## Troubleshooting
@@ -303,12 +277,12 @@ end
 
 ## Write Once, Run Everywhere
 
-The same BASIC script runs across all channels - web, mobile apps, WhatsApp, Teams, email. Your investment in dialog development pays off everywhere:
+The same BASIC script runs across all channels - UI, mobile apps, WhatsApp, Teams, email. Your investment in dialog development pays off everywhere:
 
 ```basic
 ' This same script works on:
-' • Web interface
-' • Mobile apps (via web view)
+' • UI interface
+' • Mobile apps (via UI view)
 ' • WhatsApp Business
 ' • Microsoft Teams
 ' • Email conversations

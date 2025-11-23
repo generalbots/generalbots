@@ -1,19 +1,19 @@
 # Introduction to BotServer
 
-**Build conversational AI bots in minutes, not months.** BotServer lets you create intelligent chatbots by writing simple BASIC scripts and dropping in your documents. No complex frameworks, no cloud dependencies, no AI expertise required.
+**Build conversational AI bots in minutes, not months.** BotServer lets you create intelligent chatbots by writing simple [BASIC scripts](./chapter-02/gbdialog.md) and dropping in your [documents](./chapter-02/gbkb.md). No complex frameworks, no cloud dependencies, no AI expertise required.
 
 ## Quick Example
 
 Want a student enrollment bot? Here's all you need:
 
-1. **Drop your documents** in a folder:
+1. **Drop your documents** in a [`.gbkb` folder](./chapter-02/gbkb.md):
 ```
 edu.gbkb/
   enrollment-policy.pdf
   course-catalog.pdf
 ```
 
-2. **Write a simple tool** (optional):
+2. **Write a simple [tool](./chapter-03/kb-and-tools.md)** (optional):
 ```basic
 ' enrollment.bas
 PARAM name, email, course
@@ -37,14 +37,14 @@ The AI handles everything else - understanding intent, collecting information, e
 
 ## What Makes BotServer Different
 
-### Just Run It
+### [Just Run It](./chapter-01/quick-start.md)
 ```bash
 ./botserver
 ```
-That's it. No Kubernetes, no cloud accounts. The bootstrap process installs everything locally in 2-5 minutes. PostgreSQL, vector database, object storage, cache - all configured automatically with secure credentials.
+That's it. No Kubernetes, no cloud accounts. The [bootstrap process](./chapter-01/installation.md) installs everything locally in 2-5 minutes. [PostgreSQL](./chapter-07/postgresql.md), [vector database](./chapter-03/vector-collections.md), [object storage](./chapter-07/minio.md), [cache](./chapter-03/caching.md) - all configured automatically with secure credentials.
 
 ### Real BASIC, Real Simple
-Remember BASIC from the 80s? We brought it back for conversational AI:
+Remember BASIC from the 80s? We brought it back for conversational AI. See our [complete keyword reference](./chapter-05/README.md):
 ```basic
 ' save-note.bas - A simple tool
 PARAM topic, content
