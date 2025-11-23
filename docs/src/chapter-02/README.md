@@ -8,10 +8,10 @@ BotServer uses a template-based package system to organize bot resources. Each b
 |-----------|-----------|------|
 | Application Interface | `.gbai` | Root directory container for all bot resources |
 | Dialog scripts | `.gbdialog` | BASIC-style conversational logic (`.bas` files) |
-| Knowledge bases | `.gbkb` | Document collections for semantic search |
+| Knowledge bases | `.gbkb` | Document collections for semantic search (each folder is a collection for LLM/vector DB) |
 | Bot configuration | `.gbot` | CSV configuration file (`config.csv`) |
-| UI themes | `.gbtheme` | CSS/HTML assets for web interface customization |
-| File storage | `.gbdrive` | Object storage integration (MinIO/S3) |
+| UI themes | `.gbtheme` | Simple CSS theming - just place a `default.css` file |
+| File storage | `.gbdrive` | General file storage for bot data (not KB) - used by SEND FILE, GET, SAVE AS |
 
 ## How Packages Work
 
@@ -22,7 +22,7 @@ BotServer uses a template-based approach:
 1. **Templates Directory**: Bot packages are stored in `templates/` as `.gbai` folders
 2. **Auto-Discovery**: During bootstrap, the system scans for `.gbai` directories
 3. **Bot Creation**: Each `.gbai` package automatically creates a bot instance
-4. **Storage Upload**: Template files are uploaded to MinIO for persistence
+4. **Storage Upload**: Template files are uploaded to object storage for persistence
 5. **Runtime Loading**: Bots load their resources from storage when serving requests
 
 ### Package Structure
@@ -35,35 +35,24 @@ botname.gbai/
 │   ├── start.bas         # Entry point script
 │   ├── auth.bas          # Authentication flow
 │   └── *.bas             # Other dialog scripts
-├── botname.gbkb/         # Knowledge base
-│   ├── collection1/      # Document collection
-│   └── collection2/      # Another collection
+├── botname.gbkb/         # Knowledge base for LLM
+│   ├── collection1/      # Document collection (USE KB "collection1")
+│   └── collection2/      # Another collection (USE KB "collection2")
+├── botname.gbdrive/      # File storage (not KB)
+│   ├── uploads/          # User uploaded files
+│   ├── exports/          # Generated files (SAVE AS)
+│   └── templates/        # File templates
 ├── botname.gbot/         # Configuration
 │   └── config.csv        # Bot parameters
 └── botname.gbtheme/      # UI theme (optional)
-    ├── css/
-    ├── html/
-    └── assets/
+    └── default.css       # Theme CSS (CHANGE THEME "default")
 ```
 
 ## Included Templates
 
-BotServer ships with two example templates:
+BotServer includes 21 pre-built templates for various use cases: business bots (CRM, ERP, BI), communication (announcements, WhatsApp), AI tools (search, LLM utilities), and industry-specific solutions (education, legal, e-commerce).
 
-### default.gbai
-
-A minimal bot with basic configuration:
-- Includes only `default.gbot/config.csv`
-- Suitable starting point for new bots
-- Demonstrates core configuration parameters
-
-### announcements.gbai
-
-A complete example bot showcasing all features:
-- **Dialogs**: Multiple `.bas` scripts demonstrating conversation flows
-- **Knowledge Base**: Three collections (auxiliom, news, toolbix)
-- **Configuration**: Full configuration with LLM, email, and database settings
-- **Features**: Context management, suggestions, memory retrieval
+See [Template Reference](./templates.md) for the complete catalog and detailed descriptions.
 
 ## Creating Your Own Package
 
@@ -95,7 +84,7 @@ To create a new bot package:
 Development → Bootstrap → Storage → Runtime → Updates
      ↓            ↓          ↓         ↓         ↓
   Edit files   Scan .gbai  Upload   Load from  Modify &
-  in templates  folders    to MinIO  storage   restart
+  in templates  folders    to drive  storage   restart
 ```
 
 ### Development Phase
@@ -113,9 +102,9 @@ Development → Bootstrap → Storage → Runtime → Updates
 
 ### Storage Phase
 
-- Uploads all template files to MinIO (S3-compatible storage)
-- Indexes documents into Qdrant vector database
-- Stores configuration in PostgreSQL
+- Uploads all template files to object storage (drive)
+- Indexes documents into vector database
+- Stores configuration in database
 - Ensures persistence across restarts
 
 ### Runtime Phase
@@ -123,7 +112,7 @@ Development → Bootstrap → Storage → Runtime → Updates
 - Bots load dialogs on-demand from storage
 - Configuration is read from database
 - Knowledge base queries hit vector database
-- Session state maintained in Redis cache
+- Session state maintained in cache
 
 ### Update Phase
 
@@ -145,10 +134,10 @@ A single BotServer instance can host multiple bots:
 
 After bootstrap, package data is distributed across services:
 
-- **PostgreSQL**: Bot metadata, users, sessions, configuration
-- **MinIO/S3**: Template files, uploaded documents, assets
-- **Qdrant**: Vector embeddings for semantic search
-- **Redis/Valkey**: Session cache, temporary data
+- **Database**: Bot metadata, users, sessions, configuration
+- **Object Storage (Drive)**: Template files, uploaded documents, assets
+- **Vector Database**: Embeddings for semantic search
+- **Cache**: Session cache, temporary data
 - **File System**: Optional local caching
 
 ## Best Practices
@@ -182,10 +171,12 @@ After bootstrap, package data is distributed across services:
 
 ### Version Control
 
-- Commit entire `.gbai` packages to Git
-- Use `.gitignore` for generated files
-- Tag releases for production deployments
-- Document changes in commit messages
+- Packages are versioned in object storage with built-in versioning
+- The drive automatically maintains version history
+- For larger projects with split BASIC/LLM development teams:
+  - Use Git to track source changes
+  - Coordinate between dialog scripting and prompt engineering
+- Storage versioning handles production deployments
 
 ## Package Component Details
 
@@ -195,18 +186,27 @@ For detailed information about each package type:
 - **[.gbdialog Dialogs](./gbdialog.md)** - BASIC scripting and conversation flows
 - **[.gbkb Knowledge Base](./gbkb.md)** - Document indexing and semantic search
 - **[.gbot Bot Configuration](./gbot.md)** - Configuration parameters and settings
-- **[.gbtheme UI Theming](./gbtheme.md)** - Web interface customization
-- **[.gbdrive File Storage](./gbdrive.md)** - MinIO/S3 object storage integration
+- **[.gbtheme UI Theming](./gbtheme.md)** - Simple CSS theming
+- **[.gbdrive File Storage](./gbdrive.md)** - General file storage (not KB)
 
 ## Migration from Other Platforms
 
-If you're migrating from other bot platforms:
+When migrating from traditional bot platforms, the key is to **let go** of complex logic:
 
-- **Dialog Flows**: Convert to BASIC scripts in `.gbdialog/`
-- **Intents/Entities**: Use LLM-based understanding instead
-- **Knowledge Base**: Import documents into `.gbkb/` collections
-- **Configuration**: Map settings to `config.csv` parameters
-- **Custom Code**: Implement as Rust keywords or external tools
+- **Dialog Flows**: Use minimal BASIC scripts - let the LLM handle conversation flow
+- **Intents/Entities**: Remove entirely - LLM understands naturally
+- **State Machines**: Eliminate - LLM maintains context automatically
+- **Knowledge Base**: Simply drop documents into `.gbkb/` folders
+- **Complex Rules**: Replace with LLM intelligence
+
+The migration philosophy is to "open hand" (abrir mão) - release control and trust the LLM. Instead of converting every dialog branch and condition, use the minimum BASIC needed for tools and let the LLM do the heavy lifting. This results in simpler, more maintainable, and more natural conversations.
+
+Example: Instead of 100 lines of intent matching and routing, just:
+```basic
+' Let LLM understand and respond naturally
+answer = LLM "Help the user with their request"
+TALK answer
+```
 
 ## Troubleshooting
 
@@ -227,7 +227,7 @@ If you're migrating from other bot platforms:
 ### Knowledge Base Not Indexed
 
 - Ensure `.gbkb/` contains subdirectories with documents
-- Check Qdrant is running and accessible
+- Check vector database is running and accessible
 - Verify embedding model is configured
 - Review indexing logs for errors
 

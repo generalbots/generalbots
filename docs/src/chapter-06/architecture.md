@@ -23,8 +23,8 @@ BotServer
 │   └── Event Bus
 ├── Storage Layer
 │   ├── PostgreSQL
-│   ├── MinIO/S3
-│   ├── Redis Cache
+│   ├── Drive (S3-compatible)
+│   ├── Cache (Valkey)
 │   └── Qdrant Vector DB
 └── Services Layer
     ├── Authentication
@@ -287,14 +287,14 @@ Web scraping and automation:
 - Conversation history
 - System metadata
 
-#### Object Storage (MinIO/S3)
+#### Object Storage (Drive)
 - File uploads
 - Document storage
 - Media files
 - Backups
 - Logs
 
-#### Cache Layer (Redis)
+#### Cache Layer
 - Session cache
 - Frequently accessed data
 - Rate limiting
@@ -336,8 +336,8 @@ Web scraping and automation:
 ### Container Structure
 - Main application container
 - PostgreSQL database
-- MinIO storage
-- Redis cache
+- Drive storage (S3-compatible)
+- Cache (Valkey)
 - Qdrant vector DB
 - Nginx reverse proxy
 
@@ -464,9 +464,3 @@ Web scraping and automation:
 - Elastic scaling
 - Global CDN
 
-### Feature Roadmap
-- GraphQL API
-- Real-time collaboration
-- Advanced analytics
-- Machine learning pipeline
-- Blockchain integration

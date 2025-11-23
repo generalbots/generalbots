@@ -1,157 +1,197 @@
-# Chapter 04: UI Customization
+# Chapter 04: gbtheme Reference
 
-BotServer provides basic UI customization through configuration parameters in the `config.csv` file. While there's no dedicated `.gbtheme` package type, you can customize the appearance of the web interface using theme parameters.
+Themes control how your bot looks in the web interface. A theme is simply a CSS file that changes colors, fonts, and styles.
 
-## Overview
+## Quick Start
 
-The web interface theming system allows you to customize:
-- Brand colors (primary and secondary)
-- Logo image
-- Application title
-- Logo text
+1. Create a `.gbtheme` folder in your bot package
+2. Add a CSS file (like `default.css` or `3dbevel.css`)
+3. The theme loads automatically when the bot starts
 
-These customizations are applied dynamically to the web interface and broadcast to all connected clients in real-time.
-
-## Theme Configuration
-
-Theme settings are configured in your bot's `config.csv` file located in the `.gbot` directory:
+## Theme Structure
 
 ```
-templates/your-bot.gbai/your-bot.gbot/config.csv
+mybot.gbai/
+└── mybot.gbtheme/
+    ├── default.css      # Main theme
+    ├── 3dbevel.css      # Retro Windows 95 style
+    └── dark.css         # Dark mode variant
 ```
 
-### Available Theme Parameters
+## The 3D Bevel Theme
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `theme-color1` | Primary theme color | `#0d2b55` |
-| `theme-color2` | Secondary theme color | `#fff9c2` |
-| `theme-logo` | Logo image URL | `https://example.com/logo.svg` |
-| `theme-title` | Browser tab title | `My Custom Bot` |
-| `theme-logo-text` | Text displayed with logo | `Company Name` |
-| `Theme Color` | Simple color name (alternative) | `green`, `purple`, `indigo` |
+The `3dbevel.css` theme gives your bot a classic Windows 95 look with 3D beveled edges:
 
-## Implementation Details
+```css
+/* Everything uses monospace font for that retro feel */
+body, .card, .popover, .input, .button, .menu, .dialog {
+  font-family: 'IBM Plex Mono', 'Courier New', monospace !important;
+  background: #c0c0c0 !important;
+  color: #000 !important;
+  border-radius: 0 !important;  /* No rounded corners */
+  box-shadow: none !important;
+}
 
-### How Theme Changes Work
+/* 3D bevel effect on panels */
+.card, .popover, .menu, .dialog {
+  border: 2px solid #fff !important;           /* Top/left highlight */
+  border-bottom: 2px solid #404040 !important; /* Bottom shadow */
+  border-right: 2px solid #404040 !important;  /* Right shadow */
+  padding: 8px !important;
+  background: #e0e0e0 !important;
+}
 
-1. **Configuration Loading**: When a bot loads, it reads theme parameters from `config.csv`
-2. **Drive Monitoring**: The `DriveMonitor` watches for changes to the configuration file
-3. **Broadcasting**: Theme changes are broadcast to all connected web clients via WebSocket
-4. **Dynamic Application**: The web interface applies theme changes without requiring a page refresh
+/* Buttons with 3D effect */
+.button, button, input[type="button"], input[type="submit"] {
+  background: #e0e0e0 !important;
+  color: #000 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+  padding: 4px 12px !important;
+  font-weight: bold !important;
+}
 
-### Theme Event Structure
+/* Input fields look recessed */
+input, textarea, select {
+  background: #fff !important;
+  color: #000 !important;
+  border: 2px solid #404040 !important;  /* Reversed for inset look */
+  border-bottom: 2px solid #fff !important;
+  border-right: 2px solid #fff !important;
+}
 
-When theme parameters change, the system broadcasts a `change_theme` event:
+/* Classic scrollbars */
+::-webkit-scrollbar {
+  width: 16px !important;
+  background: #c0c0c0 !important;
+}
+::-webkit-scrollbar-thumb {
+  background: #404040 !important;
+  border: 2px solid #fff !important;
+  border-bottom: 2px solid #404040 !important;
+  border-right: 2px solid #404040 !important;
+}
 
-```json
-{
-  "event": "change_theme",
-  "data": {
-    "color1": "#0d2b55",
-    "color2": "#fff9c2",
-    "logo_url": "https://example.com/logo.svg",
-    "title": "Custom Title",
-    "logo_text": "Company Name"
-  }
+/* Blue hyperlinks like Windows 95 */
+a {
+  color: #0000aa !important;
+  text-decoration: underline !important;
 }
 ```
 
-## Web Interface Structure
+## How Themes Work
 
-The BotServer web interface consists of:
+1. **CSS Variables**: Themes use CSS custom properties for colors
+2. **Class Targeting**: Style specific bot UI elements
+3. **Important Rules**: Override default styles with `!important`
+4. **Font Stacks**: Provide fallback fonts for compatibility
 
-### Main Directories
-- `web/desktop/` - Desktop web application
-  - `chat/` - Chat interface components
-  - `css/` - Stylesheets
-  - `js/` - JavaScript files
-  - `public/` - Static assets
-- `web/html/` - Simplified HTML interface
+## Creating Your Own Theme
 
-### Key Files
-- `index.html` - Main application entry point
-- `chat/chat.js` - Chat interface logic with theme handling
-- `account.html` - User account management
-- `settings.html` - Bot settings interface
+Start with this template:
 
-## Customization Examples
+```css
+/* Basic color scheme */
+:root {
+  --primary: #007bff;
+  --background: #ffffff;
+  --text: #333333;
+  --border: #dee2e6;
+}
 
-### Example 1: Corporate Branding
+/* Chat container */
+.chat-container {
+  background: var(--background);
+  color: var(--text);
+}
 
-```csv
-name,value
-theme-color1,#003366
-theme-color2,#FFD700
-theme-logo,https://company.com/logo.png
-theme-title,Corporate Assistant
-theme-logo-text,ACME Corp
+/* Messages */
+.message-user {
+  background: var(--primary);
+  color: white;
+}
+
+.message-bot {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Input area */
+.chat-input {
+  border: 1px solid var(--border);
+  background: var(--background);
+}
 ```
 
-### Example 2: Simple Color Theme
+## Switching Themes
 
-```csv
-name,value
-Theme Color,teal
+Use the `CHANGE THEME` keyword in your BASIC scripts:
+
+```basic
+' Switch to retro theme
+CHANGE THEME "3dbevel"
+
+' Back to default
+CHANGE THEME "default"
+
+' Seasonal themes
+month = MONTH(NOW())
+IF month = 12 THEN
+  CHANGE THEME "holiday"
+END IF
 ```
 
-### Example 3: Educational Institution
+## Common Theme Elements
 
-```csv
-name,value
-theme-color1,#1e3a5f
-theme-color2,#f0f0f0
-theme-logo,https://university.edu/seal.svg
-theme-title,Campus Assistant
-theme-logo-text,State University
+### Message Bubbles
+```css
+.message {
+  padding: 10px;
+  margin: 5px;
+  border-radius: 10px;
+}
 ```
 
-## Dark Mode Support
+### Suggestion Buttons
+```css
+.suggestion-button {
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  padding: 8px 16px;
+  margin: 4px;
+  cursor: pointer;
+}
+```
 
-The web interface includes built-in dark mode support with CSS data attributes:
+### Input Field
+```css
+.chat-input {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+}
+```
 
-- Light mode: `[data-theme="light"]`
-- Dark mode: `[data-theme="dark"]`
+## Theme Best Practices
 
-The interface automatically adjusts colors, backgrounds, and contrast based on the user's theme preference.
+1. **Test on Multiple Browsers**: Ensure compatibility
+2. **Use Web-Safe Fonts**: Or include font files
+3. **High Contrast**: Ensure readability
+4. **Mobile Responsive**: Test on different screen sizes
+5. **Keep It Simple**: Don't overcomplicate the CSS
 
-## Limitations
+## File Naming
 
-Current theming capabilities are limited to:
-- Color customization (2 colors)
-- Logo replacement
-- Title and text changes
+- `default.css` - Loaded automatically as main theme
+- `dark.css` - Dark mode variant
+- `3dbevel.css` - Special theme (Windows 95 style)
+- `[name].css` - Any custom theme name
 
-Advanced customization like:
-- Custom CSS injection
-- Layout modifications
-- Component replacement
-- Font changes
+## Loading Order
 
-...are not currently supported through configuration. For these changes, you would need to modify the web interface source files directly.
+1. System default styles
+2. Theme CSS file
+3. Inline style overrides (if any)
 
-## Best Practices
-
-1. **Use Web-Safe Colors**: Ensure your color choices have sufficient contrast for accessibility
-2. **Logo Format**: Use SVG for logos when possible for better scaling
-3. **Logo Hosting**: Host logos on reliable CDNs or your own servers
-4. **Title Length**: Keep titles concise to avoid truncation in browser tabs
-5. **Test Changes**: Verify theme changes work across different browsers and devices
-
-## Real-Time Updates
-
-One of the key features is real-time theme updates. When you modify the `config.csv` file:
-
-1. Save your changes to `config.csv`
-2. The system detects the change automatically
-3. All connected clients receive the theme update
-4. The interface updates without requiring a refresh
-
-This makes it easy to experiment with different themes and see results immediately.
-
-## Next Steps
-
-- See [Theme Structure](./structure.md) for details on how themes are applied
-- See [Web Interface](./web-interface.md) for understanding the UI components
-- See [CSS Customization](./css.md) for advanced styling options
-- See [HTML Templates](./html.md) for modifying the interface structure
+The theme system keeps styling separate from bot logic, making it easy to change the look without touching the code.

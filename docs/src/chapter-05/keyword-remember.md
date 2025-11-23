@@ -256,4 +256,4 @@ END TRY
 
 Located in `src/basic/keywords/remember.rs`
 
-Uses persistent storage (PostgreSQL) with caching layer (Redis) for performance.
+Uses persistent storage (PostgreSQL) with caching layer (cache component) for performance.

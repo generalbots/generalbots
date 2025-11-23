@@ -173,4 +173,4 @@ END IF
 
 Located in `src/basic/keywords/add_suggestion.rs`
 
-Uses Redis cache for storage when available, falls back to in-memory storage.
+Uses cache component for storage when available, falls back to in-memory storage.

@@ -11,10 +11,10 @@ This document provides a comprehensive checklist for security and compliance req
 | **Caddy** | Reverse proxy, TLS termination, web server | Apache 2.0 |
 | **PostgreSQL** | Relational database | PostgreSQL License |
 | **Zitadel** | Identity and access management | Apache 2.0 |
-| **MinIO** | S3-compatible object storage | AGPLv3 |
+| **Drive** | S3-compatible object storage | AGPLv3 |
 | **Stalwart** | Mail server (SMTP/IMAP) | AGPLv3 |
 | **Qdrant** | Vector database | Apache 2.0 |
-| **Valkey** | In-memory cache (Redis-compatible) | BSD 3-Clause |
+| **Cache (Valkey)** | In-memory cache (Redis-compatible) | BSD 3-Clause |
 | **LiveKit** | Video conferencing | Apache 2.0 |
 | **Ubuntu** | Operating system | Various |
 
@@ -136,29 +136,29 @@ log_statement = 'all'
 
 ---
 
-## Object Storage (MinIO)
+## Object Storage (Drive)
 
 | Status | Requirement | Component | Standard | Implementation |
 |--------|-------------|-----------|----------|----------------|
-| ✅ | Encryption at Rest | MinIO | All | Server-side encryption (SSE-S3) |
-| ✅ | Encryption in Transit | MinIO | All | TLS for all connections |
-| ✅ | Bucket Policies | MinIO | All | Fine-grained access control policies |
-| ✅ | Object Versioning | MinIO | HIPAA | Version control for data recovery |
-| ✅ | Access Logging | MinIO | All | Detailed audit logs for all operations |
-| ⚠️ | Lifecycle Rules | MinIO | LGPD | Configure data retention and auto-deletion |
-| ✅ | Immutable Objects | MinIO | Compliance | WORM (Write-Once-Read-Many) support |
-| 🔄 | Replication | MinIO | HIPAA | Multi-site replication for DR |
-| ✅ | IAM Integration | MinIO | All | Integration with Zitadel via OIDC |
+| ✅ | Encryption at Rest | Drive | All | Server-side encryption (SSE-S3) |
+| ✅ | Encryption in Transit | Drive | All | TLS for all connections |
+| ✅ | Bucket Policies | Drive | All | Fine-grained access control policies |
+| ✅ | Object Versioning | Drive | HIPAA | Version control for data recovery |
+| ✅ | Access Logging | Drive | All | Detailed audit logs for all operations |
+| ⚠️ | Lifecycle Rules | Drive | LGPD | Configure data retention and auto-deletion |
+| ✅ | Immutable Objects | Drive | Compliance | WORM (Write-Once-Read-Many) support |
+| 🔄 | Replication | Drive | HIPAA | Multi-site replication for DR |
+| ✅ | IAM Integration | Drive | All | Integration with Zitadel via OIDC |
 
 **Environment Variables**:
 ```bash
-MINIO_ROOT_USER=admin
-MINIO_ROOT_PASSWORD=SecurePassword123!
-MINIO_SERVER_URL=https://minio.example.com
-MINIO_BROWSER=on
-MINIO_IDENTITY_OPENID_CONFIG_URL=http://localhost:8080/.well-known/openid-configuration
-MINIO_IDENTITY_OPENID_CLIENT_ID=minio
-MINIO_IDENTITY_OPENID_CLIENT_SECRET=secret
+DRIVE_ROOT_USER=admin
+DRIVE_ROOT_PASSWORD=SecurePassword123!
+DRIVE_SERVER_URL=https://drive.example.com
+DRIVE_BROWSER=on
+DRIVE_IDENTITY_OPENID_CONFIG_URL=http://localhost:8080/.well-known/openid-configuration
+DRIVE_IDENTITY_OPENID_CLIENT_ID=drive
+DRIVE_IDENTITY_OPENID_CLIENT_SECRET=secret
 ```
 
 **Bucket Policy Example**:
@@ -373,7 +373,7 @@ Unattended-Upgrade::Automatic-Reboot-Time "03:00";
 |--------|-------------|----------------|----------|
 | 🔄 | Automated Backups | Daily automated backups | All |
 | ✅ | Backup Encryption | AES-256 encrypted backups | All |
-| ✅ | Off-site Storage | MinIO replication to secondary site | HIPAA |
+| ✅ | Off-site Storage | Drive replication to secondary site | HIPAA |
 | 📝 | Backup Testing | Quarterly restore tests | All |
 | ✅ | Retention Policy | 90 days for full, 30 for incremental | All |
 
@@ -387,8 +387,8 @@ pg_dump -h localhost -U postgres botserver | \
   gzip | \
   openssl enc -aes-256-cbc -salt -out /backup/pg_${BACKUP_DATE}.sql.gz.enc
 
-# MinIO backup
-mc mirror minio/botserver /backup/minio_${BACKUP_DATE}/
+# Drive backup
+mc mirror drive/botserver /backup/drive_${BACKUP_DATE}/
 
 # Qdrant snapshot
 curl -X POST "http://localhost:6333/collections/botserver/snapshots"
@@ -463,7 +463,7 @@ curl -X POST "http://localhost:6333/collections/botserver/snapshots"
 | ✅ | User Rights | Same as GDPR |
 | ✅ | Consent | Zitadel consent management |
 | 📝 | Data Protection Officer | Designate DPO |
-| ⚠️ | Data Retention | Configure lifecycle policies in MinIO |
+| ⚠️ | Data Retention | Configure lifecycle policies in Drive |
 | ✅ | Breach Notification | Same incident response as GDPR |
 
 ---
@@ -471,7 +471,7 @@ curl -X POST "http://localhost:6333/collections/botserver/snapshots"
 ## Implementation Priority
 
 ### High Priority (Critical for Production)
-1. ✅ TLS 1.3 everywhere (Caddy, PostgreSQL, MinIO, Stalwart)
+1. ✅ TLS 1.3 everywhere (Caddy, PostgreSQL, Drive, Stalwart)
 2. ✅ MFA for all admin accounts (Zitadel)
 3. ✅ Firewall configuration (UFW)
 4. ✅ Automated security updates (unattended-upgrades)
@@ -537,8 +537,8 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades
 sudo -u postgres psql -c "ALTER SYSTEM SET ssl = 'on';"
 sudo systemctl restart postgresql
 
-# 4. Set MinIO encryption
-mc admin config set minio/ server-side-encryption-s3 on
+# 4. Set Drive encryption
+mc admin config set drive/ server-side-encryption-s3 on
 
 # 5. Configure Zitadel MFA
 # Via web console: Settings > Security > MFA > Require for admins

@@ -1,38 +1,99 @@
-# USE_TOOL Keyword
+# USE TOOL
 
-**Syntax**
-
-```
-USE_TOOL "tool-path.bas"
-```
-
-**Parameters**
-
-- `"tool-path.bas"` – Relative path to a `.bas` file inside the `.gbdialog` package (e.g., `enrollment.bas`).
-
-**Description**
-
-`USE_TOOL` compiles the specified BASIC script and registers it as a tool for the current session. The compiled tool becomes available for use in the same conversation, allowing its keywords to be invoked.
-
-The keyword performs the following steps:
-
-1. Extracts the tool name from the provided path (removing the `.bas` extension and any leading `.gbdialog/` prefix).
-2. Validates that the tool name is not empty.
-3. Spawns an asynchronous task that:
-   - Checks that the tool exists and is active for the bot in the `basic_tools` table.
-   - Inserts a row into `session_tool_associations` linking the tool to the current session (or does nothing if the association already exists).
-4. Returns a success message indicating the tool is now available, or an error if the tool cannot be found or the database operation fails.
-
-**Example**
+## Syntax
 
 ```basic
-USE_TOOL "enrollment.bas"
-TALK "Enrollment tool added. You can now use ENROLL command."
+USE TOOL tool-name
 ```
 
-After execution, the `enrollment.bas` script is compiled and its keywords become callable in the current dialog.
+## Parameters
 
-**Implementation Notes**
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| tool-name | String | Name of the tool to load (without .bas extension) |
 
-- The operation runs in a separate thread with its own Tokio runtime to avoid blocking the main engine.
-- Errors are logged and propagated as runtime errors in the BASIC script.
+## Description
+
+Loads a tool definition and makes it available to the LLM for the current session. Tools extend the bot's capabilities with specific functions like calculations, API calls, or data processing.
+
+## Examples
+
+### Basic Usage
+
+```basic
+' Load weather tool
+USE TOOL "weather"
+
+' Now LLM can use weather functions
+answer = LLM "What's the weather in Tokyo?"
+TALK answer
+```
+
+### Multiple Tools
+
+```basic
+' Load several tools
+USE TOOL "calculator"
+USE TOOL "translator"
+USE TOOL "date-time"
+
+' LLM has access to all loaded tools
+response = LLM "Calculate 15% tip on $45.80 and translate to Spanish"
+TALK response
+```
+
+### Conditional Loading
+
+```basic
+user_type = GET "user_type"
+
+IF user_type = "admin" THEN
+    USE TOOL "admin-functions"
+    USE TOOL "database-query"
+ELSE
+    USE TOOL "basic-search"
+END IF
+```
+
+### With Error Handling
+
+```basic
+tool_needed = "advanced-analytics"
+
+IF FILE EXISTS tool_needed + ".bas" THEN
+    USE TOOL tool_needed
+    TALK "Analytics tool loaded"
+ELSE
+    TALK "Advanced features not available"
+END IF
+```
+
+## Tool Definition Format
+
+Tools are defined as BASIC scripts with PARAM declarations:
+
+```basic
+' weather.bas
+PARAM location AS string LIKE "Tokyo" DESCRIPTION "City name"
+DESCRIPTION "Get current weather for a location"
+
+' Tool logic here
+temp = GET_TEMPERATURE(location)
+conditions = GET_CONDITIONS(location)
+result = location + ": " + temp + "°, " + conditions
+RETURN result
+```
+
+## Notes
+
+- Tools remain active for the entire session
+- Use CLEAR TOOLS to remove all loaded tools
+- Tool names should be descriptive
+- Tools are loaded from the .gbdialog/tools/ directory
+- Maximum 10 tools can be active simultaneously
+
+## Related
+
+- [CLEAR TOOLS](./keyword-clear-tools.md)
+- [Tool Definition](../chapter-08/tool-definition.md)
+- [PARAM Declaration](../chapter-08/param-declaration.md)

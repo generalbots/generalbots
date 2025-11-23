@@ -199,7 +199,7 @@ Keywords have access to:
 
 1. **AppState**: Application-wide state including:
    - Database connection pool (`state.conn`)
-   - Drive client for MinIO (`state.drive`)
+   - Drive client for S3-compatible storage (`state.drive`)
    - Cache client (`state.cache`)
    - Configuration (`state.config`)
    - LLM provider (`state.llm_provider`)

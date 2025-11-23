@@ -31,7 +31,7 @@ Session contains:
 
 Sessions stored in PostgreSQL:
 - `user_sessions` table
-- Cached in Redis for performance
+- Cached in cache component for performance
 - Automatic cleanup on expiry
 
 ## Message History

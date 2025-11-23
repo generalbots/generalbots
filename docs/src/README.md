@@ -25,7 +25,7 @@ This documentation has been **recently updated** to accurately reflect the actua
 - Riot compiler module (`src/riot_compiler/`)
 - Prompt manager (`src/prompt_manager/`)
 - API endpoints and web server routes
-- MinIO/S3 drive integration details
+- Drive (S3-compatible) integration details
 - Video conferencing (LiveKit) integration
 
 ---
@@ -37,8 +37,8 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 - **BASIC Scripting**: Simple `.bas` scripts for conversation flows
 - **Template Packages**: Organize bots as `.gbai` directories with dialogs, knowledge bases, and configuration
 - **Vector Search**: Semantic document retrieval with Qdrant
-- **LLM Integration**: OpenAI, local models, and custom providers
-- **Auto-Bootstrap**: Automated installation of PostgreSQL, Redis, MinIO, and more
+- **LLM Integration**: Local models, cloud APIs, and custom providers
+- **Auto-Bootstrap**: Automated installation of PostgreSQL, cache, drive, and more
 - **Multi-Bot Hosting**: Run multiple isolated bots on a single server
 
 ---
@@ -66,7 +66,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
   - [.gbkb Knowledge Base](chapter-02/gbkb.md) - Document collections
   - [.gbot Configuration](chapter-02/gbot.md) - Bot parameters
   - [.gbtheme UI Theming](chapter-02/gbtheme.md) - Web interface customization
-  - [.gbdrive File Storage](chapter-02/gbdrive.md) - MinIO/S3 integration
+  - [.gbdrive File Storage](chapter-02/gbdrive.md) - Drive (S3-compatible) integration
 
 ### Part III - Knowledge Base
 - [Chapter 03: gbkb Reference](chapter-03/README.md) - Semantic search and vector database
@@ -76,7 +76,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 
 ### Part V - BASIC Dialogs
 - [Chapter 05: gbdialog Reference](chapter-05/README.md) - Complete BASIC scripting reference
-  - Keywords: `TALK`, `HEAR`, `LLM`, `SET_CONTEXT`, `USE_KB`, and more
+  - Keywords: `TALK`, `HEAR`, `LLM`, `SET CONTEXT`, `USE KB`, and more
 
 ### Part VI - Extending BotServer
 - [Chapter 06: Rust Architecture Reference](chapter-06/README.md) - Internal architecture
@@ -123,9 +123,9 @@ BotServer is a **monolithic Rust application** (single crate) with the following
 
 ### Infrastructure
 - `bootstrap` - Auto-installation of components
-- `package_manager` - Manages PostgreSQL, Redis, MinIO, etc.
-- `web_server` - Axum HTTP API and WebSocket
-- `drive` - MinIO/S3 storage and vector DB
+- `package_manager` - Manages PostgreSQL, cache, drive, etc.
+- `web_server` - Axum HTTP REST API
+- `drive` - S3-compatible storage and vector DB
 - `config` - Environment configuration
 
 ### Features
@@ -143,8 +143,8 @@ BotServer is a **monolithic Rust application** (single crate) with the following
 - **Language**: Rust 2021 edition
 - **Web**: Axum + Tower + Tokio
 - **Database**: Diesel ORM + PostgreSQL
-- **Cache**: Redis/Valkey
-- **Storage**: AWS SDK S3 (MinIO)
+- **Cache**: Valkey (Redis-compatible)
+- **Storage**: AWS SDK S3 (drive component)
 - **Vector DB**: Qdrant (optional)
 - **Scripting**: Rhai engine
 - **Security**: Argon2, AES-GCM

@@ -1,7 +1,7 @@
 # Glossary
 
 ## A
-**Answer Mode** - Configuration that determines how the bot responds to user queries (direct LLM, with tools, documents only, etc.)
+
 
 **Argon2** - Password hashing algorithm used for secure credential storage (winner of Password Hashing Competition)
 
@@ -47,7 +47,8 @@
 ## M
 **MCP** - Model Context Protocol, a standard for tool definitions
 
-**MinIO** - S3-compatible object storage used for file management
+**Drive** - S3-compatible object storage component used for file management
+
 
 ## P
 **Parameter** - Input definition for tools that specifies type, format, and description

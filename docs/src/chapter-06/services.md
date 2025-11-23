@@ -142,7 +142,7 @@ The `nvidia` module provides GPU acceleration support:
 
 The `bootstrap` module handles system initialization:
 
-- **Component Installation**: Install required components (PostgreSQL, Redis, MinIO)
+- **Component Installation**: Install required components (PostgreSQL, cache, drive)
 - **Database Setup**: Create schemas and apply migrations
 - **Credential Generation**: Generate secure passwords for services
 - **Environment Configuration**: Write `.env` files
@@ -152,7 +152,7 @@ Key responsibilities:
 - Detect installation mode (local vs container)
 - Install and start system components
 - Initialize database with migrations
-- Configure MinIO/S3 storage
+- Configure drive (S3-compatible) storage
 - Create default bots from templates
 
 ### Package Manager (`package_manager`)
@@ -166,8 +166,8 @@ The `package_manager` module manages component installation:
 
 Components managed:
 - `tables` - PostgreSQL database
-- `cache` - Redis/Valkey cache
-- `drive` - MinIO object storage
+- `cache` - Valkey cache
+- `drive` - S3-compatible object storage
 - `llm` - Local LLM server
 - `email` - Email server
 - `proxy` - Reverse proxy
@@ -259,7 +259,7 @@ The `file` module processes various file types:
 - **PDF Extraction**: Extract text from PDFs
 - **Document Parsing**: Parse various document formats
 - **File Upload**: Handle multipart file uploads
-- **Storage Integration**: Save files to MinIO
+- **Storage Integration**: Save files to drive storage
 
 ### Meeting Integration (`meet`)
 
@@ -276,7 +276,7 @@ The `meet` module integrates with LiveKit for video conferencing:
 
 The `drive` module provides S3-compatible object storage:
 
-- **MinIO Integration**: AWS SDK S3 client
+- **Drive Integration**: AWS SDK S3 client
 - **Bucket Management**: Create and manage buckets
 - **Object Operations**: Upload, download, delete objects
 - **Vector Database**: Qdrant integration for semantic search

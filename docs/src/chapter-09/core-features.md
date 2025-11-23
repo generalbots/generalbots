@@ -88,11 +88,11 @@ The `file` module handles various document types:
 
 ## Object Storage
 
-### MinIO/S3 Integration
+### Drive (S3-Compatible) Integration
 
 The `drive` module provides cloud-native storage:
 
-- **S3-Compatible API**: Use AWS SDK with MinIO or AWS S3
+- **S3-Compatible API**: Use AWS SDK with S3-compatible storage
 - **Bucket Management**: Create and manage storage buckets
 - **Object Operations**: Upload, download, list, delete files
 - **Secure Access**: Credential-based authentication
@@ -130,11 +130,11 @@ Key database tables include:
 
 ## Caching
 
-Redis/Valkey integration via the `cache` component:
+Cache integration via the Valkey component:
 
 - **Session Caching**: Fast session state retrieval
 - **Query Caching**: Cache expensive database queries
-- **Rate Limiting**: Implement rate limits with Redis
+- **Rate Limiting**: Implement rate limits with cache component
 - **Distributed State**: Share state across multiple instances
 
 ## Automation & Scheduling
@@ -175,7 +175,7 @@ The `meet` module integrates with LiveKit:
 
 The `bootstrap` module provides automated setup:
 
-- **Component Installation**: Install PostgreSQL, Redis, MinIO, etc.
+- **Component Installation**: Install PostgreSQL, cache, drive, etc.
 - **Credential Generation**: Generate secure passwords automatically
 - **Database Initialization**: Apply migrations and create schema
 - **Environment Configuration**: Write `.env` files with settings
@@ -193,8 +193,8 @@ The `package_manager` handles component lifecycle:
 
 Available components include:
 - `tables` (PostgreSQL)
-- `cache` (Redis/Valkey)
-- `drive` (MinIO)
+- `cache` (Valkey)
+- `drive` (S3-compatible storage)
 - `llm` (Local LLM server)
 - `vector_db` (Qdrant)
 - `email`, `proxy`, `directory`, `dns`, `meeting`, and more

@@ -7,8 +7,8 @@ The `.gbot` package contains configuration files that define bot behavior, param
 `.gbot` files configure:
 - Bot identity and description
 - LLM provider settings
-- Answer modes and behavior
 - Context management
+- Bot behavior settings
 - Integration parameters
 
 ## Configuration Structure
@@ -19,7 +19,6 @@ The primary configuration file is `config.csv`:
 key,value
 bot_name,Customer Support Assistant
 bot_description,AI-powered support agent
-answer_mode,1
 llm_provider,openai
 llm_model,gpt-4
 temperature,0.7
@@ -73,10 +72,10 @@ Settings are applied in this order (later overrides earlier):
 
 Some settings can be changed at runtime:
 ```basic
-REM Change answer mode dynamically
-SET_BOT_MEMORY "answer_mode", "2"
+REM Store configuration dynamically
+SET BOT MEMORY "preferred_style", "detailed"
 ```
 
 ## Bot Memory
 
-The `SET_BOT_MEMORY` and `GET_BOT_MEMORY` keywords allow storing and retrieving bot-specific data that persists across sessions.
+The `SET BOT MEMORY` and `GET BOT MEMORY` keywords allow storing and retrieving bot-specific data that persists across sessions.

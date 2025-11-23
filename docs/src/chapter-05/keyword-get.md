@@ -18,7 +18,7 @@ GET "source" INTO variable
 - `"source"` — The location of the content to retrieve.  
   This can be:
   - An HTTP/HTTPS URL (e.g., `"https://api.example.com/data"`)
-  - A relative path to a file stored in the bot’s MinIO bucket or local drive.
+  - A relative path to a file stored in the bot's drive bucket or local storage.
 - `variable` — The variable that will receive the fetched content.
 
 ---
@@ -27,7 +27,7 @@ GET "source" INTO variable
 
 `GET` performs a read operation from the specified source.  
 If the source is a URL, the bot sends an HTTP GET request and retrieves the response body.  
-If the source is a file path, the bot reads the file content directly from its configured storage (e.g., MinIO or local filesystem).
+If the source is a file path, the bot reads the file content directly from its configured storage (e.g., drive component or local filesystem).
 
 The command automatically handles text extraction from PDF and DOCX files, converting them to plain UTF‑8 text.  
 If the request fails or the file cannot be found, an error message is returned.

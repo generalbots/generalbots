@@ -60,7 +60,7 @@ Each bot has isolated:
 - Bot memories
 - Knowledge bases
 - Configuration
-- MinIO bucket
+- Drive bucket
 
 ### Cross-Bot Protection
 
@@ -95,7 +95,7 @@ Bots created during bootstrap:
 1. Template found in `templates/`
 2. Bot registered in database
 3. Configuration loaded
-4. Resources uploaded to MinIO
+4. Resources uploaded to drive storage
 5. Knowledge base indexed
 
 ### Activation

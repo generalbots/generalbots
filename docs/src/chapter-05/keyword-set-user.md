@@ -51,7 +51,7 @@ FIND "recent orders"
 - Implemented in Rust under `src/session/mod.rs` and `src/org/mod.rs`.  
 - The keyword interacts with the session manager to update the active user ID.  
 - It ensures that all subsequent operations are scoped to the correct user context.  
-- If Redis or database caching is enabled, the user ID is stored for persistence across sessions.
+- If cache component or database caching is enabled, the user ID is stored for persistence across sessions.
 
 ---
 

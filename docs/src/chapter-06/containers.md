@@ -11,7 +11,7 @@ LXC is a lightweight container technology that runs on Linux:
 - **Isolation** - Separate process trees, networking, filesystems
 - **Resource control** - CPU, memory, and I/O limits
 
-BotServer uses LXC to run PostgreSQL, MinIO, and Valkey in isolated containers.
+BotServer uses LXC to run PostgreSQL, drive, and cache in isolated containers.
 
 ## Automatic Container Setup
 
@@ -40,8 +40,8 @@ Each component runs in a dedicated container:
 
 ```
 {tenant}-tables      → PostgreSQL database
-{tenant}-drive       → MinIO object storage
-{tenant}-cache       → Valkey cache
+{tenant}-drive       → Drive (S3-compatible object storage)
+{tenant}-cache       → Cache (Valkey)
 {tenant}-llm         → LLM server (optional)
 {tenant}-email       → Stalwart mail (optional)
 ```
@@ -74,9 +74,9 @@ Container ports are mapped to localhost:
 
 ```
 Container: 5432 → Host: 5432   (PostgreSQL)
-Container: 9000 → Host: 9000   (MinIO API)
-Container: 9001 → Host: 9001   (MinIO Console)
-Container: 6379 → Host: 6379   (Valkey)
+Container: 9000 → Host: 9000   (Drive API)
+Container: 9001 → Host: 9001   (Drive Console)
+Container: 6379 → Host: 6379   (Cache)
 ```
 
 Access services on localhost as if they were running natively!
@@ -106,10 +106,10 @@ Output:
 # PostgreSQL container
 lxc exec default-tables -- psql -U gbuser botserver
 
-# MinIO container
+# Drive container
 lxc exec default-drive -- mc admin info local
 
-# Valkey container
+# Cache container
 lxc exec default-cache -- valkey-cli ping
 ```
 

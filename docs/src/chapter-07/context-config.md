@@ -208,7 +208,7 @@ Maintain state within sessions:
 ```csv
 sessionStateEnabled,true
 sessionTimeout,1800
-sessionStorage,redis
+sessionStorage,cache
 ```
 
 Stores:
@@ -293,7 +293,7 @@ Cache frequently accessed context:
 
 ```csv
 contextCacheEnabled,true
-contextCacheProvider,redis
+contextCacheProvider,cache
 contextCacheTTL,300
 contextCacheMaxSize,1000
 ```

@@ -144,7 +144,7 @@ When implemented, the Whiteboard API will:
 1. **Use WebSocket** for real-time collaboration
 2. **Implement CRDT** for conflict-free editing
 3. **Store in PostgreSQL** with JSON columns
-4. **Cache in Redis** for performance
+4. **Cache in cache component** for performance
 5. **Use SVG** as primary format
 6. **Support touch devices** and stylus input
 7. **Include access controls** and permissions
@@ -183,7 +183,7 @@ The planned implementation will use:
 - **Y.js** or **OT.js** - Collaborative editing
 - **Fabric.js** - Canvas manipulation
 - **PostgreSQL** - Data persistence
-- **Redis** - Real-time state
+- **Cache** - Real-time state
 - **Sharp** - Image processing
 
 ## Workaround Example

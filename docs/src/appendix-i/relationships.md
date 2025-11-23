@@ -182,7 +182,7 @@ These relationships are frequently traversed and should be optimized:
 
 2. **bots → bot_memories**
    - Index: (bot_id, key)
-   - Used by GET_BOT_MEMORY/SET_BOT_MEMORY
+   - Used by GET BOT MEMORY/SET BOT MEMORY
 
 3. **kb_collections → kb_documents**
    - Index: (collection_id, indexed)

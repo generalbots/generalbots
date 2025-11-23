@@ -81,7 +81,7 @@ BotServer uses Zitadel as the primary identity provider:
 
 - **Access Tokens**: JWT with RS256 signing
 - **Refresh Tokens**: Secure random 256-bit
-- **Session Tokens**: UUID v4 with Redis storage
+- **Session Tokens**: UUID v4 with cache storage
 - **Token Rotation**: Automatic refresh on expiry
 
 ## Encryption & Cryptography
@@ -154,9 +154,9 @@ BotServer uses Zitadel as the primary identity provider:
 - SSL/TLS connections enforced
 ```
 
-### File Storage Security (MinIO)
+### File Storage Security (Drive)
 
-- **MinIO Configuration**:
+- **Drive Configuration**:
   - Bucket encryption: AES-256
   - Access: Policy-based access control
   - Versioning: Enabled
@@ -224,7 +224,7 @@ ZITADEL_DOMAIN="https://your-instance.zitadel.cloud"
 ZITADEL_CLIENT_ID="your-client-id"
 ZITADEL_CLIENT_SECRET="your-client-secret"
 
-# MinIO (Drive) configuration
+# Drive configuration
 MINIO_ENDPOINT="http://localhost:9000"
 MINIO_ACCESS_KEY="minioadmin"
 MINIO_SECRET_KEY="minioadmin"
@@ -234,9 +234,9 @@ MINIO_USE_SSL=true
 QDRANT_URL="http://localhost:6333"
 QDRANT_API_KEY="your-api-key"
 
-# Valkey (Cache) configuration
-VALKEY_URL="redis://localhost:6379"
-VALKEY_PASSWORD="your-password"
+# Cache configuration
+CACHE_URL="redis://localhost:6379"
+CACHE_PASSWORD="your-password"
 
 # Optional security enhancements
 BOTSERVER_ENABLE_AUDIT=true
@@ -354,14 +354,15 @@ app.example.com {
 ### Deployment
 
 1. **Container Security**
-   ```dockerfile
-   # Multi-stage build
-   FROM rust:1.75 as builder
-   # ... build steps ...
+   ```bash
+   # LXC security configuration
+   lxc config set botserver-prod security.privileged=false
+   lxc config set botserver-prod security.idmap.isolated=true
+   lxc config set botserver-prod security.nesting=false
    
-   # Minimal runtime
-   FROM gcr.io/distroless/cc-debian12
-   USER nonroot:nonroot
+   # Run as non-root user
+   lxc exec botserver-prod -- useradd -m botuser
+   lxc exec botserver-prod -- su - botuser
    ```
 
 2. **LXD/LXC Container Security**
@@ -383,7 +384,7 @@ app.example.com {
    ```
    # Firewall rules (UFW/iptables)
    - Ingress: Only from Caddy proxy
-   - Egress: PostgreSQL, MinIO, Qdrant, Valkey
+   - Egress: PostgreSQL, Drive, Qdrant, Cache
    - Block: All other traffic
    - Internal: Component isolation
    ```
@@ -414,7 +415,7 @@ app.example.com {
 
 - [ ] All secrets in environment variables
 - [ ] Database encryption enabled (PostgreSQL)
-- [ ] MinIO encryption enabled
+- [ ] Drive encryption enabled
 - [ ] Caddy TLS configured (automatic with Let's Encrypt)
 - [ ] Rate limiting enabled (Caddy)
 - [ ] CORS properly configured (Caddy)
@@ -436,7 +437,7 @@ app.example.com {
 - [ ] Regular security audits scheduled
 - [ ] Penetration testing completed
 - [ ] Compliance requirements met
-- [ ] Disaster recovery tested (PostgreSQL, MinIO backups)
+- [ ] Disaster recovery tested (PostgreSQL, Drive backups)
 - [ ] Access reviews scheduled (Zitadel)
 - [ ] Security training completed
 - [ ] Stalwart email security configured (DKIM, SPF, DMARC)
@@ -455,7 +456,7 @@ For security issues or questions:
 - [Caddy Security](https://caddyserver.com/docs/security) - Reverse proxy and TLS
 - [PostgreSQL Security](https://www.postgresql.org/docs/current/security.html) - Database
 - [Zitadel Security](https://zitadel.com/docs/guides/manage/security) - Identity and access
-- [MinIO Security](https://min.io/docs/minio/linux/operations/security.html) - Object storage
+- [Drive Security](https://min.io/docs/minio/linux/operations/security.html) - S3-compatible object storage
 - [Qdrant Security](https://qdrant.tech/documentation/guides/security/) - Vector database
 - [Valkey Security](https://valkey.io/topics/security/) - Cache
 

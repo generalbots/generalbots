@@ -16,14 +16,14 @@ The compilation process:
 ### 1. File Detection
 
 The `DriveMonitor` service watches for changes in `.gbdialog` directories:
-- Monitors `.bas` files in MinIO storage
+- Monitors `.bas` files in drive storage
 - Detects new or modified scripts
 - Triggers compilation automatically
 
 ### 2. Source Processing
 
 When a `.bas` file changes, the compiler:
-- Downloads the file from MinIO
+- Downloads the file from drive
 - Creates a local working directory
 - Invokes the `BasicCompiler` to process the script
 
@@ -111,7 +111,7 @@ Also generates OpenAI-compatible function definitions for API compatibility:
 
 Tools are recompiled automatically when:
 - The source `.bas` file is modified
-- The file's ETag changes in MinIO
+- The file's ETag changes in drive storage
 - A manual recompilation is triggered
 
 ## Working Directory Structure

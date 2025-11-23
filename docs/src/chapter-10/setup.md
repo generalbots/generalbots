@@ -27,9 +27,9 @@ This guide covers setting up a development environment for contributing to BotSe
 
 ### Optional Components
 
-- **MinIO**: For S3-compatible storage (auto-installed by bootstrap)
-- **Redis/Valkey**: For caching (auto-installed by bootstrap)
-- **Docker**: For containerized development
+- **Drive**: For S3-compatible storage (auto-installed by bootstrap)
+- **Cache (Valkey)**: For caching (auto-installed by bootstrap)
+- **LXC**: For containerized development
 
 ## Getting Started
 
@@ -69,8 +69,8 @@ cargo run
 
 On first run, bootstrap will:
 - Install PostgreSQL (if needed)
-- Install MinIO
-- Install Redis/Valkey
+- Install drive (S3-compatible storage)
+- Install cache (Valkey)
 - Create database schema
 - Upload bot templates
 - Generate secure credentials
@@ -199,6 +199,39 @@ diesel migration run
    ```
 4. Update models in `src/core/shared/models.rs`
 
+## Remote Development Setup
+
+### SSH Configuration for Stable Connections
+
+When developing on remote Linux servers, configure SSH for stable monitoring connections:
+
+Edit `~/.ssh/config`:
+
+```
+Host *
+    ServerAliveInterval 60
+    ServerAliveCountMax 5
+```
+
+This configuration:
+- **ServerAliveInterval 60**: Sends keepalive packets every 60 seconds
+- **ServerAliveCountMax 5**: Allows up to 5 missed keepalives before disconnecting
+- Prevents SSH timeouts during long compilations or debugging sessions
+- Maintains stable connections for monitoring logs and services
+
+### Remote Monitoring Tips
+
+```bash
+# Monitor BotServer logs in real-time
+ssh user@server 'tail -f botserver.log'
+
+# Watch compilation progress
+ssh user@server 'cd /path/to/botserver && cargo build --release'
+
+# Keep terminal session alive
+ssh user@server 'tmux new -s botserver'
+```
+
 ## Debugging
 
 ### Enable Debug Logging
@@ -284,8 +317,8 @@ cargo test --all-features
    - Verify DATABASE_URL is correct
    - Check user permissions
 
-2. **MinIO Connection Failed**
-   - Ensure MinIO is running on port 9000
+2. **Drive Connection Failed**
+   - Ensure drive is running on port 9000
    - Check DRIVE_ACCESSKEY and DRIVE_SECRET
 
 3. **Port Already in Use**
@@ -297,41 +330,56 @@ cargo test --all-features
    - Clean build: `cargo clean`
    - Check dependencies: `cargo tree`
 
-## Docker Development
+## LXC Development
 
-### Using Docker Compose
+### Using LXC Containers
 
-```yaml
-version: '3.8'
-services:
-  postgres:
-    image: postgres:14
-    environment:
-      POSTGRES_USER: gbuser
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: botserver
-    ports:
-      - "5432:5432"
-  
-  minio:
-    image: minio/minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-  
-  redis:
-    image: redis:7
-    ports:
-      - "6379:6379"
+```bash
+# Create development containers
+lxc-create -n botserver-dev-db -t download -- -d alpine -r 3.18 -a amd64
+lxc-create -n botserver-dev-drive -t download -- -d alpine -r 3.18 -a amd64
+lxc-create -n botserver-dev-cache -t download -- -d alpine -r 3.18 -a amd64
+
+# Configure PostgreSQL container
+lxc-start -n botserver-dev-db
+lxc-attach -n botserver-dev-db -- sh -c "
+  apk add postgresql14 postgresql14-client
+  rc-service postgresql setup
+  rc-service postgresql start
+  psql -U postgres -c \"CREATE USER gbuser WITH PASSWORD 'password';\"
+  psql -U postgres -c \"CREATE DATABASE botserver OWNER gbuser;\"
+"
+
+# Configure MinIO (Drive) container
+lxc-start -n botserver-dev-drive
+lxc-attach -n botserver-dev-drive -- sh -c "
+  wget https://dl.min.io/server/minio/release/linux-amd64/minio
+  chmod +x minio
+  MINIO_ROOT_USER=driveadmin MINIO_ROOT_PASSWORD=driveadmin ./minio server /data --console-address ':9001' &
+"
+
+# Configure Redis (Cache) container
+lxc-start -n botserver-dev-cache
+lxc-attach -n botserver-dev-cache -- sh -c "
+  apk add redis
+  rc-service redis start
+"
+
+# Get container IPs
+DB_IP=$(lxc-info -n botserver-dev-db -iH)
+DRIVE_IP=$(lxc-info -n botserver-dev-drive -iH)
+CACHE_IP=$(lxc-info -n botserver-dev-cache -iH)
+
+echo "Database: $DB_IP:5432"
+echo "Drive: $DRIVE_IP:9000"
+echo "Cache: $CACHE_IP:6379"
 ```
 
-Run services:
+Start all services:
 ```bash
-docker-compose up -d
+lxc-start -n botserver-dev-db
+lxc-start -n botserver-dev-drive
+lxc-start -n botserver-dev-cache
 ```
 
 ## Contributing Guidelines

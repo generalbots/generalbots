@@ -95,8 +95,8 @@ Bot parameters are organized into functional groups for easier management and un
 
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
-| `storageProvider` | String | No | "minio" | Storage provider |
-| `storageEndpoint` | String | Yes | "localhost:9000" | S3/MinIO endpoint |
+| `storageProvider` | String | No | "drive" | Storage provider |
+| `storageEndpoint` | String | Yes | "localhost:9000" | S3-compatible drive endpoint |
 | `storageAccessKey` | String | Yes | None | Access key |
 | `storageSecretKey` | String | Yes | None | Secret key |
 | `storageBucket` | String | No | "botserver" | Default bucket |
@@ -181,7 +181,7 @@ Bot parameters are organized into functional groups for easier management and un
 | Parameter | Type | Required | Default | Description |
 |-----------|------|----------|---------|-------------|
 | `cacheEnabled` | Boolean | No | true | Enable caching |
-| `cacheProvider` | String | No | "redis" | Cache provider |
+| `cacheProvider` | String | No | "cache" | Cache provider |
 | `cacheUrl` | String | No | "redis://localhost:6379" | Cache URL |
 | `cacheTtl` | Number | No | 3600 | Default TTL (s) |
 | `cacheMaxSize` | Number | No | 100 | Max cache size (MB) |

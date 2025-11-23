@@ -81,36 +81,6 @@ All LLM providers implement:
 - `get_embedding()` - Vector embeddings
 - `count_tokens()` - Token counting
 
-## Answer Modes
-
-### Direct LLM Mode
-
-Bot responds using only the LLM:
-```
-Answer Mode=direct
-```
-
-### Document Reference Mode
-
-LLM uses knowledge base documents:
-```
-Answer Mode=document-ref
-```
-
-### Tool Mode
-
-LLM can discover and call tools:
-```
-Answer Mode=tool
-```
-
-### Hybrid Mode
-
-Combines documents and tools:
-```
-Answer Mode=hybrid
-```
-
 ## Context Management
 
 ### Context Window
