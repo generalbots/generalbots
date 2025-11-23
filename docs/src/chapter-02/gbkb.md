@@ -45,21 +45,21 @@ Each document is processed into vector embeddings using:
 
 ### Creating Collections
 ```basic
-USE_KB "company-policies"
-ADD_WEBSITE "https://company.com/docs"
+USE KB "company-policies"
+ADD WEBSITE "https://company.com/docs"
 ```
 
 ### Using Collections
 ```basic
-USE_KB "company-policies"
+USE KB "company-policies"
 LLM "What is the vacation policy?"
 ```
 
 ### Multiple Collections
 ```basic
-USE_KB "policies"
-USE_KB "procedures"
-USE_KB "faqs"
+USE KB "policies"
+USE KB "procedures"
+USE KB "faqs"
 REM All active collections contribute to context
 ```
 
@@ -74,6 +74,6 @@ The knowledge base provides:
 ## Integration with Dialogs
 
 Knowledge bases are automatically used when:
-- `USE_KB` is called
+- `USE KB` is called
 - Answer mode is set to use documents
 - LLM queries benefit from contextual information

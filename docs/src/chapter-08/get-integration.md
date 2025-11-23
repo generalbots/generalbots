@@ -1,12 +1,12 @@
 # GET Keyword Integration
 
-The `GET` keyword in BotServer provides file retrieval capabilities from both local filesystem and MinIO/S3 storage, enabling tools to access documents, data files, and other resources.
+The `GET` keyword in BotServer provides file retrieval capabilities from both local filesystem and drive (S3-compatible) storage, enabling tools to access documents, data files, and other resources.
 
 ## Overview
 
 The `GET` keyword is a fundamental BASIC command that retrieves file contents as strings. It supports:
 - Local file system access (with safety checks)
-- MinIO/S3 bucket retrieval
+- Drive (S3-compatible) bucket retrieval
 - URL fetching (HTTP/HTTPS)
 - Integration with knowledge base documents
 
@@ -30,12 +30,12 @@ let webpage = GET "https://example.com/data.json"
 The GET keyword determines the source based on the path format:
 
 1. **URL Detection**: Paths starting with `http://` or `https://`
-2. **MinIO/S3 Storage**: All other paths (retrieved from bot's bucket)
+2. **Drive Storage**: All other paths (retrieved from bot's bucket)
 3. **Safety Validation**: Paths are checked for directory traversal attempts
 
-### MinIO/S3 Integration
+### Drive (S3-compatible) Integration
 
-When retrieving from MinIO:
+When retrieving from drive storage:
 
 ```basic
 # Retrieves from: {bot-name}.gbai bucket
@@ -46,7 +46,7 @@ let report = GET "reports/2024/quarterly.pdf"
 ```
 
 The implementation:
-1. Connects to MinIO using configured credentials
+1. Connects to drive using configured credentials
 2. Retrieves from the bot's dedicated bucket
 3. Returns file contents as string
 4. Handles binary files by converting to text
@@ -145,7 +145,7 @@ let filled = REPLACE(template, "{{name}}", customer_name)
 ### Timeouts
 
 - URL fetches: 30-second timeout
-- MinIO operations: Network-dependent
+- Drive operations: Network-dependent
 - Local files: Immediate (if accessible)
 
 ### File Size Limits

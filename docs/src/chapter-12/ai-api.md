@@ -20,11 +20,6 @@ AI features are currently available through:
    - Bot uses configured LLM provider
    - Responses streamed back
 
-3. **Answer Modes Configuration**
-   - Set in bot's config.csv
-   - Controls LLM behavior
-   - Document reference, tools, or direct modes
-
 ## Planned Endpoints
 
 ### Text Generation

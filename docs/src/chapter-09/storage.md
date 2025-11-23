@@ -6,8 +6,8 @@ BotServer uses multiple storage layers to handle different types of data, from s
 
 Storage in BotServer is organized into:
 - **PostgreSQL** - Structured data and metadata
-- **MinIO/S3** - Object storage for files and documents
-- **Redis/Valkey** - Session cache and temporary data
+- **Drive** - S3-compatible object storage for files and documents
+- **Cache (Valkey)** - Session cache and temporary data
 - **Qdrant** - Vector embeddings for semantic search
 - **Local filesystem** - Working directories and cache
 
@@ -16,7 +16,7 @@ Storage in BotServer is organized into:
 ### Data Flow
 
 ```
-User Upload → MinIO Storage → Processing → Database Metadata
+User Upload → Drive Storage → Processing → Database Metadata
                     ↓                           ↓
               Vector Database            PostgreSQL Tables
                     ↓                           ↓
@@ -54,14 +54,14 @@ Connection pool managed by Diesel:
 - Connection recycling
 - Timeout protection
 
-## MinIO/S3 Object Storage
+## Drive (S3-Compatible) Object Storage
 
 ### File Organization
 
-MinIO stores unstructured data:
+Drive stores unstructured data:
 
 ```
-minio/
+drive/
 ├── bot-name.gbai/           # Bot-specific bucket
 │   ├── bot-name.gbdialog/  # BASIC scripts
 │   ├── bot-name.gbkb/       # Knowledge base documents
@@ -84,11 +84,11 @@ DRIVE_ACCESSKEY=minioadmin
 DRIVE_SECRET=minioadmin
 ```
 
-## Redis/Valkey Cache
+## Cache (Valkey)
 
 ### Cached Data
 
-Redis stores temporary and cached data:
+Cache stores temporary and cached data:
 - Session tokens
 - Temporary conversation state
 - API response cache
@@ -111,9 +111,9 @@ temp:{key} → data (TTL: varies)
 ### Configuration
 
 ```bash
-REDIS_URL=redis://localhost:6379
-REDIS_POOL_SIZE=5
-REDIS_TTL_SECONDS=86400
+CACHE_URL=redis://localhost:6379
+CACHE_POOL_SIZE=5
+CACHE_TTL_SECONDS=86400
 ```
 
 ## Qdrant Vector Database
@@ -172,7 +172,7 @@ botserver/
    - Automated backup scripts
 
 2. **Object Storage**
-   - MinIO replication
+   - Drive replication
    - Versioning enabled
    - Cross-region backup
 
@@ -218,13 +218,13 @@ let config = GET "settings/config.json"
 
 1. **Use appropriate storage**
    - PostgreSQL for structured data
-   - MinIO for files
-   - Redis for cache
+   - Drive for files
+   - Cache (Valkey) for sessions
    - Qdrant for vectors
 
 2. **Implement caching**
    - Cache frequent queries
-   - Use Redis for sessions
+   - Use cache for sessions
    - Local cache for static files
 
 3. **Batch operations**
@@ -261,16 +261,16 @@ let config = GET "settings/config.json"
 
 Monitor these metrics:
 - Database size and growth
-- MinIO bucket usage
-- Redis memory usage
+- Drive bucket usage
+- Cache memory usage
 - Qdrant index size
 - Disk space available
 
 ### Health Checks
 
 - Database connectivity
-- MinIO availability
-- Redis response time
+- Drive availability
+- Cache response time
 - Qdrant query performance
 - Disk space warnings
 
@@ -297,8 +297,8 @@ Monitor these metrics:
 
 1. **Regular Maintenance**
    - Vacuum PostgreSQL
-   - Clean MinIO buckets
-   - Flush Redis cache
+   - Clean drive buckets
+   - Flush cache
    - Reindex Qdrant
 
 2. **Monitor Growth**
@@ -320,11 +320,11 @@ Monitor these metrics:
 MAX_CONNECTIONS=100
 STATEMENT_TIMEOUT=30s
 
-# MinIO
+# Drive
 MAX_OBJECT_SIZE=5GB
 BUCKET_QUOTA=100GB
 
-# Redis
+# Cache
 MAX_MEMORY=2GB
 EVICTION_POLICY=allkeys-lru
 

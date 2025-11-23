@@ -1,32 +1,162 @@
 # Web Interface
 
-The **gbtheme** web interface provides the front‑end experience for end users. It consists of three core HTML pages and a set of JavaScript modules that handle real‑time communication with the bot server.
+The **gbtheme** web interface provides the front-end experience for end users through a simple REST API architecture.
 
-## Pages
+## Interface Components
 
-| Page | Purpose |
-|------|---------|
-| `index.html` | Application shell, loads the main JavaScript bundle and displays the navigation bar. |
-| `chat.html` | Primary conversation view – shows the chat transcript, input box, and typing indicator. |
-| `login.html` | Simple authentication screen used when the bot is configured with a login flow. |
+| Component | Purpose |
+|-----------|---------|
+| Chat UI | Main conversation interface with input and message display |
+| REST API | HTTP endpoints for message exchange |
+| CSS Theme | Visual customization through CSS variables |
 
-## JavaScript Modules
+## REST API Endpoints
 
-* **app.js** – Initializes the WebSocket connection, routes incoming bot messages to the UI, and sends user input (`TALK`) back to the server.
-* **websocket.js** – Low‑level wrapper around the browser’s `WebSocket` API, handling reconnection logic and ping/pong keep‑alive.
+The bot communicates through standard HTTP REST endpoints:
 
-## Interaction Flow
+```
+POST /api/message      Send user message
+GET  /api/session      Get session info
+POST /api/upload       Upload files
+GET  /api/history      Get conversation history
+```
 
-1. **Load** – `index.html` loads `app.js`, which creates a `WebSocket` to `ws://<host>/ws`.
-2. **Handshake** – The server sends a `HELLO` message containing bot metadata (name, version).
-3. **User Input** – When the user presses *Enter* in the chat input, `app.js` sends a `TALK` JSON payload.
-4. **Bot Response** – The server streams `MESSAGE` events; `app.js` appends them to the chat window.
-5. **Typing Indicator** – While the LLM processes, the server sends a `TYPING` event; the UI shows an animated ellipsis.
+## Message Flow
 
-## Customization Points
+1. **User Input** - User types message in chat interface
+2. **API Call** - Frontend sends POST to `/api/message`
+3. **Processing** - Server processes with LLM and tools
+4. **Response** - JSON response with bot message
+5. **Display** - Frontend renders response in chat
 
-* **CSS Variables** – Override colors, fonts, and spacing in `css/main.css` (`:root { --primary-color: … }`).
-* **HTML Layout** – Replace the `<header>` or `<footer>` sections in `index.html` to match branding.
-* **JS Hooks** – Add custom event listeners in `app.js` (e.g., analytics on `MESSAGE` receipt).
+## Simple Integration
 
-All files are located under the theme’s `web/` and `js/` directories as described in the [Theme Structure](./structure.md).
+```javascript
+// Send message to bot
+async function sendMessage(text) {
+  const response = await fetch('/api/message', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: text })
+  });
+  const data = await response.json();
+  displayMessage(data.response);
+}
+```
+
+## Theme Customization
+
+The interface uses CSS variables for easy customization:
+
+```css
+/* In your theme's default.css */
+:root {
+  --primary-color: #0d2b55;
+  --secondary-color: #fff9c2;
+  --background: #ffffff;
+  --text-color: #333333;
+  --font-family: 'Inter', sans-serif;
+}
+```
+
+## Response Format
+
+The API returns simple JSON responses:
+
+```json
+{
+  "response": "Bot message text",
+  "session_id": "uuid",
+  "timestamp": "2024-01-01T12:00:00Z",
+  "tools_used": ["weather", "calendar"]
+}
+```
+
+## File Uploads
+
+Users can upload files through the standard multipart form:
+
+```
+POST /api/upload
+Content-Type: multipart/form-data
+
+Returns:
+{
+  "file_id": "uuid",
+  "status": "processed",
+  "extracted_text": "..."
+}
+```
+
+## Session Management
+
+Sessions are handled automatically through cookies or tokens:
+- Session created on first message
+- Persisted across conversations
+- Context maintained server-side
+
+## Mobile Responsive
+
+The default interface is mobile-first:
+- Touch-friendly input
+- Responsive layout
+- Optimized for small screens
+- Progressive enhancement
+
+## Accessibility
+
+Built-in accessibility features:
+- Keyboard navigation
+- Screen reader support
+- High contrast mode support
+- Focus indicators
+
+## Performance
+
+Optimized for speed:
+- Minimal JavaScript
+- CSS-only animations
+- Lazy loading
+- CDN-ready assets
+
+## Browser Support
+
+Works on all modern browsers:
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+- Mobile browsers
+
+## Integration Examples
+
+### Embed in Website
+```html
+<iframe src="https://bot.example.com" 
+        width="400" 
+        height="600">
+</iframe>
+```
+
+### Custom Frontend
+```javascript
+// Use any frontend framework
+const BotClient = {
+  async send(message) {
+    return fetch('/api/message', {
+      method: 'POST',
+      body: JSON.stringify({ message })
+    });
+  }
+};
+```
+
+## Security
+
+- CORS configured for embedding
+- CSRF protection on POST requests
+- Rate limiting per session
+- Input sanitization
+- XSS prevention
+
+All theming is done through simple CSS files as described in the [Theme Structure](./structure.md).

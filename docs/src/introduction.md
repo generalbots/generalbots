@@ -30,9 +30,9 @@ BotServer is implemented as a single Rust crate (version 6.0.8) with modular com
 ### Infrastructure Modules
 
 - **`bootstrap`** - Automated system initialization and component installation
-- **`package_manager`** - Manages 20+ components (PostgreSQL, Redis, MinIO, Qdrant, etc.)
+- **`package_manager`** - Manages 20+ components (PostgreSQL, cache, drive, Qdrant, etc.)
 - **`web_server`** - Axum-based HTTP API and WebSocket server
-- **`drive`** - MinIO/S3 object storage and vector database integration
+- **`drive`** - S3-compatible object storage and vector database integration
 - **`config`** - Application configuration from `.env` and database
 
 ### Feature Modules
@@ -73,7 +73,7 @@ templates/
 - **`.gbkb`** - Document collections for semantic search
 - **`.gbot`** - Bot configuration in `config.csv` format
 - **`.gbtheme`** - Optional UI customization (CSS/HTML)
-- **`.gbdrive`** - MinIO/S3 storage integration
+- **`.gbdrive`** - Drive (S3-compatible) storage integration
 
 ## Key Features
 
@@ -116,8 +116,8 @@ Custom keywords include:
 BotServer automatically installs and configures:
 
 1. **PostgreSQL** - User accounts, sessions, bot configuration
-2. **Redis/Valkey** - Session cache and temporary data
-3. **MinIO** - S3-compatible object storage
+2. **Cache (Valkey)** - Session cache and temporary data
+3. **Drive** - S3-compatible object storage
 4. **Qdrant** - Vector database for semantic search
 5. **Local LLM** - Optional local model server
 6. **Email Server** - Optional SMTP/IMAP
@@ -162,8 +162,8 @@ Flexible AI provider support:
 ### Storage Architecture
 
 - **PostgreSQL**: Structured data (users, bots, sessions, messages)
-- **Redis**: Session cache and rate limiting
-- **MinIO/S3**: Documents, templates, and assets
+- **Cache**: Session cache and rate limiting
+- **Drive (S3)**: Documents, templates, and assets
 - **Qdrant**: Vector embeddings for semantic search
 - **File System**: Optional local caching
 
@@ -184,8 +184,8 @@ Flexible AI provider support:
 - **Web Framework**: Axum + Tower
 - **Async Runtime**: Tokio
 - **Database**: Diesel ORM with PostgreSQL
-- **Cache**: Redis client (tokio-comp)
-- **Storage**: AWS SDK S3 (MinIO compatible)
+- **Cache**: Valkey client (Redis-compatible, tokio-comp)
+- **Storage**: AWS SDK S3 (drive compatible)
 - **Vector DB**: Qdrant client (optional feature)
 - **Scripting**: Rhai engine for BASIC interpreter
 - **Security**: Argon2, AES-GCM, HMAC-SHA256
@@ -197,8 +197,7 @@ Flexible AI provider support:
 BotServer supports multiple deployment modes:
 
 - **Local**: Install components directly on the host system
-- **Container**: Use containerized components (Docker/Podman)
-- **Hybrid**: Mix of local and containerized services
+- **Container**: Use LXC containers for isolation
 
 The `package_manager` handles component lifecycle in all modes.
 

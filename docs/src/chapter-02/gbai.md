@@ -28,7 +28,7 @@ my-bot.gbai/
 
 ## Included Templates
 
-BotServer includes two template `.gbai` packages:
+BotServer includes 21 template `.gbai` packages in the `/templates` directory:
 
 ### default.gbai
 
@@ -55,7 +55,7 @@ A feature-rich example bot:
 
 Contains BASIC-like scripts (`.bas` files) that define conversation logic:
 - Simple English-like syntax
-- Custom keywords: `TALK`, `HEAR`, `LLM`, `GET_BOT_MEMORY`, `SET_CONTEXT`
+- Custom keywords: `TALK`, `HEAR`, `LLM`, `GET BOT MEMORY`, `SET CONTEXT`
 - Control flow and variables
 - Tool integration
 
@@ -104,9 +104,9 @@ During the Auto Bootstrap process:
    - Folder name `default.gbai` → Bot name "Default"
    - Folder name `announcements.gbai` → Bot name "Announcements"
 3. **Configuration Loading**: Bot configuration from `.gbot/config.csv` is loaded
-4. **Template Upload**: All template files are uploaded to MinIO storage
+4. **Template Upload**: All template files are uploaded to object storage (drive)
 5. **Dialog Loading**: BASIC scripts from `.gbdialog` are loaded and ready to execute
-6. **KB Indexing**: Documents from `.gbkb` are indexed into Qdrant vector database
+6. **KB Indexing**: Documents from `.gbkb` are indexed into vector database
 
 ## Creating Custom .gbai Packages
 
@@ -152,7 +152,7 @@ To create a custom bot:
 
 1. **Development**: Edit files in `templates/your-bot.gbai/`
 2. **Bootstrap**: System creates bot from template
-3. **Storage**: Files uploaded to MinIO for persistence
+3. **Storage**: Files uploaded to object storage for persistence
 4. **Runtime**: Bot loads dialogs and configuration from storage
 5. **Updates**: Modify template files and restart to apply changes
 
@@ -167,10 +167,10 @@ A single BotServer instance can host multiple bots:
 ## Package Storage
 
 After bootstrap, packages are stored in:
-- **MinIO/S3**: Template files and assets
-- **PostgreSQL**: Bot metadata and configuration
-- **Qdrant**: Vector embeddings from knowledge bases
-- **Redis**: Session and cache data
+- **Object Storage**: Template files and assets
+- **Database**: Bot metadata and configuration
+- **Vector Database**: Embeddings from knowledge bases
+- **Cache**: Session and cache data
 
 ## Naming Conventions
 

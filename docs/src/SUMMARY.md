@@ -10,6 +10,7 @@
   - [Installation](./chapter-01/installation.md)
   - [First Conversation](./chapter-01/first-conversation.md)
   - [Understanding Sessions](./chapter-01/sessions.md)
+  - [NVIDIA GPU Setup for LXC](./chapter-01/nvidia-gpu-setup.md)
 
 # Part II - Package System
 
@@ -41,6 +42,8 @@
   - [Web Interface](./chapter-04/web-interface.md)
   - [CSS Customization](./chapter-04/css.md)
   - [HTML Templates](./chapter-04/html.md)
+  - [Desktop Mode](./chapter-04/desktop-mode.md)
+  - [Console Mode](./chapter-04/console-mode.md)
 
 # Part V - BASIC Dialogs
 
@@ -49,30 +52,28 @@
   - [Universal Messaging & Multi-Channel](./chapter-05/universal-messaging.md)
   - [Template Examples](./chapter-05/templates.md)
     - [start.bas](./chapter-05/template-start.md)
-    - [auth.bas](./chapter-05/template-auth.md)
     - [generate-summary.bas](./chapter-05/template-summary.md)
     - [enrollment Tool Example](./chapter-05/template-enrollment.md)
   - [Keyword Reference](./chapter-05/keywords.md)
     - [TALK](./chapter-05/keyword-talk.md)
     - [HEAR](./chapter-05/keyword-hear.md)
-    - [SET_USER](./chapter-05/keyword-set-user.md)
-    - [SET_CONTEXT](./chapter-05/keyword-set-context.md)
+    - [SET USER](./chapter-05/keyword-set-user.md)
+    - [SET CONTEXT](./chapter-05/keyword-set-context.md)
     - [LLM](./chapter-05/keyword-llm.md)
-    - [GET_BOT_MEMORY](./chapter-05/keyword-get-bot-memory.md)
-    - [SET_BOT_MEMORY](./chapter-05/keyword-set-bot-memory.md)
-    - [USE_KB](./chapter-05/keyword-use-kb.md)
-    - [CLEAR_KB](./chapter-05/keyword-clear-kb.md)
-    - [ADD_WEBSITE](./chapter-05/keyword-add-website.md)
-    - [USE_TOOL](./chapter-05/keyword-use-tool.md)
-    - [CLEAR_TOOLS](./chapter-05/keyword-clear-tools.md)
+    - [GET BOT MEMORY](./chapter-05/keyword-get-bot-memory.md)
+    - [SET BOT MEMORY](./chapter-05/keyword-set-bot-memory.md)
+    - [USE KB](./chapter-05/keyword-use-kb.md)
+    - [CLEAR KB](./chapter-05/keyword-clear-kb.md)
+    - [ADD WEBSITE](./chapter-05/keyword-add-website.md)
+    - [USE TOOL](./chapter-05/keyword-use-tool.md)
+    - [CLEAR TOOLS](./chapter-05/keyword-clear-tools.md)
     - [GET](./chapter-05/keyword-get.md)
-    - [FIND](./chapter-05/keyword-find.md)
     - [SET](./chapter-05/keyword-set.md)
     - [ON](./chapter-05/keyword-on.md)
-    - [SET_SCHEDULE](./chapter-05/keyword-set-schedule.md)
-    - [CREATE_SITE](./chapter-05/keyword-create-site.md)
-    - [CREATE_DRAFT](./chapter-05/keyword-create-draft.md)
-    - [CREATE_TASK](./chapter-05/keyword-create-task.md)
+    - [SET SCHEDULE](./chapter-05/keyword-set-schedule.md)
+    - [CREATE SITE](./chapter-05/keyword-create-site.md)
+    - [CREATE DRAFT](./chapter-05/keyword-create-draft.md)
+    - [CREATE TASK](./chapter-05/keyword-create-task.md)
     - [PRINT](./chapter-05/keyword-print.md)
     - [WAIT](./chapter-05/keyword-wait.md)
     - [FORMAT](./chapter-05/keyword-format.md)
@@ -80,14 +81,16 @@
     - [LAST](./chapter-05/keyword-last.md)
     - [FOR EACH](./chapter-05/keyword-for-each.md)
     - [EXIT FOR](./chapter-05/keyword-exit-for.md)
-    - [ADD_MEMBER](./chapter-05/keyword-add-member.md)
-    - [ADD_SUGGESTION](./chapter-05/keyword-add-suggestion.md)
-    - [CLEAR_SUGGESTIONS](./chapter-05/keyword-clear-suggestions.md)
+    - [ADD MEMBER](./chapter-05/keyword-add-member.md)
+    - [ADD SUGGESTION](./chapter-05/keyword-add-suggestion.md)
+    - [CLEAR SUGGESTIONS](./chapter-05/keyword-clear-suggestions.md)
     - [BOOK](./chapter-05/keyword-book.md)
     - [REMEMBER](./chapter-05/keyword-remember.md)
-    - [SAVE_FROM_UNSTRUCTURED](./chapter-05/keyword-save-from-unstructured.md)
-    - [SEND_MAIL](./chapter-05/keyword-send-mail.md)
+    - [SAVE FROM UNSTRUCTURED](./chapter-05/keyword-save-from-unstructured.md)
+    - [SEND MAIL](./chapter-05/keyword-send-mail.md)
     - [WEATHER](./chapter-05/keyword-weather.md)
+    - [FIND](./chapter-05/keyword-find.md)
+    - [CHANGE THEME](./chapter-05/keyword-change-theme.md)
 
 # Part VI - Extending BotServer
 
@@ -95,7 +98,6 @@
   - [Architecture Overview](./chapter-06/architecture.md)
   - [Building from Source](./chapter-06/building.md)
   - [Container Deployment (LXC)](./chapter-06/containers.md)
-  - [SMB Deployment Guide](./chapter-06/smb-deployment.md)
   - [Module Structure](./chapter-06/crates.md)
   - [Service Layer](./chapter-06/services.md)
   - [Creating Custom Keywords](./chapter-06/custom-keywords.md)
@@ -107,10 +109,9 @@
 - [Chapter 07: gbot Reference](./chapter-07/README.md)
   - [config.csv Format](./chapter-07/config-csv.md)
   - [Bot Parameters](./chapter-07/parameters.md)
-  - [Answer Modes](./chapter-07/answer-modes.md)
   - [LLM Configuration](./chapter-07/llm-config.md)
   - [Context Configuration](./chapter-07/context-config.md)
-  - [MinIO Drive Integration](./chapter-07/minio.md)
+  - [Drive Integration](./chapter-07/minio.md)
 
 # Part VIII - Tools and Integration
 
@@ -119,7 +120,7 @@
   - [PARAM Declaration](./chapter-08/param-declaration.md)
   - [Tool Compilation](./chapter-08/compilation.md)
   - [MCP Format](./chapter-08/mcp-format.md)
-  - [OpenAI Tool Format](./chapter-08/openai-format.md)
+  - [Tool Format](./chapter-08/openai-format.md)
   - [GET Keyword Integration](./chapter-08/get-integration.md)
   - [External APIs](./chapter-08/external-apis.md)
 
@@ -147,6 +148,7 @@
   - [Testing](./chapter-10/testing.md)
   - [Pull Requests](./chapter-10/pull-requests.md)
   - [Documentation](./chapter-10/documentation.md)
+  - [IDE Extensions](./chapter-10/ide-extensions.md)
 
 # Part XI - Authentication and Security
 
@@ -193,10 +195,5 @@
   - [Schema Overview](./appendix-i/schema.md)
   - [Tables](./appendix-i/tables.md)
   - [Relationships](./appendix-i/relationships.md)
-
-- [Appendix II: Project Status](./appendix-ii/README.md)
-  - [Build Status](./appendix-ii/build-status.md)
-  - [Production Status](./appendix-ii/production-status.md)
-  - [Integration Status](./appendix-ii/integration-status.md)
 
 [Glossary](./glossary.md)

@@ -457,32 +457,42 @@ Remove all build artifacts:
 cargo clean
 ```
 
-## Docker Build
+## LXC Build
 
-Build inside Docker container:
-
-```dockerfile
-FROM rust:1.75-slim as builder
-
-RUN apt-get update && apt-get install -y \
-    pkg-config libssl-dev libpq-dev cmake
-
-WORKDIR /app
-COPY . .
-
-RUN cargo build --release --no-default-features
-
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y libpq5 ca-certificates
-COPY --from=builder /app/target/release/botserver /usr/local/bin/
-
-CMD ["botserver"]
-```
-
-Build Docker image:
+Build inside LXC container:
 
 ```bash
-docker build -t botserver:latest .
+# Create build container
+lxc-create -n botserver-build -t download -- -d ubuntu -r jammy -a amd64
+
+# Configure container with build resources
+cat >> /var/lib/lxc/botserver-build/config << EOF
+lxc.cgroup2.memory.max = 4G
+lxc.cgroup2.cpu.max = 400000 100000
+EOF
+
+# Start container
+lxc-start -n botserver-build
+
+# Install build dependencies
+lxc-attach -n botserver-build -- bash -c "
+apt-get update
+apt-get install -y build-essential pkg-config libssl-dev libpq-dev cmake curl git
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+source \$HOME/.cargo/env
+"
+
+# Build BotServer
+lxc-attach -n botserver-build -- bash -c "
+git clone https://github.com/GeneralBots/BotServer /build
+cd /build
+source \$HOME/.cargo/env
+cargo build --release --no-default-features
+"
+
+# Copy binary from container
+lxc-attach -n botserver-build -- cat /build/target/release/botserver > /usr/local/bin/botserver
+chmod +x /usr/local/bin/botserver
 ```
 
 ## Installation

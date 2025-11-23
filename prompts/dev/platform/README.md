@@ -8,7 +8,9 @@ When initial attempts fail, sequentially try these LLMs:
 1. **Claude (Web)**: Copy only the problem statement and create unit tests. Create/extend UI.
 
 ### Development Workflow:
-- **One requirement at a time** with sequential commits
+- **One requirement at a time** with sequential commits.
+- Start editing docs before any code, explain user behaviour in docs first with LLM, before code in rust. 
+- Spend time on design and architecture before coding. Code structure of packages and skeltons with ideas concretized from documentation. But focus in docs first, because LLM can help with design and architecture, and code better.
 - **On unresolved error**: Stop and use add-req.sh, and consult Claude for guidance.  with DeepThining in DeepSeek also, with Web turned on.
 - **Change progression**: Start with DeepSeek, conclude with gpt-oss-120b
 - If a big req. fail, specify a @code file that has similar pattern or sample from official docs.

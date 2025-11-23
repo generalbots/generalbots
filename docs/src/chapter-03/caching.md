@@ -1,43 +1,100 @@
-# Caching (Optional)
+# Caching
 
-Caching can improve response times for frequently accessed knowledge‑base queries.
+BotServer includes automatic caching to improve response times and reduce redundant processing.
 
-## In‑Memory Cache
+## How Caching Works
 
-The bot maintains an LRU (least‑recently‑used) cache of the last 100 `FIND` results. This cache is stored in the bot’s process memory and cleared on restart.
-
-## Persistent Cache
-
-For longer‑term caching, the `gbkb` package can write query results to a local SQLite file (`cache.db`). The cache key is a hash of the query string and collection name.
+Caching in BotServer is controlled by configuration parameters in `config.csv`. The system automatically caches LLM responses and manages conversation history.
 
 ## Configuration
 
-Add the following to `.gbot/config.csv`:
+From `default.gbai/default.gbot/config.csv`:
 
 ```csv
-key,value
-cache_enabled,true
-cache_max_entries,500
+llm-cache,false              # Enable/disable LLM response caching
+llm-cache-ttl,3600          # Cache time-to-live in seconds
+llm-cache-semantic,true     # Use semantic similarity for cache matching
+llm-cache-threshold,0.95    # Similarity threshold for cache hits
 ```
 
-## Usage Example
+## Conversation History Management
+
+The system manages conversation context through these parameters:
+
+```csv
+prompt-history,2    # Number of previous messages to include in context
+prompt-compact,4    # Compact conversation after N exchanges
+```
+
+### What These Settings Do
+
+- **prompt-history**: Keeps the last 2 exchanges in the conversation context
+- **prompt-compact**: After 4 exchanges, older messages are summarized or removed to save tokens
+
+## LLM Response Caching
+
+When `llm-cache` is enabled:
+
+1. User asks a question
+2. System checks if a semantically similar question was asked before
+3. If similarity > threshold (0.95), returns cached response
+4. Otherwise, generates new response and caches it
+
+## Example Usage
 
 ```basic
-USE_KB "company-policies"
-FIND "vacation policy" INTO RESULT   ' first call hits VectorDB
-FIND "vacation policy" INTO RESULT   ' second call hits cache
-TALK RESULT
+' Caching happens automatically when enabled
+USE KB "policies"
+
+' First user asks: "What's the vacation policy?"
+' System generates response and caches it
+
+' Second user asks: "Tell me about vacation days"
+' System finds cached response (high semantic similarity)
+' Returns instantly without calling LLM
 ```
 
-The second call returns instantly from the cache.
+## Cache Storage
 
-## Cache Invalidation
-
-- When a document is added or updated, the cache for that collection is cleared.
-- Manual invalidation: `CLEAR_CACHE "company-policies"` (custom keyword provided by the system).
+The cache is stored in the cache component (Valkey) when available, providing:
+- Fast in-memory access
+- Persistence across restarts
+- Shared cache across sessions
 
 ## Benefits
 
-- Reduces latency for hot queries.
-- Lowers load on VectorDB.
-- Transparent to the script author; caching is automatic.
+- **Faster responses** for common questions
+- **Lower costs** by reducing LLM API calls
+- **Consistent answers** for similar questions
+- **Automatic management** with no code changes
+
+## Best Practices
+
+1. **Enable for FAQ bots** - High cache hit rate
+2. **Adjust threshold** - Lower for more cache hits, higher for precision
+3. **Set appropriate TTL** - Balance freshness vs performance
+4. **Monitor cache hits** - Ensure it's providing value
+
+## Performance Impact
+
+With caching enabled:
+- Common questions: <50ms response time
+- Cache misses: Normal LLM response time
+- Memory usage: Minimal (only stores text responses)
+
+## Clearing Cache
+
+Cache is automatically cleared when:
+- TTL expires (after 3600 seconds by default)
+- Bot configuration changes
+- Knowledge base is updated
+- System restarts (if not using persistent cache)
+
+## Important Notes
+
+- Caching is transparent to dialog scripts
+- No special commands needed
+- Works with all LLM providers
+- Respects conversation context
+
+Remember: Caching is configured in `config.csv`, not through BASIC commands!

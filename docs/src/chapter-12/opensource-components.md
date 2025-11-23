@@ -14,12 +14,12 @@ Each component is registered automatically and downloaded from verified open-sou
 
 ### Valkey (Cache)
 - **Source:** [valkey.io](https://valkey.io)
-- **Purpose:** In-memory caching system compatible with Redis.
+- **Purpose:** In-memory caching system (Redis-compatible).
 - **License:** BSD 3-Clause
 
-### MinIO (Drive)
+### Drive (S3-Compatible Storage)
 - **Source:** [min.io](https://min.io)
-- **Purpose:** Object storage compatible with Amazon S3.
+- **Purpose:** S3-compatible object storage for file management.
 - **License:** AGPLv3
 
 ### Qdrant (Vector Database)

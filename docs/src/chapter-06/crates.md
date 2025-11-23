@@ -48,7 +48,7 @@ The following modules are exported in `src/lib.rs` and comprise the core functio
 The following directories exist in `src/` but are either internal implementations or not fully integrated:
 
 - **`api/`** - Contains `api/drive` subdirectory with drive-related API code
-- **`drive/`** - MinIO/S3 integration and vector database (`vectordb.rs`)
+- **`drive/`** - Drive (S3-compatible) integration and vector database (`vectordb.rs`)
 - **`ui/`** - UI-related modules (`drive.rs`, `stream.rs`, `sync.rs`, `local-sync.rs`)
 - **`ui_tree/`** - UI tree structure (used in main.rs but not exported in lib.rs)
 - **`prompt_manager/`** - Prompt library storage (not a Rust module, contains `prompts.csv`)
@@ -61,9 +61,9 @@ All dependencies are managed through a single `Cargo.toml` at the project root. 
 
 - **Web Framework**: `axum`, `tower`, `tower-http`
 - **Async Runtime**: `tokio`
-- **Database**: `diesel` (PostgreSQL), `redis` (cache)
+- **Database**: `diesel` (PostgreSQL), `redis` (cache component client)
 - **AI/ML**: `qdrant-client` (vector DB, optional feature)
-- **Storage**: `aws-sdk-s3` (MinIO/S3 compatible)
+- **Storage**: `aws-sdk-s3` (drive/S3 compatible)
 - **Scripting**: `rhai` (BASIC-like language runtime)
 - **Security**: `argon2` (password hashing), `aes-gcm` (encryption)
 - **Desktop**: `tauri` (optional desktop feature)

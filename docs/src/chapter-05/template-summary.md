@@ -56,7 +56,7 @@ Common schedule patterns:
 text = GET "announcements.gbkb/news/news.pdf"
 ```
 
-The `GET` keyword retrieves files from the bot's knowledge base stored in MinIO. The path is relative to the bot's bucket.
+The `GET` keyword retrieves files from the bot's knowledge base stored in drive storage. The path is relative to the bot's bucket.
 
 ### Generating Summaries with LLM
 

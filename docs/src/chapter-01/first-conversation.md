@@ -177,21 +177,28 @@ Traditional chatbots require complex logic:
 ' ❌ OLD WAY - DON'T DO THIS!
 IF user_input CONTAINS "enroll" THEN
   TALK "What's your name?"
-  HEAR name
-  TALK "What's your email?"
-  HEAR email
-  ' ... lots more code ...
-ENDIF
-```
+  ' ❌ OLD WAY - Complex multi-step dialog
+  IF intent = "enrollment" THEN
+    TALK "Let me help you enroll. What's your name?"
+    HEAR name
+    TALK "What's your email?"
+    HEAR email
+    ' ... lots more code ...
+  ENDIF
+  ```
 
-With BotServer:
+  With BotServer:
 
-```bas
-' ✅ NEW WAY - Just create the tool!
-PARAM name AS string
-PARAM email AS string
-DESCRIPTION "Enrollment tool"
-SAVE "enrollments.csv", name, email
+  ```bas
+  ' ✅ NEW WAY - Just create the tool!
+  ' In enrollment.bas - becomes a tool automatically
+  PARAM name AS string
+  PARAM email AS string
+  DESCRIPTION "Collects enrollment information"
+
+  ' The tool is called by LLM when needed
+  SAVE "enrollments.csv", name, email
+  TALK "Successfully enrolled " + name
 ```
 
 The LLM handles all the conversation logic!
@@ -201,7 +208,7 @@ The LLM handles all the conversation logic!
 ### Customer Support Bot
 - Add product manuals to `.gbkb/`
 - Create `create-ticket.bas` tool
-- LLM answers questions and creates support tickets
+- LLM answers questions and creates support tickets automatically
 
 ### HR Assistant
 - Add employee handbook to `.gbkb/`
@@ -225,9 +232,10 @@ The LLM handles all the conversation logic!
 The LLM can load tools based on context:
 
 ```bas
-' In start.bas - minimal setup
-USE_KB "general"  ' Load general knowledge base
-' Tools are auto-discovered from .gbdialog/ folder
+' In start.bas - minimal setup, no HEAR needed
+USE KB "general"  ' Load general knowledge base
+' Tools in .gbdialog/ are auto-discovered
+' LLM handles the conversation naturally
 ```
 
 ### Multi-Language Support
@@ -291,7 +299,7 @@ Don't try to control every aspect of the conversation. Let the LLM:
 
 ## Next Steps
 
-- [Understanding Sessions](./sessions.md) - How conversations persist
+- [Quick Start](./quick-start.md) - Build your first bot
 - [About Packages](../chapter-02/README.md) - Package structure
 - [Tool Definition](../chapter-08/tool-definition.md) - Creating tools
 - [Knowledge Base](../chapter-03/README.md) - Document management

@@ -15,7 +15,7 @@ The knowledge base system provides:
 
 ### Storage Layers
 
-1. **MinIO/S3 Storage** - Raw document files
+1. **Drive (S3-compatible) Storage** - Raw document files
 2. **PostgreSQL** - Document metadata and references
 3. **Qdrant** - Vector embeddings for semantic search
 
@@ -97,7 +97,7 @@ CLEAR_KB             # Clear all
 ### ADD_KB (Implicit)
 
 Documents in .gbkb folders are automatically:
-- Uploaded to MinIO
+- Uploaded to drive storage
 - Indexed into Qdrant
 - Available for USE_KB
 
@@ -105,7 +105,7 @@ Documents in .gbkb folders are automatically:
 
 ### Document Processing Pipeline
 
-1. **Upload**: Files uploaded to MinIO bucket
+1. **Upload**: Files uploaded to drive bucket
 2. **Extraction**: Text extracted from documents
 3. **Chunking**: Documents split into segments
 4. **Embedding**: Generate vector embeddings
@@ -221,7 +221,7 @@ TALK summary
 ### Caching
 
 - Embedding cache for repeated queries
-- Document cache in Redis
+- Document cache in cache component
 - Search result caching
 - Metadata caching
 
