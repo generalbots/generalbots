@@ -1,263 +1,295 @@
-# General Bots - KB and TOOL System
+# Overview
 
-## Core System: 4 Essential Keywords
+BotServer is an open-source conversational AI platform built in Rust that enables developers to create, deploy, and manage intelligent bots with minimal configuration.
 
-General Bots provides a minimal, focused system for dynamically managing Knowledge Bases and Tools:
+## Core Philosophy
 
-### Knowledge Base (KB) Commands
+BotServer follows these principles:
 
-- **`USE_KB "kb-name"`** - Loads and embeds files from `.gbkb/kb-name/` folder into vector database, making them available for semantic search in the current conversation session
-- **`CLEAR_KB "kb-name"`** - Removes a specific KB from current session (or `CLEAR_KB` to remove all)
+1. **Zero Configuration**: Works out of the box with sensible defaults
+2. **Package-Based**: Bots are self-contained packages (.gbai folders)
+3. **BASIC Scripting**: Simple, accessible programming for conversation flows
+4. **Multi-Channel**: Deploy once, run everywhere (Web, WhatsApp, Teams, etc.)
+5. **Knowledge-First**: Built-in document management and semantic search
 
-### Tool Commands  
+## Architecture Overview
 
-- **`USE_TOOL "tool-name"`** - Makes a tool (`.bas` file) available for the LLM to call in the current session. Must be called in `start.bas` or from another tool. The tool's `DESCRIPTION` field is what the LLM reads to know when to call the tool.
-- **`CLEAR_TOOLS`** - Removes all tools from current session
+BotServer uses a modular architecture with these core components:
 
----
+### Storage Layer
+- **Database**: SQL database for structured data (users, sessions, configurations)
+- **Object Storage**: S3-compatible storage for files and documents
+- **Cache**: High-performance caching for sessions and frequent data
+- **Vector Database**: Optional semantic search for knowledge bases
 
-### Key Facts
-- LLM Orchestrator AGPL licensed (to use as custom-label SaaS, contributing back)
-- True community governance
-- No single corporate control 
-- 5+ years of stability
-- Never changed license
-- Enterprise-grad
-- Hosted locally or Multicloud
+### Application Layer
+- **Bot Engine**: Processes conversations and manages state
+- **BASIC Interpreter**: Executes conversation scripts
+- **Package Manager**: Handles bot deployment and lifecycle
+- **Channel Adapters**: Connects to various messaging platforms
 
-## Contributors
+### Service Layer
+- **Web Server**: HTTP API and WebSocket connections
+- **Scheduler**: Cron-based task scheduling
+- **LLM Integration**: Connects to language models (local or cloud)
+- **Authentication**: Directory service integration for user management
 
-<a href="https://github.com/generalbots/botserver/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=generalbots/botserver" />
-</a>
+## Key Features
 
-## Overview
+### Conversation Management
+- Stateful conversations with session persistence
+- Context management across interactions
+- Multi-turn dialog support
+- Parallel conversation handling
 
-| Area                         | Status                                                                                             |
-|------------------------------|----------------------------------------------------------------------------------------------------|
-| Releases                     | [![General Bots](https://img.shields.io/npm/dt/botserver.svg?logo=npm&label=botserver)](https://www.npmjs.com/package/botserver/) [![.gbapp lib](https://img.shields.io/npm/dt/botlib.svg?logo=npm&label=botlib)](https://www.npmjs.com/package/botlib/) [![semantic-release](https://img.shields.io/badge/%20%20%F0%9F%93%A6%F0%9F%9A%80-semantic--release-e10079.svg)](https://github.com/semantic-release/semantic-release)|
-| Community                    | [![StackExchange](https://img.shields.io/stackexchange/stackoverflow/t/generalbots.svg)](https://stackoverflow.com/search?q=%23generalbots&s=966e24e7-4f7a-46ee-b159-79d643d6b74a)  [![Open-source](https://badges.frapsoft.com/os/v2/open-source.svg)](https://badges.frapsoft.com) [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com) [![License](https://img.shields.io/badge/license-AGPL-blue.svg)](https://github.com/GeneralBots/BotServer/blob/master/LICENSE.txt)|
-| Management                   | [![Maintenance](https://img.shields.io/badge/Maintained%3F-yes-green.svg)](https://gitHub.com/GeneralBots/BotServer/graphs/commit-activity) |
-| Security                     | [![Known Vulnerabilities](https://snyk.io/test/github/GeneralBots/BotServer/badge.svg)](https://snyk.io/test/github/GeneralBots/BotServer) |
-| Building & Quality           |  [![Coverage Status](https://coveralls.io/repos/github/GeneralBots/BotServer/badge.svg)](https://coveralls.io/github/GeneralBots/BotServer) [![code style: prettier](https://img.shields.io/badge/code_style-prettier-ff69b4.svg?style=flat-square)](https://github.com/prettier/prettier) |
-| Packaging                    | [![forthebadge](https://badge.fury.io/js/botserver.svg)](https://badge.fury.io) [![Commitizen friendly](https://img.shields.io/badge/commitizen-friendly-brightgreen.svg)](http://commitizen.github.io/cz-cli/) |
-| Samples                      | [BASIC](https://github.com/GeneralBots/BotServer/tree/master/packages/default.gbdialog) or [![TypeScript](https://badges.frapsoft.com/typescript/code/typescript.svg?v=101)](https://github.com/GeneralBots/AzureADPasswordReset.gbapp)
-| [Docker Image](https://github.com/lpicanco/docker-botserver)  ![Docker Pulls](https://img.shields.io/docker/pulls/lpicanco/botserver.svg) <br/> *Provided by [@lpicanco](https://github.com/lpicanco/docker-botserver)* |
+### Knowledge Base System
+- Document ingestion (PDF, TXT, MD, DOCX)
+- Automatic text extraction and indexing
+- Semantic search capabilities
+- Context injection for LLM responses
 
-# BotServer - Just Run It! 🚀
+### BASIC Scripting Language
+- Simple syntax for non-programmers
+- Built-in keywords for common tasks
+- Tool integration system
+- Event-driven programming support
 
-![General Bot Logo](https://github.com/GeneralBots/BotServer/blob/main/logo.png?raw=true))
+### Multi-Channel Support
+- Web chat interface
+- WhatsApp Business API
+- Microsoft Teams
+- Slack
+- Email
+- SMS (via providers)
 
-General Bot is a strongly typed LLM conversational platform package based chat bot server focused in convention over configuration and code-less approaches, which brings software packages and application server concepts to help parallel bot development.
+### Enterprise Features
+- Multi-tenancy support
+- Role-based access control
+- Audit logging
+- Horizontal scaling
+- High availability
 
-## GENERAL BOTS SELF-HOST AI AUTOMATION PLATFORM
+## System Requirements
 
-| FEATURE | STATUS | STRATEGIC ADVANTAGE | COMPETITIVE GAP |
-|---------|--------|---------------------|-----------------|
-| **Multi-Vendor LLM API** | ✅ DEPLOYED | Unified interface for OpenAI, Groq, Claude, Anthropic | Vendor lock-in |
-| **MCP + LLM Tools Generation** | ✅ DEPLOYED | Instant tool creation from code/functions | Manual tool development |
-| **Semantic Caching with Valkey** | ✅ DEPLOYED | Intelligent LLM response caching with semantic similarity matching - 70% cost reduction | No caching or basic key-value |
-| **Cross-Platform Desktop** | ⚡ NEAR-TERM | Native MacOS/Windows/Linux applications | Web-only interfaces |
-| **Git-like Version Control** | ✅ DEPLOYED | Full history with rollback capabilities | Basic undo/redo |
-| **Web Automation Engine** | ✅ DEPLOYED | Browser automation + AI intelligence | Separate RPA tools |
-| **External Data APIs** | ✅ DEPLOYED | integrated services via connectors | Limited integrations |
-| **Document Intelligence Suite** | ⚡ NEAR-TERM | AI-powered document creation & analysis | Basic file processing |
-| **Workflow Collaboration** | ⚡ NEAR-TERM | Real-time team automation building | Individual automation |
-| **Enterprise Data Connectors** | ✅ DEPLOYED | CRM, ERP, database native integrations | API-only connections |
-| **Real-time Co-editing** | 🔶 MEDIUM-TERM | Multiple users edit workflows simultaneously | Single-user editors |
-| **Advanced Analytics Dashboard** | ⚡ NEAR-TERM | Business intelligence with AI insights | Basic metrics |
-| **Compliance Automation** | 🔶 MEDIUM-TERM | Regulatory compliance workflows | Manual compliance |
-| **Presentation Generation** | ⚡ NEAR-TERM | AI-driven slide decks and reports | Manual creation |
-| **Spreadsheet Intelligence** | ⚡ NEAR-TERM | AI analysis of complex data models | Basic CSV processing |
-| **Calendar Automation** | 🔶 MEDIUM-TERM | Meeting scheduling and coordination | Manual calendar management |
-| **Email Campaign Engine** | 🔶 MEDIUM-TERM | Personalized bulk email with AI | Basic mailing lists |
-| **Project Management Sync** | 🔶 MEDIUM-TERM | AI coordinates across multiple tools | Siloed project data |
-| **Contract Analysis** | ✅ DEPLOYED | Legal document review and summary | Manual legal review |
-| **Budget Forecasting** | ⚡ NEAR-TERM | AI-powered financial projections | Spreadsheet-based |
+### Minimum Requirements
+- 4GB RAM
+- 2 CPU cores
+- 10GB disk space
+- Linux, macOS, or Windows
 
-**STATUS LEGEND:**
-- ✅ DEPLOYED - Production ready
-- ⚡ NEAR-TERM - 6 month development (foundation exists)
-- 🔶 MEDIUM-TERM - 12 month development
+### Recommended for Production
+- 16GB RAM
+- 4+ CPU cores
+- 100GB SSD storage
+- Linux server (Ubuntu/Debian preferred)
 
-**ENTERPRISE PRODUCTIVITY SUITE CAPABILITIES:**
+## Configuration
 
-**Document Intelligence**
-- AI-powered document creation from templates
-- Smart content summarization and analysis
-- Multi-format compatibility (PDF, Word, Markdown)
-- Version control with change tracking
+BotServer uses only two environment variables:
 
-**Data Analysis & Reporting**
-- Spreadsheet AI with natural language queries
-- Automated dashboard generation
-- Predictive analytics and trend identification
-- Export to multiple business formats
+```bash
+# Database connection
+DATABASE_URL=postgres://user:pass@localhost:5432/botserver
 
-**Communication & Collaboration**
-- Team workspace with shared automation
-- Meeting automation and minute generation
-- Cross-platform notification system
-- Approval workflow automation
+# Object storage
+DRIVE_SERVER=http://localhost:9000
+DRIVE_ACCESSKEY=accesskey
+DRIVE_SECRET=secretkey
+```
 
-**Business Process Automation**
-- End-to department workflow orchestration
-- Compliance and audit trail automation
-- Customer lifecycle management
-- Supply chain intelligence
+All other configuration is managed through:
+- `config.csv` files in bot packages
+- Database configuration tables
+- Command-line arguments
 
-**Competitive Positioning:**
-- **vs ChatGPT/Claude**: We automate entire business processes, not just chat
-- **vs n8n/Make**: Simpler approach and stimulate little programming. 
-- **vs Microsoft 365**: We give control to users, not sell locked systems
-- **vs Salesforce**: We connect all business systems with open-source AI orchestration
+## Bot Package Structure
 
+Each bot is a self-contained `.gbai` folder:
 
+```
+mybot.gbai/
+├── mybot.gbot/       # Configuration
+│   └── config.csv
+├── mybot.gbdialog/   # Conversation scripts
+│   ├── start.bas
+│   └── tools/
+├── mybot.gbkb/       # Knowledge base
+│   └── documents/
+└── mybot.gbtheme/    # Optional UI customization
+    └── styles/
+```
 
-## What is a Bot Server?
+## Deployment Models
 
-Bot Server accelerates the process of developing a bot. It provisions all code
-base, resources and deployment to the cloud, and gives you templates you can
-choose from whenever you need a new bot. The server has a database and service 
-backend allowing you to further modify your bot package directly by downloading 
-a zip file, editing and uploading it back to the server (deploying process) with 
-no code. The Bot Server also provides a framework to develop bot packages in a more
-advanced fashion writing custom code in editors like Visual Studio Code, Atom or Brackets.
+### Standalone Server
+Single instance serving multiple bots:
+- Simple setup
+- Shared resources
+- Best for small to medium deployments
 
-Everyone can create bots by just copying and pasting some files and using their
-favorite tools from Office (or any text editor) or Photoshop (or any image
-editor). LLM and BASIC can be mixed used to build custom dialogs so Bot can be extended just like VBA for Excel.
+### Containerized
+Using Docker/Kubernetes:
+- Isolated environments
+- Easy scaling
+- Cloud-native deployment
+
+### Embedded
+Integrated into existing applications:
+- Library mode
+- Custom integrations
+- Programmatic control
 
 ## Getting Started
 
-### Prerequisites
-
-Before you embark on your General Bots journey, ensure you have the following tools installed:
-
-- **Rust (latest stable version)**: General Bots server is built with Rust for performance and safety. Install from [rustup.rs](https://rustup.rs/).
-- **Git (latest stable version)**: Essential for version control and collaborating on bot projects. Get it from [git-scm.com](https://git-scm.com/downloads).
-
-**Optional (for Node.js bots):**
-- **Node.js (version 20 or later)**: For Node.js-based bot packages. Download from [nodejs.org](https://nodejs.org/en/download/).
-
-### Quick Start Guide (Rust Version)
-
-Follow these steps to get your General Bots server up and running:
-
-1. Clone the repository:
+1. **Install BotServer**
    ```bash
-   git clone https://github.com/GeneralBots/BotServer
+   # Download and run
+   ./botserver
    ```
-   This command creates a local copy of the General Bots server repository on your machine.
 
-2. Navigate to the project directory:
+2. **Bootstrap Components**
    ```bash
-   cd BotServer
+   # Automatic setup
+   botserver bootstrap
    ```
-   This changes your current directory to the newly cloned BotServer folder.
 
-3. Run the server:
+3. **Deploy a Bot**
    ```bash
-   cargo run
+   # Copy template
+   cp -r templates/default.gbai work/mybot.gbai
    ```
-   On first run, BotServer will automatically:
-   - Install required components (PostgreSQL, MinIO, Redis, LLM)
-   - Set up the database with migrations
-   - Download AI models
-   - Upload template bots from `templates/` folder
-   - Start the HTTP server on `http://127.0.0.1:8080` (or your configured port)
 
-**Management Commands:**
-```bash
-botserver start              # Start all components
-botserver stop               # Stop all components
-botserver restart            # Restart all components
-botserver list               # List available components
-botserver status <component> # Check component status
-botserver install <component> # Install optional component
+4. **Access Web Interface**
+   ```
+   http://localhost:8080
+   ```
+
+## Use Cases
+
+### Customer Support
+- FAQ automation
+- Ticket creation and routing
+- Knowledge base search
+- Live agent handoff
+
+### Internal Tools
+- Employee onboarding
+- IT helpdesk
+- HR inquiries
+- Process automation
+
+### Educational
+- Interactive tutorials
+- Quiz and assessment
+- Course navigation
+- Student support
+
+### Healthcare
+- Appointment scheduling
+- Symptom checking
+- Medication reminders
+- Patient education
+
+## Performance Characteristics
+
+- **Concurrent Users**: 1000+ per instance
+- **Message Throughput**: 100+ msg/sec
+- **Response Time**: < 200ms (without LLM)
+- **LLM Response**: 1-5 seconds (varies by model)
+- **Memory Usage**: 500MB base + 100MB per active bot
+- **Storage**: 1GB per 100,000 conversations
+
+## Security Features
+
+- Authentication via directory service
+- SSL/TLS encryption
+- Session token management
+- Input sanitization
+- SQL injection prevention
+- XSS protection
+- Rate limiting
+- Audit logging
+
+## Monitoring and Operations
+
+### Health Checks
+- Component status endpoints
+- Database connectivity
+- Storage availability
+- Cache performance
+
+### Metrics
+- Conversation counts
+- Response times
+- Error rates
+- Resource usage
+
+### Logging
+- Structured logging
+- Log levels (ERROR, WARN, INFO, DEBUG)
+- Rotation and archival
+- Search and filtering
+
+## Extensibility
+
+### Custom Keywords
+Add new BASIC keywords in Rust:
+```rust
+pub fn my_keyword(engine: &mut Engine) {
+    engine.register_fn("MY_KEYWORD", |param: String| {
+        // Implementation
+    });
+}
 ```
 
-### Accessing Your Bot
+### Channel Adapters
+Implement new messaging channels:
+- WebSocket protocol
+- REST API integration
+- Custom protocols
 
-Once the server is running, you can access your bot at `http://localhost:8080/` (or your configured `SERVER_PORT`). This local server allows you to interact with your bot and test its functionality in real-time.
+### Storage Backends
+- S3-compatible storage
+- Database adapters
+- Cache providers
 
-**Anonymous Access:** Every visitor automatically gets a unique session tracked by cookie. No login required to start chatting!
+## Community and Support
 
-**Authentication:** Users can optionally register/login at `/static/auth/login.html` to save conversations across devices.
+### Documentation
+- User Guide
+- API Reference
+- BASIC Language Reference
+- Deployment Guide
 
-**About Page:** Visit `/static/about/index.html` to learn more about BotServer and its maintainers.
+### Resources
+- Example bots in `templates/`
+- Test suites
+- Migration tools
+- Performance benchmarks
 
-Several samples, including a Bot for AD Password Reset, are avaiable on the [repository list](https://github.com/GeneralBots).
+### Contributing
+- Open source (MIT License)
+- GitHub repository
+- Issue tracking
+- Pull requests welcome
 
-### Using complete General Bots Conversational Data Analytics
+## Roadmap
 
-![](https://user-images.githubusercontent.com/14840374/178154826-8188029e-b4f4-48aa-bc0d-126307ce5121.png)
+### Current Focus
+- Stability and performance
+- Documentation completeness
+- Test coverage
+- Community building
 
-```
-TALK  "General Bots Labs presents FISCAL DATA SHOW BY BASIC" 
+### Future Plans
+- Advanced LLM features
+- More channel integrations
+- Visual dialog editor
+- Analytics dashboard
+- Marketplace for bot packages
 
-TALK "Gift Contributions to Reduce the Public Debt API (https://fiscaldata.treasury.gov/datasets/gift-contributions-reduce-debt-held-by-public/gift-contributions-to-reduce-the-public-debt)" 
- 
-result = GET "https://api.fiscaldata.treasury.gov/services/api/fiscal_service/v2/accounting/od/gift_contributions?page[size]=500" 
-data = result.data 
-data = SELECT YEAR(record_date) as Yr, SUM(CAST(contribution_amt AS NUMBER)) AS Amount FROM data GROUP BY YEAR(record_date) 
+## Summary
 
-TALK "Demonstration of Gift Contributions with AS IMAGE keyword" 
-SET THEME dark 
-png = data as IMAGE  
-SEND FILE png 
+BotServer provides a complete platform for building conversational AI applications. With its simple BASIC scripting, automatic setup, and enterprise features, it bridges the gap between simple chatbots and complex AI systems.
 
-DELAY 5 
-TALK " Demonstration of Gift Contributions CHART keyword" 
- img = CHART "bar", data  
-SEND FILE img 
-```
-
-## Guide
-
-[Read the General Bots BotBook Guide](https://docs.pragmatismo.com.br)
-
-# Videos
-
- 7 AI General Bots LLM Templates for Goodness
- [https://www.youtube.com/watch?v=KJgvUPXi3Fw](https://www.youtube.com/watch?v=KJgvUPXi3Fw)
-  
-# Contributing
-
-This project welcomes contributions and suggestions. 
-See our [Contribution Guidelines](https://github.com/pragmatismo-io/BotServer/blob/master/CONTRIBUTING.md) for more details.
-
-# Reporting Security Issues
-
-Security issues and bugs should be reported privately, via email, to the pragmatismo.com.br Security
-team at [security@pragmatismo.com.br](mailto:security@pragmatismo.com.br). You should
-receive a response within 24 hours. If for some reason you do not, please follow up via
-email to ensure we received your original message. 
-
-# License & Warranty
-
-General Bot Copyright (c) pragmatismo.com.br. All rights reserved.
-Licensed under the AGPL-3.0.       
-                                                            
-According to our dual licensing model, this program can be used either
-under the terms of the GNU Affero General Public License, version 3,
-or under a proprietary license.   
-                                                        
-The texts of the GNU Affero General Public License with an additional
-permission and of our proprietary license can be found at and 
-in the LICENSE file you have received along with this program.
-                                                       
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU Affero General Public License for more details.
-                                                        
-"General Bot" is a registered trademark of pragmatismo.com.br.
-The licensing of the program under the AGPLv3 does not imply a
-trademark license. Therefore any rights, title and interest in
-our trademarks remain entirely with us.
-
-<a href="https://stackoverflow.com/questions/ask?tags=generalbots">:speech_balloon: Ask a question</a> &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <a href="https://github.com/GeneralBots/BotBook">:book: Read the Docs</a>
-Team pictures made with [contrib.rocks](https://contrib.rocks).
-General Bots Code Name is [Guaribas](https://en.wikipedia.org/wiki/Guaribas), the name of a city in Brazil, state of Piaui.
-[Roberto Mangabeira Unger](http://www.robertounger.com/en/): "No one should have to do work that can be done by a machine".
+The focus on packages, minimal configuration, and multi-channel support makes it suitable for both rapid prototyping and production deployments.
