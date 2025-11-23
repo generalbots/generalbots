@@ -100,15 +100,15 @@ Each bot is a self-contained `.gbai` folder:
 
 ```
 mybot.gbai/
-├── mybot.gbot/       # Configuration
-│   └── config.csv
-├── mybot.gbdialog/   # Conversation scripts
-│   ├── start.bas
-│   └── tools/
-├── mybot.gbkb/       # Knowledge base
-│   └── documents/
-└── mybot.gbtheme/    # Optional UI customization
-    └── styles/
+  mybot.gbot/       # Configuration
+    config.csv
+  mybot.gbdialog/   # Conversation scripts
+    start.bas
+    tools/
+  mybot.gbkb/       # Knowledge base
+    documents/
+  mybot.gbtheme/    # Optional UI customization
+    styles/
 ```
 
 ## Deployment Models

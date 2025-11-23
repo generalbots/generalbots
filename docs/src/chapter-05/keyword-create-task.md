@@ -38,8 +38,8 @@ CREATE_TASK "Review proposal", "Review and provide feedback on Q4 proposal", "jo
 
 ### Task with Current User
 ```basic
-user_email = GET_USER_EMAIL()
-CREATE_TASK "Follow up", "Contact customer about renewal", user_email, "tomorrow", "medium"
+user_email = GET "user.email"
+CREATE TASK "Follow up", "Contact customer about renewal", user_email, "tomorrow", "medium"
 ```
 
 ### Bulk Task Creation

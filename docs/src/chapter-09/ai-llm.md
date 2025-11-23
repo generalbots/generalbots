@@ -261,14 +261,6 @@ let token_count = llm_provider.count_tokens(prompt)?;
 6. **Cache Wisely**: Reduce redundant calls
 7. **Stream When Possible**: Better user experience
 
-## Future Enhancements
-
-- Multi-modal support (images, audio)
-- Fine-tuning capabilities
-- Model routing based on task
-- Automatic prompt optimization
-- Advanced caching strategies
-
 ## Summary
 
 The LLM integration is central to BotServer's intelligence, providing natural language understanding and generation capabilities. Through careful prompt engineering, context management, and provider abstraction, bots can deliver sophisticated conversational experiences while managing costs and performance.

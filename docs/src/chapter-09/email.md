@@ -304,18 +304,6 @@ try {
 - Account validity
 - Folder synchronization
 
-## Future Enhancements
-
-Planned improvements:
-- Full attachment support
-- Email templates
-- OAuth2 authentication
-- Rich HTML editor
-- Email scheduling
-- Advanced filtering
-- Spam detection
-- Email analytics
-
 ## Summary
 
 Email integration in BotServer enables powerful email-based automation and communication. Through IMAP/SMTP protocols and BASIC script integration, bots can manage email workflows, automate responses, and integrate email with other bot features.

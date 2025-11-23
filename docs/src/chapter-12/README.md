@@ -13,6 +13,54 @@ The BotServer REST API enables:
 - System administration
 - Analytics and monitoring
 
+### API Architecture
+
+```
+                     Client Applications
+                            │
+                            ▼
+                 ┌─────────────────────┐
+                 │   HTTP/HTTPS        │
+                 │   Port 8080          │
+                 └──────────┬──────────┘
+                            │
+                 ┌──────────▼──────────┐
+                 │   API Gateway        │
+                 │   /api/*             │
+                 └──────────┬──────────┘
+                            │
+        ┌───────────────────┼───────────────────┐
+        │                   │                   │
+        ▼                   ▼                   ▼
+┌──────────────┐   ┌──────────────┐   ┌──────────────┐
+│   Auth       │   │   Business    │   │   Admin      │
+│   Endpoints  │   │   Endpoints   │   │   Endpoints  │
+├──────────────┤   ├──────────────┤   ├──────────────┤
+│ /auth/login  │   │ /files/*      │   │ /admin/*     │
+│ /auth/logout │   │ /users/*      │   │ /monitoring  │
+│ /auth/token  │   │ /groups/*     │   │ /analytics   │
+└──────┬───────┘   │ /tasks/*      │   └──────┬───────┘
+       │           │ /calendar/*   │          │
+       │           └──────┬────────┘          │
+       │                  │                   │
+       └──────────────────┼───────────────────┘
+                          │
+                ┌─────────▼──────────┐
+                │   Service Layer    │
+                │  • Session Manager │
+                │  • Auth Service    │
+                │  • Bot Service     │
+                └─────────┬──────────┘
+                          │
+        ┌─────────────────┼─────────────────┐
+        │                 │                 │
+        ▼                 ▼                 ▼
+┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+│  PostgreSQL  │  │    Valkey    │  │   Qdrant     │
+│   Database   │  │    Cache     │  │   Vectors    │
+└──────────────┘  └──────────────┘  └──────────────┘
+```
+
 ## Base URL
 
 All API endpoints are served from:
@@ -41,6 +89,45 @@ Authorization: Bearer <session-token>
 Authenticate through Zitadel OAuth flow or use the login endpoint to obtain a session token.
 
 ## API Categories
+
+### API Request Flow
+
+```
+HTTP Request
+     │
+     ▼
+┌─────────────┐
+│ Rate Limit  │ → Check request limits
+└──────┬──────┘
+       │ Pass
+       ▼
+┌─────────────┐
+│   Auth      │ → Validate token/session
+└──────┬──────┘
+       │ Valid
+       ▼
+┌─────────────┐
+│   Route     │ → Match endpoint pattern
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│  Validate   │ → Check request body
+└──────┬──────┘
+       │ Valid
+       ▼
+┌─────────────┐
+│   Process   │ → Execute business logic
+└──────┬──────┘
+       │
+       ▼
+┌─────────────┐
+│   Format    │ → JSON response
+└──────┬──────┘
+       │
+       ▼
+HTTP Response
+```
 
 ### Core APIs
 

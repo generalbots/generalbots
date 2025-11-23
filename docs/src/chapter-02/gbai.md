@@ -1,183 +1,291 @@
 # .gbai Architecture
 
-The `.gbai` extension defines a bot application package in the GeneralBots template system. It serves as the container directory for all bot-related resources including dialogs, knowledge bases, and configuration.
+**A bot is just a folder.** The `.gbai` extension marks a directory as a BotServer package containing everything needed to run a conversational AI bot - scripts, documents, configuration, and themes.
 
-## What is .gbai?
-
-`.gbai` (General Bot Application Interface) is a directory-based package structure that contains all components needed to define a bot. During bootstrap, the system scans the `templates/` directory for folders ending in `.gbai` and automatically creates bot instances from them.
-
-## Real .gbai Structure
-
-A `.gbai` package is a directory containing subdirectories for different bot components:
+## The Dead Simple Structure
 
 ```
-my-bot.gbai/
-├── my-bot.gbdialog/      # Dialog scripts (.bas files)
-│   ├── start.bas
-│   ├── auth.bas
-│   └── *.bas
-├── my-bot.gbkb/          # Knowledge base collections
-│   ├── collection1/
-│   └── collection2/
-├── my-bot.gbot/          # Bot configuration
-│   └── config.csv
-└── my-bot.gbtheme/       # UI themes (optional)
-    ├── css/
-    └── html/
+my-bot.gbai/                    # This folder = your entire bot
+  my-bot.gbdialog/           # BASIC conversation scripts
+  my-bot.gbkb/               # Documents for Q&A
+  my-bot.gbot/               # Configuration
+  my-bot.gbtheme/            # Optional UI customization
 ```
 
-## Included Templates
+That's it. No manifests, no build files, no dependencies. Copy the folder to deploy.
 
-BotServer includes 21 template `.gbai` packages in the `/templates` directory:
+### Visual Architecture
+### Architecture
 
-### default.gbai
+![Package Structure](./assets/package-structure.svg)
 
-The default bot template with minimal configuration:
-- `default.gbot/config.csv` - Basic server and LLM configuration
+## How Bootstrap Finds Bots
 
-### announcements.gbai
+At startup, BotServer scans `templates/` for any folder ending in `.gbai`:
 
-A feature-rich example bot:
-- `announcements.gbdialog/` - Multiple dialog scripts:
-  - `start.bas` - Initialization and context setup
-  - `auth.bas` - Authentication flow
-  - `change-subject.bas` - Topic switching
-  - `update-summary.bas` - Summary generation
-- `announcements.gbkb/` - Knowledge base collections:
-  - `auxiliom/` - Auxiliom product information
-  - `news/` - News and announcements
-  - `toolbix/` - Toolbix product information
-- `annoucements.gbot/` - Bot configuration
+```
+templates/
+  default.gbai/       → Creates bot at /default
+  support.gbai/       → Creates bot at /support  
+  sales.gbai/         → Creates bot at /sales
+```
 
-## Package Components
+Each `.gbai` becomes a URL endpoint automatically. Zero configuration.
 
-### .gbdialog - Dialog Scripts
+## What Goes Where
 
-Contains BASIC-like scripts (`.bas` files) that define conversation logic:
-- Simple English-like syntax
-- Custom keywords: `TALK`, `HEAR`, `LLM`, `GET BOT MEMORY`, `SET CONTEXT`
-- Control flow and variables
-- Tool integration
+### .gbdialog/ - Your Bot's Brain
 
-Example from `announcements.gbai/announcements.gbdialog/start.bas`:
+BASIC scripts that control conversation flow:
 
+```
+my-bot.gbdialog/
+  start.bas           # Runs when session starts
+  auth.bas            # Login flow
+  tools/              # Callable functions
+    book-meeting.bas
+    check-status.bas
+  handlers/           # Event responses
+    on-email.bas
+```
+
+Example `start.bas`:
 ```basic
-resume1 = GET BOT MEMORY "resume"
-resume2 = GET BOT MEMORY "auxiliom"
-resume3 = GET BOT MEMORY "toolbix"
-
-SET CONTEXT "general" AS resume1
-SET CONTEXT "auxiliom" AS resume2
-SET CONTEXT "toolbix" AS resume3
-
-TALK resume1
-TALK "You can ask me about any of the announcements or circulars."
+TALK "Hi! I'm your assistant."
+answer = HEAR
+TALK "I can help you with: " + answer
 ```
 
-### .gbkb - Knowledge Base
+### .gbkb/ - Your Bot's Knowledge
 
-Directory structure containing collections of documents for semantic search:
-- Each subdirectory represents a collection
-- Documents are indexed into vector database
-- Used for context retrieval during conversations
+Documents organized by topic:
 
-### .gbot - Configuration
+```
+my-bot.gbkb/
+  policies/           # HR documents
+    vacation.pdf
+    handbook.docx
+  products/           # Product info
+    catalog.pdf
+    pricing.xlsx
+  support/            # Help docs
+    faq.md
+```
 
-Contains `config.csv` with bot parameters:
-- Server settings (host, port)
-- LLM configuration (API keys, model paths, URLs)
-- Embedding model settings
-- Email integration settings
-- Database connection strings
-- Component toggles (MCP server, LLM server)
+Each folder becomes a searchable collection. Drop files in, bot learns automatically.
 
-### .gbtheme - UI Theme (Optional)
+### .gbot/ - Your Bot's Settings
 
-Custom UI themes with CSS and HTML assets for the web interface.
+Single `config.csv` file with key-value pairs:
 
-## Bootstrap Process
+```csv
+llm-model,gpt-3.5-turbo
+temperature,0.7
+max-tokens,2000
+welcome-message,Hello! How can I help?
+session-timeout,1800
+```
 
-During the Auto Bootstrap process:
+No complex JSON or YAML. Just simple CSV that opens in Excel.
 
-1. **Template Scanning**: System scans `templates/` directory for `.gbai` folders
-2. **Bot Creation**: Each `.gbai` folder generates a bot record in the database
-   - Folder name `default.gbai` → Bot name "Default"
-   - Folder name `announcements.gbai` → Bot name "Announcements"
-3. **Configuration Loading**: Bot configuration from `.gbot/config.csv` is loaded
-4. **Template Upload**: All template files are uploaded to object storage (drive)
-5. **Dialog Loading**: BASIC scripts from `.gbdialog` are loaded and ready to execute
-6. **KB Indexing**: Documents from `.gbkb` are indexed into vector database
+### .gbtheme/ - Your Bot's Look (Optional)
 
-## Creating Custom .gbai Packages
+Custom web interface styling:
 
-To create a custom bot:
+```
+my-bot.gbtheme/
+  styles.css          # Custom CSS
+  logo.png           # Brand assets
+  templates/         # HTML overrides
+    chat.html
+```
 
-1. Create a new directory in `templates/` with `.gbai` extension:
-   ```bash
-   mkdir templates/mybot.gbai
-   ```
+If missing, uses default theme. Most bots don't need this.
 
-2. Create the required subdirectories:
-   ```bash
-   mkdir -p templates/mybot.gbai/mybot.gbdialog
-   mkdir -p templates/mybot.gbai/mybot.gbkb
-   mkdir -p templates/mybot.gbai/mybot.gbot
-   ```
+## Real Example: Support Bot
 
-3. Add dialog scripts to `.gbdialog/`:
-   ```bash
-   # Create start.bas with your conversation logic
-   touch templates/mybot.gbai/mybot.gbdialog/start.bas
-   ```
+Here's a complete customer support bot:
 
-4. Add bot configuration to `.gbot/config.csv`:
-   ```csv
-   name,value
-   server_host,0.0.0.0
-   server_port,8080
-   llm-key,your-api-key
-   llm-url,https://api.openai.com/v1
-   llm-model,gpt-4
-   ```
+```
+support.gbai/
+  support.gbdialog/
+    start.bas
+    tools/
+      create-ticket.bas
+      check-status.bas
+  support.gbkb/
+    faqs/
+      common-questions.pdf
+    guides/
+      troubleshooting.docx
+  support.gbot/
+    config.csv
+```
 
-5. Add knowledge base documents to `.gbkb/`:
-   ```bash
-   mkdir templates/mybot.gbai/mybot.gbkb/docs
-   # Copy your documents into this directory
-   ```
+`start.bas`:
+```basic
+USE KB "faqs"
+USE KB "guides"
+USE TOOL "create-ticket"
+USE TOOL "check-status"
 
-6. Restart BotServer - the bootstrap process will detect and create your bot
+TALK "Support bot ready. How can I help?"
+```
 
-## Package Lifecycle
+`create-ticket.bas`:
+```basic
+PARAM issue, priority
+DESCRIPTION "Creates support ticket"
 
-1. **Development**: Edit files in `templates/your-bot.gbai/`
-2. **Bootstrap**: System creates bot from template
-3. **Storage**: Files uploaded to object storage for persistence
-4. **Runtime**: Bot loads dialogs and configuration from storage
-5. **Updates**: Modify template files and restart to apply changes
+ticket_id = GENERATE_ID()
+SAVE "tickets.csv", ticket_id, issue, priority, NOW()
+TALK "Ticket #" + ticket_id + " created"
+```
 
-## Multi-Bot Support
+`config.csv`:
+```csv
+llm-model,gpt-3.5-turbo
+bot-name,TechSupport
+greeting,Welcome to support!
+```
 
-A single BotServer instance can host multiple bots:
-- Each `.gbai` package creates a separate bot
-- Bots run in isolation with separate configurations
-- Each bot has its own knowledge base collections
-- Session state is maintained per bot
+## Deployment = Copy Folder
 
-## Package Storage
+### Local Development
+```bash
+cp -r my-bot.gbai/ templates/
+./botserver restart
+# Visit http://localhost:8080/my-bot
+```
 
-After bootstrap, packages are stored in:
-- **Object Storage**: Template files and assets
-- **Database**: Bot metadata and configuration
-- **Vector Database**: Embeddings from knowledge bases
-- **Cache**: Session and cache data
+### Production Server
+```bash
+scp -r my-bot.gbai/ server:~/botserver/templates/
+ssh server "cd botserver && ./botserver restart"
+```
+### Deployment
+
+### LXC Container
+```bash
+lxc file push my-bot.gbai/ container/app/templates/
+```
+
+No build step. No compilation. Just copy files.
+
+## Multi-Bot Hosting
+
+One BotServer runs multiple bots:
+
+```
+templates/
+  support.gbai/       # support.example.com
+  sales.gbai/         # sales.example.com
+  internal.gbai/      # internal.example.com
+  public.gbai/        # www.example.com
+```
+
+Each bot:
+- Gets own URL endpoint
+- Has isolated sessions
+- Runs independently
+- Shares infrastructure
+
+## Template Inheritance
+
+Bots can share common resources:
+
+```
+templates/
+  _shared/
+    knowledge/      # Shared documents
+    tools/          # Shared functions
+  bot1.gbai/
+    bot1.gbot/
+      config.csv  # includes: _shared
+  bot2.gbai/
+    bot2.gbot/
+      config.csv  # includes: _shared
+```
 
 ## Naming Conventions
 
-- Package directory: `name.gbai`
-- Dialog directory: `name.gbdialog`
-- Knowledge base: `name.gbkb`
-- Configuration: `name.gbot`
-- Theme directory: `name.gbtheme`
+### Required
+- Folder must end with `.gbai`
+- Subfolders must match: `botname.gbdialog`, `botname.gbkb`, etc.
+- Main script must be `start.bas`
 
-The `name` should be consistent across all subdirectories within a package.
+### Recommended
+- Use lowercase with hyphens: `customer-service.gbai`
+- Group related bots: `support-tier1.gbai`, `support-tier2.gbai`
+- Version in folder name if needed: `chatbot-v2.gbai`
+
+## Bootstrap Process
+
+When BotServer starts:
+
+```
+![Template Deployment Flow](./assets/template-deployment-flow.svg)
+```
+
+Takes about 5-10 seconds per bot.
+
+## Hot Reload
+
+Change files while running:
+
+```bash
+# Edit script
+vim templates/my-bot.gbai/my-bot.gbdialog/start.bas
+
+# Reload just that bot
+curl http://localhost:8080/api/admin/reload/my-bot
+
+# Or restart everything
+./botserver restart
+```
+
+## Package Size Limits
+
+Default limits (configurable):
+- Total package: 100MB
+- Single document: 10MB  
+- Number of files: 1000
+- Script size: 1MB
+- Collection count: 50
+
+## Troubleshooting
+
+**Bot not appearing?**
+- Check folder ends with `.gbai`
+- Verify subfolders match bot name
+- Look for `start.bas` in `.gbdialog/`
+
+**Documents not searchable?**
+- Ensure files are in `.gbkb/` subfolder
+- Check file format is supported
+- Wait 30 seconds for indexing
+
+**Scripts not running?**
+- Validate BASIC syntax
+- Check file has `.bas` extension
+- Review logs for errors
+
+## Best Practices
+
+### Do's
+✅ Keep packages under 50MB  
+✅ Organize knowledge by topic  
+✅ Use clear folder names  
+✅ Test locally first  
+
+### Don'ts
+❌ Don't nest `.gbai` folders  
+❌ Don't mix test/prod in same folder  
+❌ Don't hardcode absolute paths  
+❌ Don't store secrets in scripts  
+
+## Summary
+
+The `.gbai` architecture keeps bot development simple. No complex frameworks, no build systems, no deployment pipelines. Just organize your files in folders, and BotServer handles the rest. Focus on content and conversation, not configuration.
+
+Next: Learn about [.gbdialog Dialogs](./gbdialog.md) for writing conversation scripts.

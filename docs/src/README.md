@@ -169,7 +169,7 @@ This documentation is a **living document** that evolves with the codebase. Cont
 2. Submit documentation improvements via pull requests
 3. Report issues on GitHub
 
-See [TODO.txt](TODO.txt) for known documentation gaps and future enhancements.
+See [TODO.txt](TODO.txt) for known documentation gaps.
 
 ---
 

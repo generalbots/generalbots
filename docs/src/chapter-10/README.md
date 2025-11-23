@@ -37,7 +37,6 @@ Before contributing, ensure you have:
 
 3. **Find Something to Work On**
    - Check [good first issues](https://github.com/GeneralBots/BotServer/labels/good%20first%20issue)
-   - Review the roadmap
    - Ask in discussions
 
 ## Types of Contributions
@@ -228,7 +227,6 @@ All contributors are recognized:
 Regular contributors may be invited to:
 - Join core team
 - Get merge permissions
-- Influence roadmap
 - Mentor others
 
 ## Resources

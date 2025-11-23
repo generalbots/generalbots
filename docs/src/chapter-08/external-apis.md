@@ -254,4 +254,4 @@ TALK report
 
 ## Summary
 
-While BotServer's external API capabilities are currently limited to GET requests, creative use of the LLM for response processing and bot memory for state management enables integration with many third-party services. For more complex API interactions, consider using proxy services or waiting for future enhancements to the platform.
+While BotServer's external API capabilities are currently limited to GET requests, creative use of response processing and bot memory for state management enables integration with many third-party services. For more complex API interactions, consider using proxy services or custom integrations.

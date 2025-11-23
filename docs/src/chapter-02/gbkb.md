@@ -16,13 +16,13 @@ Each `.gbkb` collection is organized as:
 
 ```
 collection-name.gbkb/
-├── documents/
-│   ├── doc1.pdf
-│   ├── doc2.txt
-│   └── doc3.html
-├── embeddings/          # Auto-generated
-├── metadata.json       # Collection info
-└── index.json         # Search indexes
+  documents/
+    doc1.pdf
+    doc2.txt
+    doc3.html
+  embeddings/          # Auto-generated
+  metadata.json       # Collection info
+  index.json         # Search indexes
 ```
 
 ## Supported Formats

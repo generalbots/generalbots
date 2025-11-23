@@ -95,9 +95,9 @@ END ON
 
 ### Bulk Email with Personalization
 ```basic
-subscribers = GET_SUBSCRIBERS()
+subscribers = GET "subscribers.list"
 FOR EACH email IN subscribers
-    name = GET_USER_NAME(email)
+    name = GET "user.name"
     body = "Dear " + name + ", here's your weekly update..."
     SEND MAIL email, "Weekly Newsletter", body
     WAIT 1  ' Rate limiting

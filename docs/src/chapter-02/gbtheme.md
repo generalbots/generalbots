@@ -12,9 +12,9 @@ A theme is simply one or more CSS files in the `.gbtheme` folder:
 
 ```
 botname.gbtheme/
-└── default.css       # Main theme file
-└── dark.css         # Alternative theme
-└── holiday.css      # Seasonal theme
+  default.css       # Main theme file
+  dark.css         # Alternative theme
+  holiday.css      # Seasonal theme
 ```
 
 ## Using Themes

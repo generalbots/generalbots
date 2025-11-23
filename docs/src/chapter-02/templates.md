@@ -34,19 +34,19 @@ All templates follow this standard directory layout:
 
 ```
 template-name.gbai/
-├── template-name.gbdialog/    # BASIC dialog scripts
-│   ├── start.bas              # Entry point (required)
-│   └── *.bas                  # Tool scripts (auto-discovered)
-├── template-name.gbkb/        # Knowledge base collections
-│   ├── collection1/           # Documents for USE KB "collection1"
-│   └── collection2/           # Documents for USE KB "collection2"
-├── template-name.gbdrive/     # File storage (not KB)
-│   ├── uploads/               # User uploaded files
-│   └── exports/               # Generated files
-├── template-name.gbot/        # Configuration
-│   └── config.csv             # Bot parameters
-└── template-name.gbtheme/     # UI theme (optional)
-    └── default.css            # Theme CSS
+  template-name.gbdialog/    # BASIC dialog scripts
+    start.bas              # Entry point (required)
+    *.bas                  # Tool scripts (auto-discovered)
+  template-name.gbkb/        # Knowledge base collections
+    collection1/           # Documents for USE KB "collection1"
+    collection2/           # Documents for USE KB "collection2"
+  template-name.gbdrive/     # File storage (not KB)
+    uploads/               # User uploaded files
+    exports/               # Generated files
+  template-name.gbot/        # Configuration
+    config.csv             # Bot parameters
+  template-name.gbtheme/     # UI theme (optional)
+    default.css            # Theme CSS
 ```
 
 ## Quick Start Guide

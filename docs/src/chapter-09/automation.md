@@ -224,16 +224,6 @@ Automation execution is logged:
 - Rate limiting applies to automated tasks
 - Monitor for runaway automations
 
-## Future Enhancements
-
-Potential improvements to automation:
-- Event-driven triggers beyond scheduling
-- Webhook integration
-- Task dependencies and workflows
-- Retry policies
-- Distributed execution
-- More trigger types (file changes, API events)
-
 ## Summary
 
 BotServer's automation features enable bots to perform scheduled and event-driven tasks without user interaction. Through SET_SCHEDULE and system_automations, bots can maintain fresh content, process data regularly, and respond to events automatically, making them more proactive and useful.

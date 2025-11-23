@@ -215,15 +215,6 @@ MCP tools are validated during compilation:
 - Descriptions cannot be empty
 - Tool name must be unique per bot
 
-## Future Enhancements
-
-Potential MCP format extensions:
-- Optional parameters support
-- Array and object types
-- Validation constraints
-- Output schema definition
-- Async execution hints
-
 ## Summary
 
 The MCP format provides a structured way to expose BASIC scripts as callable tools for LLMs. By generating MCP-compatible definitions, BotServer enables seamless tool discovery and invocation within conversational flows.

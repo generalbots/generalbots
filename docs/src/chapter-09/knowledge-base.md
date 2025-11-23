@@ -303,9 +303,8 @@ TALK summary
 ### Environment Variables
 
 ```bash
-# Qdrant Configuration
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=optional-api-key
+# Vector Database Configuration
+# Configure in your .env file
 
 # Embedding Configuration
 EMBEDDING_MODEL=text-embedding-ada-002
@@ -315,17 +314,6 @@ EMBEDDING_DIMENSION=1536
 SEARCH_TOP_K=5
 SEARCH_THRESHOLD=0.7
 ```
-
-## Future Enhancements
-
-Planned improvements:
-- Multi-modal search (images)
-- Real-time indexing
-- Advanced chunking strategies
-- Cross-lingual support
-- Document versioning
-- Incremental updates
-- Custom embedding models
 
 ## Summary
 

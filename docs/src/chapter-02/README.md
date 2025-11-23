@@ -25,28 +25,9 @@ BotServer uses a template-based approach:
 4. **Storage Upload**: Template files are uploaded to object storage for persistence
 5. **Runtime Loading**: Bots load their resources from storage when serving requests
 
-### Package Structure
+## Package Structure
 
-Each `.gbai` package is a directory containing subdirectories:
-
-```
-botname.gbai/
-├── botname.gbdialog/     # Dialog scripts
-│   ├── start.bas         # Entry point script
-│   ├── auth.bas          # Authentication flow
-│   └── *.bas             # Other dialog scripts
-├── botname.gbkb/         # Knowledge base for LLM
-│   ├── collection1/      # Document collection (USE KB "collection1")
-│   └── collection2/      # Another collection (USE KB "collection2")
-├── botname.gbdrive/      # File storage (not KB)
-│   ├── uploads/          # User uploaded files
-│   ├── exports/          # Generated files (SAVE AS)
-│   └── templates/        # File templates
-├── botname.gbot/         # Configuration
-│   └── config.csv        # Bot parameters
-└── botname.gbtheme/      # UI theme (optional)
-    └── default.css       # Theme CSS (CHANGE THEME "default")
-```
+![Package Structure](./assets/package-structure.svg)
 
 ## Included Templates
 

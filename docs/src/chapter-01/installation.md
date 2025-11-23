@@ -1,6 +1,10 @@
 # Installation
 
-This guide covers the installation and setup of BotServer on various platforms.
+BotServer installs itself automatically through the bootstrap process. No manual setup required - just run the binary and everything gets configured.
+
+## Bootstrap Flow Diagram
+
+![Auto-Bootstrap Process](./assets/bootstrap-process.svg)
 
 ## System Requirements
 
@@ -24,9 +28,6 @@ BotServer handles all dependencies automatically:
 ```bash
 # Download and run
 ./botserver
-
-# Or build from source
-cargo run
 ```
 
 The bootstrap process automatically downloads everything to `botserver-stack/`:

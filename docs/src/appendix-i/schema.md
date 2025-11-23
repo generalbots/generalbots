@@ -10,6 +10,17 @@ The database schema follows these design principles:
 - **Foreign Key Relationships**: Referential integrity between related entities
 - **JSON Fields**: Flexible storage for dynamic configuration and metadata
 
+## Database Schema Diagram
+
+## Entity Relationship Overview
+
+![Database Schema Overview](./assets/schema-overview.svg)
+
+### Core Tables Structure
+## Detailed Schema
+
+![Database Entity Details](./assets/schema-detailed.svg)
+
 ## Schema Categories
 
 ### 1. Organization & Bot Management
@@ -42,6 +53,16 @@ The database schema follows these design principles:
 - **email_folders**: Email folder organization
 
 ## Table Relationships
+
+### Session Management Flow
+### Session Flow
+
+![Session Flow Diagram](./assets/session-flow.svg)
+
+### Knowledge Base Access Pattern
+### Knowledge Base Access
+
+![Knowledge Base Access](./assets/kb-access.svg)
 
 ### Primary Relationships
 

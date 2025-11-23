@@ -1,252 +1,173 @@
 # Introduction to BotServer
 
-BotServer is an open-source conversational AI platform that enables users to create, deploy, and manage intelligent chatbots using a simple BASIC-like scripting language. Built in Rust with a focus on performance and security, it provides a complete ecosystem for building production-ready bot applications.
+**Build conversational AI bots in minutes, not months.** BotServer lets you create intelligent chatbots by writing simple BASIC scripts and dropping in your documents. No complex frameworks, no cloud dependencies, no AI expertise required.
 
-## What is BotServer?
+## Quick Example
 
-BotServer is a monolithic Rust application that combines multiple services into a unified platform for bot development:
+Want a student enrollment bot? Here's all you need:
 
-- **BASIC Scripting**: Create conversation flows using simple, English-like `.bas` scripts
-- **Template System**: Organize bots as `.gbai` packages with dialogs, knowledge bases, and configuration
-- **Vector Search**: Semantic document retrieval using Qdrant vector database
-- **LLM Integration**: Support for OpenAI, local models, and custom providers
-- **Multi-Channel**: Web interface, WebSocket, voice, and extensible channel support
-- **Auto-Bootstrap**: Automated installation and configuration of all dependencies
-- **Enterprise Security**: Argon2 password hashing, AES-GCM encryption, secure session management
-
-## Architecture
-
-BotServer is implemented as a single Rust crate (version 6.0.8) with modular components:
-
-### Core Modules
-
-- **`auth`** - User authentication with Argon2 password hashing
-- **`bot`** - Bot lifecycle and configuration management
-- **`session`** - Persistent session state and conversation history
-- **`basic`** - BASIC-like scripting language interpreter (powered by Rhai)
-- **`llm`** - LLM provider integration (OpenAI, local models)
-- **`context`** - Conversation context and memory management
-
-### Infrastructure Modules
-
-- **`bootstrap`** - Automated system initialization and component installation
-- **`package_manager`** - Manages 20+ components (PostgreSQL, cache, drive, Qdrant, etc.)
-- **`web_server`** - Axum-based HTTP API and WebSocket server
-- **`drive`** - S3-compatible object storage and vector database integration
-- **`config`** - Application configuration from `.env` and database
-
-### Feature Modules
-
-- **`automation`** - Cron scheduling and event-driven tasks
-- **`email`** - IMAP/SMTP email integration (optional feature)
-- **`meet`** - LiveKit video conferencing integration
-- **`channels`** - Multi-channel abstraction layer
-- **`file`** - Document processing (PDF extraction, parsing)
-- **`drive_monitor`** - File system monitoring and automatic indexing
-
-## Package System
-
-Bots are organized as template-based packages in the `templates/` directory:
-
+1. **Drop your documents** in a folder:
 ```
-templates/
-├── default.gbai/           # Minimal starter bot
-│   └── default.gbot/
-│       └── config.csv
-└── announcements.gbai/     # Full-featured example
-    ├── announcements.gbdialog/
-    │   ├── start.bas
-    │   ├── auth.bas
-    │   └── *.bas
-    ├── announcements.gbkb/
-    │   ├── auxiliom/
-    │   ├── news/
-    │   └── toolbix/
-    └── annoucements.gbot/
-        └── config.csv
+edu.gbkb/
+  enrollment-policy.pdf
+  course-catalog.pdf
 ```
 
-### Package Components
-
-- **`.gbai`** - Root directory container for bot resources
-- **`.gbdialog`** - BASIC scripts (`.bas` files) defining conversation logic
-- **`.gbkb`** - Document collections for semantic search
-- **`.gbot`** - Bot configuration in `config.csv` format
-- **`.gbtheme`** - Optional UI customization (CSS/HTML)
-- **`.gbdrive`** - Drive (S3-compatible) storage integration
-
-## Key Features
-
-### BASIC Scripting Language
-
-Create conversations with simple, readable syntax:
-
+2. **Write a simple tool** (optional):
 ```basic
-let resume = GET_BOT_MEMORY("introduction");
-SET_CONTEXT "general" AS resume;
-
-TALK "Hello! I'm your assistant."
-TALK "How can I help you today?"
-
-let response = HEAR;
-let answer = LLM("Answer the user's question: " + response);
-TALK answer;
+' enrollment.bas
+PARAM name, email, course
+SAVE "enrollments.csv", name, email, course
+TALK "Welcome to " + course + "!"
 ```
 
-Custom keywords include:
-- `TALK` / `HEAR` - Conversation I/O
-- `LLM` - Call language models
-- `GET_BOT_MEMORY` / `SET_BOT_MEMORY` - Persistent storage
-- `SET_CONTEXT` / `USE_KB` - Knowledge base management
-- `USE_TOOL` / `LIST_TOOLS` - Tool integration
-- `SET_SCHEDULE` / `ON` - Automation and events
-- `GET` / `FIND` / `SET` - Data operations
-- `FOR EACH` / `EXIT FOR` - Control flow
+3. **Chat naturally**:
+```
+User: I want to enroll in computer science
+Bot: I'll help you enroll! What's your name?
+User: Sarah Chen
+Bot: Welcome to Computer Science, Sarah!
+```
 
-### Knowledge Base & Semantic Search
+### The Flow
 
-- Store documents in `.gbkb/` collections
-- Automatic indexing into Qdrant vector database
-- Semantic search using embeddings
-- Context retrieval for LLM augmentation
-- Support for multiple document formats
+![Conversation Flow](./assets/conversation-flow.svg)
 
-### Auto-Bootstrap System
+The AI handles everything else - understanding intent, collecting information, executing tools, answering from documents. Zero configuration.
 
-BotServer automatically installs and configures:
+## What Makes BotServer Different
 
-1. **PostgreSQL** - User accounts, sessions, bot configuration
-2. **Cache (Valkey)** - Session cache and temporary data
-3. **Drive** - S3-compatible object storage
-4. **Qdrant** - Vector database for semantic search
-5. **Local LLM** - Optional local model server
-6. **Email Server** - Optional SMTP/IMAP
-7. **LiveKit** - Optional video conferencing
-8. And more...
+### Just Run It
+```bash
+./botserver
+```
+That's it. No Kubernetes, no cloud accounts. The bootstrap process installs everything locally in 2-5 minutes. PostgreSQL, vector database, object storage, cache - all configured automatically with secure credentials.
 
-The bootstrap process:
-- Generates secure credentials automatically
-- Applies database migrations
-- Creates bots from templates
-- Uploads resources to storage
-- Configures all components
+### Real BASIC, Real Simple
+Remember BASIC from the 80s? We brought it back for conversational AI:
+```basic
+' save-note.bas - A simple tool
+PARAM topic, content
+SAVE "notes.csv", topic, content, NOW()
+TALK "Note saved!"
+```
 
-### Multi-Bot Hosting
+Four lines. That's a working tool the AI can call automatically.
 
-A single BotServer instance can host multiple bots:
+### Documents = Knowledge
+Drop PDFs, Word docs, or text files into `.gbkb/` folders. They're instantly searchable. No preprocessing, no configuration, no pipelines. The bot answers questions from your documents automatically.
 
-- Each bot is isolated with separate configuration
-- Bots share infrastructure (database, cache, storage)
-- Independent update cycles per bot
-- Optional multi-tenancy support
+### Tools = Functions
+Create `.bas` files that the AI discovers and calls automatically. Need to save data? Send emails? Call APIs? Just write a tool. The AI figures out when and how to use it.
 
-### Security Features
+## Architecture at a Glance
 
-- **Password Hashing**: Argon2 with secure parameters
-- **Encryption**: AES-GCM for sensitive data at rest
-- **Session Management**: Cryptographically random tokens
-- **API Authentication**: Token-based access control
-- **Credential Generation**: Automatic secure password creation
-- **Database Security**: Parameterized queries via Diesel ORM
+BotServer is a single binary that includes everything:
 
-### LLM Integration
+![BotServer Architecture](./assets/architecture.svg)
 
-Flexible AI provider support:
+One process, one port, one command to run. Deploy anywhere - laptop, server, container.
 
-- **OpenAI**: GPT-3.5, GPT-4, and newer models
-- **Local Models**: Self-hosted LLM servers (llama.cpp compatible)
-- **Streaming**: Token-by-token response streaming
-- **Context Management**: Automatic context window handling
-- **Model Selection**: Choose models based on task complexity
+## Real-World Use Cases
 
-### Storage Architecture
+### Customer Support Bot
+```
+documents: FAQs, policies, procedures
+tools: ticket creation, status lookup
+result: 24/7 support that actually helps
+```
 
-- **PostgreSQL**: Structured data (users, bots, sessions, messages)
-- **Cache**: Session cache and rate limiting
-- **Drive (S3)**: Documents, templates, and assets
-- **Qdrant**: Vector embeddings for semantic search
-- **File System**: Optional local caching
+### Employee Assistant
+```
+documents: HR policies, IT guides, company info
+tools: leave requests, equipment orders
+result: Instant answers, automated workflows
+```
 
-## How It Works
+### Sales Catalog Bot
+```
+documents: product specs, pricing sheets
+tools: quote generation, order placement
+result: Interactive product discovery
+```
 
-1. **Bootstrap**: System scans `templates/` and creates bots from `.gbai` packages
-2. **User Connection**: User connects via web interface or API
-3. **Session Creation**: System creates authenticated session with unique token
-4. **Dialog Execution**: Bot loads and executes `.gbdialog` scripts
-5. **Knowledge Retrieval**: Queries vector database for relevant context
-6. **LLM Integration**: Sends context + user message to language model
-7. **Response**: Bot responds through appropriate channel
-8. **State Persistence**: Session and conversation history saved to database
+### Meeting Assistant
+```
+documents: agenda, previous minutes
+tools: action item tracking, scheduling
+result: AI-powered meeting facilitator
+```
 
-## Technology Stack
+## The Package System
 
-- **Language**: Rust (2021 edition)
-- **Web Framework**: Axum + Tower
-- **Async Runtime**: Tokio
-- **Database**: Diesel ORM with PostgreSQL
-- **Cache**: Valkey client (Redis-compatible, tokio-comp)
-- **Storage**: AWS SDK S3 (drive compatible)
-- **Vector DB**: Qdrant client (optional feature)
-- **Scripting**: Rhai engine for BASIC interpreter
-- **Security**: Argon2, AES-GCM, HMAC-SHA256
-- **Desktop**: Tauri (optional feature)
-- **Video**: LiveKit SDK
+Bots are organized as packages - just folders with a naming convention:
 
-## Installation Modes
+```
+my-bot.gbai/                    # Package root
+├── my-bot.gbdialog/            # BASIC scripts
+│   └── start.bas               # Entry point
+├── my-bot.gbkb/                # Knowledge base
+│   ├── policies/               # Document collection
+│   └── procedures/             # Another collection
+└── my-bot.gbot/                # Configuration
+    └── config.csv              # Bot settings
+```
 
-BotServer supports multiple deployment modes:
+### How It Works
 
-- **Local**: Install components directly on the host system
-- **Container**: Use LXC containers for isolation
+![Package System Flow](./assets/package-system-flow.svg)
 
-The `package_manager` handles component lifecycle in all modes.
+That's it. No XML, no JSON schemas, no build process. Copy the folder to deploy.
 
-## Use Cases
+## Getting Started in 3 Steps
 
-- **Customer Support**: Automated help desk with knowledge base
-- **Internal Tools**: Employee assistance with company documentation
-- **Product Catalogs**: Conversational product search and recommendations
-- **Announcements**: Broadcast system with intelligent Q&A
-- **Meeting Bots**: AI assistant for video conferences
-- **Email Automation**: Intelligent email response and routing
-- **Document Management**: Semantic search across document collections
+### 1. Install (2 minutes)
+```bash
+wget https://github.com/GeneralBots/BotServer/releases/latest/botserver
+chmod +x botserver
+./botserver
+```
 
-## Getting Started
+### 2. Open Browser
+```
+http://localhost:8080
+```
 
-1. **Install BotServer** following Chapter 01 instructions
-2. **Run Bootstrap** to install dependencies automatically
-3. **Explore Templates** in `templates/announcements.gbai/`
-4. **Create Your Bot** by adding a new `.gbai` package
-5. **Write Dialogs** using BASIC scripts in `.gbdialog/`
-6. **Add Knowledge** by placing documents in `.gbkb/`
-7. **Configure** via `config.csv` in `.gbot/`
-8. **Restart** to activate your bot
+### 3. Start Chatting
+The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to customize.
 
-## Documentation Structure
+## Core Philosophy
 
-This book is organized into the following parts:
+1. **Simplicity First** - If it needs documentation, it's too complex
+2. **Everything Included** - No external dependencies to manage
+3. **Production Ready** - Secure, scalable, enterprise-grade from day one
+4. **Developer Friendly** - Clear errors, hot reload, great debugging
+5. **AI Does the Work** - Don't write logic the LLM can handle
 
-- **Part I**: Getting started and basic usage
-- **Part II**: Package system (`.gbai`, `.gbdialog`, `.gbkb`, `.gbot`, `.gbtheme`, `.gbdrive`)
-- **Part III**: Knowledge base and vector search
-- **Part IV**: UI theming and customization
-- **Part V**: BASIC scripting language reference
-- **Part VI**: Rust architecture and extending BotServer
-- **Part VII**: Bot configuration parameters
-- **Part VIII**: Tool integration and external APIs
-- **Part IX**: Complete feature matrix
-- **Part X**: Contributing and development
-- **Part XI**: Authentication and security
-- **Appendices**: Database schema and reference material
+## Technical Highlights
 
-## Project Information
+- **Language**: Written in Rust for performance and safety
+- **Database**: PostgreSQL with Diesel ORM
+- **Cache**: Valkey (Redis-compatible) for sessions
+- **Storage**: S3-compatible object store
+- **Vectors**: Qdrant for semantic search
+- **Security**: Argon2 passwords, AES encryption
+- **LLM**: OpenAI API or local models
+- **Scripting**: Rhai-powered BASIC interpreter
 
+## What's Next?
+
+- **[Chapter 01](./chapter-01/README.md)** - Install and run your first bot
+- **[Chapter 02](./chapter-02/README.md)** - Understanding packages
+- **[Chapter 05](./chapter-05/README.md)** - Writing BASIC dialogs
+- **[Templates](./chapter-02/templates.md)** - Explore example bots
+
+## Community
+
+BotServer is open source (AGPL-3.0) developed by Pragmatismo.com.br and contributors worldwide.
+
+- **GitHub**: https://github.com/GeneralBots/BotServer
 - **Version**: 6.0.8
-- **License**: AGPL-3.0
-- **Repository**: https://github.com/GeneralBots/BotServer
-- **Language**: Rust (monolithic crate)
-- **Community**: Open-source contributors from Pragmatismo.com.br and beyond
+- **Status**: Production Ready
 
-## Next Steps
-
-Continue to [Chapter 01: Run and Talk](./chapter-01/README.md) to install BotServer and start your first conversation.
+Ready to build your bot? Turn to [Chapter 01](./chapter-01/README.md) and let's go!

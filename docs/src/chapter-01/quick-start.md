@@ -1,4 +1,4 @@
-# BotServer Quick Start
+# Quick Start
 
 ## Installation in 3 Steps
 
@@ -44,6 +44,10 @@ Start chatting with your bot!
 
 ## What Just Happened?
 
+### Bootstrap Flow
+
+![Bootstrap Flow](./assets/quick-start-bootstrap.svg)
+
 The **automatic bootstrap** process:
 
 1. ✅ Detected your OS (Linux/macOS/Windows)
@@ -71,16 +75,17 @@ DRIVE_SECRET=my-secret-key
 
 ---
 
-## Create Your First Tool
+## Step 2: Write a Simple Tool
+
+### How Tools Work
+
+![Tool Execution Flow](./assets/tool-execution-flow.svg)
 
 Tools are just `.bas` files. Create `enrollment.bas`:
 
 ```bas
 ' Student enrollment tool
-PARAM name AS string    LIKE "John Smith"        DESCRIPTION "Student name"
-PARAM email AS string   LIKE "john@example.com"  DESCRIPTION "Email address"
-PARAM course AS string  LIKE "Computer Science"  DESCRIPTION "Course to enroll"
-
+PARAM name, email, course
 DESCRIPTION "Processes student enrollment"
 
 SAVE "enrollments.csv", name, email, course, NOW()
@@ -91,7 +96,7 @@ The LLM automatically discovers this tool and knows when to call it!
 
 ---
 
-## Add Knowledge Base
+## Step 3: Add Knowledge Base
 
 Drop documents in a `.gbkb/` folder:
 
@@ -135,17 +140,7 @@ lxc-attach -n botserver
 
 ---
 
-## Build from Source
 
-```bash
-git clone https://github.com/GeneralBots/BotServer.git
-cd BotServer
-cargo run
-```
-
-Same automatic bootstrap process!
-
----
 
 ## Optional Components
 
@@ -164,17 +159,17 @@ After installation, add more features:
 
 ```
 mybot.gbai/
-├── mybot.gbdialog/          # Dialog scripts
-│   ├── start.bas            # Entry point (required)
-│   ├── get-weather.bas      # Tool (auto-discovered)
-│   └── send-email.bas       # Tool (auto-discovered)
-├── mybot.gbkb/              # Knowledge base
-│   ├── docs/                # Document collection
-│   └── faq/                 # FAQ collection
-├── mybot.gbot/              # Configuration
-│   └── config.csv           # Bot parameters
-└── mybot.gbtheme/           # UI theme (optional)
-    └── custom.css
+  mybot.gbdialog/          # Dialog scripts
+    start.bas            # Entry point (required)
+    get-weather.bas      # Tool (auto-discovered)
+    send-email.bas       # Tool (auto-discovered)
+  mybot.gbkb/              # Knowledge base
+    docs/                # Document collection
+    faq/                 # FAQ collection
+  mybot.gbot/              # Configuration
+    config.csv           # Bot parameters
+  mybot.gbtheme/           # UI theme (optional)
+    custom.css
 ```
 
 Deploy new bots by uploading to object storage (creates a new bucket), not the local filesystem. The `work/` folder is for internal use only.

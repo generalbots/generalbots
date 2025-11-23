@@ -252,8 +252,6 @@ SET big_data = null  ' Free memory
 - [HEAR](./keyword-hear.md) - Get user input into variable
 - [FORMAT](./keyword-format.md) - Format values for assignment
 - [SET_BOT_MEMORY](./keyword-set-bot-memory.md) - Persistent storage
-- [SET_USER](./keyword-set-user.md) - Set user context
-
 ## Implementation Notes
 
 Variables are stored in the BASIC engine's scope map and persist for the duration of the dialog execution. The `SET` keyword is syntactic sugar - the parser treats both `SET x = y` and `x = y` identically.

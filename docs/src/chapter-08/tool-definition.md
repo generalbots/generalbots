@@ -8,6 +8,50 @@ In BotServer, a **tool** is simply a `.bas` file. That's it!
 2. **The LLM automatically discovers it** and can call it when needed
 3. **No manual registration required** - it just works!
 
+### Tool Discovery and Execution Flow
+
+```
+User: "Send an email to John about the meeting"
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │    LLM Analyzes     │
+         │  "Need email tool"  │
+         └──────────┬──────────┘
+                    │
+                    ▼
+         ┌─────────────────────────────────┐
+         │     Tool Discovery               │
+         │  ┌──────────────────────┐       │
+         │  │ Scan .gbdialog/      │       │
+         │  │ • send-email.bas ✓   │       │
+         │  │ • create-task.bas    │       │
+         │  │ • get-weather.bas    │       │
+         │  └──────────┬───────────┘       │
+         └─────────────┼───────────────────┘
+                       │
+                       ▼
+         ┌──────────────────────────────────┐
+         │    Parameter Collection          │
+         │                                  │
+         │  PARAM to → "John"              │
+         │  PARAM subject → "Meeting"      │
+         │  PARAM body → (generated)       │
+         └──────────┬───────────────────────┘
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │  Execute Tool        │
+         │  send-email.bas      │
+         └──────────┬──────────┘
+                    │
+                    ▼
+         ┌─────────────────────┐
+         │  Return Result       │
+         │  "Email sent!"       │
+         └─────────────────────┘
+```
+
 ## Simple Example
 
 Create `get-weather.bas`:
@@ -96,6 +140,36 @@ BotServer automatically converts your `.bas` tools to:
 - Other LLM provider formats
 
 You never write these formats manually - just write `.bas` files!
+
+### Conversion Pipeline
+
+```
+     send-email.bas
+          │
+          ▼
+┌─────────────────────┐
+│   BASIC Parser      │
+│ • Extract PARAM     │
+│ • Parse DESCRIPTION │
+│ • Analyze code      │
+└──────────┬──────────┘
+           │
+           ├──────────────┬──────────────┬──────────────┐
+           ▼              ▼              ▼              ▼
+    ┌──────────┐   ┌──────────┐  ┌──────────┐  ┌──────────┐
+    │   MCP    │   │ OpenAI   │  │  Claude  │  │  Local   │
+    │  Format  │   │ Function │  │   Tool   │  │  Model   │
+    └──────────┘   └──────────┘  └──────────┘  └──────────┘
+           │              │              │              │
+           └──────────────┴──────────────┴──────────────┘
+                                 │
+                                 ▼
+                         ┌──────────────┐
+                         │ LLM Provider │
+                         │   Receives   │
+                         │ Native Format│
+                         └──────────────┘
+```
 
 ## Complete Example
 

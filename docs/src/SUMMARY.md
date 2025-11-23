@@ -9,8 +9,7 @@
   - [Quick Start](./chapter-01/quick-start.md)
   - [Installation](./chapter-01/installation.md)
   - [First Conversation](./chapter-01/first-conversation.md)
-  - [Understanding Sessions](./chapter-01/sessions.md)
-  - [NVIDIA GPU Setup for LXC](./chapter-01/nvidia-gpu-setup.md)
+  - [Sessions and Channels](./chapter-01/sessions.md)
 
 # Part II - Package System
 
@@ -29,11 +28,9 @@
   - [KB and Tools System](./chapter-03/kb-and-tools.md)
   - [Vector Collections](./chapter-03/vector-collections.md)
   - [Document Indexing](./chapter-03/indexing.md)
-  - [Qdrant Integration](./chapter-03/qdrant.md)
   - [Semantic Search](./chapter-03/semantic-search.md)
   - [Context Compaction](./chapter-03/context-compaction.md)
   - [Semantic Caching](./chapter-03/caching.md)
-  - [Semantic Cache with Valkey](./chapter-03/semantic-cache.md)
 
 # Part IV - Themes and UI
 
@@ -57,9 +54,7 @@
   - [Keyword Reference](./chapter-05/keywords.md)
     - [TALK](./chapter-05/keyword-talk.md)
     - [HEAR](./chapter-05/keyword-hear.md)
-    - [SET USER](./chapter-05/keyword-set-user.md)
     - [SET CONTEXT](./chapter-05/keyword-set-context.md)
-    - [LLM](./chapter-05/keyword-llm.md)
     - [GET BOT MEMORY](./chapter-05/keyword-get-bot-memory.md)
     - [SET BOT MEMORY](./chapter-05/keyword-set-bot-memory.md)
     - [USE KB](./chapter-05/keyword-use-kb.md)
@@ -81,16 +76,8 @@
     - [LAST](./chapter-05/keyword-last.md)
     - [FOR EACH](./chapter-05/keyword-for-each.md)
     - [EXIT FOR](./chapter-05/keyword-exit-for.md)
-    - [ADD MEMBER](./chapter-05/keyword-add-member.md)
-    - [ADD SUGGESTION](./chapter-05/keyword-add-suggestion.md)
-    - [CLEAR SUGGESTIONS](./chapter-05/keyword-clear-suggestions.md)
-    - [BOOK](./chapter-05/keyword-book.md)
-    - [REMEMBER](./chapter-05/keyword-remember.md)
-    - [SAVE FROM UNSTRUCTURED](./chapter-05/keyword-save-from-unstructured.md)
     - [SEND MAIL](./chapter-05/keyword-send-mail.md)
-    - [WEATHER](./chapter-05/keyword-weather.md)
     - [FIND](./chapter-05/keyword-find.md)
-    - [CHANGE THEME](./chapter-05/keyword-change-theme.md)
 
 # Part VI - Extending BotServer
 
@@ -123,6 +110,7 @@
   - [Tool Format](./chapter-08/openai-format.md)
   - [GET Keyword Integration](./chapter-08/get-integration.md)
   - [External APIs](./chapter-08/external-apis.md)
+  - [NVIDIA GPU Setup for LXC](./chapter-08/nvidia-gpu-setup.md)
 
 # Part IX - Feature Reference
 

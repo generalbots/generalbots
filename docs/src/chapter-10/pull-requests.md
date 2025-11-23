@@ -12,7 +12,6 @@ Pull requests (PRs) are the primary method for contributing code to BotServer. T
 
 - Search existing PRs to avoid duplication
 - Check issues for related discussions
-- Review the project roadmap
 - Discuss major changes in an issue first
 
 ### 2. Prepare Your Branch
