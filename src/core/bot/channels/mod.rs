@@ -1,0 +1,127 @@
+pub mod instagram;
+pub mod teams;
+pub mod whatsapp;
+
+use crate::shared::models::BotResponse;
+use async_trait::async_trait;
+use log::{debug, info};
+use std::collections::HashMap;
+use std::sync::Arc;
+use tokio::sync::{mpsc, Mutex};
+#[async_trait]
+pub trait ChannelAdapter: Send + Sync {
+    async fn send_message(
+        &self,
+        response: BotResponse,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+}
+#[derive(Debug)]
+pub struct WebChannelAdapter {
+    connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
+}
+impl WebChannelAdapter {
+    pub fn new() -> Self {
+        Self {
+            connections: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+    pub async fn add_connection(&self, session_id: String, tx: mpsc::Sender<BotResponse>) {
+        self.connections.lock().await.insert(session_id, tx);
+    }
+    pub async fn remove_connection(&self, session_id: &str) {
+        self.connections.lock().await.remove(session_id);
+    }
+    pub async fn send_message_to_session(
+        &self,
+        session_id: &str,
+        message: BotResponse,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let connections = self.connections.lock().await;
+        if let Some(tx) = connections.get(session_id) {
+            if let Err(e) = tx.send(message).await {
+                log::error!(
+                    "Failed to send message to WebSocket session {}: {}",
+                    session_id,
+                    e
+                );
+                return Err(Box::new(e));
+            }
+            debug!("Message sent to WebSocket session: {}", session_id);
+            Ok(())
+        } else {
+            debug!("No WebSocket connection found for session: {}", session_id);
+            Err("No WebSocket connection found".into())
+        }
+    }
+}
+#[async_trait]
+impl ChannelAdapter for WebChannelAdapter {
+    async fn send_message(
+        &self,
+        response: BotResponse,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let connections = self.connections.lock().await;
+        if let Some(tx) = connections.get(&response.session_id) {
+            tx.send(response).await?;
+        }
+        Ok(())
+    }
+}
+#[derive(Debug)]
+pub struct VoiceAdapter {
+    rooms: Arc<Mutex<HashMap<String, String>>>,
+    connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
+}
+impl VoiceAdapter {
+    pub fn new() -> Self {
+        Self {
+            rooms: Arc::new(Mutex::new(HashMap::new())),
+            connections: Arc::new(Mutex::new(HashMap::new())),
+        }
+    }
+    pub async fn start_voice_session(
+        &self,
+        session_id: &str,
+        user_id: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        info!(
+            "Starting voice session for user: {} with session: {}",
+            user_id, session_id
+        );
+        let token = format!("mock_token_{}_{}", session_id, user_id);
+        self.rooms
+            .lock()
+            .await
+            .insert(session_id.to_string(), token.clone());
+        Ok(token)
+    }
+    pub async fn stop_voice_session(
+        &self,
+        session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.rooms.lock().await.remove(session_id);
+        Ok(())
+    }
+    pub async fn add_connection(&self, session_id: String, tx: mpsc::Sender<BotResponse>) {
+        self.connections.lock().await.insert(session_id, tx);
+    }
+    pub async fn send_voice_response(
+        &self,
+        session_id: &str,
+        text: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Sending voice response to session {}: {}", session_id, text);
+        Ok(())
+    }
+}
+#[async_trait]
+impl ChannelAdapter for VoiceAdapter {
+    async fn send_message(
+        &self,
+        response: BotResponse,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Sending voice response to: {}", response.user_id);
+        self.send_voice_response(&response.session_id, &response.content)
+            .await
+    }
+}
