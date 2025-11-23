@@ -1,6 +1,6 @@
 # .gbdrive File Storage
 
-The `.gbdrive` system manages file storage and retrieval using MinIO (S3-compatible object storage).
+The `.gbdrive` system manages file storage and retrieval using object storage (S3-compatible drive).
 
 ## What is .gbdrive?
 
@@ -33,7 +33,7 @@ org-prefixbot-name.gbai/
 ### Uploading Files
 ```basic
 REM Files can be uploaded via API or interface
-REM They are stored in the bot's MinIO bucket
+REM They are stored in the bot's storage bucket
 ```
 
 ### Retrieving Files  
@@ -78,8 +78,7 @@ Files have different access levels:
 
 ## Storage Backends
 
-Supported storage options:
-- **MinIO** (default): Self-hosted S3-compatible
+- **Object Storage** (default): Self-hosted S3-compatible drive
 - **AWS S3**: Cloud object storage
 - **Local filesystem**: Development and testing
 - **Hybrid**: Multiple backends with fallback

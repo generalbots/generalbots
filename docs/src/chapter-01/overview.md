@@ -58,7 +58,6 @@ BotServer uses a modular architecture with these core components:
 - Web chat interface
 - WhatsApp Business API
 - Microsoft Teams
-- Slack
 - Email
 - SMS (via providers)
 
@@ -73,34 +72,27 @@ BotServer uses a modular architecture with these core components:
 
 ### Minimum Requirements
 - 4GB RAM
-- 2 CPU cores
+- 1 CPU core (development/testing)
 - 10GB disk space
 - Linux, macOS, or Windows
 
 ### Recommended for Production
 - 16GB RAM
-- 4+ CPU cores
+- 2+ CPU cores
 - 100GB SSD storage
 - Linux server (Ubuntu/Debian preferred)
+- GPU: RTX 3060 or better (12GB VRAM minimum) for local LLM hosting
 
 ## Configuration
 
-BotServer uses only two environment variables:
+Bot configuration is managed through `config.csv` files with parameters like:
+- `server_host`, `server_port` - Web server settings
+- `llm-url`, `llm-model` - LLM configuration
+- `email-from`, `email-server` - Email settings
+- `theme-color1`, `theme-color2`, `theme-title`, `theme-logo` - UI customization
+- `prompt-history`, `prompt-compact` - Conversation settings
 
-```bash
-# Database connection
-DATABASE_URL=postgres://user:pass@localhost:5432/botserver
-
-# Object storage
-DRIVE_SERVER=http://localhost:9000
-DRIVE_ACCESSKEY=accesskey
-DRIVE_SECRET=secretkey
-```
-
-All other configuration is managed through:
-- `config.csv` files in bot packages
-- Database configuration tables
-- Command-line arguments
+See actual config.csv files in bot packages for available parameters.
 
 ## Bot Package Structure
 
@@ -127,11 +119,11 @@ Single instance serving multiple bots:
 - Shared resources
 - Best for small to medium deployments
 
-### Containerized
-Using Docker/Kubernetes:
-- Isolated environments
-- Easy scaling
-- Cloud-native deployment
+### LXC Containers
+Using Linux containers for isolation:
+- Lightweight virtualization
+- Resource isolation
+- Easy management
 
 ### Embedded
 Integrated into existing applications:
@@ -148,15 +140,19 @@ Integrated into existing applications:
    ```
 
 2. **Bootstrap Components**
-   ```bash
-   # Automatic setup
-   botserver bootstrap
-   ```
+   The bootstrap automatically downloads everything to `botserver-stack/`:
+   - Database binaries
+   - Object storage server
+   - Cache server
+   - LLM runtime
+   - Required dependencies
 
 3. **Deploy a Bot**
+   Create a new bucket in object storage:
    ```bash
-   # Copy template
-   cp -r templates/default.gbai work/mybot.gbai
+   # Each bot gets its own storage bucket
+   # Bots are deployed to the drive, not work folder
+   # The work/ folder is internal (see .gbapp chapter)
    ```
 
 4. **Access Web Interface**
@@ -189,15 +185,6 @@ Integrated into existing applications:
 - Symptom checking
 - Medication reminders
 - Patient education
-
-## Performance Characteristics
-
-- **Concurrent Users**: 1000+ per instance
-- **Message Throughput**: 100+ msg/sec
-- **Response Time**: < 200ms (without LLM)
-- **LLM Response**: 1-5 seconds (varies by model)
-- **Memory Usage**: 500MB base + 100MB per active bot
-- **Storage**: 1GB per 100,000 conversations
 
 ## Security Features
 
@@ -232,16 +219,6 @@ Integrated into existing applications:
 
 ## Extensibility
 
-### Custom Keywords
-Add new BASIC keywords in Rust:
-```rust
-pub fn my_keyword(engine: &mut Engine) {
-    engine.register_fn("MY_KEYWORD", |param: String| {
-        // Implementation
-    });
-}
-```
-
 ### Channel Adapters
 Implement new messaging channels:
 - WebSocket protocol
@@ -265,28 +242,12 @@ Implement new messaging channels:
 - Example bots in `templates/`
 - Test suites
 - Migration tools
-- Performance benchmarks
 
 ### Contributing
-- Open source (MIT License)
+- Open source (AGPL - GNU Affero General Public License)
 - GitHub repository
 - Issue tracking
 - Pull requests welcome
-
-## Roadmap
-
-### Current Focus
-- Stability and performance
-- Documentation completeness
-- Test coverage
-- Community building
-
-### Future Plans
-- Advanced LLM features
-- More channel integrations
-- Visual dialog editor
-- Analytics dashboard
-- Marketplace for bot packages
 
 ## Summary
 

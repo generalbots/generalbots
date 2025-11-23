@@ -21,7 +21,7 @@ You'll see:
    ✓ Database created
    ✓ Schema initialized
    ✓ Credentials saved to .env
-📦 Installing MinIO...
+📦 Installing Drive...
    ✓ Object storage ready
    ✓ Buckets created
 📦 Installing Valkey...
@@ -47,15 +47,27 @@ Start chatting with your bot!
 The **automatic bootstrap** process:
 
 1. ✅ Detected your OS (Linux/macOS/Windows)
-2. ✅ Installed PostgreSQL database
-3. ✅ Installed MinIO object storage
-4. ✅ Installed Valkey cache
-5. ✅ Generated secure credentials → `.env`
+2. ✅ Downloaded PostgreSQL database to botserver-stack/
+3. ✅ Downloaded drive (S3-compatible storage) to botserver-stack/
+4. ✅ Downloaded Valkey cache to botserver-stack/
+5. ✅ Generated secure credentials → `.env` (from blank environment)
 6. ✅ Created database schema
-7. ✅ Created default bots from `templates/`
+7. ✅ Deployed default bots to object storage
 8. ✅ Started web server on port 8080
 
 **Zero manual configuration required!**
+
+### Using Existing Services
+
+If you already have PostgreSQL or drive storage running, update `.env`:
+
+```bash
+# Point to your existing services
+DATABASE_URL=postgres://myuser:mypass@myhost:5432/mydb
+DRIVE_SERVER=http://my-drive:9000
+DRIVE_ACCESSKEY=my-access-key
+DRIVE_SECRET=my-secret-key
+```
 
 ---
 
@@ -99,27 +111,27 @@ The bot automatically:
 
 ---
 
-## Container Mode (LXC)
+## Container Deployment (LXC)
 
-BotServer uses **LXC** (Linux Containers) for containerized deployment:
+For production isolation, BotServer supports **LXC** (Linux Containers):
 
 ```bash
-# Force container mode
-./botserver --container
+# Create container
+lxc-create -n botserver -t download -- -d ubuntu -r jammy -a amd64
 
-# Components run in isolated LXC containers
-# - PostgreSQL in {tenant}-tables container
-# - MinIO in {tenant}-drive container
-# - Valkey in {tenant}-cache container
+# Start and attach
+lxc-start -n botserver
+lxc-attach -n botserver
+
+# Install BotServer inside container
+./botserver
 ```
 
 **Benefits**: 
-- ✅ Clean isolation - system-level containers
-- ✅ Easy cleanup - `lxc delete {container}`
-- ✅ No system pollution - everything in containers
-- ✅ Lightweight - more efficient than VMs
-
-**Requires**: LXC/LXD installed (`sudo snap install lxd`)
+- ✅ Process isolation
+- ✅ Resource control
+- ✅ Easy management
+- ✅ Lightweight virtualization
 
 ---
 
@@ -140,10 +152,10 @@ Same automatic bootstrap process!
 After installation, add more features:
 
 ```bash
-./botserver install email      # Stalwart email server
-./botserver install directory  # Zitadel identity provider
+./botserver install email      # Email server
+./botserver install directory  # Identity provider
 ./botserver install llm        # Local LLM server (offline mode)
-./botserver install meeting    # LiveKit video conferencing
+./botserver install meeting    # Video conferencing
 ```
 
 ---
@@ -165,7 +177,31 @@ mybot.gbai/
     └── custom.css
 ```
 
-Save to `templates/mybot.gbai/` and restart - bot created automatically!
+Deploy new bots by uploading to object storage (creates a new bucket), not the local filesystem. The `work/` folder is for internal use only.
+
+### Local Development with Auto-Sync
+
+Edit bot files locally and sync automatically to drive storage:
+
+**Free S3 Sync Tools:**
+- **Cyberduck** - GUI file browser (Windows/Mac/Linux)
+- **rclone** - Command-line sync (All platforms)
+- **WinSCP** - File manager with S3 (Windows)
+- **S3 Browser** - Freeware S3 client (Windows)
+
+**Quick Setup with rclone:**
+```bash
+# Configure for drive storage
+rclone config  # Follow prompts for S3-compatible storage
+
+# Auto-sync local edits to bucket
+rclone sync ./mybot.gbai drive:mybot --watch
+```
+
+Now when you:
+- Edit `.csv` → Bot config reloads automatically
+- Edit `.bas` → Scripts compile automatically
+- Add docs to `.gbkb/` → Knowledge base updates
 
 ---
 
@@ -203,9 +239,10 @@ The LLM handles ALL conversation logic automatically!
 
 ## Configuration (Optional)
 
-Bootstrap creates `.env` automatically:
+Bootstrap automatically generates `.env` from a blank environment with secure random credentials:
 
 ```env
+# Auto-generated during bootstrap
 DATABASE_URL=postgres://gbuser:RANDOM_PASS@localhost:5432/botserver
 DRIVE_SERVER=http://localhost:9000
 DRIVE_ACCESSKEY=GENERATED_KEY
@@ -239,16 +276,17 @@ server_port,3000
 
 ```bash
 # Remove everything and start fresh
-rm -rf /opt/gbo  # Linux/macOS
-./botserver
+rm -rf botserver-stack/
+rm .env
+./botserver  # Will regenerate everything
 ```
 
 ### Check component status
 
 ```bash
 ./botserver status tables    # PostgreSQL
-./botserver status drive     # MinIO
-./botserver status cache     # Valkey
+./botserver status drive     # Drive storage
+./botserver status cache     # Valkey cache
 ```
 
 ---

@@ -245,7 +245,7 @@ Regular contributors may be invited to:
 - Rust toolchain
 - VS Code with rust-analyzer
 - Git and GitHub CLI
-- Docker (optional)
+- LXC (optional)
 
 ### Learning
 

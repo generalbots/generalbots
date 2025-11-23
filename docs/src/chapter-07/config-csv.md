@@ -37,12 +37,11 @@ description,Bot description here
 
 | Key | Description | Default | Example |
 |-----|-------------|---------|---------|
-| `llmModel` | Model to use | `gpt-4` | `gpt-4`, `claude-3`, `llama-3` |
-| `llmApiKey` | API key for LLM service | Required | `sk-...` |
-| `llmEndpoint` | Custom LLM endpoint | Provider default | `https://api.openai.com/v1` |
-| `llmTemperature` | Response creativity (0-1) | `0.7` | `0.3` for factual, `0.9` for creative |
-| `llmMaxTokens` | Max response length | `2000` | `4000` |
-| `answerMode` | Response strategy | `default` | `simple`, `detailed`, `technical` |
+| `llm-model` | Model path or name | Local model | `../../../../data/llm/model.gguf` |
+| `llm-key` | API key (if using external) | `none` | `sk-...` for external APIs |
+| `llm-url` | LLM endpoint URL | `http://localhost:8081` | Local or external endpoint |
+| `llm-cache` | Enable LLM caching | `false` | `true` |
+| `llm-cache-ttl` | Cache time-to-live (seconds) | `3600` | `7200` |
 
 ### Knowledge Base
 
@@ -56,14 +55,14 @@ description,Bot description here
 | `topK` | Number of search results | `5` | `10` |
 
 ### Storage Configuration
+### Server Configuration
 
 | Key | Description | Default | Example |
 |-----|-------------|---------|---------|
-| `minioEndpoint` | MinIO/S3 endpoint | `localhost:9000` | `minio.example.com` |
-| `minioAccessKey` | Storage access key | Required | `minioadmin` |
-| `minioSecretKey` | Storage secret key | Required | `minioadmin` |
-| `minioBucket` | Default bucket name | `botserver` | `my-bot-files` |
-| `minioUseSsl` | Use HTTPS for MinIO | `false` | `true` |
+| `server_host` | Server bind address | `0.0.0.0` | `localhost` |
+| `server_port` | Server port | `8080` | `3000` |
+| `sites_root` | Sites root directory | `/tmp` | `/var/www` |
+| `mcp-server` | Enable MCP server | `false` | `true` |
 
 ### Database
 
@@ -151,8 +150,8 @@ description,Bot description here
 | `ocrEnabled` | Enable OCR | `false` | `true` |
 | `speechEnabled` | Enable speech | `false` | `true` |
 | `translationEnabled` | Enable translation | `false` | `true` |
-| `cacheEnabled` | Enable Redis cache | `false` | `true` |
-| `cacheUrl` | Redis URL | `redis://localhost:6379` | `redis://cache:6379` |
+| `cacheEnabled` | Enable cache component | `false` | `true` |
+| `cacheUrl` | Cache URL | `redis://localhost:6379` | `redis://cache:6379` |
 
 ## Environment Variable Override
 
@@ -223,7 +222,7 @@ Changes to `config.csv` can be reloaded without restart:
 - Test rate limits
 
 ### Storage Issues
-- Verify MinIO is running
+- Verify drive is running
 - Check access credentials
 - Test bucket permissions
 
@@ -245,7 +244,6 @@ welcomeMessage,Hello! I'm here to help with any questions.
 llmModel,gpt-4
 llmApiKey,${LLM_API_KEY}
 llmTemperature,0.3
-answerMode,detailed
 databaseUrl,${DATABASE_URL}
 minioEndpoint,storage.example.com
 minioAccessKey,${MINIO_ACCESS}

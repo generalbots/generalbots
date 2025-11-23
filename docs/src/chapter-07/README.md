@@ -8,7 +8,6 @@ language,en
 theme,default.gbtheme
 knowledge_base,default.gbkb
 max_context_tokens,2048
-answer_mode,LLM_ONLY
 ```
 
 ### Key Columns
@@ -17,10 +16,7 @@ answer_mode,LLM_ONLY
 - **theme** – UI theme package (`.gbtheme`).
 - **knowledge_base** – Default knowledge‑base package (`.gbkb`).
 - **max_context_tokens** – Maximum number of tokens retained in the session context.
-- **answer_mode** – Determines how responses are generated:
-  - `LLM_ONLY` – Direct LLM response.
-  - `TOOLS_FIRST` – Try tools before falling back to LLM.
-  - `DOCS_ONLY` – Use only documentation sources.
+- **max_context_tokens** – Limit for the amount of context sent to the LLM.
 
 ### Editing the Configuration
 The file is a simple CSV; each line is `key,value`. Comments start with `#`. After editing, restart the server to apply changes.

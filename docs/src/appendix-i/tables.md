@@ -38,7 +38,7 @@ Stores bot-specific configuration parameters from config.csv.
 | updated_at | TIMESTAMPTZ | Last update timestamp |
 
 ### bot_memories
-Persistent key-value storage for bots (used by GET_BOT_MEMORY/SET_BOT_MEMORY).
+Persistent key-value storage for bots (used by GET BOT MEMORY/SET BOT MEMORY).
 
 | Column | Type | Description |
 |--------|------|-------------|

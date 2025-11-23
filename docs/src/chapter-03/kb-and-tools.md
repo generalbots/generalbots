@@ -4,10 +4,10 @@
 
 The General Bots system provides **4 essential keywords** for managing Knowledge Bases (KB) and Tools dynamically during conversation sessions:
 
-1. **USE_KB** - Load and embed files from `.gbkb` folders into vector database
-2. **CLEAR_KB** - Remove KB from current session
-3. **USE_TOOL** - Make a tool available for LLM to call
-4. **CLEAR_TOOLS** - Remove all tools from current session
+1. **USE KB** - Load and embed files from `.gbkb` folders into vector database
+2. **CLEAR KB** - Remove KB from current session
+3. **USE TOOL** - Make a tool available for LLM to call
+4. **CLEAR TOOLS** - Remove all tools from current session
 
 ---
 
@@ -54,22 +54,22 @@ work/
 - **HTML** - Web pages (text only)
 - **JSON** - Structured data
 
-### USE_KB Keyword
+### USE KB Keyword
 
 ```basic
-USE_KB "circular"
+USE KB "circular"
 # Loads the 'circular' KB folder into session
 # All documents in that folder are now searchable
 
-USE_KB "comunicado"
+USE KB "comunicado"
 # Adds another KB to the session
 # Both 'circular' and 'comunicado' are now active
 ```
 
-### CLEAR_KB Keyword
+### CLEAR KB Keyword
 
 ```basic
-CLEAR_KB
+CLEAR KB
 # Removes all loaded KBs from current session
 # Frees up memory and context space
 ```
@@ -89,57 +89,44 @@ Tools are **callable functions** that the LLM can invoke to perform specific act
 
 ### Tool Definition
 
-Tools are defined in `.gbtool` files with JSON schema:
+Tools are defined in .bas files that generate MCP and OpenAI-compatible tool definitions:
 
-```json
-{
-  "name": "get_weather",
-  "description": "Get current weather for a location",
-  "parameters": {
-    "type": "object",
-    "properties": {
-      "location": {
-        "type": "string",
-        "description": "City name or coordinates"
-      },
-      "units": {
-        "type": "string",
-        "enum": ["celsius", "fahrenheit"],
-        "default": "celsius"
-      }
-    },
-    "required": ["location"]
-  },
-  "endpoint": "https://api.weather.com/current",
-  "method": "GET"
-}
+```basic
+' weather.bas - becomes a tool automatically
+PARAM location AS string
+PARAM units AS string DEFAULT "celsius"
+DESCRIPTION "Get current weather for a location"
+
+' Tool implementation
+weather_data = GET "https://api.weather.com/v1/current?location=" + location
+result = LLM "Format this weather data nicely: " + weather_data
+TALK result
 ```
 
 ### Tool Registration
 
-Tools can be registered in three ways:
+Tools are registered in two ways:
 
-1. **Static Registration** - In bot configuration
-2. **Dynamic Loading** - Via USE_TOOL keyword
-3. **Auto-discovery** - From `.gbtool` files in work directory
+1. **Auto-discovery** - All `.bas` files in `.gbdialog` folder (except start.bas) become tools
+2. **Dynamic Loading** - Via USE TOOL keyword for external tools
 
-### USE_TOOL Keyword
+### USE TOOL Keyword
 
 ```basic
-USE_TOOL "weather"
+USE TOOL "weather"
 # Makes the weather tool available to LLM
 
-USE_TOOL "database_query"
+USE TOOL "database_query"
 # Adds database query tool to session
 
-USE_TOOL "email_sender"
+USE TOOL "email_sender"
 # Enables email sending capability
 ```
 
-### CLEAR_TOOLS Keyword
+### CLEAR TOOLS Keyword
 
 ```basic
-CLEAR_TOOLS
+CLEAR TOOLS
 # Removes all tools from current session
 # LLM can no longer call external functions
 ```
@@ -151,7 +138,7 @@ CLEAR_TOOLS
 ### Context Lifecycle
 
 1. **Session Start** - Clean slate, no KB or tools
-2. **Load Resources** - USE_KB and USE_TOOL as needed
+2. **Load Resources** - USE KB and USE TOOL as needed
 3. **Active Use** - LLM uses loaded resources
 4. **Clear Resources** - CLEAR_KB/CLEAR_TOOLS when done
 5. **Session End** - Automatic cleanup
@@ -238,7 +225,7 @@ ws.send({
 
 // Load Tool
 ws.send({
-  type: "USE_TOOL",
+  type: "USE TOOL",
   tool_name: "weather"
 });
 
@@ -292,12 +279,13 @@ Configuration:
 ## Error Handling
 
 ### Common Errors
+### Common Issues
 
 | Error | Cause | Solution |
 |-------|-------|----------|
 | `KB_NOT_FOUND` | KB folder doesn't exist | Check folder name and path |
-| `VECTORDB_ERROR` | Qdrant connection issue | Check vectorDB service |
-| `EMBEDDING_FAILED` | OpenAI API error | Check API key and limits |
+| `VECTORDB_ERROR` | Vector database connection issue | Check vector database service |
+| `EMBEDDING_FAILED` | Embedding API error | Check API key and limits |
 | `TOOL_NOT_FOUND` | Tool not registered | Verify tool name |
 | `TOOL_EXECUTION_ERROR` | Tool failed to execute | Check tool endpoint/logic |
 | `MEMORY_LIMIT` | Too many KBs loaded | Clear unused KBs |
@@ -328,10 +316,10 @@ USE_KB "product_docs"
 USE_KB "faqs"
 
 # Enable support tools
-USE_TOOL "ticket_system"
-USE_TOOL "knowledge_search"
+USE TOOL "ticket_system"
+USE TOOL "knowledge_search"
 
-# Bot now has access to docs and can create tickets
+# Bot now has access to docs and can work with tickets
 HEAR user_question
 # ... process with KB context and tools ...
 
@@ -348,8 +336,8 @@ USE_KB "papers_2024"
 USE_KB "citations"
 
 # Enable research tools
-USE_TOOL "arxiv_search"
-USE_TOOL "citation_formatter"
+USE TOOL "arxiv_search"
+USE TOOL "citation_formatter"
 
 # Assistant can now search papers and format citations
 # ... research session ...
@@ -367,11 +355,11 @@ USE_KB "hr_policies"
 USE_KB "it_procedures"
 
 # Enable enterprise tools
-USE_TOOL "active_directory"
-USE_TOOL "jira_integration"
-USE_TOOL "slack_notifier"
+USE TOOL "active_directory"
+USE TOOL "jira_integration"
+USE TOOL "slack_notifier"
 
-# Bot can now query AD, create Jira tickets, send Slack messages
+# Bot can now query AD, work with Jira, send Slack messages
 # ... handle employee request ...
 
 # End of shift cleanup
@@ -409,22 +397,16 @@ CLEAR_TOOLS
 
 ## Configuration
 
-### Environment Variables
+Configuration is handled automatically through `config.csv`. No manual environment variables needed.
 
-```bash
-# Vector Database
-QDRANT_URL=http://localhost:6333
-QDRANT_API_KEY=your_key
+<old_text line=473>
+- [ ] Tool versioning system
+- [ ] Enhanced parallel execution
 
-# Embeddings
-OPENAI_API_KEY=your_key
-EMBEDDING_MODEL=text-embedding-ada-002
-CHUNK_SIZE=1000
-CHUNK_OVERLAP=200
-
-# Tools
-MAX_TOOLS_PER_SESSION=10
-TOOL_TIMEOUT_SECONDS=30
+### Platform Expansion
+- [ ] More language bindings
+- [ ] Additional databases
+- [ ] Extended file formats
 TOOL_RATE_LIMIT=100
 
 # KB
@@ -506,25 +488,9 @@ collection_prefix = "botserver_"
 1. Convert function to tool definition
 2. Create .gbtool file
 3. Implement endpoint/handler
-4. Test with USE_TOOL
+4. Test with USE TOOL
 5. Remove static registration
 
 ---
 
-## Future Enhancements
 
-### Planned Features
-
-- **Incremental KB Updates** - Add/remove single documents
-- **Multi-language Support** - Embeddings in multiple languages
-- **Tool Chaining** - Tools calling other tools
-- **KB Versioning** - Track KB changes over time
-- **Smart Caching** - Cache frequent searches
-- **Tool Analytics** - Usage statistics and optimization
-
-### Roadmap
-
-- Q1 2024: Incremental updates, multi-language
-- Q2 2024: Tool chaining, KB versioning
-- Q3 2024: Smart caching, analytics
-- Q4 2024: Advanced security, enterprise features

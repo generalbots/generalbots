@@ -2,7 +2,7 @@
 
 ## Overview
 
-The BotServer now supports semantic caching for LLM responses using Valkey (Redis-compatible in-memory database). This feature can significantly reduce response times and API costs by intelligently caching and reusing previous LLM responses.
+The BotServer now supports semantic caching for LLM responses using Valkey (cache component - a Redis-compatible in-memory database). This feature can significantly reduce response times and API costs by intelligently caching and reusing previous LLM responses.
 
 ## Features
 
@@ -169,7 +169,7 @@ Monitor these metrics:
 
 ### Cache Not Working
 
-1. Verify Valkey/Redis is running and accessible
+1. Verify cache (Valkey) is running and accessible
 2. Check `llm-cache` is set to `true` in config.csv
 3. Ensure sufficient memory is available in Valkey
 4. Check logs for connection errors

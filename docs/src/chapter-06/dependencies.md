@@ -125,11 +125,11 @@ BotServer currently uses these major dependencies:
 - `diesel` - ORM for PostgreSQL
 - `diesel_migrations` - Database migration management
 - `r2d2` - Connection pooling
-- `redis` - Redis/Valkey cache client
+- `redis` - Cache client (Valkey/Redis-compatible)
 
 ### Storage
 - `aws-config` - AWS SDK configuration
-- `aws-sdk-s3` - S3-compatible storage (MinIO)
+- `aws-sdk-s3` - S3-compatible storage (drive component)
 - `qdrant-client` - Vector database (optional)
 
 ### Security

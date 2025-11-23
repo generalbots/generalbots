@@ -20,21 +20,38 @@ This chapter covers everything you need to get started:
 
 1. **[Installation](./installation.md)** - How the automatic bootstrap works
 2. **[First Conversation](./first-conversation.md)** - Start chatting with your bot
-3. **[Understanding Sessions](./sessions.md)** - How conversations are managed
+3. **[Quick Start](./quick-start.md)** - Create your first bot
 
 ## The Bootstrap Magic
 
 When you first run BotServer, it automatically:
 
 - ✅ Detects your operating system
-- ✅ Installs PostgreSQL database
-- ✅ Installs MinIO object storage
-- ✅ Installs Valkey cache
+- ✅ Downloads and installs PostgreSQL database  
+- ✅ Downloads and installs drive (S3-compatible object storage)  
+- ✅ Downloads and installs Valkey cache
+- ✅ Downloads LLM models to botserver-stack/
 - ✅ Generates secure credentials
 - ✅ Creates default bots
 - ✅ Starts the web server
 
 **No manual configuration needed!** Everything just works.
+
+### Optional Components
+
+After bootstrap, you can install additional services:
+
+- **Stalwart** - Full-featured email server for sending/receiving
+- **Zitadel** - Identity and access management (directory service)
+- **LiveKit** - Real-time video/audio conferencing
+- **Additional LLM models** - For offline operation
+
+```bash
+./botserver install email      # Stalwart email server
+./botserver install directory  # Zitadel identity provider
+./botserver install meeting    # LiveKit conferencing
+./botserver install llm        # Local LLM models
+```
 
 ## Your First Bot
 
@@ -45,6 +62,11 @@ http://localhost:8080
 ```
 
 You'll see the default bot ready to chat! Just start talking - the LLM handles everything.
+
+For specific bots like the enrollment example below:
+```
+http://localhost:8080/edu
+```
 
 ## The Magic Formula
 
@@ -57,7 +79,9 @@ You'll see the default bot ready to chat! Just start talking - the LLM handles e
 2. Create simple tools as `.bas` files (optional)
 3. Start chatting - the LLM does the rest!
 
-## Example: Student Enrollment Bot
+## Example: Student Enrollment Bot (EDU)
+
+Deploy a new bot by creating a bucket in the object storage drive. Access it at `/edu`:
 
 ### 1. Add Course Documents
 
@@ -70,6 +94,8 @@ edu.gbai/
 ```
 
 ### 2. Create Enrollment Tool
+
+Deploy a bot by creating a new bucket in the drive. Tools are `.bas` files:
 
 `edu.gbdialog/enrollment.bas`:
 
@@ -121,14 +147,14 @@ Each conversation is a **session** that persists:
 - Context and variables
 - Active tools and knowledge bases
 
-Sessions automatically save to PostgreSQL and cache in Redis for performance.
+Sessions automatically save to PostgreSQL and cache in Valkey for performance.
 
 ## Next Steps
 
 - **[Installation](./installation.md)** - Understand the bootstrap process
 - **[First Conversation](./first-conversation.md)** - Try out your bot
-- **[Understanding Sessions](./sessions.md)** - Learn about conversation state
-- **[About Packages](../chapter-02/README.md)** - Create your own bots
+- **[Quick Start](./quick-start.md)** - Build your own bot
+- **[About Packages](../chapter-02/README.md)** - Create bot packages
 
 ## Philosophy
 

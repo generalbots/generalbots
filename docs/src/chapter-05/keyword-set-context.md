@@ -52,7 +52,7 @@ TALK "Support mode activated. Please describe your issue."
 
 - Implemented in Rust under `src/context/mod.rs` and `src/context/langcache.rs`.  
 - The keyword interacts with the session manager and context cache to update the active context.  
-- Contexts are stored in memory and optionally persisted in Redis or a local cache file.  
+- Contexts are stored in memory and optionally persisted in cache component or a local cache file.  
 - Changing context may trigger automatic loading of associated tools or memory entries.
 
 ---
