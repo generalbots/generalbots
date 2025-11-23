@@ -1,0 +1,59 @@
+<svg width="800" height="200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- Boxes -->
+  <g id="boxes">
+    <!-- User Input -->
+    <rect x="20" y="30" width="100" height="40" fill="none" stroke="#4A9EFF" stroke-width="2" rx="5"/>
+    <text x="70" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#4A9EFF">User Input</text>
+
+    <!-- BASIC Script -->
+    <rect x="180" y="30" width="100" height="40" fill="none" stroke="#FF9F40" stroke-width="2" rx="5"/>
+    <text x="230" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#FF9F40">BASIC Script</text>
+
+    <!-- LLM Decision -->
+    <rect x="340" y="30" width="100" height="40" fill="none" stroke="#BA68C8" stroke-width="2" rx="5"/>
+    <text x="390" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#BA68C8">LLM Decision</text>
+
+    <!-- Tool Execution -->
+    <rect x="500" y="30" width="120" height="40" fill="none" stroke="#66BB6A" stroke-width="2" rx="5"/>
+    <text x="560" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#66BB6A">Tool Execution</text>
+
+    <!-- Save to CSV -->
+    <rect x="500" y="100" width="120" height="40" fill="none" stroke="#EC407A" stroke-width="2" rx="5"/>
+    <text x="560" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#EC407A">Save to CSV</text>
+
+    <!-- Search Knowledge -->
+    <rect x="320" y="100" width="140" height="40" fill="none" stroke="#26A69A" stroke-width="2" rx="5"/>
+    <text x="390" y="125" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#26A69A">Search Knowledge</text>
+
+    <!-- Bot Response -->
+    <rect x="160" y="160" width="120" height="40" fill="none" stroke="#5C6BC0" stroke-width="2" rx="5"/>
+    <text x="220" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#5C6BC0">Bot Response</text>
+  </g>
+
+  <!-- Arrows -->
+  <g id="arrows" stroke="#888" stroke-width="2" fill="none">
+    <!-- Horizontal flow -->
+    <line x1="120" y1="50" x2="180" y2="50" marker-end="url(#arrow)"/>
+    <line x1="280" y1="50" x2="340" y2="50" marker-end="url(#arrow)"/>
+    <line x1="440" y1="50" x2="500" y2="50" marker-end="url(#arrow)"/>
+
+    <!-- Vertical connections -->
+    <line x1="230" y1="70" x2="230" y2="90" stroke-dasharray="3,3" opacity="0.6"/>
+    <line x1="390" y1="70" x2="390" y2="100" marker-end="url(#arrow)"/>
+    <line x1="560" y1="70" x2="560" y2="100" marker-end="url(#arrow)"/>
+
+    <!-- Feedback lines -->
+    <line x1="230" y1="90" x2="220" y2="160" marker-end="url(#arrow)"/>
+    <line x1="390" y1="140" x2="240" y2="160" marker-end="url(#arrow)"/>
+    <line x1="500" y1="120" x2="280" y2="170" marker-end="url(#arrow)"/>
+
+    <!-- User to Bot Response -->
+    <path d="M 70 70 Q 70 180 160 180" stroke-dasharray="3,3" marker-end="url(#arrow)" opacity="0.6"/>
+  </g>
+</svg>

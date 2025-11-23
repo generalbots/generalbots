@@ -1,0 +1,103 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#888"/>
+    </marker>
+    <marker id="arrow-double" markerWidth="10" markerHeight="10" refX="5" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L5,3 z" fill="#999"/>
+      <path d="M5,0 L5,6 L10,3 z" fill="#999"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#CBD5E0">Session Manager Architecture</text>
+
+  <!-- User Input -->
+  <rect x="50" y="60" width="150" height="50" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
+  <text x="125" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#90CDF4">User Input</text>
+
+  <!-- Bot Response -->
+  <rect x="600" y="60" width="150" height="50" fill="none" stroke="#68D391" stroke-width="2" rx="8"/>
+  <text x="675" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#9AE6B4">Bot Response</text>
+
+  <!-- Arrows down from User Input and up to Bot Response -->
+  <line x1="125" y1="110" x2="125" y2="150" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="675" y1="150" x2="675" y2="110" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- WebSocket/HTTP boxes -->
+  <rect x="50" y="150" width="150" height="60" fill="none" stroke="#F6AD55" stroke-width="2" rx="6"/>
+  <text x="125" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#FBD38D">WebSocket</text>
+  <text x="125" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FED7AA">/HTTP</text>
+
+  <rect x="600" y="150" width="150" height="60" fill="none" stroke="#F6AD55" stroke-width="2" rx="6"/>
+  <text x="675" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#FBD38D">WebSocket</text>
+  <text x="675" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FED7AA">/HTTP</text>
+
+  <!-- Arrows to/from Session Manager -->
+  <line x1="125" y1="210" x2="125" y2="250" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="675" y1="250" x2="675" y2="210" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Session Manager Box -->
+  <rect x="100" y="250" width="600" height="130" fill="none" stroke="#B794F4" stroke-width="3" rx="10"/>
+  <text x="400" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#D6BCFA">Session Manager</text>
+
+  <!-- Session Manager Steps -->
+  <g font-family="Arial, sans-serif" font-size="12" fill="#E9D8FD">
+    <text x="150" y="310">1. Validate Token</text>
+    <text x="150" y="330">2. Load Session</text>
+    <text x="150" y="350">3. Update State</text>
+
+    <text x="450" y="310">4. Execute BASIC</text>
+    <text x="450" y="330">5. Generate Response</text>
+    <text x="450" y="350">6. Save History</text>
+  </g>
+
+  <!-- Arrows down to databases -->
+  <line x1="250" y1="380" x2="250" y2="420" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="550" y1="380" x2="550" y2="420" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Database boxes -->
+  <rect x="150" y="420" width="200" height="80" fill="none" stroke="#E53E3E" stroke-width="2" rx="8"/>
+  <text x="250" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FC8181">Valkey</text>
+  <text x="250" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FEB2B2">(Cache)</text>
+
+  <rect x="450" y="420" width="200" height="80" fill="none" stroke="#4A90E2" stroke-width="2" rx="8"/>
+  <text x="550" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#63B3ED">PostgreSQL</text>
+  <text x="550" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#90CDF4">(Persist)</text>
+
+  <!-- Sync arrow between databases -->
+  <path d="M 350 460 L 450 460" stroke="#888" stroke-width="2" marker-end="url(#arrow-double)" stroke-dasharray="5,5" opacity="0.7"/>
+  <text x="400" y="455" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">Sync Every</text>
+  <text x="400" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">Message</text>
+
+  <!-- Process Flow Numbers -->
+  <g font-family="Arial, sans-serif" font-size="10" fill="#718096">
+    <circle cx="125" cy="130" r="12" fill="none" stroke="#718096" stroke-width="1"/>
+    <text x="125" y="134" text-anchor="middle">1</text>
+
+    <circle cx="125" cy="230" r="12" fill="none" stroke="#718096" stroke-width="1"/>
+    <text x="125" y="234" text-anchor="middle">2</text>
+
+    <circle cx="400" cy="315" r="12" fill="none" stroke="#718096" stroke-width="1"/>
+    <text x="400" y="319" text-anchor="middle">3</text>
+
+    <circle cx="675" cy="230" r="12" fill="none" stroke="#718096" stroke-width="1"/>
+    <text x="675" y="234" text-anchor="middle">4</text>
+
+    <circle cx="675" cy="130" r="12" fill="none" stroke="#718096" stroke-width="1"/>
+    <text x="675" y="134" text-anchor="middle">5</text>
+  </g>
+
+  <!-- Features box -->
+  <g id="features" transform="translate(50, 520)">
+    <rect x="0" y="0" width="700" height="60" fill="none" stroke="#4A5568" stroke-width="1" rx="5" stroke-dasharray="2,2" opacity="0.5"/>
+    <text x="350" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#CBD5E0">Key Features</text>
+
+    <g font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">
+      <text x="50" y="45">• Real-time WebSocket support</text>
+      <text x="250" y="45">• Automatic session persistence</text>
+      <text x="450" y="45">• Redis-compatible caching</text>
+      <text x="600" y="45">• ACID compliance</text>
+    </g>
+  </g>
+</svg>

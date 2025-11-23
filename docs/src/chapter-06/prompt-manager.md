@@ -257,10 +257,3 @@ match manager.get_prompt("custom", "missing") {
 }
 ```
 
-## Future Enhancements
-
-- **A/B Testing**: Compare prompt effectiveness
-- **Auto-optimization**: ML-based prompt improvement
-- **Multi-language**: Prompt localization support
-- **Prompt Chains**: Complex multi-step prompts
-- **Visual Editor**: Web-based prompt management UI

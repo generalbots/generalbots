@@ -1,0 +1,111 @@
+<svg width="900" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#888"/>
+    </marker>
+  </defs>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#CBD5E0">Bootstrap Flow</text>
+
+  <!-- Start -->
+  <rect x="350" y="60" width="200" height="50" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
+  <text x="450" y="85" text-anchor="middle" font-family="monospace" font-size="14" fill="#90CDF4">./botserver</text>
+  <text x="450" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#CBD5E0">(first run)</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="110" x2="450" y2="140" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- OS Detection -->
+  <rect x="325" y="140" width="250" height="70" fill="none" stroke="#F6AD55" stroke-width="2" rx="8"/>
+  <text x="450" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FBD38D">OS Detection</text>
+  <text x="450" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FED7AA">Linux/Mac/Windows</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="210" x2="450" y2="240" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Component Installation Box -->
+  <rect x="100" y="240" width="700" height="180" fill="none" stroke="#4A5568" stroke-width="2" rx="10" stroke-dasharray="5,5" opacity="0.6"/>
+  <text x="450" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#A0AEC0">Component Installation</text>
+
+  <!-- Component Grid -->
+  <g id="components">
+    <!-- PostgreSQL -->
+    <rect x="150" y="290" width="150" height="80" fill="none" stroke="#4A90E2" stroke-width="2" rx="6"/>
+    <text x="225" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#63B3ED">PostgreSQL</text>
+    <text x="225" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#90CDF4">16.2</text>
+
+    <!-- Valkey -->
+    <rect x="325" y="290" width="150" height="80" fill="none" stroke="#E53E3E" stroke-width="2" rx="6"/>
+    <text x="400" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#FC8181">Valkey</text>
+    <text x="400" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FEB2B2">Cache</text>
+
+    <!-- SeaweedFS -->
+    <rect x="500" y="290" width="150" height="80" fill="none" stroke="#38A169" stroke-width="2" rx="6"/>
+    <text x="575" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#48BB78">SeaweedFS</text>
+    <text x="575" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#68D391">Storage</text>
+
+    <!-- Qdrant -->
+    <rect x="675" y="290" width="125" height="80" fill="none" stroke="#38D4B2" stroke-width="2" rx="6"/>
+    <text x="737" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#4FD1C5">Qdrant</text>
+    <text x="737" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#81E6D9">Vectors</text>
+  </g>
+
+  <!-- Connection lines -->
+  <g stroke="#888" stroke-width="1" fill="none" opacity="0.5">
+    <line x1="225" y1="370" x2="225" y2="390"/>
+    <line x1="400" y1="370" x2="400" y2="390"/>
+    <line x1="575" y1="370" x2="575" y2="390"/>
+    <line x1="737" y1="370" x2="737" y2="390"/>
+    <line x1="225" y1="390" x2="737" y2="390"/>
+    <line x1="450" y1="390" x2="450" y2="450"/>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="450" y1="420" x2="450" y2="450" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Configuration & Setup -->
+  <rect x="200" y="450" width="500" height="120" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
+  <text x="450" y="475" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#D6BCFA">Configuration &amp; Setup</text>
+
+  <g font-family="Arial, sans-serif" font-size="12" fill="#E9D8FD">
+    <text x="250" y="505">• Generate credentials</text>
+    <text x="250" y="525">• Create .env file</text>
+    <text x="480" y="505">• Initialize databases</text>
+    <text x="480" y="525">• Create storage buckets</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="450" y1="570" x2="450" y2="600" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Bot Deployment Box -->
+  <rect x="150" y="600" width="600" height="200" fill="none" stroke="#4A5568" stroke-width="2" rx="10" stroke-dasharray="5,5" opacity="0.6"/>
+  <text x="450" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#A0AEC0">Bot Deployment</text>
+
+  <!-- Deployment Steps -->
+  <rect x="200" y="650" width="500" height="40" fill="none" stroke="#FBBF24" stroke-width="1" rx="6"/>
+  <text x="450" y="675" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#FCD34D">Scan templates/ directory</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="690" x2="450" y2="710" stroke="#888" stroke-width="1" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <rect x="200" y="710" width="500" height="60" fill="none" stroke="#68D391" stroke-width="1" rx="6"/>
+  <text x="450" y="735" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#9AE6B4">Load .gbai packages</text>
+  <text x="350" y="755" font-family="monospace" font-size="11" fill="#A0AEC0">• default.gbai</text>
+  <text x="500" y="755" font-family="monospace" font-size="11" fill="#A0AEC0">• announcements.gbai</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="770" x2="450" y2="790" stroke="#888" stroke-width="1" marker-end="url(#arrow)" opacity="0.7"/>
+
+  <rect x="200" y="790" width="500" height="60" fill="none" stroke="#81E6D9" stroke-width="1" rx="6"/>
+  <text x="450" y="815" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#B2F5EA">Upload to object storage</text>
+  <text x="450" y="835" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#B2F5EA">Index documents • Register in database</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="850" x2="450" y2="880" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Start Web Server -->
+  <rect x="275" y="880" width="350" height="70" fill="none" stroke="#48BB78" stroke-width="2" rx="8"/>
+  <text x="450" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#68D391">Start Web Server</text>
+  <text x="450" y="925" text-anchor="middle" font-family="monospace" font-size="12" fill="#9AE6B4">http://localhost:8080</text>
+</svg>

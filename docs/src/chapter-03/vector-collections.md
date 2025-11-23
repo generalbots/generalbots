@@ -49,6 +49,61 @@ Documents are indexed automatically when:
 - `USE KB` is called for the first time
 - The system detects new or modified files
 
+### Indexing Flow
+
+```
+     .gbkb/policies/
+           │
+           ├── vacation.pdf
+           ├── handbook.docx
+           └── rules.txt
+                │
+                ▼
+    ┌─────────────────────┐
+    │   File Detection    │
+    │  • New files found  │
+    │  • Hash comparison  │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │   Text Extraction   │
+    │  • PDF → Text       │
+    │  • DOCX → Text      │
+    │  • HTML → Text      │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │     Chunking        │
+    │  • Split by size    │
+    │  • Overlap windows  │
+    │  • ~500 tokens each │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │  Generate Embeddings│
+    │  • BGE Model        │
+    │  • 384 dimensions   │
+    │  • Batch processing │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │  Store in Vector DB │
+    │  • Vector storage   │
+    │  • Metadata tags    │
+    │  • Collection index │
+    └──────────┬──────────┘
+               │
+               ▼
+    ┌─────────────────────┐
+    │    Ready to Use     │
+    │  USE KB "policies"  │
+    └─────────────────────┘
+```
+
 ## Website Indexing
 
 To keep web content updated, schedule regular crawls:
@@ -70,6 +125,47 @@ When `USE KB` is active:
 5. LLM generates response using the knowledge
 
 **Important**: Search happens automatically - you don't need to call any search function. Just activate the KB with `USE KB` and ask questions naturally.
+
+### Search Pipeline
+
+```
+"What's the vacation policy?"
+            │
+            ▼
+    ┌────────────────┐
+    │  Query Embed   │
+    │  BGE Model     │
+    └───────┬────────┘
+            │ [0.2, -0.5, 0.8, ...]
+            ▼
+    ┌────────────────┐
+    │  Vector Search │
+    │   Vector DB    │
+    │  Cosine Sim    │
+    └───────┬────────┘
+            │
+            ├─► Match 1: "Vacation days: 15 annually" (0.92)
+            ├─► Match 2: "PTO policy applies to..." (0.87)
+            └─► Match 3: "Time off requests via..." (0.83)
+                        │
+                        ▼
+            ┌──────────────────────┐
+            │   Context Building   │
+            │  • Top 5 matches     │
+            │  • 2000 tokens max   │
+            │  • Relevance sorted │
+            └──────────┬───────────┘
+                       │
+                       ▼
+            ┌──────────────────────┐
+            │      LLM Call        │
+            │  Context + Question  │
+            │  "Based on docs..."  │
+            └──────────┬───────────┘
+                       │
+                       ▼
+                 "You get 15 vacation days per year..."
+```
 
 ## Embeddings Configuration
 

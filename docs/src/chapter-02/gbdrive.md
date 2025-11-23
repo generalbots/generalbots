@@ -16,16 +16,16 @@ Files are organized in a bucket-per-bot structure:
 
 ```
 org-prefixbot-name.gbai/
-├── .gbdialog/
-│   └── [script files]
-├── .gbkb/
-│   └── [collection folders]
-├── .gbot/
-│   └── config.csv
-├── .gbtheme/
-│   └── [theme files]
-└── user-uploads/
-    └── [user files]
+  .gbdialog/
+    [script files]
+  .gbkb/
+    [collection folders]
+  .gbot/
+    config.csv
+  .gbtheme/
+    [theme files]
+  user-uploads/
+    [user files]
 ```
 
 ## File Operations

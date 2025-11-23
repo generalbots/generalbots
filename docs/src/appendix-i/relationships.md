@@ -12,13 +12,13 @@ The database follows a hierarchical structure with organizations at the top, con
 
 ```
 organizations
-    ├── bots (1:N)
-        ├── bot_configuration (1:N)
-        ├── bot_memories (1:N)
-        ├── kb_collections (1:N)
-        │   └── kb_documents (1:N)
-        ├── basic_tools (1:N)
-        └── system_automations (1:N)
+    bots (1:N)
+        bot_configuration (1:N)
+        bot_memories (1:N)
+        kb_collections (1:N)
+            kb_documents (1:N)
+        basic_tools (1:N)
+        system_automations (1:N)
 ```
 
 **Key Relationships:**
@@ -30,16 +30,17 @@ organizations
 
 ```
 users
-    ├── user_sessions (1:N)
-    │   ├── message_history (1:N)
-    │   ├── clicks (1:N)
-    │   ├── user_kb_associations (1:N)
-    │   └── session_tool_associations (1:N)
-    ├── user_login_tokens (1:N)
-    ├── user_preferences (1:1)
-    └── user_email_accounts (1:N)
-        ├── email_drafts (1:N)
-        └── email_folders (1:N)
+    user_sessions (1:N)
+        message_history (1:N)
+        clicks (1:N)
+        user_kb_associations (1:N)
+        session_tool_associations (1:N)
+    user_login_tokens (1:N)
+    user_preferences (1:1)
+    user_email_accounts (1:N)
+        email_drafts (1:N)
+        email_folders (1:N)
+            folder_messages (1:N)
 ```
 
 **Key Relationships:**
@@ -51,13 +52,15 @@ users
 
 ```
 bots ←→ user_sessions ←→ users
-  │           │
-  │           ├── message_history
-  │           ├── user_kb_associations → kb_collections
-  │           └── session_tool_associations → basic_tools
-  │
-  ├── kb_collections
-  └── basic_tools
+              
+    user_sessions:
+        message_history
+        user_kb_associations → kb_collections
+        session_tool_associations → basic_tools
+    
+    bots:
+        kb_collections
+        basic_tools
 ```
 
 **Key Relationships:**
