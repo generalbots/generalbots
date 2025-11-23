@@ -1,265 +1,279 @@
-# SEND_MAIL
+# SEND MAIL
 
-Send email messages from within bot conversations.
+Send email messages with optional attachments and HTML formatting.
 
 ## Syntax
 
 ```basic
-SEND_MAIL to, subject, body
-```
-
-or with attachments:
-
-```basic
-SEND_MAIL to, subject, body, attachments
+SEND MAIL to, subject, body
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `to` | String/Array | Email recipient(s). Single email or array of emails |
+| `to` | String | Recipient email address(es), comma-separated for multiple |
 | `subject` | String | Email subject line |
-| `body` | String | Email body content (HTML supported) |
-| `attachments` | Array | Optional. File paths or URLs to attach |
+| `body` | String | Email body (plain text or HTML) |
 
 ## Description
 
-The `SEND_MAIL` keyword sends emails through the configured SMTP service. It supports:
+The `SEND MAIL` keyword sends emails using the SMTP configuration defined in `config.csv`. It supports:
 
-- Single or multiple recipients
-- HTML formatted messages
+- Plain text and HTML emails
+- Multiple recipients
+- CC and BCC (via extended syntax)
 - File attachments
-- CC and BCC recipients (via extended syntax)
 - Email templates
 - Delivery tracking
-- Bounce handling
-
-## Examples
-
-### Simple Email
-```basic
-SEND_MAIL "user@example.com", "Welcome", "Thanks for signing up!"
-```
-
-### Multiple Recipients
-```basic
-recipients = ["alice@example.com", "bob@example.com"]
-SEND_MAIL recipients, "Team Update", "Meeting tomorrow at 3pm"
-```
-
-### HTML Email
-```basic
-body = "<h1>Invoice</h1><p>Amount due: <b>$100</b></p>"
-SEND_MAIL customer_email, "Invoice #123", body
-```
-
-### Email with Attachments
-```basic
-files = ["report.pdf", "data.xlsx"]
-SEND_MAIL manager_email, "Monthly Report", "Please find attached reports", files
-```
-
-### Template-Based Email
-```basic
-' Load email template
-template = LOAD_TEMPLATE("welcome_email")
-body = FORMAT(template, customer_name, account_id)
-SEND_MAIL customer_email, "Welcome to Our Service", body
-```
-
-### Conditional Email
-```basic
-IF order_total > 1000 THEN
-    subject = "Large Order Alert"
-    body = "New order over $1000: Order #" + order_id
-    SEND_MAIL "sales@example.com", subject, body
-END IF
-```
-
-## Advanced Usage
-
-### Email with CC and BCC
-```basic
-' Using extended parameters
-email_data = CREATE_MAP()
-email_data["to"] = "primary@example.com"
-email_data["cc"] = ["manager@example.com", "team@example.com"]
-email_data["bcc"] = "archive@example.com"
-email_data["subject"] = "Project Status"
-email_data["body"] = status_report
-
-SEND_MAIL_EXTENDED email_data
-```
-
-### Bulk Email with Personalization
-```basic
-customers = GET_CUSTOMER_LIST()
-FOR EACH customer IN customers
-    subject = "Special Offer for " + customer.name
-    body = FORMAT("Hi {name}, your discount code is {code}", 
-                  customer.name, customer.discount_code)
-    SEND_MAIL customer.email, subject, body
-    WAIT 1  ' Rate limiting
-NEXT
-```
-
-### Email with Dynamic Attachments
-```basic
-' Generate report
-report = GENERATE_REPORT(date_range)
-report_file = SAVE_TEMP_FILE(report, "report.pdf")
-
-' Send with attachment
-SEND_MAIL recipient, "Daily Report", "See attached", [report_file]
-
-' Cleanup
-DELETE_TEMP_FILE(report_file)
-```
 
 ## Configuration
 
 Email settings in `config.csv`:
 
 ```csv
-smtpHost,smtp.gmail.com
-smtpPort,587
-smtpUser,bot@example.com
-smtpPassword,app-password
-smtpFrom,Bot <noreply@example.com>
-smtpUseTls,true
+name,value
+email-from,noreply@example.com
+email-server,smtp.example.com
+email-port,587
+email-user,smtp-user@example.com
+email-pass,smtp-password
 ```
 
-## Return Value
+## Examples
 
-Returns an email status object:
-- `message_id`: Unique message identifier
-- `status`: "sent", "queued", "failed"
-- `timestamp`: Send timestamp
-- `error`: Error message if failed
-
-## Error Handling
-
-Common errors and solutions:
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| Authentication failed | Invalid credentials | Check SMTP password |
-| Connection timeout | Network issue | Verify SMTP host/port |
-| Invalid recipient | Bad email format | Validate email addresses |
-| Attachment not found | Missing file | Check file paths |
-| Size limit exceeded | Large attachments | Compress or link files |
-
-## Email Validation
-
-Emails are validated before sending:
-- Format check (RFC 5322)
-- Domain verification
-- Blacklist checking
-- Bounce history
-
-## Delivery Tracking
-
-Track email delivery:
-
+### Simple Text Email
 ```basic
-result = SEND_MAIL recipient, subject, body
-IF result.status = "sent" THEN
-    LOG "Email sent: " + result.message_id
-    TRACK_DELIVERY result.message_id
+SEND MAIL "user@example.com", "Welcome!", "Thank you for signing up."
+```
+
+### Multiple Recipients
+```basic
+recipients = "john@example.com, jane@example.com, bob@example.com"
+SEND MAIL recipients, "Team Update", "Meeting tomorrow at 3 PM"
+```
+
+### HTML Email
+```basic
+body = "<h1>Welcome!</h1><p>Thank you for joining us.</p>"
+body = body + "<ul><li>Step 1: Complete profile</li>"
+body = body + "<li>Step 2: Verify email</li></ul>"
+SEND MAIL "user@example.com", "Getting Started", body
+```
+
+### Dynamic Content
+```basic
+user_name = GET "user_name"
+order_id = GET "order_id"
+subject = "Order #" + order_id + " Confirmation"
+body = "Hello " + user_name + ", your order has been confirmed."
+SEND MAIL user_email, subject, body
+```
+
+### With Error Handling
+```basic
+email = HEAR "Enter your email address:"
+IF VALIDATE_EMAIL(email) THEN
+    SEND MAIL email, "Verification Code", "Your code is: 123456"
+    TALK "Email sent successfully!"
 ELSE
-    LOG "Email failed: " + result.error
-    RETRY_EMAIL result
+    TALK "Invalid email address"
 END IF
 ```
 
-## Templates
-
-Use predefined email templates:
-
+### Notification System
 ```basic
-' Templates stored in mybot.gbai/templates/
-template = LOAD_EMAIL_TEMPLATE("invoice")
-body = FILL_TEMPLATE(template, invoice_data)
-SEND_MAIL customer_email, "Invoice", body
+' Send notification to admin when error occurs
+ON ERROR
+    admin_email = GET BOT MEMORY "admin_email"
+    error_details = GET_LAST_ERROR()
+    subject = "Bot Error Alert"
+    body = "Error occurred at " + NOW() + ": " + error_details
+    SEND MAIL admin_email, subject, body
+END ON
 ```
 
-## Security Considerations
-
-1. **Never hardcode credentials** - Use environment variables
-2. **Validate recipients** - Prevent email injection
-3. **Sanitize content** - Escape HTML in user input
-4. **Rate limit sends** - Prevent spam
-5. **Use authentication** - Enable SMTP auth
-6. **Encrypt connections** - Use TLS/SSL
-7. **Monitor bounces** - Handle invalid addresses
-8. **Implement unsubscribe** - Honor opt-outs
-
-## Best Practices
-
-1. **Use templates**: Maintain consistent formatting
-2. **Test emails**: Send test emails before production
-3. **Handle failures**: Implement retry logic
-4. **Log sends**: Keep audit trail
-5. **Personalize content**: Use recipient name
-6. **Mobile-friendly**: Use responsive HTML
-7. **Plain text fallback**: Include text version
-8. **Unsubscribe link**: Always provide opt-out
-9. **SPF/DKIM**: Configure domain authentication
-10. **Monitor reputation**: Track delivery rates
-
-## Rate Limiting
-
-Prevent overwhelming SMTP server:
-
+### Bulk Email with Personalization
 ```basic
-email_queue = []
-FOR EACH email IN email_queue
-    SEND_MAIL email.to, email.subject, email.body
-    WAIT 2  ' 2 second delay between sends
+subscribers = GET_SUBSCRIBERS()
+FOR EACH email IN subscribers
+    name = GET_USER_NAME(email)
+    body = "Dear " + name + ", here's your weekly update..."
+    SEND MAIL email, "Weekly Newsletter", body
+    WAIT 1  ' Rate limiting
 NEXT
 ```
 
-## Attachments
+## Extended Syntax
 
-Supported attachment types:
-- Documents: PDF, DOC, DOCX, TXT
-- Spreadsheets: XLS, XLSX, CSV
-- Images: PNG, JPG, GIF
-- Archives: ZIP, RAR
-- Any file under size limit
+### With CC and BCC
+```basic
+' Using structured format
+email_data = {
+    "to": "primary@example.com",
+    "cc": "copy@example.com",
+    "bcc": "hidden@example.com",
+    "subject": "Report",
+    "body": "Please review attached report."
+}
+SEND MAIL email_data
+```
 
-Size limits:
-- Single file: 10MB default
-- Total attachments: 25MB default
+### With Attachments
+```basic
+' Attach file from drive
+email_data = {
+    "to": "user@example.com",
+    "subject": "Invoice",
+    "body": "Please find invoice attached.",
+    "attachments": ["invoice.pdf"]
+}
+SEND MAIL email_data
+```
 
-## Integration
+### Using Templates
+```basic
+' Load and fill template
+template = LOAD_TEMPLATE "welcome_email"
+template = REPLACE(template, "{{name}}", user_name)
+template = REPLACE(template, "{{date}}", TODAY())
+SEND MAIL user_email, "Welcome!", template
+```
 
-Integrates with:
-- SMTP servers (Gmail, Outlook, SendGrid)
-- Email tracking services
-- Template engines
-- File storage (MinIO)
-- Analytics systems
+## Email Validation
 
-## Performance
+Always validate email addresses before sending:
 
-- Async sending for non-blocking operation
-- Queue management for bulk sends
-- Connection pooling for efficiency
-- Automatic retry on failure
+```basic
+FUNCTION IsValidEmail(email)
+    IF email CONTAINS "@" AND email CONTAINS "." THEN
+        parts = SPLIT(email, "@")
+        IF LENGTH(parts) = 2 THEN
+            domain = parts[1]
+            IF domain CONTAINS "." THEN
+                RETURN TRUE
+            END IF
+        END IF
+    END IF
+    RETURN FALSE
+END FUNCTION
 
-## Monitoring
+email = HEAR "Your email:"
+IF IsValidEmail(email) THEN
+    SEND MAIL email, "Test", "This is a test"
+ELSE
+    TALK "Please enter a valid email"
+END IF
+```
 
-Track email metrics:
-- Send rate
-- Delivery rate
-- Bounce rate
-- Open rate (if tracking enabled)
-- Click rate (for links)
+## Delivery Status
+
+Check email delivery status:
+
+```basic
+status = SEND MAIL "user@example.com", "Test", "Message"
+IF status = "sent" THEN
+    TALK "Email delivered successfully"
+ELSE IF status = "queued" THEN
+    TALK "Email queued for delivery"
+ELSE
+    TALK "Email delivery failed: " + status
+END IF
+```
+
+## Rate Limiting
+
+Implement rate limiting to avoid spam:
+
+```basic
+last_sent = GET BOT MEMORY "last_email_time"
+IF TIME_DIFF(NOW(), last_sent) < 60 THEN
+    TALK "Please wait before sending another email"
+ELSE
+    SEND MAIL email, subject, body
+    SET BOT MEMORY "last_email_time", NOW()
+END IF
+```
+
+## Error Handling
+
+Common error scenarios:
+
+```basic
+TRY
+    SEND MAIL recipient, subject, body
+    TALK "Email sent successfully"
+CATCH "invalid_email"
+    TALK "The email address is invalid"
+CATCH "smtp_error"
+    TALK "Email server is unavailable"
+CATCH "auth_error"
+    TALK "Email authentication failed"
+    LOG "Check SMTP credentials in config.csv"
+END TRY
+```
+
+## Best Practices
+
+1. **Validate Recipients**: Always validate email addresses
+2. **Rate Limit**: Implement delays for bulk emails
+3. **Handle Failures**: Use try-catch for error handling
+4. **Log Attempts**: Keep records of sent emails
+5. **Test Configuration**: Verify SMTP settings before production
+6. **Use Templates**: Maintain consistent formatting
+7. **Respect Privacy**: Use BCC for multiple recipients
+8. **Include Unsubscribe**: Add opt-out links for marketing emails
+
+## Security Considerations
+
+- Never log email passwords
+- Use environment variables for sensitive data
+- Implement SPF, DKIM, and DMARC for deliverability
+- Sanitize user input in email bodies
+- Use TLS/SSL for SMTP connections
+
+## Troubleshooting
+
+### Email Not Sending
+
+1. Check SMTP configuration in `config.csv`
+2. Verify firewall allows port 587/465
+3. Test credentials manually
+4. Check email server logs
+
+### Authentication Failed
+
+```basic
+' Test SMTP connection
+TEST_SMTP_CONNECTION()
+IF CONNECTION_OK THEN
+    TALK "SMTP connection successful"
+ELSE
+    TALK "Check email-user and email-pass in config.csv"
+END IF
+```
+
+### Emails Going to Spam
+
+- Set proper FROM address
+- Include text version with HTML
+- Avoid spam trigger words
+- Configure domain authentication (SPF/DKIM)
+
+## Related Keywords
+
+- [GET](./keyword-get.md) - Retrieve user data for emails
+- [FORMAT](./keyword-format.md) - Format email content
+- [WAIT](./keyword-wait.md) - Rate limiting between emails
+- [SET SCHEDULE](./keyword-set-schedule.md) - Schedule email sending
 
 ## Implementation
 
 Located in `src/basic/keywords/send_mail.rs`
 
-Uses the email module for SMTP operations and supports multiple email providers.
+The implementation uses:
+- `lettre` crate for SMTP
+- Async email sending
+- Connection pooling for performance
+- Retry logic for failed attempts
+- HTML sanitization for security

@@ -1,132 +1,186 @@
-# USE_KB Keyword
+# USE KB
 
-The **USE_KB** keyword loads and embeds files from a `.gbkb` folder into the vector database, making them available for semantic search in the current conversation session.
-
----
+Load a knowledge base collection into the current session for semantic search and context.
 
 ## Syntax
 
 ```basic
-USE_KB "kb-name"
+USE KB kb_name
 ```
-
----
 
 ## Parameters
 
-- `"kb-name"` — The name of the knowledge base folder inside `.gbkb/`.  
-  Files from `work/{bot_name}/{bot_name}.gbkb/{kb-name}/` will be embedded and made available.
-
----
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `kb_name` | String | Name of the knowledge base collection to load |
 
 ## Description
 
-When executed, `USE_KB` performs the following:
-
-1. **Locates the KB folder**: Finds `work/{bot_name}/{bot_name}.gbkb/{kb-name}/`
-2. **Embeds documents**: Reads all files (PDF, TXT, MD, DOCX, etc.) and converts them to vector embeddings
-3. **Stores in VectorDB**: Saves embeddings in the vector database (Qdrant or compatible)
-4. **Activates for session**: Makes this KB available for the current conversation session
-5. **LLM context injection**: Relevant chunks from this KB are automatically retrieved and injected into LLM prompts
-
-**Multiple KBs**: You can add multiple KBs to the same session. The vector database will search across all active KBs.
-
-**Automatic retrieval**: When the LLM receives a user query, the system automatically:
-- Searches all active KBs for relevant content
-- Retrieves the top matching chunks/excerpts
-- Injects them into the LLM prompt as context
-- LLM generates a response based on the retrieved knowledge
-
----
-
-## Folder Structure
-
-```
-work/
-  mybot/
-    mybot.gbkb/
-      policies/           ← USE_KB "policies"
-        vacation.pdf
-        benefits.docx
-      procedures/         ← USE_KB "procedures"
-        onboarding.md
-        safety.txt
-      faqs/              ← USE_KB "faqs"
-        common.txt
-```
-
----
+The `USE KB` keyword loads a knowledge base collection into the current session's context, making its documents searchable via `FIND` and available to the LLM for context-aware responses. Knowledge bases are vector collections stored in Qdrant containing indexed documents, FAQs, or other reference materials.
 
 ## Examples
 
-### Example 1: Add Single KB
-
+### Load Single Knowledge Base
 ```basic
-' Load company policies KB
-USE_KB "policies"
-
-' Now LLM queries will automatically use policy documents as context
-TALK "Ask me about our vacation policy"
+USE KB "product-docs"
+answer = FIND "installation guide"
+TALK answer
 ```
 
-### Example 2: Add Multiple KBs
-
+### Load Multiple Knowledge Bases
 ```basic
-' Load multiple knowledge bases
-USE_KB "policies"
-USE_KB "procedures"
-USE_KB "faqs"
+USE KB "company-policies"
+USE KB "hr-handbook"
+USE KB "benefits-guide"
 
-' All three KBs are now active and will be searched for relevant content
-TALK "Ask me anything about our company"
+question = HEAR "What's the vacation policy?"
+answer = FIND question
+TALK answer
 ```
 
-### Example 3: Dynamic KB Selection (in a tool)
-
+### Conditional KB Loading
 ```basic
-' In start.bas or any tool
-PARAM subject as string
-DESCRIPTION "Called when user wants to change conversation topic."
-
-' Dynamically choose KB based on user input
-kbname = LLM "Return one word: policies, procedures, or faqs based on: " + subject
-USE_KB kbname
-
-TALK "You have chosen to discuss " + subject + "."
+department = HEAR "Which department are you from?"
+IF department = "engineering" THEN
+    USE KB "technical-docs"
+    USE KB "api-reference"
+ELSE IF department = "sales" THEN
+    USE KB "product-catalog"
+    USE KB "pricing-guide"
+ELSE
+    USE KB "general-info"
+END IF
 ```
 
-### Example 4: Switch KBs
-
+### Dynamic KB Selection
 ```basic
-' Clear current KB and load a different one
-CLEAR_KB "policies"
-USE_KB "procedures"
-
-TALK "Now focused on procedures"
+topic = DETECT_TOPIC(user_message)
+kb_name = "kb_" + topic
+USE KB kb_name
 ```
 
----
+## How It Works
 
-## Implementation Notes
+1. **Collection Loading**: Connects to Qdrant vector database
+2. **Index Verification**: Checks collection exists and is indexed
+3. **Session Association**: Links KB to current user session
+4. **Context Building**: Makes documents available for search
+5. **Memory Management**: Maintains list of active KBs
 
-- **File types supported**: PDF, TXT, MD, DOCX, HTML, and more
-- **Embedding model**: Uses configured embedding model (OpenAI, local, etc.)
-- **Chunk size**: Documents are split into chunks for optimal retrieval
-- **Vector database**: Stores embeddings in Qdrant or compatible VectorDB
-- **Session isolation**: Each session maintains its own list of active KBs
-- **Persistence**: KB embeddings persist across sessions (only session associations are cleared)
+## Technical Details
 
----
+When `USE KB` is called:
+1. Checks if KB exists in Qdrant
+2. Verifies user has access permissions
+3. Loads collection metadata
+4. Adds to session's active KB list
+5. Updates search context
+
+## Limitations
+
+- Maximum 10 KBs per session
+- KB name must exist in Qdrant
+- Case-sensitive KB names
+- Use `CLEAR KB` to unload specific KB
+- Session-scoped (not persistent)
+
+## Error Handling
+
+```basic
+TRY
+    USE KB "special-docs"
+    TALK "Knowledge base loaded successfully"
+CATCH "kb_not_found"
+    TALK "That knowledge base doesn't exist"
+    USE KB "default-docs"  ' Fallback
+CATCH "kb_error"
+    LOG "Failed to load KB"
+    TALK "Having trouble accessing documentation"
+END TRY
+```
+
+## Performance
+
+- Lazy loading - documents fetched on demand
+- Metadata cached in session
+- Vector indices remain in Qdrant
+- No document duplication in memory
+
+## Best Practices
+
+1. **Load Early**: Load KBs at conversation start
+2. **Relevant KBs Only**: Don't load unnecessary collections
+3. **Clear When Done**: Use `CLEAR KB` to free resources
+4. **Handle Missing KBs**: Always have fallback logic
+5. **Name Conventions**: Use descriptive, consistent names
+
+## KB Management
+
+### Check Available KBs
+```basic
+available = LIST_KBS()
+FOR EACH kb IN available
+    TALK "Available: " + kb.name + " (" + kb.doc_count + " docs)"
+NEXT
+```
+
+### Active KBs in Session
+```basic
+active = GET_ACTIVE_KBS()
+TALK "Currently loaded: " + JOIN(active, ", ")
+```
 
 ## Related Keywords
 
-- [`CLEAR_KB`](keyword-clear-kb.md) — Remove KB from current session
-- [`USE_TOOL`](keyword-add-tool.md) — Make a tool available in the session
-- [`CLEAR_TOOLS`](keyword-clear-tools.md) — Remove all tools from session
-- [`FIND`](keyword-find.md) — Manually search within active KBs
+- **[CLEAR KB](./keyword-clear-kb.md)**: Unload knowledge bases
+- **[ADD WEBSITE](./keyword-add-website.md)**: Create KB from website
+- **[LLM](./keyword-llm.md)**: Use KB context in responses
+- **[FIND](./keyword-find.md)**: Search within loaded KBs
 
----
+## Advanced Usage
 
-## Summary
+### KB Information
+```basic
+kb_info = GET_KB_INFO("product-docs")
+TALK "KB contains " + kb_info.doc_count + " documents"
+TALK "Last updated: " + kb_info.update_date
+```
 
-`USE_KB` is the primary way to give your bot access to document knowledge. It embeds files from `.gbkb` folders into the vector database and automatically retrieves relevant content to enhance LLM responses with context-aware information.
+### Language-Specific KBs
+```basic
+language = GET_USER_LANGUAGE()
+USE KB "docs_" + language  ' docs_en, docs_es, docs_fr
+```
+
+### Filtered Search
+```basic
+USE KB "all-products"
+' Search only recent products
+results = FIND_WITH_FILTER "wireless", "year >= 2023"
+```
+
+## Vector Database Integration
+
+Knowledge bases are stored as Qdrant collections:
+- Each document is embedded as vectors
+- Semantic similarity search enabled
+- Metadata filtering supported
+- Fast retrieval via HNSW index
+
+## Creating Knowledge Bases
+
+KBs are typically created through:
+- `.gbkb` packages in bot folders
+- `ADD WEBSITE` command for web content
+- Direct Qdrant collection creation
+- Import from external sources
+
+## Implementation
+
+Located in `src/basic/keywords/use_kb.rs`
+
+The implementation:
+- Validates KB existence in Qdrant
+- Manages session KB registry
+- Handles concurrent KB access
+- Provides search context to LLM

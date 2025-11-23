@@ -62,13 +62,13 @@ Contains BASIC-like scripts (`.bas` files) that define conversation logic:
 Example from `announcements.gbai/announcements.gbdialog/start.bas`:
 
 ```basic
-let resume1 = GET_BOT_MEMORY("resume");
-let resume2 = GET_BOT_MEMORY("auxiliom");
-let resume3 = GET_BOT_MEMORY("toolbix");
+resume1 = GET BOT MEMORY "resume"
+resume2 = GET BOT MEMORY "auxiliom"
+resume3 = GET BOT MEMORY "toolbix"
 
-SET_CONTEXT "general"  AS  resume1;
-SET_CONTEXT "auxiliom" AS  resume2;
-SET_CONTEXT "toolbix"  AS  resume3;
+SET CONTEXT "general" AS resume1
+SET CONTEXT "auxiliom" AS resume2
+SET CONTEXT "toolbix" AS resume3
 
 TALK resume1
 TALK "You can ask me about any of the announcements or circulars."

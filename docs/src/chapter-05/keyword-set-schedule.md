@@ -1,274 +1,222 @@
-# SET_SCHEDULE
+# SET SCHEDULE
 
-Schedule recurring tasks or events to run at specified intervals.
+Schedule a script or task to run at specified times using cron expressions.
 
 ## Syntax
 
 ```basic
-SET_SCHEDULE schedule_name, cron_expression, task
+SET SCHEDULE cron_expression
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `schedule_name` | String | Unique identifier for the schedule |
-| `cron_expression` | String | Cron expression or time interval |
-| `task` | String | Task to execute (dialog name or command) |
+| `cron_expression` | String | Standard cron expression defining when to run |
 
 ## Description
 
-The `SET_SCHEDULE` keyword creates recurring scheduled tasks that execute at specified times or intervals. It supports both cron expressions for complex scheduling and simple interval syntax for common patterns.
+The `SET SCHEDULE` keyword schedules the current script to run automatically at specified intervals. It uses standard cron syntax for maximum flexibility in scheduling.
 
-Schedules persist across bot restarts and run independently of user sessions, making them ideal for automated tasks, reminders, reports, and maintenance operations.
+## Cron Expression Format
+
+```
+┌───────────── minute (0-59)
+│ ┌───────────── hour (0-23)
+│ │ ┌───────────── day of month (1-31)
+│ │ │ ┌───────────── month (1-12)
+│ │ │ │ ┌───────────── day of week (0-6, Sunday=0)
+│ │ │ │ │
+* * * * *
+```
 
 ## Examples
 
-### Daily Reminder
+### Every Hour
 ```basic
-SET_SCHEDULE "daily_standup", "0 9 * * MON-FRI", "send_standup_reminder.bas"
-TALK "Daily standup reminder scheduled for 9 AM on weekdays"
+SET SCHEDULE "0 * * * *"
+' Runs at the start of every hour
 ```
 
-### Hourly Task
+### Daily at Specific Time
 ```basic
-SET_SCHEDULE "check_inventory", "every 1 hour", "inventory_check.bas"
-TALK "Inventory will be checked every hour"
+SET SCHEDULE "0 9 * * *"
+' Runs every day at 9:00 AM
 ```
 
-### Weekly Report
+### Every 5 Minutes
 ```basic
-SET_SCHEDULE "weekly_report", "0 10 * * MON", "generate_weekly_report.bas"
-TALK "Weekly reports will be generated every Monday at 10 AM"
+SET SCHEDULE "*/5 * * * *"
+' Runs every 5 minutes
 ```
 
-### Monthly Billing
+### Weekdays Only
 ```basic
-SET_SCHEDULE "monthly_billing", "0 0 1 * *", "process_billing.bas"
-TALK "Billing will process on the 1st of each month"
+SET SCHEDULE "0 8 * * 1-5"
+' Runs at 8 AM Monday through Friday
 ```
 
-## Schedule Formats
-
-### Cron Expression Format
-Standard cron format with five fields:
-```
-* * * * *
-│ │ │ │ │
-│ │ │ │ └─── Day of week (0-7, MON-SUN)
-│ │ │ └───── Month (1-12)
-│ │ └─────── Day of month (1-31)
-│ └───────── Hour (0-23)
-└─────────── Minute (0-59)
-```
-
-Examples:
-- `"0 9 * * *"` - Every day at 9:00 AM
-- `"*/15 * * * *"` - Every 15 minutes
-- `"0 0 * * SUN"` - Every Sunday at midnight
-- `"0 8,12,16 * * *"` - At 8 AM, noon, and 4 PM daily
-
-### Simple Interval Format
-Human-readable intervals:
-- `"every 30 minutes"`
-- `"every 2 hours"`
-- `"every day"`
-- `"every week"`
-- `"every month"`
-
-### Relative Time Format
-- `"in 5 minutes"` - One-time schedule
-- `"tomorrow at 3pm"`
-- `"next Monday"`
-- `"end of month"`
-
-## Task Types
-
-### Dialog Execution
+### Multiple Times Daily
 ```basic
-SET_SCHEDULE "greeting", "0 8 * * *", "morning_greeting.bas"
+SET SCHEDULE "0 9,12,17 * * *"
+' Runs at 9 AM, 12 PM, and 5 PM
 ```
 
-### Function Call
+### Monthly Reports
 ```basic
-SET_SCHEDULE "backup", "0 2 * * *", "BACKUP_DATABASE()"
+SET SCHEDULE "0 6 1 * *"
+' Runs at 6 AM on the first day of each month
 ```
 
-### Email Task
+## Common Patterns
+
+| Pattern | Cron Expression | Description |
+|---------|----------------|-------------|
+| Every minute | `* * * * *` | Runs every minute |
+| Every hour | `0 * * * *` | Start of every hour |
+| Every 30 minutes | `*/30 * * * *` | Every 30 minutes |
+| Daily at midnight | `0 0 * * *` | Every day at 12:00 AM |
+| Weekly on Monday | `0 0 * * 1` | Every Monday at midnight |
+| Last day of month | `0 0 28-31 * *` | End of month (approximate) |
+| Business hours | `0 9-17 * * 1-5` | Every hour 9 AM-5 PM weekdays |
+
+## Practical Use Cases
+
+### Daily Summary Generation
 ```basic
-SET_SCHEDULE "reminder", "0 9 * * MON", "SEND_MAIL admin@example.com, 'Weekly Tasks', 'Please review weekly tasks'"
+SET SCHEDULE "0 6 * * *"
+
+' Fetch and summarize daily data
+data = GET "reports/daily.json"
+summary = LLM "Summarize key metrics: " + data
+SET BOT MEMORY "daily_summary", summary
 ```
 
-### Multi-Step Task
+### Hourly Data Refresh
 ```basic
-task = "FETCH_DATA(); PROCESS_DATA(); SEND_REPORT()"
-SET_SCHEDULE "data_pipeline", "*/30 * * * *", task
+SET SCHEDULE "0 * * * *"
+
+' Update cached data every hour
+fresh_data = FETCH_EXTERNAL_API()
+SET BOT MEMORY "cached_data", fresh_data
+```
+
+### Weekly Newsletter
+```basic
+SET SCHEDULE "0 10 * * 1"
+
+' Send weekly newsletter every Monday at 10 AM
+subscribers = GET_SUBSCRIBERS()
+FOR EACH email IN subscribers
+    SEND MAIL email, "Weekly Update", newsletter_content
+NEXT
+```
+
+### Periodic Cleanup
+```basic
+SET SCHEDULE "0 2 * * *"
+
+' Clean old data daily at 2 AM
+DELETE_OLD_LOGS(30)  ' Keep 30 days
+VACUUM_DATABASE()
 ```
 
 ## Schedule Management
 
-### List Active Schedules
+### View Active Schedules
 ```basic
 schedules = GET_SCHEDULES()
 FOR EACH schedule IN schedules
-    TALK schedule.name + ": " + schedule.expression + " - " + schedule.task
+    TALK "Task: " + schedule.name
+    TALK "Next run: " + schedule.next_run
 NEXT
 ```
 
 ### Cancel Schedule
 ```basic
-CANCEL_SCHEDULE "daily_reminder"
-TALK "Daily reminder has been cancelled"
+' Schedules are automatically canceled when script ends
+' Or use:
+CANCEL SCHEDULE "task_id"
 ```
-
-### Update Schedule
-```basic
-' Cancel old and create new
-CANCEL_SCHEDULE "report"
-SET_SCHEDULE "report", "0 10 * * *", "new_report.bas"
-```
-
-### Check Schedule Status
-```basic
-status = GET_SCHEDULE_STATUS("backup")
-TALK "Last run: " + status.last_run
-TALK "Next run: " + status.next_run
-```
-
-## Advanced Features
-
-### Conditional Scheduling
-```basic
-IF is_production THEN
-    SET_SCHEDULE "prod_backup", "0 1 * * *", "backup_prod.bas"
-ELSE
-    SET_SCHEDULE "dev_backup", "0 3 * * SUN", "backup_dev.bas"
-END IF
-```
-
-### Dynamic Scheduling
-```basic
-hour = USER_PREFERENCE("reminder_hour")
-cron = "0 " + hour + " * * *"
-SET_SCHEDULE "user_reminder", cron, "send_reminder.bas"
-```
-
-### Schedule with Parameters
-```basic
-' Pass parameters to scheduled task
-task_with_params = "PROCESS_REPORT('daily', 'sales', true)"
-SET_SCHEDULE "daily_sales", "0 6 * * *", task_with_params
-```
-
-### Error Handling in Schedules
-```basic
-task = "TRY; RUN_TASK(); CATCH; LOG_ERROR(); END TRY"
-SET_SCHEDULE "safe_task", "*/10 * * * *", task
-```
-
-## Timezone Handling
-
-Schedules use the bot's configured timezone:
-```basic
-' Set timezone in config.csv
-' timezone = "America/New_York"
-
-SET_SCHEDULE "ny_task", "0 9 * * *", "task.bas"
-' Runs at 9 AM New York time
-```
-
-## Return Value
-
-Returns schedule object:
-- `id`: Unique schedule identifier
-- `name`: Schedule name
-- `created`: Creation timestamp
-- `next_run`: Next execution time
-- `active`: Schedule status
-
-## Persistence
-
-- Schedules stored in database
-- Survive bot restarts
-- Automatic recovery after crashes
-- Execution history tracked
 
 ## Best Practices
 
-1. **Use descriptive names**: Make schedule purpose clear
-2. **Test cron expressions**: Verify timing is correct
-3. **Handle failures**: Include error handling in tasks
-4. **Avoid overlaps**: Ensure tasks complete before next run
-5. **Monitor execution**: Check logs for failures
-6. **Clean up old schedules**: Remove unused schedules
-7. **Document schedules**: Keep list of active schedules
+1. **Start Time Consideration**: Avoid scheduling all tasks at the same time
+   ```basic
+   ' Bad: Everything at midnight
+   SET SCHEDULE "0 0 * * *"
+   
+   ' Good: Stagger tasks
+   SET SCHEDULE "0 2 * * *"  ' Cleanup at 2 AM
+   SET SCHEDULE "0 3 * * *"  ' Backup at 3 AM
+   ```
 
-## Common Use Cases
+2. **Resource Management**: Consider system load
+   ```basic
+   ' Heavy processing during off-hours
+   SET SCHEDULE "0 2-4 * * *"
+   ```
 
-### Daily Reports
-```basic
-SET_SCHEDULE "daily_summary", "0 18 * * *", "generate_daily_summary.bas"
-```
+3. **Error Handling**: Include error recovery
+   ```basic
+   SET SCHEDULE "0 * * * *"
+   
+   TRY
+       PROCESS_DATA()
+   CATCH
+       LOG "Schedule failed: " + ERROR_MESSAGE
+       SEND MAIL "admin@example.com", "Schedule Error", ERROR_DETAILS
+   END TRY
+   ```
 
-### Data Synchronization
-```basic
-SET_SCHEDULE "sync_data", "*/15 * * * *", "sync_with_external_api.bas"
-```
-
-### Maintenance Tasks
-```basic
-SET_SCHEDULE "cleanup", "0 3 * * *", "cleanup_old_files.bas"
-SET_SCHEDULE "optimize", "0 4 * * SUN", "optimize_database.bas"
-```
-
-### User Reminders
-```basic
-SET_SCHEDULE "medication", "0 8,14,20 * * *", "send_medication_reminder.bas"
-```
-
-### Business Processes
-```basic
-SET_SCHEDULE "payroll", "0 10 L * *", "process_payroll.bas"  ' Last day of month
-SET_SCHEDULE "invoicing", "0 9 1 * *", "generate_invoices.bas"  ' First of month
-```
+4. **Idempotency**: Make scheduled tasks safe to re-run
+   ```basic
+   ' Check if already processed
+   last_run = GET BOT MEMORY "last_process_time"
+   IF TIME_DIFF(NOW(), last_run) > 3600 THEN
+       PROCESS()
+       SET BOT MEMORY "last_process_time", NOW()
+   END IF
+   ```
 
 ## Limitations
 
-- Maximum 100 active schedules per bot
+- Maximum 100 scheduled tasks per bot
 - Minimum interval: 1 minute
-- Tasks timeout after 5 minutes
-- No sub-second precision
-- Schedules run in bot context (not user)
+- Scripts timeout after 5 minutes by default
+- Schedules persist until explicitly canceled or bot restarts
+- Time zone is server's local time unless specified
 
-## Troubleshooting
+## Time Zone Support
 
-### Schedule Not Running
-- Verify cron expression syntax
-- Check bot is active
-- Review task for errors
-- Check timezone settings
+```basic
+' Specify time zone (if supported)
+SET SCHEDULE "0 9 * * *" TIMEZONE "America/New_York"
+```
 
-### Task Failures
-- Check task dialog exists
-- Verify permissions
-- Review error logs
-- Test task manually first
+## Monitoring
 
-### Performance Issues
-- Limit concurrent schedules
-- Optimize task execution
-- Use appropriate intervals
-- Monitor resource usage
+Scheduled tasks are logged for monitoring:
+- Execution start/end times
+- Success/failure status
+- Error messages
+- Performance metrics
 
 ## Related Keywords
 
-- [CREATE_TASK](./keyword-create-task.md) - Create one-time tasks
-- [WAIT](./keyword-wait.md) - Delay execution
-- [ON](./keyword-on.md) - Event-based triggers
-- [SEND_MAIL](./keyword-send-mail.md) - Often used in scheduled tasks
+- [GET BOT MEMORY](./keyword-get-bot-memory.md) - Store schedule state
+- [SET BOT MEMORY](./keyword-set-bot-memory.md) - Persist data between runs
+- [LLM](./keyword-llm.md) - Process data in scheduled tasks
+- [SEND MAIL](./keyword-send-mail.md) - Send scheduled reports
+- [GET](./keyword-get.md) - Fetch data for processing
 
 ## Implementation
 
 Located in `src/basic/keywords/set_schedule.rs`
 
-Uses cron parser for expression validation and tokio scheduler for execution management.
+The implementation:
+- Uses cron parser for expression validation
+- Integrates with system scheduler
+- Persists schedules in database
+- Handles concurrent execution
+- Provides retry logic for failures
