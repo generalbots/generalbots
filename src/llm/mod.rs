@@ -3,6 +3,8 @@ use futures::StreamExt;
 use log::{info, trace};
 use serde_json::Value;
 use tokio::sync::mpsc;
+pub mod compact_prompt;
+pub mod llm_models;
 pub mod local;
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
