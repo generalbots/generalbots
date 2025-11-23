@@ -99,8 +99,9 @@ DESCRIPTION "Get current weather for a location"
 
 ' Tool implementation
 weather_data = GET "https://api.weather.com/v1/current?location=" + location
-result = LLM "Format this weather data nicely: " + weather_data
-TALK result
+' System AI will format and present the data naturally
+SET CONTEXT "weather_data", weather_data
+TALK "Here's the current weather for " + location
 ```
 
 ### Tool Registration
@@ -140,7 +141,7 @@ CLEAR TOOLS
 1. **Session Start** - Clean slate, no KB or tools
 2. **Load Resources** - USE KB and USE TOOL as needed
 3. **Active Use** - LLM uses loaded resources
-4. **Clear Resources** - CLEAR_KB/CLEAR_TOOLS when done
+4. **Clear Resources** - CLEAR KB/CLEAR TOOLS when done
 5. **Session End** - Automatic cleanup
 
 ### Best Practices
@@ -174,66 +175,6 @@ CLEAR TOOLS
 - Tool descriptions use 50-200 tokens each
 - Clear resources to reduce token usage
 - Use specific KB folders vs entire database
-
----
-
-## API Integration
-
-### REST Endpoints
-
-```http
-# Load KB
-POST /api/kb/load
-{
-  "session_id": "xxx",
-  "kb_name": "circular"
-}
-
-# Clear KB
-POST /api/kb/clear
-{
-  "session_id": "xxx"
-}
-
-# Load Tool
-POST /api/tools/load
-{
-  "session_id": "xxx",
-  "tool_name": "weather"
-}
-
-# Clear Tools
-POST /api/tools/clear
-{
-  "session_id": "xxx"
-}
-```
-
-### WebSocket Commands
-
-```javascript
-// Load KB
-ws.send({
-  type: "USE_KB",
-  kb_name: "circular"
-});
-
-// Clear KB
-ws.send({
-  type: "CLEAR_KB"
-});
-
-// Load Tool
-ws.send({
-  type: "USE TOOL",
-  tool_name: "weather"
-});
-
-// Clear Tools
-ws.send({
-  type: "CLEAR_TOOLS"
-});
-```
 
 ---
 
@@ -290,12 +231,7 @@ Configuration:
 | `TOOL_EXECUTION_ERROR` | Tool failed to execute | Check tool endpoint/logic |
 | `MEMORY_LIMIT` | Too many KBs loaded | Clear unused KBs |
 
-### Debugging
 
-Enable debug logging:
-```bash
-RUST_LOG=debug cargo run
-```
 
 Check logs for:
 - KB loading progress
@@ -312,47 +248,47 @@ Check logs for:
 
 ```basic
 # Load product documentation
-USE_KB "product_docs"
-USE_KB "faqs"
+USE KB "product_docs"
+USE KB "faqs"
 
 # Enable support tools
 USE TOOL "ticket_system"
 USE TOOL "knowledge_search"
 
-# Bot now has access to docs and can work with tickets
-HEAR user_question
-# ... process with KB context and tools ...
+# System AI now has access to docs and can work with tickets
+TALK "How can I help you with your support needs today?"
+# System AI automatically searches KB and uses tools when responding
 
 # Clean up after session
-CLEAR_KB
-CLEAR_TOOLS
+CLEAR KB
+CLEAR TOOLS
 ```
 
 ### Research Assistant
 
 ```basic
 # Load research papers
-USE_KB "papers_2024"
-USE_KB "citations"
+USE KB "papers_2024"
+USE KB "citations"
 
 # Enable research tools
 USE TOOL "arxiv_search"
 USE TOOL "citation_formatter"
 
-# Assistant can now search papers and format citations
-# ... research session ...
+# System AI can now search papers and format citations
+TALK "What research topic would you like to explore?"
 
 # Switch to different topic
-CLEAR_KB
-USE_KB "papers_biology"
+CLEAR KB
+USE KB "papers_biology"
 ```
 
 ### Enterprise Integration
 
 ```basic
 # Load company policies
-USE_KB "hr_policies"
-USE_KB "it_procedures"
+USE KB "hr_policies"
+USE KB "it_procedures"
 
 # Enable enterprise tools
 USE TOOL "active_directory"
@@ -363,8 +299,8 @@ USE TOOL "slack_notifier"
 # ... handle employee request ...
 
 # End of shift cleanup
-CLEAR_KB
-CLEAR_TOOLS
+CLEAR KB
+CLEAR TOOLS
 ```
 
 ---
@@ -396,50 +332,6 @@ CLEAR_TOOLS
 ---
 
 ## Configuration
-
-Configuration is handled automatically through `config.csv`. No manual environment variables needed.
-
-<old_text line=473>
-- [ ] Tool versioning system
-- [ ] Enhanced parallel execution
-
-### Platform Expansion
-- [ ] More language bindings
-- [ ] Additional databases
-- [ ] Extended file formats
-TOOL_RATE_LIMIT=100
-
-# KB
-MAX_KB_PER_SESSION=5
-MAX_KB_SIZE_MB=500
-KB_SCAN_INTERVAL=3600
-```
-
-### Configuration File
-
-```toml
-# botserver.toml
-[kb]
-enabled = true
-max_per_session = 5
-embedding_model = "text-embedding-ada-002"
-chunk_size = 1000
-chunk_overlap = 200
-
-[tools]
-enabled = true
-max_per_session = 10
-timeout = 30
-rate_limit = 100
-sandbox = true
-
-[vectordb]
-provider = "vector"
-url = "http://localhost:6333"
-collection_prefix = "botserver_"
-```
-
----
 
 ## Troubleshooting
 
@@ -492,5 +384,24 @@ collection_prefix = "botserver_"
 5. Remove static registration
 
 ---
+
+## See Also
+
+### Documentation
+- [Vector Collections](./vector-collections.md) - How vector search works
+- [Document Indexing](./indexing.md) - Automatic document processing
+- [Semantic Search](./semantic-search.md) - Meaning-based retrieval
+- [Context Compaction](./context-compaction.md) - Managing conversation context
+- [Caching](./caching.md) - Performance optimization
+- [Chapter 6: BASIC Reference](../chapter-06-gbdialog/README.md) - Dialog scripting
+- [Chapter 9: API and Tools](../chapter-09-api/README.md) - Tool integration
+
+### Further Reading - Blog Posts
+- [BASIC LLM Tools](https://pragmatismo.cloud/blog/basic-llm-tools) - Extending LLMs with tools
+- [MCP is the new API](https://pragmatismo.cloud/blog/mcp-is-the-new-api) - Modern tool integration
+- [Beyond Chatbots](https://pragmatismo.cloud/blog/beyond-chatbots) - Using knowledge bases effectively
+
+### Next Chapter
+Continue to [Chapter 4: User Interface](../chapter-04-gbui/README.md) to learn about creating bot interfaces.
 
 

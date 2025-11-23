@@ -12,7 +12,7 @@ pub use core::bot;
 pub use core::config;
 pub use core::package_manager;
 pub use core::session;
-pub use core::web_server;
+pub use core::ui_server;
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]

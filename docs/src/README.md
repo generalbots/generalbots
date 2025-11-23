@@ -24,7 +24,7 @@ This documentation has been **recently updated** to accurately reflect the actua
 - UI tree module (`src/ui_tree/`)
 - Riot compiler module (`src/riot_compiler/`)
 - Prompt manager (`src/prompt_manager/`)
-- API endpoints and web server routes
+- API endpoints and UI server routes
 - Drive (S3-compatible) integration details
 - Video conferencing (LiveKit) integration
 
@@ -71,37 +71,40 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 ### Part III - Knowledge Base
 - [Chapter 03: gbkb Reference](chapter-03/README.md) - Semantic search and vector database
 
-### Part IV - Themes and UI
-- [Chapter 04: gbtheme Reference](chapter-04/README.md) - Customizing the web interface
+### Part IV - User Interface
+- [Chapter 04: .gbui Interface Reference](chapter-04-gbui/README.md) - HTML templates and UI components
 
-### Part V - BASIC Dialogs
-- [Chapter 05: gbdialog Reference](chapter-05/README.md) - Complete BASIC scripting reference
+### Part V - Themes and Styling
+- [Chapter 05: gbtheme CSS Reference](chapter-05-gbtheme/README.md) - CSS-based theme customization
+
+### Part VI - BASIC Dialogs
+- [Chapter 06: gbdialog Reference](chapter-06-gbdialog/README.md) - Complete BASIC scripting reference
   - Keywords: `TALK`, `HEAR`, `LLM`, `SET CONTEXT`, `USE KB`, and more
 
-### Part VI - Extending BotServer
-- [Chapter 06: Rust Architecture Reference](chapter-06/README.md) - Internal architecture
-  - [Architecture Overview](chapter-06/architecture.md) - Bootstrap process
-  - [Building from Source](chapter-06/building.md) - Compilation and features
-  - [Module Structure](chapter-06/crates.md) - Single-crate organization
-  - [Service Layer](chapter-06/services.md) - Module descriptions
-  - [Creating Custom Keywords](chapter-06/custom-keywords.md) - Extending BASIC
-  - [Adding Dependencies](chapter-06/dependencies.md) - Cargo.toml management
+### Part VII - Extending BotServer
+- [Chapter 07: gbapp Architecture Reference](chapter-07-gbapp/README.md) - Internal architecture
+  - [Architecture Overview](chapter-07-gbapp/architecture.md) - Bootstrap process
+  - [Building from Source](chapter-07-gbapp/building.md) - Compilation and features
+  - [Module Structure](chapter-07-gbapp/crates.md) - Single-crate organization
+  - [Service Layer](chapter-07-gbapp/services.md) - Module descriptions
+  - [Creating Custom Keywords](chapter-07-gbapp/custom-keywords.md) - Extending BASIC
+  - [Adding Dependencies](chapter-07-gbapp/dependencies.md) - Cargo.toml management
 
-### Part VII - Bot Configuration
-- [Chapter 07: gbot Reference](chapter-07/README.md) - Configuration parameters
+### Part VIII - Bot Configuration
+- [Chapter 08: gbot Reference](chapter-08-config/README.md) - Configuration and parameters
 
-### Part VIII - Tools and Integration
-- [Chapter 08: Tooling](chapter-08/README.md) - External APIs and tool integration
+### Part IX - Tools and Integration
+- [Chapter 09: API and Tooling](chapter-09-api/README.md) - Function calling and tool integration
 
-### Part IX - Feature Reference
-- [Chapter 09: Feature Matrix](chapter-09/README.md) - Complete feature list
-  - [Core Features](chapter-09/core-features.md) - Platform capabilities
+### Part X - Feature Deep Dive
+- [Chapter 10: Feature Reference](chapter-10-features/README.md) - Complete feature list
+  - [Core Features](chapter-10-features/core-features.md) - Platform capabilities
 
-### Part X - Community
-- [Chapter 10: Contributing](chapter-10/README.md) - Development guidelines
+### Part XI - Community
+- [Chapter 11: Contributing](chapter-11-community/README.md) - Development and contribution guidelines
 
-### Part XI - Authentication and Security
-- [Chapter 11: Authentication](chapter-11/README.md) - Security features
+### Part XII - Authentication and Security
+- [Chapter 12: Authentication](chapter-12-auth/README.md) - Security features
 
 ### Appendices
 - [Appendix I: Database Model](appendix-i/README.md) - Schema reference

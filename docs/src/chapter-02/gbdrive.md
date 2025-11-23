@@ -79,6 +79,6 @@ Files have different access levels:
 ## Storage Backends
 
 - **Object Storage** (default): Self-hosted S3-compatible drive
-- **AWS S3**: Cloud object storage
+- **S3-compatible storage**: Any S3-compatible object storage (AWS S3, MinIO, Backblaze B2, DigitalOcean Spaces, etc.)
 - **Local filesystem**: Development and testing
 - **Hybrid**: Multiple backends with fallback

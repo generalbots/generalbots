@@ -46,6 +46,21 @@ Exchange 5: Compaction triggers - only exchanges 3-4 kept
 Exchange 6: Only exchanges 4-5 in context
 ```
 
+### Visual Flow Diagram
+
+<!-- TODO: Add SVG diagram showing context compaction process -->
+```
+[Conversation History]
+    ↓
+[Check Exchange Count]
+    ↓
+[Exceeds prompt-compact?]
+    ├─ No → [Keep All]
+    └─ Yes → [Keep Last prompt-history Exchanges]
+             ↓
+         [Continue Conversation]
+```
+
 ## Benefits
 
 - **Automatic management** - No manual intervention needed

@@ -292,7 +292,7 @@ curl http://localhost:8081/v1/models
 
 ```bash
 # The default bot is automatically deployed to the drive during bootstrap
-# Access web interface
+# Access UI interface
 open http://localhost:8080
 ```
 
@@ -329,7 +329,7 @@ Default ports used:
 
 | Service | Port | Configure in |
 |---------|------|--------------|
-| Web Server | 8080 | config.csv: `server_port` |
+| UI Server | 8080 | config.csv: `server_port` |
 | PostgreSQL | 5432 | DATABASE_URL |
 | Drive API | 9000 | DRIVE_SERVER |
 | Drive Console | 9001 | N/A |

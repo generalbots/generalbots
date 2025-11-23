@@ -21,4 +21,17 @@ CLEAR KB "policies"
 CLEAR KB
 ```
 
-The vector database retrieves relevant chunks/excerpts from active KBs and injects them into LLM prompts automatically, providing context-aware responses.
+The vector database retrieves relevant chunks/excerpts from active KBs and makes them available to the system AI automatically, providing context-aware responses during conversations.
+
+## See Also
+
+- [KB and Tools System](./kb-and-tools.md) - Complete reference for knowledge bases and tools
+- [Vector Collections](./vector-collections.md) - How vector search works
+- [Document Indexing](./indexing.md) - Automatic document processing
+- [Semantic Search](./semantic-search.md) - Meaning-based retrieval
+- [Context Compaction](./context-compaction.md) - Managing conversation context
+- [Caching](./caching.md) - Performance optimization
+- [Chapter 2: Packages](../chapter-02/README.md) - Understanding bot components
+- [Chapter 5: BASIC Keywords](../chapter-05/README.md) - Complete command reference
+- [Chapter 7: Configuration](../chapter-07/config-csv.md) - Bot configuration options
+- [Chapter 9: Knowledge Base](../chapter-09/knowledge-base.md) - Advanced KB patterns

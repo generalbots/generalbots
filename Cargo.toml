@@ -38,11 +38,11 @@ repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["web-server", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
+default = ["ui-server", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
 
 # ===== UI FEATURES =====
-desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener", "web-server"]
-web-server = []
+desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener", "ui-server"]
+ui-server = []
 console = ["dep:crossterm", "dep:ratatui"]
 
 # ===== CORE INTEGRATIONS =====
@@ -79,7 +79,7 @@ progress-bars = ["dep:indicatif"]
 
 # ===== META FEATURES (BUNDLES) =====
 full = [
-    "web-server", "desktop", "console",
+    "ui-server", "desktop", "console",
     "vectordb", "llm", "nvidia",
     "email", "whatsapp", "instagram", "msteams",
     "chat", "drive", "tasks", "calendar", "meet", "mail",
@@ -90,8 +90,8 @@ full = [
 communications = ["email", "whatsapp", "instagram", "msteams", "chat", "redis-cache"]
 productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "redis-cache"]
 enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring"]
-minimal = ["web-server", "chat"]
-lightweight = ["web-server", "chat", "drive", "tasks"]
+minimal = ["ui-server", "chat"]
+lightweight = ["ui-server", "chat", "drive", "tasks"]
 
 [dependencies]
 # === CORE RUNTIME (Always Required) ===

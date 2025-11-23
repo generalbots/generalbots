@@ -1,0 +1,386 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>General Bots</title>
+        <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <meta
+            name="description"
+            content="General Bots - AI-powered workspace"
+        />
+        <meta name="theme-color" content="#3b82f6" />
+
+        <!-- Styles -->
+        <link rel="stylesheet" href="css/app.css" />
+
+        <!-- External Libraries -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+        <script
+            defer
+            src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"
+        ></script>
+    </head>
+
+    <body>
+        <!-- Loading overlay -->
+        <div class="loading-overlay" id="loadingOverlay">
+            <div class="loading-spinner"></div>
+        </div>
+
+        <!-- Floating header -->
+        <header class="float-header" role="banner">
+            <!-- Left: General Bots logo -->
+            <div class="header-left">
+                <button
+                    class="logo-wrapper"
+                    onclick="window.location.reload()"
+                    title="General Bots - Reload"
+                    aria-label="General Bots - Reload application"
+                >
+                    <div
+                        class="logo-icon"
+                        role="img"
+                        aria-label="General Bots logo"
+                    ></div>
+                    <span class="logo-text">General Bots</span>
+                </button>
+            </div>
+
+            <!-- Right: Theme selector, Apps menu and user avatar -->
+            <div class="header-right">
+                <!-- Theme dropdown selector -->
+                <div
+                    id="themeSelectorContainer"
+                    aria-label="Theme selector"
+                ></div>
+
+                <!-- Apps menu button -->
+                <button
+                    class="icon-button apps-button"
+                    id="appsButton"
+                    title="Applications"
+                    aria-label="Open applications menu"
+                    aria-expanded="false"
+                    aria-haspopup="true"
+                >
+                    <svg
+                        width="24"
+                        height="24"
+                        viewBox="0 0 24 24"
+                        fill="currentColor"
+                        aria-hidden="true"
+                    >
+                        <circle cx="5" cy="5" r="2"></circle>
+                        <circle cx="12" cy="5" r="2"></circle>
+                        <circle cx="19" cy="5" r="2"></circle>
+                        <circle cx="5" cy="12" r="2"></circle>
+                        <circle cx="12" cy="12" r="2"></circle>
+                        <circle cx="19" cy="12" r="2"></circle>
+                        <circle cx="5" cy="19" r="2"></circle>
+                        <circle cx="12" cy="19" r="2"></circle>
+                        <circle cx="19" cy="19" r="2"></circle>
+                    </svg>
+                </button>
+
+                <!-- Apps dropdown menu -->
+                <nav
+                    class="apps-dropdown"
+                    id="appsDropdown"
+                    role="menu"
+                    aria-label="Applications"
+                >
+                    <div class="apps-dropdown-title">Applications</div>
+                    <div class="app-grid" role="group">
+                        <a
+                            class="app-item active"
+                            href="#chat"
+                            data-section="chat"
+                            role="menuitem"
+                            aria-label="Chat application"
+                        >
+                            <div class="app-icon" aria-hidden="true">💬</div>
+                            <span>Chat</span>
+                        </a>
+                        <a
+                            class="app-item"
+                            href="#drive"
+                            data-section="drive"
+                            role="menuitem"
+                            aria-label="Drive application"
+                        >
+                            <div class="app-icon" aria-hidden="true">📁</div>
+                            <span>Drive</span>
+                        </a>
+                        <a
+                            class="app-item"
+                            href="#tasks"
+                            data-section="tasks"
+                            role="menuitem"
+                            aria-label="Tasks application"
+                        >
+                            <div class="app-icon" aria-hidden="true">✓</div>
+                            <span>Tasks</span>
+                        </a>
+                        <a
+                            class="app-item"
+                            href="#mail"
+                            data-section="mail"
+                            role="menuitem"
+                            aria-label="Mail application"
+                        >
+                            <div class="app-icon" aria-hidden="true">✉</div>
+                            <span>Mail</span>
+                        </a>
+                    </div>
+                </nav>
+
+                <!-- User avatar -->
+                <button
+                    class="user-avatar"
+                    id="userAvatar"
+                    title="User Account"
+                    aria-label="User account menu"
+                >
+                    <span aria-hidden="true">U</span>
+                </button>
+            </div>
+        </header>
+
+        <!-- Main content area -->
+        <main id="main-content" role="main">
+            <!-- Sections will be loaded dynamically -->
+        </main>
+
+        <!-- Core scripts -->
+        <script src="js/theme-manager.js"></script>
+        <script src="js/layout.js"></script>
+
+        <!-- Application initialization -->
+        <script>
+            // Initialize application
+            (function initApp() {
+                "use strict";
+
+                // Initialize ThemeManager
+                document.addEventListener("DOMContentLoaded", () => {
+                    console.log("🚀 Initializing General Bots Desktop...");
+
+                    // Initialize theme system
+                    if (window.ThemeManager) {
+                        ThemeManager.init();
+                        console.log("✓ Theme Manager initialized");
+                    } else {
+                        console.warn("⚠ ThemeManager not found");
+                    }
+
+                    // Initialize apps menu
+                    initAppsMenu();
+
+                    // Hide loading overlay after initialization
+                    setTimeout(() => {
+                        const loadingOverlay =
+                            document.getElementById("loadingOverlay");
+                        if (loadingOverlay) {
+                            loadingOverlay.classList.add("hidden");
+                            console.log("✓ Application ready");
+                        }
+                    }, 500);
+                });
+
+                // Apps menu functionality
+                function initAppsMenu() {
+                    const appsBtn = document.getElementById("appsButton");
+                    const appsDropdown =
+                        document.getElementById("appsDropdown");
+                    const appItems = document.querySelectorAll(".app-item");
+
+                    if (!appsBtn || !appsDropdown) {
+                        console.error("✗ Apps button or dropdown not found");
+                        return;
+                    }
+
+                    // Toggle apps menu
+                    appsBtn.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                        const isOpen = appsDropdown.classList.toggle("show");
+                        appsBtn.setAttribute("aria-expanded", isOpen);
+
+                        if (isOpen) {
+                            console.log("Apps menu opened");
+                        }
+                    });
+
+                    // Close dropdown when clicking outside
+                    document.addEventListener("click", (e) => {
+                        if (
+                            !appsDropdown.contains(e.target) &&
+                            !appsBtn.contains(e.target)
+                        ) {
+                            appsDropdown.classList.remove("show");
+                            appsBtn.setAttribute("aria-expanded", "false");
+                        }
+                    });
+
+                    // Prevent dropdown from closing when clicking inside
+                    appsDropdown.addEventListener("click", (e) => {
+                        e.stopPropagation();
+                    });
+
+                    // Handle app selection
+                    appItems.forEach((item) => {
+                        item.addEventListener("click", (e) => {
+                            e.preventDefault();
+                            const section = item.dataset.section;
+
+                            // Update active state
+                            appItems.forEach((i) =>
+                                i.classList.remove("active"),
+                            );
+                            item.classList.add("active");
+
+                            // Switch section
+                            if (window.switchSection) {
+                                window.switchSection(section);
+                                console.log(`Switched to section: ${section}`);
+                            } else {
+                                console.error(
+                                    "✗ switchSection function not available",
+                                );
+                            }
+
+                            // Close dropdown
+                            appsDropdown.classList.remove("show");
+                            appsBtn.setAttribute("aria-expanded", "false");
+                        });
+
+                        // Keyboard navigation
+                        item.addEventListener("keydown", (e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                item.click();
+                            }
+                        });
+                    });
+
+                    console.log("✓ Apps menu initialized");
+                }
+
+                // Keyboard shortcuts
+                document.addEventListener("keydown", (e) => {
+                    // Alt + Number to switch apps
+                    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                        const sections = ["chat", "drive", "tasks", "mail"];
+                        const num = parseInt(e.key);
+
+                        if (num >= 1 && num <= sections.length) {
+                            e.preventDefault();
+                            const section = sections[num - 1];
+
+                            // Update app menu active state
+                            document
+                                .querySelectorAll(".app-item")
+                                .forEach((item, idx) => {
+                                    if (idx === num - 1) {
+                                        item.classList.add("active");
+                                    } else {
+                                        item.classList.remove("active");
+                                    }
+                                });
+
+                            if (window.switchSection) {
+                                window.switchSection(section);
+                                console.log(
+                                    `Keyboard shortcut: Switched to ${section}`,
+                                );
+                            }
+                        }
+                    }
+
+                    // Escape to close dropdowns
+                    if (e.key === "Escape") {
+                        const appsDropdown =
+                            document.getElementById("appsDropdown");
+                        const appsBtn = document.getElementById("appsButton");
+
+                        if (
+                            appsDropdown &&
+                            appsDropdown.classList.contains("show")
+                        ) {
+                            appsDropdown.classList.remove("show");
+                            if (appsBtn) {
+                                appsBtn.setAttribute("aria-expanded", "false");
+                                appsBtn.focus();
+                            }
+                        }
+                    }
+                });
+
+                // Update document title when switching sections
+                if (window.switchSection) {
+                    const originalSwitch = window.switchSection;
+                    window.switchSection = function (section) {
+                        originalSwitch.call(this, section);
+
+                        // Update document title
+                        const sectionNames = {
+                            chat: "Chat",
+                            drive: "Drive",
+                            tasks: "Tasks",
+                            mail: "Mail",
+                        };
+
+                        const sectionName = sectionNames[section] || section;
+                        document.title = `${sectionName} - General Bots`;
+                    };
+                }
+
+                // Handle theme changes for meta theme-color
+                if (window.ThemeManager) {
+                    ThemeManager.subscribe((themeData) => {
+                        console.log(`Theme changed: ${themeData.themeName}`);
+
+                        // Update meta theme-color based on current primary color
+                        const metaTheme = document.querySelector(
+                            'meta[name="theme-color"]',
+                        );
+                        if (metaTheme) {
+                            const primaryColor = getComputedStyle(
+                                document.documentElement,
+                            )
+                                .getPropertyValue("--accent-color")
+                                .trim();
+
+                            if (primaryColor) {
+                                metaTheme.setAttribute("content", primaryColor);
+                            }
+                        }
+                    });
+                }
+
+                // Monitor connection status (for WebSocket)
+                window.addEventListener("online", () => {
+                    console.log("✓ Connection restored");
+                });
+
+                window.addEventListener("offline", () => {
+                    console.warn("⚠ Connection lost");
+                });
+
+                // Log app version/info
+                console.log(
+                    "%cGeneral Bots Desktop",
+                    "font-size: 20px; font-weight: bold; color: #3b82f6;",
+                );
+                console.log("%cTheme System: Active", "color: #10b981;");
+                console.log("%cKeyboard Shortcuts:", "font-weight: bold;");
+                console.log("  Alt+1 → Chat");
+                console.log("  Alt+2 → Drive");
+                console.log("  Alt+3 → Tasks");
+                console.log("  Alt+4 → Mail");
+                console.log("  Esc   → Close menus");
+            })();
+        </script>
+    </body>
+</html>

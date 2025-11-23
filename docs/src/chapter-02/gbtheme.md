@@ -1,6 +1,6 @@
 # .gbtheme UI Theming
 
-The `.gbtheme` package provides simple CSS-based theming for the bot's web interface.
+The `.gbtheme` package provides simple CSS-based theming for the bot's UI interface.
 
 ## What is .gbtheme?
 
@@ -141,13 +141,8 @@ IF preference <> "" THEN
   CHANGE THEME preference
 END IF
 
-' Time-based themes
-hour = GET TIME "hour"
-IF hour >= 18 OR hour < 6 THEN
-  CHANGE THEME "dark"
-ELSE
-  CHANGE THEME "default"
-END IF
+' Theme selection based on user preferences
+' System handles theme switching automatically
 ```
 
 ## Integration with config.csv
