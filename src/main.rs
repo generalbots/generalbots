@@ -30,7 +30,7 @@ use botserver::core::bot;
 use botserver::core::config;
 use botserver::core::package_manager;
 use botserver::core::session;
-use botserver::core::web_server;
+use botserver::core::ui_server;
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]
@@ -244,7 +244,7 @@ async fn run_axum_server(
         .merge(api_router)
         .with_state(app_state.clone())
         // Root index route - only matches exact "/"
-        .route("/", get(crate::web_server::index))
+        .route("/", get(crate::ui_server::index))
         // Layers
         .layer(cors)
         .layer(TraceLayer::new_for_http());

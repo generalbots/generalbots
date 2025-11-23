@@ -57,7 +57,7 @@ The **automatic bootstrap** process:
 5. ✅ Generated secure credentials → `.env` (from blank environment)
 6. ✅ Created database schema
 7. ✅ Deployed default bots to object storage
-8. ✅ Started web server on port 8080
+8. ✅ Started UI server on port 8080
 
 **Zero manual configuration required!**
 

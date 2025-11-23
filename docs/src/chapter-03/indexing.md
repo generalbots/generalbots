@@ -109,10 +109,8 @@ SET SCHEDULE "0 1 * * *"
 ' Update news daily
 ADD WEBSITE "https://company.com/news"
 
-' Update product docs weekly
-IF DAY_OF_WEEK = "Monday" THEN
-  ADD WEBSITE "https://company.com/products"
-END IF
+' Update product docs on schedule
+ADD WEBSITE "https://company.com/products"
 ```
 
 ## Best Practices

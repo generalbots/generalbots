@@ -1,14 +1,14 @@
 # Semantic Search
 
-Semantic search in BotServer happens automatically when you use `USE KB`. The system searches for relevant information based on meaning, not just keywords, and injects it into the LLM's context.
+Semantic search in BotServer happens automatically when you use `USE KB`. The system searches for relevant information based on meaning, not just keywords, and makes it available to the system AI during conversations.
 
 ## How It Works Automatically
 
 1. **User asks a question** - Natural language input
 2. **Query converted to vector** - Using the embedding model
 3. **Search active collections** - Finds semantically similar content
-4. **Inject into context** - Relevant chunks added to LLM prompt
-5. **Generate response** - LLM answers using the knowledge
+4. **Inject into context** - Relevant chunks provided to system AI
+5. **Generate response** - System AI answers using the knowledge
 
 ## Activating Semantic Search
 
@@ -21,7 +21,7 @@ USE KB "procedures"
 ' No explicit search commands needed
 ```
 
-When users ask questions, the system automatically searches these collections and provides relevant context to the LLM.
+When users ask questions, the system automatically searches these collections and provides relevant context to the system AI.
 
 ## How Meaning-Based Search Works
 
@@ -42,7 +42,7 @@ prompt-history,2     # How many previous messages to include
 prompt-compact,4     # Compact context after N exchanges
 ```
 
-These settings manage how much context the LLM receives, not the search itself.
+These settings manage how much context the system AI receives, not the search itself.
 
 ## Multiple Collections
 

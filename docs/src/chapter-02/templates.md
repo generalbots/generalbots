@@ -179,9 +179,9 @@ Instead of complex dialog flows, use simple LLM calls:
 
 ```basic
 ' Traditional: 100+ lines of intent matching
-' BotServer: Let LLM handle it
-response = LLM prompt
-TALK response
+' BotServer: Let system AI handle it naturally
+TALK "How can I assist you?"
+' System AI understands and responds appropriately
 ```
 
 #### Tool Creation

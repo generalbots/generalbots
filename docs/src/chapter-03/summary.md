@@ -4,7 +4,7 @@ This chapter explains how GeneralBots manages knowledge‑base collections, inde
 
 | Document | File | Description |
 |----------|------|-------------|
-| **README** | [README.md](README.md) | High‑level reference for the `.gbkb` package and its core commands (`USE_KB`, `CLEAR_KB`, `ADD_WEBSITE`). |
+| **README** | [README.md](README.md) | High‑level reference for the `.gbkb` package and its core commands (`USE KB`, `CLEAR KB`, `ADD WEBSITE`). |
 | **Caching** | [caching.md](caching.md) | Optional in‑memory and persistent SQLite caching to speed up frequent `FIND` queries. |
 | **Context Compaction** | [context-compaction.md](context-compaction.md) | Techniques to keep the LLM context window within limits (summarization, memory pruning, sliding window). |
 | **Indexing** | [indexing.md](indexing.md) | Process of extracting, chunking, embedding, and storing document vectors in the VectorDB. |

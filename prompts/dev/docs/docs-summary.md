@@ -20,7 +20,7 @@
 **Required Sections to Complete:**
 1. **Run and Talk** - Server startup and TALK/HEAR interaction
 2. **About Packages** - Four package types explanation
-3. **gbkb Reference** - ADD_KB, SET_KB, ADD_WEBSITE documentation
+3. **gbkb Reference** - ADD KB, SET KB, ADD WEBSITE documentation
 4. **gbtheme Reference** - UI theming with CSS/HTML
 5. **gbdialog Reference** - Example scripts and core keywords
 6. **gbapp Reference** - Rust keyword registration examples

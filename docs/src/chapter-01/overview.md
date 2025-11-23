@@ -29,7 +29,7 @@ BotServer uses a modular architecture with these core components:
 - **Channel Adapters**: Connects to various messaging platforms
 
 ### Service Layer
-- **Web Server**: HTTP API and WebSocket connections
+- **UI Server**: HTTP API and WebSocket connections
 - **Scheduler**: Cron-based task scheduling
 - **LLM Integration**: Connects to language models (local or cloud)
 - **Authentication**: Directory service integration for user management
@@ -86,7 +86,7 @@ BotServer uses a modular architecture with these core components:
 ## Configuration
 
 Bot configuration is managed through `config.csv` files with parameters like:
-- `server_host`, `server_port` - Web server settings
+- `server_host`, `server_port` - UI server settings
 - `llm-url`, `llm-model` - LLM configuration
 - `email-from`, `email-server` - Email settings
 - `theme-color1`, `theme-color2`, `theme-title`, `theme-logo` - UI customization
@@ -155,7 +155,7 @@ Integrated into existing applications:
    # The work/ folder is internal (see .gbapp chapter)
    ```
 
-4. **Access Web Interface**
+4. **Access UI Interface**
    ```
    http://localhost:8080
    ```
