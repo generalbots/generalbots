@@ -1,11 +1,11 @@
-# ADD_MEMBER
+# ADD MEMBER
 
 Add users to groups or teams within the bot system.
 
 ## Syntax
 
 ```basic
-ADD_MEMBER group_id, user_email, role
+ADD MEMBER group_id, user_email, role
 ```
 
 ## Parameters
@@ -18,7 +18,7 @@ ADD_MEMBER group_id, user_email, role
 
 ## Description
 
-The `ADD_MEMBER` keyword manages group membership by adding users to specified groups with defined roles. This keyword:
+The `ADD MEMBER` keyword manages group membership by adding users to specified groups with defined roles. This keyword:
 
 - Validates user existence in the system
 - Checks group permissions
@@ -30,26 +30,26 @@ The `ADD_MEMBER` keyword manages group membership by adding users to specified g
 
 ### Add Regular Member
 ```basic
-ADD_MEMBER "engineering-team", "developer@company.com", "member"
+ADD MEMBER "engineering-team", "developer@company.com", "member"
 ```
 
 ### Add Group Administrator
 ```basic
-ADD_MEMBER "project-alpha", "manager@company.com", "admin"
+ADD MEMBER "project-alpha", "manager@company.com", "admin"
 ```
 
 ### Dynamic Group Assignment
 ```basic
 group_name = "support-" + DEPARTMENT
 user = GET_USER_EMAIL()
-ADD_MEMBER group_name, user, "agent"
+ADD MEMBER group_name, user, "agent"
 ```
 
 ### Bulk Member Addition
 ```basic
 team_members = ["alice@example.com", "bob@example.com", "carol@example.com"]
 FOR EACH member IN team_members
-    ADD_MEMBER "dev-team", member, "developer"
+    ADD MEMBER "dev-team", member, "developer"
 NEXT
 ```
 
@@ -95,9 +95,9 @@ The user executing this command must have one of the following:
 
 ## See Also
 
-- [CREATE_TASK](./keyword-create-task.md) - Assign tasks to group members
-- [SEND_MAIL](./keyword-send-mail.md) - Send group notifications
-- [SET_USER](./keyword-set-user.md) - Set user context
+- [CREATE TASK](./keyword-create-task.md) - Assign tasks to group members
+- [SEND MAIL](./keyword-send-mail.md) - Send group notifications
+- [SET USER](./keyword-set-user.md) - Set user context
 
 ## Implementation
 

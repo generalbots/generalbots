@@ -1,11 +1,11 @@
-# ADD_SUGGESTION
+# ADD SUGGESTION
 
 Add conversational suggestions or quick reply options for user interactions.
 
 ## Syntax
 
 ```basic
-ADD_SUGGESTION text AS value
+ADD SUGGESTION text AS value
 ```
 
 ## Parameters
@@ -17,7 +17,7 @@ ADD_SUGGESTION text AS value
 
 ## Description
 
-The `ADD_SUGGESTION` keyword adds quick reply buttons or suggestion chips to the conversation interface. These provide users with:
+The `ADD SUGGESTION` keyword adds quick reply buttons or suggestion chips to the conversation interface. These provide users with:
 
 - Quick action buttons
 - Common response options
@@ -31,9 +31,9 @@ Suggestions appear as clickable elements in supported channels (web, WhatsApp, T
 
 ### Basic Suggestions
 ```basic
-ADD_SUGGESTION "Yes" AS "confirm"
-ADD_SUGGESTION "No" AS "decline"
-ADD_SUGGESTION "Maybe later" AS "postpone"
+ADD SUGGESTION "Yes" AS "confirm"
+ADD SUGGESTION "No" AS "decline"
+ADD SUGGESTION "Maybe later" AS "postpone"
 answer = HEAR "Would you like to proceed?"
 ```
 
@@ -41,7 +41,7 @@ answer = HEAR "Would you like to proceed?"
 ```basic
 departments = ["Sales", "Support", "Billing", "Technical"]
 FOR EACH dept IN departments
-    ADD_SUGGESTION dept AS dept
+    ADD SUGGESTION dept AS dept
 NEXT
 selection = HEAR "Which department do you need?"
 ```
@@ -49,33 +49,33 @@ selection = HEAR "Which department do you need?"
 ### Context-Based Suggestions
 ```basic
 IF user_type = "new" THEN
-    ADD_SUGGESTION "Get Started" AS "onboarding"
-    ADD_SUGGESTION "View Tutorial" AS "tutorial"
-    ADD_SUGGESTION "Contact Support" AS "help"
+    ADD SUGGESTION "Get Started" AS "onboarding"
+    ADD SUGGESTION "View Tutorial" AS "tutorial"
+    ADD SUGGESTION "Contact Support" AS "help"
 ELSE
-    ADD_SUGGESTION "Check Status" AS "status"
-    ADD_SUGGESTION "New Request" AS "create"
-    ADD_SUGGESTION "View History" AS "history"
+    ADD SUGGESTION "Check Status" AS "status"
+    ADD SUGGESTION "New Request" AS "create"
+    ADD SUGGESTION "View History" AS "history"
 END IF
 ```
 
 ### Menu System
 ```basic
 ' Main menu
-CLEAR_SUGGESTIONS
-ADD_SUGGESTION "Products" AS "menu_products"
-ADD_SUGGESTION "Services" AS "menu_services"
-ADD_SUGGESTION "Support" AS "menu_support"
-ADD_SUGGESTION "About Us" AS "menu_about"
+CLEAR SUGGESTIONS
+ADD SUGGESTION "Products" AS "menu_products"
+ADD SUGGESTION "Services" AS "menu_services"
+ADD SUGGESTION "Support" AS "menu_support"
+ADD SUGGESTION "About Us" AS "menu_about"
 
 choice = HEAR "What would you like to know about?"
 
 IF choice = "menu_products" THEN
-    CLEAR_SUGGESTIONS
-    ADD_SUGGESTION "Pricing" AS "product_pricing"
-    ADD_SUGGESTION "Features" AS "product_features"
-    ADD_SUGGESTION "Compare" AS "product_compare"
-    ADD_SUGGESTION "Back" AS "menu_main"
+    CLEAR SUGGESTIONS
+    ADD SUGGESTION "Pricing" AS "product_pricing"
+    ADD SUGGESTION "Features" AS "product_features"
+    ADD SUGGESTION "Compare" AS "product_compare"
+    ADD SUGGESTION "Back" AS "menu_main"
 END IF
 ```
 
@@ -93,7 +93,7 @@ END IF
 
 Suggestions remain active until:
 - User clicks one
-- `CLEAR_SUGGESTIONS` is called
+- `CLEAR SUGGESTIONS` is called
 - New suggestions replace them
 - Conversation ends
 - Timeout occurs (configurable)
@@ -132,15 +132,15 @@ Suggestions are stored in session cache:
 ### Suggestion Groups
 ```basic
 ' Group related suggestions
-ADD_SUGGESTION "Small ($10)" AS "size:small"
-ADD_SUGGESTION "Medium ($15)" AS "size:medium"
-ADD_SUGGESTION "Large ($20)" AS "size:large"
+ADD SUGGESTION "Small ($10)" AS "size:small"
+ADD SUGGESTION "Medium ($15)" AS "size:medium"
+ADD SUGGESTION "Large ($20)" AS "size:large"
 ```
 
 ### Conditional Display
 ```basic
 IF has_permission("admin") THEN
-    ADD_SUGGESTION "Admin Panel" AS "admin"
+    ADD SUGGESTION "Admin Panel" AS "admin"
 END IF
 ```
 
@@ -148,11 +148,11 @@ END IF
 ```basic
 language = GET_USER_LANGUAGE()
 IF language = "es" THEN
-    ADD_SUGGESTION "Sí" AS "yes"
-    ADD_SUGGESTION "No" AS "no"
+    ADD SUGGESTION "Sí" AS "yes"
+    ADD SUGGESTION "No" AS "no"
 ELSE
-    ADD_SUGGESTION "Yes" AS "yes"
-    ADD_SUGGESTION "No" AS "no"
+    ADD SUGGESTION "Yes" AS "yes"
+    ADD SUGGESTION "No" AS "no"
 END IF
 ```
 
@@ -164,7 +164,7 @@ END IF
 
 ## Related Keywords
 
-- [CLEAR_SUGGESTIONS](./keyword-clear-suggestions.md) - Remove all suggestions
+- [CLEAR SUGGESTIONS](./keyword-clear-suggestions.md) - Remove all suggestions
 - [HEAR](./keyword-hear.md) - Wait for user input (including suggestion clicks)
 - [TALK](./keyword-talk.md) - Send message with suggestions
 - [FORMAT](./keyword-format.md) - Format suggestion text

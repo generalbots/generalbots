@@ -1,146 +1,207 @@
-# CLEAR_KB
+# CLEAR KB
 
-Clear knowledge base collections from the current session context.
+Remove knowledge bases from the current session's context.
 
 ## Syntax
 
 ```basic
-CLEAR_KB kb_name
+CLEAR KB kb_name
 ```
 
-or
+or to clear all:
 
 ```basic
-CLEAR_KB
+CLEAR KB ALL
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `kb_name` | String | Optional. Name of specific knowledge base to remove. If omitted, clears all KBs |
+| `kb_name` | String | Name of the knowledge base to remove, or "ALL" for all KBs |
 
 ## Description
 
-The `CLEAR_KB` keyword removes knowledge base collections from the current session's context. This is useful for:
-
-- Switching between different knowledge domains
-- Reducing context size for performance
-- Preventing irrelevant KB interference
-- Managing memory usage in long-running sessions
-
-When called without parameters, it clears all active knowledge bases. When called with a specific KB name, it only removes that collection.
+The `CLEAR KB` keyword removes previously loaded knowledge bases from the session's active context. This frees up memory and ensures that subsequent searches don't include unwanted collections.
 
 ## Examples
 
 ### Clear Specific Knowledge Base
 ```basic
-USE_KB "product-docs"
-USE_KB "user-manual"
-' Later, remove just one
-CLEAR_KB "product-docs"
-' user-manual remains active
+USE KB "product-docs"
+USE KB "user-manuals"
+
+' Later, remove just product-docs
+CLEAR KB "product-docs"
+' Now only user-manuals is active
 ```
 
 ### Clear All Knowledge Bases
 ```basic
-USE_KB "docs"
-USE_KB "faqs"
-USE_KB "policies"
+' Load multiple KBs
+USE KB "policies"
+USE KB "procedures"
+USE KB "faqs"
+
 ' Clear everything
-CLEAR_KB
-' No KBs active now
+CLEAR KB ALL
+TALK "All knowledge bases have been unloaded"
 ```
 
-### Conditional KB Management
+### Conditional Clearing
 ```basic
+topic = HEAR "What topic interests you?"
 IF topic = "technical" THEN
-    CLEAR_KB
-    USE_KB "engineering-docs"
-ELSE
-    CLEAR_KB "engineering-docs"
-    USE_KB "general-docs"
+    CLEAR KB "marketing-docs"
+    USE KB "technical-docs"
+ELSE IF topic = "sales" THEN
+    CLEAR KB "technical-docs"
+    USE KB "marketing-docs"
 END IF
 ```
 
-### Knowledge Base Rotation
+### Switch Knowledge Context
 ```basic
-' Use KB for initial query
-USE_KB "current-year-data"
-answer = FIND "quarterly results"
+' Start with general KB
+USE KB "general-info"
+answer = FIND "company overview"
 TALK answer
 
-' Switch to historical data
-CLEAR_KB "current-year-data"
-USE_KB "historical-data"
-historical = FIND "previous year results"
-TALK historical
+' Switch to specific department
+CLEAR KB "general-info"
+USE KB "engineering-specs"
+answer = FIND "API documentation"
+TALK answer
+```
+
+### Memory Management
+```basic
+' Load KBs for initial context
+USE KB "onboarding"
+USE KB "policies"
+
+' After onboarding complete
+CLEAR KB "onboarding"
+' Keep policies active but free onboarding memory
 ```
 
 ## Return Value
 
-Returns a boolean indicating success:
-- `true`: Knowledge base(s) successfully cleared
-- `false`: Operation failed or KB not found
-
-## Session Context
-
-The `CLEAR_KB` command affects only the current user session. Other sessions maintain their own KB contexts independently.
-
-## Memory Management
-
-Clearing knowledge bases:
-- Removes vector collection references from session
-- Frees up context window space
-- Does NOT delete the actual KB data (only removes from active context)
-- Reduces memory footprint of the session
+Returns `true` if the KB was successfully cleared, `false` if the KB wasn't loaded or doesn't exist.
 
 ## Error Handling
 
-- Silently succeeds if specified KB is not currently loaded
-- Returns false if KB name is invalid format
-- Logs warning if clearing fails due to system constraints
+```basic
+result = CLEAR KB "unknown-kb"
+IF result = false THEN
+    LOG "KB was not loaded or doesn't exist"
+END IF
+```
 
 ## Performance Considerations
 
-1. **Context Size**: Clearing unused KBs reduces token usage in LLM calls
-2. **Query Speed**: Fewer active KBs means faster semantic search
-3. **Memory**: Each KB consumes memory for index caching
-4. **Relevance**: Too many KBs can introduce irrelevant results
+- Clearing KBs immediately frees session memory
+- Does not delete the actual KB from Qdrant
+- Only removes the session association
+- Clearing all KBs is faster than clearing individually
 
 ## Best Practices
 
-1. **Clear Before Switching**: Always clear old KBs before loading new ones for different domains
-2. **Periodic Cleanup**: In long conversations, periodically clear unused KBs
-3. **Domain Separation**: Don't mix unrelated knowledge domains
-4. **Check Before Clear**: Optionally check if KB is loaded before clearing
+1. **Clear Unused KBs**: Remove KBs when no longer needed
+   ```basic
+   ' After processing department-specific queries
+   CLEAR KB "department-kb"
+   ```
 
-Example of good practice:
+2. **Clear Before Loading**: Ensure clean state
+   ```basic
+   CLEAR KB ALL
+   USE KB "fresh-context"
+   ```
+
+3. **Memory Optimization**: Clear large KBs after use
+   ```basic
+   USE KB "large-archive"
+   results = FIND query
+   CLEAR KB "large-archive"  ' Free memory
+   ```
+
+4. **Context Switching**: Clear when changing topics
+   ```basic
+   ON TOPIC_CHANGE
+       CLEAR KB ALL
+       USE KB new_topic_kb
+   END ON
+   ```
+
+## Session Scope
+
+- Clearing only affects the current session
+- Other sessions maintain their own KB associations
+- KBs remain in Qdrant for future use
+- Can reload cleared KBs anytime with `USE KB`
+
+## Monitoring Active KBs
+
 ```basic
-' Clean switch between domains
-CLEAR_KB
-IF customer_type = "enterprise" THEN
-    USE_KB "enterprise-docs"
-    USE_KB "sla-policies"
-ELSE
-    USE_KB "standard-docs"
-END IF
+' Check what's loaded before clearing
+active_kbs = GET_ACTIVE_KBS()
+TALK "Currently loaded: " + JOIN(active_kbs, ", ")
+
+' Clear specific ones
+FOR EACH kb IN active_kbs
+    IF kb STARTS WITH "temp_" THEN
+        CLEAR KB kb
+    END IF
+NEXT
+```
+
+## Advanced Usage
+
+### Batch Operations
+```basic
+kbs_to_clear = ["old-docs", "archive-2022", "deprecated"]
+FOR EACH kb IN kbs_to_clear
+    CLEAR KB kb
+NEXT
+```
+
+### Scheduled Cleanup
+```basic
+' Clear all KBs at conversation timeout
+ON TIMEOUT
+    CLEAR KB ALL
+    LOG "Session KBs cleared due to timeout"
+END ON
+```
+
+### Conditional Preservation
+```basic
+' Clear all except essential KBs
+all_kbs = GET_ACTIVE_KBS()
+essential = ["core-policies", "emergency-procedures"]
+
+FOR EACH kb IN all_kbs
+    IF kb NOT IN essential THEN
+        CLEAR KB kb
+    END IF
+NEXT
 ```
 
 ## Related Keywords
 
-- [USE_KB](./keyword-use-kb.md) - Load knowledge base collections
-- [ADD_WEBSITE](./keyword-add-website.md) - Add website content to KB
+- [USE KB](./keyword-use-kb.md) - Load knowledge bases
+- [ADD WEBSITE](./keyword-add-website.md) - Create KB from website
 - [FIND](./keyword-find.md) - Search within loaded KBs
-- [LLM](./keyword-llm.md) - Query LLM with KB context
+- [LLM](./keyword-llm.md) - Use KB context in responses
 
-## Implementation Details
+## Implementation
 
 Located in `src/basic/keywords/clear_kb.rs`
 
 The implementation:
-- Maintains KB references in session state
-- Uses HashSet for efficient KB tracking
-- Integrates with Qdrant vector store
-- Handles concurrent access safely
-- Updates session metrics for monitoring
+- Maintains session KB registry
+- Removes KB references from context
+- Updates search scope
+- Handles "ALL" keyword specially
+- Returns operation status

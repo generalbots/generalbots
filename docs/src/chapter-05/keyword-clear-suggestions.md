@@ -1,199 +1,223 @@
-# CLEAR_SUGGESTIONS
+# CLEAR SUGGESTIONS
 
 Remove all active suggestions from the current conversation interface.
 
 ## Syntax
 
 ```basic
-CLEAR_SUGGESTIONS
+CLEAR SUGGESTIONS
 ```
 
 ## Parameters
 
-None - this keyword takes no parameters.
+This keyword takes no parameters.
 
 ## Description
 
-The `CLEAR_SUGGESTIONS` keyword removes all quick reply buttons and suggestion chips from the conversation interface. Use this to:
+The `CLEAR SUGGESTIONS` keyword removes all quick reply buttons and suggestion chips from the user interface. This is useful when you want to:
 
-- Reset the suggestion list before showing new options
+- Reset the conversation interface
+- Change context and provide new options
+- Remove outdated suggestions
 - Clean up the interface after user selection
-- Remove outdated suggestions when context changes
-- Prevent confusion from lingering options
-- Force text input instead of button selection
 
 ## Examples
 
-### Basic Clear
+### Basic Usage
 ```basic
-' Show initial options
-ADD_SUGGESTION "Yes" AS "yes"
-ADD_SUGGESTION "No" AS "no"
-answer = HEAR "Do you agree?"
-
-' Clear after response
-CLEAR_SUGGESTIONS
-TALK "Thank you for your response"
+CLEAR SUGGESTIONS
+TALK "All suggestions have been cleared"
 ```
 
-### Menu Navigation
+### Replace Suggestions
 ```basic
-' Main menu
-CLEAR_SUGGESTIONS
-ADD_SUGGESTION "Products" AS "products"
-ADD_SUGGESTION "Support" AS "support"
-choice = HEAR "Select an option:"
+' Clear old suggestions before adding new ones
+CLEAR SUGGESTIONS
+ADD SUGGESTION "Option A" AS "a"
+ADD SUGGESTION "Option B" AS "b"
+ADD SUGGESTION "Option C" AS "c"
+```
 
-' Clear and show submenu
-CLEAR_SUGGESTIONS
-IF choice = "products" THEN
-    ADD_SUGGESTION "View All" AS "all"
-    ADD_SUGGESTION "Categories" AS "categories"
-    ADD_SUGGESTION "Back" AS "main"
+### Context Change
+```basic
+' Initial menu
+ADD SUGGESTION "Sales" AS "sales"
+ADD SUGGESTION "Support" AS "support"
+choice = HEAR "Select department:"
+
+' Clear and show department-specific options
+CLEAR SUGGESTIONS
+IF choice = "sales" THEN
+    ADD SUGGESTION "Pricing" AS "pricing"
+    ADD SUGGESTION "Demo" AS "demo"
+ELSE IF choice = "support" THEN
+    ADD SUGGESTION "Technical" AS "tech"
+    ADD SUGGESTION "Billing" AS "billing"
 END IF
 ```
 
-### Conditional Clearing
+### Clean Interface
 ```basic
-IF conversation_stage = "complete" THEN
-    CLEAR_SUGGESTIONS
-    TALK "Thank you for using our service!"
+' Show suggestions for initial choice
+ADD SUGGESTION "Yes" AS "yes"
+ADD SUGGESTION "No" AS "no"
+answer = HEAR "Would you like to continue?"
+
+' Clear suggestions after selection
+CLEAR SUGGESTIONS
+IF answer = "yes" THEN
+    TALK "Great! Let's proceed..."
 ELSE
-    ' Keep suggestions active
-    TALK "Please select an option above"
+    TALK "No problem. Goodbye!"
 END IF
 ```
 
-### Error Recovery
+### Multi-Level Menu
 ```basic
-retry_count = 0
-DO
-    CLEAR_SUGGESTIONS
-    ADD_SUGGESTION "Retry" AS "retry"
-    ADD_SUGGESTION "Cancel" AS "cancel"
-    ADD_SUGGESTION "Help" AS "help"
-    
-    action = HEAR "Operation failed. What would you like to do?"
-    retry_count = retry_count + 1
-LOOP WHILE action = "retry" AND retry_count < 3
+FUNCTION ShowMainMenu()
+    CLEAR SUGGESTIONS
+    ADD SUGGESTION "Products" AS "products"
+    ADD SUGGESTION "Services" AS "services"
+    ADD SUGGESTION "About" AS "about"
+    ADD SUGGESTION "Exit" AS "exit"
+END FUNCTION
 
-CLEAR_SUGGESTIONS
+FUNCTION ShowProductMenu()
+    CLEAR SUGGESTIONS
+    ADD SUGGESTION "Catalog" AS "catalog"
+    ADD SUGGESTION "Search" AS "search"
+    ADD SUGGESTION "Back" AS "main"
+END FUNCTION
+
+' Usage
+ShowMainMenu()
+choice = HEAR "What would you like to explore?"
+
+IF choice = "products" THEN
+    ShowProductMenu()
+ELSE IF choice = "exit" THEN
+    CLEAR SUGGESTIONS
+    TALK "Thank you for visiting!"
+END IF
 ```
 
-## Behavior
+## Channel Support
 
-When `CLEAR_SUGGESTIONS` is called:
+The effect varies by communication channel:
 
-1. All suggestions are removed from UI immediately
-2. Session cache is cleared of suggestion data
-3. Channel-specific cleanup occurs
-4. Interface returns to text input mode
-5. No error if no suggestions exist
-
-## Channel-Specific Behavior
-
-| Channel | Effect |
-|---------|--------|
-| Web | Removes button/chip elements |
-| WhatsApp | Clears reply keyboard |
-| Teams | Removes card actions |
-| Slack | Updates message blocks |
-| Voice | Stops listing options |
-| SMS | No visible effect |
-
-## Performance
-
-- Instant execution (< 1ms)
-- Minimal memory impact
-- No network calls required
-- Thread-safe operation
+| Channel | Behavior |
+|---------|----------|
+| Web | Removes all button/chip elements |
+| WhatsApp | Clears reply buttons |
+| Teams | Removes suggested actions |
+| Slack | Clears interactive elements |
+| SMS | No effect (text only) |
 
 ## Best Practices
 
-1. **Clear Before Adding**: Always clear before adding new suggestion sets
+1. **Clear Before Adding**: Always clear old suggestions before adding new ones
    ```basic
-   CLEAR_SUGGESTIONS
-   ADD_SUGGESTION "Option 1" AS "opt1"
-   ADD_SUGGESTION "Option 2" AS "opt2"
+   CLEAR SUGGESTIONS
+   ' Add new suggestions here
    ```
 
-2. **Clear After Selection**: Remove suggestions once user has chosen
+2. **Clear After Selection**: Remove suggestions after user makes a choice
    ```basic
-   choice = HEAR "Select:"
-   CLEAR_SUGGESTIONS
-   TALK "You selected: " + choice
+   choice = HEAR "Select an option:"
+   CLEAR SUGGESTIONS
+   ' Process choice
    ```
 
-3. **Clear on Context Change**: Remove irrelevant suggestions
+3. **Error Handling**: Clear suggestions when errors occur
    ```basic
-   IF topic_changed THEN
-       CLEAR_SUGGESTIONS
-   END IF
+   TRY
+       ' Some operation
+   CATCH
+       CLEAR SUGGESTIONS
+       TALK "An error occurred. Please type your request."
+   END TRY
    ```
 
-4. **Clear on Error**: Reset interface on failures
+4. **Timeout Handling**: Clear stale suggestions
    ```basic
-   ON ERROR
-       CLEAR_SUGGESTIONS
-       TALK "Something went wrong. Please type your request."
+   ON TIMEOUT
+       CLEAR SUGGESTIONS
+       TALK "Session timed out. Please start over."
    END ON
    ```
 
-## Common Patterns
+## Session Management
 
-### Wizard/Multi-Step Flow
-```basic
-' Step 1
-CLEAR_SUGGESTIONS
-ADD_SUGGESTION "Personal" AS "personal"
-ADD_SUGGESTION "Business" AS "business"
-account_type = HEAR "Account type?"
+- Suggestions are session-specific
+- Clearing affects only current user's interface
+- Suggestions automatically clear when session ends
+- No persistence across conversations
 
-' Step 2
-CLEAR_SUGGESTIONS
-ADD_SUGGESTION "Basic" AS "basic"
-ADD_SUGGESTION "Premium" AS "premium"
-plan = HEAR "Select plan:"
+## Memory Usage
 
-' Complete
-CLEAR_SUGGESTIONS
-TALK "Setup complete!"
-```
+Clearing suggestions:
+- Frees memory allocated for suggestion storage
+- Reduces session state size
+- Improves performance in long conversations
 
-### Dynamic Menu System
-```basic
-FUNCTION show_menu(menu_name)
-    CLEAR_SUGGESTIONS
-    menu_items = GET_MENU_ITEMS(menu_name)
-    FOR EACH item IN menu_items
-        ADD_SUGGESTION item.label AS item.value
-    NEXT
-END FUNCTION
-```
+## Return Value
+
+Returns `true` if suggestions were successfully cleared, `false` if there were no suggestions to clear.
 
 ## Error Handling
 
-- Never throws errors
-- Safe to call multiple times
-- No-op if no suggestions exist
-- Handles concurrent calls gracefully
+The keyword handles errors gracefully:
+- Succeeds silently if no suggestions exist
+- Logs warnings for channel communication errors
+- Never throws exceptions
 
-## Memory Management
+## Use Cases
 
-Calling `CLEAR_SUGGESTIONS`:
-- Frees suggestion cache memory
-- Removes Redis entries if cached
-- Cleans up UI resources
-- Prevents memory leaks in long conversations
+### Wizard/Step Navigation
+```basic
+' Step 1
+CLEAR SUGGESTIONS
+ADD SUGGESTION "Next" AS "step2"
+ADD SUGGESTION "Cancel" AS "cancel"
+
+' Step 2
+CLEAR SUGGESTIONS
+ADD SUGGESTION "Back" AS "step1"
+ADD SUGGESTION "Next" AS "step3"
+ADD SUGGESTION "Cancel" AS "cancel"
+```
+
+### Dynamic Menus
+```basic
+options = GET_AVAILABLE_OPTIONS(user_role)
+CLEAR SUGGESTIONS
+FOR EACH option IN options
+    ADD SUGGESTION option.label AS option.value
+NEXT
+```
+
+### Conversation Reset
+```basic
+FUNCTION ResetConversation()
+    CLEAR SUGGESTIONS
+    CLEAR KB ALL
+    SET CONTEXT ""
+    TALK "Let's start fresh. How can I help you?"
+END FUNCTION
+```
 
 ## Related Keywords
 
-- [ADD_SUGGESTION](./keyword-add-suggestion.md) - Add quick reply options
-- [HEAR](./keyword-hear.md) - Get user input from suggestions
-- [TALK](./keyword-talk.md) - Display messages with suggestions
+- [ADD SUGGESTION](./keyword-add-suggestion.md) - Add new suggestions
+- [HEAR](./keyword-hear.md) - Wait for user input with suggestions
+- [TALK](./keyword-talk.md) - Send messages with suggestions
 
 ## Implementation
 
-Located in `src/basic/keywords/add_suggestion.rs`
+Located in `src/basic/keywords/clear_suggestions.rs`
 
-Shares implementation with `ADD_SUGGESTION` for efficient suggestion management.
+The implementation:
+- Maintains suggestion list in session cache
+- Sends clear command to channel adapter
+- Updates UI state asynchronously
+- Handles multiple channel types

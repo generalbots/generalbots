@@ -1,222 +1,281 @@
-# Chapter 12: REST API Reference
+# REST API Reference
 
-This chapter provides comprehensive documentation for all REST API endpoints available in BotServer. The API is organized into specialized modules, each handling specific functionality.
+BotServer provides a comprehensive REST API for bot management, user operations, and system administration. This chapter documents all available API endpoints and their usage.
 
-## API Overview
+## Overview
 
-BotServer exposes a comprehensive REST API that enables integration with external systems, automation, and management of all platform features. All endpoints follow RESTful principles and return JSON responses.
+The BotServer REST API enables:
+- Bot interaction and management
+- User authentication and authorization
+- Session management
+- File operations
+- Group and organization management
+- System administration
+- Analytics and monitoring
 
-### Base URL
+## Base URL
 
+All API endpoints are served from:
 ```
-http://localhost:3000/api
+http://localhost:8080/api
 ```
 
-### Authentication
+In production, replace with your domain and use HTTPS:
+```
+https://your-domain.com/api
+```
 
-Most endpoints require authentication via session tokens or API keys. See [Chapter 11: Authentication](../chapter-11/README.md) for details.
+## Authentication
 
-### Response Format
+Most API endpoints require authentication. BotServer supports:
 
-All API responses follow a consistent format:
+### Session Token
+
+Include the session token in the Authorization header:
+```
+Authorization: Bearer <session-token>
+```
+
+### Getting a Token
+
+Authenticate through Zitadel OAuth flow or use the login endpoint to obtain a session token.
+
+## API Categories
+
+### Core APIs
+
+- **[Files API](./files-api.md)** - File upload, download, and management
+- **[Document Processing](./document-processing.md)** - Document parsing and indexing
+- **[Users API](./users-api.md)** - User management and profiles
+- **[Groups API](./groups-api.md)** - Group and organization management
+- **[Admin API](./admin-api.md)** - System administration endpoints
+
+### Communication APIs
+
+- **[Email API](./email-api.md)** - Email integration and management
+- **[Notifications API](./notifications-api.md)** - Push notifications and alerts
+- **[Conversations API](./conversations-api.md)** - Chat history and messages
+- **[Calls API](./calls-api.md)** - Voice and video call management
+
+### Productivity APIs
+
+- **[Calendar API](./calendar-api.md)** - Calendar and scheduling
+- **[Tasks API](./tasks-api.md)** - Task management
+- **[Whiteboard API](./whiteboard-api.md)** - Collaborative whiteboard
+
+### Data & Analytics APIs
+
+- **[Storage API](./storage-api.md)** - Object storage operations
+- **[Analytics API](./analytics-api.md)** - Usage analytics and metrics
+- **[Reports API](./reports-api.md)** - Report generation
+- **[Backup API](./backup-api.md)** - Backup and restore operations
+
+### AI & ML APIs
+
+- **[AI API](./ai-api.md)** - AI model interactions
+- **[ML API](./ml-api.md)** - Machine learning operations
+
+### Security & Compliance APIs
+
+- **[Security API](./security-api.md)** - Security operations
+- **[User Security](./user-security.md)** - User security settings
+- **[Compliance API](./compliance-api.md)** - Compliance management
+- **[Group Membership](./group-membership.md)** - Access control
+
+### Monitoring & Operations
+
+- **[Monitoring API](./monitoring-api.md)** - System monitoring
+- **[Example Integrations](./examples.md)** - Integration examples
+
+## Request Format
+
+### Headers
+
+Standard headers for API requests:
+```
+Content-Type: application/json
+Authorization: Bearer <token>
+Accept: application/json
+```
+
+### Request Body
+
+JSON format for request bodies:
+```json
+{
+  "field1": "value1",
+  "field2": "value2"
+}
+```
+
+## Response Format
+
+### Success Response
 
 ```json
 {
   "success": true,
-  "data": { ... },
-  "message": "Optional message"
+  "data": {
+    // Response data
+  },
+  "message": "Operation successful"
 }
 ```
 
-Error responses:
+### Error Response
 
 ```json
 {
   "success": false,
-  "error": "Error description",
-  "code": "ERROR_CODE"
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human readable error message",
+    "details": {
+      // Additional error details
+    }
+  }
 }
 ```
 
-## API Categories
+### HTTP Status Codes
 
-### File & Document Management
-Complete file operations including upload, download, copy, move, search, and document processing.
-- [Files API](./files-api.md) - Basic file operations
-- [Document Processing API](./document-processing.md) - Document conversion and manipulation
+| Code | Meaning |
+|------|---------|
+| 200 | Success |
+| 201 | Created |
+| 204 | No Content |
+| 400 | Bad Request |
+| 401 | Unauthorized |
+| 403 | Forbidden |
+| 404 | Not Found |
+| 409 | Conflict |
+| 422 | Unprocessable Entity |
+| 429 | Too Many Requests |
+| 500 | Internal Server Error |
+| 503 | Service Unavailable |
 
-### User Management
-Comprehensive user account management, profiles, security, and preferences.
-- [Users API](./users-api.md) - User CRUD operations
-- [User Security API](./user-security.md) - 2FA, sessions, devices
+## Common Parameters
 
-### Groups & Organizations
-Group creation, membership management, permissions, and analytics.
-- [Groups API](./groups-api.md) - Group operations
-- [Group Membership API](./group-membership.md) - Member management
+### Pagination
 
-### Conversations & Communication
-Real-time messaging, calls, screen sharing, and collaboration.
-- [Conversations API](./conversations-api.md) - Chat and messaging
-- [Calls API](./calls-api.md) - Voice and video calls
-- [Whiteboard API](./whiteboard-api.md) - Collaborative whiteboard
+Many endpoints support pagination:
+```
+GET /api/resource?limit=20&offset=0
+```
 
-### Email & Notifications
-Email management, sending, and notification preferences.
-- [Email API](./email-api.md) - Email operations
-- [Notifications API](./notifications-api.md) - Push notifications
+- `limit` - Number of results per page (default: 20, max: 100)
+- `offset` - Number of results to skip
 
-### Calendar & Tasks
-Event scheduling, reminders, task management, and dependencies.
-- [Calendar API](./calendar-api.md) - Event management
-- [Tasks API](./tasks-api.md) - Task operations
+### Sorting
 
-### Storage & Data
-Data persistence, backup, archival, and quota management.
-- [Storage API](./storage-api.md) - Data operations
-- [Backup API](./backup-api.md) - Backup and restore
+Sort results by field:
+```
+GET /api/resource?sort=created_at&order=desc
+```
 
-### Analytics & Reporting
-Dashboards, metrics collection, insights, and trend analysis.
-- [Analytics API](./analytics-api.md) - Analytics operations
-- [Reports API](./reports-api.md) - Report generation
+- `sort` - Field to sort by
+- `order` - Sort direction (`asc` or `desc`)
 
-### System Administration
-System management, configuration, monitoring, and maintenance.
-- [Admin API](./admin-api.md) - System administration
-- [Monitoring API](./monitoring-api.md) - Health and metrics
+### Filtering
 
-### AI & Machine Learning
-Text analysis, image processing, translation, and predictions.
-- [AI API](./ai-api.md) - AI operations
-- [ML API](./ml-api.md) - Machine learning
-
-### Security & Compliance
-Audit logs, compliance checking, threat scanning, and encryption.
-- [Security API](./security-api.md) - Security operations
-- [Compliance API](./compliance-api.md) - Compliance checking
-
-## Quick Reference
-
-### Common Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/health` | GET | Health check |
-| `/files/list` | GET | List files |
-| `/files/upload` | POST | Upload file |
-| `/users/create` | POST | Create user |
-| `/groups/create` | POST | Create group |
-| `/conversations/create` | POST | Create conversation |
-| `/analytics/dashboard` | GET | Get dashboard |
-| `/admin/system/status` | GET | System status |
+Filter results:
+```
+GET /api/resource?filter[status]=active&filter[type]=user
+```
 
 ## Rate Limiting
 
 API endpoints are rate-limited to prevent abuse:
 
-- **Standard endpoints**: 1000 requests per hour per user
-- **Heavy operations**: 100 requests per hour per user
-- **Public endpoints**: 100 requests per hour per IP
+- **Anonymous**: 60 requests per hour
+- **Authenticated**: 1000 requests per hour
+- **Admin**: 5000 requests per hour
 
-Rate limit headers are included in responses:
-
+Rate limit headers:
 ```
 X-RateLimit-Limit: 1000
 X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200
+X-RateLimit-Reset: 1516131600
 ```
 
-## Error Codes
+## Versioning
 
-| Code | Description |
-|------|-------------|
-| 400 | Bad Request - Invalid input |
-| 401 | Unauthorized - Authentication required |
-| 403 | Forbidden - Insufficient permissions |
-| 404 | Not Found - Resource doesn't exist |
-| 429 | Too Many Requests - Rate limit exceeded |
-| 500 | Internal Server Error - Server error |
-| 503 | Service Unavailable - Service down |
-
-## Pagination
-
-List endpoints support pagination:
-
+The API is versioned through the URL path:
 ```
-GET /users/list?page=1&per_page=20
+/api/v1/endpoint  (current)
+/api/v2/endpoint  (future)
 ```
 
-Response includes pagination metadata:
-
-```json
-{
-  "data": [...],
-  "total": 1000,
-  "page": 1,
-  "per_page": 20,
-  "total_pages": 50
-}
-```
-
-## Filtering and Searching
-
-Many endpoints support filtering:
-
-```
-GET /files/list?bucket=my-bucket&path=/documents
-GET /users/search?query=john&role=admin
-GET /events/list?start_date=2024-01-01&end_date=2024-12-31
-```
-
-## Webhooks
-
-Subscribe to events via webhooks:
-
-```
-POST /webhooks/subscribe
-{
-  "url": "https://your-server.com/webhook",
-  "events": ["user.created", "file.uploaded"]
-}
-```
+Currently, all endpoints use v1 implicitly.
 
 ## WebSocket API
 
-Real-time communication via WebSocket:
-
+For real-time communication:
 ```
-ws://localhost:3000/ws
+ws://localhost:8080/ws
 ```
 
-Events:
-- `message` - New message received
-- `status` - User status changed
-- `typing` - User is typing
-- `call` - Incoming call
+See the WebSocket documentation for details.
+
+## Error Codes
+
+Common error codes across all APIs:
+
+| Code | Description |
+|------|-------------|
+| `UNAUTHORIZED` | Missing or invalid authentication |
+| `FORBIDDEN` | Insufficient permissions |
+| `NOT_FOUND` | Resource not found |
+| `VALIDATION_ERROR` | Invalid input data |
+| `RATE_LIMITED` | Too many requests |
+| `SERVER_ERROR` | Internal server error |
+| `SERVICE_UNAVAILABLE` | Service temporarily unavailable |
 
 ## SDK Support
 
-Official SDKs available:
+While official SDKs are not yet available, the API is designed to be easily consumed by:
 - JavaScript/TypeScript
 - Python
 - Rust
 - Go
+- Any HTTP client library
 
-## Next Steps
+## Testing
 
-- [Files API Reference](./files-api.md) - Detailed file operations
-- [Users API Reference](./users-api.md) - User management
-- [Analytics API Reference](./analytics-api.md) - Analytics and reporting
-- [Example Integrations](./examples.md) - Code examples
+### Using cURL
 
-## API Versioning
-
-Current API version: `v1`
-
-Version is specified in the URL:
-```
-/api/v1/users/list
+```bash
+curl -X GET \
+  http://localhost:8080/api/users/me \
+  -H 'Authorization: Bearer YOUR_TOKEN'
 ```
 
-Legacy endpoints without version prefix default to v1 for backward compatibility.
+### Using Postman
+
+Import the OpenAPI specification (when available) or manually configure requests.
+
+## Best Practices
+
+1. **Use HTTPS in Production**: Never send tokens over unencrypted connections
+2. **Handle Errors Gracefully**: Always check for error responses
+3. **Respect Rate Limits**: Implement exponential backoff
+4. **Cache When Possible**: Reduce unnecessary API calls
+5. **Use Pagination**: Don't request large datasets at once
+6. **Validate Input**: Check data before sending
+7. **Log Errors**: Track API errors for debugging
+
+## Getting Help
+
+- Check the specific endpoint documentation
+- Review error messages and codes
+- Enable debug logging
+- Contact support or file an issue
+
+## Note on Implementation Status
+
+Some API endpoints documented in this chapter may be:
+- Partially implemented
+- Planned for future releases
+- Subject to change
+
+Always test endpoints in your development environment and check the source code for the most current implementation status.

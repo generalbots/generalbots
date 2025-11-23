@@ -1,248 +1,291 @@
 # Installation
 
-## Quick Start
+This guide covers the installation and setup of BotServer on various platforms.
 
-BotServer automatically installs and configures everything you need. Just run it!
+## Prerequisites
 
-```bash
-# Download and run
-./botserver
-
-# Or build from source
-cargo run
-```
-
-That's it! The bootstrap process handles everything automatically.
-
-## What Happens Automatically
-
-When you first run BotServer, the **bootstrap process** automatically:
-
-1. **Detects your system** - Linux, macOS, or Windows
-2. **Creates installation directory** - `/opt/gbo` (Linux/macOS) or `botserver-stack` (Windows)
-3. **Installs core components**:
-   - **PostgreSQL** (database) - Generates secure credentials, creates schema
-   - **MinIO** (file storage) - Creates buckets, sets up access keys
-   - **Valkey/Redis** (cache) - Configures and starts service
-4. **Writes `.env` file** - All credentials stored securely
-5. **Creates default bots** - Scans `templates/` for `.gbai` packages
-6. **Starts web server** - Ready at `http://localhost:8080`
-
-### First Run Output
-
-You'll see messages like:
-
-```
-🚀 BotServer starting...
-📦 Bootstrap: Detecting system...
-📦 Installing PostgreSQL...
-   ✓ Database created
-   ✓ Schema initialized
-   ✓ Credentials saved to .env
-📦 Installing MinIO...
-   ✓ Object storage ready
-   ✓ Buckets created
-📦 Installing Valkey...
-   ✓ Cache server running
-🤖 Creating bots from templates...
-   ✓ default.gbai → Default bot
-   ✓ announcements.gbai → Announcements bot
-✅ BotServer ready at http://localhost:8080
-```
+- **Rust** 1.70+ (for building from source)
+- **PostgreSQL** 14+ (for database)
+- **Docker** (optional, for containerized deployment)
+- **Git** (for cloning the repository)
 
 ## System Requirements
 
-- **Memory**: 8GB RAM minimum, 16GB recommended
-- **Storage**: 10GB free space
 - **OS**: Linux, macOS, or Windows
+- **RAM**: Minimum 4GB, recommended 8GB+
+- **Disk**: 10GB for installation + data storage
+- **CPU**: 2+ cores recommended
 
-## Installation Modes
+## Installation Methods
 
-BotServer automatically detects and chooses the best installation mode for your system.
-
-### Local Mode (Default)
-
-Components install directly on your system:
-- PostgreSQL at `localhost:5432`
-- MinIO at `localhost:9000`
-- Valkey at `localhost:6379`
-
-**When used**: No container runtime detected, or you prefer native installation.
-
-### Container Mode (LXC)
-
-Components run in isolated **LXC** (Linux Containers):
-- System-level container isolation
-- Lightweight virtualization
-- Automatic setup with `lxd init --auto`
+### 1. Quick Start with Docker
 
 ```bash
-# Force container mode
-./botserver --container
+# Clone the repository
+git clone https://github.com/yourusername/botserver
+cd botserver
 
-# Force local mode
-./botserver --local
+# Start all services
+docker-compose up -d
 ```
 
-**Benefits**:
-- ✅ Isolated environments - no system pollution
-- ✅ Easy cleanup - just remove containers
-- ✅ Version control - run multiple BotServer instances
-- ✅ Security - containers provide isolation
-
-**What happens**:
-1. Bootstrap detects LXC/LXD availability
-2. Creates Debian 12 containers for PostgreSQL, MinIO, Valkey
-3. Mounts host directories for persistent data
-4. Maps container ports to localhost
-5. Creates systemd services inside containers
-6. Manages container lifecycle automatically
-
-**Container names**: `{tenant}-tables`, `{tenant}-drive`, `{tenant}-cache`
-
-### Hybrid Mode
-
-Mix local and containerized components:
+### 2. Build from Source
 
 ```bash
-# Install PostgreSQL locally, MinIO in container
-./botserver install tables --local
-./botserver install drive --container
+# Clone the repository
+git clone https://github.com/yourusername/botserver
+cd botserver
 
-# Or mix any combination
-./botserver install cache --local
+# Build the project
+cargo build --release
+
+# Run the server
+./target/release/botserver
 ```
 
-**Note**: Container mode requires LXC/LXD installed on your system.
+### 3. Package Manager Installation
 
-## Post-Installation
+```bash
+# Initialize package manager
+botserver init
 
-### Access the Web Interface
+# Install required components
+botserver install tables
+botserver install cache
+botserver install drive
+botserver install llm
 
-Open your browser to `http://localhost:8080` and start chatting!
+# Start services
+botserver start all
+```
+
+## Environment Variables
+
+BotServer uses only two environment variables:
+
+### Required Variables
+
+```bash
+# Database connection string
+DATABASE_URL=postgres://gbuser:password@localhost:5432/botserver
+
+# Object storage configuration
+DRIVE_SERVER=http://localhost:9000
+DRIVE_ACCESSKEY=gbdriveuser
+DRIVE_SECRET=your_secret_key
+```
+
+**Important**: These are the ONLY environment variables used by BotServer. All other configuration is managed through:
+- `config.csv` files in bot packages
+- Database configuration tables
+- Command-line arguments
+
+## Configuration
+
+### Bot Configuration
+
+Each bot has its own `config.csv` file with parameters like:
+
+```csv
+name,value
+server_host,0.0.0.0
+server_port,8080
+llm-url,http://localhost:8081
+llm-model,path/to/model.gguf
+email-from,from@domain.com
+email-server,mail.domain.com
+```
+
+See the [Configuration Guide](../chapter-02/gbot.md) for complete parameter reference.
+
+### Theme Configuration
+
+Themes are configured through simple parameters in `config.csv`:
+
+```csv
+name,value
+theme-color1,#0d2b55
+theme-color2,#fff9c2
+theme-title,My Bot
+theme-logo,https://example.com/logo.svg
+```
+
+## Database Setup
+
+### Automatic Setup
+
+```bash
+# Bootstrap command creates database and tables
+botserver bootstrap
+```
+
+### Manual Setup
+
+```sql
+-- Create database
+CREATE DATABASE botserver;
+
+-- Create user
+CREATE USER gbuser WITH PASSWORD 'your_password';
+
+-- Grant permissions
+GRANT ALL PRIVILEGES ON DATABASE botserver TO gbuser;
+```
+
+Then run migrations:
+
+```bash
+diesel migration run
+```
+
+## Storage Setup
+
+BotServer uses S3-compatible object storage (MinIO by default):
+
+```bash
+# Install MinIO
+botserver install drive
+
+# Start MinIO
+botserver start drive
+```
+
+Default MinIO console: http://localhost:9001
+- Username: `minioadmin`
+- Password: `minioadmin`
+
+## Authentication Setup
+
+BotServer uses an external directory service for authentication:
+
+```bash
+# Install directory service
+botserver install directory
+
+# Start directory
+botserver start directory
+```
+
+The directory service handles:
+- User authentication
+- OAuth2/OIDC flows
+- User management
+- Access control
+
+## LLM Setup
+
+### Local LLM Server
+
+```bash
+# Install LLM server
+botserver install llm
+
+# Download a model
+wget https://huggingface.co/models/your-model.gguf -O data/llm/model.gguf
+
+# Configure in config.csv
+llm-url,http://localhost:8081
+llm-model,data/llm/model.gguf
+```
+
+### External LLM Provider
+
+Configure in `config.csv`:
+
+```csv
+name,value
+llm-url,https://api.openai.com/v1
+llm-key,your-api-key
+llm-model,gpt-4
+```
+
+## Verifying Installation
 
 ### Check Component Status
 
 ```bash
-./botserver status tables    # PostgreSQL
-./botserver status drive     # MinIO
-./botserver status cache     # Valkey
+# Check all services
+botserver status
+
+# Test database connection
+psql $DATABASE_URL -c "SELECT version();"
+
+# Test storage
+curl http://localhost:9000/minio/health/live
+
+# Test LLM
+curl http://localhost:8081/v1/models
 ```
 
-### View Configuration
-
-The bootstrap process creates `.env` with all credentials:
+### Run Test Bot
 
 ```bash
-cat .env
+# Create a test bot
+cp -r templates/default.gbai work/test.gbai
+
+# Start the server
+botserver run
+
+# Access web interface
+open http://localhost:8080
 ```
-
-You'll see auto-generated values like:
-
-```env
-DATABASE_URL=postgres://gbuser:SECURE_RANDOM_PASS@localhost:5432/botserver
-DRIVE_SERVER=http://localhost:9000
-DRIVE_ACCESSKEY=GENERATED_KEY
-DRIVE_SECRET=GENERATED_SECRET
-```
-
-## Optional Components
-
-After installation, you can add more components:
-
-```bash
-./botserver install email      # Stalwart email server
-./botserver install directory  # Zitadel identity provider
-./botserver install llm        # Local LLM server
-./botserver install meeting    # LiveKit video conferencing
-```
-
-## Adding Your Own Bot
-
-1. Create a `.gbai` folder in `templates/`:
-   ```
-   templates/mybot.gbai/
-   ├── mybot.gbdialog/
-   │   └── start.bas
-   ├── mybot.gbot/
-   │   └── config.csv
-   └── mybot.gbkb/
-       └── docs/
-   ```
-
-2. Restart BotServer:
-   ```bash
-   ./botserver
-   ```
-
-3. Bootstrap automatically detects and creates your bot!
 
 ## Troubleshooting
 
-### Port Already in Use
-
-If port 8080 is taken, edit `templates/default.gbai/default.gbot/config.csv`:
-
-```csv
-name,value
-server_port,3000
-```
-
-### Database Connection Failed
-
-The bootstrap will retry automatically. If it persists:
+### Database Connection Issues
 
 ```bash
-./botserver install tables --force
+# Check PostgreSQL is running
+systemctl status postgresql
+
+# Test connection
+psql -h localhost -U gbuser -d botserver
+
+# Check DATABASE_URL format
+echo $DATABASE_URL
 ```
 
-### LXC Not Available
-
-If you see "LXC not found" and want container mode:
+### Storage Connection Issues
 
 ```bash
-# Install LXC/LXD
-sudo snap install lxd
-sudo lxd init --auto
+# Check MinIO is running
+docker ps | grep minio
 
-# Then run bootstrap
-./botserver --container
+# Test credentials
+aws s3 ls --endpoint-url=$DRIVE_SERVER
 ```
 
-### Clean Install
+### Port Conflicts
 
-Remove installation directory and restart:
+Default ports used by BotServer:
 
-```bash
-# Linux/macOS
-rm -rf /opt/gbo
-./botserver
+| Service | Port | Configure in |
+|---------|------|--------------|
+| Web Server | 8080 | config.csv: `server_port` |
+| PostgreSQL | 5432 | DATABASE_URL |
+| MinIO | 9000/9001 | DRIVE_SERVER |
+| LLM Server | 8081 | config.csv: `llm-server-port` |
+| Cache (Valkey) | 6379 | Internal |
 
-# Windows
-rmdir /s botserver-stack
-botserver.exe
-```
+### Memory Issues
 
-## Advanced: Manual Component Control
+For systems with limited RAM:
 
-While bootstrap handles everything, you can manually control components:
+1. Reduce LLM context size in `config.csv`:
+   ```csv
+   llm-server-ctx-size,2048
+   ```
 
-```bash
-# Install specific component
-./botserver install <component>
+2. Limit parallel processing:
+   ```csv
+   llm-server-parallel,2
+   ```
 
-# Start/stop components
-./botserver start tables
-./botserver stop drive
-
-# Uninstall component
-./botserver uninstall cache
-```
-
-Available components: `tables`, `cache`, `drive`, `llm`, `email`, `directory`, `proxy`, `dns`, `meeting`, `vector_db`, and more.
+3. Use smaller models
 
 ## Next Steps
 
-- [First Conversation](./first-conversation.md) - Start chatting with your bot
-- [Understanding Sessions](./sessions.md) - Learn how conversations work
-- [About Packages](../chapter-02/README.md) - Create custom bots
+- [Quick Start Guide](./quick-start.md) - Create your first bot
+- [Configuration Reference](../chapter-02/gbot.md) - All configuration options
+- [BASIC Programming](../chapter-05/basics.md) - Learn the scripting language
+- [Deployment Guide](../chapter-06/containers.md) - Production deployment
