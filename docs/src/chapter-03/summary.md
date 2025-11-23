@@ -1,6 +1,6 @@
 # Chapter 03 – Knowledge‑Base (VectorDB) Documentation Overview
 
-This chapter explains how GeneralBots manages knowledge‑base collections, indexing, caching, and semantic search. The implementation now references a generic **VectorDB** (instead of a specific Qdrant instance) and highlights the use of the **.gbdrive** package for storage when needed.
+This chapter explains how GeneralBots manages knowledge‑base collections, indexing, caching, and semantic search. The implementation uses vector databases for semantic search and highlights the use of the **.gbdrive** package for storage when needed.
 
 | Document | File | Description |
 |----------|------|-------------|
@@ -8,7 +8,7 @@ This chapter explains how GeneralBots manages knowledge‑base collections, inde
 | **Caching** | [caching.md](caching.md) | Optional in‑memory and persistent SQLite caching to speed up frequent `FIND` queries. |
 | **Context Compaction** | [context-compaction.md](context-compaction.md) | Techniques to keep the LLM context window within limits (summarization, memory pruning, sliding window). |
 | **Indexing** | [indexing.md](indexing.md) | Process of extracting, chunking, embedding, and storing document vectors in the VectorDB. |
-| **VectorDB Integration** | [qdrant.md](qdrant.md) | (Renamed) Details the VectorDB connection, collection mapping, and operations. References to **Qdrant** have been generalized to **VectorDB**. |
+| **Semantic Caching** | [caching.md](caching.md) | Intelligent caching with Valkey for LLM responses, including semantic similarity matching. |
 | **Semantic Search** | [semantic-search.md](semantic-search.md) | How the `FIND` keyword performs meaning‑based retrieval using the VectorDB. |
 | **Vector Collections** | [vector-collections.md](vector-collections.md) | Definition and management of vector collections, including creation, document addition, and usage in dialogs. |
 

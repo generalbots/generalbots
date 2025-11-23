@@ -1,10 +1,10 @@
 # User Authentication
 
-BotServer uses Zitadel, an open-source identity management platform, for user authentication and authorization. No passwords are stored internally in BotServer.
+BotServer uses a directory service component for user authentication and authorization. No passwords are stored internally in BotServer.
 
 ## Overview
 
-Authentication in BotServer is handled entirely by Zitadel, which provides:
+Authentication in BotServer is handled entirely by the directory service, which provides:
 - User identity management
 - OAuth 2.0 / OpenID Connect (OIDC) authentication
 - Single Sign-On (SSO) capabilities
@@ -14,35 +14,124 @@ Authentication in BotServer is handled entirely by Zitadel, which provides:
 
 ## Architecture
 
-### Zitadel Integration
+### Directory Service Integration
 
-BotServer integrates with Zitadel through:
-- **ZitadelClient**: Client for API communication
+BotServer integrates with the directory service through:
+- **DirectoryClient**: Client for API communication
 - **AuthService**: Service layer for authentication operations
 - **OIDC Flow**: Standard OAuth2/OIDC authentication flow
 - **Service Account**: For administrative operations
 
 ### No Internal Password Storage
 
-- **No password_hash columns**: Users table only stores Zitadel user IDs
-- **No Argon2 hashing**: All password operations handled by Zitadel
-- **No password reset logic**: Managed through Zitadel's built-in flows
+- **No password_hash columns**: Users table only stores directory user IDs
+- **No Argon2 hashing**: All password operations handled by directory service
+- **No password reset logic**: Managed through directory service's built-in flows
 - **Session tokens only**: BotServer only manages session state
 
 ## Authentication Flow
 
+### Authentication Architecture
+
+```
+┌──────────────┐         ┌──────────────┐         ┌──────────────┐
+│   Browser    │◄────────│  BotServer   │────────►│  Directory   │
+│              │         │              │         │   Service    │
+└──────────────┘         └──────────────┘         └──────────────┘
+       │                        │                         │
+       │  1. Login Request      │                         │
+       ├───────────────────────►│                         │
+       │                        │  2. Redirect to OIDC   │
+       │                        ├────────────────────────►│
+       │                        │                         │
+       │  3. Show Login Page    │◄────────────────────────│
+       │◄───────────────────────┤                         │
+       │                        │                         │
+       │  4. Enter Credentials  │                         │
+       ├────────────────────────┼────────────────────────►│
+       │                        │                         │
+       │                        │  5. Return Tokens       │
+       │                        │◄────────────────────────│
+       │  6. Set Session Cookie │                         │
+       │◄───────────────────────│                         │
+       │                        │                         │
+       │  7. Authenticated!     │                         │
+       └────────────────────────┘                         │
+                                                          │
+                               Database                   │
+                          ┌──────────────┐                │
+                          │  PostgreSQL  │◄───────────────┘
+                          │  • Sessions  │  User Sync
+                          │  • User Refs │
+                          └──────────────┘
+```
+
 ### User Registration
 
-1. User registration request sent to Zitadel
-2. Zitadel creates user account
+```
+User → BotServer → Zitadel
+  │        │          │
+  │  Register        │
+  ├───────►│          │
+  │        │  Create  │
+  │        ├─────────►│
+  │        │          ├─► Generate ID
+  │        │          ├─► Hash Password
+  │        │          ├─► Store User
+  │        │  User ID │
+  │        │◄─────────┤
+  │        ├─► Create Local Ref
+  │        ├─► Start Session
+  │  Token │
+  │◄───────┤
+  │        │
+```
+
+1. User registration request sent to directory service
+2. Directory service creates user account
 3. User ID returned to BotServer
 4. BotServer creates local user reference
 5. Session established with BotServer
 
 ### User Login
 
-1. User redirected to Zitadel login page
-2. Credentials validated by Zitadel
+```
+     Browser                BotServer              Directory
+        │                       │                     │
+        │   GET /login          │                     │
+        ├──────────────────────►│                     │
+        │                       │                     │
+        │   302 Redirect        │                     │
+        │◄──────────────────────┤                     │
+        │   to Directory        │                     │
+        │                       │                     │
+        │                                             │
+        ├────────────────────────────────────────────►│
+        │   Show Login Form                          │
+        │◄────────────────────────────────────────────┤
+        │                                             │
+        │   Submit Credentials                       │
+        ├────────────────────────────────────────────►│
+        │                                             │
+        │                                             ├─► Validate
+        │                                             ├─► Generate Tokens
+        │                                             │
+        │   Redirect + Tokens                        │
+        │◄────────────────────────────────────────────┤
+        │                       │                     │
+        │   /auth/callback      │                     │
+        ├──────────────────────►│                     │
+        │                       ├─► Validate Tokens   │
+        │                       ├─► Create Session    │
+        │                       ├─► Store in DB       │
+        │   Set Cookie          │                     │
+        │◄──────────────────────┤                     │
+        │   Redirect to App     │                     │
+        │                       │                     │
+```
+
+1. User redirected to directory service login page
+2. Credentials validated by directory service
 3. OIDC tokens returned via callback
 4. BotServer validates tokens
 5. Local session created
@@ -50,37 +139,68 @@ BotServer integrates with Zitadel through:
 
 ### Token Validation
 
+```
+    Request Flow                     Validation Pipeline
+         │                                  │
+         ▼                                  ▼
+┌──────────────┐              ┌──────────────────────┐
+│   Request    │              │  Extract Token       │
+│  + Cookie    │              │  from Cookie/Header  │
+└──────┬───────┘              └──────────┬───────────┘
+       │                                  │
+       ▼                                  ▼
+┌──────────────┐              ┌──────────────────────┐
+│  BotServer   │              │  Check Session       │
+│   Validates  │◄─────────────│  in Local Cache      │
+└──────┬───────┘              └──────────┬───────────┘
+       │                                  │
+       │                                  ├─► Valid? Continue
+       │                                  │
+       │                                  ├─► Expired?
+       ▼                                  │
+┌──────────────┐              ┌──────────────────────┐
+│  Directory   │◄─────────────│  Refresh with        │
+│   Refresh    │              │  Directory API       │
+└──────┬───────┘              └──────────────────────┘
+       │                                  │
+       ▼                                  ▼
+┌──────────────┐              ┌──────────────────────┐
+│   Process    │              │  Load User Context   │
+│   Request    │              │  Apply Permissions   │
+└──────────────┘              └──────────────────────┘
+```
+
 1. Client includes session token
 2. BotServer validates local session
-3. Optional: Refresh with Zitadel if expired
-4. User context loaded from Zitadel
+3. Optional: Refresh with directory service if expired
+4. User context loaded from directory service
 5. Request processed with user identity
 
-## Zitadel Configuration
+## Directory Service Configuration
 
 ### Environment Variables
 
 ```bash
-# Zitadel connection
-ZITADEL_ISSUER_URL=http://localhost:8080
-ZITADEL_API_URL=http://localhost:8080/management/v1
-ZITADEL_CLIENT_ID=<generated-client-id>
-ZITADEL_CLIENT_SECRET=<generated-client-secret>
-ZITADEL_PROJECT_ID=<project-id>
+# Directory service connection
+DIRECTORY_ISSUER_URL=http://localhost:8080
+DIRECTORY_API_URL=http://localhost:8080/management/v1
+DIRECTORY_CLIENT_ID=<generated-client-id>
+DIRECTORY_CLIENT_SECRET=<generated-client-secret>
+DIRECTORY_PROJECT_ID=<project-id>
 
 # Service account for admin operations
-ZITADEL_SERVICE_ACCOUNT_KEY=<service-account-key>
-DIRECTORY_ADMIN_TOKEN=zitadel-admin-sa
+DIRECTORY_SERVICE_ACCOUNT_KEY=<service-account-key>
+DIRECTORY_ADMIN_TOKEN=directory-admin-sa
 
 # OAuth redirect
-ZITADEL_REDIRECT_URI=http://localhost:8080/auth/callback
+DIRECTORY_REDIRECT_URI=http://localhost:8080/auth/callback
 ```
 
 ### Auto-Configuration
 
 During bootstrap, BotServer automatically:
-1. Installs Zitadel binary
-2. Configures Zitadel with PostgreSQL
+1. Installs directory service (Zitadel) via installer.rs
+2. Configures directory service with PostgreSQL
 3. Creates default organization
 4. Sets up service account
 5. Creates initial admin user
@@ -93,11 +213,11 @@ During bootstrap, BotServer automatically:
 | Column | Type | Description |
 |--------|------|-------------|
 | id | UUID | Internal BotServer ID |
-| zitadel_id | TEXT | User ID in Zitadel |
+| directory_id | TEXT | User ID in directory service |
 | username | TEXT | Cached username |
 | email | TEXT | Cached email |
 | created_at | TIMESTAMPTZ | First login time |
-| updated_at | TIMESTAMPTZ | Last sync with Zitadel |
+| updated_at | TIMESTAMPTZ | Last sync with directory |
 
 Note: No password_hash or any password-related fields exist.
 

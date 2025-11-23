@@ -101,7 +101,7 @@ END IF
 ## Performance Considerations
 
 - Clearing KBs immediately frees session memory
-- Does not delete the actual KB from Qdrant
+- Does not delete the actual KB from vector database
 - Only removes the session association
 - Clearing all KBs is faster than clearing individually
 
@@ -138,7 +138,7 @@ END IF
 
 - Clearing only affects the current session
 - Other sessions maintain their own KB associations
-- KBs remain in Qdrant for future use
+- KBs remain in vector database for future use
 - Can reload cleared KBs anytime with `USE KB`
 
 ## Monitoring Active KBs

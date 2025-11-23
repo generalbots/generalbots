@@ -41,7 +41,7 @@ work/
 2. **Process files** - Extracts text from PDF, DOCX, TXT, MD, CSV files
 3. **Chunk text** - Splits into ~1000 character chunks with overlap
 4. **Generate embeddings** - Creates vector representations
-5. **Store in VectorDB** - Saves to Qdrant for similarity search
+5. **Store in VectorDB** - Saves to vector database for similarity search
 6. **Ready for queries** - KB available for semantic search
 
 ### Supported File Types
@@ -239,7 +239,7 @@ ws.send({
 
 ## Implementation Details
 
-### Vector Database (Qdrant)
+### Vector Database
 
 Configuration:
 - **Collection**: Per bot instance
@@ -257,7 +257,7 @@ Configuration:
 3. Clean and normalize text
 4. Split into chunks (1000 chars, 200 overlap)
 5. Generate embeddings via OpenAI
-6. Store in Qdrant with metadata
+6. Store in vector database with metadata
 7. Update session context
 ```
 
@@ -434,7 +434,7 @@ rate_limit = 100
 sandbox = true
 
 [vectordb]
-provider = "qdrant"
+provider = "vector"
 url = "http://localhost:6333"
 collection_prefix = "botserver_"
 ```

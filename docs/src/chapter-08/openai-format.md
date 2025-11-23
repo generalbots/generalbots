@@ -247,15 +247,6 @@ To debug OpenAI function calls:
 4. Review execution logs
 5. Test with manual invocation
 
-## Future Enhancements
-
-Planned improvements:
-- Optional parameters
-- Complex type support
-- Streaming function results
-- Batch function calls
-- Function versioning
-
 ## Summary
 
 The OpenAI function format enables seamless integration between BASIC scripts and OpenAI's GPT models. By automatically generating compatible function definitions, BotServer allows natural language interactions to trigger complex business logic implementations.

@@ -4,36 +4,130 @@ BotServer follows a modular architecture designed for scalability, maintainabili
 
 ## Core Architecture
 
+### System Architecture Diagram
+
 ```
-BotServer
-├── Core Engine
-│   ├── BASIC Interpreter
-│   ├── Session Manager
-│   ├── Context Manager
-│   └── Bootstrap System
-├── AI & NLP Layer
-│   ├── LLM Integration
-│   ├── Prompt Management
-│   ├── Knowledge Base
-│   └── Vector Search
-├── Communication Layer
-│   ├── Multi-Channel Support
-│   ├── WebSocket Server
-│   ├── REST API
-│   └── Event Bus
-├── Storage Layer
-│   ├── PostgreSQL
-│   ├── Drive (S3-compatible)
-│   ├── Cache (Valkey)
-│   └── Qdrant Vector DB
-└── Services Layer
-    ├── Authentication
-    ├── Email Service
-    ├── Calendar Engine
-    └── Task Engine
+┌─────────────────────────────────────────────────────────────────────────┐
+│                            BotServer (Binary)                           │
+├─────────────────────────────────────────────────────────────────────────┤
+│                                                                          │
+│  ┌────────────────────────────────────────────────────────────────────┐ │
+│  │                           Core Engine                              │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │ │
+│  │  │    BASIC     │  │   Session    │  │   Context    │            │ │
+│  │  │ Interpreter  │  │   Manager    │  │   Manager    │            │ │
+│  │  │   (Rhai)     │  │   (Tokio)    │  │  (Memory)    │            │ │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘            │ │
+│  └─────────┼──────────────────┼──────────────────┼───────────────────┘ │
+│            │                  │                  │                      │
+│  ┌─────────▼──────────────────▼──────────────────▼───────────────────┐ │
+│  │                        AI & NLP Layer                              │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │ │
+│  │  │     LLM      │  │   Embeddings │  │  Knowledge   │            │ │
+│  │  │ Integration  │  │     (BGE)    │  │    Base      │            │ │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘            │ │
+│  └─────────┼──────────────────┼──────────────────┼───────────────────┘ │
+│            │                  │                  │                      │
+│  ┌─────────▼──────────────────▼──────────────────▼───────────────────┐ │
+│  │                    Communication Layer                             │ │
+│  │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐            │ │
+│  │  │  WebSocket   │  │   REST API   │  │   Channels   │            │ │
+│  │  │   Server     │  │    (Axum)    │  │   Adapters   │            │ │
+│  │  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘            │ │
+│  └─────────┼──────────────────┼──────────────────┼───────────────────┘ │
+│            │                  │                  │                      │
+│  ┌─────────▼──────────────────▼──────────────────▼───────────────────┐ │
+│  │                       Storage Layer                                │ │
+│  │  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐         │ │
+│  │  │PostgreSQL│  │  Valkey  │  │ SeaweedFS│  │  Qdrant  │         │ │
+│  │  │ (Diesel) │  │  Cache   │  │    S3    │  │ Vectors  │         │ │
+│  │  └──────────┘  └──────────┘  └──────────┘  └──────────┘         │ │
+│  └─────────────────────────────────────────────────────────────────────┘ │
+│                                                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+```
+
+### Module Dependency Graph
+
+```
+                            main.rs
+                               │
+                               ▼
+                          bootstrap/
+                               │
+            ┌──────────────────┼──────────────────┐
+            │                  │                  │
+            ▼                  ▼                  ▼
+       package_manager/    config/           database/
+            │                  │                  │
+            │                  └──────┬───────────┘
+            │                         │
+            ▼                         ▼
+       web_server/ ◄──────────── session/
+            │                         │
+            ├──────┬──────┬──────────┤
+            │      │      │          │
+            ▼      ▼      ▼          ▼
+        channels/ bot/  basic/     auth/
+            │      │      │          │
+            └──────┴──────┼──────────┘
+                          │
+                          ▼
+                        llm/
+                          │
+                          ▼
+                     context/
 ```
 
 ## Module Organization
+
+### Data Flow Through Modules
+
+```
+    User Input
+         │
+         ▼
+┌─────────────────┐
+│   web_server/   │  Axum HTTP Server
+│   channels/     │  Route to channel
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    session/     │  Load/Create Session
+│                 │  Validate Token
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│     auth/       │  Check Permissions
+│                 │  Apply RBAC
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│     bot/        │  Route to Bot Instance
+│                 │  Load Configuration
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐
+│    basic/       │  Execute BASIC Script
+│                 │  Parse Keywords
+└────────┬────────┘
+         │
+         ├────────────┬────────────┬────────────┐
+         ▼            ▼            ▼            ▼
+┌─────────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
+│   context/  │ │  drive/ │ │database/│ │  llm/   │
+│  Load KB    │ │Get Files│ │Query DB │ │Call AI  │
+└─────────────┘ └─────────┘ └─────────┘ └─────────┘
+         │            │            │            │
+         └────────────┴────────────┴────────────┘
+                           │
+                           ▼
+                    Bot Response
+```
 
 ### Core Modules
 

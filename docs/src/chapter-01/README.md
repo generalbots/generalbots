@@ -1,169 +1,179 @@
 # Chapter 01: Run and Talk
 
-Getting started with BotServer is incredibly simple: **just run it!**
+**Zero to chatbot in 60 seconds.** This chapter gets BotServer running with a working bot you can talk to immediately.
 
-## Quick Start
+## The One-Command Install
 
 ```bash
-# Download and run
 ./botserver
-
-# Or build from source
-cargo run
 ```
 
-That's it! The bootstrap process handles everything automatically.
+That's literally it. First run triggers auto-bootstrap that:
+- Installs PostgreSQL, cache, storage, vector DB
+- Downloads AI models
+- Creates default bot
+- Starts web server
 
-## What You'll Learn
+Takes 2-5 minutes. Grab coffee. Come back to a running bot.
 
-This chapter covers everything you need to get started:
+## Your First Chat
 
-1. **[Installation](./installation.md)** - How the automatic bootstrap works
-2. **[First Conversation](./first-conversation.md)** - Start chatting with your bot
-3. **[Quick Start](./quick-start.md)** - Create your first bot
+Once bootstrap finishes:
 
-## The Bootstrap Magic
+1. Open browser to `http://localhost:8080`
+2. Write a simple tool (see below)
+3. Bot responds using GPT-3.5 (or local model)
 
-When you first run BotServer, it automatically:
+No configuration. No API keys (for local). It just works.
 
-- ✅ Detects your operating system
-- ✅ Downloads and installs PostgreSQL database  
-- ✅ Downloads and installs drive (S3-compatible object storage)  
-- ✅ Downloads and installs Valkey cache
-- ✅ Downloads LLM models to botserver-stack/
-- ✅ Generates secure credentials
-- ✅ Creates default bots
-- ✅ Starts the web server
+## What's Actually Happening
 
-**No manual configuration needed!** Everything just works.
+Behind that simple `./botserver` command:
 
-### Optional Components
+```
+Installing PostgreSQL 16.2...       ✓
+Installing Valkey cache...          ✓  
+Installing SeaweedFS storage...     ✓
+Installing Qdrant vectors...        ✓
+Downloading embeddings...           ✓
+Creating database schema...         ✓
+Generating secure credentials...    ✓
+Loading bot templates...            ✓
+Starting web server on :8080        ✓
+```
 
-After bootstrap, you can install additional services:
+Everything lands in `botserver-stack/` directory. Fully self-contained.
 
-- **Stalwart** - Full-featured email server for sending/receiving
-- **Zitadel** - Identity and access management (directory service)
-- **LiveKit** - Real-time video/audio conferencing
-- **Additional LLM models** - For offline operation
+## Make Your Own Bot in 2 Minutes
+
+### Step 1: Create Package
+```bash
+mkdir templates/my-bot.gbai
+mkdir templates/my-bot.gbai/my-bot.gbdialog
+```
+
+### Step 2: Write Start Script
+```bash
+cat > templates/my-bot.gbai/my-bot.gbdialog/start.bas << 'EOF'
+TALK "Hi! I'm your personal assistant."
+TALK "What can I help you with?"
+answer = HEAR
+TALK "I can help you with: " + answer
+EOF
+```
+
+### Step 3: Restart & Test
+```bash
+./botserver restart
+# Visit http://localhost:8080/my-bot
+```
+
+Your bot is live.
+
+## Adding Intelligence
+
+### Give It Knowledge
+Drop PDFs into knowledge base:
+```bash
+mkdir templates/my-bot.gbai/my-bot.gbkb
+cp ~/Documents/policies.pdf templates/my-bot.gbai/my-bot.gbkb/
+```
+
+Bot instantly answers questions from your documents.
+
+### Give It Tools
+Create a tool for booking meetings:
+```bash
+cat > templates/my-bot.gbai/my-bot.gbdialog/book-meeting.bas << 'EOF'
+PARAM person, date, time
+DESCRIPTION "Books a meeting"
+
+SAVE "meetings.csv", person, date, time
+TALK "Meeting booked with " + person + " on " + date
+EOF
+```
+
+Now just say "Book a meeting with John tomorrow at 2pm" - AI handles the rest.
+
+## Optional Components
+
+Want email? Video calls? Better models?
 
 ```bash
-./botserver install email      # Stalwart email server
-./botserver install directory  # Zitadel identity provider
-./botserver install meeting    # LiveKit conferencing
-./botserver install llm        # Local LLM models
+./botserver install email      # Full email server
+./botserver install meeting    # Video conferencing  
+./botserver install llm        # Local AI models
 ```
 
-## Your First Bot
+Each adds specific functionality. None required to start.
 
-After bootstrap completes (2-5 minutes), open your browser to:
-
-```
-http://localhost:8080
-```
-
-You'll see the default bot ready to chat! Just start talking - the LLM handles everything.
-
-For specific bots like the enrollment example below:
-```
-http://localhost:8080/edu
-```
-
-## The Magic Formula
+## File Structure After Bootstrap
 
 ```
-📚 Documents (.gbkb/) + 🔧 Tools (.bas) + 🤖 LLM = ✨ Intelligent Bot
+botserver-stack/
+  postgres/          # Database files
+  valkey/           # Cache data
+  seaweedfs/        # Object storage
+  qdrant/           # Vector database
+  models/           # Embeddings
+
+templates/
+  default.gbai/     # Default bot
+  my-bot.gbai/      # Your bot
+
+.env                  # Auto-generated config
 ```
 
-**No programming required!** Just:
-1. Drop documents in `.gbkb/` folders
-2. Create simple tools as `.bas` files (optional)
-3. Start chatting - the LLM does the rest!
+## Troubleshooting Quick Fixes
 
-## Example: Student Enrollment Bot (EDU)
-
-Deploy a new bot by creating a bucket in the object storage drive. Access it at `/edu`:
-
-### 1. Add Course Documents
-
-```
-edu.gbai/
-  edu.gbkb/
-    policies/
-      enrollment-policy.pdf
-      course-catalog.pdf
+**Port already in use?**
+```bash
+HTTP_PORT=3000 ./botserver
 ```
 
-### 2. Create Enrollment Tool
-
-Deploy a bot by creating a new bucket in the drive. Tools are `.bas` files:
-
-`edu.gbdialog/enrollment.bas`:
-
-```bas
-PARAM name AS string     LIKE "John Smith"        DESCRIPTION "Student name"
-PARAM email AS string    LIKE "john@example.com"  DESCRIPTION "Email"
-PARAM course AS string   LIKE "Computer Science"  DESCRIPTION "Course"
-
-DESCRIPTION "Processes student enrollment"
-
-SAVE "enrollments.csv", name, email, course, NOW()
-TALK "Welcome to " + course + ", " + name + "!"
+**Bootstrap fails?**
+```bash
+./botserver cleanup
+./botserver  # Try again
 ```
 
-### 3. Just Chat!
-
-```
-User: I want to enroll in computer science
-Bot: I'll help you enroll! What's your name?
-User: John Smith
-Bot: Thanks John! What's your email?
-User: john@example.com
-Bot: [Executes enrollment.bas]
-     Welcome to Computer Science, John Smith!
+**Want fresh start?**
+```bash
+rm -rf botserver-stack .env
+./botserver
 ```
 
-The LLM automatically:
-- ✅ Understands user wants to enroll
-- ✅ Calls the enrollment tool
-- ✅ Collects required parameters
-- ✅ Executes when ready
-- ✅ Answers questions from your documents
+**Check what's running:**
+```bash
+./botserver status
+```
 
-## Key Concepts
+## Container Deployment
 
-### Tools = Just `.bas` Files
+Prefer containers? Use LXC mode:
+```bash
+./botserver --container
+```
 
-A **tool** is simply a `.bas` file that the LLM discovers and calls automatically.
+Creates isolated LXC containers for each component. Same auto-bootstrap, better isolation.
 
-### Knowledge = Just Documents
+## What You've Learned
 
-Drop PDFs, Word docs, or text files in `.gbkb/` - instant searchable knowledge base!
-
-### Sessions
-
-Each conversation is a **session** that persists:
-- User identity (authenticated or anonymous)
-- Conversation history
-- Context and variables
-- Active tools and knowledge bases
-
-Sessions automatically save to PostgreSQL and cache in Valkey for performance.
+✅ BotServer installs itself completely  
+✅ Default bot works immediately  
+✅ Create new bots in minutes  
+✅ Add documents for instant knowledge  
+✅ Write tools for custom actions  
 
 ## Next Steps
 
-- **[Installation](./installation.md)** - Understand the bootstrap process
-- **[First Conversation](./first-conversation.md)** - Try out your bot
-- **[Quick Start](./quick-start.md)** - Build your own bot
-- **[About Packages](../chapter-02/README.md)** - Create bot packages
+- **[Quick Start](./quick-start.md)** - Build a real bot
+- **[Installation Details](./installation.md)** - How bootstrap works
+- **[First Conversation](./first-conversation.md)** - Chat interface tour
+- **[Sessions](./sessions.md)** - How conversations persist
 
-## Philosophy
+## The Philosophy
 
-BotServer follows these principles:
+We believe setup should be invisible. You want a bot, not a DevOps degree. That's why everything auto-configures. Focus on your bot's personality and knowledge, not infrastructure.
 
-1. **Just Run It** - Bootstrap handles everything
-2. **Just Chat** - No complex dialog flows needed
-3. **Just Add Content** - Documents + tools = intelligent bot
-4. **LLM Does the Work** - No IF/THEN logic required
-5. **Production Ready** - Built for real-world use
-
-Ready to get started? Head to [Installation](./installation.md)!
+Ready for more? Continue to [Quick Start](./quick-start.md) to build something real.

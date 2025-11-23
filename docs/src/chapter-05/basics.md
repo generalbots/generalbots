@@ -4,26 +4,28 @@ BASIC dialogs are plain‑text scripts that the GeneralBots engine compiles into
 
 ## Core Concepts
 
-* **Lines** – Each line is either a command (`TALK`, `HEAR`, etc.) or a comment (`REM`).
-* **Variables** – Declared with `SET name = expression`. Types are inferred at runtime.
-* **Control Flow** – `IF … THEN … ENDIF`, `FOR EACH … IN … NEXT`, and `EXIT FOR`.
-* **Blocks** – Enclosed in `{ … }` for multi‑line statements (e.g., `TALK { … }`).
+* **Lines** – Each line is either a command (`TALK`, `HEAR`, etc.) or a comment (`REM` or `'`).
+* **Variables** – Simple assignment with `name = value`. Types are inferred at runtime.
+* **Control Flow** – `IF … THEN … END IF`, `FOR … NEXT`.
+* **Comments** – Start with `REM` or apostrophe `'`.
 
 ## Example Script (`start.bas`)
 
 ```basic
 REM Simple greeting dialog
-SET user_name = "Guest"
+user_name = "Guest"
 TALK "Hello, " + user_name + "! How can I help you today?"
 HEAR user_input
 IF user_input = "help" THEN
     TALK "Sure, I can assist with account info, orders, or support."
 ELSE
     TALK "Sorry, I didn't understand."
-ENDIF
+END IF
 ```
 
 ## Execution Model
+
+![BASIC Script Execution Flow](./assets/basic-execution-flow.svg)
 
 1. **Parse** – The script is tokenized and turned into an AST.
 2. **Compile** – Keywords are mapped to Rust functions (see `src/basic/keywords/`).

@@ -59,7 +59,6 @@ TALK "Support mode activated. Please describe your issue."
 
 ## Related Keywords
 
-- [`SET_USER`](keyword-set-user.md) — Defines the active user for the session.  
 - [`SET_BOT_MEMORY`](keyword-set-bot-memory.md) — Stores persistent data for the bot or user.  
 - [`GET_BOT_MEMORY`](keyword-get-bot-memory.md) — Retrieves stored memory entries.  
 - [`SET_SCHEDULE`](keyword-set-schedule.md) — Defines scheduled tasks that may depend on context.

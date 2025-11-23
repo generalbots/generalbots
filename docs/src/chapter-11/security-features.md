@@ -230,9 +230,9 @@ MINIO_ACCESS_KEY="minioadmin"
 MINIO_SECRET_KEY="minioadmin"
 MINIO_USE_SSL=true
 
-# Qdrant (Vector Database) configuration
-QDRANT_URL="http://localhost:6333"
-QDRANT_API_KEY="your-api-key"
+# Vector Database configuration
+# Configure in your .env file
+
 
 # Cache configuration
 CACHE_URL="redis://localhost:6379"

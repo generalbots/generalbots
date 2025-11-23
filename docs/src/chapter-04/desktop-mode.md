@@ -352,15 +352,6 @@ location /desktop {
    - Valid manifest.json
    - Service worker registered
 
-## Future Enhancements
-
-- Native mobile apps (React Native)
-- Desktop app (Electron)
-- AR/VR interfaces
-- Voice-only mode
-- Collaborative whiteboards
-- Plugin marketplace
-
 ## Summary
 
 Desktop mode transforms BotServer from a simple chatbot platform into a comprehensive AI-powered workspace. With mobile PWA support, users can access all features from any device while maintaining a consistent, responsive experience.
