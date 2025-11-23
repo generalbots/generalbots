@@ -13,43 +13,92 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 mod api_router;
-mod auth;
-mod automation;
-mod basic;
-mod bootstrap;
-mod bot;
-mod channels;
-mod config;
-mod context;
+use botserver::basic;
+use botserver::core;
+use botserver::shared;
+#[cfg(test)]
+mod tests {
+    include!("main.test.rs");
+}
+#[cfg(feature = "console")]
+use botserver::console;
+
+// Re-exports from core
+use botserver::core::automation;
+use botserver::core::bootstrap;
+use botserver::core::bot;
+use botserver::core::config;
+use botserver::core::package_manager;
+use botserver::core::session;
+use botserver::core::web_server;
+
+// Feature-gated modules
+#[cfg(feature = "attendance")]
+mod attendance;
+
+#[cfg(feature = "calendar")]
+mod calendar;
+
+#[cfg(feature = "compliance")]
+mod compliance;
+
+#[cfg(feature = "console")]
+mod console;
+
+#[cfg(feature = "desktop")]
+mod desktop;
+
+#[cfg(feature = "directory")]
+mod directory;
+
+#[cfg(feature = "drive")]
 mod drive;
-mod drive_monitor;
+
 #[cfg(feature = "email")]
 mod email;
-mod file;
-mod llm;
-mod llm_models;
-mod meet;
-mod nvidia;
-mod package_manager;
-mod session;
-mod shared;
-pub mod tests;
-mod ui_tree;
-mod web_server;
 
-use crate::auth::auth_handler;
+#[cfg(feature = "instagram")]
+mod instagram;
+
+#[cfg(feature = "llm")]
+mod llm;
+
+#[cfg(feature = "meet")]
+mod meet;
+
+#[cfg(feature = "msteams")]
+mod msteams;
+
+#[cfg(feature = "nvidia")]
+mod nvidia;
+
+#[cfg(feature = "tasks")]
+mod tasks;
+
+#[cfg(feature = "vectordb")]
+mod vector_db;
+
+#[cfg(feature = "weba")]
+mod weba;
+
+#[cfg(feature = "whatsapp")]
+mod whatsapp;
+
 use crate::automation::AutomationService;
 use crate::bootstrap::BootstrapManager;
-use crate::bot::websocket_handler;
-use crate::bot::BotOrchestrator;
-use crate::channels::{VoiceAdapter, WebChannelAdapter};
-use crate::config::AppConfig;
 #[cfg(feature = "email")]
 use crate::email::{
     add_email_account, delete_email_account, get_emails, get_latest_email_from,
     list_email_accounts, list_emails, list_folders, save_click, save_draft, send_email,
 };
-use crate::file::upload_file;
+use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
+use botserver::core::bot::websocket_handler;
+use botserver::core::bot::BotOrchestrator;
+use botserver::core::config::AppConfig;
+// use crate::file::upload_file; // Module doesn't exist
+#[cfg(feature = "directory")]
+use crate::directory::auth_handler;
+#[cfg(feature = "meet")]
 use crate::meet::{voice_start, voice_stop};
 use crate::package_manager::InstallMode;
 use crate::session::{create_session, get_session_history, get_sessions, start_session};
@@ -82,9 +131,7 @@ async fn run_axum_server(
         .max_age(std::time::Duration::from_secs(3600));
 
     // Build API routes with State
-    let api_router = Router::new()
-        // Auth route
-        .route("/api/auth", get(auth_handler))
+    let mut api_router = Router::new()
         // Session routes
         .route("/api/sessions", post(create_session))
         .route("/api/sessions", get(get_sessions))
@@ -92,26 +139,39 @@ async fn run_axum_server(
             "/api/sessions/{session_id}/history",
             get(get_session_history),
         )
-        .route("/api/sessions/{session_id}/start", post(start_session))
-        // File routes
-        .route("/api/files/upload/{folder_path}", post(upload_file))
-        // Voice/Meet routes
-        .route("/api/voice/start", post(voice_start))
-        .route("/api/voice/stop", post(voice_stop))
-        .route("/api/meet/create", post(crate::meet::create_meeting))
-        .route("/api/meet/rooms", get(crate::meet::list_rooms))
-        .route("/api/meet/rooms/:room_id", get(crate::meet::get_room))
-        .route(
-            "/api/meet/rooms/:room_id/join",
-            post(crate::meet::join_room),
-        )
-        .route(
-            "/api/meet/rooms/:room_id/transcription/start",
-            post(crate::meet::start_transcription),
-        )
-        .route("/api/meet/token", post(crate::meet::get_meeting_token))
-        .route("/api/meet/invite", post(crate::meet::send_meeting_invites))
-        .route("/ws/meet", get(crate::meet::meeting_websocket))
+        .route("/api/sessions/{session_id}/start", post(start_session));
+    // File routes
+    // .route("/api/files/upload/{folder_path}", post(upload_file)) // Function doesn't exist
+
+    // Auth route
+    #[cfg(feature = "directory")]
+    {
+        api_router = api_router.route("/api/auth", get(auth_handler));
+    }
+
+    // Voice/Meet routes
+    #[cfg(feature = "meet")]
+    {
+        api_router = api_router
+            .route("/api/voice/start", post(voice_start))
+            .route("/api/voice/stop", post(voice_stop))
+            .route("/api/meet/create", post(crate::meet::create_meeting))
+            .route("/api/meet/rooms", get(crate::meet::list_rooms))
+            .route("/api/meet/rooms/:room_id", get(crate::meet::get_room))
+            .route(
+                "/api/meet/rooms/:room_id/join",
+                post(crate::meet::join_room),
+            )
+            .route(
+                "/api/meet/rooms/:room_id/transcription/start",
+                post(crate::meet::start_transcription),
+            )
+            .route("/api/meet/token", post(crate::meet::get_meeting_token))
+            .route("/api/meet/invite", post(crate::meet::send_meeting_invites))
+            .route("/ws/meet", get(crate::meet::meeting_websocket));
+    }
+
+    api_router = api_router
         // Media/Multimedia routes
         .route(
             "/api/media/upload",
@@ -155,10 +215,15 @@ async fn run_axum_server(
         );
 
     // Add email routes if feature is enabled
-    // Merge drive, email, and meet module routes
-    let api_router = api_router
-        .merge(crate::drive::configure())
-        .merge(crate::meet::configure());
+    // Merge drive, email, meet, and auth module routes
+    api_router = api_router.merge(crate::drive::configure());
+
+    #[cfg(feature = "meet")]
+    {
+        api_router = api_router.merge(crate::meet::configure());
+    }
+
+    api_router = api_router.nest("/api", crate::directory::router::configure());
 
     #[cfg(feature = "email")]
     let api_router = api_router.merge(crate::email::configure());
@@ -245,32 +310,39 @@ async fn main() -> std::io::Result<()> {
             std::thread::Builder::new()
                 .name("ui-thread".to_string())
                 .spawn(move || {
-                    let mut ui = crate::ui_tree::XtreeUI::new();
-                    ui.set_progress_channel(progress_rx.clone());
+                    #[cfg(feature = "console")]
+                    {
+                        let mut ui = botserver::console::XtreeUI::new();
+                        ui.set_progress_channel(progress_rx.clone());
 
-                    let rt = tokio::runtime::Builder::new_current_thread()
-                        .enable_all()
-                        .build()
-                        .expect("Failed to create UI runtime");
+                        let rt = tokio::runtime::Builder::new_current_thread()
+                            .enable_all()
+                            .build()
+                            .expect("Failed to create UI runtime");
 
-                    rt.block_on(async {
-                        tokio::select! {
-                            result = async {
-                                let mut rx = state_rx.lock().await;
-                                rx.recv().await
-                            } => {
-                                if let Some(app_state) = result {
-                                    ui.set_app_state(app_state);
+                        rt.block_on(async {
+                            tokio::select! {
+                                result = async {
+                                    let mut rx = state_rx.lock().await;
+                                    rx.recv().await
+                                } => {
+                                    if let Some(app_state) = result {
+                                        ui.set_app_state(app_state);
+                                    }
+                                }
+                                _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
+                                    eprintln!("UI initialization timeout");
                                 }
                             }
-                            _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
-                                eprintln!("UI initialization timeout");
-                            }
-                        }
-                    });
+                        });
 
-                    if let Err(e) = ui.start_ui() {
-                        eprintln!("UI error: {}", e);
+                        if let Err(e) = ui.start_ui() {
+                            eprintln!("UI error: {}", e);
+                        }
+                    }
+                    #[cfg(not(feature = "console"))]
+                    {
+                        eprintln!("Console feature not enabled");
                     }
                 })
                 .expect("Failed to spawn UI thread"),
@@ -405,21 +477,28 @@ async fn main() -> std::io::Result<()> {
     )));
 
     // Create default Zitadel config (can be overridden with env vars)
-    let zitadel_config = auth::zitadel::ZitadelConfig {
+    #[cfg(feature = "directory")]
+    let zitadel_config = botserver::directory::client::ZitadelConfig {
         issuer_url: std::env::var("ZITADEL_ISSUER_URL")
             .unwrap_or_else(|_| "http://localhost:8080".to_string()),
         issuer: std::env::var("ZITADEL_ISSUER")
             .unwrap_or_else(|_| "http://localhost:8080".to_string()),
-        client_id: std::env::var("ZITADEL_CLIENT_ID").unwrap_or_else(|_| "default".to_string()),
+        client_id: std::env::var("ZITADEL_CLIENT_ID").unwrap_or_else(|_| "client_id".to_string()),
         client_secret: std::env::var("ZITADEL_CLIENT_SECRET")
-            .unwrap_or_else(|_| "secret".to_string()),
+            .unwrap_or_else(|_| "client_secret".to_string()),
         redirect_uri: std::env::var("ZITADEL_REDIRECT_URI")
             .unwrap_or_else(|_| "http://localhost:8080/callback".to_string()),
         project_id: std::env::var("ZITADEL_PROJECT_ID").unwrap_or_else(|_| "default".to_string()),
+        api_url: std::env::var("ZITADEL_API_URL")
+            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
+        service_account_key: std::env::var("ZITADEL_SERVICE_ACCOUNT_KEY").ok(),
     };
-    let auth_service = Arc::new(tokio::sync::Mutex::new(auth::AuthService::new(
-        zitadel_config,
-    )));
+    #[cfg(feature = "directory")]
+    let auth_service = Arc::new(tokio::sync::Mutex::new(
+        botserver::directory::AuthService::new(zitadel_config)
+            .await
+            .unwrap(),
+    ));
     let config_manager = ConfigManager::new(pool.clone());
 
     let mut bot_conn = pool.get().expect("Failed to get database connection");
@@ -429,10 +508,10 @@ async fn main() -> std::io::Result<()> {
         .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
         .unwrap_or_else(|_| "http://localhost:8081".to_string());
 
-    let llm_provider = Arc::new(crate::llm::OpenAIClient::new(
+    let llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
         "empty".to_string(),
         Some(llm_url.clone()),
-    ));
+    )) as Arc<dyn botserver::llm::LLMProvider>;
 
     let app_state = Arc::new(AppState {
         drive: Some(drive),
@@ -442,12 +521,13 @@ async fn main() -> std::io::Result<()> {
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),
         llm_provider: llm_provider.clone(),
+        #[cfg(feature = "directory")]
         auth_service: auth_service.clone(),
         channels: Arc::new(tokio::sync::Mutex::new({
             let mut map = HashMap::new();
             map.insert(
                 "web".to_string(),
-                web_adapter.clone() as Arc<dyn crate::channels::ChannelAdapter>,
+                web_adapter.clone() as Arc<dyn botserver::core::bot::channels::ChannelAdapter>,
             );
             map
         })),

@@ -37,138 +37,185 @@ license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
-# Default feature set for desktop applications with full UI
-default = ["desktop"]
+# ===== DEFAULT FEATURE SET =====
+default = ["web-server", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
 
-# Vector database integration for semantic search and AI capabilities
-# Security: Enables AI-powered threat detection and semantic analysis
-vectordb = ["qdrant-client"]
+# ===== UI FEATURES =====
+desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener", "web-server"]
+web-server = []
+console = ["dep:crossterm", "dep:ratatui"]
 
-# Email integration for IMAP/SMTP operations
-# Security: Handle with care - requires secure credential storage
-email = ["imap"]
+# ===== CORE INTEGRATIONS =====
+vectordb = ["dep:qdrant-client"]
+llm = []
+nvidia = []
 
-# Desktop UI components using Tauri
-# Security: Sandboxed desktop runtime with controlled system access
-desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
+# ===== COMMUNICATION CHANNELS =====
+email = ["dep:imap", "dep:lettre", "dep:mailparse"]
+whatsapp = []
+instagram = []
+msteams = []
 
-# Additional security-focused feature flags for enterprise deployments
-# Can be enabled with: cargo build --features "encryption,audit,rbac"
-# encryption = [] # AES-GCM encryption for data at rest (already included via aes-gcm)
-# audit = []      # Comprehensive audit logging for compliance
-# rbac = []       # Role-based access control with Zitadel integration
-# mfa = []        # Multi-factor authentication support
-# sso = []        # Single Sign-On with SAML/OIDC providers
+# ===== PRODUCTIVITY FEATURES =====
+chat = []
+drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:mime_guess"]
+tasks = ["dep:cron"]
+calendar = []
+meet = ["dep:livekit"]
+mail = ["email"]
+
+# ===== ENTERPRISE FEATURES =====
+compliance = ["dep:csv"]
+attendance = []
+directory = []
+weba = []
+
+# ===== OPTIONAL INFRASTRUCTURE =====
+redis-cache = ["dep:redis"]
+monitoring = ["dep:sysinfo"]
+automation = ["dep:rhai"]
+grpc = ["dep:tonic"]
+progress-bars = ["dep:indicatif"]
+
+# ===== META FEATURES (BUNDLES) =====
+full = [
+    "web-server", "desktop", "console",
+    "vectordb", "llm", "nvidia",
+    "email", "whatsapp", "instagram", "msteams",
+    "chat", "drive", "tasks", "calendar", "meet", "mail",
+    "compliance", "attendance", "directory", "weba",
+    "redis-cache", "monitoring", "automation", "grpc", "progress-bars"
+]
+
+communications = ["email", "whatsapp", "instagram", "msteams", "chat", "redis-cache"]
+productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "redis-cache"]
+enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring"]
+minimal = ["web-server", "chat"]
+lightweight = ["web-server", "chat", "drive", "tasks"]
 
 [dependencies]
-# === SECURITY DEPENDENCIES ===
-# Encryption: AES-GCM for authenticated encryption of sensitive data
+# === CORE RUNTIME (Always Required) ===
 aes-gcm = "0.10"
-# Error handling: Type-safe error propagation
 anyhow = "1.0"
-# Password hashing: Argon2 for secure password storage (memory-hard, resistant to GPU attacks)
 argon2 = "0.5"
 async-lock = "2.8.0"
 async-stream = "0.3"
 async-trait = "0.1"
-aws-config = "1.8.8"
-aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"] }
 axum = { version = "0.8.7", features = ["ws", "multipart", "macros"] }
 base64 = "0.22"
 bytes = "1.8"
 chrono = { version = "0.4", features = ["serde"] }
 color-eyre = "0.6.5"
-cron = "0.15.0"
-crossterm = "0.29.0"
-csv = "1.3"
 diesel = { version = "2.1", features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
 diesel_migrations = "2.1.0"
 dotenvy = "0.15"
-downloader = "0.2"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
-# HMAC: Message authentication codes for API security
+hex = "0.4"
 hmac = "0.12.1"
 hyper = { version = "1.8.1", features = ["full"] }
-imap = { version = "3.0.0-alpha.15", optional = true }
-include_dir = "0.7"
-indicatif = "0.18.0"
-lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"] }
-lazy_static = "1.4"
-livekit = "0.7"
 log = "0.4"
-mime_guess = "2.0"
-mailparse = "0.15"
-mockito = "1.7.0"
-native-tls = "0.2"
 num-format = "0.4"
 once_cell = "1.18.0"
-pdf-extract = "0.10.0"
-qdrant-client = { version = "1.12", optional = true }
-r2d2 = "0.8.10"
 rand = "0.9.2"
-ratatui = "0.29.0"
-redis = { version = "0.27", features = ["tokio-comp"] }
 regex = "1.11"
 reqwest = { version = "0.12", features = ["json", "stream", "multipart"] }
-rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
-scopeguard = "1.2.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
-# Cryptographic hashing: SHA-256 for integrity verification
 sha2 = "0.10.9"
-# Hex encoding: For secure token representation
-hex = "0.4"
-smartstring = "1.0"
-sysinfo = "0.37.2"
-tauri = { version = "2", features = ["unstable"], optional = true }
-tauri-plugin-dialog = { version = "2", optional = true }
-tauri-plugin-opener = { version = "2", optional = true }
-tempfile = "3"
-time = "0.3.44"
 tokio = { version = "1.41", features = ["full"] }
 tokio-stream = "0.1"
 tower = "0.5"
 tower-http = { version = "0.6", features = ["cors", "fs", "trace"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
-ureq = "3.1.2"
 urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4"] }
-zip = "2.2"
+zitadel = { version = "5.5.1", features = ["api", "credentials"] }
+
+# === FEATURE-SPECIFIC DEPENDENCIES (Optional) ===
+
+# Desktop UI (desktop feature)
+tauri = { version = "2", features = ["unstable"], optional = true }
+tauri-plugin-dialog = { version = "2", optional = true }
+tauri-plugin-opener = { version = "2", optional = true }
+
+# Email Integration (email feature)
+imap = { version = "3.0.0-alpha.15", optional = true }
+lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
+mailparse = { version = "0.15", optional = true }
+
+# Video Meetings (meet feature)
+livekit = { version = "0.7", optional = true }
+
+# Vector Database (vectordb feature)
+qdrant-client = { version = "1.12", optional = true }
+
+# File Storage & Drive (drive feature)
+aws-config = { version = "1.8.8", optional = true }
+aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"], optional = true }
+pdf-extract = { version = "0.10.0", optional = true }
+zip = { version = "2.2", optional = true }
+downloader = { version = "0.2", optional = true }
+mime_guess = { version = "2.0", optional = true }
+
+# Task Management (tasks feature)
+cron = { version = "0.15.0", optional = true }
+
+# Automation & Scripting (automation feature)
+rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time", optional = true }
+
+# Compliance & Reporting (compliance feature)
+csv = { version = "1.3", optional = true }
+
+# Console/TUI (console feature)
+crossterm = { version = "0.29.0", optional = true }
+ratatui = { version = "0.29.0", optional = true }
+
+# Caching/Sessions (redis-cache feature)
+redis = { version = "0.27", features = ["tokio-comp"], optional = true }
+
+# System Monitoring (monitoring feature)
+sysinfo = { version = "0.37.2", optional = true }
+
+# Networking/gRPC (grpc feature)
+tonic = { version = "0.14.2", features = ["transport"], optional = true }
+
+# UI Enhancement (progress-bars feature)
+indicatif = { version = "0.18.0", optional = true }
+smartstring = "1.0.1"
+scopeguard = "1.2.0"
+
+[dev-dependencies]
+mockito = "1.7.0"
+tempfile = "3"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
 
 # === SECURITY AND CODE QUALITY CONFIGURATION ===
-# Enterprise-grade linting for security-conscious development
 [lints.rust]
-# Security: Remove unused code that could be attack surface
-unused_imports = "warn"          # Keep import hygiene visible
-unused_variables = "warn"        # Catch actual bugs
-unused_mut = "warn"             # Maintain code quality
-# Additional security-focused lints
-unsafe_code = "deny"           # Prevent unsafe operations
-missing_debug_implementations = "warn"  # Ensure debuggability
+unused_imports = "warn"
+unused_variables = "warn"
+unused_mut = "warn"
+unsafe_code = "deny"
+missing_debug_implementations = "warn"
 
 [lints.clippy]
-all = "warn"                    # Enable all clippy lints as warnings
-pedantic = "warn"               # Pedantic lints for code quality
-nursery = "warn"                # Experimental lints
-cargo = "warn"                  # Cargo-specific lints
-# Security-focused clippy lints
-unwrap_used = "warn"           # Prevent panics in production
-expect_used = "warn"           # Explicit error handling required
-panic = "warn"                 # No direct panics allowed
-todo = "warn"                  # No TODOs in production code
-unimplemented = "warn"         # Complete implementation required
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
 
 [profile.release]
-# Security-hardened release profile
-lto = true                     # Link-time optimization for smaller attack surface
-opt-level = "z"                # Optimize for size (reduces binary analysis surface)
-strip = true                   # Strip symbols (harder to reverse engineer)
-panic = "abort"                # Immediate termination on panic (no unwinding)
-codegen-units = 1              # Single codegen unit (better optimization)
-overflow-checks = true         # Integer overflow protection
+lto = true
+opt-level = "z"
+strip = true
+panic = "abort"
+codegen-units = 1
+overflow-checks = true
