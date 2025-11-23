@@ -2,11 +2,7 @@
 //!
 //! Provides document manipulation operations including merge, convert, fill, export, and import.
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::Json,
-};
+use axum::{extract::State, http::StatusCode, response::Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -142,7 +138,10 @@ pub async fn merge_documents(
     Ok(Json(DocumentResponse {
         success: true,
         output_path: Some(req.output_path),
-        message: Some(format!("Successfully merged {} documents", req.source_paths.len())),
+        message: Some(format!(
+            "Successfully merged {} documents",
+            req.source_paths.len()
+        )),
         metadata: Some(serde_json::json!({
             "source_count": req.source_paths.len(),
             "format": format
@@ -175,12 +174,19 @@ pub async fn convert_document(
             )
         })?;
 
-    let bytes = result.body.collect().await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Failed to read document body: {}", e) })),
-        )
-    })?.into_bytes();
+    let bytes = result
+        .body
+        .collect()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": format!("Failed to read document body: {}", e) }),
+                ),
+            )
+        })?
+        .into_bytes();
 
     let source_content = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -193,18 +199,16 @@ pub async fn convert_document(
         ("txt", "md") | ("text", "markdown") => {
             format!("# Converted Document\n\n{}", source_content)
         }
-        ("md", "txt") | ("markdown", "text") => {
-            source_content
-                .lines()
-                .map(|line| {
-                    line.trim_start_matches('#')
-                        .trim_start_matches('*')
-                        .trim_start_matches('-')
-                        .trim()
-                })
-                .collect::<Vec<_>>()
-                .join("\n")
-        }
+        ("md", "txt") | ("markdown", "text") => source_content
+            .lines()
+            .map(|line| {
+                line.trim_start_matches('#')
+                    .trim_start_matches('*')
+                    .trim_start_matches('-')
+                    .trim()
+            })
+            .collect::<Vec<_>>()
+            .join("\n"),
         ("json", "csv") => {
             let data: Result<serde_json::Value, _> = serde_json::from_str(&source_content);
             match data {
@@ -225,9 +229,14 @@ pub async fn convert_document(
                                     .iter()
                                     .map(|h| {
                                         obj.get(h)
-                                            .and_then(|v| v.as_str().or_else(|| Some(&v.to_string())))
-                                            .unwrap_or("")
-                                            .to_string()
+                                            .map(|v| {
+                                                if let Some(s) = v.as_str() {
+                                                    s.to_string()
+                                                } else {
+                                                    v.to_string()
+                                                }
+                                            })
+                                            .unwrap_or_else(|| String::new())
                                     })
                                     .collect::<Vec<_>>()
                                     .join(",");
@@ -241,7 +250,9 @@ pub async fn convert_document(
                 _ => {
                     return Err((
                         StatusCode::BAD_REQUEST,
-                        Json(serde_json::json!({ "error": "JSON must be an array for CSV conversion" })),
+                        Json(
+                            serde_json::json!({ "error": "JSON must be an array for CSV conversion" }),
+                        ),
                     ));
                 }
             }
@@ -287,9 +298,7 @@ pub async fn convert_document(
                 })
                 .0
         }
-        _ => {
-            source_content
-        }
+        _ => source_content,
     };
 
     s3_client
@@ -309,7 +318,10 @@ pub async fn convert_document(
     Ok(Json(DocumentResponse {
         success: true,
         output_path: Some(req.output_path),
-        message: Some(format!("Successfully converted from {} to {}", req.from_format, req.to_format)),
+        message: Some(format!(
+            "Successfully converted from {} to {}",
+            req.from_format, req.to_format
+        )),
         metadata: Some(serde_json::json!({
             "from_format": req.from_format,
             "to_format": req.to_format
@@ -342,12 +354,19 @@ pub async fn fill_document(
             )
         })?;
 
-    let bytes = result.body.collect().await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Failed to read template body: {}", e) })),
-        )
-    })?.into_bytes();
+    let bytes = result
+        .body
+        .collect()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": format!("Failed to read template body: {}", e) }),
+                ),
+            )
+        })?
+        .into_bytes();
 
     let mut template = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -420,12 +439,19 @@ pub async fn export_document(
             )
         })?;
 
-    let bytes = result.body.collect().await.map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Failed to read document body: {}", e) })),
-        )
-    })?.into_bytes();
+    let bytes = result
+        .body
+        .collect()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(
+                    serde_json::json!({ "error": format!("Failed to read document body: {}", e) }),
+                ),
+            )
+        })?
+        .into_bytes();
 
     let content = String::from_utf8(bytes.to_vec()).map_err(|e| {
         (
@@ -494,7 +520,9 @@ pub async fn import_document(
     } else {
         return Err((
             StatusCode::BAD_REQUEST,
-            Json(serde_json::json!({ "error": "Either source_url or source_data must be provided" })),
+            Json(
+                serde_json::json!({ "error": "Either source_url or source_data must be provided" }),
+            ),
         ));
     };
 
@@ -508,12 +536,8 @@ pub async fn import_document(
             })?;
             serde_json::to_string_pretty(&parsed).unwrap_or(content)
         }
-        "xml" => {
-            content
-        }
-        "csv" => {
-            content
-        }
+        "xml" => content,
+        "csv" => content,
         _ => content,
     };
 

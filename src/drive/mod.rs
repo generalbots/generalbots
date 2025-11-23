@@ -11,7 +11,9 @@
 //! - POST /files/create-folder - Create new folder
 
 use crate::shared::state::AppState;
-use crate::ui_tree::file_tree::{FileTree, TreeNode};
+#[cfg(feature = "console")]
+use crate::console::file_tree::{FileTree, TreeNode};
+use futures_util::stream::StreamExt;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -20,9 +22,11 @@ use axum::{
     Router,
 };
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::sync::Arc;
 
 pub mod document_processing;
+pub mod drive_monitor;
 pub mod vectordb;
 
 // ===== Request/Response Structures =====
@@ -189,62 +193,97 @@ pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
-    // Use FileTree for hierarchical navigation
-    let mut tree = FileTree::new(state.clone());
-
-    let result = if let Some(bucket) = &params.bucket {
-        if let Some(path) = &params.path {
-            tree.enter_folder(bucket.clone(), path.clone()).await
+    // Use FileTree for hierarchical navigation when console feature is enabled
+    #[cfg(feature = "console")]
+    let result = {
+        let mut tree = FileTree::new(state.clone());
+        if let Some(bucket) = &params.bucket {
+            if let Some(path) = &params.path {
+                tree.enter_folder(bucket.clone(), path.clone()).await
+            } else {
+                tree.list_root(bucket.clone()).await
+            }
         } else {
-            tree.enter_bucket(bucket.clone()).await
+            tree.list_buckets().await
         }
-    } else {
-        tree.load_root().await
     };
 
-    if let Err(e) = result {
-        return Err((
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e.to_string() })),
-        ));
-    }
+    #[cfg(not(feature = "console"))]
+    let result: Result<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)> = {
+        // Fallback implementation without FileTree
+        let s3_client = state.drive.as_ref()
+            .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "S3 client not configured"}))))?;
 
-    let items: Vec<FileItem> = tree
-        .render_items()
-        .iter()
-        .map(|(display, node)| {
-            let (name, path, is_dir, icon) = match node {
-                TreeNode::Bucket { name } => {
-                    let icon = if name.ends_with(".gbai") {
-                        "🤖"
-                    } else {
-                        "📦"
-                    };
-                    (name.clone(), name.clone(), true, icon.to_string())
-                }
-                TreeNode::Folder { bucket, path } => {
-                    let name = path.split('/').last().unwrap_or(path).to_string();
-                    (name, path.clone(), true, "📁".to_string())
-                }
-                TreeNode::File { bucket, path } => {
-                    let name = path.split('/').last().unwrap_or(path).to_string();
-                    let icon = get_file_icon(path);
-                    (name, path.clone(), false, icon)
-                }
-            };
+        if let Some(bucket) = &params.bucket {
+            let mut items = Vec::new();
+            let prefix = params.path.as_deref().unwrap_or("");
 
-            FileItem {
-                name,
-                path,
-                is_dir,
-                size: None,
-                modified: None,
-                icon,
+            let mut paginator = s3_client
+                .list_objects_v2()
+                .bucket(bucket)
+                .prefix(prefix)
+                .delimiter("/")
+                .into_paginator()
+                .send();
+
+            use futures_util::TryStreamExt;
+
+            let mut stream = paginator;
+            while let Some(result) = stream.try_next().await.map_err(|e| {
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))
+            })? {
+                // Add directories
+                if let Some(prefixes) = result.common_prefixes {
+                    for prefix in prefixes {
+                        if let Some(dir) = prefix.prefix {
+                            let name = dir.trim_end_matches('/').split('/').last().unwrap_or(&dir).to_string();
+                            items.push(FileItem {
+                                name,
+                                path: dir.clone(),
+                                is_dir: true,
+                                size: None,
+                                modified: None,
+                                icon: get_file_icon(&dir),
+                            });
+                        }
+                    }
+                }
+
+                // Add files
+                if let Some(contents) = result.contents {
+                    for object in contents {
+                        if let Some(key) = object.key {
+                            if !key.ends_with('/') {
+                                let name = key.split('/').last().unwrap_or(&key).to_string();
+                                items.push(FileItem {
+                                    name,
+                                    path: key.clone(),
+                                    is_dir: false,
+                                    size: object.size.map(|s| s as i64),
+                                    modified: object.last_modified.map(|t| t.to_string()),
+                                    icon: get_file_icon(&key),
+                                });
+                            }
+                        }
+                    }
+                }
             }
-        })
-        .collect();
+            Ok(items)
+        } else {
+            Ok(vec![])
+        }
+    };
 
-    Ok(Json(items))
+    match result {
+        Ok(items) => Ok(Json(items)),
+        Err(e) => Err(e)
+    }
+}
+
+#[cfg(feature = "console")]
+fn convert_tree_to_items(_tree: &FileTree) -> Vec<FileItem> {
+    // TODO: Implement tree conversion when console feature is available
+    vec![]
 }
 
 /// POST /files/read - Read file content from S3

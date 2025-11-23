@@ -1,5 +1,5 @@
-use crate::channels::{
-    instagram::InstagramAdapter, teams::TeamsAdapter, whatsapp::WhatsAppAdapter,
+use crate::core::bot::channels::{
+    instagram::InstagramAdapter, teams::TeamsAdapter, whatsapp::WhatsAppAdapter, ChannelAdapter,
 };
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -184,7 +184,7 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
 // Helper functions
 async fn send_message_to_recipient(
     state: Arc<AppState>,
-    _user: &UserSession,
+    user: &UserSession,
     recipient: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -193,20 +193,58 @@ async fn send_message_to_recipient(
 
     match channel.as_str() {
         "whatsapp" => {
-            let adapter = WhatsAppAdapter::new(state.clone());
-            adapter.send_message(&recipient_id, message).await?;
+            let adapter = WhatsAppAdapter::new();
+            let response = crate::shared::models::BotResponse {
+                bot_id: "default".to_string(),
+                session_id: user.id.to_string(),
+                user_id: recipient_id.clone(),
+                channel: "whatsapp".to_string(),
+                content: message.to_string(),
+                message_type: 0,
+                stream_token: None,
+                is_complete: true,
+                suggestions: vec![],
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            adapter.send_message(response).await?;
         }
         "instagram" => {
-            let adapter = InstagramAdapter::new(state.clone());
-            adapter.send_message(&recipient_id, message).await?;
+            let adapter = InstagramAdapter::new();
+            let response = crate::shared::models::BotResponse {
+                bot_id: "default".to_string(),
+                session_id: user.id.to_string(),
+                user_id: recipient_id.clone(),
+                channel: "instagram".to_string(),
+                content: message.to_string(),
+                message_type: 0,
+                stream_token: None,
+                is_complete: true,
+                suggestions: vec![],
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            adapter.send_message(response).await?;
         }
         "teams" => {
-            let adapter = TeamsAdapter::new(state.clone());
-            // For Teams, we need conversation ID
-            let conversation_id = get_teams_conversation_id(&state, &recipient_id).await?;
-            adapter
-                .send_message(&conversation_id, &recipient_id, message)
-                .await?;
+            let adapter = TeamsAdapter::new();
+            let response = crate::shared::models::BotResponse {
+                bot_id: "default".to_string(),
+                session_id: user.id.to_string(),
+                user_id: recipient_id.clone(),
+                channel: "teams".to_string(),
+                content: message.to_string(),
+                message_type: 0,
+                stream_token: None,
+                is_complete: true,
+                suggestions: vec![],
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            };
+            adapter.send_message(response).await?;
         }
         "web" => {
             // Send to web socket session
@@ -375,12 +413,12 @@ async fn send_whatsapp_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use reqwest::Client;
 
-    let adapter = WhatsAppAdapter::new(state);
+    let _adapter = WhatsAppAdapter::new();
 
     // First, upload the file to WhatsApp
     let upload_url = format!(
         "https://graph.facebook.com/v17.0/{}/media",
-        adapter.phone_number_id
+        std::env::var("WHATSAPP_PHONE_NUMBER_ID").unwrap_or_default()
     );
 
     let client = Client::new();
@@ -390,7 +428,7 @@ async fn send_whatsapp_file(
 
     let upload_response = client
         .post(&upload_url)
-        .bearer_auth(&adapter.access_token)
+        .bearer_auth(&std::env::var("WHATSAPP_ACCESS_TOKEN").unwrap_or_default())
         .multipart(form)
         .send()
         .await?;
@@ -405,7 +443,7 @@ async fn send_whatsapp_file(
     // Send the file message
     let send_url = format!(
         "https://graph.facebook.com/v17.0/{}/messages",
-        adapter.phone_number_id
+        std::env::var("WHATSAPP_PHONE_NUMBER_ID").unwrap_or_default()
     );
 
     let payload = json!({
@@ -420,7 +458,7 @@ async fn send_whatsapp_file(
 
     client
         .post(&send_url)
-        .bearer_auth(&adapter.access_token)
+        .bearer_auth(&std::env::var("WHATSAPP_ACCESS_TOKEN").unwrap_or_default())
         .json(&payload)
         .send()
         .await?;
@@ -436,7 +474,7 @@ async fn send_instagram_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Instagram file sending implementation
     // Similar to WhatsApp but using Instagram API
-    let _adapter = InstagramAdapter::new(state);
+    let _adapter = InstagramAdapter::new();
 
     // Upload and send via Instagram Messaging API
 
@@ -449,16 +487,17 @@ async fn send_teams_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let adapter = TeamsAdapter::new(state.clone());
+    let _adapter = TeamsAdapter::new();
 
     // Get conversation ID
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;
 
     // Upload to Teams and send as attachment
-    let access_token = adapter.get_access_token().await?;
+    let access_token = std::env::var("TEAMS_ACCESS_TOKEN").unwrap_or_default();
+    let service_url = std::env::var("TEAMS_SERVICE_URL").unwrap_or_else(|_| "https://smba.trafficmanager.net/apis".to_string());
     let url = format!(
         "{}/v3/conversations/{}/activities",
-        adapter.service_url.trim_end_matches('/'),
+        service_url.trim_end_matches('/'),
         conversation_id
     );
 
@@ -474,7 +513,7 @@ async fn send_teams_file(
         "type": "message",
         "text": caption,
         "from": {
-            "id": adapter.app_id,
+            "id": std::env::var("TEAMS_APP_ID").unwrap_or_default(),
             "name": "Bot"
         },
         "conversation": {

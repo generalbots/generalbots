@@ -42,11 +42,11 @@ fn build_llm_prompt(user_text: &str) -> String {
  user_text.trim().to_string()
 }
 pub async fn execute_llm_generation(state: Arc<AppState>, prompt: String) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
- let config_manager = crate::config::ConfigManager::new(state.conn.clone());
+ let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
  let model = config_manager.get_config(&Uuid::nil(), "llm-model", None).unwrap_or_default();
  let key = config_manager.get_config(&Uuid::nil(), "llm-key", None).unwrap_or_default();
- 
- let handler = crate::llm_models::get_handler(&model);
+
+ let handler = crate::llm::llm_models::get_handler(&model);
  let raw_response = state.llm_provider.generate(&prompt, &serde_json::Value::Null, &model, &key).await?;
  let processed = handler.process_content(&raw_response);
  Ok(processed)

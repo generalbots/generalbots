@@ -1,26 +1,70 @@
-pub mod auth;
-pub mod automation;
+// Core modules (always included)
 pub mod basic;
-pub mod bootstrap;
-pub mod bot;
-pub mod channels;
-pub mod config;
-pub mod context;
+pub mod core;
+
+// Re-export shared from core
+pub use core::shared;
+
+// Re-exports from core (always included)
+pub use core::automation;
+pub use core::bootstrap;
+pub use core::bot;
+pub use core::config;
+pub use core::package_manager;
+pub use core::session;
+pub use core::web_server;
+
+// Feature-gated modules
+#[cfg(feature = "attendance")]
+pub mod attendance;
+
+#[cfg(feature = "calendar")]
+pub mod calendar;
+
+#[cfg(feature = "compliance")]
+pub mod compliance;
+
+#[cfg(feature = "console")]
+pub mod console;
+
+#[cfg(feature = "desktop")]
+pub mod desktop;
+
+#[cfg(feature = "directory")]
+pub mod directory;
+
+#[cfg(feature = "drive")]
 pub mod drive;
-pub mod drive_monitor;
+
 #[cfg(feature = "email")]
 pub mod email;
-pub mod file;
+
+#[cfg(feature = "instagram")]
+pub mod instagram;
+
+#[cfg(feature = "llm")]
 pub mod llm;
-pub mod llm_models;
+
+#[cfg(feature = "meet")]
 pub mod meet;
+
+#[cfg(feature = "msteams")]
+pub mod msteams;
+
+#[cfg(feature = "nvidia")]
 pub mod nvidia;
-pub mod package_manager;
-pub mod session;
-pub mod shared;
-pub mod tests;
-pub mod ui_tree;
-pub mod web_server;
+
+#[cfg(feature = "tasks")]
+pub mod tasks;
+
+#[cfg(feature = "vectordb")]
+pub mod vector_db;
+
+#[cfg(feature = "weba")]
+pub mod weba;
+
+#[cfg(feature = "whatsapp")]
+pub mod whatsapp;
 
 // Bootstrap progress enum used by UI
 #[derive(Debug, Clone)]
