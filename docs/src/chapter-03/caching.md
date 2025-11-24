@@ -70,13 +70,82 @@ prompt-compact,4    # Compact conversation after N exchanges
 
 ### Architecture
 
-```
-User Query → Generate Key → Check Valkey → Hit/Miss Decision
-                ↓                              ↓
-          Embedding Hash               Return Cached / Generate New
-                ↓                              ↓
-          Semantic Search              Store in Valkey with TTL
-```
+<svg width="700" height="350" viewBox="0 0 700 350" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="350" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Caching Architecture Flow</text>
+  
+  <!-- User Query -->
+  <rect x="50" y="50" width="120" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="110" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">User Query</text>
+  
+  <!-- Arrow to Generate Key -->
+  <path d="M 170 70 L 220 70" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Generate Key -->
+  <rect x="220" y="50" width="120" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="280" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Generate Key</text>
+  
+  <!-- Arrow to Check Valkey -->
+  <path d="M 340 70 L 390 70" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Check Valkey -->
+  <rect x="390" y="50" width="120" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="450" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Check Valkey</text>
+  
+  <!-- Arrow to Decision -->
+  <path d="M 510 70 L 560 70" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Hit/Miss Decision Diamond -->
+  <path d="M 600 50 L 640 70 L 600 90 L 560 70 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="600" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Hit?</text>
+  
+  <!-- Arrow down from Generate Key -->
+  <path d="M 280 90 L 280 140" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Embedding Hash -->
+  <rect x="210" y="140" width="140" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="280" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Embedding Hash</text>
+  
+  <!-- Arrow down from Embedding Hash -->
+  <path d="M 280 180 L 280 230" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Semantic Search -->
+  <rect x="210" y="230" width="140" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="280" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Semantic Search</text>
+  
+  <!-- Hit path (upward) -->
+  <path d="M 600 50 L 600 20 L 450 20" stroke="currentColor" stroke-width="2" fill="none" opacity="0.7"/>
+  <text x="520" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Cache Hit</text>
+  <rect x="330" y="5" width="120" height="30" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="390" y="24" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Return Cached</text>
+  
+  <!-- Miss path (downward) -->
+  <path d="M 600 90 L 600 140" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  <text x="620" y="115" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Miss</text>
+  
+  <!-- Generate New -->
+  <rect x="530" y="140" width="140" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="600" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Generate New</text>
+  
+  <!-- Arrow down from Generate New -->
+  <path d="M 600 180 L 600 230" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowcache)" opacity="0.7"/>
+  
+  <!-- Store in Valkey -->
+  <rect x="510" y="230" width="180" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="600" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Store in Valkey</text>
+  <text x="600" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">with TTL</text>
+  
+  <!-- Configuration notes -->
+  <rect x="50" y="290" width="640" height="40" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="5,5" rx="3" opacity="0.5"/>
+  <text x="370" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" font-style="italic" opacity="0.7">TTL: 3600 seconds | Semantic Threshold: 0.95 | Cache: Valkey In-Memory Store</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowcache" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
+    </marker>
+  </defs>
+</svg>
 
 ### Cache Key Structure
 

@@ -1,6 +1,6 @@
 # Database Tables
 
-This section documents all database tables in BotServer, their structures, and purposes.
+This section documents all database tables in General Bots, their structures, and purposes.
 
 ## Core Tables
 

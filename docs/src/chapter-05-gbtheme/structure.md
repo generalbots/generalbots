@@ -1,21 +1,13 @@
 # Theme Structure
 
-The **gbtheme** package follows a conventional layout that separates concerns between markup, styling, scripts, and assets.
+The **gbtheme** package is simply CSS files that style the bot's UI. Themes don't include HTML or JavaScript - they only control appearance.
 
 ```
 theme-name.gbtheme/
-├── web/
-│   ├── index.html          # Main application shell
-│   ├── chat.html          # Conversation UI
-│   └── login.html         # Authentication page
-├── css/
-│   ├── main.css           # Core styles
-│   ├── components.css     # UI component styling
-│   └── responsive.css     # Media‑query breakpoints
-├── js/
-│   ├── app.js            # Front‑end logic, WebSocket handling
-│   └── websocket.js      # Real‑time communication layer
-└── assets/
+├── default.css            # Main theme file (required)
+├── dark.css              # Optional dark mode variant
+├── print.css             # Optional print styles
+└── assets/              # Optional theme resources
     ├── images/
     ├── fonts/
     └── icons/
@@ -23,17 +15,17 @@ theme-name.gbtheme/
 
 ### Design Principles
 
-* **Separation of concerns** – HTML defines structure, CSS defines appearance, JS defines behavior.
-* **Custom properties** – `css/variables.css` (included in `main.css`) provides theme colors, spacing, and radius that can be overridden per‑bot.
-* **Responsive** – `responsive.css` uses mobile‑first breakpoints (`@media (min-width: 768px)`) to adapt the layout.
-* **Asset locality** – All images, fonts, and icons are stored under `assets/` to keep the theme self‑contained and portable.
+* **CSS-only theming** – Themes are pure CSS files, no HTML or JavaScript modifications
+* **CSS Variables** – Use CSS custom properties for colors, spacing, and other values
+* **Responsive design** – Use media queries within your CSS for mobile-first layouts
+* **Asset locality** – Optional `assets/` folder for theme-specific images, fonts, and icons
 
-### Extending a Theme
+### Creating Your Theme
 
-1. Duplicate an existing theme folder (e.g., `default.gbtheme` → `mybrand.gbtheme`).
-2. Edit `css/main.css` to change colors via the `:root` variables.
-3. Replace `web/index.html` header/footer with brand‑specific markup.
-4. Add new icons to `assets/icons/` and reference them in the HTML.
+1. Create a `.gbtheme` folder in your bot package
+2. Add a `default.css` file with your styles
+3. Override CSS variables to change colors and spacing
+4. Add optional assets like fonts or background images
 
 The system automatically picks up any theme placed under `@/templates/…` when the bot's configuration (`.gbtheme` entry in `config.csv`) points to the folder name.
 
@@ -47,21 +39,19 @@ The system automatically picks up any theme placed under `@/templates/…` when 
 
 ## File Organization Best Practices
 
-### CSS Organization
+### CSS File Options
+
+You can have multiple CSS files in your theme:
 
 ```
-css/
-├── variables.css      # Theme variables and colors
-├── reset.css         # Browser normalization
-├── base.css          # Typography and base styles
-├── layout.css        # Grid and structure
-├── components/       # Component-specific styles
-│   ├── buttons.css
-│   ├── messages.css
-│   ├── inputs.css
-│   └── cards.css
-└── utilities.css     # Helper classes
+mybot.gbtheme/
+├── default.css       # Main theme (loaded automatically)
+├── dark.css         # Dark mode variant
+├── mobile.css       # Mobile-specific overrides
+└── print.css        # Print media styles
 ```
+
+Or keep everything in a single file - your choice!
 
 ### Asset Management
 
@@ -79,15 +69,15 @@ assets/
 
 ## Creating a Custom Theme
 
-### Step 1: Copy Base Theme
+### Step 1: Create Theme Folder
 
 ```bash
-cp -r work/default/default.gbtheme work/mybot/mybot.gbtheme
+mkdir -p work/mybot/mybot.gbtheme
 ```
 
-### Step 2: Customize Variables
+### Step 2: Create Your CSS
 
-Edit `css/variables.css`:
+Create `default.css` with CSS variables:
 
 ```css
 :root {
@@ -114,9 +104,9 @@ Edit `css/variables.css`:
 }
 ```
 
-### Step 3: Apply Brand Styles
+### Step 3: Style Components
 
-Override components in `css/components.css`:
+Add your component styles in the same file:
 
 ```css
 /* Custom message bubbles */
@@ -133,18 +123,16 @@ Override components in `css/components.css`:
 }
 ```
 
-## Theme Inheritance
+## Using the Theme
 
-Themes can extend other themes:
+Once you've created your CSS file, the bot will automatically load it. You can switch between themes using BASIC:
 
-```css
-/* In mybot.gbtheme/css/main.css */
-@import url('../../../default.gbtheme/css/main.css');
+```basic
+' Switch to a different theme
+CHANGE THEME "dark"
 
-/* Override specific variables */
-:root {
-  --primary-color: #ff6b6b;
-}
+' Back to default
+CHANGE THEME "default"
 ```
 
 ## Performance Optimization
@@ -163,14 +151,9 @@ Themes can extend other themes:
 - Serve WebP with fallbacks
 - Enable gzip compression
 
-## Theme Switching
+## Theme Selection
 
-Dynamic theme switching without page reload:
-
-```javascript
-// Theme manager automatically handles this
-ThemeManager.switchTheme('dark');
-```
+Themes are switched via BASIC commands, not JavaScript. The system handles the CSS file swapping automatically.
 
 ## Accessibility Considerations
 
@@ -179,11 +162,64 @@ ThemeManager.switchTheme('dark');
 - Include focus indicators
 - Test with screen readers
 
+## Advanced Personalization Options
+
+### Beyond CSS Theming
+
+While themes handle visual styling, you have more options for deeper UI customization:
+
+1. **Extend default.gbui** - The UI templates in `.gbui` packages can be modified:
+   - Copy the default UI templates to your bot's `.gbui` folder
+   - Modify the HTML structure to fit your needs
+   - Add custom components and layouts
+   - The system will use your UI instead of the default
+
+2. **Create Your Own UI Type** - Build a completely custom interface:
+   - Design your own UI framework
+   - Implement custom WebSocket handlers
+   - Create unique interaction patterns
+   - Full control over the user experience
+
+### Join the Community
+
+**We encourage you to contribute!** The General Bots project welcomes:
+
+- **UI Improvements** - Submit pull requests with better default UIs
+- **Theme Collections** - Share your creative themes
+- **Custom UI Types** - Develop new interaction paradigms
+- **Documentation** - Help improve these guides
+
+### Using General Bots as a Foundation
+
+General Bots is designed to be a starting point for your own projects:
+
+```
+Fork the project → Customize the UI → Build your product
+```
+
+You can:
+- Use it as a base for commercial products
+- Create industry-specific bot interfaces
+- Develop specialized UI frameworks
+- Build on top of the core engine
+
+The architecture is intentionally modular - take what you need, replace what you don't.
+
+### Getting Started with UI Development
+
+1. **Study the default.gbui** - Understand the current structure
+2. **Fork the repository** - Create your own version
+3. **Experiment freely** - The UI layer is independent
+4. **Share your work** - Help others learn from your innovations
+
+Remember: The UI is just HTML/CSS/JS talking to the bot via WebSocket. You have complete freedom to reimagine how users interact with your bot!
+
 ## See Also
 
 - [CSS Customization](./css.md) - Detailed CSS guide
 - [Chapter 4: User Interface](../chapter-04-gbui/README.md) - UI templates
 - [Chapter 6: BASIC](../chapter-06-gbdialog/README.md) - Theme switching in dialogs
+- [GitHub Repository](https://github.com/GeneralBots/botserver) - Contribute to the project
 
 ## Next Step
 

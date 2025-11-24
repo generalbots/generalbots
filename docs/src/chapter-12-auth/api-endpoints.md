@@ -1,10 +1,10 @@
 # API Endpoints
 
-BotServer exposes various API endpoints for authentication, session management, and bot interactions. All endpoints require proper authentication except public endpoints.
+General Bots exposes various API endpoints for authentication, session management, and bot interactions. All endpoints require proper authentication except public endpoints.
 
 ## Authentication Endpoints
 
-Authentication is handled through Zitadel OAuth2/OIDC flow.
+Authentication is handled through Directory Service OAuth2/OIDC flow.
 
 ### OAuth Login
 
@@ -20,10 +20,10 @@ Initiates OAuth2 authentication flow with Zitadel.
 
 **GET** `/auth/callback`
 
-Handles OAuth2 callback from Zitadel.
+Handles OAuth2 callback from Directory Service.
 
-Query Parameters:
-- `code` - Authorization code from Zitadel
+- Query parameters:
+  - `code` - Authorization code from Directory Service
 - `state` - State parameter for CSRF protection
 
 Response:
@@ -168,7 +168,7 @@ Request:
 }
 ```
 
-Note: Actual update happens in Zitadel.
+Note: Actual update happens in Directory Service.
 
 ## Bot Interaction Endpoints
 
@@ -317,7 +317,7 @@ Implemented:
 - Health check
 
 Partially Implemented:
-- OAuth flow (via Zitadel)
+- OAuth flow (via Directory Service)
 - Session management
 
 Not Yet Implemented:
@@ -328,7 +328,7 @@ Not Yet Implemented:
 ## Security Notes
 
 1. All endpoints except `/health` require authentication
-2. Admin endpoints require admin role in Zitadel
+2. Admin endpoints require admin role in Directory Service
 3. Session tokens should be kept secure
 4. Use HTTPS in production
 5. Implement CSRF protection for state-changing operations

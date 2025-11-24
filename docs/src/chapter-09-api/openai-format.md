@@ -10,9 +10,9 @@ OpenAI's function calling format allows GPT models to:
 - Generate structured function calls
 - Process function results
 
-## OpenAI Function Structure
+## Function Structure
 
-An OpenAI function definition contains:
+An OpenAI-compatible function definition contains:
 
 ```json
 {
@@ -51,7 +51,7 @@ let order_id = CREATE_ORDER(product_id, quantity, urgent)
 TALK "Order created: " + order_id
 ```
 
-### Generated OpenAI Function
+### Generated Function
 
 ```json
 {

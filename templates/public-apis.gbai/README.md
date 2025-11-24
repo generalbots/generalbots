@@ -454,7 +454,7 @@ PARAM paragraphs AS integer LIKE 3
 
 ### QR Code Generator
 ```vbs
-PARAM text AS string LIKE "https://generalbots.ai"
+PARAM text AS string LIKE "https://pragmatismo.com.br"
 PARAM size AS integer LIKE 200
 ' Returns: QR code image
 ```

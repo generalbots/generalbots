@@ -48,18 +48,62 @@ Exchange 6: Only exchanges 4-5 in context
 
 ### Visual Flow Diagram
 
-<!-- TODO: Add SVG diagram showing context compaction process -->
-```
-[Conversation History]
-    ↓
-[Check Exchange Count]
-    ↓
-[Exceeds prompt-compact?]
-    ├─ No → [Keep All]
-    └─ Yes → [Keep Last prompt-history Exchanges]
-             ↓
-         [Continue Conversation]
-```
+<svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="300" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Context Compaction Flow</text>
+  
+  <!-- Conversation History -->
+  <rect x="200" y="50" width="200" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="300" y="75" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Conversation History</text>
+  
+  <!-- Arrow down -->
+  <path d="M 300 90 L 300 110" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Check Exchange Count -->
+  <rect x="200" y="110" width="200" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="300" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Check Exchange Count</text>
+  
+  <!-- Arrow down -->
+  <path d="M 300 150 L 300 170" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Decision Diamond -->
+  <path d="M 300 170 L 380 210 L 300 250 L 220 210 Z" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="300" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Exceeds</text>
+  <text x="300" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">prompt-compact?</text>
+  
+  <!-- No branch (left) -->
+  <path d="M 220 210 L 150 210 L 150 280" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  <text x="135" y="205" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">No</text>
+  
+  <!-- Keep All -->
+  <rect x="75" y="280" width="150" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="150" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Keep All Messages</text>
+  
+  <!-- Yes branch (right) -->
+  <path d="M 380 210 L 450 210 L 450 280" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  <text x="465" y="205" text-anchor="start" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Yes</text>
+  
+  <!-- Keep Last N -->
+  <rect x="350" y="280" width="200" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="450" y="295" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Keep Last prompt-history</text>
+  <text x="450" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Exchanges</text>
+  
+  <!-- Converge paths -->
+  <path d="M 150 320 L 150 340 L 300 340" stroke="currentColor" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M 450 320 L 450 340 L 300 340" stroke="currentColor" stroke-width="2" fill="none" opacity="0.7"/>
+  <path d="M 300 340 L 300 360" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Continue Conversation -->
+  <rect x="200" y="360" width="200" height="40" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="300" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Continue Conversation</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
+    </marker>
+  </defs>
+</svg>
 
 ## Benefits
 

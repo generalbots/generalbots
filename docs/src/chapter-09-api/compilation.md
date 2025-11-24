@@ -118,12 +118,44 @@ Tools are recompiled automatically when:
 
 The compiler maintains a local working directory:
 ```
-./work/
-└── bot-name.gbai/
-    └── bot-name.gbdialog/
-        ├── tool1.bas
-        ├── tool2.bas
-        └── tool3.bas
+<svg width="400" height="250" viewBox="0 0 400 250" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="200" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="300" fill="currentColor" opacity="0.9">Directory Structure</text>
+  
+  <!-- Root folder -->
+  <rect x="50" y="40" width="100" height="30" fill="none" stroke="currentColor" stroke-width="1.5" rx="4" opacity="0.8"/>
+  <text x="100" y="59" text-anchor="middle" font-family="monospace" font-size="11" fill="currentColor">./work/</text>
+  
+  <!-- Connecting line to bot folder -->
+  <path d="M 100 70 L 100 85 L 120 85" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  
+  <!-- Bot folder -->
+  <rect x="120" y="70" width="140" height="30" fill="none" stroke="currentColor" stroke-width="1.5" rx="4" opacity="0.8"/>
+  <text x="190" y="89" text-anchor="middle" font-family="monospace" font-size="11" fill="currentColor">bot-name.gbai/</text>
+  
+  <!-- Connecting line to dialog folder -->
+  <path d="M 190 100 L 190 115 L 210 115" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  
+  <!-- Dialog folder -->
+  <rect x="210" y="100" width="160" height="30" fill="none" stroke="currentColor" stroke-width="1.5" rx="4" opacity="0.8"/>
+  <text x="290" y="119" text-anchor="middle" font-family="monospace" font-size="11" fill="currentColor">bot-name.gbdialog/</text>
+  
+  <!-- Connecting lines to tool files -->
+  <path d="M 290 130 L 290 140" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 290 140 L 280 140 L 280 150" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 290 140 L 290 150" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  <path d="M 290 140 L 300 140 L 300 150" stroke="currentColor" stroke-width="1" fill="none" opacity="0.6"/>
+  
+  <!-- Tool files -->
+  <rect x="240" y="150" width="80" height="25" fill="none" stroke="currentColor" stroke-width="1" rx="3" opacity="0.7" stroke-dasharray="2,2"/>
+  <text x="280" y="167" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor">tool1.bas</text>
+  
+  <rect x="250" y="180" width="80" height="25" fill="none" stroke="currentColor" stroke-width="1" rx="3" opacity="0.7" stroke-dasharray="2,2"/>
+  <text x="290" y="197" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor">tool2.bas</text>
+  
+  <rect x="260" y="210" width="80" height="25" fill="none" stroke="currentColor" stroke-width="1" rx="3" opacity="0.7" stroke-dasharray="2,2"/>
+  <text x="300" y="227" text-anchor="middle" font-family="monospace" font-size="10" fill="currentColor">tool3.bas</text>
+</svg>
 ```
 
 This directory is used for:

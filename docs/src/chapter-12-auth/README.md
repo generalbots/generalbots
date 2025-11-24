@@ -2,7 +2,7 @@
 
 ## User Authentication
 
-GeneralBots provides robust authentication with:
+General Bots provides robust authentication with:
 
 - **Argon2 password hashing** for secure credential storage
 - **Session management** tied to user identity
@@ -71,7 +71,7 @@ auth_service.update_user_password(user_id, new_password);
 
 ```bas
 // Example bot auth script
-IF token != "secret" THEN
+IF token != generated_token THEN
     RETURN false
 ENDIF
 RETURN true

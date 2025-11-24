@@ -1,6 +1,6 @@
 # Database Relationships
 
-This document describes the relationships between tables in the BotServer database schema.
+This document describes the relationships between tables in the General Bots database schema.
 
 ## Entity Relationship Overview
 

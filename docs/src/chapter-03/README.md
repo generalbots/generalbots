@@ -12,89 +12,149 @@ The knowledge base system transforms unstructured documents into queryable seman
 
 The knowledge base architecture implements a multi-stage pipeline for document processing and retrieval:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                     Document Ingestion Layer                     │
-│          (PDF, Word, Excel, Text, HTML, Markdown)               │
-├─────────────────────────────────────────────────────────────────┤
-│                    Preprocessing Pipeline                        │
-│     (Extraction, Cleaning, Normalization, Validation)           │
-├─────────────────────────────────────────────────────────────────┤
-│                      Chunking Engine                            │
-│    (Semantic Segmentation, Overlap Management, Metadata)        │
-├─────────────────────────────────────────────────────────────────┤
-│                    Embedding Generation                          │
-│      (Transformer Models, Dimensionality Reduction)             │
-├─────────────────────────────────────────────────────────────────┤
-│                     Vector Index Layer                          │
-│         (HNSW Index, Quantization, Sharding)                   │
-├─────────────────────────────────────────────────────────────────┤
-│                    Retrieval Engine                             │
-│     (Semantic Search, Hybrid Retrieval, Re-ranking)            │
-└─────────────────────────────────────────────────────────────────┘
-```
+<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="currentColor">Knowledge Base Architecture Pipeline</text>
+  
+  <!-- Document Ingestion Layer -->
+  <rect x="100" y="60" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Document Ingestion Layer</text>
+  <text x="400" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(PDF, Word, Excel, Text, HTML, Markdown)</text>
+  
+  <!-- Arrow -->
+  <path d="M 400 120 L 400 140" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Preprocessing Pipeline -->
+  <rect x="100" y="140" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Preprocessing Pipeline</text>
+  <text x="400" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Extraction, Cleaning, Normalization, Validation)</text>
+  
+  <!-- Arrow -->
+  <path d="M 400 200 L 400 220" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Chunking Engine -->
+  <rect x="100" y="220" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Chunking Engine</text>
+  <text x="400" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Semantic Segmentation, Overlap Management, Metadata)</text>
+  
+  <!-- Arrow -->
+  <path d="M 400 280 L 400 300" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Embedding Generation -->
+  <rect x="100" y="300" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Embedding Generation</text>
+  <text x="400" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Transformer Models, Dimensionality Reduction)</text>
+  
+  <!-- Arrow -->
+  <path d="M 400 360 L 400 380" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Vector Index Layer -->
+  <rect x="100" y="380" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Vector Index Layer</text>
+  <text x="400" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(HNSW Index, Quantization, Sharding)</text>
+  
+  <!-- Arrow -->
+  <path d="M 400 440 L 400 460" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
+  
+  <!-- Retrieval Engine -->
+  <rect x="100" y="460" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="400" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Retrieval Engine</text>
+  <text x="400" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Semantic Search, Hybrid Retrieval, Re-ranking)</text>
+  
+  <!-- Side annotations -->
+  <text x="50" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7" transform="rotate(-90 50 95)">Input</text>
+  <text x="50" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7" transform="rotate(-90 50 495)">Output</text>
+  
+  <!-- Data flow indicators on the right -->
+  <text x="750" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Raw Docs</text>
+  <text x="750" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Clean Text</text>
+  <text x="750" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Chunks</text>
+  <text x="750" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Vectors</text>
+  <text x="750" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Index</text>
+  <text x="750" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Results</text>
+  
+  <!-- Arrow marker definition -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
+    </marker>
+  </defs>
+  
+  <!-- Performance metrics box -->
+  <rect x="100" y="540" width="600" height="40" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="5,5" rx="3" opacity="0.5"/>
+  <text x="400" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" font-style="italic" opacity="0.7">Pipeline processes ~1000 documents/minute with &lt;50ms query latency (p99)</text>
+</svg>
 
 ### Technical Specifications
 
-| Component | Specification | Performance Characteristics |
-|-----------|--------------|---------------------------|
-| Embedding Model | all-MiniLM-L6-v2 | 384 dimensions, 22M parameters |
-| Vector Index | HNSW (Hierarchical Navigable Small World) | M=16, ef_construction=200 |
-| Chunk Size | 512 tokens (configurable) | Optimal for context windows |
-| Overlap | 50 tokens | Preserves boundary context |
-| Distance Metric | Cosine Similarity | Range: [-1, 1], normalized |
-| Index Build Time | ~1000 docs/minute | Single-threaded CPU |
-| Query Latency | <50ms p99 | For 1M documents |
-| Memory Usage | ~1GB per million chunks | Including metadata |
+<svg width="900" height="450" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">System Technical Specifications</text>
+  
+  <!-- Main container -->
+  <rect x="50" y="50" width="800" height="380" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  
+  <!-- Embedding Section -->
+  <g transform="translate(70, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Embedding Configuration</text>
+    
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Model: bge-small-en-v1.5-f32.gguf</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Dimensions: 384</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Format: GGUF (quantized)</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Server: localhost:8082</text>
+    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Memory: ~200MB loaded</text>
+  </g>
+  
+  <!-- LLM Section -->
+  <g transform="translate(450, 80)">
+    <rect x="0" y="0" width="350" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">LLM Configuration</text>
+    
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Model: DeepSeek-R1-Distill-Qwen-1.5B</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Context Size: 4096 tokens</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Max Predict: 1024 tokens</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Parallel Requests: 6</text>
+    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Quantization: Q3_K_M</text>
+  </g>
+  
+  <!-- Performance Section -->
+  <g transform="translate(70, 250)">
+    <rect x="0" y="0" width="730" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+    <text x="365" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Performance Characteristics</text>
+    
+    <!-- Left column -->
+    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Vector Index: HNSW Algorithm</text>
+    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• M=16, ef_construction=200</text>
+    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Distance: Cosine Similarity</text>
+    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Build: ~1000 docs/minute</text>
+    
+    <!-- Middle column -->
+    <text x="250" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Chunking Strategy</text>
+    <text x="250" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Chunk Size: 512 tokens</text>
+    <text x="250" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Overlap: 50 tokens</text>
+    <text x="250" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Prompt Compact: Level 4</text>
+    
+    <!-- Right column -->
+    <text x="490" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Runtime Metrics</text>
+    <text x="490" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Query Latency: &lt;50ms p99</text>
+    <text x="490" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Memory: ~1GB/million chunks</text>
+    <text x="490" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Cache TTL: 3600 seconds</text>
+  </g>
+</svg>
 
 ## Document Processing Pipeline
 
 ### Phase 1: Document Ingestion and Extraction
 
-The system implements format-specific extractors for comprehensive document support:
+The system implements format-specific extractors for comprehensive document support. The PDF processing component provides advanced extraction capabilities with layout preservation, including:
 
-#### PDF Processing
-```python
-class PDFExtractor:
-    """
-    Advanced PDF extraction with layout preservation
-    """
-    def extract(self, file_path: str) -> DocumentContent:
-        # Initialize PDF parser with configuration
-        parser_config = {
-            'preserve_layout': True,
-            'extract_images': True,
-            'detect_tables': True,
-            'extract_metadata': True,
-            'ocr_enabled': True,
-            'ocr_language': 'eng+fra+deu+spa',
-            'ocr_dpi': 300
-        }
-        
-        # Multi-stage extraction process
-        raw_text = self.extract_text_layer(file_path)
-        
-        if self.requires_ocr(raw_text):
-            ocr_text = self.perform_ocr(file_path, parser_config)
-            raw_text = self.merge_text_sources(raw_text, ocr_text)
-        
-        # Extract structural elements
-        tables = self.extract_tables(file_path)
-        images = self.extract_images(file_path)
-        metadata = self.extract_metadata(file_path)
-        
-        # Preserve document structure
-        sections = self.detect_sections(raw_text)
-        headings = self.extract_headings(raw_text)
-        
-        return DocumentContent(
-            text=raw_text,
-            tables=tables,
-            images=images,
-            metadata=metadata,
-            structure=DocumentStructure(sections, headings)
-        )
-```
+- **Text Layer Extraction**: Direct extraction of embedded text from PDF documents
+- **OCR Processing**: Optical character recognition for scanned documents
+- **Table Detection**: Identification and extraction of tabular data
+- **Image Extraction**: Retrieval of embedded images and figures
+- **Metadata Preservation**: Author, creation date, and document properties
+- **Structure Detection**: Identification of sections, headings, and document hierarchy
 
 #### Supported File Formats and Parsers
 
@@ -112,249 +172,267 @@ class PDFExtractor:
 | JSON | ujson + jsonschema | Nested structures, Validation | 100MB | ~1s/MB |
 | XML | lxml + xmlschema | XPath, XSLT, Validation | 100MB | ~3s/MB |
 
+### Storage Mathematics: The Hidden Reality of Vector Databases
+
+**Important Note**: Unlike traditional databases where 1TB of documents remains roughly 1TB in storage, vector databases require significantly more space due to embedding generation, indexing, and metadata. This section reveals the true mathematics behind LLM storage requirements that big tech companies rarely discuss openly.
+
+#### The Storage Multiplication Factor
+
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="currentColor">Vector Database Storage Requirements: The Real Mathematics</text>
+  
+  <!-- Original Documents Section -->
+  <rect x="50" y="60" width="180" height="380" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="140" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Original Documents</text>
+  <text x="140" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">1 TB Total</text>
+  
+  <!-- File type breakdown -->
+  <rect x="70" y="120" width="140" height="30" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="140" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">PDF: 400 GB</text>
+  
+  <rect x="70" y="155" width="140" height="25" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="172" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">DOCX: 250 GB</text>
+  
+  <rect x="70" y="185" width="140" height="20" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">XLSX: 150 GB</text>
+  
+  <rect x="70" y="210" width="140" height="15" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="223" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">TXT: 100 GB</text>
+  
+  <rect x="70" y="230" width="140" height="15" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="243" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">HTML: 50 GB</text>
+  
+  <rect x="70" y="250" width="140" height="10" fill="none" stroke="currentColor" stroke-width="1" opacity="0.8"/>
+  <text x="140" y="258" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">Other: 50 GB</text>
+  
+  <!-- Arrow -->
+  <path d="M 240 250 L 290 250" stroke="currentColor" stroke-width="3" fill="none" marker-end="url(#arrowhead2)" opacity="0.7"/>
+  <text x="265" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Processing</text>
+  
+  <!-- Vector Database Storage -->
+  <rect x="300" y="60" width="250" height="380" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
+  <text x="425" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Vector DB Storage</text>
+  <text x="425" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor">~3.5 TB Required</text>
+  
+  <!-- Storage breakdown -->
+  <rect x="320" y="120" width="210" height="50" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="425" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="currentColor">Raw Text Extracted</text>
+  <text x="425" y="150" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">~800 GB (cleaned)</text>
+  <text x="425" y="163" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">Deduplication reduces 20%</text>
+  
+  <rect x="320" y="175" width="210" height="60" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="425" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="currentColor">Vector Embeddings</text>
+  <text x="425" y="205" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">~1.2 TB (384-dim floats)</text>
+  <text x="425" y="218" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">4 bytes × 384 × ~800M chunks</text>
+  <text x="425" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">= 1,228 GB</text>
+  
+  <rect x="320" y="240" width="210" height="55" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="425" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="currentColor">HNSW Index</text>
+  <text x="425" y="270" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">~600 GB</text>
+  <text x="425" y="283" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">Graph structure + links</text>
+  
+  <rect x="320" y="300" width="210" height="50" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="425" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="currentColor">Metadata + Positions</text>
+  <text x="425" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">~400 GB</text>
+  <text x="425" y="343" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">Doc refs, chunks, offsets</text>
+  
+  <rect x="320" y="355" width="210" height="45" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+  <text x="425" y="370" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="bold" fill="currentColor">Cache + Auxiliary</text>
+  <text x="425" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor">~500 GB</text>
+  <text x="425" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="9" fill="currentColor" opacity="0.7">Query cache, temp indices</text>
+  
+  <!-- Total comparison -->
+  <rect x="570" y="150" width="300" height="200" fill="none" stroke="currentColor" stroke-width="2" stroke-dasharray="5,5" rx="5" opacity="0.6"/>
+  <text x="720" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Storage Multiplication Factor</text>
+  
+  <text x="590" y="205" font-family="Arial, sans-serif" font-size="12" fill="currentColor">Original Documents: 1.0 TB</text>
+  <text x="590" y="230" font-family="Arial, sans-serif" font-size="12" fill="currentColor" font-weight="bold">Vector DB Total: 3.5 TB</text>
+  <text x="590" y="255" font-family="Arial, sans-serif" font-size="12" fill="currentColor" font-weight="bold">Multiplication Factor: 3.5×</text>
+  
+  <text x="590" y="285" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7">With redundancy/backup:</text>
+  <text x="590" y="305" font-family="Arial, sans-serif" font-size="12" fill="currentColor" font-weight="bold">Production Total: 7.0 TB (2× replica)</text>
+  
+  <text x="720" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" font-style="italic" opacity="0.7">Reality: You need 3.5-7× your document storage</text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowhead2" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
+    </marker>
+  </defs>
+</svg>
+
+#### Storage Calculation Formula
+
+The actual storage requirement for a vector database can be calculated using:
+
+**Total Storage = D × (1 + E + I + M + C)**
+
+Where:
+- **D** = Original document size
+- **E** = Embedding storage factor (typically 1.2-1.5×)
+- **I** = Index overhead factor (typically 0.6-0.8×)
+- **M** = Metadata factor (typically 0.4-0.5×)
+- **C** = Cache/auxiliary factor (typically 0.3-0.5×)
+
+#### Real-World Storage Examples for Self-Hosted Infrastructure
+
+| Your Document Storage | Vector DB Required | With Redundancy (2×) | Recommended Local Storage |
+|----------------------|-------------------|---------------------|--------------------------|
+| 100 GB | 350 GB | 700 GB | 1 TB NVMe SSD |
+| 500 GB | 1.75 TB | 3.5 TB | 4 TB NVMe SSD |
+| 1 TB | 3.5 TB | 7 TB | 8 TB NVMe SSD |
+| 5 TB | 17.5 TB | 35 TB | 40 TB SSD Array |
+| 10 TB | 35 TB | 70 TB | 80 TB SSD Array |
+| 50 TB | 175 TB | 350 TB | 400 TB Storage Server |
+
+**Note**: Self-hosting your vector database gives you complete control over your data, eliminates recurring cloud costs, and ensures data sovereignty. Initial hardware investment pays for itself typically within 6-12 months compared to cloud alternatives.
+
+#### Detailed Storage Breakdown by Component
+
+<svg width="900" height="400" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Storage Components per 1TB of Documents</text>
+  
+  <!-- Bar chart -->
+  <line x1="100" y1="320" x2="800" y2="320" stroke="currentColor" stroke-width="2"/>
+  <line x1="100" y1="60" x2="100" y2="320" stroke="currentColor" stroke-width="2"/>
+  
+  <!-- Y-axis labels -->
+  <text x="90" y="325" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor">0 GB</text>
+  <text x="90" y="260" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor">250 GB</text>
+  <text x="90" y="195" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor">500 GB</text>
+  <text x="90" y="130" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor">750 GB</text>
+  <text x="90" y="65" text-anchor="end" font-family="Arial, sans-serif" font-size="10" fill="currentColor">1000 GB</text>
+  
+  <!-- Bars -->
+  <!-- Original -->
+  <rect x="150" y="60" width="80" height="260" fill="none" stroke="currentColor" stroke-width="2"/>
+  <text x="190" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Original</text>
+  <text x="190" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">1000 GB</text>
+  
+  <!-- Text Extracted -->
+  <rect x="260" y="112" width="80" height="208" fill="none" stroke="currentColor" stroke-width="2"/>
+  <line x1="260" y1="112" x2="340" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="340" y1="112" x2="260" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <text x="300" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Extracted</text>
+  <text x="300" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">800 GB</text>
+  
+  <!-- Embeddings -->
+  <rect x="370" y="8" width="80" height="312" fill="none" stroke="currentColor" stroke-width="2"/>
+  <line x1="370" y1="8" x2="370" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="410" y1="8" x2="410" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="450" y1="8" x2="450" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <text x="410" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Embeddings</text>
+  <text x="410" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">1200 GB</text>
+  
+  <!-- Index -->
+  <rect x="480" y="164" width="80" height="156" fill="none" stroke="currentColor" stroke-width="2"/>
+  <circle cx="520" cy="242" r="30" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <text x="520" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Index</text>
+  <text x="520" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">600 GB</text>
+  
+  <!-- Metadata -->
+  <rect x="590" y="216" width="80" height="104" fill="none" stroke="currentColor" stroke-width="2"/>
+  <line x1="590" y1="268" x2="670" y2="268" stroke="currentColor" stroke-width="1" opacity="0.3"/>
+  <line x1="630" y1="216" x2="630" y2="320" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="2,2"/>
+  <text x="630" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Metadata</text>
+  <text x="630" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">400 GB</text>
+  
+  <!-- Cache -->
+  <rect x="700" y="190" width="80" height="130" fill="none" stroke="currentColor" stroke-width="2"/>
+  <rect x="710" y="200" width="60" height="110" fill="none" stroke="currentColor" stroke-width="1" opacity="0.3" stroke-dasharray="3,3"/>
+  <text x="740" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Cache</text>
+  <text x="740" y="355" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">500 GB</text>
+  
+  <!-- Total line -->
+  <line x1="150" y1="45" x2="780" y2="45" stroke="currentColor" stroke-width="2" stroke-dasharray="5,3" opacity="0.8"/>
+  <text x="820" y="50" font-family="Arial, sans-serif" font-size="11" fill="currentColor" font-weight="bold">3.5 TB Total</text>
+</svg>
+
+#### Why This Matters: Planning Your Infrastructure
+
+**Critical Insights:**
+
+1. **The 3.5× Rule**: For every 1TB of documents, plan for at least 3.5TB of vector database storage
+2. **Memory Requirements**: Vector operations require significant RAM (typically 10-15% of index size must fit in memory)
+3. **Backup Strategy**: Production systems need 2-3× redundancy, effectively making it 7-10.5× original size
+4. **Growth Planning**: Vector databases don't compress well - plan storage linearly with document growth
+
+**Self-Hosted Infrastructure Example (1TB Document Collection):**
+
+| Component | Requirement | Recommended Hardware | One-Time Investment |
+|-----------|-------------|---------------------|-------------------|
+| Document Storage | 1 TB | 2 TB NVMe SSD | Quality drive for source docs |
+| Vector Database | 3.5 TB | 4 TB NVMe SSD | High-performance for vectors |
+| RAM Requirements | 256 GB | 256 GB DDR4/DDR5 | For index operations |
+| Backup Storage | 3.5 TB | 4 TB SATA SSD | Local backup drive |
+| Network | 10 Gbps | 10GbE NIC | Fast local network |
+| **Total Storage** | **8 TB** | **10 TB usable** | **Future-proof capacity** |
+
+**Advantages of Self-Hosting:**
+- **No recurring costs** after initial hardware investment
+- **Complete data privacy** - your data never leaves your infrastructure
+- **Full control** over performance tuning and optimization
+- **No vendor lock-in** or surprise price increases
+- **Faster local access** without internet latency
+- **Compliance-ready** for regulations requiring on-premise data
+
+The actual infrastructure needs are 7-10× larger than the original document size when accounting for all components and redundancy, but owning your hardware means predictable costs and total control.
+
 ### Phase 2: Text Preprocessing and Cleaning
 
-The preprocessing pipeline ensures consistent, high-quality text for embedding:
+The preprocessing pipeline ensures consistent, high-quality text for embedding through multiple stages:
 
-```python
-class TextPreprocessor:
-    """
-    Multi-stage text preprocessing pipeline
-    """
-    def preprocess(self, text: str) -> str:
-        # Stage 1: Encoding normalization
-        text = self.normalize_unicode(text)
-        text = self.fix_encoding_errors(text)
-        
-        # Stage 2: Whitespace and formatting
-        text = self.normalize_whitespace(text)
-        text = self.remove_control_characters(text)
-        text = self.fix_line_breaks(text)
-        
-        # Stage 3: Content cleaning
-        text = self.remove_boilerplate(text)
-        text = self.clean_headers_footers(text)
-        text = self.remove_watermarks(text)
-        
-        # Stage 4: Language-specific processing
-        language = self.detect_language(text)
-        text = self.apply_language_rules(text, language)
-        
-        # Stage 5: Semantic preservation
-        text = self.preserve_entities(text)
-        text = self.preserve_acronyms(text)
-        text = self.preserve_numbers(text)
-        
-        return text
-    
-    def normalize_unicode(self, text: str) -> str:
-        """Normalize Unicode characters to canonical form"""
-        import unicodedata
-        
-        # NFD normalization followed by recomposition
-        text = unicodedata.normalize('NFD', text)
-        text = ''.join(
-            char for char in text 
-            if unicodedata.category(char) != 'Mn'
-        )
-        text = unicodedata.normalize('NFC', text)
-        
-        # Replace common Unicode artifacts
-        replacements = {
-            '\u2018': "'", '\u2019': "'",  # Smart quotes
-            '\u201c': '"', '\u201d': '"',
-            '\u2013': '-', '\u2014': '--',  # Dashes
-            '\u2026': '...',                # Ellipsis
-            '\xa0': ' ',                    # Non-breaking space
-        }
-        for old, new in replacements.items():
-            text = text.replace(old, new)
-        
-        return text
-```
+1. **Encoding Normalization**
+   - Unicode normalization (NFD/NFC)
+   - Encoding error correction
+   - Character set standardization
+
+2. **Whitespace and Formatting**
+   - Whitespace normalization
+   - Control character removal
+   - Line break standardization
+
+3. **Content Cleaning**
+   - Boilerplate removal
+   - Header/footer cleaning
+   - Watermark detection and removal
+
+4. **Language-Specific Processing**
+   - Language detection
+   - Language-specific rules application
+   - Script normalization
+
+5. **Semantic Preservation**
+   - Named entity preservation
+   - Acronym handling
+   - Numeric value preservation
 
 ### Phase 3: Intelligent Chunking Strategy
 
-The chunking engine implements context-aware segmentation:
+The chunking engine implements context-aware segmentation with semantic boundary detection:
 
-```python
-class SemanticChunker:
-    """
-    Advanced chunking with semantic boundary detection
-    """
-    def chunk_document(self, 
-                      text: str, 
-                      chunk_size: int = 512,
-                      overlap: int = 50) -> List[Chunk]:
-        
-        # Detect natural boundaries
-        boundaries = self.detect_boundaries(text)
-        
-        chunks = []
-        current_pos = 0
-        
-        while current_pos < len(text):
-            # Find optimal chunk end point
-            chunk_end = self.find_optimal_split(
-                text, 
-                current_pos, 
-                chunk_size,
-                boundaries
-            )
-            
-            # Extract chunk with context
-            chunk_text = text[current_pos:chunk_end]
-            
-            # Add overlap from previous chunk
-            if chunks and overlap > 0:
-                overlap_start = max(0, chunk_end - overlap)
-                chunk_text = text[overlap_start:chunk_end]
-            
-            # Generate chunk metadata
-            chunk = Chunk(
-                text=chunk_text,
-                start_pos=current_pos,
-                end_pos=chunk_end,
-                metadata=self.generate_metadata(chunk_text),
-                boundaries=self.get_chunk_boundaries(
-                    current_pos, 
-                    chunk_end, 
-                    boundaries
-                )
-            )
-            
-            chunks.append(chunk)
-            current_pos = chunk_end - overlap
-        
-        return chunks
-    
-    def detect_boundaries(self, text: str) -> List[Boundary]:
-        """
-        Detect semantic boundaries in text
-        """
-        boundaries = []
-        
-        # Paragraph boundaries
-        for match in re.finditer(r'\n\n+', text):
-            boundaries.append(
-                Boundary('paragraph', match.start(), 1.0)
-            )
-        
-        # Sentence boundaries
-        sentences = self.sentence_tokenizer.tokenize(text)
-        for i, sent in enumerate(sentences):
-            pos = text.find(sent)
-            boundaries.append(
-                Boundary('sentence', pos + len(sent), 0.8)
-            )
-        
-        # Section headers
-        for match in re.finditer(
-            r'^#+\s+.+$|^[A-Z][^.!?]*:$', 
-            text, 
-            re.MULTILINE
-        ):
-            boundaries.append(
-                Boundary('section', match.start(), 0.9)
-            )
-        
-        # List boundaries
-        for match in re.finditer(
-            r'^\s*[-*•]\s+', 
-            text, 
-            re.MULTILINE
-        ):
-            boundaries.append(
-                Boundary('list_item', match.start(), 0.7)
-            )
-        
-        return sorted(boundaries, key=lambda b: b.position)
-```
+**Boundary Detection Types:**
+- **Paragraph Boundaries**: Natural text breaks with highest priority
+- **Sentence Boundaries**: Linguistic sentence detection
+- **Section Headers**: Document structure preservation
+- **List Items**: Maintaining list coherence
+- **Code Blocks**: Preserving code integrity
 
-#### Chunking Configuration Parameters
 
-| Parameter | Default | Range | Description | Impact |
-|-----------|---------|-------|-------------|--------|
-| chunk_size | 512 | 128-2048 | Target tokens per chunk | Affects context granularity |
-| overlap | 50 | 0-200 | Overlapping tokens | Preserves boundary context |
-| split_strategy | semantic | semantic, fixed, sliding | Chunking algorithm | Quality vs speed tradeoff |
-| respect_boundaries | true | true/false | Honor semantic boundaries | Improves coherence |
-| min_chunk_size | 100 | 50-500 | Minimum viable chunk | Prevents fragments |
-| max_chunk_size | 1024 | 512-4096 | Maximum chunk size | Memory constraints |
 
 ### Phase 4: Embedding Generation
 
-The system generates dense vector representations using transformer models:
+The system generates dense vector representations using transformer models with optimized batching:
 
-```python
-class EmbeddingGenerator:
-    """
-    High-performance embedding generation with batching
-    """
-    def __init__(self, model_name: str = 'all-MiniLM-L6-v2'):
-        self.model = self.load_model(model_name)
-        self.tokenizer = self.load_tokenizer(model_name)
-        self.dimension = 384
-        self.max_length = 512
-        self.batch_size = 32
-        
-    def generate_embeddings(self, 
-                          chunks: List[str]) -> np.ndarray:
-        """
-        Generate embeddings with optimal batching
-        """
-        embeddings = []
-        
-        # Process in batches for efficiency
-        for i in range(0, len(chunks), self.batch_size):
-            batch = chunks[i:i + self.batch_size]
-            
-            # Tokenize with padding and truncation
-            encoded = self.tokenizer(
-                batch,
-                padding=True,
-                truncation=True,
-                max_length=self.max_length,
-                return_tensors='pt'
-            )
-            
-            # Generate embeddings
-            with torch.no_grad():
-                model_output = self.model(**encoded)
-                
-                # Mean pooling over token embeddings
-                token_embeddings = model_output[0]
-                attention_mask = encoded['attention_mask']
-                
-                # Compute mean pooling
-                input_mask_expanded = (
-                    attention_mask
-                    .unsqueeze(-1)
-                    .expand(token_embeddings.size())
-                    .float()
-                )
-                
-                sum_embeddings = torch.sum(
-                    token_embeddings * input_mask_expanded, 
-                    1
-                )
-                sum_mask = torch.clamp(
-                    input_mask_expanded.sum(1), 
-                    min=1e-9
-                )
-                embeddings_batch = sum_embeddings / sum_mask
-                
-                # Normalize embeddings
-                embeddings_batch = F.normalize(
-                    embeddings_batch, 
-                    p=2, 
-                    dim=1
-                )
-                
-                embeddings.append(embeddings_batch.cpu().numpy())
-        
-        return np.vstack(embeddings)
-```
+**Key Features:**
+- **Batch Processing**: Efficient processing of multiple chunks
+- **Mean Pooling**: Token embedding aggregation
+- **Normalization**: L2 normalization for cosine similarity
+- **Memory Management**: Optimized GPU/CPU utilization
+- **Dynamic Batching**: Adaptive batch sizes based on available memory
 
 #### Embedding Model Comparison
 
@@ -369,78 +447,23 @@ class EmbeddingGenerator:
 
 ### Phase 5: Vector Index Construction
 
-The system builds high-performance vector indices for similarity search:
+The system builds high-performance vector indices using HNSW (Hierarchical Navigable Small World) algorithm:
 
-```python
-class VectorIndexBuilder:
-    """
-    HNSW index construction with optimization
-    """
-    def build_index(self, 
-                   embeddings: np.ndarray,
-                   metadata: List[Dict]) -> VectorIndex:
-        
-        # Configure HNSW parameters
-        index_config = {
-            'metric': 'cosine',
-            'm': 16,  # Number of bi-directional links
-            'ef_construction': 200,  # Size of dynamic candidate list
-            'ef_search': 100,  # Size of search candidate list
-            'num_threads': 4,  # Parallel construction
-            'seed': 42  # Reproducible builds
-        }
-        
-        # Initialize index
-        index = hnswlib.Index(
-            space=index_config['metric'],
-            dim=embeddings.shape[1]
-        )
-        
-        # Set construction parameters
-        index.init_index(
-            max_elements=len(embeddings) * 2,  # Allow growth
-            M=index_config['m'],
-            ef_construction=index_config['ef_construction'],
-            random_seed=index_config['seed']
-        )
-        
-        # Add vectors with IDs
-        index.add_items(
-            embeddings,
-            ids=np.arange(len(embeddings)),
-            num_threads=index_config['num_threads']
-        )
-        
-        # Set runtime search parameters
-        index.set_ef(index_config['ef_search'])
-        
-        # Build metadata index
-        metadata_index = self.build_metadata_index(metadata)
-        
-        # Optional: Build secondary indices
-        secondary_indices = {
-            'date_index': self.build_date_index(metadata),
-            'category_index': self.build_category_index(metadata),
-            'author_index': self.build_author_index(metadata)
-        }
-        
-        return VectorIndex(
-            vector_index=index,
-            metadata_index=metadata_index,
-            secondary_indices=secondary_indices,
-            config=index_config
-        )
-```
+**HNSW Configuration:**
+- **M Parameter**: 16 bi-directional links per node
+- **ef_construction**: 200 for build-time accuracy
+- **ef_search**: 100 for query-time accuracy
+- **Metric**: Cosine similarity for semantic matching
+- **Threading**: Multi-threaded construction support
 
 #### Index Performance Characteristics
 
-| Documents | Build Time | Memory Usage | Query Time (k=10) | Recall@10 |
-|-----------|------------|--------------|-------------------|-----------|
-| 1K | 0.5s | 12MB | 0.8ms | 0.99 |
-| 10K | 5s | 95MB | 1.2ms | 0.98 |
-| 100K | 52s | 890MB | 3.5ms | 0.97 |
-| 1M | 9m | 8.7GB | 12ms | 0.95 |
-| 10M | 95m | 86GB | 45ms | 0.93 |
+| Documents | Index Size | Build Time | Query Latency | Recall@10 |
+|-----------|------------|------------|---------------|-----------|
+| 10K | 15MB | 30s | 5ms | 0.99 |
+| 100K | 150MB | 5min | 15ms | 0.98 |
+| 1M | 1.5GB | 50min | 35ms | 0.97 |
+| 10M | 15GB | 8hr | 75ms | 0.95 |
 
 ## Retrieval System Architecture
 
@@ -448,615 +471,337 @@ class VectorIndexBuilder:
 
 The retrieval engine implements multi-stage retrieval with re-ranking:
 
-```python
-class SemanticRetriever:
-    """
-    Advanced retrieval with hybrid search and re-ranking
-    """
-    def retrieve(self, 
-                query: str,
-                k: int = 10,
-                filters: Dict = None) -> List[SearchResult]:
-        
-        # Stage 1: Query processing
-        processed_query = self.preprocess_query(query)
-        query_expansion = self.expand_query(processed_query)
-        
-        # Stage 2: Generate query embedding
-        query_embedding = self.embedding_generator.generate(
-            processed_query
-        )
-        
-        # Stage 3: Dense retrieval (vector search)
-        dense_results = self.vector_search(
-            query_embedding,
-            k=k * 3,  # Over-retrieve for re-ranking
-            filters=filters
-        )
-        
-        # Stage 4: Sparse retrieval (keyword search)
-        sparse_results = self.keyword_search(
-            query_expansion,
-            k=k * 2,
-            filters=filters
-        )
-        
-        # Stage 5: Hybrid fusion
-        fused_results = self.reciprocal_rank_fusion(
-            dense_results,
-            sparse_results,
-            k=60  # Fusion parameter
-        )
-        
-        # Stage 6: Re-ranking
-        reranked_results = self.rerank(
-            query=processed_query,
-            candidates=fused_results[:k * 2],
-            k=k
-        )
-        
-        # Stage 7: Result enhancement
-        enhanced_results = self.enhance_results(
-            results=reranked_results,
-            query=processed_query
-        )
-        
-        return enhanced_results
-    
-    def vector_search(self, 
-                     embedding: np.ndarray,
-                     k: int,
-                     filters: Dict = None) -> List[SearchResult]:
-        """
-        Perform approximate nearest neighbor search
-        """
-        # Apply pre-filters if specified
-        if filters:
-            candidate_ids = self.apply_filters(filters)
-            search_params = {
-                'filter': lambda idx: idx in candidate_ids
-            }
-        else:
-            search_params = {}
-        
-        # Execute vector search
-        distances, indices = self.index.search(
-            embedding.reshape(1, -1),
-            k=k,
-            **search_params
-        )
-        
-        # Convert to search results
-        results = []
-        for dist, idx in zip(distances[0], indices[0]):
-            if idx == -1:  # Invalid result
-                continue
-                
-            # Retrieve metadata
-            metadata = self.metadata_store.get(idx)
-            
-            # Calculate relevance score
-            score = self.distance_to_score(dist)
-            
-            results.append(SearchResult(
-                chunk_id=idx,
-                score=score,
-                text=metadata['text'],
-                metadata=metadata,
-                distance=dist,
-                retrieval_method='dense'
-            ))
-        
-        return results
-```
+**Retrieval Pipeline:**
+1. **Query Processing**: Expansion and understanding
+2. **Vector Search**: HNSW approximate nearest neighbor
+3. **Hybrid Search**: Combining dense and sparse retrieval
+4. **Re-ranking**: Cross-encoder scoring
+5. **Result Enhancement**: Metadata enrichment
 
 ### Query Processing and Expansion
 
-Sophisticated query understanding and expansion:
+Sophisticated query understanding includes:
 
-```python
-class QueryProcessor:
-    """
-    Query understanding and expansion
-    """
-    def process_query(self, query: str) -> ProcessedQuery:
-        # Language detection
-        language = self.detect_language(query)
-        
-        # Spell correction
-        corrected = self.spell_correct(query, language)
-        
-        # Entity recognition
-        entities = self.extract_entities(corrected)
-        
-        # Intent classification
-        intent = self.classify_intent(corrected)
-        
-        # Query expansion techniques
-        expanded = self.expand_query(corrected)
-        
-        return ProcessedQuery(
-            original=query,
-            corrected=corrected,
-            language=language,
-            entities=entities,
-            intent=intent,
-            expansions=expanded
-        )
-    
-    def expand_query(self, query: str) -> List[str]:
-        """
-        Multi-strategy query expansion
-        """
-        expansions = [query]  # Original query
-        
-        # Synonym expansion
-        for word in query.split():
-            synonyms = self.get_synonyms(word)
-            for synonym in synonyms[:3]:
-                expanded = query.replace(word, synonym)
-                expansions.append(expanded)
-        
-        # Acronym expansion
-        acronyms = self.detect_acronyms(query)
-        for acronym, expansion in acronyms.items():
-            expanded = query.replace(acronym, expansion)
-            expansions.append(expanded)
-        
-        # Conceptual expansion (using WordNet)
-        concepts = self.get_related_concepts(query)
-        expansions.extend(concepts[:5])
-        
-        # Query reformulation
-        reformulations = self.reformulate_query(query)
-        expansions.extend(reformulations)
-        
-        return list(set(expansions))  # Remove duplicates
-```
+- **Language Detection**: Multi-lingual query support
+- **Intent Recognition**: Understanding search intent
+- **Query Expansion**: Synonyms and related terms
+- **Entity Extraction**: Named entity recognition
+- **Spell Correction**: Typo and error correction
 
 ### Hybrid Search and Fusion
 
 Combining dense and sparse retrieval methods:
 
-```python
-class HybridSearcher:
-    """
-    Hybrid search with multiple retrieval strategies
-    """
-    def reciprocal_rank_fusion(self,
-                              dense_results: List[SearchResult],
-                              sparse_results: List[SearchResult],
-                              k: int = 60) -> List[SearchResult]:
-        """
-        Reciprocal Rank Fusion (RRF) for result merging
-        """
-        # Create score dictionaries
-        dense_scores = {}
-        for rank, result in enumerate(dense_results):
-            dense_scores[result.chunk_id] = 1.0 / (k + rank + 1)
-        
-        sparse_scores = {}
-        for rank, result in enumerate(sparse_results):
-            sparse_scores[result.chunk_id] = 1.0 / (k + rank + 1)
-        
-        # Combine scores
-        all_ids = set(dense_scores.keys()) | set(sparse_scores.keys())
-        
-        fused_results = []
-        for chunk_id in all_ids:
-            # RRF score combination
-            score = (
-                dense_scores.get(chunk_id, 0) * 0.7 +  # Dense weight
-                sparse_scores.get(chunk_id, 0) * 0.3   # Sparse weight
-            )
-            
-            # Find original result object
-            result = None
-            for r in dense_results + sparse_results:
-                if r.chunk_id == chunk_id:
-                    result = r
-                    break
-            
-            if result:
-                result.fusion_score = score
-                fused_results.append(result)
-        
-        # Sort by fusion score
-        fused_results.sort(key=lambda x: x.fusion_score, reverse=True)
-        
-        return fused_results
-```
+**Dense Retrieval:**
+- Vector similarity search
+- Semantic matching
+- Concept-based retrieval
+
+**Sparse Retrieval:**
+- BM25 scoring
+- Keyword matching
+- Exact phrase search
+
+**Fusion Strategies:**
+- Reciprocal Rank Fusion (RRF)
+- Linear combination
+- Learning-to-rank models
 
 ### Re-ranking with Cross-Encoders
 
 Advanced re-ranking for improved precision:
 
-```python
-class CrossEncoderReranker:
-    """
-    Neural re-ranking with cross-encoder models
-    """
-    def __init__(self, model_name: str = 'cross-encoder/ms-marco-MiniLM-L-6-v2'):
-        self.model = CrossEncoder(model_name)
-        self.batch_size = 32
-    
-    def rerank(self, 
-              query: str,
-              candidates: List[SearchResult],
-              k: int) -> List[SearchResult]:
-        """
-        Re-rank candidates using cross-encoder
-        """
-        # Prepare input pairs
-        pairs = [
-            (query, candidate.text) 
-            for candidate in candidates
-        ]
-        
-        # Score in batches
-        scores = []
-        for i in range(0, len(pairs), self.batch_size):
-            batch = pairs[i:i + self.batch_size]
-            batch_scores = self.model.predict(batch)
-            scores.extend(batch_scores)
-        
-        # Update candidate scores
-        for candidate, score in zip(candidates, scores):
-            candidate.rerank_score = score
-        
-        # Sort by rerank score
-        candidates.sort(key=lambda x: x.rerank_score, reverse=True)
-        
-        return candidates[:k]
-```
+- **Cross-attention scoring**: Query-document interaction
+- **Contextual relevance**: Fine-grained matching
+- **Diversity optimization**: Result set diversification
 
 ## Context Management and Compaction
 
 ### Context Window Optimization
 
-Intelligent context management for LLM consumption:
-
-```python
-class ContextManager:
-    """
-    Context optimization for language models
-    """
-    def prepare_context(self,
-                       search_results: List[SearchResult],
-                       max_tokens: int = 2048) -> str:
-        """
-        Prepare optimized context for LLM
-        """
-        # Calculate token budget
-        token_budget = max_tokens
-        used_tokens = 0
-        
-        # Select and order chunks
-        selected_chunks = []
-        
-        for result in search_results:
-            # Estimate tokens
-            chunk_tokens = self.estimate_tokens(result.text)
-            
-            if used_tokens + chunk_tokens <= token_budget:
-                selected_chunks.append(result)
-                used_tokens += chunk_tokens
-            else:
-                # Try to fit partial chunk
-                remaining_budget = token_budget - used_tokens
-                if remaining_budget > 100:  # Minimum useful size
-                    truncated = self.truncate_to_tokens(
-                        result.text,
-                        remaining_budget
-                    )
-                    result.text = truncated
-                    selected_chunks.append(result)
-                break
-        
-        # Format context
-        context = self.format_context(selected_chunks)
-        
-        # Apply compression if needed
-        if self.compression_enabled:
-            context = self.compress_context(context)
-        
-        return context
+<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">LLM Context Compression Strategies</text>
+  
+  <!-- Context Window Visualization -->
+  <g transform="translate(50, 60)">
+    <!-- Original context -->
+    <rect x="0" y="0" width="800" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="3"/>
+    <text x="10" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Original Context: 10,000 tokens</text>
+    <rect x="10" y="30" width="780" height="20" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    <!-- Fill bars showing document chunks -->
+    <rect x="10" y="30" width="100" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="110" y="30" width="120" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="230" y="30" width="90" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="320" y="30" width="110" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="430" y="30" width="95" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="525" y="30" width="105" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="630" y="30" width="80" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+    <rect x="710" y="30" width="80" height="20" fill="none" stroke="currentColor" stroke-width="1"/>
+  </g>
+  
+  <!-- Arrow down -->
+  <path d="M 450 130 L 450 160" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead3)" opacity="0.7"/>
+  <text x="470" y="150" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7">Compression Level 4</text>
+  
+  <!-- Compressed context -->
+  <g transform="translate(200, 170)">
+    <rect x="0" y="0" width="500" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="3"/>
+    <text x="10" y="20" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Compressed Context: 4,096 tokens (fits LLM window)</text>
+    <rect x="10" y="30" width="480" height="20" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    <!-- Compressed chunks -->
+    <rect x="10" y="30" width="80" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="90" y="30" width="70" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="160" y="30" width="75" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="235" y="30" width="85" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="320" y="30" width="90" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+    <rect x="410" y="30" width="80" height="20" fill="none" stroke="currentColor" stroke-width="2"/>
+  </g>
+  
+  <!-- Compression Techniques -->
+  <g transform="translate(50, 260)">
+    <text x="400" y="0" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Compression Techniques (Level 4)</text>
     
-    def compress_context(self, context: str) -> str:
-        """
-        Compress context while preserving information
-        """
-        # Remove redundancy
-        context = self.remove_redundant_sentences(context)
-        
-        # Summarize verbose sections
-        context = self.summarize_verbose_sections(context)
-        
-        # Preserve key information
-        context = self.preserve_key_facts(context)
-        
-        return context
-```
+    <!-- Technique 1 -->
+    <g transform="translate(0, 30)">
+      <rect x="0" y="0" width="180" height="140" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+      <text x="90" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Semantic Deduplication</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Remove redundant info</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Merge similar chunks</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Keep unique facts</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Reduction: 30-40%</text>
+      
+      <!-- Visual representation -->
+      <circle cx="90" cy="115" r="15" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <circle cx="75" cy="115" r="15" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <circle cx="105" cy="115" r="15" fill="none" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    </g>
+    
+    <!-- Technique 2 -->
+    <g transform="translate(210, 30)">
+      <rect x="0" y="0" width="180" height="140" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+      <text x="90" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Relevance Scoring</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Score by query match</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Keep top-k relevant</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Drop low scores</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Reduction: 40-50%</text>
+      
+      <!-- Visual bars -->
+      <rect x="50" y="105" width="80" height="5" fill="none" stroke="currentColor" stroke-width="1"/>
+      <rect x="50" y="115" width="60" height="5" fill="none" stroke="currentColor" stroke-width="1"/>
+      <rect x="50" y="125" width="40" height="5" fill="none" stroke="currentColor" stroke-width="1"/>
+    </g>
+    
+    <!-- Technique 3 -->
+    <g transform="translate(420, 30)">
+      <rect x="0" y="0" width="180" height="140" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+      <text x="90" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Hierarchical Summary</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Extract key points</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Create abstracts</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Preserve details</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Reduction: 50-60%</text>
+      
+      <!-- Tree structure -->
+      <circle cx="90" cy="105" r="3" fill="currentColor"/>
+      <circle cx="70" cy="120" r="3" fill="currentColor"/>
+      <circle cx="90" cy="120" r="3" fill="currentColor"/>
+      <circle cx="110" cy="120" r="3" fill="currentColor"/>
+      <line x1="90" y1="108" x2="70" y2="117" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <line x1="90" y1="108" x2="90" y2="117" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+      <line x1="90" y1="108" x2="110" y2="117" stroke="currentColor" stroke-width="1" opacity="0.5"/>
+    </g>
+    
+    <!-- Technique 4 -->
+    <g transform="translate(630, 30)">
+      <rect x="0" y="0" width="170" height="140" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
+      <text x="85" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="currentColor">Token Optimization</text>
+      <text x="10" y="40" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Remove stopwords</text>
+      <text x="10" y="55" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Compress phrases</text>
+      <text x="10" y="70" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.8">• Use abbreviations</text>
+      <text x="10" y="90" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.7">Reduction: 20-30%</text>
+      
+      <!-- Text compression visual -->
+      <text x="85" y="115" text-anchor="middle" font-family="monospace" font-size="8" fill="currentColor" opacity="0.7">ABCD → AB</text>
+      <text x="85" y="125" text-anchor="middle" font-family="monospace" font-size="8" fill="currentColor" opacity="0.7">EFGH → EF</text>
+    </g>
+  </g>
+  
+  <!-- Performance note -->
+  <rect x="50" y="440" width="800" height="40" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="5,5" rx="3" opacity="0.5"/>
+  <text x="450" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" font-style="italic" opacity="0.7">Compression Level 4 achieves 60-75% reduction while maintaining 95%+ information retention</text>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowhead3" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
+      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
+    </marker>
+  </defs>
+</svg>
+
+**Compression Strategies with prompt-compact=4:**
+
+1. **Semantic Deduplication**: Removes redundant information across chunks
+2. **Relevance Scoring**: Prioritizes chunks by query relevance (threshold: 0.95)
+3. **Hierarchical Summarization**: Creates multi-level abstracts
+4. **Token Optimization**: Reduces token count while preserving meaning
 
 ### Dynamic Context Strategies
 
-Adaptive context selection based on query type:
-
-```python
-class DynamicContextStrategy:
-    """
-    Query-aware context selection
-    """
-    def select_strategy(self, 
-                       query: ProcessedQuery) -> ContextStrategy:
-        """
-        Choose optimal context strategy
-        """
-        if query.intent == 'factual':
-            return FactualContextStrategy(
-                max_chunks=3,
-                focus='precision',
-                include_metadata=True
-            )
-        
-        elif query.intent == 'exploratory':
-            return ExploratoryContextStrategy(
-                max_chunks=8,
-                focus='breadth',
-                include_related=True
-            )
-        
-        elif query.intent == 'comparison':
-            return ComparativeContextStrategy(
-                max_chunks=6,
-                focus='contrast',
-                group_by='topic'
-            )
-        
-        elif query.intent == 'summarization':
-            return SummarizationContextStrategy(
-                max_chunks=10,
-                focus='coverage',
-                remove_redundancy=True
-            )
-        
-        else:
-            return DefaultContextStrategy(
-                max_chunks=5,
-                focus='relevance'
-            )
-```
+| Strategy | Use Case | Context Efficiency | Quality |
+|----------|----------|-------------------|---------|
+| Top-K Selection | General queries | High | Good |
+| Diversity Sampling | Broad topics | Medium | Better |
+| Hierarchical | Long documents | Very High | Best |
+| Temporal | Time-sensitive | Medium | Good |
+| Entity-centric | Fact-finding | High | Excellent |
 
 ## Performance Optimization
 
 ### Caching Architecture
 
-Multi-level caching for optimal performance:
+Multi-level caching for improved performance:
 
-```python
-class KnowledgeCacheManager:
-    """
-    Hierarchical caching system
-    """
-    def __init__(self):
-        # L1: Query result cache (in-memory)
-        self.l1_cache = LRUCache(
-            max_size=1000,
-            ttl_seconds=300
-        )
-        
-        # L2: Embedding cache (in-memory)
-        self.l2_cache = EmbeddingCache(
-            max_embeddings=10000,
-            ttl_seconds=3600
-        )
-        
-        # L3: Document cache (disk)
-        self.l3_cache = DiskCache(
-            cache_dir='/var/cache/kb',
-            max_size_gb=10,
-            ttl_seconds=86400
-        )
-        
-        # L4: CDN cache (edge)
-        self.l4_cache = CDNCache(
-            provider='cloudflare',
-            ttl_seconds=604800
-        )
-    
-    def get(self, key: str, level: int = 1) -> Optional[Any]:
-        """
-        Hierarchical cache lookup
-        """
-        # Try each cache level
-        if level >= 1:
-            result = self.l1_cache.get(key)
-            if result:
-                return result
-        
-        if level >= 2:
-            result = self.l2_cache.get(key)
-            if result:
-                # Promote to L1
-                self.l1_cache.set(key, result)
-                return result
-        
-        if level >= 3:
-            result = self.l3_cache.get(key)
-            if result:
-                # Promote to L2 and L1
-                self.l2_cache.set(key, result)
-                self.l1_cache.set(key, result)
-                return result
-        
-        if level >= 4:
-            result = self.l4_cache.get(key)
-            if result:
-                # Promote through all levels
-                self.l3_cache.set(key, result)
-                self.l2_cache.set(key, result)
-                self.l1_cache.set(key, result)
-                return result
-        
-        return None
-```
+**Cache Levels:**
+1. **Query Cache**: Recent query results
+2. **Embedding Cache**: Frequently accessed vectors
+3. **Document Cache**: Popular documents
+4. **Index Cache**: Hot index segments
+
+**Cache Configuration:**
+
+| Cache Type | Size | TTL | Hit Rate | Latency Reduction |
+|------------|------|-----|----------|-------------------|
+| Query | 10K entries | 1hr | 35% | 95% |
+| Embedding | 100K vectors | 24hr | 60% | 80% |
+| Document | 1K docs | 6hr | 45% | 70% |
+| Index | 10GB | Static | 80% | 60% |
 
 ### Index Optimization Techniques
 
-Strategies for large-scale deployments:
+**Index Sharding:**
+- Description: Distribute index across multiple shards
+- When to use: Large-scale deployments (>10M documents)
+- Configuration:
+  - shard_count: 8-32 shards
+  - shard_strategy: hash-based or range-based
+  - replication_factor: 2-3 for availability
 
-```yaml
-optimization_strategies:
-  index_sharding:
-    description: "Split index across multiple shards"
-    when_to_use: "> 10M documents"
-    configuration:
-      shard_count: 8
-      shard_strategy: "hash_based"
-      replication_factor: 2
-  
-  quantization:
-    description: "Reduce vector precision"
-    when_to_use: "Memory constrained"
-    configuration:
-      type: "product_quantization"
-      subvectors: 8
-      bits: 8
-      training_samples: 100000
-  
-  hierarchical_index:
-    description: "Multi-level index structure"
-    when_to_use: "> 100M documents"
-    configuration:
-      levels: 3
-      fanout: 100
-      rerank_top_k: 1000
-  
-  gpu_acceleration:
-    description: "Use GPU for search"
-    when_to_use: "Low latency critical"
-    configuration:
-      device: "cuda:0"
-      batch_size: 1000
-      precision: "float16"
-```
+**Quantization:**
+- Description: Reduce vector precision for space/speed
+- When to use: Memory-constrained environments
+- Configuration:
+  - type: Product Quantization (PQ)
+  - subvectors: 48-96
+  - bits: 8 per subvector
+  - training_samples: 100K vectors
+
+**Hierarchical Index:**
+- Description: Multi-level index structure
+- When to use: Ultra-large collections (>100M)
+- Configuration:
+  - levels: 2-3 hierarchy levels
+  - fanout: 100-1000 per level
+  - rerank_top_k: 100-500 candidates
+
+**GPU Acceleration:**
+- Description: CUDA-accelerated operations
+- When to use: High-throughput requirements
+- Configuration:
+  - device: CUDA-capable GPU
+  - batch_size: 256-1024
+  - precision: FP16 for speed, FP32 for accuracy
 
 ## Integration with LLM Systems
 
 ### Retrieval-Augmented Generation (RAG)
 
-Seamless integration with language models:
+The knowledge base seamlessly integrates with language models:
 
-```python
-class RAGPipeline:
-    """
-    Retrieval-Augmented Generation implementation
-    """
-    def generate_response(self, 
-                         query: str,
-                         conversation_history: List[Message] = None) -> str:
-        """
-        Generate LLM response with retrieved context
-        """
-        # Step 1: Retrieve relevant context
-        search_results = self.knowledge_base.search(
-            query=query,
-            k=5,
-            filters=self.build_filters(conversation_history)
-        )
-        
-        # Step 2: Prepare context
-        context = self.context_manager.prepare_context(
-            search_results=search_results,
-            max_tokens=2048
-        )
-        
-        # Step 3: Build prompt
-        prompt = self.build_prompt(
-            query=query,
-            context=context,
-            history=conversation_history
-        )
-        
-        # Step 4: Generate response
-        response = self.llm.generate(
-            prompt=prompt,
-            temperature=0.7,
-            max_tokens=512
-        )
-        
-        # Step 5: Post-process response
-        response = self.post_process(
-            response=response,
-            citations=search_results
-        )
-        
-        # Step 6: Update conversation state
-        self.update_conversation_state(
-            query=query,
-            response=response,
-            context_used=search_results
-        )
-        
-        return response
-    
-    def build_prompt(self, 
-                    query: str,
-                    context: str,
-                    history: List[Message] = None) -> str:
-        """
-        Construct optimized prompt for LLM
-        """
-        prompt_template = """
-        You are a helpful assistant with access to a knowledge base.
-        Use the following context to answer the user's question.
-        If the context doesn't contain relevant information, say so.
-        
-        Context:
-        {context}
-        
-        Conversation History:
-        {history}
-        
-        User Question: {query}
-        
-        Assistant Response:
-        """
-        
-        history_text = self.format_history(history) if history else "None"
-        
-        return prompt_template.format(
-            context=context,
-            history=history_text,
-            query=query
-        )
-```
+**RAG Pipeline:**
+1. **Query Understanding**: LLM-based query analysis
+2. **Document Retrieval**: Semantic search execution
+3. **Context Assembly**: Relevant passage selection
+4. **Prompt Construction**: Context injection
+5. **Response Generation**: LLM completion
+6. **Citation Tracking**: Source attribution
+
+**RAG Configuration (from config.csv):**
+
+| Parameter | Value | Purpose |
+|-----------|-------|---------|
+| prompt-compact | 4 | Context compaction level |
+| llm-ctx-size | 4096 | LLM context window size |
+| llm-n-predict | 1024 | Maximum tokens to generate |
+| embedding-model | bge-small-en-v1.5 | Model for semantic embeddings |
+| llm-cache | false | Response caching disabled |
+| llm-cache-semantic | true | Semantic cache matching enabled |
+| llm-cache-threshold | 0.95 | Semantic similarity threshold for cache |
+
+**Note**: The actual system uses prompt compaction level 4 for efficient context management, with a 4096 token context window and generates up to 1024 tokens per response.
 
 ## Monitoring and Analytics
 
 ### Knowledge Base Metrics
 
-Comprehensive monitoring for system health:
+Real-time monitoring dashboard tracks:
 
-```json
-{
-  "timestamp": "2024-03-15T14:30:00Z",
-  "metrics": {
-    "collection_stats": {
-      "total_documents": 15823,
-      "total_chunks": 234567,
-      "total_embeddings": 234567,
-      "index_size_mb": 892,
-      "storage_size_gb": 12.4
-    },
-    "performance_metrics": {
-      "indexing_rate": 1247,
-      "query_latency_p50": 23,
-      "query_latency_p99": 87,
-      "embedding_latency_p50": 12,
-      "embedding_latency_p99": 45,
-      "cache_hit_rate": 0.823
-    },
-    "quality_metrics": {
-      "mean_relevance_score": 0.784,
-      "recall_at_10": 0.923
+**Collection Statistics:**
+- Total documents indexed
+- Total chunks generated
+- Total embeddings created
+- Index size (MB/GB)
+- Storage utilization
+
+**Performance Metrics:**
+- Indexing rate (docs/sec)
+- Query latency (p50, p95, p99)
+- Embedding generation latency
+- Cache hit rates
+- Throughput (queries/sec)
+
+**Quality Metrics:**
+- Mean relevance scores
+- Recall@K measurements
+- Precision metrics
+- User feedback scores
+- Query success rates
+
+### Health Monitoring
+
+| Metric | Threshold | Alert Level | Action |
+|--------|-----------|-------------|--------|
+| Query Latency p99 | >100ms | Warning | Scale replicas |
+| Cache Hit Rate | <30% | Info | Warm cache |
+| Index Fragmentation | >40% | Warning | Rebuild index |
+| Memory Usage | >85% | Critical | Add resources |
+| Error Rate | >1% | Critical | Investigate logs |
+
+## Best Practices and Guidelines
+
+### Document Preparation
+1. Ensure documents are properly formatted
+2. Remove unnecessary headers/footers before ingestion
+3. Validate encoding and character sets
+4. Structure documents with clear sections
+
+### Index Maintenance
+1. Regular index optimization (weekly)
+2. Periodic full reindexing (monthly)
+3. Monitor fragmentation levels
+4. Implement gradual rollout for updates
+
+### Query Optimization
+1. Use specific, contextual queries
+2. Leverage query expansion for broad searches
+3. Implement query caching for common patterns
+4. Monitor and analyze query logs
+
+### System Scaling
+1. Horizontal scaling with index sharding
+2. Read replicas for high availability
+3. Load balancing across instances
+4. Implement circuit breakers for resilience
+
+## Conclusion
+
+The General Bots Knowledge Base system provides a robust, scalable foundation for semantic search and retrieval. Through careful architectural decisions, optimization strategies, and comprehensive monitoring, the system delivers high-performance information retrieval while maintaining quality and reliability. The integration with modern LLM systems enables powerful retrieval-augmented generation capabilities, enhancing the overall intelligence and responsiveness of the bot platform.

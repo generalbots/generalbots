@@ -78,9 +78,9 @@ Each bot has a `config.csv` file in its `.gbot/` directory. Available parameters
 #### Server Configuration
 ```csv
 name,value
-server_host,0.0.0.0
-server_port,8080
-sites_root,/tmp
+server-host,0.0.0.0
+server-port,8080
+sites-root,/tmp
 ```
 
 #### LLM Configuration
@@ -329,7 +329,7 @@ Default ports used:
 
 | Service | Port | Configure in |
 |---------|------|--------------|
-| UI Server | 8080 | config.csv: `server_port` |
+| UI Server | 8080 | config.csv: `server-port` |
 | PostgreSQL | 5432 | DATABASE_URL |
 | Drive API | 9000 | DRIVE_SERVER |
 | Drive Console | 9001 | N/A |
