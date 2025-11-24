@@ -40,7 +40,7 @@ curl -H "Authorization: Bearer secret-token" \
 ## Session Lifecycle
 
 ```
-![Session State Flow](./assets/session-states.svg)
+<img src="./assets/session-states.svg" alt="Session State Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 ```
 
 ### Timeouts
@@ -82,7 +82,7 @@ session:uuid:last_activity
 ### Data Flow Diagram
 
 ```
-![Session Manager Architecture](./assets/session-manager.svg)
+<img src="./assets/session-manager.svg" alt="Session Manager Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 ```
 
 ## Session Variables

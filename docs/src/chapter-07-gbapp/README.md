@@ -377,3 +377,9 @@ Each directory in `src/` is effectively a gbapp - contribute by adding your own!
 - [Services](./services.md) - Core services
 - [Chapter 6: BASIC Reference](../chapter-06-gbdialog/README.md) - BASIC language
 - [Chapter 9: API](../chapter-09-api/README.md) - API documentation
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

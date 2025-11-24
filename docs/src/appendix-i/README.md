@@ -1,6 +1,6 @@
 ## Appendix I – Database Model
 
-![Database Schema Overview](./assets/schema-overview.svg)
+<img src="./assets/schema-overview.svg" alt="Database Schema Overview" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 The core database schema for GeneralBots is defined in `src/shared/models.rs`. It uses **Diesel** with PostgreSQL and includes the following primary tables:
 
@@ -44,3 +44,9 @@ The core database schema for GeneralBots is defined in `src/shared/models.rs`. I
 - timestamp: Timestamp
 
 The schema is automatically migrated when the server starts.
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

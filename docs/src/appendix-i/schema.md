@@ -14,12 +14,12 @@ The database schema follows these design principles:
 
 ## Entity Relationship Overview
 
-![Database Schema Overview](./assets/schema-overview.svg)
+<img src="./assets/schema-overview.svg" alt="Database Schema Overview" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Core Tables Structure
 ## Detailed Schema
 
-![Database Entity Details](./assets/schema-detailed.svg)
+<img src="./assets/schema-detailed.svg" alt="Database Entity Details" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## Schema Categories
 
@@ -57,12 +57,12 @@ The database schema follows these design principles:
 ### Session Management Flow
 ### Session Flow
 
-![Session Flow Diagram](./assets/session-flow.svg)
+<img src="./assets/session-flow.svg" alt="Session Flow Diagram" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Knowledge Base Access Pattern
 ### Knowledge Base Access
 
-![Knowledge Base Access](./assets/kb-access.svg)
+<img src="./assets/kb-access.svg" alt="Knowledge Base Access" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Primary Relationships
 

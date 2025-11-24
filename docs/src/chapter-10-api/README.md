@@ -382,3 +382,8 @@ Always test endpoints in your development environment and check the source code 
 - [Chapter 8: Integrations](../chapter-08/README.md) - External service integration
 - [Chapter 9: Advanced Topics](../chapter-09/README.md) - Advanced API usage
 - [Chapter 11: Infrastructure](../chapter-11/README.md) - Deployment and hosting
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

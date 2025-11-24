@@ -4,7 +4,7 @@ BotServer installs itself automatically through the bootstrap process. No manual
 
 ## Bootstrap Flow Diagram
 
-![Auto-Bootstrap Process](./assets/bootstrap-process.svg)
+<img src="./assets/bootstrap-process.svg" alt="Auto-Bootstrap Process" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## System Requirements
 

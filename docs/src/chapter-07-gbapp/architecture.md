@@ -6,21 +6,21 @@ BotServer follows a modular architecture designed for scalability, maintainabili
 
 ### Data Flow Architecture
 
-![BotServer Data Flow Architecture](./assets/data-flow.svg)
+<img src="./assets/data-flow.svg" alt="BotServer Data Flow Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### System Architecture
 
-![BotServer System Architecture](./assets/system-architecture.svg)
+<img src="./assets/system-architecture.svg" alt="BotServer System Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## Module Dependency Graph
 
-![Module Dependency Graph](./assets/module-dependency.svg)
+<img src="./assets/module-dependency.svg" alt="Module Dependency Graph" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## Module Organization
 
 ### Data Flow Through Modules
 
-![Data Flow Through Modules](./assets/module-data-flow.svg)
+<img src="./assets/module-data-flow.svg" alt="Data Flow Through Modules" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Core Modules
 
