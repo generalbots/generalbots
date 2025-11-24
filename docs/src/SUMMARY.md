@@ -155,7 +155,7 @@
   - [Storage and Data](./chapter-11-features/storage.md)
   - [Multi-Channel Support](./chapter-11-features/channels.md)
 
-# Part XI - Authentication and Security
+# Part XI - Security
 
 - [Chapter 12: Authentication](./chapter-12-auth/README.md)
   - [User Authentication](./chapter-12-auth/user-auth.md)
