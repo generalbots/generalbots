@@ -14,85 +14,13 @@ BotServer follows a modular architecture designed for scalability, maintainabili
 
 ## Module Dependency Graph
 
-```
-                            main.rs
-                               │
-                               ▼
-                          bootstrap/
-                               │
-            ┌──────────────────┼──────────────────┐
-            │                  │                  │
-            ▼                  ▼                  ▼
-       package_manager/    config/           database/
-            │                  │                  │
-            │                  └──────┬───────────┘
-            │                         │
-            ▼                         ▼
-       web_server/ ◄──────────── session/
-            │                         │
-            ├──────┬──────┬──────────┤
-            │      │      │          │
-            ▼      ▼      ▼          ▼
-        channels/ bot/  basic/     auth/
-            │      │      │          │
-            └──────┴──────┼──────────┘
-                          │
-                          ▼
-                        llm/
-                          │
-                          ▼
-                     context/
-```
+![Module Dependency Graph](./assets/module-dependency.svg)
 
 ## Module Organization
 
 ### Data Flow Through Modules
 
-```
-    User Input
-         │
-         ▼
-┌─────────────────┐
-│   web_server/   │  Axum HTTP Server
-│   channels/     │  Route to channel
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    session/     │  Load/Create Session
-│                 │  Validate Token
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│     auth/       │  Check Permissions
-│                 │  Apply RBAC
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│     bot/        │  Route to Bot Instance
-│                 │  Load Configuration
-└────────┬────────┘
-         │
-         ▼
-┌─────────────────┐
-│    basic/       │  Execute BASIC Script
-│                 │  Parse Keywords
-└────────┬────────┘
-         │
-         ├────────────┬────────────┬────────────┐
-         ▼            ▼            ▼            ▼
-┌─────────────┐ ┌─────────┐ ┌─────────┐ ┌─────────┐
-│   context/  │ │  drive/ │ │database/│ │  llm/   │
-│  Load KB    │ │Get Files│ │Query DB │ │Call AI  │
-└─────────────┘ └─────────┘ └─────────┘ └─────────┘
-         │            │            │            │
-         └────────────┴────────────┴────────────┘
-                           │
-                           ▼
-                    Bot Response
-```
+![Data Flow Through Modules](./assets/module-data-flow.svg)
 
 ### Core Modules
 
