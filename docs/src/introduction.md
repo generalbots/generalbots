@@ -31,7 +31,7 @@ Bot: Welcome to Computer Science, Sarah!
 
 ### The Flow
 
-![Conversation Flow](./assets/conversation-flow.svg)
+<img src="./assets/conversation-flow.svg" alt="Conversation Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 The AI handles everything else - understanding intent, collecting information, executing tools, answering from documents. Zero configuration.
 
@@ -64,7 +64,7 @@ Create `.bas` files that the AI discovers and calls automatically. Need to save 
 
 General Bots is a single binary that includes everything:
 
-![General Bots Architecture](./assets/architecture.svg)
+<img src="./assets/architecture.svg" alt="General Bots Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 One process, one port, one command to run. Deploy anywhere - laptop, server, container.
 
@@ -115,7 +115,7 @@ my-bot.gbai/                    # Package root
 
 ### How It Works
 
-![Package System Flow](./assets/package-system-flow.svg)
+<img src="./assets/package-system-flow.svg" alt="Package System Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 That's it. No XML, no JSON schemas, no build process. Copy the folder to deploy.
 
@@ -171,3 +171,8 @@ General Bots is open source (AGPL-3.0) developed by Pragmatismo.com.br and contr
 - **Status**: Production Ready
 
 Ready to build your bot? Turn to [Chapter 01](./chapter-01/README.md) and let's go!
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

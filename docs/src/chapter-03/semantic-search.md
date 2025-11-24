@@ -2,6 +2,10 @@
 
 Semantic search in BotServer happens automatically when you use `USE KB`. The system searches for relevant information based on meaning, not just keywords, and makes it available to the system AI during conversations.
 
+## Search Pipeline
+
+<img src="./assets/search-pipeline.svg" alt="Semantic Search Pipeline" style="max-height: 500px; width: 100%; object-fit: contain;">
+
 ## How It Works Automatically
 
 1. **User asks a question** - Natural language input

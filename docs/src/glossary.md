@@ -239,3 +239,9 @@ Quick lookup for General Bots terms. If you're lost, start here.
 **"Can I use TypeScript/Python/etc?"** - BASIC is used for conversation logic. However, you can integrate with any language through APIs. See [API documentation](./chapter-10-api/README.md) for REST endpoints and integration options.
 
 **"Is it production-ready?"** - Yes. Used in production since 2016 (earlier versions), current Rust version since 2023.
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

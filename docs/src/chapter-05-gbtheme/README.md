@@ -193,3 +193,8 @@ For deeper customization, extend the `.gbui` package or build your own UI framew
 - [Chapter 2: Packages](../chapter-02/README.md) - Package structure
 - [Chapter 6: BASIC Dialogs](../chapter-06-gbdialog/README.md) - Using CHANGE THEME command
 - [Chapter 8: Configuration](../chapter-08-config/README.md) - Theme configuration options
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

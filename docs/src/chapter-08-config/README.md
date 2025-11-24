@@ -109,3 +109,8 @@ theme-title,Company Assistant
 - [config.csv Format](./config-csv.md) - Complete reference
 - [LLM Configuration](./llm-config.md) - Language model settings
 - [Parameters](./parameters.md) - All available parameters
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

@@ -17,7 +17,7 @@ That's it. No manifests, no build files, no dependencies. Copy the folder to dep
 ### Visual Architecture
 ### Architecture
 
-![Package Structure](./assets/package-structure.svg)
+<img src="./assets/package-structure.svg" alt="Package Structure" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ## How Bootstrap Finds Bots
 
@@ -224,7 +224,7 @@ templates/
 When BotServer starts:
 
 ```
-![Template Deployment Flow](./assets/template-deployment-flow.svg)
+<img src="./assets/template-deployment-flow.svg" alt="Template Deployment Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 ```
 
 Takes about 5-10 seconds per bot.

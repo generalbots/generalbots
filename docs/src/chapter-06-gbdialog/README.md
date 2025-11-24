@@ -327,8 +327,15 @@ The question is: what will you create?
 
 **Start writing. The world is waiting for your bot.**
 
----
 
 *"The beauty of BASIC lies not in what it can do, but in who it enables to do it."*
 
+## Next Step
+
 Continue to [BASIC Keywords Reference](./keywords.md) when you're ready for the complete reference.
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

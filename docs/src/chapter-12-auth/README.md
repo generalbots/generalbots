@@ -83,3 +83,9 @@ RETURN true
 - [Chapter 9: Storage](../chapter-09/storage.md) - Storage architecture
 - [Chapter 10: Development](../chapter-10/README.md) - Development environment
 - [Chapter 12: Web API](../chapter-12/README.md) - API endpoints
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

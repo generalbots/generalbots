@@ -59,3 +59,9 @@ General Bots is open source and we welcome contributions:
 
 *General Bots® - Enterprise conversational AI platform*  
 *Copyright © 2016-2025 Pragmatismo Inovações Ltda.*
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>
