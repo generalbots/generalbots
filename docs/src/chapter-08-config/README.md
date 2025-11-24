@@ -1,42 +1,111 @@
-## gbot Reference
-`config.csv` defines the bot’s behaviour and parameters.
+# Bot Configuration
+
+This chapter covers bot configuration through the `config.csv` file system. Each bot's behavior is controlled by a simple CSV configuration file in its `.gbot` package.
+
+## Configuration System
+
+BotServer uses a straightforward name-value CSV format for configuration:
 
 ```csv
-# config.csv – Bot configuration
-bot_name,GeneralBot
-language,en
-theme,default.gbtheme
-knowledge_base,default.gbkb
-max_context_tokens,2048
+name,value
+setting_name,setting_value
+another_setting,another_value
 ```
 
-### Key Columns
-- **bot_name** – Display name of the bot.
-- **language** – Locale for formatting (used by `FORMAT`).
-- **theme** – UI theme package (`.gbtheme`).
-- **knowledge_base** – Default knowledge‑base package (`.gbkb`).
-- **max_context_tokens** – Maximum number of tokens retained in the session context.
-- **max_context_tokens** – Limit for the amount of context sent to the LLM.
+## File Location
 
-### Editing the Configuration
-The file is a simple CSV; each line is `key,value`. Comments start with `#`. After editing, restart the server to apply changes.
+```
+mybot.gbai/
+└── mybot.gbot/
+    └── config.csv
+```
 
-### Runtime Effects
-- Changing **theme** updates the UI served from `web/static/`.
-- Modifying **knowledge_base** switches the vector collection used for semantic search.
-- Adjusting **answer_mode** influences the order of tool invocation and LLM calls.
+## Configuration Categories
 
-For advanced configuration, see `src/bot/config.rs` which parses this file into the `BotConfig` struct.
+### Server Settings
+- Web server binding and ports
+- Site generation paths
+- Service endpoints
+
+### LLM Configuration
+- Model paths (local GGUF files)
+- Service URLs
+- Cache settings
+- Server parameters (when embedded)
+
+### Prompt Management
+- Context compaction levels
+- History retention
+- Token management
+
+### Email Integration
+- SMTP server settings
+- Authentication credentials
+- Sender configuration
+
+### Theme Customization
+- Color schemes
+- Logo URLs
+- Bot titles
+
+### Custom Database
+- External database connections
+- Authentication details
+
+## Key Features
+
+### Simple Format
+- Plain CSV with name-value pairs
+- No complex syntax
+- Human-readable
+
+### Flexible Structure
+- Empty rows for visual grouping
+- Optional settings with defaults
+- Extensible for custom needs
+
+### Local-First
+- Designed for local LLM models
+- Self-hosted services
+- No cloud dependency by default
+
+## Example Configurations
+
+### Minimal Setup
+Just the essentials to run a bot:
+```csv
+name,value
+llm-url,http://localhost:8081
+llm-model,../../../../data/llm/model.gguf
+```
+
+### Production Setup
+Full configuration with all services:
+```csv
+name,value
+,
+server_host,0.0.0.0
+server_port,8080
+,
+llm-url,http://localhost:8081
+llm-model,../../../../data/llm/production-model.gguf
+llm-cache,true
+,
+email-server,smtp.company.com
+email-from,bot@company.com
+,
+theme-title,Company Assistant
+```
+
+## Configuration Philosophy
+
+1. **Defaults Work**: Most settings have sensible defaults
+2. **Local First**: Assumes local services, not cloud APIs
+3. **Simple Values**: All values are strings, parsed as needed
+4. **No Magic**: What you see is what you get
 
 ## See Also
 
-- [config.csv Reference](./config-csv.md) - Complete configuration options
-- [PostgreSQL Setup](./postgresql.md) - Database configuration
-- [MinIO Storage](./minio.md) - Object storage setup
-- [Qdrant Vector DB](./qdrant.md) - Vector database configuration
-- [Valkey Cache](./valkey.md) - Caching layer setup
-- [Chapter 2: .gbot](../chapter-02/gbot.md) - Bot configuration package
-- [Chapter 3: Knowledge Base](../chapter-03/README.md) - KB configuration
-- [Chapter 5: BASIC Reference](../chapter-05/README.md) - Script configuration
-- [Chapter 9: Storage](../chapter-09/storage.md) - Storage architecture
-- [Chapter 11: Infrastructure](../chapter-11/README.md) - Complete infrastructure guide
+- [config.csv Format](./config-csv.md) - Complete reference
+- [LLM Configuration](./llm-config.md) - Language model settings
+- [Parameters](./parameters.md) - All available parameters

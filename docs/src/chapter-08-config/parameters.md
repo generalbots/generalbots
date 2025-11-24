@@ -1,295 +1,188 @@
-# Bot Parameters
+# Configuration Parameters
 
-Comprehensive reference for all bot configuration parameters available in `config.csv`.
+Complete reference of all available parameters in `config.csv`.
 
-## Parameter Categories
+## Server Parameters
 
-Bot parameters are organized into functional groups for easier management and understanding.
+### Web Server
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `server_host` | Server bind address | `0.0.0.0` | IP address |
+| `server_port` | Server listen port | `8080` | Number (1-65535) |
+| `sites_root` | Generated sites directory | `/tmp` | Path |
 
-## Core Bot Settings
-
-### Identity Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `botId` | UUID | Yes | Generated | Unique bot identifier |
-| `title` | String | Yes | None | Bot display name |
-| `description` | String | No | Empty | Bot description |
-| `version` | String | No | "1.0" | Bot version |
-| `author` | String | No | Empty | Bot creator |
-| `language` | String | No | "en" | Default language |
-| `timezone` | String | No | "UTC" | Bot timezone |
-
-### Behavior Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `welcomeMessage` | String | No | Empty | Initial greeting |
-| `fallbackMessage` | String | No | "I don't understand" | Default error response |
-| `goodbyeMessage` | String | No | "Goodbye!" | Session end message |
-| `typingDelay` | Number | No | 1000 | Typing indicator delay (ms) |
-| `responseTimeout` | Number | No | 30000 | Response timeout (ms) |
-| `maxRetries` | Number | No | 3 | Maximum retry attempts |
-| `debugMode` | Boolean | No | false | Enable debug logging |
+### MCP Server
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `mcp-server` | Enable MCP protocol server | `false` | Boolean |
 
 ## LLM Parameters
 
-### Model Configuration
+### Core LLM Settings
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `llm-key` | API key for LLM service | `none` | String |
+| `llm-url` | LLM service endpoint | `http://localhost:8081` | URL |
+| `llm-model` | Model path or identifier | Required | Path/String |
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `llmProvider` | String | Yes | "openai" | LLM provider (openai, anthropic, google, local) |
-| `llmModel` | String | Yes | "gpt-4" | Model name |
-| `llmApiKey` | String | Yes* | None | API key (*not required for local) |
-| `llmEndpoint` | String | No | Provider default | Custom API endpoint |
-| `llmOrganization` | String | No | Empty | Organization ID (OpenAI) |
-| `llmProject` | String | No | Empty | Project ID (Google) |
+### LLM Cache
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `llm-cache` | Enable response caching | `false` | Boolean |
+| `llm-cache-ttl` | Cache time-to-live | `3600` | Seconds |
+| `llm-cache-semantic` | Semantic similarity cache | `true` | Boolean |
+| `llm-cache-threshold` | Similarity threshold | `0.95` | Float (0-1) |
 
-### Response Control
+### Embedded LLM Server
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `llm-server` | Run embedded server | `false` | Boolean |
+| `llm-server-path` | Server binary path | `botserver-stack/bin/llm/build/bin` | Path |
+| `llm-server-host` | Server bind address | `0.0.0.0` | IP address |
+| `llm-server-port` | Server port | `8081` | Number |
+| `llm-server-gpu-layers` | GPU offload layers | `0` | Number |
+| `llm-server-n-moe` | MoE experts count | `0` | Number |
+| `llm-server-ctx-size` | Context size | `4096` | Tokens |
+| `llm-server-n-predict` | Max predictions | `1024` | Tokens |
+| `llm-server-parallel` | Parallel requests | `6` | Number |
+| `llm-server-cont-batching` | Continuous batching | `true` | Boolean |
+| `llm-server-mlock` | Lock in memory | `false` | Boolean |
+| `llm-server-no-mmap` | Disable mmap | `false` | Boolean |
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `llmTemperature` | Float | No | 0.7 | Creativity (0.0-1.0) |
-| `llmMaxTokens` | Number | No | 2000 | Max response tokens |
-| `llmTopP` | Float | No | 1.0 | Nucleus sampling |
-| `llmFrequencyPenalty` | Float | No | 0.0 | Reduce repetition |
-| `llmPresencePenalty` | Float | No | 0.0 | Encourage new topics |
-| `llmStopSequences` | String | No | Empty | Stop generation sequences |
-| `llmSystemPrompt` | String | No | Default | System instruction |
+## Embedding Parameters
 
-### Cost Management
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `embedding-url` | Embedding service endpoint | `http://localhost:8082` | URL |
+| `embedding-model` | Embedding model path | Required for KB | Path |
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `llmCostLimit` | Number | No | 100 | Monthly cost limit ($) |
-| `llmTokenLimit` | Number | No | 1000000 | Monthly token limit |
-| `llmRequestLimit` | Number | No | 10000 | Daily request limit |
-| `llmCacheEnabled` | Boolean | No | true | Enable response caching |
-| `llmCacheTTL` | Number | No | 3600 | Cache duration (seconds) |
+## Prompt Parameters
 
-## Knowledge Base Parameters
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `prompt-compact` | Context compaction level | `4` | Number |
+| `prompt-history` | Messages in history | Not set | Number |
 
-### Vector Database
+## Email Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `vectorDbUrl` | String | No | "http://localhost:6333" | Qdrant URL |
-| `vectorDbApiKey` | String | No | Empty | Qdrant API key |
-| `vectorDbCollection` | String | No | Bot name | Default collection |
-| `embeddingModel` | String | No | "text-embedding-ada-002" | Embedding model |
-| `embeddingDimension` | Number | No | 1536 | Vector dimension |
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `email-from` | Sender address | Required for email | Email |
+| `email-server` | SMTP hostname | Required for email | Hostname |
+| `email-port` | SMTP port | `587` | Number |
+| `email-user` | SMTP username | Required for email | String |
+| `email-pass` | SMTP password | Required for email | String |
 
-### Search Configuration
+## Theme Parameters
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `searchTopK` | Number | No | 5 | Results to return |
-| `searchThreshold` | Float | No | 0.7 | Minimum similarity |
-| `searchRerank` | Boolean | No | false | Enable reranking |
-| `chunkSize` | Number | No | 1000 | Text chunk size |
-| `chunkOverlap` | Number | No | 200 | Chunk overlap |
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `theme-color1` | Primary color | Not set | Hex color |
+| `theme-color2` | Secondary color | Not set | Hex color |
+| `theme-logo` | Logo URL | Not set | URL |
+| `theme-title` | Bot display title | Not set | String |
 
-## Storage Parameters
+## Custom Database Parameters
 
-### Object Storage
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `custom-server` | Database server | `localhost` | Hostname |
+| `custom-port` | Database port | `5432` | Number |
+| `custom-database` | Database name | Not set | String |
+| `custom-username` | Database user | Not set | String |
+| `custom-password` | Database password | Not set | String |
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `storageProvider` | String | No | "drive" | Storage provider |
-| `storageEndpoint` | String | Yes | "localhost:9000" | S3-compatible drive endpoint |
-| `storageAccessKey` | String | Yes | None | Access key |
-| `storageSecretKey` | String | Yes | None | Secret key |
-| `storageBucket` | String | No | "botserver" | Default bucket |
-| `storageRegion` | String | No | "us-east-1" | AWS region |
-| `storageUseSsl` | Boolean | No | false | Use HTTPS |
+## Parameter Types
 
-### File Handling
+### Boolean
+Values: `true` or `false` (case-sensitive)
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `maxFileSize` | Number | No | 10 | Max file size (MB) |
-| `allowedFileTypes` | String | No | "pdf,doc,txt,csv" | Allowed extensions |
-| `fileRetention` | Number | No | 90 | Days to keep files |
-| `autoDeleteTemp` | Boolean | No | true | Auto-delete temp files |
+### Number
+Integer values, must be within valid ranges:
+- Ports: 1-65535
+- Tokens: Positive integers
+- Percentages: 0-100
 
-## Communication Parameters
+### Float
+Decimal values:
+- Thresholds: 0.0 to 1.0
 
-### Email Settings
+### Path
+File system paths:
+- Relative: `../../../../data/model.gguf`
+- Absolute: `/opt/models/model.gguf`
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `emailEnabled` | Boolean | No | false | Enable email |
-| `smtpHost` | String | No* | Empty | SMTP server |
-| `smtpPort` | Number | No | 587 | SMTP port |
-| `smtpUser` | String | No* | Empty | Email username |
-| `smtpPassword` | String | No* | Empty | Email password |
-| `smtpFrom` | String | No* | Empty | From address |
-| `smtpUseTls` | Boolean | No | true | Use TLS |
-| `smtpUseStarttls` | Boolean | No | true | Use STARTTLS |
+### URL
+Valid URLs:
+- HTTP: `http://localhost:8081`
+- HTTPS: `https://api.example.com`
 
-### Channel Configuration
+### String
+Any text value (no quotes needed in CSV)
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `webEnabled` | Boolean | No | true | Web interface |
-| `webPort` | Number | No | 8080 | Web port |
-| `whatsappEnabled` | Boolean | No | false | WhatsApp integration |
-| `whatsappToken` | String | No* | Empty | WhatsApp token |
-| `teamsEnabled` | Boolean | No | false | Teams integration |
-| `teamsAppId` | String | No* | Empty | Teams app ID |
-| `slackEnabled` | Boolean | No | false | Slack integration |
-| `slackToken` | String | No* | Empty | Slack token |
+### Email
+Valid email format: `user@domain.com`
 
-## Security Parameters
+### Hex Color
+HTML color codes: `#RRGGBB` format
 
-### Authentication
+## Required vs Optional
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `authRequired` | Boolean | No | false | Require authentication |
-| `authProvider` | String | No | "local" | Auth provider |
-| `jwtSecret` | String | Yes* | Generated | JWT secret |
-| `jwtExpiration` | Number | No | 86400 | Token expiration (s) |
-| `sessionTimeout` | Number | No | 3600 | Session timeout (s) |
-| `maxSessions` | Number | No | 100 | Max concurrent sessions |
+### Always Required
+- None - all parameters have defaults or are optional
 
-### Access Control
+### Required for Features
+- **LLM**: `llm-model` must be set
+- **Email**: `email-from`, `email-server`, `email-user`
+- **Embeddings**: `embedding-model` for knowledge base
+- **Custom DB**: `custom-database` if using external database
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `corsOrigins` | String | No | "*" | Allowed origins |
-| `ipWhitelist` | String | No | Empty | Allowed IPs |
-| `ipBlacklist` | String | No | Empty | Blocked IPs |
-| `rateLimitPerMinute` | Number | No | 60 | Requests per minute |
-| `rateLimitPerHour` | Number | No | 1000 | Requests per hour |
-| `requireHttps` | Boolean | No | false | Force HTTPS |
+## Configuration Precedence
 
-### Data Protection
+1. **Built-in defaults** (hardcoded)
+2. **config.csv values** (override defaults)
+3. **Environment variables** (if implemented, override config)
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `encryptData` | Boolean | No | true | Encrypt stored data |
-| `encryptionKey` | String | Yes* | Generated | Encryption key |
-| `maskPii` | Boolean | No | true | Mask personal data |
-| `auditLogging` | Boolean | No | true | Enable audit logs |
-| `dataRetention` | Number | No | 365 | Data retention (days) |
+## Special Values
 
-## Performance Parameters
+- `none` - Explicitly no value (for `llm-key`)
+- Empty string - Unset/use default
+- `false` - Feature disabled
+- `true` - Feature enabled
 
-### Caching
+## Performance Tuning
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `cacheEnabled` | Boolean | No | true | Enable caching |
-| `cacheProvider` | String | No | "cache" | Cache provider |
-| `cacheUrl` | String | No | "redis://localhost:6379" | Cache URL |
-| `cacheTtl` | Number | No | 3600 | Default TTL (s) |
-| `cacheMaxSize` | Number | No | 100 | Max cache size (MB) |
-
-### Resource Limits
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `maxCpu` | Number | No | 2 | CPU cores limit |
-| `maxMemory` | Number | No | 2048 | Memory limit (MB) |
-| `maxConnections` | Number | No | 100 | DB connections |
-| `maxWorkers` | Number | No | 4 | Worker threads |
-| `queueSize` | Number | No | 1000 | Task queue size |
-
-## Monitoring Parameters
-
-### Logging
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `logLevel` | String | No | "info" | Log level |
-| `logToFile` | Boolean | No | true | Log to file |
-| `logFilePath` | String | No | "./logs" | Log directory |
-| `logRotation` | String | No | "daily" | Rotation schedule |
-| `logRetention` | Number | No | 30 | Keep logs (days) |
-
-### Metrics
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `metricsEnabled` | Boolean | No | false | Enable metrics |
-| `metricsEndpoint` | String | No | "/metrics" | Metrics endpoint |
-| `sentryDsn` | String | No | Empty | Sentry DSN |
-| `datadogApiKey` | String | No | Empty | Datadog API key |
-| `prometheusPort` | Number | No | 9090 | Prometheus port |
-
-## Feature Flags
-
-### Experimental Features
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `betaFeatures` | Boolean | No | false | Enable beta features |
-| `webAutomation` | Boolean | No | false | Web scraping |
-| `ocrEnabled` | Boolean | No | false | OCR support |
-| `speechEnabled` | Boolean | No | false | Speech I/O |
-| `visionEnabled` | Boolean | No | false | Image analysis |
-| `codeExecution` | Boolean | No | false | Code running |
-
-## Environment-Specific Parameters
-
-### Development
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `devMode` | Boolean | No | false | Development mode |
-| `hotReload` | Boolean | No | false | Hot reload |
-| `mockServices` | Boolean | No | false | Use mock services |
-| `verboseErrors` | Boolean | No | false | Detailed errors |
-
-### Production
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `prodMode` | Boolean | No | true | Production mode |
-| `clustering` | Boolean | No | false | Enable clustering |
-| `loadBalancing` | Boolean | No | false | Load balancing |
-| `autoScale` | Boolean | No | false | Auto-scaling |
-
-## Parameter Validation
-
-Parameters are validated on startup:
-1. Required parameters must be present
-2. Types are checked and coerced
-3. Ranges are enforced
-4. Dependencies verified
-5. Conflicts detected
-
-## Environment Variable Override
-
-Any parameter can be overridden via environment:
-```bash
-BOT_TITLE="My Bot" BOT_LLM_MODEL="gpt-4-turbo" botserver
+### For Local Models
+```csv
+llm-server-ctx-size,8192
+llm-server-n-predict,2048
+llm-server-parallel,4
+llm-cache,true
+llm-cache-ttl,7200
 ```
 
-## Dynamic Parameter Updates
-
-Some parameters can be updated at runtime:
-- Log level
-- Rate limits
-- Cache settings
-- Feature flags
-
-Use the admin API to update:
-```
-POST /api/admin/config
-{
-  "logLevel": "debug",
-  "rateLimitPerMinute": 120
-}
+### For Production
+```csv
+llm-server-cont-batching,true
+llm-cache-semantic,true
+llm-cache-threshold,0.90
+llm-server-parallel,8
 ```
 
-## Best Practices
+### For Low Memory
+```csv
+llm-server-ctx-size,2048
+llm-server-n-predict,512
+llm-server-mlock,false
+llm-server-no-mmap,false
+llm-cache,false
+```
 
-1. **Start with defaults**: Most parameters have sensible defaults
-2. **Override only what's needed**: Don't set everything
-3. **Use environment variables**: For sensitive values
-4. **Document custom values**: Explain why changed
-5. **Test configuration**: Validate before production
-6. **Monitor performance**: Adjust based on metrics
-7. **Version control**: Track configuration changes
+## Validation Rules
+
+1. **Paths**: Model files must exist
+2. **URLs**: Must be valid format
+3. **Ports**: Must be 1-65535
+4. **Emails**: Must contain @ and domain
+5. **Colors**: Must be valid hex format
+6. **Booleans**: Exactly `true` or `false`

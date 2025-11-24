@@ -88,11 +88,12 @@
   - [Architecture Overview](./chapter-07-gbapp/architecture.md)
   - [Building from Source](./chapter-07-gbapp/building.md)
   - [Container Deployment (LXC)](./chapter-07-gbapp/containers.md)
+  - [Philosophy](./chapter-07-gbapp/philosophy.md)
+  - [Example gbapp](./chapter-07-gbapp/example-gbapp.md)
   - [Module Structure](./chapter-07-gbapp/crates.md)
   - [Service Layer](./chapter-07-gbapp/services.md)
   - [Creating Custom Keywords](./chapter-07-gbapp/custom-keywords.md)
   - [Adding Dependencies](./chapter-07-gbapp/dependencies.md)
-  - [Prompt Manager](./chapter-07-gbapp/prompt-manager.md)
 
 # Part VIII - Bot Configuration
 
