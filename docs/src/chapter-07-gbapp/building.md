@@ -9,7 +9,7 @@ This guide covers building BotServer from source, including dependencies, featur
 - **Operating System**: Linux, macOS, or Windows
 - **Rust**: 1.70 or later (2021 edition)
 - **Memory**: 4GB RAM minimum (8GB recommended)
-- **Disk Space**: 2GB for dependencies and build artifacts
+- **Disk Space**: 8GB for development environment
 
 ### Install Rust
 
@@ -411,6 +411,17 @@ Find duplicate dependencies:
 ```bash
 cargo tree --duplicates
 ```
+
+### Security Audit
+
+Run security audit to check for known vulnerabilities in dependencies:
+
+```bash
+cargo install cargo-audit
+cargo audit
+```
+
+This should be run regularly during development to ensure dependencies are secure.
 
 ## Build Artifacts
 

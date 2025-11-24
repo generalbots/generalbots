@@ -242,15 +242,11 @@ END IF
 
 ### Authentication Failed
 
-```basic
-' Test SMTP connection
-TEST_SMTP_CONNECTION()
-IF CONNECTION_OK THEN
-    TALK "SMTP connection successful"
-ELSE
-    TALK "Check email-user and email-pass in config.csv"
-END IF
-```
+Check SMTP configuration:
+1. Verify credentials in `config.csv`
+2. Ensure SMTP server allows your connection
+3. Check if port 587/465 is open
+4. Verify TLS/SSL settings match server requirements
 
 ### Emails Going to Spam
 

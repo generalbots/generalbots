@@ -1,405 +1,379 @@
-# Extending BotServer
+# gbapp: Virtual Crates Architecture
 
-This chapter covers how to extend and customize BotServer to meet specific requirements, from creating custom keywords to building new channel adapters and integrating with external systems.
+This chapter explains how BotServer uses the gbapp concept as virtual crates within the `src/` directory, elegantly mapping the old package system to the new Rust architecture.
 
-## Overview
+## The gbapp Evolution: From Packages to Virtual Crates
 
-BotServer is designed to be extensible at multiple levels:
-- **BASIC Keywords**: Add new commands to the scripting language
-- **Channel Adapters**: Support new messaging platforms
-- **Storage Backends**: Integrate different storage systems
-- **Authentication Providers**: Connect to various identity services
-- **LLM Providers**: Add support for new language models
+### Historical Context (Node.js Era)
+In previous versions, `.gbapp` packages were external Node.js modules that extended BotServer functionality through a plugin system.
 
-## Extension Points
+### Current Architecture (Rust Era)
+The `.gbapp` concept now lives as **virtual crates** inside `src/`:
+- **Virtual Crates**: Each gbapp is a module inside `src/` (like `src/core`, `src/basic`, `src/channels`)
+- **Same Mental Model**: Developers familiar with the old system can think of each directory as a "package"
+- **Native Performance**: All code compiles into a single optimized binary
+- **Contribution Path**: Add new gbapps by creating modules in `src/`
 
-### 1. Custom BASIC Keywords
+## How gbapp Virtual Crates Work
 
-Create new keywords by implementing them in Rust:
+```
+src/
+├── core/           # core.gbapp (virtual crate)
+├── basic/          # basic.gbapp (BASIC interpreter)
+├── channels/       # channels.gbapp (communication)
+├── storage/        # storage.gbapp (persistence)
+├── auth/           # auth.gbapp (authentication)
+├── llm/            # llm.gbapp (AI integration)
+└── your_feature/   # your_feature.gbapp (your contribution!)
+```
+
+Each directory is conceptually a gbapp - a self-contained module that contributes functionality to the whole.
+
+## Why This Change?
+
+1. **Simplicity**: One cohesive codebase instead of fragmented extensions
+2. **Performance**: Native Rust performance without extension overhead
+3. **Reliability**: Thoroughly tested core features vs. variable-quality plugins
+4. **BASIC Power**: BASIC + LLM combination eliminates need for custom code
+5. **Maintenance**: Easier to maintain one strong core than many extensions
+
+## Contributing New Keywords
+
+### Contributing a New gbapp Virtual Crate
+
+To add functionality, create a new gbapp as a module in `src/`:
 
 ```rust
-// src/basic/keywords/my_keyword.rs
-use rhai::{Engine, Dynamic};
+// src/your_feature/mod.rs - Your gbapp virtual crate
+pub mod keywords;
+pub mod services;
+pub mod models;
+
+// src/your_feature/keywords/mod.rs
 use crate::shared::state::AppState;
+use rhai::Engine;
 
-pub fn register_my_keyword(engine: &mut Engine, state: Arc<AppState>) {
-    engine.register_fn("MY_KEYWORD", move |param: String| -> String {
-        // Your implementation here
-        format!("Processed: {}", param)
+pub fn register_keywords(engine: &mut Engine, state: Arc<AppState>) {
+    engine.register_fn("YOUR KEYWORD", move |param: String| -> String {
+        // Implementation
+        format!("Result: {}", param)
     });
 }
 ```
 
-Register in the keyword module:
+This maintains the conceptual model of packages while leveraging Rust's module system.
+
+### Contribution Process for gbapp Virtual Crates
+
+1. **Fork** the BotServer repository
+2. **Create** your gbapp module in `src/your_feature/`
+3. **Structure** it like existing gbapps (core, basic, etc.)
+4. **Test** thoroughly with unit and integration tests
+5. **Document** in the appropriate chapter
+6. **Submit PR** describing your gbapp's purpose
+
+Example structure for a new gbapp:
+```
+src/analytics/          # analytics.gbapp
+├── mod.rs             # Module definition
+├── keywords.rs        # BASIC keywords
+├── services.rs        # Core services
+├── models.rs          # Data models
+└── tests.rs           # Unit tests
+```
+
+## Adding New Components
+
+Components are features compiled into BotServer via Cargo features:
+
+### Current Components in Cargo.toml
+
+```toml
+[features]
+# Core features
+chat = []           # Chat functionality
+drive = []          # Storage system
+tasks = []          # Task management
+calendar = []       # Calendar integration
+meet = []           # Video meetings
+mail = []           # Email system
+
+# Enterprise features
+compliance = []     # Compliance tools
+attendance = []     # Attendance tracking
+directory = []      # User directory
+```
+
+### Adding a New Component
+
+1. **Define Feature** in `Cargo.toml`:
+```toml
+[features]
+your_feature = ["dep:required_crate"]
+```
+
+2. **Implement** in appropriate module:
 ```rust
-// src/basic/keywords/mod.rs
-pub fn register_all_keywords(engine: &mut Engine, state: Arc<AppState>) {
-    // ... existing keywords
-    register_my_keyword(engine, state.clone());
+#[cfg(feature = "your_feature")]
+pub mod your_feature {
+    // Implementation
 }
 ```
 
-Use in BASIC scripts:
-```basic
-result = MY_KEYWORD "input data"
-TALK result
-```
-
-### 2. Channel Adapters
-
-Implement a new messaging channel:
-
+3. **Register** in `installer.rs`:
 ```rust
-// src/channels/my_channel.rs
-use async_trait::async_trait;
-use crate::channels::traits::ChannelAdapter;
-
-pub struct MyChannelAdapter {
-    config: MyChannelConfig,
-}
-
-#[async_trait]
-impl ChannelAdapter for MyChannelAdapter {
-    async fn send_message(&self, recipient: &str, message: &str) -> Result<()> {
-        // Send message implementation
-    }
-    
-    async fn receive_message(&self) -> Result<Message> {
-        // Receive message implementation
-    }
-    
-    async fn send_attachment(&self, recipient: &str, file: &[u8]) -> Result<()> {
-        // Send file implementation
-    }
+fn register_your_feature(&mut self) {
+    self.components.insert(
+        "your_feature",
+        Component {
+            name: "Your Feature",
+            description: "Feature description",
+            port: None,
+            setup_required: false,
+        },
+    );
 }
 ```
 
-### 3. Storage Providers
+## Understanding the gbapp → Virtual Crate Mapping
 
-Add support for new storage backends:
+The transition from Node.js packages to Rust modules maintains conceptual familiarity:
 
-```rust
-// src/storage/my_storage.rs
-use async_trait::async_trait;
-use crate::storage::traits::StorageProvider;
+| Old (Node.js) | New (Rust) | Location | Purpose |
+|---------------|------------|----------|---------|
+| `core.gbapp` | `core` module | `src/core/` | Core engine functionality |
+| `basic.gbapp` | `basic` module | `src/basic/` | BASIC interpreter |
+| `whatsapp.gbapp` | `channels::whatsapp` | `src/channels/whatsapp/` | WhatsApp integration |
+| `kb.gbapp` | `storage::kb` | `src/storage/kb/` | Knowledge base |
+| `custom.gbapp` | `custom` module | `src/custom/` | Your contribution |
 
-pub struct MyStorageProvider {
-    client: MyStorageClient,
-}
+### Creating Private gbapp Virtual Crates
 
-#[async_trait]
-impl StorageProvider for MyStorageProvider {
-    async fn get(&self, key: &str) -> Result<Vec<u8>> {
-        // Retrieve object
-    }
-    
-    async fn put(&self, key: &str, data: &[u8]) -> Result<()> {
-        // Store object
-    }
-    
-    async fn delete(&self, key: &str) -> Result<()> {
-        // Delete object
-    }
-    
-    async fn list(&self, prefix: &str) -> Result<Vec<String>> {
-        // List objects
-    }
-}
-```
-
-## Architecture for Extensions
-
-### Plugin System
-
-BotServer uses a modular architecture that supports plugins:
-
-```
-botserver/
-├── src/
-│   ├── core/           # Core functionality
-│   ├── basic/          # BASIC interpreter
-│   │   └── keywords/   # Keyword implementations
-│   ├── channels/       # Channel adapters
-│   ├── storage/        # Storage providers
-│   ├── auth/          # Authentication modules
-│   └── llm/           # LLM integrations
-```
-
-### Dependency Injection
-
-Extensions use dependency injection for configuration:
+For proprietary features, you can still create private gbapps:
 
 ```rust
-// Configuration
-#[derive(Deserialize)]
-pub struct ExtensionConfig {
-    pub enabled: bool,
-    pub options: HashMap<String, String>,
-}
-
-// Registration
-pub fn register_extension(app_state: &mut AppState, config: ExtensionConfig) {
-    if config.enabled {
-        let extension = MyExtension::new(config.options);
-        app_state.extensions.push(Box::new(extension));
-    }
+// Fork BotServer, then add your private gbapp
+// src/proprietary/mod.rs
+#[cfg(feature = "proprietary")]
+pub mod my_private_feature {
+    // Your private implementation
 }
 ```
 
-## Common Extension Patterns
-
-### 1. API Integration
-
-Create a keyword for external API calls:
-
-```rust
-pub fn register_api_keyword(engine: &mut Engine) {
-    engine.register_fn("CALL_API", |url: String, method: String| -> Dynamic {
-        let runtime = tokio::runtime::Runtime::new().unwrap();
-        runtime.block_on(async {
-            let client = reqwest::Client::new();
-            let response = match method.as_str() {
-                "GET" => client.get(&url).send().await,
-                "POST" => client.post(&url).send().await,
-                _ => return Dynamic::from("Invalid method"),
-            };
-            
-            match response {
-                Ok(resp) => Dynamic::from(resp.text().await.unwrap_or_default()),
-                Err(_) => Dynamic::from("Error calling API"),
-            }
-        })
-    });
-}
+Then in `Cargo.toml`:
+```toml
+[features]
+proprietary = []
 ```
 
-### 2. Database Operations
+This keeps your code separate while benefiting from core updates.
 
-Add custom database queries:
+### Benefits of the Virtual Crate Approach
 
-```rust
-pub fn register_db_keyword(engine: &mut Engine, state: Arc<AppState>) {
-    let state_clone = state.clone();
-    engine.register_fn("QUERY_DB", move |sql: String| -> Vec<Dynamic> {
-        let mut conn = state_clone.conn.get().unwrap();
-        
-        // Execute query (with proper sanitization)
-        let results = diesel::sql_query(sql)
-            .load::<CustomResult>(&mut conn)
-            .unwrap_or_default();
-        
-        // Convert to Dynamic
-        results.into_iter()
-            .map(|r| Dynamic::from(r))
-            .collect()
-    });
-}
+1. **Familiar Mental Model**: Developers understand "packages"
+2. **Clean Separation**: Each gbapp is self-contained
+3. **Easy Discovery**: All gbapps visible in `src/`
+4. **Native Performance**: Everything compiles together
+5. **Type Safety**: Rust ensures interfaces are correct
+
+## Real Examples of gbapp Virtual Crates in src/
+
+```
+src/
+├── core/               # Core gbapp - Bootstrap, package manager
+│   ├── mod.rs
+│   ├── bootstrap.rs
+│   └── package_manager/
+│
+├── basic/              # BASIC gbapp - Interpreter and keywords  
+│   ├── mod.rs
+│   ├── interpreter.rs
+│   └── keywords/
+│       ├── mod.rs
+│       ├── talk.rs
+│       ├── hear.rs
+│       └── llm.rs
+│
+├── channels/           # Channels gbapp - Communication adapters
+│   ├── mod.rs
+│   ├── whatsapp.rs
+│   ├── teams.rs
+│   └── email.rs
+│
+└── analytics/          # Your new gbapp!
+    ├── mod.rs
+    ├── keywords.rs     # ADD ANALYTICS, GET METRICS
+    └── services.rs     # Analytics engine
 ```
 
-### 3. Event Handlers
+## Development Environment
 
-Implement custom event processing:
+### System Requirements
 
-```rust
-pub trait EventHandler: Send + Sync {
-    fn handle_event(&self, event: Event) -> Result<()>;
-}
+- **Disk Space**: 8GB minimum for development
+- **RAM**: 8GB recommended
+- **Database**: Any SQL database (abstracted)
+- **Storage**: Any S3-compatible storage (abstracted)
 
-pub struct CustomEventHandler;
+### No Brand Lock-in
 
-impl EventHandler for CustomEventHandler {
-    fn handle_event(&self, event: Event) -> Result<()> {
-        match event {
-            Event::MessageReceived(msg) => {
-                // Process incoming message
-            },
-            Event::SessionStarted(session) => {
-                // Initialize session
-            },
-            Event::Error(err) => {
-                // Handle errors
-            },
-            _ => Ok(()),
-        }
-    }
-}
+BotServer uses generic terms:
+- ❌ PostgreSQL → ✅ "database"
+- ❌ MinIO → ✅ "drive storage"
+- ❌ Qdrant → ✅ "vector database"
+- ❌ Redis → ✅ "cache"
+
+This ensures vendor neutrality and flexibility.
+
+## Security Best Practices
+
+### Regular Audits
+
+Run security audits regularly:
+```bash
+cargo audit
 ```
 
-## Testing Extensions
+This checks for known vulnerabilities in dependencies.
+
+### Secure Coding
+
+When contributing:
+- Validate all inputs
+- Use safe Rust patterns
+- Avoid `unsafe` blocks
+- Handle errors properly
+- Add security tests
+
+## Testing Your Contributions
 
 ### Unit Tests
-
 ```rust
 #[cfg(test)]
 mod tests {
-    use super::*;
-    
     #[test]
-    fn test_my_keyword() {
-        let mut engine = Engine::new();
-        register_my_keyword(&mut engine);
-        
-        let result: String = engine.eval(r#"MY_KEYWORD "test""#).unwrap();
-        assert_eq!(result, "Processed: test");
+    fn test_keyword() {
+        // Test your keyword
     }
 }
 ```
 
 ### Integration Tests
-
 ```rust
 #[tokio::test]
-async fn test_channel_adapter() {
-    let adapter = MyChannelAdapter::new(test_config());
-    
-    // Test sending
-    let result = adapter.send_message("user123", "Test message").await;
-    assert!(result.is_ok());
-    
-    // Test receiving
-    let message = adapter.receive_message().await.unwrap();
-    assert_eq!(message.content, "Expected response");
+async fn test_feature() {
+    // Test feature integration
 }
 ```
 
-## Deployment Considerations
-
-### Configuration
-
-Extensions are configured in `config.csv`:
-
-```csv
-name,value
-extension_my_feature,enabled
-extension_my_feature_option1,value1
-extension_my_feature_option2,value2
+### BASIC Script Tests
+```basic
+' test_script.bas
+result = YOUR KEYWORD "test"
+IF result != "expected" THEN
+    TALK "Test failed"
+ELSE
+    TALK "Test passed"
+END IF
 ```
 
-### Performance Impact
+## Documentation Requirements
 
-Consider performance when adding extensions:
-- Use async operations for I/O
-- Implement caching where appropriate
-- Profile resource usage
-- Add metrics and monitoring
+All contributions must include:
 
-### Security
+1. **Keyword Documentation** in Chapter 6
+2. **Architecture Updates** if structural changes
+3. **API Documentation** for new endpoints
+4. **BASIC Examples** showing usage
+5. **Migration Guide** if breaking changes
 
-Ensure extensions are secure:
-- Validate all input
-- Use prepared statements for database queries
-- Implement rate limiting
-- Add authentication where needed
-- Follow least privilege principle
+## Performance Considerations
 
-## Best Practices
+### Benchmarking
 
-### 1. Error Handling
-
-Always handle errors gracefully:
-
-```rust
-pub fn my_extension_function() -> Result<String> {
-    // Use ? operator for error propagation
-    let data = fetch_data()?;
-    let processed = process_data(data)?;
-    Ok(format!("Success: {}", processed))
-}
+Before submitting:
+```bash
+cargo bench
 ```
 
-### 2. Logging
+### Profiling
 
-Add comprehensive logging:
-
-```rust
-use log::{info, warn, error, debug};
-
-pub fn process_request(req: Request) {
-    debug!("Processing request: {:?}", req);
-    
-    match handle_request(req) {
-        Ok(result) => info!("Request successful: {}", result),
-        Err(e) => error!("Request failed: {}", e),
-    }
-}
+Identify bottlenecks:
+```bash
+cargo flamegraph
 ```
 
-### 3. Documentation
+## Community Guidelines
 
-Document your extensions:
+### What We Accept
 
-```rust
-/// Custom keyword for data processing
-/// 
-/// # Arguments
-/// * `input` - The data to process
-/// 
-/// # Returns
-/// Processed data as a string
-/// 
-/// # Example
-/// ```basic
-/// result = PROCESS_DATA "raw input"
-/// ```
-pub fn process_data_keyword(input: String) -> String {
-    // Implementation
-}
+✅ New BASIC keywords that benefit many users  
+✅ Performance improvements  
+✅ Bug fixes with tests  
+✅ Documentation improvements  
+✅ Security enhancements  
+
+### What We Don't Accept
+
+❌ Vendor-specific integrations (use generic interfaces)  
+❌ Extensions that bypass BASIC  
+❌ Features achievable with existing keywords  
+❌ Undocumented code  
+❌ Code without tests  
+
+## The Power of BASIC + LLM
+
+Remember: In 2025, 100% BASIC/LLM applications are reality. Before adding a keyword, consider:
+
+1. Can this be done with existing keywords + LLM?
+2. Will this keyword benefit multiple use cases?
+3. Does it follow the BASIC philosophy of simplicity?
+
+### Example: No Custom Code Needed
+
+Instead of custom integration code:
+```basic
+' Everything in BASIC
+data = GET "api.example.com/data"
+processed = LLM "Process this data: " + data
+result = FIND "table", "criteria=" + processed
+SEND MAIL user, "Results", result
 ```
 
-## Examples of Extensions
+## Future Direction
 
-### Weather Integration
+BotServer's future is:
+- **Stronger Core**: More powerful built-in keywords
+- **Better LLM Integration**: Smarter AI capabilities
+- **Simpler BASIC**: Even easier scripting
+- **Community-Driven**: Features requested by users
 
-```rust
-pub fn register_weather_keyword(engine: &mut Engine) {
-    engine.register_fn("GET_WEATHER", |city: String| -> String {
-        // Call weather API
-        let api_key = std::env::var("WEATHER_API_KEY").unwrap_or_default();
-        let url = format!("https://api.weather.com/v1/weather?city={}&key={}", city, api_key);
-        
-        // Fetch and parse response
-        // Return weather information
-    });
-}
-```
+## How to Get Started
 
-### Custom Analytics
-
-```rust
-pub struct AnalyticsExtension {
-    client: AnalyticsClient,
-}
-
-impl AnalyticsExtension {
-    pub fn track_event(&self, event: &str, properties: HashMap<String, String>) {
-        self.client.track(Event {
-            name: event.to_string(),
-            properties,
-            timestamp: Utc::now(),
-        });
-    }
-}
-```
+1. **Fork** the repository
+2. **Read** existing code in `src/basic/keywords/`
+3. **Discuss** your idea in GitHub Issues
+4. **Implement** following the patterns
+5. **Test** thoroughly
+6. **Document** completely
+7. **Submit** PR with clear explanation
 
 ## Summary
 
-Extending BotServer allows you to:
-- Add domain-specific functionality
-- Integrate with existing systems
-- Support new communication channels
-- Implement custom business logic
-- Enhance the platform's capabilities
+The `.gbapp` concept has elegantly evolved from external Node.js packages to **virtual crates** within `src/`. This approach:
+- **Preserves the mental model** developers are familiar with
+- **Maps perfectly** to Rust's module system
+- **Encourages contribution** by making the structure clear
+- **Maintains separation** while compiling to a single binary
 
-The modular architecture and clear extension points make it straightforward to add new features while maintaining system stability and performance.
+Each directory in `src/` is effectively a gbapp - contribute by adding your own! With BASIC + LLM handling the complexity, your gbapp just needs to provide the right keywords and services.
 
 ## See Also
 
-- [Prompt Manager](./prompt-manager.md) - Managing AI prompts and responses
-- [Hooks System](./hooks.md) - Event-driven extensions
-- [Adapter Development](./adapters.md) - Creating custom adapters
-- [Chapter 2: Packages](../chapter-02/README.md) - Understanding bot components
-- [Chapter 3: KB and Tools](../chapter-03/kb-and-tools.md) - Knowledge base and tool system
-- [Chapter 5: BASIC Reference](../chapter-05/README.md) - Complete command reference
-- [Chapter 8: External APIs](../chapter-08/external-apis.md) - API integration patterns
-- [Chapter 9: Advanced Topics](../chapter-09/README.md) - Advanced features
-- [Chapter 10: Development](../chapter-10/README.md) - Development tools and practices
+- [Philosophy](./philosophy.md) - The gbapp philosophy: Let machines do machine work
+- [Architecture](./architecture.md) - System architecture
+- [Building](./building.md) - Build process
+- [Custom Keywords](./custom-keywords.md) - Keyword implementation
+- [Services](./services.md) - Core services
+- [Chapter 6: BASIC Reference](../chapter-06-gbdialog/README.md) - BASIC language
+- [Chapter 9: API](../chapter-09-api/README.md) - API documentation
