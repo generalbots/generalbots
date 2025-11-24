@@ -313,3 +313,8 @@ Welcome to the community!
 - [Chapter 9: Advanced Topics](../chapter-09/README.md) - Advanced features
 - [Chapter 11: Infrastructure](../chapter-11/README.md) - Deployment and infrastructure
 - [Chapter 12: Web API](../chapter-12/README.md) - REST and WebSocket APIs
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

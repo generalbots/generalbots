@@ -1,3 +1,7 @@
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="400">
+</div>
+
 # General Bots Documentation
 
 Welcome to the **General Bots** documentation. This guide explains how to install, configure, extend, and deploy conversational AI bots using General Bots' template-based package system and BASIC scripting language.

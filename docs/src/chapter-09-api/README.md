@@ -195,3 +195,8 @@ The future of API integration isn't about writing more code - it's about providi
 - [Tool Definition](./tool-definition.md) - Deep dive into creating tools
 - [External APIs](./external-apis.md) - Connect to any web service
 - [PARAM Declaration](./param-declaration.md) - Master parameter definitions
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

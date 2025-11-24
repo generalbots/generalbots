@@ -15,21 +15,21 @@ The console displays real-time information about your running BotServer instance
 
 ```
 ╔════════════════════════════════════════════════════════════╗
-║                    BotServer Console                        ║
+║                    BotServer Console                       ║
 ╠════════════════════════════════════════════════════════════╣
-║ Status: Running                                             ║
+║ Status: Running                                            ║
 ║ Uptime: 2h 34m 12s                                         ║
-║ Port: 8080                                                  ║
-║                                                             ║
-║ Components:                                                 ║
-║   PostgreSQL: ✓ Connected                                   ║
-║   Valkey:     ✓ Connected                                   ║
-║   Storage:    ✓ Connected                                   ║
-║   Vectors:    ✓ Connected                                   ║
-║                                                             ║
-║ Active Sessions: 12                                         ║
-║ Messages Today: 1,234                                       ║
-║                                                             ║
+║ Port: 8080                                                 ║
+║                                                            ║
+║ Components:                                                ║
+║   PostgreSQL: ✓ Connected                                  ║
+║   Valkey:     ✓ Connected                                  ║
+║   Storage:    ✓ Connected                                  ║
+║   Vectors:    ✓ Connected                                  ║
+║                                                            ║
+║ Active Sessions: 12                                        ║
+║ Messages Today: 1,234                                      ║
+║                                                            ║
 ║ Press 'q' to quit, 'r' to refresh                          ║
 ╚════════════════════════════════════════════════════════════╝
 ```

@@ -12,82 +12,11 @@ The knowledge base system transforms unstructured documents into queryable seman
 
 The knowledge base architecture implements a multi-stage pipeline for document processing and retrieval:
 
-<svg width="800" height="600" viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
-  <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="currentColor">Knowledge Base Architecture Pipeline</text>
-  
-  <!-- Document Ingestion Layer -->
-  <rect x="100" y="60" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Document Ingestion Layer</text>
-  <text x="400" y="105" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(PDF, Word, Excel, Text, HTML, Markdown)</text>
-  
-  <!-- Arrow -->
-  <path d="M 400 120 L 400 140" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
-  
-  <!-- Preprocessing Pipeline -->
-  <rect x="100" y="140" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Preprocessing Pipeline</text>
-  <text x="400" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Extraction, Cleaning, Normalization, Validation)</text>
-  
-  <!-- Arrow -->
-  <path d="M 400 200 L 400 220" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
-  
-  <!-- Chunking Engine -->
-  <rect x="100" y="220" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="245" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Chunking Engine</text>
-  <text x="400" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Semantic Segmentation, Overlap Management, Metadata)</text>
-  
-  <!-- Arrow -->
-  <path d="M 400 280 L 400 300" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
-  
-  <!-- Embedding Generation -->
-  <rect x="100" y="300" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="325" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Embedding Generation</text>
-  <text x="400" y="345" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Transformer Models, Dimensionality Reduction)</text>
-  
-  <!-- Arrow -->
-  <path d="M 400 360 L 400 380" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
-  
-  <!-- Vector Index Layer -->
-  <rect x="100" y="380" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Vector Index Layer</text>
-  <text x="400" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(HNSW Index, Quantization, Sharding)</text>
-  
-  <!-- Arrow -->
-  <path d="M 400 440 L 400 460" stroke="currentColor" stroke-width="2" fill="none" marker-end="url(#arrowhead)" opacity="0.7"/>
-  
-  <!-- Retrieval Engine -->
-  <rect x="100" y="460" width="600" height="60" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  <text x="400" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Retrieval Engine</text>
-  <text x="400" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="currentColor" opacity="0.8">(Semantic Search, Hybrid Retrieval, Re-ranking)</text>
-  
-  <!-- Side annotations -->
-  <text x="50" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7" transform="rotate(-90 50 95)">Input</text>
-  <text x="50" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.7" transform="rotate(-90 50 495)">Output</text>
-  
-  <!-- Data flow indicators on the right -->
-  <text x="750" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Raw Docs</text>
-  <text x="750" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Clean Text</text>
-  <text x="750" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Chunks</text>
-  <text x="750" y="335" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Vectors</text>
-  <text x="750" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Index</text>
-  <text x="750" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="currentColor" opacity="0.6">Results</text>
-  
-  <!-- Arrow marker definition -->
-  <defs>
-    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="5" refY="5" orient="auto">
-      <polygon points="0 0, 10 5, 0 10" fill="currentColor"/>
-    </marker>
-  </defs>
-  
-  <!-- Performance metrics box -->
-  <rect x="100" y="540" width="600" height="40" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="5,5" rx="3" opacity="0.5"/>
-  <text x="400" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="currentColor" font-style="italic" opacity="0.7">Pipeline processes ~1000 documents/minute with &lt;50ms query latency (p99)</text>
-</svg>
+<img src="./assets/kb-architecture-pipeline.svg" alt="Knowledge Base Architecture Pipeline" style="max-height: 600px; width: 100%; object-fit: contain;">
 
 ### Technical Specifications
 
-<svg width="900" height="450" viewBox="0 0 900 450" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+<img src="./assets/technical-specs.svg" alt="Technical Specifications" style="max-height: 450px; width: 100%; object-fit: contain;">
   <!-- Title -->
   <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">System Technical Specifications</text>
   
@@ -178,7 +107,7 @@ The system implements format-specific extractors for comprehensive document supp
 
 #### The Storage Multiplication Factor
 
-<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+<img src="./assets/context-window.svg" alt="Context Window Optimization" style="max-height: 500px; width: 100%; object-fit: contain;">
   <!-- Title -->
   <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="currentColor">Vector Database Storage Requirements: The Real Mathematics</text>
   
@@ -291,7 +220,7 @@ Where:
 
 #### Detailed Storage Breakdown by Component
 
-<svg width="900" height="400" viewBox="0 0 900 400" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+<img src="./assets/storage-multiplication.svg" alt="Storage Multiplication Factor" style="max-height: 350px; width: 100%; object-fit: contain;">
   <!-- Title -->
   <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">Storage Components per 1TB of Documents</text>
   
@@ -519,7 +448,7 @@ Advanced re-ranking for improved precision:
 
 ### Context Window Optimization
 
-<svg width="900" height="500" viewBox="0 0 900 500" xmlns="http://www.w3.org/2000/svg" style="background: transparent;">
+<img src="./assets/storage-breakdown.svg" alt="Storage Breakdown by Component" style="max-height: 250px; width: 100%; object-fit: contain;">
   <!-- Title -->
   <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">LLM Context Compression Strategies</text>
   
@@ -805,3 +734,8 @@ Real-time monitoring dashboard tracks:
 ## Conclusion
 
 The General Bots Knowledge Base system provides a robust, scalable foundation for semantic search and retrieval. Through careful architectural decisions, optimization strategies, and comprehensive monitoring, the system delivers high-performance information retrieval while maintaining quality and reliability. The integration with modern LLM systems enables powerful retrieval-augmented generation capabilities, enhancing the overall intelligence and responsiveness of the bot platform.
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>

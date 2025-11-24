@@ -31,3 +31,9 @@ This table maps major features of GeneralBots to the chapters and keywords that 
 - [Chapter 8: Integrations](../chapter-08/README.md) - External integrations
 - [Chapter 10: Development](../chapter-10/README.md) - Development tools
 - [Chapter 12: Web API](../chapter-12/README.md) - REST and WebSocket APIs
+
+---
+
+<div align="center">
+  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
+</div>
