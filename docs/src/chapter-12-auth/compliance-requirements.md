@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document provides a comprehensive checklist for security and compliance requirements across multiple frameworks (GDPR, SOC 2, ISO 27001, HIPAA, LGPD) using the actual components deployed in BotServer.
+This document provides a comprehensive checklist for security and compliance requirements across multiple frameworks (GDPR, SOC 2, ISO 27001, HIPAA, LGPD) using the actual components deployed in General Bots.
 
 ## Component Stack
 
@@ -10,7 +10,7 @@ This document provides a comprehensive checklist for security and compliance req
 |-----------|---------|---------|
 | **Caddy** | Reverse proxy, TLS termination, web server | Apache 2.0 |
 | **PostgreSQL** | Relational database | PostgreSQL License |
-| **Zitadel** | Identity and access management | Apache 2.0 |
+| **General Bots Directory** | Identity and access management (Zitadel/Keycloak) | Apache 2.0 |
 | **Drive** | S3-compatible object storage | AGPLv3 |
 | **Stalwart** | Mail server (SMTP/IMAP) | AGPLv3 |
 | **Qdrant** | Vector database | Apache 2.0 |
@@ -71,21 +71,21 @@ app.example.com {
 
 ---
 
-## Identity & Access Management (Zitadel)
+## Identity & Access Management (General Bots Directory)
 
 | Status | Requirement | Component | Standard | Implementation |
 |--------|-------------|-----------|----------|----------------|
-| ✅ | MFA Implementation | Zitadel | All | TOTP/SMS/Hardware token support |
-| ✅ | RBAC Configuration | Zitadel | All | Role-based access control with custom roles |
-| ✅ | Password Policy | Zitadel | All | Min 12 chars, complexity requirements, history |
-| ✅ | OAuth2/OIDC Setup | Zitadel | ISO 27001 | OAuth 2.0 and OpenID Connect flows |
-| ✅ | Audit Logging | Zitadel | All | Comprehensive user activity logs |
-| ✅ | Session Management | Zitadel | All | Configurable timeouts and invalidation |
-| ✅ | SSO Support | Zitadel | Enterprise | SAML and OIDC SSO integration |
-| ⚠️ | Password Rotation | Zitadel | HIPAA | Configure 90-day rotation policy |
-| 📝 | Access Reviews | Zitadel | All | Quarterly manual review of user permissions |
+| ✅ | MFA Implementation | Directory | All | TOTP/SMS/Hardware token support |
+| ✅ | RBAC Configuration | Directory | All | Role-based access control with custom roles |
+| ✅ | Password Policy | Directory | All | Min 12 chars, complexity requirements, history |
+| ✅ | OAuth2/OIDC Setup | Directory | ISO 27001 | OAuth 2.0 and OpenID Connect flows |
+| ✅ | Audit Logging | Directory | All | Comprehensive user activity logs |
+| ✅ | Session Management | Directory | All | Configurable timeouts and invalidation |
+| ✅ | SSO Support | Directory | Enterprise | SAML and OIDC SSO integration |
+| ⚠️ | Password Rotation | Directory | HIPAA | Configure 90-day rotation policy |
+| 📝 | Access Reviews | Directory | All | Quarterly manual review of user permissions |
 
-**Configuration**: Zitadel Admin Console (`http://localhost:8080`)
+**Configuration**: Directory Admin Console (`http://localhost:8080`)
 
 **Key Settings**:
 - Password min length: 12 characters
@@ -148,7 +148,7 @@ log_statement = 'all'
 | ⚠️ | Lifecycle Rules | Drive | LGPD | Configure data retention and auto-deletion |
 | ✅ | Immutable Objects | Drive | Compliance | WORM (Write-Once-Read-Many) support |
 | 🔄 | Replication | Drive | HIPAA | Multi-site replication for DR |
-| ✅ | IAM Integration | Drive | All | Integration with Zitadel via OIDC |
+| ✅ | IAM Integration | Drive | All | Integration with Directory Service via OIDC |
 
 **Environment Variables**:
 ```bash
@@ -189,7 +189,7 @@ DRIVE_IDENTITY_OPENID_CLIENT_SECRET=secret
 | ✅ | Content Filtering | Stalwart | All | Spam and malware filtering |
 | ⚠️ | Mail Archiving | Stalwart | HIPAA | Configure long-term email archiving |
 | ✅ | Sieve Filtering | Stalwart | All | Server-side mail filtering |
-| ✅ | Authentication | Stalwart | All | OIDC integration with Zitadel |
+| ✅ | Authentication | Stalwart | All | OIDC integration with Directory Service |
 | 📝 | Retention Policy | Stalwart | GDPR/LGPD | Define and implement email retention |
 
 **Configuration File**: `/etc/stalwart/config.toml`
@@ -383,12 +383,12 @@ Unattended-Upgrade::Automatic-Reboot-Time "03:00";
 BACKUP_DATE=$(date +%Y%m%d_%H%M%S)
 
 # PostgreSQL backup
-pg_dump -h localhost -U postgres botserver | \
+pg_dump -h localhost -U postgres generalbots | \
   gzip | \
   openssl enc -aes-256-cbc -salt -out /backup/pg_${BACKUP_DATE}.sql.gz.enc
 
 # Drive backup
-mc mirror drive/botserver /backup/drive_${BACKUP_DATE}/
+mc mirror drive/generalbots /backup/drive_${BACKUP_DATE}/
 
 # Qdrant snapshot
 curl -X POST "http://localhost:6333/collections/botserver/snapshots"
@@ -557,7 +557,7 @@ sudo crontab -e
 
 - **Internal Security Team**: security@pragmatismo.com.br
 - **Compliance Officer**: compliance@pragmatismo.com.br
-- **Documentation**: https://docs.generalbots.ai
+- **Documentation**: https://docs.pragmatismo.com.br
 - **Component Documentation**: See "Component Security Documentation" in security-features.md
 
 ---

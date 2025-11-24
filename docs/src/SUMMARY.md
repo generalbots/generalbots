@@ -82,7 +82,7 @@
     - [SEND MAIL](./chapter-06-gbdialog/keyword-send-mail.md)
     - [FIND](./chapter-06-gbdialog/keyword-find.md)
 
-# Part VII - Extending BotServer
+# Part VII - Extending General Bots
 
 - [Chapter 07: gbapp Architecture Reference](./chapter-07-gbapp/README.md)
   - [Architecture Overview](./chapter-07-gbapp/architecture.md)
@@ -117,30 +117,45 @@
   - [NVIDIA GPU Setup for LXC](./chapter-09-api/nvidia-gpu-setup.md)
 
 
+- [Chapter 10: REST API Reference](./chapter-10-api/README.md)
+  - [Files API](./chapter-10-api/files-api.md)
+  - [Document Processing API](./chapter-10-api/document-processing.md)
+  - [Users API](./chapter-10-api/users-api.md)
+  - [User Security API](./chapter-10-api/user-security.md)
+  - [Groups API](./chapter-10-api/groups-api.md)
+  - [Group Membership API](./chapter-10-api/group-membership.md)
+  - [Conversations API](./chapter-10-api/conversations-api.md)
+  - [Calls API](./chapter-10-api/calls-api.md)
+  - [Whiteboard API](./chapter-10-api/whiteboard-api.md)
+  - [Email API](./chapter-10-api/email-api.md)
+  - [Notifications API](./chapter-10-api/notifications-api.md)
+  - [Calendar API](./chapter-10-api/calendar-api.md)
+  - [Tasks API](./chapter-10-api/tasks-api.md)
+  - [Storage API](./chapter-10-api/storage-api.md)
+  - [Backup API](./chapter-10-api/backup-api.md)
+  - [Analytics API](./chapter-10-api/analytics-api.md)
+  - [Reports API](./chapter-10-api/reports-api.md)
+  - [Admin API](./chapter-10-api/admin-api.md)
+  - [Monitoring API](./chapter-10-api/monitoring-api.md)
+  - [AI API](./chapter-10-api/ai-api.md)
+  - [ML API](./chapter-10-api/ml-api.md)
+  - [Security API](./chapter-10-api/security-api.md)
+  - [Compliance API](./chapter-10-api/compliance-api.md)
+  - [Example Integrations](./chapter-10-api/examples.md)
+
 # Part X - Feature Deep Dive
 
-- [Chapter 10: Feature Reference](./chapter-10-features/README.md)
-  - [Core Features](./chapter-10-features/core-features.md)
-  - [Conversation Management](./chapter-10-features/conversation.md)
-  - [AI and LLM](./chapter-10-features/ai-llm.md)
-  - [Knowledge Base](./chapter-10-features/knowledge-base.md)
-  - [Automation](./chapter-10-features/automation.md)
-  - [Email Integration](./chapter-10-features/email.md)
-  - [UI Automation](./chapter-10-features/ui-automation.md)
-  - [Storage and Data](./chapter-10-features/storage.md)
-  - [Multi-Channel Support](./chapter-10-features/channels.md)
+- [Chapter 11: Feature Reference](./chapter-11-features/README.md)
+  - [Core Features](./chapter-11-features/core-features.md)
+  - [Conversation Management](./chapter-11-features/conversation.md)
+  - [AI and LLM](./chapter-11-features/ai-llm.md)
+  - [Knowledge Base](./chapter-11-features/knowledge-base.md)
+  - [Automation](./chapter-11-features/automation.md)
+  - [Email Integration](./chapter-11-features/email.md)
+  - [Storage and Data](./chapter-11-features/storage.md)
+  - [Multi-Channel Support](./chapter-11-features/channels.md)
 
-# Part XI - Community
-
-- [Chapter 11: Contributing](./chapter-11-community/README.md)
-  - [Development Setup](./chapter-11-community/setup.md)
-  - [Testing Guide](./chapter-11-community/testing.md)
-  - [Documentation](./chapter-11-community/documentation.md)
-  - [Pull Requests](./chapter-11-community/pull-requests.md)
-  - [Community Guidelines](./chapter-11-community/community.md)
-  - [IDE Extensions](./chapter-11-community/ide-extensions.md)
-
-# Part XII - Authentication and Security
+# Part XI - Authentication and Security
 
 - [Chapter 12: Authentication](./chapter-12-auth/README.md)
   - [User Authentication](./chapter-12-auth/user-auth.md)
@@ -151,33 +166,15 @@
   - [Security Policy](./chapter-12-auth/security-policy.md)
   - [Compliance Requirements](./chapter-12-auth/compliance-requirements.md)
 
-# Part XIII - REST API Reference
+# Part XII - Community
 
-- [Chapter 13: REST API Reference](./chapter-13-api/README.md)
-  - [Files API](./chapter-13-api/files-api.md)
-  - [Document Processing API](./chapter-13-api/document-processing.md)
-  - [Users API](./chapter-13-api/users-api.md)
-  - [User Security API](./chapter-13-api/user-security.md)
-  - [Groups API](./chapter-13-api/groups-api.md)
-  - [Group Membership API](./chapter-13-api/group-membership.md)
-  - [Conversations API](./chapter-13-api/conversations-api.md)
-  - [Calls API](./chapter-13-api/calls-api.md)
-  - [Whiteboard API](./chapter-13-api/whiteboard-api.md)
-  - [Email API](./chapter-13-api/email-api.md)
-  - [Notifications API](./chapter-13-api/notifications-api.md)
-  - [Calendar API](./chapter-13-api/calendar-api.md)
-  - [Tasks API](./chapter-13-api/tasks-api.md)
-  - [Storage API](./chapter-13-api/storage-api.md)
-  - [Backup API](./chapter-13-api/backup-api.md)
-  - [Analytics API](./chapter-13-api/analytics-api.md)
-  - [Reports API](./chapter-13-api/reports-api.md)
-  - [Admin API](./chapter-13-api/admin-api.md)
-  - [Monitoring API](./chapter-13-api/monitoring-api.md)
-  - [AI API](./chapter-13-api/ai-api.md)
-  - [ML API](./chapter-13-api/ml-api.md)
-  - [Security API](./chapter-13-api/security-api.md)
-  - [Compliance API](./chapter-13-api/compliance-api.md)
-  - [Example Integrations](./chapter-13-api/examples.md)
+- [Chapter 13: Contributing](./chapter-13-community/README.md)
+  - [Development Setup](./chapter-13-community/setup.md)
+  - [Testing Guide](./chapter-13-community/testing.md)
+  - [Documentation](./chapter-13-community/documentation.md)
+  - [Pull Requests](./chapter-13-community/pull-requests.md)
+  - [Community Guidelines](./chapter-13-community/community.md)
+  - [IDE Extensions](./chapter-13-community/ide-extensions.md)
 
 # Appendices
 

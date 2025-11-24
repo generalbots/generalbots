@@ -1,10 +1,10 @@
 # Bot Authentication
 
-BotServer implements bot authentication through session-based mechanisms, where bots are associated with user sessions and authenticated through the system.
+General Bots implements bot authentication through session-based mechanisms, where bots are associated with user sessions and authenticated through the system.
 
 ## Overview
 
-Bot authentication in BotServer:
+Bot authentication in General Bots:
 - Bots are registered in the database with unique IDs
 - Sessions link users to specific bots
 - No separate bot authentication - bots operate within user sessions
@@ -33,7 +33,7 @@ Configuration stored in `bot_configuration` table:
 
 ### How It Works
 
-1. User authenticates (via Zitadel)
+1. User authenticates (via Directory Service)
 2. User selects bot to interact with
 3. Session created linking user + bot
 4. All operations scoped to that bot
@@ -281,4 +281,4 @@ Potential enhancements:
 
 ## Summary
 
-Bot authentication in BotServer is inherently tied to user authentication. Bots don't authenticate independently but operate within the context of authenticated user sessions. This design ensures security through user-based access control while maintaining simplicity in the authentication model.
+Bot authentication in General Bots is inherently tied to user authentication. Bots don't authenticate independently but operate within the context of authenticated user sessions. This design ensures security through user-based access control while maintaining simplicity in the authentication model.

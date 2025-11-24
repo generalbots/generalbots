@@ -397,11 +397,9 @@ CLEAR TOOLS
 - [Chapter 9: API and Tools](../chapter-09-api/README.md) - Tool integration
 
 ### Further Reading - Blog Posts
-- [BASIC LLM Tools](https://pragmatismo.cloud/blog/basic-llm-tools) - Extending LLMs with tools
-- [MCP is the new API](https://pragmatismo.cloud/blog/mcp-is-the-new-api) - Modern tool integration
-- [Beyond Chatbots](https://pragmatismo.cloud/blog/beyond-chatbots) - Using knowledge bases effectively
+- [BASIC LLM Tools](https://pragmatismo.com.br/blog/basic-llm-tools) - Extending LLMs with tools
+- [MCP is the new API](https://pragmatismo.com.br/blog/mcp-is-the-new-api) - Modern tool integration
+- [Beyond Chatbots](https://pragmatismo.com.br/blog/beyond-chatbots) - Using knowledge bases effectively
 
 ### Next Chapter
 Continue to [Chapter 4: User Interface](../chapter-04-gbui/README.md) to learn about creating bot interfaces.
-
-

@@ -79,7 +79,7 @@ CHANGE THEME "default"
 
 ## Pre-built Themes
 
-BotServer includes example themes you can use as starting points:
+General Bots includes example themes you can use as starting points:
 
 - **default** - Clean, modern interface
 - **3dbevel** - Retro Windows 95 style
@@ -143,9 +143,49 @@ END IF
 - Avoid too many web fonts
 - Use CSS transforms instead of position changes
 
+## Beyond Themes: Full UI Customization
+
+While themes provide CSS styling, you have more powerful options for UI customization:
+
+### Extend the Default UI
+
+You can modify the `.gbui` package to create custom HTML structures:
+- Copy and modify the default UI templates
+- Add your own components and layouts
+- Create entirely new interaction patterns
+- The bot will use your custom UI automatically
+
+### Build Your Own UI Framework
+
+General Bots is designed as a foundation for your projects:
+- Fork the repository and customize everything
+- Create industry-specific interfaces
+- Develop unique bot experiences
+- Use it as a base for commercial products
+
+### Join the Community
+
+**We actively encourage contributions!**
+- Submit UI improvements via pull requests
+- Share creative themes with others
+- Develop new UI paradigms
+- Help improve documentation
+
+The UI layer is completely independent - you're free to reimagine how users interact with bots. The core engine provides the intelligence, you provide the experience.
+
+### Getting Started
+1. Fork the [General Bots repository](https://github.com/GeneralBots/botserver)
+2. Study the default.gbui structure
+3. Experiment with your own designs
+4. Share your innovations with the community
+
+Remember: It's just HTML/CSS/JS talking to the bot via WebSocket. You have complete creative freedom!
+
 ## Summary
 
 The `.gbtheme` system keeps styling simple and separate from bot logic. Just drop a CSS file in the `.gbtheme` folder and your bot gets a new look. Focus on the essentials - colors, fonts, and spacing - and let the default styles handle the rest.
+
+For deeper customization, extend the `.gbui` package or build your own UI framework. General Bots is meant to be a starting point for your creativity!
 
 ## See Also
 

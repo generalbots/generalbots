@@ -2,13 +2,13 @@
 
 ## Overview
 
-This comprehensive security policy establishes the framework for protecting BotServer systems, data, and operations. It covers information security, access control, data protection, incident response, and ongoing maintenance procedures.
+This comprehensive security policy establishes the framework for protecting General Bots systems, data, and operations. It covers information security, access control, data protection, incident response, and ongoing maintenance procedures.
 
 ## 1. Information Security Policy
 
 ### 1.1 Purpose and Scope
 
-This Information Security Policy applies to all users, systems, and data within the BotServer infrastructure. It establishes the standards for protecting confidential information, maintaining system integrity, and ensuring business continuity.
+This Information Security Policy applies to all users, systems, and data within the General Bots infrastructure. It establishes the standards for protecting confidential information, maintaining system integrity, and ensuring business continuity.
 
 ### 1.2 Information Classification
 
@@ -37,8 +37,8 @@ This IT security policy helps us achieve these objectives.
 ### 1.4 Roles and Responsibilities
 
 • **Rodrigo Rodriguez** is the director with overall responsibility for IT security strategy
-• **Microsoft** is the IT partner organisation we use to help with our planning and support
-• **Microsoft** is the data protection officer to advise on data protection laws and best practices
+• **Pragmatismo Data Center** is the IT partner organisation we use to help with our planning and support
+• **Pragmatismo Data Center** is the data protection officer to advise on data protection laws and best practices
 • **All employees** are responsible for following security policies and reporting security incidents
 • **System administrators** are responsible for implementing and maintaining security controls
 • **Department heads** are responsible for ensuring their teams comply with security policies

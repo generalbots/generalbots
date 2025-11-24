@@ -5,7 +5,7 @@ REM Can be used by ANY template that needs to send emails
 PARAM to_email AS string LIKE "user@example.com"
 PARAM subject AS string LIKE "Important Message"
 PARAM body AS string LIKE "Hello, this is the email body content."
-PARAM from_email AS string LIKE "noreply@generalbots.ai"
+PARAM from_email AS string LIKE "noreply@pragmatismo.com.br"
 
 DESCRIPTION "Send an email to any recipient with subject and body"
 
@@ -24,7 +24,7 @@ IF NOT body OR body = "" THEN
 END IF
 
 IF NOT from_email OR from_email = "" THEN
-    from_email = "noreply@generalbots.ai"
+    from_email = "noreply@pragmatismo.com.br"
 END IF
 
 TALK "📧 Preparing to send email..."

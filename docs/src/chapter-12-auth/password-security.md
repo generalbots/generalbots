@@ -1,6 +1,6 @@
 # Password Security
 
-BotServer delegates all password security to Zitadel, an enterprise-grade identity management platform. No passwords are ever stored, hashed, or managed within BotServer itself.
+General Bots delegates all password security to the Directory Service (currently Zitadel, can be migrated to Keycloak), an enterprise-grade identity management platform. No passwords are ever stored, hashed, or managed within General Bots itself.
 
 ## Overview
 
@@ -13,7 +13,7 @@ Password security is handled entirely by Zitadel, which provides:
 
 ## No Internal Password Management
 
-### What BotServer Does NOT Do
+### What General Bots Does NOT Do
 
 - **No password storage**: No password or hash columns in database
 - **No hashing implementation**: No Argon2/bcrypt code in BotServer
@@ -21,7 +21,7 @@ Password security is handled entirely by Zitadel, which provides:
 - **No password reset logic**: Handled through Zitadel workflows
 - **No password policies**: Configured in Zitadel admin console
 
-### What BotServer DOES Do
+### What General Bots DOES Do
 
 - Redirects to Zitadel for authentication
 - Stores Zitadel user IDs
@@ -138,26 +138,26 @@ Additional security beyond passwords:
 
 ### Bootstrap Process
 
-During setup, BotServer:
-1. Installs Zitadel
+During setup, General Bots:
+1. Installs Directory Service (Zitadel)
 2. Configures database connection
-3. Creates admin account with default password
-4. Default: `BotServer123!` (must be changed)
+3. Creates admin account with randomly generated password
+4. Password is displayed once during initial setup
 
 ### Authentication Flow
 
-1. User enters credentials in Zitadel UI
-2. Zitadel validates password
+1. User enters credentials in Directory Service UI
+2. Directory Service validates password
 3. OIDC tokens issued
-4. BotServer receives tokens
-5. No password ever touches BotServer
+4. General Bots receives tokens
+5. No password ever touches General Bots
 
 ### Session Management
 
-After Zitadel authentication:
-- BotServer creates local session
+After Directory Service authentication:
+- General Bots creates local session
 - Session token generated (not password-related)
-- User ID linked to Zitadel ID
+- User ID linked to Directory Service ID
 - No password data stored
 
 ## Default Credentials
@@ -166,28 +166,28 @@ After Zitadel authentication:
 
 Created during bootstrap:
 - Username: `admin`
-- Password: `BotServer123!`
-- **MUST BE CHANGED** on first login
-- Enforced by Zitadel if configured
+- Password: **Randomly generated**
+- Displayed once during initial setup
+- Should be stored securely or changed immediately
 
 ### Initial User Account
 
 Created during bootstrap:
 - Username: `user`
-- Password: `User123!`
-- Should be changed by user
-- Subject to configured policies
+- Password: **Randomly generated**
+- Displayed once during initial setup
+- Must be changed on first login
 
 ## Best Practices
 
 ### For Administrators
 
-1. **Change Defaults**: Immediately change default passwords
+1. **Secure Initial Passwords**: Store or change randomly generated passwords immediately
 2. **Configure Policies**: Set appropriate password requirements
 3. **Enable MFA**: Require for admin accounts
 4. **Monitor Logs**: Review authentication attempts
 5. **Update Regularly**: Keep Zitadel updated
-6. **Test Recovery**: Verify password reset works
+6. **Test Recovery**: Verify password reset works through Directory Service
 
 ### For Developers
 
@@ -286,4 +286,4 @@ If migrating from a system with internal passwords:
 
 ## Summary
 
-BotServer achieves enterprise-grade password security by not handling passwords at all. Zitadel provides professional identity management with all the security features needed for production deployments. This separation of concerns allows BotServer to focus on bot functionality while delegating security to a specialized platform.
+General Bots achieves enterprise-grade password security by not handling passwords at all. The Directory Service provides professional identity management with all the security features needed for production deployments. This separation of concerns allows General Bots to focus on bot functionality while delegating security to a specialized platform.
