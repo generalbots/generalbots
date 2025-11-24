@@ -58,15 +58,12 @@ Enterprise-ready security features:
 
 General Bots uses the Directory Service (currently Zitadel, but can be migrated to Keycloak or other OIDC providers) as the primary identity provider:
 
-```rust
-// Location: src/auth/directory.rs
-// Features:
+Features:
 - OAuth2/OIDC authentication
 - JWT token validation
 - User/group management
 - Permission management
 - Session handling
-```
 
 ### Password Security
 
@@ -98,17 +95,15 @@ General Bots uses the Directory Service (currently Zitadel, but can be migrated 
 
 ### Data Encryption
 
-```rust
-// Encryption at rest
+**Encryption at rest:**
 - Database: Column-level encryption for sensitive fields
 - File storage: AES-256-GCM for uploaded files
 - Configuration: Encrypted secrets with master key
 
-// Encryption in transit
+**Encryption in transit:**
 - TLS 1.3 for all external communications
 - mTLS for service-to-service communication
 - Certificate pinning for critical services
-```
 
 ## Network Security
 
@@ -169,26 +164,24 @@ General Bots uses the Directory Service (currently Zitadel, but can be migrated 
   - Temporary files: Secure deletion
 
 ### Memory Security
+### Memory Protection
 
-```rust
-// Memory protection measures
+Memory protection measures:
 - Zeroization of sensitive data
 - No logging of secrets
 - Secure random generation
 - Protected memory pages for crypto keys
-```
 
 ## Audit & Compliance
 
 ### Logging Configuration
+### Log Security
 
-```rust
-// Structured logging with tracing
+Structured logging configuration:
 - Level: INFO (production), DEBUG (development)
 - Format: JSON for machine parsing
 - Rotation: Daily with 30-day retention
 - Sensitive data: Redacted
-```
 
 ### Audit Events
 
@@ -465,8 +458,8 @@ For security issues or questions:
 - [LiveKit Security](https://docs.livekit.io/realtime/server/security/) - Video conferencing
 
 ## References
+## Resources
 
 - [OWASP Top 10](https://owasp.org/Top10/)
 - [CIS Controls](https://www.cisecurity.org/controls/)
 - [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
-- [Rust Security Guidelines](https://anssi-fr.github.io/rust-guide/)

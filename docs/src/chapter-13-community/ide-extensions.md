@@ -1,53 +1,52 @@
-# IDE Extensions
+# IDEs
 
-BotServer provides extensions and plugins for modern code editors to enhance the development experience with BASIC scripts, bot configurations, and platform integration.
+General Bots supports development with any text editor or IDE. Choose the one that works best for your workflow.
 
-## Zed Editor (Recommended)
+## Zed Editor (Best for Rust Development)
 
-Zed is a high-performance, collaborative code editor built for the modern developer.
+Zed is a high-performance, collaborative code editor that excels at Rust development and is recommended for working with General Bots core.
+
+### Why Zed?
+- Native Rust support with excellent syntax highlighting
+- Fast performance and minimal resource usage
+- Built-in collaboration features
+- Modern, clean interface
 
 ### Installation
 
 ```bash
 # Install Zed
 curl https://zed.dev/install.sh | sh
-
-# Install BotServer extension
-zed --install-extension botserver
 ```
 
-### Features
+## Other Popular IDEs
 
-#### Syntax Highlighting
-- BASIC keywords and functions
-- Configuration CSV files
-- Bot package structure recognition
-- Theme CSS variables
+You can use any IDE or text editor you prefer:
 
-#### Language Server Protocol (LSP)
+### Visual Studio Code
+- Extensive extension marketplace
+- Good BASIC syntax highlighting with custom extensions
+- Integrated terminal for running General Bots
+- Git integration
 
-Configure in `~/.config/zed/settings.json`:
-```json
-{
-  "lsp": {
-    "botserver": {
-      "binary": {
-        "path": "/usr/local/bin/botserver",
-        "arguments": ["--lsp"]
-      },
-      "initialization_options": {
-        "bot": "default",
-        "enableDebug": true
-      }
-    }
-  }
-}
-```
+### IntelliJ IDEA / RustRover
+- Excellent Rust support
+- Powerful refactoring tools
+- Database tools for PostgreSQL integration
 
-#### Key Bindings
+### Neovim
+- Lightweight and fast
+- Highly customizable
+- Terminal-based workflow
 
-Add to `~/.config/zed/keymap.json`:
-```json
+### Sublime Text
+- Fast and responsive
+- Multiple cursors and powerful search
+- Customizable syntax highlighting
+
+## BASIC Script Support
+
+For editing `.bas` files (General Bots dialog scripts):
 {
   "bindings": {
     "cmd-shift-b": "botserver:run-script",
