@@ -1,251 +1,293 @@
 # FIND
 
-**Search for specific data in storage or knowledge bases.** The FIND keyword performs targeted searches in bot memory, databases, or document collections to locate specific information.
+Search and retrieve data from database tables using filter criteria.
 
 ## Syntax
 
 ```basic
-result = FIND(pattern)
-result = FIND(pattern, location)
-result = FIND(pattern, location, options)
+result = FIND "table_name", "filter_criteria"
 ```
 
 ## Parameters
 
-- `pattern` - Search pattern or query string
-- `location` - Where to search (optional, defaults to current KB)
-- `options` - Search options like case sensitivity, limit (optional)
+- `table_name` - The name of the database table to search
+- `filter_criteria` - Filter expression in the format "field=value"
 
 ## Description
 
-FIND searches for data matching a pattern. Unlike semantic search with LLM, FIND does exact or pattern-based matching. Useful for structured data, IDs, specific values.
-
-## Search Locations
-
-### Bot Memory
-```basic
-' Find in bot's permanent storage
-user_data = FIND("user_*", "BOT_MEMORY")
-' Returns all keys starting with "user_"
-```
-
-### Session Variables
-```basic
-' Find in current session
-form_fields = FIND("form_*", "SESSION")
-' Returns all form-related variables
-```
-
-### Knowledge Base
-```basic
-' Find specific documents
-policies = FIND("*.pdf", "policies")
-' Returns all PDFs in policies collection
-```
-
-### Database
-```basic
-' Find in database tables
-orders = FIND("status:pending", "orders")
-' Returns pending orders
-```
+FIND searches database tables for records matching specified criteria. It returns an array of matching records that can be iterated over using FOR EACH loops.
 
 ## Examples
 
 ### Basic Search
 ```basic
-' Find a specific user
-user = FIND("email:john@example.com")
-
-if user
-  TALK "Found user: " + user.name
-else
-  TALK "User not found"
-end
-```
-
-### Pattern Matching
-```basic
-' Find all items matching pattern
-items = FIND("SKU-2024-*")
+' Find records with specific action
+items = FIND "gb.rob", "ACTION=EMUL"
 
 FOR EACH item IN items
-  TALK item.name + ": " + item.price
-END
+    TALK "Found: " + item.company
+NEXT
 ```
 
-### Multi-Criteria Search
+### Single Field Filter
 ```basic
-' Complex search with multiple conditions
-results = FIND("type:invoice AND status:unpaid AND date>2024-01-01")
+' Find pending orders
+orders = FIND "orders", "status=pending"
 
-total = 0
-FOR EACH invoice IN results
-  total = total + invoice.amount
-END
-TALK "Total unpaid: $" + total
+FOR EACH order IN orders
+    TALK "Order #" + order.id + " is pending"
+NEXT
 ```
 
-### Search with Options
+### Working with Results
 ```basic
-' Limited, case-insensitive search
-matches = FIND("john", "customers", {
-  case_sensitive: false,
-  limit: 10,
-  fields: ["name", "email"]
-})
+' Find and process customer records
+customers = FIND "customers", "city=Seattle"
+
+FOR EACH customer IN customers
+    TALK customer.name + " from " + customer.address
+    
+    ' Access fields with dot notation
+    email = customer.email
+    phone = customer.phone
+    
+    ' Update related data
+    SET "contacts", "id=" + customer.id, "last_contacted=" + NOW()
+NEXT
 ```
 
-## Return Values
+## Return Value
 
-FIND returns different types based on matches:
+FIND returns an array of records from the specified table. Each record is an object with fields accessible via dot notation.
 
-- **Single match** - Returns the item directly
-- **Multiple matches** - Returns array of items
-- **No matches** - Returns null or empty array
-- **Error** - Returns null with error in ERROR variable
+- Returns empty array if no matches found
+- Returns array of matching records if successful
+- Each record contains all columns from the table
+
+## Field Access
+
+Access fields in returned records using dot notation:
+
+```basic
+items = FIND "products", "category=electronics"
+
+FOR EACH item IN items
+    ' Access fields directly
+    TALK item.name
+    TALK item.price
+    TALK item.description
+    
+    ' Use null coalescing for optional fields
+    website = item.website ?? ""
+    
+    ' Check field existence
+    IF item.discount != "" THEN
+        TALK "On sale: " + item.discount + "% off"
+    END IF
+NEXT
+```
 
 ## Common Patterns
 
-### Check Existence
+### Process All Matching Records
 ```basic
-exists = FIND("id:" + user_id)
-if exists
-  TALK "User already registered"
-else
-  ' Create new user
-end
+tasks = FIND "tasks", "status=open"
+
+FOR EACH task IN tasks
+    ' Process each task
+    TALK "Processing task: " + task.title
+    
+    ' Update task status
+    SET "tasks", "id=" + task.id, "status=in_progress"
+NEXT
 ```
 
-### Filter Results
+### Check If Records Exist
 ```basic
-all_products = FIND("*", "products")
-in_stock = []
+users = FIND "users", "email=john@example.com"
 
-FOR EACH product IN all_products
-  if product.quantity > 0
-    in_stock.append(product)
-  end
-END
+IF LENGTH(users) > 0 THEN
+    TALK "User exists"
+ELSE
+    TALK "User not found"
+END IF
 ```
 
-### Aggregate Data
+### Data Enrichment
 ```basic
-sales = FIND("date:" + TODAY(), "transactions")
-daily_total = 0
+companies = FIND "companies", "needs_update=true"
 
-FOR EACH sale IN sales
-  daily_total = daily_total + sale.amount
-END
-
-TALK "Today's sales: $" + daily_total
+FOR EACH company IN companies
+    ' Get additional data
+    website = company.website ?? ""
+    
+    IF website == "" THEN
+        ' Look up website
+        website = WEBSITE OF company.name
+        
+        ' Update record
+        SET "companies", "id=" + company.id, "website=" + website
+    END IF
+    
+    ' Fetch and process website data
+    page = GET website
+    ' Process page content...
+NEXT
 ```
 
-### Search History
+### Batch Processing with Delays
 ```basic
-' Find previous conversations
-history = FIND("session:" + user_id, "messages", {
-  sort: "timestamp DESC",
-  limit: 50
-})
+emails = FIND "email_queue", "sent=false"
 
-TALK "Your last conversation:"
-FOR EACH message IN history
-  TALK message.timestamp + ": " + message.content
-END
+FOR EACH email IN emails
+    ' Send email
+    SEND MAIL email.to, email.subject, email.body
+    
+    ' Mark as sent
+    SET "email_queue", "id=" + email.id, "sent=true"
+    
+    ' Rate limiting
+    WAIT 1000
+NEXT
 ```
 
-## Performance Tips
+## Filter Expressions
 
-### Use Specific Patterns
+The filter parameter uses simple equality expressions:
+
+- `"field=value"` - Match exact value
+- Multiple conditions must be handled in BASIC code after retrieval
+
 ```basic
-' Good - Specific pattern
-orders = FIND("order_2024_01_*")
+' Get all records then filter in BASIC
+all_orders = FIND "orders", "status=active"
 
-' Bad - Too broad
-everything = FIND("*")
+FOR EACH order IN all_orders
+    ' Additional filtering in code
+    IF order.amount > 1000 AND order.priority == "high" THEN
+        ' Process high-value orders
+        TALK "Priority order: " + order.id
+    END IF
+NEXT
 ```
 
-### Limit Results
-```basic
-' Get only what you need
-recent = FIND("*", "logs", {limit: 100})
-```
+## Working with Different Data Types
 
-### Cache Repeated Searches
 ```basic
-' Cache for session
-if not cached_products
-  cached_products = FIND("*", "products")
-end
-' Use cached_products instead of searching again
+products = FIND "products", "active=true"
+
+FOR EACH product IN products
+    ' String fields
+    name = product.name
+    
+    ' Numeric fields
+    price = product.price
+    quantity = product.quantity
+    
+    ' Date fields
+    created = product.created_at
+    
+    ' Boolean-like fields (stored as strings)
+    IF product.featured == "true" THEN
+        TALK "Featured: " + name
+    END IF
+NEXT
 ```
 
 ## Error Handling
 
 ```basic
-try
-  results = FIND(user_query)
-  if results
-    TALK "Found " + LENGTH(results) + " matches"
-  else
-    TALK "No results found"
-  end
-catch error
-  TALK "Search failed. Please try again."
-  LOG "FIND error: " + error
-end
+' Handle potential errors
+items = FIND "inventory", "warehouse=main"
+
+IF items == null THEN
+    TALK "Error accessing inventory data"
+ELSE IF LENGTH(items) == 0 THEN
+    TALK "No items found in main warehouse"
+ELSE
+    TALK "Found " + LENGTH(items) + " items"
+    ' Process items...
+END IF
 ```
 
-## Comparison with Other Keywords
+## Performance Considerations
 
-| Keyword | Purpose | Use When |
-|---------|---------|----------|
-| FIND | Exact/pattern search | Looking for specific values |
-| LLM | Semantic search | Understanding meaning |
-| GET | Direct retrieval | Know exact key |
-| USE KB | Activate knowledge | Need document context |
+1. **Limit Results**: The system automatically limits to 10 results for safety
+2. **Use Specific Filters**: More specific filters reduce processing time
+3. **Avoid Full Table Scans**: Always provide a filter criterion
+4. **Process in Batches**: For large datasets, process in chunks
 
-## Advanced Usage
-
-### Dynamic Location
 ```basic
-department = GET user.department
-data = FIND("*", department + "_records")
+' Process records in batches
+batch = FIND "large_table", "processed=false"
+
+count = 0
+FOR EACH record IN batch
+    ' Process record
+    SET "large_table", "id=" + record.id, "processed=true"
+    
+    count = count + 1
+    IF count >= 10 THEN
+        EXIT FOR  ' Process max 10 at a time
+    END IF
+NEXT
 ```
 
-### Compound Searches
+## Integration with Other Keywords
+
+### With SET for Updates
 ```basic
-' Find in multiple places
-local = FIND(query, "local_db")
-remote = FIND(query, "remote_api")
-results = MERGE(local, remote)
+users = FIND "users", "newsletter=true"
+
+FOR EACH user IN users
+    ' Update last_notified field
+    SET "users", "id=" + user.id, "last_notified=" + NOW()
+NEXT
 ```
 
-### Conditional Fields
+### With LLM for Processing
 ```basic
-search_fields = ["name"]
-if advanced_mode
-  search_fields.append(["email", "phone", "address"])
-end
+articles = FIND "articles", "needs_summary=true"
 
-results = FIND(term, "contacts", {fields: search_fields})
+FOR EACH article IN articles
+    summary = LLM "Summarize: " + article.content
+    SET "articles", "id=" + article.id, "summary=" + summary
+NEXT
 ```
+
+### With CREATE SITE
+```basic
+companies = FIND "companies", "needs_site=true"
+
+FOR EACH company IN companies
+    alias = LLM "Create URL alias for: " + company.name
+    CREATE SITE alias, "template", "Create site for " + company.name
+    SET "companies", "id=" + company.id, "site_url=" + alias
+NEXT
+```
+
+## Limitations
+
+- Maximum 10 records returned per query (system limit)
+- Filter supports simple equality only
+- Complex queries require post-processing in BASIC
+- Table must exist in the database
+- User must have read permissions on the table
 
 ## Best Practices
 
-✅ **Be specific** - Use precise patterns to avoid large result sets  
-✅ **Handle empty results** - Always check if FIND returned data  
-✅ **Use appropriate location** - Search where data actually lives  
-✅ **Limit when possible** - Don't retrieve more than needed  
+✅ **Always check results** - Verify FIND returned data before processing  
+✅ **Use specific filters** - Reduce result set size with precise criteria  
+✅ **Handle empty results** - Check LENGTH before iterating  
+✅ **Update as you go** - Mark records as processed to avoid reprocessing  
 
-❌ **Don't search everything** - Avoid FIND("*") without limits  
-❌ **Don't assume order** - Results may not be sorted unless specified  
-❌ **Don't ignore errors** - Wrap in try/catch for production  
+❌ **Don't assume order** - Results may not be sorted  
+❌ **Don't ignore limits** - Remember the 10-record limit  
+❌ **Don't use without filter** - Always provide filter criteria  
 
 ## See Also
 
-- [GET](./keyword-get.md) - Direct key retrieval
-- [SET](./keyword-set.md) - Store data
-- [USE KB](./keyword-use-kb.md) - Semantic document search
-- [LLM](./keyword-llm.md) - AI-powered search
+- [SET](./keyword-set.md) - Update database records
+- [GET](./keyword-get.md) - Retrieve single values
+- [FOR EACH](./keyword-for-each.md) - Iterate over results
+- [LLM](./keyword-llm.md) - Process found data with AI
