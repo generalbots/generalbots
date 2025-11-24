@@ -83,7 +83,7 @@ TALK "The answer is: " + answer
 ### 2. HEAR - Input from User
 ```basic
 HEAR name
-HEAR age AS NUMBER
+HEAR age AS INTEGER
 HEAR confirm AS BOOLEAN
 ```
 

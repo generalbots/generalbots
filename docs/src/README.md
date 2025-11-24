@@ -1,12 +1,12 @@
-# BotServer Documentation
+# General Bots Documentation
 
-Welcome to the **BotServer** documentation. This guide explains how to install, configure, extend, and deploy conversational AI bots using BotServer's template-based package system and BASIC scripting language.
+Welcome to the **General Bots** documentation. This guide explains how to install, configure, extend, and deploy conversational AI bots using General Bots' template-based package system and BASIC scripting language.
 
 ---
 
 ## About This Documentation
 
-This documentation has been **recently updated** to accurately reflect the actual implementation of BotServer version 6.0.8. The following sections are now accurate:
+This documentation has been **recently updated** to accurately reflect the actual implementation of General Bots version 6.0.8. The following sections are now accurate:
 
 ✅ **Accurate Documentation:**
 - Chapter 02: Package system (template-based `.gbai` structure)
@@ -30,9 +30,9 @@ This documentation has been **recently updated** to accurately reflect the actua
 
 ---
 
-## What is BotServer?
+## What is General Bots?
 
-BotServer is an open-source conversational AI platform written in Rust. It enables users to create intelligent chatbots using:
+General Bots is an open-source conversational AI platform written in Rust. It enables users to create intelligent chatbots using:
 
 - **BASIC Scripting**: Simple `.bas` scripts for conversation flows
 - **Template Packages**: Organize bots as `.gbai` directories with dialogs, knowledge bases, and configuration
@@ -50,7 +50,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 3. **Create a Bot**: Copy a template and modify it
 4. **Learn BASIC**: Read [Chapter 05: BASIC Reference](chapter-05/README.md)
 5. **Configure**: Edit `config.csv` in your `.gbot/` directory
-6. **Deploy**: Restart BotServer to activate changes
+6. **Deploy**: Restart General Bots to activate changes
 
 ---
 
@@ -81,7 +81,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 - [Chapter 06: gbdialog Reference](chapter-06-gbdialog/README.md) - Complete BASIC scripting reference
   - Keywords: `TALK`, `HEAR`, `LLM`, `SET CONTEXT`, `USE KB`, and more
 
-### Part VII - Extending BotServer
+### Part VII - Extending General Bots
 - [Chapter 07: gbapp Architecture Reference](chapter-07-gbapp/README.md) - Internal architecture
   - [Architecture Overview](chapter-07-gbapp/architecture.md) - Bootstrap process
   - [Building from Source](chapter-07-gbapp/building.md) - Compilation and features
@@ -114,7 +114,7 @@ BotServer is an open-source conversational AI platform written in Rust. It enabl
 
 ## Architecture Overview
 
-BotServer is a **monolithic Rust application** (single crate) with the following structure:
+General Bots is a **monolithic Rust application** (single crate) with the following structure:
 
 ### Core Modules
 - `auth` - Argon2 password hashing, session tokens
@@ -159,7 +159,7 @@ BotServer is a **monolithic Rust application** (single crate) with the following
 
 - **Version**: 6.0.8
 - **License**: AGPL-3.0
-- **Repository**: https://github.com/GeneralBots/BotServer
+- **Repository**: https://github.com/GeneralBots/botserver
 - **Community**: Open-source contributors from Pragmatismo.com.br
 
 ---
@@ -178,4 +178,4 @@ See [TODO.txt](TODO.txt) for known documentation gaps.
 
 ## Next Steps
 
-Start with [Introduction](introduction.md) for a comprehensive overview, or jump directly to [Chapter 01: Run and Talk](chapter-01/README.md) to install and run BotServer.
+Start with [Introduction](introduction.md) for a comprehensive overview, or jump directly to [Chapter 01: Run and Talk](chapter-01/README.md) to install and run General Bots.

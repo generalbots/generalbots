@@ -40,16 +40,12 @@ Configuration stored in `bot_configuration` table:
 
 ### Session Structure
 
-```rust
-// user_sessions table
-{
-    id: UUID,
-    user_id: UUID,      // User reference
-    bot_id: UUID,       // Bot reference
-    session_token: String,
-    expires_at: Timestamp
-}
-```
+The user_sessions table structure:
+- id: UUID
+- user_id: UUID (User reference)
+- bot_id: UUID (Bot reference)
+- session_token: String
+- expires_at: Timestamp
 
 ## Bot Isolation
 

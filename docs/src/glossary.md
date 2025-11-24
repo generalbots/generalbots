@@ -1,6 +1,6 @@
 # Glossary
 
-Quick lookup for BotServer terms. If you're lost, start here.
+Quick lookup for General Bots terms. If you're lost, start here.
 
 ## A
 
@@ -10,11 +10,13 @@ Quick lookup for BotServer terms. If you're lost, start here.
 
 ## B
 
-**BASIC** - Yes, that programming language from 1964. We brought it back because `TALK "Hello"` beats `await ctx.send()` any day. Powers all conversation scripts.
+**BASIC** - Yes, that programming language from 1964. We brought it back because `TALK "Hello"` beats `await ctx.send()` any day. Powers all conversation scripts. Used since 2018 in production systems.
 
 **Bot Package** - A folder ending in `.gbai` containing everything to run a bot. Scripts, documents, config. That's it. Copy folder = deploy bot.
 
 **BotSession** - The conversation between user and bot. Remembers everything - who you are, what you said, where you left off. Persists to database, cached for speed.
+
+**Bootstrap** - Initial setup process that automatically installs all dependencies. Runs on first launch, creates configuration, sets up database, configures services.
 
 ## C
 
@@ -47,6 +49,96 @@ Quick lookup for BotServer terms. If you're lost, start here.
 **.gbot** - Configuration subfolder. Contains single `config.csv` file with bot settings. Missing values use defaults.
 
 **.gbtheme** - Optional UI customization. CSS files, images, HTML templates. Most bots don't need this.
+
+**.gbdrive** - File storage configuration. Maps to Drive (S3-compatible) buckets for document management.
+
+**General Bots** - The enterprise conversational AI platform. Combines LLMs with structured dialogs, knowledge bases, and multi-channel support.
+
+## H
+
+**HEAR** - BASIC keyword to get user input. `answer = HEAR "What's your name?"` waits for response.
+
+**Hot Reload** - Changes to BASIC scripts apply immediately. No restart needed. Edit, save, test - instant feedback loop.
+
+## I
+
+**Installer** - Component that auto-configures services. Manages PostgreSQL, Cache, Drive, Directory Service, LLM servers. Everything runs locally.
+
+**Intent** - What the user wants to do. Detected from natural language. "I want to reset my password" → password_reset intent.
+
+## K
+
+**Knowledge Base** - Documents that become searchable answers. PDFs, Word files, web pages. Automatically chunked, embedded, and indexed for semantic search.
+
+## L
+
+**LLM** - Large Language Model. The AI brain. Default uses llama.cpp with GGUF models. Supports OpenAI, Anthropic, local models.
+
+**Local-First** - Everything runs on your machine. No cloud dependencies. Database, storage, LLM - all local. Privacy by default.
+
+## M
+
+**Memory** - Bot and user memory storage. `SET BOT MEMORY "key", "value"` persists data. `GET BOT MEMORY "key"` retrieves it.
+
+**Multi-Channel** - Same bot works everywhere. WhatsApp, Teams, Web, API. Write once, deploy anywhere.
+
+## O
+
+**OIDC** - OpenID Connect authentication. Handled by Directory Service (Zitadel). No passwords stored in General Bots.
+
+## P
+
+**Package Manager** - System that installs bot packages. Drop `.gbai` folder, it's automatically loaded. Remove folder, bot stops.
+
+**PostgreSQL** - The database. Stores users, sessions, messages, memory. Auto-installed, auto-configured. Just works.
+
+**Pragmatismo** - Company behind General Bots. Brazilian software consultancy. Building bots since 2016.
+
+## Q
+
+**Qdrant** - Vector database for semantic search. Optional component for large-scale knowledge bases. Faster than PostgreSQL pgvector for millions of documents.
+
+## R
+
+**REPL** - Read-Eval-Print Loop. Interactive BASIC console for testing. Type commands, see results immediately.
+
+## S
+
+**Semantic Search** - Finding by meaning, not keywords. "How do I change my password?" finds "reset credentials" documentation.
+
+**Session** - Active conversation state. Tracks user, bot, context, memory. Expires after inactivity. Stored in PostgreSQL, cached in memory.
+
+**SET CONTEXT** - BASIC command to add information to LLM context. `SET CONTEXT "User is premium customer"` influences all responses.
+
+## T
+
+**TALK** - BASIC keyword for bot output. `TALK "Hello!"` sends message to user. Supports markdown, images, cards.
+
+**Token** - Unit of text for LLMs. Roughly 4 characters. Context windows measured in tokens. GPT-4: 8k tokens. Local models: 4k typically.
+
+**Tool** - Function the bot can call. Defined in BASIC with parameters. `PARAM "city"` then `weather = GET "weather"` calls weather API.
+
+## U
+
+**USE KB** - BASIC command to activate knowledge base. `USE KB "policies"` makes policy documents searchable in conversation.
+
+**USE TOOL** - Activate a tool for LLM to use. `USE TOOL "calculator"` lets bot do math.
+
+## V
+
+**Valkey** - Redis-compatible cache. Stores sessions, temporary data. Faster than database for frequently accessed data.
+
+**Vector** - Mathematical representation of text meaning. Used for semantic search. Created by embedding models.
+
+## W
+
+**WebSocket** - Real-time connection for chat. Enables streaming responses, live updates. No polling needed.
+
+**Workflow** - Sequence of dialog steps. Login → Verify → Action → Confirm. Defined in BASIC, no complex orchestration.
+
+## Z
+
+**Zitadel** - Current Directory Service implementation. Handles authentication, users, permissions. Can be replaced with Keycloak or other OIDC providers.
 
 ## H
 
@@ -144,6 +236,6 @@ Quick lookup for BotServer terms. If you're lost, start here.
 
 **"Is BASIC really BASIC?"** - Inspired by BASIC, not strict implementation. Simpler, focused on conversations.
 
-**"Can I use TypeScript/Python/etc?"** - No. BASIC only for conversation logic. Extend core in Rust if needed.
+**"Can I use TypeScript/Python/etc?"** - BASIC is used for conversation logic. However, you can integrate with any language through APIs. See [API documentation](./chapter-10-api/README.md) for REST endpoints and integration options.
 
 **"Is it production-ready?"** - Yes. Used in production since 2016 (earlier versions), current Rust version since 2023.

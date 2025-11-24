@@ -474,23 +474,16 @@ Located in `src/directory/mod.rs`:
 
 ### Creating Users
 
-```rust
-// Via Directory Client
-client.create_user(
-    username: "john_doe",
-    email: "john@example.com", 
-    first_name: "John",
-    last_name: "Doe"
-)
-// Password set through Directory UI or email flow
-```
+Creating users via Directory Client:
+- Username: john_doe
+- Email: john@example.com
+- First name: John
+- Last name: Doe
+- Password: Set through Directory UI or email flow
 
 ### Getting User Info
 
-```rust
-// Fetch from Directory service
-let user_info = client.get_user(directory_id).await?;
-```
+User information is fetched from the Directory service using the directory ID.
 
 ### Managing Sessions
 

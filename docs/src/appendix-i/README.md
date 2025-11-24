@@ -1,6 +1,8 @@
-## Appendix I – Database Model
+## Appendix I – Database Model
 
-The core database schema for GeneralBots is defined in `src/shared/models.rs`. It uses **Diesel** with SQLite (or PostgreSQL) and includes the following primary tables:
+![Database Schema Overview](./assets/schema-overview.svg)
+
+The core database schema for GeneralBots is defined in `src/shared/models.rs`. It uses **Diesel** with PostgreSQL and includes the following primary tables:
 
 | Table | Description |
 |-------|-------------|
@@ -18,32 +20,27 @@ The core database schema for GeneralBots is defined in `src/shared/models.rs`. I
 - **Session ↔ Tools** – One‑to‑many: tools are scoped to the session that registers them.
 - **File ↔ KnowledgeBase** – Optional link for documents stored in a knowledge base.
 
-### Key Fields (excerpt)
+### Key Tables
 
-```rust
-pub struct User {
-    pub id: i32,
-    pub username: String,
-    pub email: String,
-    pub password_hash: String,
-    pub created_at: NaiveDateTime,
-}
+**User Table**
+- id: Integer primary key
+- username: String
+- email: String  
+- password_hash: String
+- created_at: Timestamp
 
-pub struct Session {
-    pub id: i32,
-    pub user_id: i32,
-    pub started_at: NaiveDateTime,
-    pub last_active: NaiveDateTime,
-    pub knowledge_base_id: i32,
-}
+**Session Table**
+- id: Integer primary key
+- user_id: Foreign key to User
+- started_at: Timestamp
+- last_active: Timestamp
+- knowledge_base_id: Integer
 
-pub struct Message {
-    pub id: i32,
-    pub session_id: i32,
-    pub role: String, // "user" or "assistant"
-    pub content: String,
-    pub timestamp: NaiveDateTime,
-}
-```
+**Message Table**
+- id: Integer primary key
+- session_id: Foreign key to Session
+- role: String ("user" or "assistant")
+- content: Text
+- timestamp: Timestamp
 
-The schema is automatically migrated by Diesel when the server starts. For custom extensions, add new tables to `models.rs` and run `diesel migration generate <name>`.
+The schema is automatically migrated when the server starts.
