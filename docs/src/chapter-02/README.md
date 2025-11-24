@@ -178,9 +178,9 @@ The configuration system uses a simple CSV format with name-value pairs:
 name,value
 
 # Server Configuration
-server_host,0.0.0.0
-server_port,8080
-sites_root,/tmp
+server-host,0.0.0.0
+server-port,8080
+sites-root,/tmp
 
 # LLM Configuration
 llm-key,none
@@ -236,9 +236,9 @@ custom-password,
 
 | Category | Parameter | Description | Default Value |
 |----------|-----------|-------------|---------------|
-| **Server** | server_host | Binding address for web interface | 0.0.0.0 |
-| | server_port | HTTP port for web interface | 8080 |
-| | sites_root | Directory for generated sites | /tmp |
+| **Server** | server-host | Binding address for web interface | 0.0.0.0 |
+| | server-port | HTTP port for web interface | 8080 |
+| | sites-root | Directory for generated sites | /tmp |
 | **LLM** | llm-url | LLM server endpoint | http://localhost:8081 |
 | | llm-model | Path to GGUF model file | Relative path to model |
 | | llm-cache | Enable response caching | false |

@@ -56,7 +56,7 @@ TALK "Quote of the day: " + quote
 ### API Key in URL
 
 ```basic
-let api_key = GET BOT MEMORY("weather_api_key")
+let api_key = GET BOT MEMORY "weather_api_key"
 let url = "https://api.weather.com/data?key=" + api_key
 let data = GET url
 ```
@@ -75,7 +75,7 @@ Currently, BotServer's GET keyword doesn't support custom headers directly. For 
 PARAM city AS string LIKE "Seattle" DESCRIPTION "City for weather"
 DESCRIPTION "Gets current weather for a city"
 
-let api_key = GET BOT MEMORY("openweather_key")
+let api_key = GET BOT MEMORY "openweather_key"
 let url = "https://api.openweathermap.org/data/2.5/weather?q=" + city + "&appid=" + api_key
 
 let response = GET url
@@ -88,7 +88,7 @@ TALK weather
 ```basic
 DESCRIPTION "Fetches latest news headlines"
 
-let api_key = GET BOT MEMORY("newsapi_key")
+let api_key = GET BOT MEMORY "newsapi_key"
 let url = "https://newsapi.org/v2/top-headlines?country=us&apiKey=" + api_key
 
 let news = GET url
@@ -154,8 +154,8 @@ When integrating with external APIs:
 
 ```basic
 # Check cache first
-let cached = GET BOT MEMORY("weather_cache")
-let cache_time = GET BOT MEMORY("weather_cache_time")
+let cached = GET BOT MEMORY "weather_cache"
+let cache_time = GET BOT MEMORY "weather_cache_time"
 
 let current_time = NOW()
 let age = current_time - cache_time
@@ -178,11 +178,11 @@ if (cached != "" && age < 3600) {
 
 ```basic
 # Store API keys in bot memory, not in scripts
-let api_key = GET BOT MEMORY("api_key")
+let api_key = GET BOT MEMORY "api_key"
 
 # Never hardcode credentials
 # BAD: let key = "sk-1234567890abcdef"
-# GOOD: let key = GET BOT MEMORY("openai_key")
+# GOOD: let key = GET BOT MEMORY "api_key"
 ```
 
 ### Input Validation
@@ -228,12 +228,12 @@ PARAM location AS string LIKE "New York" DESCRIPTION "Location to check"
 DESCRIPTION "Provides weather and news for a location"
 
 # Weather API
-let weather_key = GET BOT MEMORY("weather_api_key")
+let weather_key = GET BOT MEMORY "weather_api_key"
 let weather_url = "https://api.openweathermap.org/data/2.5/weather?q=" + location + "&appid=" + weather_key
 let weather = GET weather_url
 
 # News API  
-let news_key = GET BOT MEMORY("news_api_key")
+let news_key = GET BOT MEMORY "news_api_key"
 let news_url = "https://newsapi.org/v2/everything?q=" + location + "&apiKey=" + news_key
 let news = GET news_url
 

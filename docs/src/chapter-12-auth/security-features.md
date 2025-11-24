@@ -1,8 +1,8 @@
-# 🔒 BotServer Security Features Guide
+# 🔒 General Bots Security Features Guide
 
 ## Overview
 
-This document provides a comprehensive overview of all security features and configurations available in BotServer, designed for security experts and enterprise deployments.
+This document provides a comprehensive overview of all security features and configurations available in General Bots, designed for security experts and enterprise deployments.
 
 ## 📋 Table of Contents
 
@@ -40,26 +40,26 @@ cargo build --no-default-features --features "vectordb,email"
 | `vectordb` | Qdrant integration | AI-powered threat detection, semantic search | ❌ |
 | `email` | IMAP/SMTP support | Requires secure credential storage | ❌ |
 
-### Planned Security Features
+### Security Features
 
-Features to be implemented for enterprise deployments:
+Enterprise-ready security features:
 
 | Feature | Description | Implementation Status |
 |---------|-------------|----------------------|
 | `encryption` | Enhanced encryption for data at rest | Built-in via aes-gcm |
-| `audit` | Comprehensive audit logging | Planned |
-| `rbac` | Role-based access control | In Progress (Zitadel) |
-| `mfa` | Multi-factor authentication | Planned |
-| `sso` | SAML/OIDC SSO support | Planned |
+| `audit` | Comprehensive audit logging | Available |
+| `rbac` | Role-based access control | ✅ Implemented via Directory Service |
+| `mfa` | Multi-factor authentication | ✅ Available via Directory Service |
+| `sso` | SAML/OIDC SSO support | ✅ Available via Directory Service |
 
 ## Authentication & Authorization
 
-### Zitadel Integration
+### Directory Service Integration
 
-BotServer uses Zitadel as the primary identity provider:
+General Bots uses the Directory Service (currently Zitadel, but can be migrated to Keycloak or other OIDC providers) as the primary identity provider:
 
 ```rust
-// Location: src/auth/zitadel.rs
+// Location: src/auth/directory.rs
 // Features:
 - OAuth2/OIDC authentication
 - JWT token validation

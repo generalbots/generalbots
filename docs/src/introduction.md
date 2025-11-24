@@ -1,6 +1,6 @@
-# Introduction to BotServer
+# Introduction to General Bots
 
-**Build conversational AI bots in minutes, not months.** BotServer lets you create intelligent chatbots by writing simple [BASIC scripts](./chapter-02/gbdialog.md) and dropping in your [documents](./chapter-02/gbkb.md). No complex frameworks, no cloud dependencies, no AI expertise required.
+**Build conversational AI bots in minutes, not months.** General Bots lets you create intelligent chatbots by writing simple [BASIC scripts](./chapter-02/gbdialog.md) and dropping in your [documents](./chapter-02/gbkb.md). No complex frameworks, no cloud dependencies, no AI expertise required.
 
 ## Quick Example
 
@@ -35,7 +35,7 @@ Bot: Welcome to Computer Science, Sarah!
 
 The AI handles everything else - understanding intent, collecting information, executing tools, answering from documents. Zero configuration.
 
-## What Makes BotServer Different
+## What Makes General Bots Different
 
 ### [Just Run It](./chapter-01/quick-start.md)
 ```bash
@@ -62,9 +62,9 @@ Create `.bas` files that the AI discovers and calls automatically. Need to save 
 
 ## Architecture at a Glance
 
-BotServer is a single binary that includes everything:
+General Bots is a single binary that includes everything:
 
-![BotServer Architecture](./assets/architecture.svg)
+![General Bots Architecture](./assets/architecture.svg)
 
 One process, one port, one command to run. Deploy anywhere - laptop, server, container.
 
@@ -123,7 +123,7 @@ That's it. No XML, no JSON schemas, no build process. Copy the folder to deploy.
 
 ### 1. Install (2 minutes)
 ```bash
-wget https://github.com/GeneralBots/BotServer/releases/latest/botserver
+wget https://github.com/GeneralBots/botserver/releases/latest/botserver
 chmod +x botserver
 ./botserver
 ```
@@ -164,9 +164,9 @@ The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to c
 
 ## Community
 
-BotServer is open source (AGPL-3.0) developed by Pragmatismo.com.br and contributors worldwide.
+General Bots is open source (AGPL-3.0) developed by Pragmatismo.com.br and contributors worldwide.
 
-- **GitHub**: https://github.com/GeneralBots/BotServer
+- **GitHub**: https://github.com/GeneralBots/botserver
 - **Version**: 6.0.8
 - **Status**: Production Ready
 

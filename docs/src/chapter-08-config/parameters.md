@@ -7,9 +7,9 @@ Complete reference of all available parameters in `config.csv`.
 ### Web Server
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `server_host` | Server bind address | `0.0.0.0` | IP address |
-| `server_port` | Server listen port | `8080` | Number (1-65535) |
-| `sites_root` | Generated sites directory | `/tmp` | Path |
+| `server-host` | Server bind address | `0.0.0.0` | IP address |
+| `server-port` | Server listen port | `8080` | Number (1-65535) |
+| `sites-root` | Generated sites directory | `/tmp` | Path |
 
 ### MCP Server
 | Parameter | Description | Default | Type |
@@ -48,6 +48,51 @@ Complete reference of all available parameters in `config.csv`.
 | `llm-server-cont-batching` | Continuous batching | `true` | Boolean |
 | `llm-server-mlock` | Lock in memory | `false` | Boolean |
 | `llm-server-no-mmap` | Disable mmap | `false` | Boolean |
+
+### Hardware-Specific LLM Tuning
+
+#### For RTX 3090 (24GB VRAM)
+You can run impressive models with proper configuration:
+- **DeepSeek-R1-Distill-Qwen-7B**: Set `llm-server-gpu-layers` to 35-40
+- **Qwen2.5-32B-Instruct (Q4_K_M)**: Fits with `llm-server-gpu-layers` to 40-45
+- **DeepSeek-V3 (with MoE)**: Set `llm-server-n-moe` to 2-4 to run even 120B models! MoE only loads active experts
+- **Optimization**: Use `llm-server-ctx-size` of 8192 for longer contexts
+
+#### For RTX 4070/4070Ti (12-16GB VRAM)  
+Mid-range cards work great with quantized models:
+- **Qwen2.5-14B (Q4_K_M)**: Set `llm-server-gpu-layers` to 25-30
+- **DeepSeek-R1-Distill-Llama-8B**: Fully fits with layers at 32
+- **Tips**: Keep `llm-server-ctx-size` at 4096 to save VRAM
+
+#### For CPU-Only (No GPU)
+Modern CPUs can still run capable models:
+- **DeepSeek-R1-Distill-Qwen-1.5B**: Fast on CPU, great for testing
+- **Phi-3-mini (3.8B)**: Excellent CPU performance
+- **Settings**: Set `llm-server-mlock` to `true` to prevent swapping
+- **Parallel**: Increase `llm-server-parallel` to CPU cores -2
+
+#### Recommended Models (GGUF Format)
+- **Best Overall**: DeepSeek-R1-Distill series (1.5B to 70B)
+- **Best Small**: Qwen2.5-3B-Instruct-Q5_K_M
+- **Best Medium**: DeepSeek-R1-Distill-Qwen-14B-Q4_K_M  
+- **Best Large**: DeepSeek-V3, Qwen2.5-32B, or GPT2-120B-GGUF (with MoE enabled)
+
+**Pro Tip**: The `llm-server-n-moe` parameter is magic for large models - it enables Mixture of Experts, letting you run 120B+ models on consumer hardware by only loading the experts needed for each token!
+
+#### Local vs Cloud: A Practical Note
+
+General Bots excels at local deployment - you own your hardware, your data stays private, and there are no recurring costs. However, if you need cloud inference:
+
+**Groq is the speed champion** - They use custom LPU (Language Processing Unit) chips instead of GPUs, delivering 10x faster inference than traditional cloud providers. Their hardware is purpose-built for transformers, avoiding the general-purpose overhead of NVIDIA GPUs.
+
+This isn't about market competition - it's about architecture. NVIDIA GPUs are designed for many tasks, while Groq's chips do one thing incredibly well: transformer inference. If speed matters and you're using cloud, Groq is currently the fastest option available.
+
+For local deployment, stick with General Bots and the configurations above. For cloud bursts or when you need extreme speed, consider Groq's API with these settings:
+```csv
+llm-url,https://api.groq.com/openai/v1
+llm-key,your-groq-api-key
+llm-model,mixtral-8x7b-32768
+```
 
 ## Embedding Parameters
 

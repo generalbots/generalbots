@@ -126,7 +126,7 @@ RETURN lorem_text
 REM ============================================
 REM DATA KEYWORD - QR Code Generator
 REM ============================================
-PARAM text AS string LIKE "https://generalbots.ai"
+PARAM text AS string LIKE "https://pragmatismo.com.br"
 PARAM size AS integer LIKE 200
 DESCRIPTION "Generate a QR code for any text or URL"
 

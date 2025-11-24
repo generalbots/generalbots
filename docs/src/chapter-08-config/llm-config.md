@@ -90,12 +90,14 @@ Semantic caching matches similar (not just identical) queries:
 
 ## External API Configuration
 
-### OpenAI-Compatible APIs
+### Groq and OpenAI-Compatible APIs
+
+For cloud inference, Groq offers the fastest performance:
 
 ```csv
-llm-key,sk-your-api-key
-llm-url,https://api.openai.com/v1
-llm-model,gpt-4
+llm-key,gsk-your-groq-api-key
+llm-url,https://api.groq.com/openai/v1
+llm-model,mixtral-8x7b-32768
 ```
 
 ### Local API Servers
