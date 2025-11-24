@@ -1,1 +1,0 @@
-# SMB Deployment Guide
