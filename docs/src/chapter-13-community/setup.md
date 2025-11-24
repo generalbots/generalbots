@@ -1,6 +1,6 @@
 # Development Setup
 
-This guide covers setting up a development environment for contributing to BotServer.
+This guide covers setting up a development environment for contributing to General Bots.
 
 ## Prerequisites
 
@@ -11,14 +11,7 @@ This guide covers setting up a development environment for contributing to BotSe
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
   ```
 
-- **PostgreSQL**: 14 or later
-  ```bash
-  # Ubuntu/Debian
-  sudo apt-get install postgresql postgresql-contrib
-  
-  # macOS
-  brew install postgresql
-  ```
+- **PostgreSQL**: Installed automatically during bootstrap
 
 - **Git**: For version control
   ```bash
@@ -37,17 +30,16 @@ This guide covers setting up a development environment for contributing to BotSe
 
 ```bash
 git clone https://github.com/GeneralBots/BotServer.git
-cd BotServer
+cd botserver
 ```
 
 ### 2. Environment Setup
 
-Create a `.env` file in the project root:
+The `.env` file is created automatically during bootstrap with secure random credentials. No manual configuration needed.
 
 ```bash
-DATABASE_URL=postgres://gbuser:password@localhost:5432/botserver
-DRIVE_SERVER=http://localhost:9000
-DRIVE_ACCESSKEY=minioadmin
+# Bootstrap creates everything automatically
+./botserver
 DRIVE_SECRET=minioadmin
 SERVER_HOST=127.0.0.1
 SERVER_PORT=8080
@@ -153,8 +145,8 @@ If bootstrap doesn't create the database:
 psql -U postgres
 
 # Create user and database
-CREATE USER gbuser WITH PASSWORD 'your_password';
-CREATE DATABASE botserver OWNER gbuser;
+CREATE USER gbuser WITH PASSWORD 'SecurePassword123!';
+CREATE DATABASE generalbots OWNER gbuser;
 \q
 ```
 
@@ -234,13 +226,12 @@ ssh user@server 'tmux new -s botserver'
 
 ## Debugging
 
-### Enable Debug Logging
 ### Debug Mode
 
 Run with verbose output to troubleshoot issues:
 
 ```bash
-cargo run
+RUST_LOG=trace cargo run
 ```
 
 Check logs in the console output for debugging information.

@@ -20,13 +20,7 @@ General Bots provides robust authentication with:
 - All passwords are hashed using Argon2 (winner of Password Hashing Competition)
 - Random salt generation for each password
 - Secure password update mechanism
-
-```rust
-// Example password hashing
-let salt = SaltString::generate(&mut OsRng);
-let argon2 = Argon2::default();
-let password_hash = argon2.hash_password(password.as_bytes(), &salt);
-```
+- Password management delegated to Directory Service
 
 ## API Endpoints
 
@@ -49,19 +43,13 @@ Authenticates user and returns session
 ## User Management
 
 ### Creating Users
-```rust
-auth_service.create_user(username, email, password);
-```
+Users are created through the Directory Service with randomly generated initial passwords.
 
 ### Verifying Users
-```rust
-auth_service.verify_user(username, password);
-```
+User verification is handled through the Directory Service OAuth2/OIDC flow.
 
 ### Updating Passwords
-```rust
-auth_service.update_user_password(user_id, new_password);
-```
+Password updates are managed through the Directory Service's built-in password reset workflows.
 
 ## Bot Authentication
 

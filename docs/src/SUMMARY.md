@@ -174,7 +174,7 @@
   - [Documentation](./chapter-13-community/documentation.md)
   - [Pull Requests](./chapter-13-community/pull-requests.md)
   - [Community Guidelines](./chapter-13-community/community.md)
-  - [IDE Extensions](./chapter-13-community/ide-extensions.md)
+  - [IDEs](./chapter-13-community/ide-extensions.md)
 
 # Appendices
 
@@ -184,3 +184,4 @@
   - [Relationships](./appendix-i/relationships.md)
 
 [Glossary](./glossary.md)
+[Contact](./contact/README.md)

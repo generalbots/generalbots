@@ -109,7 +109,7 @@ app.example.com {
 | 🔄 | Automated Backups | PostgreSQL | All | Daily backups via pg_dump/pg_basebackup |
 | ✅ | Point-in-Time Recovery | PostgreSQL | HIPAA | WAL archiving enabled |
 
-**Configuration File**: `/etc/postgresql/*/main/postgresql.conf`
+**Configuration**: Installed and configured automatically via installer.rs
 
 ```sql
 -- Enable SSL
@@ -150,16 +150,7 @@ log_statement = 'all'
 | 🔄 | Replication | Drive | HIPAA | Multi-site replication for DR |
 | ✅ | IAM Integration | Drive | All | Integration with Directory Service via OIDC |
 
-**Environment Variables**:
-```bash
-DRIVE_ROOT_USER=admin
-DRIVE_ROOT_PASSWORD=SecurePassword123!
-DRIVE_SERVER_URL=https://drive.example.com
-DRIVE_BROWSER=on
-DRIVE_IDENTITY_OPENID_CONFIG_URL=http://localhost:8080/.well-known/openid-configuration
-DRIVE_IDENTITY_OPENID_CLIENT_ID=drive
-DRIVE_IDENTITY_OPENID_CLIENT_SECRET=secret
-```
+**Configuration**: `/conf/drive/config.env`
 
 **Bucket Policy Example**:
 ```json
@@ -192,7 +183,7 @@ DRIVE_IDENTITY_OPENID_CLIENT_SECRET=secret
 | ✅ | Authentication | Stalwart | All | OIDC integration with Directory Service |
 | 📝 | Retention Policy | Stalwart | GDPR/LGPD | Define and implement email retention |
 
-**Configuration File**: `/etc/stalwart/config.toml`
+**Configuration**: `/conf/mail/config.toml`
 
 ```toml
 [server.listener."smtp"]

@@ -1,10 +1,10 @@
-# Contributing to BotServer
+# Contributing to General Bots
 
-Welcome to the BotServer community! We appreciate your interest in contributing to this open-source project. This chapter provides comprehensive guidance for contributors.
+Welcome to the General Bots community! We appreciate your interest in contributing to this open-source project. This chapter provides comprehensive guidance for contributors.
 
 ## Overview
 
-BotServer is an open-source conversational AI platform built in Rust. We welcome contributions of all kinds:
+General Bots is an open-source conversational AI platform built in Rust, actively used in production since 2018. We welcome contributions of all kinds:
 - Code improvements
 - Documentation updates
 - Bug reports
@@ -18,16 +18,15 @@ BotServer is an open-source conversational AI platform built in Rust. We welcome
 
 Before contributing, ensure you have:
 - Rust 1.70 or later
-- PostgreSQL 14 or later
 - Git experience
-- Basic understanding of BotServer architecture
+- Basic understanding of General Bots architecture
 
 ### First Steps
 
 1. **Fork the Repository**
    ```bash
    git clone https://github.com/GeneralBots/BotServer.git
-   cd BotServer
+   cd botserver
    ```
 
 2. **Set Up Development Environment**

@@ -19,8 +19,8 @@ Instead of complex logic, use the LLM's natural understanding:
 ```basic
 ' Example from announcements.gbai/update-summary.bas
 ' Generate summaries from documents
-let text = GET "announcements.gbkb/news/news.pdf"
-let resume = LLM "In a few words, resume this: " + text
+text = GET "announcements.gbkb/news/news.pdf"
+resume = LLM "In a few words, resume this: " + text
 SET BOT MEMORY "resume", resume
 
 ' Example from law.gbai/case.bas
@@ -136,8 +136,8 @@ TALK "Hello! I'm here to help."
 SET SCHEDULE "59 * * * *"
 
 ' Fetch and summarize documents ONCE for all users
-let text = GET "announcements.gbkb/news/news.pdf"
-let resume = LLM "In a few words, resume this: " + text
+text = GET "announcements.gbkb/news/news.pdf"
+resume = LLM "In a few words, resume this: " + text
 SET BOT MEMORY "resume", resume  ' Stored for all users
 ```
 
