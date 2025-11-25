@@ -1,0 +1,54 @@
+[book]
+title = "BotServer Documentation"
+authors = ["BotServer Team"]
+language = "en"
+multilingual = false
+src = "docs/src"
+description = "Documentation for BotServer - A flexible bot framework"
+
+[build]
+build-dir = "docs/book"
+
+[output.html]
+smart-punctuation = true
+mathjax-support = false
+copy-fonts = true
+no-section-label = false
+additional-css = ["docs/src/custom.css"]
+additional-js = ["docs/src/theme-sync.js"]
+git-repository-url = "https://github.com/yourusername/botserver"
+git-repository-icon = "fa-github"
+edit-url-template = "https://github.com/yourusername/botserver/edit/main/{path}"
+site-url = "/botserver/"
+cname = ""
+input-404 = ""
+
+[output.html.print]
+enable = true
+
+[output.html.fold]
+enable = false
+level = 0
+
+[output.html.playground]
+editable = false
+copyable = true
+copy-js = true
+line-numbers = false
+runnable = false
+
+[output.html.search]
+enable = true
+limit-results = 30
+teaser-word-count = 30
+use-boolean-and = true
+boost-title = 2
+boost-hierarchy = 1
+boost-paragraph = 1
+expand = true
+heading-split-level = 3
+copy-js = true
+
+[preprocessor.index]
+
+[preprocessor.links]

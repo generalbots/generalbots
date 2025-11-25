@@ -176,12 +176,23 @@
   - [Community Guidelines](./chapter-13-community/community.md)
   - [IDEs](./chapter-13-community/ide-extensions.md)
 
+# Part XIII - Migration
+
+- [Chapter 14: Migration Guide](./chapter-14-migration/README.md)
+  - [Migration Overview](./chapter-14-migration/overview.md)
+  - [Common Concepts](./chapter-14-migration/common-concepts.md)
+  - [Knowledge Base Migration](./chapter-14-migration/kb-migration.md)
+  - [Google Workspace Integration](./chapter-14-migration/google-workspace.md)
+  - [Microsoft 365 Integration](./chapter-14-migration/microsoft-365.md)
+  - [Automation Migration](./chapter-14-migration/automation.md)
+  - [Validation and Testing](./chapter-14-migration/validation.md)
+
 # Appendices
 
-- [Appendix I: Database Model](./appendix-i/README.md)
-  - [Schema Overview](./appendix-i/schema.md)
-  - [Tables](./appendix-i/tables.md)
-  - [Relationships](./appendix-i/relationships.md)
+- [Appendix XV: Database Model](./appendix-15/README.md)
+  - [Schema Overview](./appendix-15/schema.md)
+  - [Tables](./appendix-15/tables.md)
+  - [Relationships](./appendix-15/relationships.md)
 
 [Glossary](./glossary.md)
 [Contact](./contact/README.md)
