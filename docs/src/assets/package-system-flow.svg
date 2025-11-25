@@ -1,95 +1,93 @@
-<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+<svg width="800" height="400" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#888"/>
-    </marker>
-    <marker id="arrow-double" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#999"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#666"/>
     </marker>
   </defs>
 
   <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#CBD5E0">Package System Flow</text>
+  <text x="400" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="600" fill="#333">Package System Flow</text>
 
+  <!-- Main Components -->
   <!-- User Request -->
-  <rect x="50" y="60" width="120" height="50" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
-  <text x="110" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#90CDF4">User Request</text>
+  <rect x="20" y="60" width="100" height="40" fill="none" stroke="#4A90E2" stroke-width="2" rx="5"/>
+  <text x="70" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">User Request</text>
+
+  <!-- start.bas -->
+  <rect x="160" y="60" width="100" height="40" fill="none" stroke="#F5A623" stroke-width="2" rx="5"/>
+  <text x="210" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">start.bas</text>
+
+  <!-- LLM Engine -->
+  <rect x="300" y="60" width="100" height="40" fill="none" stroke="#BD10E0" stroke-width="2" rx="5"/>
+  <text x="350" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">LLM Engine</text>
 
   <!-- Bot Response -->
-  <rect x="630" y="60" width="120" height="50" fill="none" stroke="#68D391" stroke-width="2" rx="8"/>
-  <text x="690" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#9AE6B4">Bot Response</text>
+  <rect x="440" y="60" width="100" height="40" fill="none" stroke="#50E3C2" stroke-width="2" rx="5"/>
+  <text x="490" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">Bot Response</text>
 
-  <!-- start.bas Box -->
-  <rect x="50" y="180" width="180" height="140" fill="none" stroke="#F6AD55" stroke-width="2" rx="8"/>
-  <rect x="50" y="180" width="180" height="35" fill="none" stroke="#F6AD55" stroke-width="2" rx="8 8 0 0"/>
-  <text x="140" y="203" text-anchor="middle" font-family="monospace" font-size="14" font-weight="bold" fill="#FBD38D">start.bas</text>
+  <!-- Supporting Components -->
+  <!-- Vector Search -->
+  <rect x="240" y="160" width="120" height="40" fill="none" stroke="#4A90E2" stroke-width="2" rx="5"/>
+  <text x="300" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">Vector Search</text>
 
-  <!-- BASIC Commands -->
-  <text x="60" y="240" font-family="monospace" font-size="12" fill="#A0AEC0">USE KB "docs"</text>
-  <text x="60" y="260" font-family="monospace" font-size="12" fill="#A0AEC0">answer=HEAR</text>
-  <text x="60" y="280" font-family="monospace" font-size="12" fill="#A0AEC0">result=LLM()</text>
-  <text x="60" y="300" font-family="monospace" font-size="12" fill="#A0AEC0">TALK result</text>
+  <!-- .gbkb docs -->
+  <rect x="240" y="240" width="120" height="40" fill="none" stroke="#F5A623" stroke-width="2" rx="5"/>
+  <text x="300" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">.gbkb docs</text>
 
-  <!-- LLM Engine Box -->
-  <rect x="350" y="180" width="180" height="140" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
-  <rect x="350" y="180" width="180" height="35" fill="none" stroke="#B794F4" stroke-width="2" rx="8 8 0 0"/>
-  <text x="440" y="203" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#D6BCFA">LLM Engine</text>
-  <text x="440" y="250" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#D6BCFA">(GPT/Local)</text>
-  <text x="440" y="280" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#A0AEC0">Processes requests</text>
-  <text x="440" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#A0AEC0">Makes decisions</text>
-
-  <!-- Vector Search Box -->
-  <rect x="300" y="370" width="200" height="100" fill="none" stroke="#4FD1C5" stroke-width="2" rx="8"/>
-  <rect x="300" y="370" width="200" height="35" fill="none" stroke="#4FD1C5" stroke-width="2" rx="8 8 0 0"/>
-  <text x="400" y="393" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#81E6D9">Vector Search</text>
-  <text x="400" y="430" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" fill="#81E6D9">(.gbkb docs)</text>
-  <text x="400" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#A0AEC0">Semantic search</text>
-
-  <!-- Arrows -->
-  <g stroke="#888" stroke-width="2" fill="none">
-    <!-- User to start.bas -->
-    <line x1="170" y1="85" x2="140" y2="180" marker-end="url(#arrow)"/>
-
-    <!-- start.bas to LLM (bidirectional) -->
-    <line x1="230" y1="200" x2="350" y2="200" marker-end="url(#arrow)"/>
-    <line x1="350" y1="220" x2="230" y2="220" marker-end="url(#arrow)" stroke="#999"/>
-
-    <line x1="230" y1="280" x2="350" y2="280" marker-end="url(#arrow)"/>
-    <line x1="350" y1="300" x2="230" y2="300" marker-end="url(#arrow)" stroke="#999"/>
-
-    <!-- LLM to Vector Search -->
-    <line x1="440" y1="320" x2="400" y2="370" marker-end="url(#arrow)"/>
-
-    <!-- Vector Search back to LLM -->
-    <path d="M 400 370 Q 340 340 380 320" stroke="#999" stroke-dasharray="5,5" marker-end="url(#arrow-double)" opacity="0.7"/>
-
-    <!-- Bot Response arrow -->
-    <path d="M 530 250 Q 600 150 630 85" marker-end="url(#arrow)"/>
-
-    <!-- start.bas to Bot Response -->
-    <path d="M 140 180 Q 140 85 630 85" stroke="#999" stroke-dasharray="5,5" marker-end="url(#arrow-double)" opacity="0.7"/>
+  <!-- BASIC Commands Detail -->
+  <g transform="translate(580, 60)">
+    <rect width="200" height="120" fill="none" stroke="#7ED321" stroke-width="2" rx="5"/>
+    <text x="100" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">BASIC Commands</text>
+    <text x="10" y="50" font-family="monospace" font-size="12" fill="#666">USE KB "docs"</text>
+    <text x="10" y="70" font-family="monospace" font-size="12" fill="#666">answer = HEAR</text>
+    <text x="10" y="90" font-family="monospace" font-size="12" fill="#666">result = LLM()</text>
+    <text x="10" y="110" font-family="monospace" font-size="12" fill="#666">TALK result</text>
   </g>
 
-  <!-- Labels on arrows -->
-  <text x="290" y="195" font-family="Arial, sans-serif" font-size="11" fill="#718096">Commands</text>
-  <text x="290" y="235" font-family="Arial, sans-serif" font-size="11" fill="#718096">Results</text>
-
-  <text x="420" y="345" font-family="Arial, sans-serif" font-size="11" fill="#718096">Query</text>
-  <text x="320" y="345" font-family="Arial, sans-serif" font-size="11" fill="#718096">Context</text>
-
-  <!-- Legend -->
-  <g id="legend" transform="translate(600, 380)">
-    <rect x="0" y="0" width="180" height="100" fill="none" stroke="#4A5568" stroke-width="1" rx="5" opacity="0.5"/>
-    <text x="90" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#CBD5E0">Flow Legend</text>
-
-    <line x1="10" y1="40" x2="40" y2="40" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
-    <text x="50" y="45" font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">Direct flow</text>
-
-    <line x1="10" y1="60" x2="40" y2="60" stroke="#999" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-double)" opacity="0.7"/>
-    <text x="50" y="65" font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">Feedback/Return</text>
-
-    <line x1="10" y1="80" x2="40" y2="80" stroke="#888" stroke-width="2"/>
-    <line x1="40" y1="80" x2="10" y2="80" stroke="#999" stroke-width="2"/>
-    <text x="50" y="85" font-family="Arial, sans-serif" font-size="11" fill="#A0AEC0">Bidirectional</text>
+  <!-- Package Structure -->
+  <g transform="translate(580, 210)">
+    <rect width="200" height="140" fill="none" stroke="#4A90E2" stroke-width="2" rx="5"/>
+    <text x="100" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#333">Package Structure</text>
+    <text x="10" y="50" font-family="monospace" font-size="12" fill="#666">my-bot.gbai/</text>
+    <text x="20" y="70" font-family="monospace" font-size="12" fill="#666">├─ .gbdialog/</text>
+    <text x="20" y="90" font-family="monospace" font-size="12" fill="#666">├─ .gbkb/</text>
+    <text x="20" y="110" font-family="monospace" font-size="12" fill="#666">└─ .gbot/</text>
   </g>
+
+  <!-- Flow Arrows -->
+  <g stroke="#666" stroke-width="2" fill="none">
+    <!-- Main flow -->
+    <line x1="120" y1="80" x2="160" y2="80" marker-end="url(#arrow)"/>
+    <line x1="260" y1="80" x2="300" y2="80" marker-end="url(#arrow)"/>
+    <line x1="400" y1="80" x2="440" y2="80" marker-end="url(#arrow)"/>
+
+    <!-- LLM to Vector Search (downward) -->
+    <line x1="350" y1="100" x2="300" y2="160" stroke-dasharray="3,3" marker-end="url(#arrow)" opacity="0.6"/>
+
+    <!-- Vector Search to .gbkb docs -->
+    <line x1="300" y1="200" x2="300" y2="240" marker-end="url(#arrow)" opacity="0.6"/>
+
+    <!-- Feedback from start.bas to Vector Search (Results) -->
+    <path d="M240,100 Q240,130 270,130 Q270,160 270,160" stroke-dasharray="3,3" marker-end="url(#arrow)" opacity="0.6"/>
+
+    <!-- Feedback from Vector Search to LLM (Context) -->
+    <path d="M330,160 Q330,130 350,130 Q350,110 350,100" stroke-dasharray="3,3" marker-end="url(#arrow)" opacity="0.6"/>
+
+    <!-- Connection from start.bas to BASIC Commands (top right) -->
+    <path d="M260,70 Q400,40 580,80" stroke-dasharray="2,2" opacity="0.3"/>
+
+    <!-- Connection from .gbkb docs to Package Structure (bottom right) -->
+    <path d="M360,265 Q470,280 580,290" stroke-dasharray="2,2" opacity="0.3"/>
+  </g>
+
+  <!-- Labels on key connections -->
+  <text x="340" y="50" font-family="Arial, sans-serif" font-size="11" fill="#666">Commands</text>
+  <text x="230" y="145" font-family="Arial, sans-serif" font-size="11" fill="#666">Results</text>
+  <text x="365" y="145" font-family="Arial, sans-serif" font-size="11" fill="#666">Query</text>
+  <text x="340" y="125" font-family="Arial, sans-serif" font-size="11" fill="#666">Context</text>
+
+  <!-- Description -->
+  <text x="400" y="380" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666">
+    BASIC scripts orchestrate LLM decisions, vector search, and responses with zero configuration
+  </text>
 </svg>

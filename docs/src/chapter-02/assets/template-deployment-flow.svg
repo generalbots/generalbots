@@ -1,83 +1,83 @@
-<svg width="600" height="800" xmlns="http://www.w3.org/2000/svg">
+<svg width="600" height="800" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
-      <path d="M0,0 L0,6 L9,3 z" fill="#888"/>
+      <path d="M0,0 L0,6 L9,3 z" fill="#4B5563"/>
     </marker>
   </defs>
 
   <!-- Title -->
-  <text x="300" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#CBD5E0">Template Deployment Flow</text>
+  <text x="300" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#1F2937">Template Deployment Flow</text>
 
   <!-- Templates folder -->
   <rect x="225" y="60" width="150" height="50" fill="none" stroke="#63B3ED" stroke-width="2" rx="8"/>
-  <text x="300" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#90CDF4">templates/</text>
-  <text x="300" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#CBD5E0">Source folder</text>
+  <text x="300" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#1E40AF">templates/</text>
+  <text x="300" y="100" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#1F2937">Source folder</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="110" x2="300" y2="140" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- SCAN -->
   <rect x="200" y="140" width="200" height="70" fill="none" stroke="#F6AD55" stroke-width="2" rx="8"/>
-  <text x="300" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FBD38D">SCAN</text>
-  <text x="300" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FED7AA">Find all .gbai folders</text>
+  <text x="300" y="165" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#EA580C">SCAN</text>
+  <text x="300" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#FED7AA">Find all .gbai folders</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="210" x2="300" y2="240" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- VALIDATE -->
   <rect x="200" y="240" width="200" height="90" fill="none" stroke="#B794F4" stroke-width="2" rx="8"/>
-  <text x="300" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#D6BCFA">VALIDATE</text>
-  <text x="300" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#E9D8FD">Check required structure</text>
-  <text x="300" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• start.bas exists?</text>
-  <text x="300" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Folders match name?</text>
+  <text x="300" y="265" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#9333EA">VALIDATE</text>
+  <text x="300" y="285" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#7C3AED">Check required structure</text>
+  <text x="300" y="300" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• start.bas exists?</text>
+  <text x="300" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Folders match name?</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="330" x2="300" y2="360" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- UPLOAD -->
   <rect x="200" y="360" width="200" height="90" fill="none" stroke="#48BB78" stroke-width="2" rx="8"/>
-  <text x="300" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#68D391">UPLOAD</text>
-  <text x="300" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#9AE6B4">Copy to object storage</text>
-  <text x="300" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Templates → S3/Drive</text>
-  <text x="300" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Assets → CDN paths</text>
+  <text x="300" y="385" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#059669">UPLOAD</text>
+  <text x="300" y="405" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#10B981">Copy to object storage</text>
+  <text x="300" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Templates → S3/Drive</text>
+  <text x="300" y="435" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Assets → CDN paths</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="450" x2="300" y2="480" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- INDEX -->
   <rect x="200" y="480" width="200" height="90" fill="none" stroke="#4FD1C5" stroke-width="2" rx="8"/>
-  <text x="300" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#81E6D9">INDEX</text>
-  <text x="300" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#B2F5EA">Process knowledge base</text>
-  <text x="300" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Extract text</text>
-  <text x="300" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Generate embeddings</text>
-  <text x="300" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Store in Qdrant</text>
+  <text x="300" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#0891B2">INDEX</text>
+  <text x="300" y="525" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#0E7490">Process knowledge base</text>
+  <text x="300" y="540" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Extract text</text>
+  <text x="300" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Generate embeddings</text>
+  <text x="300" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Store in Qdrant</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="580" x2="300" y2="610" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- REGISTER -->
   <rect x="200" y="610" width="200" height="90" fill="none" stroke="#FBBF24" stroke-width="2" rx="8"/>
-  <text x="300" y="635" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FCD34D">REGISTER</text>
-  <text x="300" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FDE68A">Create in database</text>
-  <text x="300" y="670" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Bot record</text>
-  <text x="300" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Configuration</text>
-  <text x="300" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• URL mapping</text>
+  <text x="300" y="635" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#FCD34D">REGISTER</text>
+  <text x="300" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#FDE68A">Create in database</text>
+  <text x="300" y="670" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Bot record</text>
+  <text x="300" y="685" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Configuration</text>
+  <text x="300" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• URL mapping</text>
 
   <!-- Arrow down -->
   <line x1="300" y1="710" x2="300" y2="740" stroke="#888" stroke-width="2" marker-end="url(#arrow)"/>
 
   <!-- ACTIVATE -->
   <rect x="200" y="740" width="200" height="90" fill="none" stroke="#FC8181" stroke-width="2" rx="8"/>
-  <text x="300" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#FC8181">ACTIVATE</text>
-  <text x="300" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" fill="#FEB2B2">Start serving</text>
-  <text x="300" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• /bot-name endpoint</text>
-  <text x="300" y="815" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• WebSocket ready</text>
-  <text x="300" y="830" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">• Sessions enabled</text>
+  <text x="300" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#EF4444">ACTIVATE</text>
+  <text x="300" y="785" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#DC2626">Start serving</text>
+  <text x="300" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• /bot-name endpoint</text>
+  <text x="300" y="815" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• WebSocket ready</text>
+  <text x="300" y="830" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">• Sessions enabled</text>
 
   <!-- Process time indicator -->
   <g id="time-indicator" transform="translate(450, 450)">
     <circle cx="0" cy="0" r="40" fill="none" stroke="#4A5568" stroke-width="1" opacity="0.5"/>
-    <text x="0" y="0" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#CBD5E0">5-10s</text>
-    <text x="0" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#A0AEC0">per bot</text>
+    <text x="0" y="0" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#1F2937">5-10s</text>
+    <text x="0" y="15" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#374151">per bot</text>
   </g>
 </svg>
