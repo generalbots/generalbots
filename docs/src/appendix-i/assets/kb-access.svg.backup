@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 880 480" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="880" height="480" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Knowledge Base Access</text>
+
+  <!-- user_sessions -->
+  <rect x="50" y="80" width="200" height="120" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <rect x="50" y="80" width="200" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="8 8 0 0" filter="url(#shadow)"/>
+  <text x="150" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">user_sessions</text>
+
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+    <text x="60" y="130" filter="url(#textShadow)">• id</text>
+    <text x="60" y="145" filter="url(#textShadow)">• user_id</text>
+    <text x="60" y="160" filter="url(#textShadow)">• bot_id</text>
+    <text x="60" y="175" filter="url(#textShadow)">• session_token</text>
+  </g>
+
+  <!-- Arrow to user_kb_associations -->
+  <line x1="250" y1="140" x2="320" y2="140" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+  <text x="285" y="130" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Has Access</text>
+
+  <!-- user_kb_associations -->
+  <rect x="320" y="80" width="200" height="120" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <rect x="320" y="80" width="200" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="8 8 0 0" filter="url(#shadow)"/>
+  <text x="420" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">user_kb_associations</text>
+
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+    <text x="330" y="130" filter="url(#textShadow)">• id</text>
+    <text x="330" y="145" filter="url(#textShadow)">• session_id</text>
+    <text x="330" y="160" filter="url(#textShadow)">• kb_id</text>
+    <text x="330" y="175" filter="url(#textShadow)">• created_at</text>
+  </g>
+
+  <!-- Reference arrow down -->
+  <line x1="420" y1="200" x2="420" y2="240" stroke="#999" stroke-width="2" stroke-dasharray="5,5" marker-end="url(#arrow-ref)">
+  <text x="435" y="220" text-anchor="start" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">References</text>
+
+  <!-- kb_collections -->
+  <rect x="50" y="240" width="200" height="140" fill="none" stroke="#059669" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <rect x="50" y="240" width="200" height="30" fill="none" stroke="#059669" stroke-width="2" rx="8 8 0 0" filter="url(#shadow)"/>
+  <text x="150" y="260" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">kb_collections</text>
+
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+    <text x="60" y="290" filter="url(#textShadow)">• id</text>
+    <text x="60" y="305" filter="url(#textShadow)">• bot_id</text>
+    <text x="60" y="320" filter="url(#textShadow)">• name</text>
+    <text x="60" y="335" filter="url(#textShadow)">• created_at</text>
+    <text x="60" y="350" filter="url(#textShadow)">• metadata</text>
+  </g>
+
+  <!-- Arrow to kb_documents -->
+  <line x1="250" y1="310" x2="320" y2="310" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+  <text x="285" y="300" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Contains</text>
+  <text x="285" y="320" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+  <!-- kb_documents -->
+  <rect x="320" y="240" width="200" height="140" fill="none" stroke="#059669" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <rect x="320" y="240" width="200" height="30" fill="none" stroke="#059669" stroke-width="2" rx="8 8 0 0" filter="url(#shadow)"/>
+  <text x="420" y="260" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">kb_documents</text>
+
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+    <text x="330" y="290" filter="url(#textShadow)">• id</text>
+    <text x="330" y="305" filter="url(#textShadow)">• collection_id</text>
+    <text x="330" y="320" filter="url(#textShadow)">• content</text>
+    <text x="330" y="335" filter="url(#textShadow)">• embeddings</text>
+    <text x="330" y="350" filter="url(#textShadow)">• metadata</text>
+  </g>
+
+  <!-- Vector indicator -->
+  <g id="vector-indicator" transform="translate(550, 280)">
+    <rect x="0" y="0" width="180" height="80" fill="none" stroke="#7C3AED" stroke-width="2" rx="5" stroke-dasharray="3,3" opacity="0.7" filter="url(#shadow)"/>
+    <text x="90" y="25" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Vector Storage</text>
+    <text x="90" y="45" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Embeddings stored</text>
+    <text x="90" y="60" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">for semantic search</text>
+  </g>
+
+  <!-- Connection from kb_documents to vector indicator -->
+  <line x1="520" y1="335" x2="550" y2="320" stroke="#7C3AED" stroke-width="2" stroke-dasharray="3,3" opacity="0.7">
+
+  <!-- Access flow description -->
+  <g id="access-flow" transform="translate(550, 100)">
+    <rect x="0" y="0" width="200" height="100" fill="none" stroke="#2563EB" stroke-width="2" rx="5" stroke-dasharray="2,2" opacity="0.5" filter="url(#shadow)"/>
+    <text x="100" y="20" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Access Pattern</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="10" y="40" filter="url(#textShadow)">1. Session requests KB</text>
+      <text x="10" y="55" filter="url(#textShadow)">2. Association created</text>
+      <text x="10" y="70" filter="url(#textShadow)">3. KB documents available</text>
+      <text x="10" y="85" filter="url(#textShadow)">4. Vector search enabled</text>
+    </g>
+  </g>
+
+
+  </g>
+
+</svg>
