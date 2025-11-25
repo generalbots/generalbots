@@ -1,0 +1,215 @@
+/* Custom CSS for Rust Documentation - Fixes SVG text rendering */
+
+/* CSS Custom Properties that can be injected into SVG documents */
+:root {
+    --svg-main-text-color: #1a1a1a;
+    --svg-secondary-text-color: #666;
+    --svg-arrow-color: #666;
+}
+
+/* Force black text in light/rust themes */
+.light,
+.rust {
+    --svg-main-text-color: #1a1a1a !important;
+    --svg-secondary-text-color: #666 !important;
+    --svg-arrow-color: #666 !important;
+}
+
+/* Dark theme overrides */
+.ayu,
+.coal,
+.navy,
+.dark,
+.theme--dark {
+    --svg-main-text-color: #ffffff !important;
+    --svg-secondary-text-color: #b0b0b0 !important;
+    --svg-arrow-color: #b0b0b0 !important;
+}
+
+/* For inline SVGs - direct styling */
+.light svg .main-text,
+.rust svg .main-text {
+    fill: #1a1a1a !important;
+}
+
+.light svg .secondary-text,
+.rust svg .secondary-text {
+    fill: #666 !important;
+}
+
+.light svg .arrow-head,
+.rust svg .arrow-head {
+    fill: #666 !important;
+}
+
+.light svg .arrow-line,
+.rust svg .arrow-line {
+    stroke: #666 !important;
+}
+
+/* Dark theme inline SVG overrides */
+.ayu svg .main-text,
+.coal svg .main-text,
+.navy svg .main-text,
+.dark svg .main-text,
+.theme--dark svg .main-text {
+    fill: #ffffff !important;
+}
+
+.ayu svg .secondary-text,
+.coal svg .secondary-text,
+.navy svg .secondary-text,
+.dark svg .secondary-text,
+.theme--dark svg .secondary-text {
+    fill: #b0b0b0 !important;
+}
+
+.ayu svg .arrow-head,
+.coal svg .arrow-head,
+.navy svg .arrow-head,
+.dark svg .arrow-head,
+.theme--dark svg .arrow-head {
+    fill: #b0b0b0 !important;
+}
+
+.ayu svg .arrow-line,
+.coal svg .arrow-line,
+.navy svg .arrow-line,
+.dark svg .arrow-line,
+.theme--dark svg .arrow-line {
+    stroke: #b0b0b0 !important;
+}
+
+/* Object element styling for better SVG integration */
+object[type="image/svg+xml"] {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    pointer-events: none; /* Prevent interaction issues */
+    background: transparent !important;
+}
+
+/* Ensure object fallback images are hidden when object loads */
+object[type="image/svg+xml"] img {
+    display: none;
+}
+
+/* Ensure SVG containers have transparent background */
+.content object,
+.content img[src$=".svg"] {
+    background: transparent !important;
+}
+
+/* Remove any background from SVG wrappers */
+.content > div:has(object[type="image/svg+xml"]) {
+    background: transparent !important;
+}
+
+/* Fix for mdBook's content area */
+.content object[type="image/svg+xml"] {
+    margin: 1em 0;
+    background-color: transparent !important;
+}
+
+/* Override any mdBook theme backgrounds for SVG areas */
+.rust .content object[type="image/svg+xml"],
+.light .content object[type="image/svg+xml"],
+.coal .content object[type="image/svg+xml"],
+.navy .content object[type="image/svg+xml"],
+.ayu .content object[type="image/svg+xml"] {
+    background-color: transparent !important;
+}
+
+/* Inject CSS variables into object document via JavaScript */
+.light object[type="image/svg+xml"],
+.rust object[type="image/svg+xml"] {
+    color-scheme: light;
+}
+
+.ayu object[type="image/svg+xml"],
+.coal object[type="image/svg+xml"],
+.navy object[type="image/svg+xml"],
+.dark object[type="image/svg+xml"] {
+    color-scheme: dark;
+}
+
+/* Additional mdBook theme detection */
+body:not([class*="theme"]) svg .main-text,
+body:not([class*="ayu"]):not([class*="coal"]):not([class*="navy"])
+    svg
+    .main-text {
+    fill: var(--svg-main-text-color, #1a1a1a) !important;
+}
+
+body:not([class*="theme"]) svg .secondary-text,
+body:not([class*="ayu"]):not([class*="coal"]):not([class*="navy"])
+    svg
+    .secondary-text {
+    fill: var(--svg-secondary-text-color, #666) !important;
+}
+
+body:not([class*="theme"]) svg .arrow-head,
+body:not([class*="ayu"]):not([class*="coal"]):not([class*="navy"])
+    svg
+    .arrow-head {
+    fill: var(--svg-arrow-color, #666) !important;
+}
+
+body:not([class*="theme"]) svg .arrow-line,
+body:not([class*="ayu"]):not([class*="coal"]):not([class*="navy"])
+    svg
+    .arrow-line {
+    stroke: var(--svg-arrow-color, #666) !important;
+}
+
+/* Print styles */
+@media print {
+    svg .main-text {
+        fill: #1a1a1a !important;
+    }
+
+    svg .secondary-text {
+        fill: #666 !important;
+    }
+
+    svg .arrow-head {
+        fill: #666 !important;
+    }
+
+    svg .arrow-line {
+        stroke: #666 !important;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-contrast: high) {
+    svg .main-text {
+        fill: #000000 !important;
+    }
+
+    .dark svg .main-text,
+    .ayu svg .main-text,
+    .coal svg .main-text,
+    .navy svg .main-text {
+        fill: #ffffff !important;
+    }
+}
+
+/* Custom scrollbar for SVG containers if needed */
+object[type="image/svg+xml"]::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+object[type="image/svg+xml"]::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+object[type="image/svg+xml"]::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 4px;
+}
+
+.dark object[type="image/svg+xml"]::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+}
