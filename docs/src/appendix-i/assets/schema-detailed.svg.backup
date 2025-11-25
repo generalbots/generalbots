@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 1080 780" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="1080" height="780" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  
+
+  <!-- Title -->
+  <text x="500" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Database Entity Details</text>
+
+  <!-- Organizations Table -->
+  <g id="organizations">
+    <rect x="50" y="60" width="400" height="150" fill="none" stroke="#2563EB" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="50" y="60" width="400" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="250" y="80" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">organizations</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="60" y="110" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="60" y="130" filter="url(#textShadow)">name: VARCHAR(255)</text>
+      <text x="60" y="150" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+      <text x="60" y="170" filter="url(#textShadow)">updated_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- Bots Table -->
+  <g id="bots">
+    <rect x="550" y="60" width="400" height="190" fill="none" stroke="#059669" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="550" y="60" width="400" height="30" fill="none" stroke="#059669" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="750" y="80" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">bots</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="560" y="110" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="560" y="130" filter="url(#textShadow)">organization_id: UUID (FK)</text>
+      <text x="560" y="150" filter="url(#textShadow)">name: VARCHAR(255)</text>
+      <text x="560" y="170" filter="url(#textShadow)">configuration: JSONB</text>
+      <text x="560" y="190" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+      <text x="560" y="210" filter="url(#textShadow)">updated_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- Bot Memories Table -->
+  <g id="bot_memories">
+    <rect x="50" y="290" width="280" height="130" fill="none" stroke="#7C3AED" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="50" y="290" width="280" height="30" fill="none" stroke="#7C3AED" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="190" y="310" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">bot_memories</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="60" y="340" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="60" y="360" filter="url(#textShadow)">bot_id: UUID (FK)</text>
+      <text x="60" y="380" filter="url(#textShadow)">key: TEXT</text>
+      <text x="60" y="400" filter="url(#textShadow)">value: TEXT</text>
+    </g>
+  </g>
+
+  <!-- User Sessions Table -->
+  <g id="user_sessions">
+    <rect x="360" y="290" width="280" height="170" fill="none" stroke="#2563EB" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="360" y="290" width="280" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="500" y="310" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">user_sessions</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="370" y="340" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="370" y="360" filter="url(#textShadow)">user_id: UUID (FK)</text>
+      <text x="370" y="380" filter="url(#textShadow)">bot_id: UUID (FK)</text>
+      <text x="370" y="400" filter="url(#textShadow)">session_token: TEXT</text>
+      <text x="370" y="420" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+      <text x="370" y="440" filter="url(#textShadow)">expires_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- KB Collections Table -->
+  <g id="kb_collections">
+    <rect x="670" y="290" width="280" height="150" fill="none" stroke="#2563EB" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="670" y="290" width="280" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="810" y="310" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">kb_collections</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="680" y="340" filter="url(#textShadow)">id: TEXT (PK)</text>
+      <text x="680" y="360" filter="url(#textShadow)">bot_id: UUID (FK)</text>
+      <text x="680" y="380" filter="url(#textShadow)">name: TEXT</text>
+      <text x="680" y="400" filter="url(#textShadow)">description: TEXT</text>
+      <text x="680" y="420" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- Users Table -->
+  <g id="users">
+    <rect x="50" y="480" width="280" height="170" fill="none" stroke="#DC2626" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="50" y="480" width="280" height="30" fill="none" stroke="#DC2626" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="190" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">users</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="60" y="530" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="60" y="550" filter="url(#textShadow)">username: TEXT</text>
+      <text x="60" y="570" filter="url(#textShadow)">email: TEXT</text>
+      <text x="60" y="590" filter="url(#textShadow)">password_hash: TEXT</text>
+      <text x="60" y="610" filter="url(#textShadow)">active: BOOLEAN</text>
+      <text x="60" y="630" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- Message History Table -->
+  <g id="message_history">
+    <rect x="360" y="480" width="280" height="170" fill="none" stroke="#2563EB" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="360" y="480" width="280" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="500" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">message_history</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="370" y="530" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="370" y="550" filter="url(#textShadow)">session_id: UUID (FK)</text>
+      <text x="370" y="570" filter="url(#textShadow)">user_id: UUID (FK)</text>
+      <text x="370" y="590" filter="url(#textShadow)">bot_id: UUID (FK)</text>
+      <text x="370" y="610" filter="url(#textShadow)">message: TEXT</text>
+      <text x="370" y="630" filter="url(#textShadow)">sender: TEXT</text>
+    </g>
+  </g>
+
+  <!-- KB Documents Table -->
+  <g id="kb_documents">
+    <rect x="670" y="480" width="280" height="170" fill="none" stroke="#2563EB" stroke-width="2" rx="5" filter="url(#shadow)"/>
+    <rect x="670" y="480" width="280" height="30" fill="none" stroke="#2563EB" stroke-width="2" rx="5 5 0 0" filter="url(#shadow)"/>
+    <text x="810" y="500" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">kb_documents</text>
+
+    <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+      <text x="680" y="530" filter="url(#textShadow)">id: UUID (PK)</text>
+      <text x="680" y="550" filter="url(#textShadow)">collection_id: TEXT (FK)</text>
+      <text x="680" y="570" filter="url(#textShadow)">content: TEXT</text>
+      <text x="680" y="590" filter="url(#textShadow)">embeddings: VECTOR</text>
+      <text x="680" y="610" filter="url(#textShadow)">metadata: JSONB</text>
+      <text x="680" y="630" filter="url(#textShadow)">created_at: TIMESTAMPTZ</text>
+    </g>
+  </g>
+
+  <!-- Relationships -->
+  <g stroke="#6B7280" stroke-width="2" fill="none">
+    <!-- organizations to bots -->
+    <line x1="450" y1="135" x2="550" y2="135" marker-end="url(#arrow)">
+    <text x="500" y="130" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+    <!-- bots to bot_memories -->
+    <line x1="750" y1="250" x2="190" y2="290" marker-end="url(#arrow)">
+    <text x="470" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+    <!-- bots to user_sessions -->
+    <line x1="750" y1="250" x2="500" y2="290" marker-end="url(#arrow)">
+
+    <!-- bots to kb_collections -->
+    <line x1="750" y1="250" x2="810" y2="290" marker-end="url(#arrow)">
+    <text x="780" y="270" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+    <!-- kb_collections to kb_documents -->
+    <line x1="810" y1="440" x2="810" y2="480" marker-end="url(#arrow)">
+    <text x="825" y="460" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+    <!-- user_sessions to message_history -->
+    <line x1="500" y1="460" x2="500" y2="480" marker-end="url(#arrow)">
+    <text x="515" y="470" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+
+    <!-- users to user_sessions (dotted) -->
+    <path d="M 330 565 L 360 390" stroke-dasharray="5,5" marker-end="url(#arrow)" opacity="0.6">
+    <text x="345" y="475" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">1:N</text>
+  </g>
+
+  <!-- Legend -->
+  <g id="legend" transform="translate(50, 670)">
+    <text x="0" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Color Coding:</text>
+
+    <rect x="100" y="-10" width="20" height="10" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="125" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Organization</text>
+
+    <rect x="220" y="-10" width="20" height="10" fill="none" stroke="#059669" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="245" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Bot Core</text>
+
+    <rect x="320" y="-10" width="20" height="10" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="345" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Sessions</text>
+
+    <rect x="420" y="-10" width="20" height="10" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="445" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Knowledge</text>
+
+    <rect x="530" y="-10" width="20" height="10" fill="none" stroke="#DC2626" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="555" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Users</text>
+
+    <rect x="620" y="-10" width="20" height="10" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+    <text x="645" y="0" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Messages</text>
+  </g>
+
+
+  </g>
+
+</svg>

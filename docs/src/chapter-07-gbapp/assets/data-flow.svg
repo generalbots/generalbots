@@ -1,4 +1,4 @@
-<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg">
+<svg width="800" height="600" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
   <defs>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
       <path d="M0,0 L0,6 L9,3 z" fill="#666" opacity="0.8"/>
@@ -18,28 +18,28 @@
   </defs>
 
   <!-- Title -->
-  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">BotServer Data Flow Architecture</text>
+  <text x="400" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#333">BotServer Data Flow Architecture</text>
 
   <!-- User Input Layer -->
   <g id="user-layer">
     <rect x="50" y="60" width="700" height="80" fill="url(#gradient1)" stroke="#4A90E2" stroke-width="2" rx="8" opacity="0.8"/>
-    <text x="400" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">User Input Layer</text>
+    <text x="400" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">User Input Layer</text>
 
     <!-- Input sources -->
     <rect x="80" y="95" width="120" height="30" fill="white" stroke="#4A90E2" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="140" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Web UI</text>
+    <text x="140" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#333">Web UI</text>
 
     <rect x="220" y="95" width="120" height="30" fill="white" stroke="#4A90E2" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="280" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">WhatsApp</text>
+    <text x="280" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#333">WhatsApp</text>
 
     <rect x="360" y="95" width="120" height="30" fill="white" stroke="#4A90E2" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="420" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Teams</text>
+    <text x="420" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#333">Teams</text>
 
     <rect x="500" y="95" width="120" height="30" fill="white" stroke="#4A90E2" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="560" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">Email</text>
+    <text x="560" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#333">Email</text>
 
     <rect x="640" y="95" width="80" height="30" fill="white" stroke="#4A90E2" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="680" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#333">API</text>
+    <text x="680" y="113" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#333">API</text>
   </g>
 
   <!-- Arrows from User Layer to Processing -->
@@ -48,27 +48,27 @@
   <!-- Processing Layer -->
   <g id="processing-layer">
     <rect x="50" y="170" width="700" height="200" fill="url(#gradient2)" stroke="#50C878" stroke-width="2" rx="8" opacity="0.8"/>
-    <text x="400" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">Core Processing Engine</text>
+    <text x="400" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Core Processing Engine</text>
 
     <!-- Session Manager -->
     <rect x="80" y="210" width="150" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="155" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Session Manager</text>
-    <text x="155" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">User Context</text>
+    <text x="155" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Session Manager</text>
+    <text x="155" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">User Context</text>
 
     <!-- BASIC Interpreter -->
     <rect x="250" y="210" width="150" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="325" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">BASIC Interpreter</text>
-    <text x="325" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Script Execution</text>
+    <text x="325" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">BASIC Interpreter</text>
+    <text x="325" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Script Execution</text>
 
     <!-- LLM Integration -->
     <rect x="420" y="210" width="150" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="495" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">LLM Integration</text>
-    <text x="495" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">AI Processing</text>
+    <text x="495" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">LLM Integration</text>
+    <text x="495" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">AI Processing</text>
 
     <!-- Knowledge Base -->
     <rect x="590" y="210" width="130" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="655" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Knowledge Base</text>
-    <text x="655" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Vector Search</text>
+    <text x="655" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Knowledge Base</text>
+    <text x="655" y="252" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Vector Search</text>
 
     <!-- Internal flow arrows -->
     <line x1="230" y1="240" x2="250" y2="240" stroke="#666" stroke-width="1" marker-end="url(#arrow)" opacity="0.5"/>
@@ -77,13 +77,13 @@
 
     <!-- Tool System -->
     <rect x="80" y="290" width="300" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="230" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Tool System</text>
-    <text x="230" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">External APIs &amp; Functions</text>
+    <text x="230" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Tool System</text>
+    <text x="230" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">External APIs &amp; Functions</text>
 
     <!-- Cache Layer -->
     <rect x="420" y="290" width="300" height="60" fill="white" stroke="#50C878" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="570" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Cache Layer</text>
-    <text x="570" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Response Optimization</text>
+    <text x="570" y="315" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Cache Layer</text>
+    <text x="570" y="332" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Response Optimization</text>
   </g>
 
   <!-- Arrows from Processing to Storage -->
@@ -92,27 +92,27 @@
   <!-- Storage Layer -->
   <g id="storage-layer">
     <rect x="50" y="400" width="700" height="120" fill="url(#gradient3)" stroke="#FF6B6B" stroke-width="2" rx="8" opacity="0.8"/>
-    <text x="400" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">Storage &amp; Persistence Layer</text>
+    <text x="400" y="425" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#333">Storage &amp; Persistence Layer</text>
 
     <!-- Database -->
     <rect x="80" y="450" width="140" height="50" fill="white" stroke="#FF6B6B" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="150" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Database</text>
-    <text x="150" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">User Data</text>
+    <text x="150" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Database</text>
+    <text x="150" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">User Data</text>
 
     <!-- Vector DB -->
     <rect x="240" y="450" width="140" height="50" fill="white" stroke="#FF6B6B" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="310" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Vector DB</text>
-    <text x="310" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Embeddings</text>
+    <text x="310" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Vector DB</text>
+    <text x="310" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Embeddings</text>
 
     <!-- Drive Storage -->
     <rect x="400" y="450" width="140" height="50" fill="white" stroke="#FF6B6B" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="470" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Drive Storage</text>
-    <text x="470" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Files &amp; Assets</text>
+    <text x="470" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Drive Storage</text>
+    <text x="470" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Files &amp; Assets</text>
 
     <!-- Cache -->
     <rect x="560" y="450" width="140" height="50" fill="white" stroke="#FF6B6B" stroke-width="1" rx="4" opacity="0.9"/>
-    <text x="630" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Cache</text>
-    <text x="630" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">Fast Access</text>
+    <text x="630" y="470" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Cache</text>
+    <text x="630" y="487" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Fast Access</text>
   </g>
 
   <!-- Bidirectional arrows showing data flow -->
@@ -126,14 +126,14 @@
 
   <!-- Legend -->
   <g id="legend" transform="translate(50, 540)">
-    <text x="0" y="0" font-family="Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Data Flow:</text>
+    <text x="0" y="0" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Data Flow:</text>
     <line x1="80" y1="-5" x2="120" y2="-5" stroke="#666" stroke-width="2" marker-end="url(#arrow)"/>
-    <text x="125" y="0" font-family="Arial, sans-serif" font-size="11" fill="#666">Request/Response</text>
+    <text x="125" y="0" font-family="Arial, sans-serif" font-size="16" fill="#666">Request/Response</text>
 
     <line x1="250" y1="-5" x2="290" y2="-5" stroke="#666" stroke-width="1" stroke-dasharray="5,5"/>
-    <text x="295" y="0" font-family="Arial, sans-serif" font-size="11" fill="#666">Data Access</text>
+    <text x="295" y="0" font-family="Arial, sans-serif" font-size="16" fill="#666">Data Access</text>
   </g>
 
   <!-- Performance Note -->
-  <text x="400" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#999">All components run in async Rust for maximum performance</text>
+  <text x="400" y="580" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#999">All components run in async Rust for maximum performance</text>
 </svg>

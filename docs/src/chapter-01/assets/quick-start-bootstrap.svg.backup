@@ -1,0 +1,142 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 980 980" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="980" height="980" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Bootstrap Flow</text>
+
+  <!-- Start -->
+  <rect x="350" y="60" width="200" height="50" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="450" y="85" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" fill="#4B5563" filter="url(#textShadow)">./botserver</text>
+  <text x="450" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">(first run)</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="110" x2="450" y2="140" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- OS Detection -->
+  <rect x="325" y="140" width="250" height="70" fill="none" stroke="#EA580C" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="450" y="165" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">OS Detection</text>
+  <text x="450" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Linux/Mac/Windows</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="210" x2="450" y2="240" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- Component Installation Box -->
+  <rect x="100" y="240" width="700" height="180" fill="none" stroke="#2563EB" stroke-width="2" rx="10" stroke-dasharray="5,5" opacity="0.6" filter="url(#shadow)"/>
+  <text x="450" y="265" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Component Installation</text>
+
+  <!-- Component Grid -->
+  <g id="components">
+    <!-- PostgreSQL -->
+    <rect x="150" y="290" width="150" height="80" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="225" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">PostgreSQL</text>
+    <text x="225" y="335" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">16.2</text>
+
+    <!-- Valkey -->
+    <rect x="325" y="290" width="150" height="80" fill="none" stroke="#DC2626" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="400" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Valkey</text>
+    <text x="400" y="335" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Cache</text>
+
+    <!-- SeaweedFS -->
+    <rect x="500" y="290" width="150" height="80" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="575" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">SeaweedFS</text>
+    <text x="575" y="335" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Storage</text>
+
+    <!-- Qdrant -->
+    <rect x="675" y="290" width="125" height="80" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+    <text x="737" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Qdrant</text>
+    <text x="737" y="335" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Vectors</text>
+  </g>
+
+  <!-- Connection lines -->
+  <g stroke="#6B7280" stroke-width="2" fill="none" opacity="0.5">
+    <line x1="225" y1="370" x2="225" y2="390">
+    <line x1="400" y1="370" x2="400" y2="390">
+    <line x1="575" y1="370" x2="575" y2="390">
+    <line x1="737" y1="370" x2="737" y2="390">
+    <line x1="225" y1="390" x2="737" y2="390">
+    <line x1="450" y1="390" x2="450" y2="450">
+  </g>
+
+  <!-- Arrow -->
+  <line x1="450" y1="420" x2="450" y2="450" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- Configuration & Setup -->
+  <rect x="200" y="450" width="500" height="120" fill="none" stroke="#7C3AED" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="450" y="475" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Configuration &amp; Setup</text>
+
+  <g font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563">
+    <text x="250" y="505" filter="url(#textShadow)">• Generate credentials</text>
+    <text x="250" y="525" filter="url(#textShadow)">• Create .env file</text>
+    <text x="480" y="505" filter="url(#textShadow)">• Initialize databases</text>
+    <text x="480" y="525" filter="url(#textShadow)">• Create storage buckets</text>
+  </g>
+
+  <!-- Arrow -->
+  <line x1="450" y1="570" x2="450" y2="600" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- Bot Deployment Box -->
+  <rect x="150" y="600" width="600" height="200" fill="none" stroke="#2563EB" stroke-width="2" rx="10" stroke-dasharray="5,5" opacity="0.6" filter="url(#shadow)"/>
+  <text x="450" y="625" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Bot Deployment</text>
+
+  <!-- Deployment Steps -->
+  <rect x="200" y="650" width="500" height="40" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="450" y="675" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Scan templates/ directory</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="690" x2="450" y2="710" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)" opacity="0.7">
+
+  <rect x="200" y="710" width="500" height="60" fill="none" stroke="#059669" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="450" y="735" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Load .gbai packages</text>
+  <text x="350" y="755" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• default.gbai</text>
+  <text x="500" y="755" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• announcements.gbai</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="770" x2="450" y2="790" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)" opacity="0.7">
+
+  <rect x="200" y="790" width="500" height="60" fill="none" stroke="#2563EB" stroke-width="2" rx="6" filter="url(#shadow)"/>
+  <text x="450" y="815" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Upload to object storage</text>
+  <text x="450" y="835" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Index documents • Register in database</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="850" x2="450" y2="880" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- Start Web Server -->
+  <rect x="275" y="880" width="350" height="70" fill="none" stroke="#059669" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="450" y="905" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Start Web Server</text>
+  <text x="450" y="925" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">http://localhost:8080</text>
+
+
+  </g>
+
+</svg>

@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg viewBox="0 0 680 880" xmlns="http://www.w3.org/2000/svg" style="max-width: 100%; height: auto;">
+  <defs>
+    <!-- Arrow markers -->
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563EB">
+    </marker>
+
+    <!-- Drop shadow for depth -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2">
+      <feOffset dx="1" dy="1" result="offsetblur">
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.2">
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic">
+      </feMerge>
+    </filter>
+  </defs>
+
+
+
+  <!-- Beautiful gradient definitions for depth -->
+  
+
+  <!-- White background with subtle border -->
+  <rect x="0" y="0" width="680" height="880" fill="#F9FAFB" stroke="#9CA3AF" stroke-width="2" rx="8">
+
+  <!-- Content container with proper margins -->
+  <g transform="translate(40, 40)">
+  
+
+  <!-- Title -->
+  <text x="300" y="30" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="18" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">Template Deployment Flow</text>
+
+  <!-- Templates folder -->
+  <rect x="225" y="60" width="150" height="50" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="85" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">templates/</text>
+  <text x="300" y="100" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Source folder</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="110" x2="300" y2="140" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- SCAN -->
+  <rect x="200" y="140" width="200" height="70" fill="none" stroke="#EA580C" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="165" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">SCAN</text>
+  <text x="300" y="185" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Find all .gbai folders</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="210" x2="300" y2="240" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- VALIDATE -->
+  <rect x="200" y="240" width="200" height="90" fill="none" stroke="#7C3AED" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="265" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">VALIDATE</text>
+  <text x="300" y="285" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Check required structure</text>
+  <text x="300" y="300" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• start.bas exists?</text>
+  <text x="300" y="315" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Folders match name?</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="330" x2="300" y2="360" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- UPLOAD -->
+  <rect x="200" y="360" width="200" height="90" fill="none" stroke="#059669" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="385" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">UPLOAD</text>
+  <text x="300" y="405" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Copy to object storage</text>
+  <text x="300" y="420" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Templates → S3/Drive</text>
+  <text x="300" y="435" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Assets → CDN paths</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="450" x2="300" y2="480" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- INDEX -->
+  <rect x="200" y="480" width="200" height="90" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="505" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">INDEX</text>
+  <text x="300" y="525" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)" font-weight="600">Process knowledge base</text>
+  <text x="300" y="540" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Extract text</text>
+  <text x="300" y="555" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Generate embeddings</text>
+  <text x="300" y="570" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Store in Qdrant</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="580" x2="300" y2="610" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- REGISTER -->
+  <rect x="200" y="610" width="200" height="90" fill="none" stroke="#2563EB" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="635" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">REGISTER</text>
+  <text x="300" y="655" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Create in database</text>
+  <text x="300" y="670" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Bot record</text>
+  <text x="300" y="685" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Configuration</text>
+  <text x="300" y="700" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• URL mapping</text>
+
+  <!-- Arrow down -->
+  <line x1="300" y1="710" x2="300" y2="740" stroke="#6B7280" stroke-width="2" marker-end="url(#arrow)">
+
+  <!-- ACTIVATE -->
+  <rect x="200" y="740" width="200" height="90" fill="none" stroke="#DC2626" stroke-width="2" rx="8" filter="url(#shadow)"/>
+  <text x="300" y="765" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="bold" fill="#4B5563" filter="url(#textShadow)">ACTIVATE</text>
+  <text x="300" y="785" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">Start serving</text>
+  <text x="300" y="800" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• /bot-name endpoint</text>
+  <text x="300" y="815" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• WebSocket ready</text>
+  <text x="300" y="830" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">• Sessions enabled</text>
+
+  <!-- Process time indicator -->
+  <g id="time-indicator" transform="translate(450, 450)">
+    <circle cx="0" cy="0" r="40" fill="none" stroke="#2563EB" stroke-width="2" opacity="0.5">
+    <text x="0" y="0" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">5-10s</text>
+    <text x="0" y="15" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="14" fill="#4B5563" filter="url(#textShadow)">per bot</text>
+  </g>
+
+
+  </g>
+
+</svg>

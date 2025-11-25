@@ -44,7 +44,7 @@ The AI handles everything else - understanding intent, collecting information, e
 That's it. No Kubernetes, no cloud accounts. The [bootstrap process](./chapter-01/installation.md) installs everything locally in 2-5 minutes. [PostgreSQL](./chapter-07/postgresql.md), [vector database](./chapter-03/vector-collections.md), [object storage](./chapter-07/minio.md), [cache](./chapter-03/caching.md) - all configured automatically with secure credentials.
 
 ### Real BASIC, Real Simple
-Remember BASIC from the 80s? We brought it back for conversational AI. See our [complete keyword reference](./chapter-05/README.md):
+We brought BASIC back for conversational AI. See our [complete keyword reference](./chapter-05/README.md):
 ```basic
 ' save-note.bas - A simple tool
 PARAM topic, content
