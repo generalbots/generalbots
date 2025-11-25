@@ -16,61 +16,9 @@ The knowledge base architecture implements a multi-stage pipeline for document p
 
 ### Technical Specifications
 
-<img src="./assets/technical-specs.svg" alt="Technical Specifications" style="max-height: 450px; width: 100%; object-fit: contain;">
-  <!-- Title -->
-  <text x="450" y="25" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="currentColor">System Technical Specifications</text>
-  
-  <!-- Main container -->
-  <rect x="50" y="50" width="800" height="380" fill="none" stroke="currentColor" stroke-width="2" rx="5"/>
-  
-  <!-- Embedding Section -->
-  <g transform="translate(70, 80)">
-    <rect x="0" y="0" width="350" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
-    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Embedding Configuration</text>
-    
-    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Model: bge-small-en-v1.5-f32.gguf</text>
-    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Dimensions: 384</text>
-    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Format: GGUF (quantized)</text>
-    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Server: localhost:8082</text>
-    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Memory: ~200MB loaded</text>
-  </g>
-  
-  <!-- LLM Section -->
-  <g transform="translate(450, 80)">
-    <rect x="0" y="0" width="350" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
-    <text x="175" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">LLM Configuration</text>
-    
-    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Model: DeepSeek-R1-Distill-Qwen-1.5B</text>
-    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Context Size: 4096 tokens</text>
-    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Max Predict: 1024 tokens</text>
-    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Parallel Requests: 6</text>
-    <text x="10" y="125" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Quantization: Q3_K_M</text>
-  </g>
-  
-  <!-- Performance Section -->
-  <g transform="translate(70, 250)">
-    <rect x="0" y="0" width="730" height="150" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="3,2" opacity="0.8"/>
-    <text x="365" y="20" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" font-weight="bold" fill="currentColor">Performance Characteristics</text>
-    
-    <!-- Left column -->
-    <text x="10" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Vector Index: HNSW Algorithm</text>
-    <text x="10" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• M=16, ef_construction=200</text>
-    <text x="10" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Distance: Cosine Similarity</text>
-    <text x="10" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Build: ~1000 docs/minute</text>
-    
-    <!-- Middle column -->
-    <text x="250" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Chunking Strategy</text>
-    <text x="250" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Chunk Size: 512 tokens</text>
-    <text x="250" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Overlap: 50 tokens</text>
-    <text x="250" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Prompt Compact: Level 4</text>
-    
-    <!-- Right column -->
-    <text x="490" y="45" font-family="Arial, sans-serif" font-size="11" fill="currentColor">Runtime Metrics</text>
-    <text x="490" y="65" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Query Latency: &lt;50ms p99</text>
-    <text x="490" y="85" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Memory: ~1GB/million chunks</text>
-    <text x="490" y="105" font-family="Arial, sans-serif" font-size="11" fill="currentColor" opacity="0.8">• Cache TTL: 3600 seconds</text>
-  </g>
-</svg>
+<object data="../assets/technical-specs.svg" type="image/svg+xml" style="max-height: 450px; width: 100%; display: block; background: transparent;">
+  <img src="../assets/technical-specs.svg" alt="Technical Specifications" style="max-height: 450px; width: 100%; object-fit: contain; background: transparent;">
+</object>
 
 ## Document Processing Pipeline
 
