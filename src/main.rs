@@ -508,10 +508,51 @@ async fn main() -> std::io::Result<()> {
         .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
         .unwrap_or_else(|_| "http://localhost:8081".to_string());
 
-    let llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
+    // Create base LLM provider
+    let base_llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
         "empty".to_string(),
         Some(llm_url.clone()),
     )) as Arc<dyn botserver::llm::LLMProvider>;
+
+    // Wrap with cache if redis is available
+    let llm_provider: Arc<dyn botserver::llm::LLMProvider> = if let Some(ref cache) = redis_client {
+        // Set up embedding service for semantic matching
+        let embedding_url = config_manager
+            .get_config(
+                &default_bot_id,
+                "embedding-url",
+                Some("http://localhost:8082"),
+            )
+            .unwrap_or_else(|_| "http://localhost:8082".to_string());
+        let embedding_model = config_manager
+            .get_config(&default_bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
+            .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());
+
+        let embedding_service = Some(Arc::new(botserver::llm::cache::LocalEmbeddingService::new(
+            embedding_url,
+            embedding_model,
+        ))
+            as Arc<dyn botserver::llm::cache::EmbeddingService>);
+
+        // Create cache config
+        let cache_config = botserver::llm::cache::CacheConfig {
+            ttl: 3600, // 1 hour TTL
+            semantic_matching: true,
+            similarity_threshold: 0.85, // 85% similarity threshold
+            max_similarity_checks: 100,
+            key_prefix: "llm_cache".to_string(),
+        };
+
+        Arc::new(botserver::llm::cache::CachedLLMProvider::with_db_pool(
+            base_llm_provider,
+            cache.clone(),
+            cache_config,
+            embedding_service,
+            pool.clone(),
+        ))
+    } else {
+        base_llm_provider
+    };
 
     let app_state = Arc::new(AppState {
         drive: Some(drive),

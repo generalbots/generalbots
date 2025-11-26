@@ -7,9 +7,11 @@ use sha2::{Digest, Sha256};
 use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 use tokio::sync::mpsc;
+use uuid::Uuid;
 
 use super::LLMProvider;
-use crate::shared::utils::estimate_token_count;
+use crate::config::ConfigManager;
+use crate::shared::utils::{estimate_token_count, DbPool};
 
 /// Configuration for semantic caching
 #[derive(Clone)]
@@ -67,6 +69,8 @@ pub struct CachedLLMProvider {
     config: CacheConfig,
     /// Optional embedding service for semantic matching
     embedding_service: Option<Arc<dyn EmbeddingService>>,
+    /// Database connection pool for config
+    db_pool: Option<DbPool>,
 }
 
 /// Trait for embedding services
@@ -97,6 +101,29 @@ impl CachedLLMProvider {
             cache,
             config,
             embedding_service,
+            db_pool: None,
+        }
+    }
+
+    pub fn with_db_pool(
+        provider: Arc<dyn LLMProvider>,
+        cache: Arc<redis::Client>,
+        config: CacheConfig,
+        embedding_service: Option<Arc<dyn EmbeddingService>>,
+        db_pool: DbPool,
+    ) -> Self {
+        info!("Initializing CachedLLMProvider with semantic cache and DB pool");
+        info!(
+            "Cache config: TTL={}s, Semantic={}, Threshold={}",
+            config.ttl, config.semantic_matching, config.similarity_threshold
+        );
+
+        Self {
+            provider,
+            cache,
+            config,
+            embedding_service,
+            db_pool: Some(db_pool),
         }
     }
 
@@ -112,23 +139,98 @@ impl CachedLLMProvider {
 
     /// Check if caching is enabled based on config
     async fn is_cache_enabled(&self, bot_id: &str) -> bool {
-        // Try to get llm-cache config from bot configuration
-        // This would typically query the database, but for now we'll check Redis
+        // First check if we have a DB pool to read config
+        if let Some(ref db_pool) = self.db_pool {
+            // Parse bot_id as UUID
+            let bot_uuid = match Uuid::parse_str(bot_id) {
+                Ok(uuid) => uuid,
+                Err(_) => {
+                    // If not a valid UUID, check for default bot
+                    if bot_id == "default" {
+                        Uuid::nil()
+                    } else {
+                        return self.config.semantic_matching; // Fall back to global config
+                    }
+                }
+            };
+
+            // Get config from database
+            let config_manager = ConfigManager::new(db_pool.clone());
+            let cache_enabled = config_manager
+                .get_config(&bot_uuid, "llm-cache", Some("true"))
+                .unwrap_or_else(|_| "true".to_string());
+
+            return cache_enabled.to_lowercase() == "true";
+        }
+
+        // Fallback: check Redis for bot-specific cache config
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
             Err(e) => {
                 debug!("Cache connection failed: {}", e);
-                return false;
+                return self.config.semantic_matching;
             }
         };
 
         let config_key = format!("bot_config:{}:llm-cache", bot_id);
         match conn.get::<_, String>(config_key).await {
             Ok(value) => value.to_lowercase() == "true",
-            Err(_) => {
-                // Default to enabled if not specified
-                true
+            Err(_) => self.config.semantic_matching, // Default to global config
+        }
+    }
+
+    /// Get cache configuration for a specific bot
+    async fn get_bot_cache_config(&self, bot_id: &str) -> CacheConfig {
+        if let Some(ref db_pool) = self.db_pool {
+            let bot_uuid = match Uuid::parse_str(bot_id) {
+                Ok(uuid) => uuid,
+                Err(_) => {
+                    if bot_id == "default" {
+                        Uuid::nil()
+                    } else {
+                        return self.config.clone();
+                    }
+                }
+            };
+
+            let config_manager = ConfigManager::new(db_pool.clone());
+
+            // Read all cache-related configs
+            let ttl = config_manager
+                .get_config(
+                    &bot_uuid,
+                    "llm-cache-ttl",
+                    Some(&self.config.ttl.to_string()),
+                )
+                .unwrap_or_else(|_| self.config.ttl.to_string())
+                .parse()
+                .unwrap_or(self.config.ttl);
+
+            let semantic_enabled = config_manager
+                .get_config(&bot_uuid, "llm-cache-semantic", Some("true"))
+                .unwrap_or_else(|_| "true".to_string())
+                .to_lowercase()
+                == "true";
+
+            let threshold = config_manager
+                .get_config(
+                    &bot_uuid,
+                    "llm-cache-threshold",
+                    Some(&self.config.similarity_threshold.to_string()),
+                )
+                .unwrap_or_else(|_| self.config.similarity_threshold.to_string())
+                .parse()
+                .unwrap_or(self.config.similarity_threshold);
+
+            CacheConfig {
+                ttl,
+                semantic_matching: semantic_enabled,
+                similarity_threshold: threshold,
+                max_similarity_checks: self.config.max_similarity_checks,
+                key_prefix: self.config.key_prefix.clone(),
             }
+        } else {
+            self.config.clone()
         }
     }
 
@@ -139,8 +241,6 @@ impl CachedLLMProvider {
         messages: &Value,
         model: &str,
     ) -> Option<CachedResponse> {
-        let cache_key = self.generate_cache_key(prompt, messages, model);
-
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
             Err(e) => {
@@ -149,6 +249,14 @@ impl CachedLLMProvider {
             }
         };
 
+        // Extract actual messages if wrapped
+        let actual_messages = if messages.get("messages").is_some() {
+            messages.get("messages").unwrap_or(messages)
+        } else {
+            messages
+        };
+
+        let cache_key = self.generate_cache_key(prompt, actual_messages, model);
         // Try exact match first
         if let Ok(cached_json) = conn.get::<_, String>(&cache_key).await {
             if let Ok(mut cached) = serde_json::from_str::<CachedResponse>(&cached_json) {
@@ -197,8 +305,15 @@ impl CachedLLMProvider {
     ) -> Option<CachedResponse> {
         let embedding_service = self.embedding_service.as_ref()?;
 
+        // Extract actual messages if wrapped
+        let actual_messages = if messages.get("messages").is_some() {
+            messages.get("messages").unwrap_or(messages)
+        } else {
+            messages
+        };
+
         // Combine prompt with messages for more accurate matching
-        let combined_context = format!("{}\n{}", prompt, messages.to_string());
+        let combined_context = format!("{}\n{}", prompt, actual_messages.to_string());
 
         // Get embedding for current prompt
         let prompt_embedding = match embedding_service.get_embedding(&combined_context).await {
@@ -269,7 +384,14 @@ impl CachedLLMProvider {
 
     /// Store a response in cache
     async fn cache_response(&self, prompt: &str, messages: &Value, model: &str, response: &str) {
-        let cache_key = self.generate_cache_key(prompt, messages, model);
+        // Extract actual messages if wrapped
+        let actual_messages = if messages.get("messages").is_some() {
+            messages.get("messages").unwrap_or(messages)
+        } else {
+            messages
+        };
+
+        let cache_key = self.generate_cache_key(prompt, actual_messages, model);
 
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
@@ -281,7 +403,9 @@ impl CachedLLMProvider {
 
         // Get embedding if service is available
         let embedding = if let Some(ref service) = self.embedding_service {
-            service.get_embedding(prompt).await.ok()
+            // Combine prompt with messages for embedding
+            let combined_context = format!("{}\n{}", prompt, actual_messages.to_string());
+            service.get_embedding(&combined_context).await.ok()
         } else {
             None
         };
@@ -289,7 +413,7 @@ impl CachedLLMProvider {
         let cached_response = CachedResponse {
             response: response.to_string(),
             prompt: prompt.to_string(),
-            messages: messages.clone(),
+            messages: actual_messages.clone(),
             model: model.to_string(),
             timestamp: SystemTime::now()
                 .duration_since(UNIX_EPOCH)
@@ -394,19 +518,40 @@ impl LLMProvider for CachedLLMProvider {
         model: &str,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        // Extract bot_id from messages if available
+        let bot_id = messages
+            .get("bot_id")
+            .and_then(|v| v.as_str())
+            .unwrap_or("default");
+
         // Check if cache is enabled for this bot
-        let bot_id = "default"; // This should be passed from context
         if !self.is_cache_enabled(bot_id).await {
-            trace!("Cache disabled, bypassing");
+            trace!("Cache disabled for bot {}, bypassing", bot_id);
             return self.provider.generate(prompt, messages, model, key).await;
         }
 
-        // Try to get from cache
+        // Get bot-specific cache configuration
+        let bot_cache_config = self.get_bot_cache_config(bot_id).await;
+
+        // First try exact match from cache
         if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
+            info!("Cache hit (exact match) for bot {}", bot_id);
             return Ok(cached.response);
         }
 
+        // Then try semantic similarity match if enabled
+        if bot_cache_config.semantic_matching && self.embedding_service.is_some() {
+            if let Some(cached) = self.find_similar_cached(prompt, messages, model).await {
+                info!(
+                    "Cache hit (semantic match) for bot {} with similarity threshold {}",
+                    bot_id, bot_cache_config.similarity_threshold
+                );
+                return Ok(cached.response);
+            }
+        }
+
         // Generate new response
+        debug!("Cache miss for bot {}, generating new response", bot_id);
         let response = self.provider.generate(prompt, messages, model, key).await?;
 
         // Cache the response
@@ -497,6 +642,27 @@ impl LocalEmbeddingService {
             model,
         }
     }
+}
+
+/// Helper function to enable semantic cache for a specific bot
+pub async fn enable_semantic_cache_for_bot(
+    cache: &redis::Client,
+    bot_id: &str,
+    enabled: bool,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = cache.get_multiplexed_async_connection().await?;
+    let config_key = format!("bot_config:{}:llm-cache", bot_id);
+    let value = if enabled { "true" } else { "false" };
+
+    conn.set_ex::<_, _, ()>(&config_key, value, 86400).await?; // 24 hour TTL
+
+    info!(
+        "Semantic cache {} for bot {}",
+        if enabled { "enabled" } else { "disabled" },
+        bot_id
+    );
+
+    Ok(())
 }
 
 #[async_trait]
