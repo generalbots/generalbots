@@ -83,7 +83,7 @@ impl BotOrchestrator {
         let bot_id = Uuid::parse_str(&message.bot_id).unwrap_or_default();
 
         // All database operations in one blocking section
-        let (session, context_data, history, model, key) = {
+        let (session, context_data, history, model, key, _bot_id_from_config, cache_enabled) = {
             let state_clone = self.state.clone();
             tokio::task::spawn_blocking(
                 move || -> Result<_, Box<dyn std::error::Error + Send + Sync>> {
@@ -124,16 +124,43 @@ impl BotOrchestrator {
                         .get_config(&bot_id, "llm-key", Some(""))
                         .unwrap_or_default();
 
-                    Ok((session, context_data, history, model, key))
+                    // Check if llm-cache is enabled for this bot
+                    let cache_enabled = config_manager
+                        .get_config(&bot_id, "llm-cache", Some("true"))
+                        .unwrap_or_else(|_| "true".to_string());
+
+                    Ok((
+                        session,
+                        context_data,
+                        history,
+                        model,
+                        key,
+                        bot_id,
+                        cache_enabled,
+                    ))
                 },
             )
             .await??
         };
 
-        // Build messages
+        // Build messages with bot_id for cache
         let system_prompt = std::env::var("SYSTEM_PROMPT")
             .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
-        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+        let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        // Add bot_id and cache config to messages for the cache layer
+        if let serde_json::Value::Object(ref mut map) = messages {
+            map.insert("bot_id".to_string(), serde_json::json!(bot_id.to_string()));
+            map.insert("llm_cache".to_string(), serde_json::json!(cache_enabled));
+        } else if let serde_json::Value::Array(_) = messages {
+            // If messages is an array, wrap it in an object
+            let messages_array = messages.clone();
+            messages = serde_json::json!({
+                "messages": messages_array,
+                "bot_id": bot_id.to_string(),
+                "llm_cache": cache_enabled
+            });
+        }
 
         // Stream from LLM
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
