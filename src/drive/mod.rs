@@ -10,10 +10,9 @@
 //! - POST /files/delete - Delete file/folder
 //! - POST /files/create-folder - Create new folder
 
-use crate::shared::state::AppState;
 #[cfg(feature = "console")]
 use crate::console::file_tree::{FileTree, TreeNode};
-use futures_util::stream::StreamExt;
+use crate::shared::state::AppState;
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -21,12 +20,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
+use futures_util::stream::StreamExt;
 use serde::{Deserialize, Serialize};
-use serde_json::json;
+// use serde_json::json; // Unused import
 use std::sync::Arc;
 
 pub mod document_processing;
 pub mod drive_monitor;
+pub mod files;
 pub mod vectordb;
 
 // ===== Request/Response Structures =====
@@ -211,14 +212,18 @@ pub async fn list_files(
     #[cfg(not(feature = "console"))]
     let result: Result<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)> = {
         // Fallback implementation without FileTree
-        let s3_client = state.drive.as_ref()
-            .ok_or_else(|| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": "S3 client not configured"}))))?;
+        let s3_client = state.drive.as_ref().ok_or_else(|| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({"error": "S3 client not configured"})),
+            )
+        })?;
 
         if let Some(bucket) = &params.bucket {
             let mut items = Vec::new();
             let prefix = params.path.as_deref().unwrap_or("");
 
-            let mut paginator = s3_client
+            let paginator = s3_client
                 .list_objects_v2()
                 .bucket(bucket)
                 .prefix(prefix)
@@ -230,13 +235,21 @@ pub async fn list_files(
 
             let mut stream = paginator;
             while let Some(result) = stream.try_next().await.map_err(|e| {
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()})))
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({"error": e.to_string()})),
+                )
             })? {
                 // Add directories
                 if let Some(prefixes) = result.common_prefixes {
                     for prefix in prefixes {
                         if let Some(dir) = prefix.prefix {
-                            let name = dir.trim_end_matches('/').split('/').last().unwrap_or(&dir).to_string();
+                            let name = dir
+                                .trim_end_matches('/')
+                                .split('/')
+                                .last()
+                                .unwrap_or(&dir)
+                                .to_string();
                             items.push(FileItem {
                                 name,
                                 path: dir.clone(),
@@ -276,7 +289,7 @@ pub async fn list_files(
 
     match result {
         Ok(items) => Ok(Json(items)),
-        Err(e) => Err(e)
+        Err(e) => Err(e),
     }
 }
 
@@ -759,15 +772,15 @@ pub async fn recent_files(
 
 /// GET /files/favorite - List favorite files
 pub async fn list_favorites(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
 /// POST /files/shareFolder - Share folder with users
 pub async fn share_folder(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ShareRequest>,
+    State(_state): State<Arc<AppState>>,
+    Json(_req): Json<ShareRequest>,
 ) -> Result<Json<ShareResponse>, (StatusCode, Json<serde_json::Value>)> {
     let share_id = uuid::Uuid::new_v4().to_string();
     let url = format!("https://share.example.com/{}", share_id);
@@ -786,14 +799,14 @@ pub async fn share_folder(
 
 /// GET /files/shared - List shared files and folders
 pub async fn list_shared(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
 /// GET /files/permissions - Get file/folder permissions
 pub async fn get_permissions(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Query(params): Query<ReadRequest>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(serde_json::json!({
@@ -868,7 +881,7 @@ pub async fn get_quota(
 
 /// GET /files/sync/status - Get sync status
 pub async fn sync_status(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SyncStatus>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SyncStatus {
         status: "idle".to_string(),
@@ -880,7 +893,7 @@ pub async fn sync_status(
 
 /// POST /files/sync/start - Start file synchronization
 pub async fn start_sync(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -890,7 +903,7 @@ pub async fn start_sync(
 
 /// POST /files/sync/stop - Stop file synchronization
 pub async fn stop_sync(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,

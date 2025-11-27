@@ -1,6 +1,6 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
-use crate::core::kb::{ChangeType, KnowledgeBaseManager};
+use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
 use log::info;

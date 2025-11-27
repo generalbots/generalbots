@@ -8,6 +8,7 @@ use crate::directory::AuthService;
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
 use crate::shared::utils::DbPool;
+use crate::tasks::TaskEngine;
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
 #[cfg(feature = "redis-cache")]
@@ -34,6 +35,7 @@ pub struct AppState {
     pub web_adapter: Arc<WebChannelAdapter>,
     pub voice_adapter: Arc<VoiceAdapter>,
     pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
+    pub task_engine: Arc<TaskEngine>,
 }
 impl Clone for AppState {
     fn clone(&self) -> Self {
@@ -55,6 +57,7 @@ impl Clone for AppState {
             response_channels: Arc::clone(&self.response_channels),
             web_adapter: Arc::clone(&self.web_adapter),
             voice_adapter: Arc::clone(&self.voice_adapter),
+            task_engine: Arc::clone(&self.task_engine),
         }
     }
 }

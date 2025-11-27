@@ -1,10 +1,10 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Duration, Timelike, Utc};
 use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
-use serde_json::json;
+// use serde_json::json;  // Commented out - unused import
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -183,43 +183,24 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
                 let state_for_task = Arc::clone(&state_clone2);
                 let user_for_task = user_clone2.clone();
-                let (tx, rx) = std::sync::mpsc::channel();
 
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_multi_thread()
-                        .worker_threads(2)
-                        .enable_all()
-                        .build();
-
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_book_meeting(
-                                &state_for_task,
-                                &user_for_task,
-                                meeting_details.to_string(),
-                                attendees,
-                            )
-                            .await
-                        });
-                        tx.send(result).err()
-                    } else {
-                        tx.send(Err("Failed to build tokio runtime".to_string()))
-                            .err()
-                    };
-
-                    if send_err.is_some() {
-                        error!("Failed to send BOOK_MEETING result from thread");
-                    }
+                // Use tokio's block_in_place to run async code in sync context
+                let result = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async move {
+                        execute_book_meeting(
+                            &state_for_task,
+                            &user_for_task,
+                            meeting_details.to_string(),
+                            attendees,
+                        )
+                        .await
+                    })
                 });
 
-                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-                    Ok(Ok(event_id)) => Ok(Dynamic::from(event_id)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                match result {
+                    Ok(event_id) => Ok(Dynamic::from(event_id)),
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         format!("BOOK_MEETING failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "BOOK_MEETING timed out".into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -251,43 +232,25 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
                 let state_for_task = Arc::clone(&state_clone3);
                 let user_for_task = user_clone3.clone();
-                let (tx, rx) = std::sync::mpsc::channel();
+                let date_str = date_str.clone();
 
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_multi_thread()
-                        .worker_threads(2)
-                        .enable_all()
-                        .build();
-
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            check_availability(
-                                &state_for_task,
-                                &user_for_task,
-                                &date_str,
-                                duration_minutes,
-                            )
-                            .await
-                        });
-                        tx.send(result).err()
-                    } else {
-                        tx.send(Err("Failed to build tokio runtime".to_string()))
-                            .err()
-                    };
-
-                    if send_err.is_some() {
-                        error!("Failed to send CHECK_AVAILABILITY result from thread");
-                    }
+                // Use tokio's block_in_place to run async code in sync context
+                let result = tokio::task::block_in_place(|| {
+                    tokio::runtime::Handle::current().block_on(async move {
+                        check_availability(
+                            &state_for_task,
+                            &user_for_task,
+                            &date_str,
+                            duration_minutes,
+                        )
+                        .await
+                    })
                 });
 
-                match rx.recv_timeout(std::time::Duration::from_secs(5)) {
-                    Ok(Ok(slots)) => Ok(Dynamic::from(slots)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                match result {
+                    Ok(slots) => Ok(Dynamic::from(slots)),
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         format!("CHECK_AVAILABILITY failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "CHECK_AVAILABILITY timed out".into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -470,7 +433,7 @@ async fn execute_book_meeting(
 
 async fn check_availability(
     state: &AppState,
-    user: &UserSession,
+    _user: &UserSession,
     date_str: &str,
     duration_minutes: i64,
 ) -> Result<String, String> {
@@ -640,7 +603,7 @@ async fn get_calendar_engine(state: &AppState) -> Result<Arc<CalendarEngine>, St
 }
 
 async fn send_meeting_invite(
-    state: &AppState,
+    _state: &AppState,
     event: &CalendarEvent,
     attendee: &str,
 ) -> Result<(), String> {

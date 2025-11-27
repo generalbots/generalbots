@@ -12,6 +12,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
+use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
 
 // TODO: Replace sqlx queries with Diesel queries
@@ -20,45 +21,117 @@ use crate::shared::utils::DbPool;
 pub struct TaskUpdate {
     pub title: Option<String>,
     pub description: Option<String>,
-    pub status: Option<TaskStatus>,
-    pub priority: Option<TaskPriority>,
+    pub status: Option<String>,
+    pub priority: Option<String>,
     pub assignee: Option<String>,
     pub due_date: Option<DateTime<Utc>>,
     pub tags: Option<Vec<String>>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+// Database model - matches schema exactly
+#[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
+#[diesel(table_name = crate::core::shared::models::schema::tasks)]
 pub struct Task {
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub assignee: Option<String>,
-    pub reporter: String,
-    pub status: TaskStatus,
-    pub priority: TaskPriority,
+    pub status: String,            // Changed to String to match schema
+    pub priority: String,          // Changed to String to match schema
+    pub assignee_id: Option<Uuid>, // Changed to match schema
+    pub reporter_id: Option<Uuid>, // Changed to match schema
+    pub project_id: Option<Uuid>,  // Added to match schema
     pub due_date: Option<DateTime<Utc>>,
-    pub estimated_hours: Option<f32>,
-    pub actual_hours: Option<f32>,
     pub tags: Vec<String>,
-    pub parent_task_id: Option<Uuid>,
-    pub subtasks: Vec<Uuid>,
     pub dependencies: Vec<Uuid>,
-    pub attachments: Vec<String>,
-    pub comments: Vec<TaskComment>,
+    pub estimated_hours: Option<f64>, // Changed to f64 to match Float8
+    pub actual_hours: Option<f64>,    // Changed to f64 to match Float8
+    pub progress: i32,                // Added to match schema
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }
 
+// API request/response model - includes additional fields for convenience
 #[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(rename_all = "lowercase")]
+pub struct TaskResponse {
+    pub id: Uuid,
+    pub title: String,
+    pub description: Option<String>,
+    pub assignee: Option<String>, // Converted from assignee_id
+    pub reporter: String,         // Converted from reporter_id
+    pub status: TaskStatus,
+    pub priority: TaskPriority,
+    pub due_date: Option<DateTime<Utc>>,
+    pub estimated_hours: Option<f64>,
+    pub actual_hours: Option<f64>,
+    pub tags: Vec<String>,
+    pub parent_task_id: Option<Uuid>, // For subtask relationships
+    pub subtasks: Vec<Uuid>,          // List of subtask IDs
+    pub dependencies: Vec<Uuid>,
+    pub attachments: Vec<String>,   // File paths/URLs
+    pub comments: Vec<TaskComment>, // Embedded comments
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+    pub completed_at: Option<DateTime<Utc>>,
+    pub progress: i32,
+}
+
+// Convert database Task to API TaskResponse
+impl From<Task> for TaskResponse {
+    fn from(task: Task) -> Self {
+        TaskResponse {
+            id: task.id,
+            title: task.title,
+            description: task.description,
+            assignee: task.assignee_id.map(|id| id.to_string()),
+            reporter: task
+                .reporter_id
+                .map(|id| id.to_string())
+                .unwrap_or_default(),
+            status: match task.status.as_str() {
+                "todo" => TaskStatus::Todo,
+                "in_progress" | "in-progress" => TaskStatus::InProgress,
+                "completed" | "done" => TaskStatus::Completed,
+                "on_hold" | "on-hold" => TaskStatus::OnHold,
+                "review" => TaskStatus::Review,
+                "blocked" => TaskStatus::Blocked,
+                "cancelled" => TaskStatus::Cancelled,
+                _ => TaskStatus::Todo,
+            },
+            priority: match task.priority.as_str() {
+                "low" => TaskPriority::Low,
+                "medium" => TaskPriority::Medium,
+                "high" => TaskPriority::High,
+                "urgent" => TaskPriority::Urgent,
+                _ => TaskPriority::Medium,
+            },
+            due_date: task.due_date,
+            estimated_hours: task.estimated_hours,
+            actual_hours: task.actual_hours,
+            tags: task.tags,
+            parent_task_id: None, // Would need separate query
+            subtasks: vec![],     // Would need separate query
+            dependencies: task.dependencies,
+            attachments: vec![], // Would need separate query
+            comments: vec![],    // Would need separate query
+            created_at: task.created_at,
+            updated_at: task.updated_at,
+            completed_at: task.completed_at,
+            progress: task.progress,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum TaskStatus {
     Todo,
     InProgress,
+    Completed,
+    OnHold,
     Review,
-    Done,
     Blocked,
     Cancelled,
+    Done,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -123,12 +196,12 @@ pub struct BoardColumn {
 }
 
 pub struct TaskEngine {
-    db: Arc<DbPool>,
+    db: DbPool,
     cache: Arc<RwLock<Vec<Task>>>,
 }
 
 impl TaskEngine {
-    pub fn new(db: Arc<DbPool>) -> Self {
+    pub fn new(db: DbPool) -> Self {
         Self {
             db,
             cache: Arc::new(RwLock::new(Vec::new())),
@@ -137,6 +210,17 @@ impl TaskEngine {
 
     /// Create a new task
     pub async fn create_task(&self, task: Task) -> Result<Task, Box<dyn std::error::Error>> {
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
+
+        diesel::insert_into(dsl::tasks)
+            .values(&task)
+            .execute(conn)?;
+
+        Ok(task)
+    }
+
+    pub async fn create_task_old(&self, task: Task) -> Result<Task, Box<dyn std::error::Error>> {
         // TODO: Implement with Diesel
         /*
         let result = sqlx::query!(
@@ -150,14 +234,14 @@ impl TaskEngine {
             task.id,
             task.title,
             task.description,
-            task.assignee,
-            task.reporter,
+            task.assignee_id.map(|id| id.to_string()),
+            task.reporter_id.map(|id| id.to_string()),
             serde_json::to_value(&task.status)?,
             serde_json::to_value(&task.priority)?,
             task.due_date,
             task.estimated_hours,
             &task.tags[..],
-            task.parent_task_id,
+            None, // parent_task_id field doesn't exist in Task struct
             task.created_at,
             task.updated_at
         )
@@ -182,13 +266,15 @@ impl TaskEngine {
         id: Uuid,
         updates: TaskUpdate,
     ) -> Result<Task, Box<dyn std::error::Error>> {
+        // use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
         let updated_at = Utc::now();
 
         // Check if status is changing to Done
         let completing = updates
             .status
             .as_ref()
-            .map(|s| matches!(s, TaskStatus::Done))
+            .map(|s| s == "completed")
             .unwrap_or(false);
 
         let completed_at = if completing { Some(Utc::now()) } else { None };
@@ -233,19 +319,19 @@ impl TaskEngine {
             id,
             title: updates.title.unwrap_or_else(|| "Updated Task".to_string()),
             description: updates.description,
-            assignee: updates.assignee,
-            reporter: "system".to_string(),
-            status: updates.status.unwrap_or(TaskStatus::Todo),
-            priority: updates.priority.unwrap_or(TaskPriority::Medium),
+            status: updates.status.unwrap_or("todo".to_string()),
+            priority: updates.priority.unwrap_or("medium".to_string()),
+            assignee_id: updates
+                .assignee
+                .and_then(|s| uuid::Uuid::parse_str(&s).ok()),
+            reporter_id: Some(uuid::Uuid::new_v4()),
+            project_id: None,
             due_date: updates.due_date,
+            tags: updates.tags.unwrap_or_default(),
+            dependencies: Vec::new(),
             estimated_hours: None,
             actual_hours: None,
-            tags: updates.tags.unwrap_or_default(),
-            parent_task_id: None,
-            subtasks: Vec::new(),
-            dependencies: Vec::new(),
-            attachments: Vec::new(),
-            comments: Vec::new(),
+            progress: 0,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             completed_at,
@@ -303,51 +389,33 @@ impl TaskEngine {
     /// Get tasks by status
     pub async fn get_tasks_by_status(
         &self,
-        _status: TaskStatus,
+        status: String,
     ) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
-        // TODO: Implement with Diesel
-        /*
-        let results = sqlx::query!(
-            r#"
-            SELECT * FROM tasks
-            WHERE status = $1
-            ORDER BY priority DESC, created_at ASC
-            "#,
-            serde_json::to_value(&status)?
-        )
-        .fetch_all(self.db.as_ref())
-        .await?;
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
 
-        Ok(results
-            .into_iter()
-            .map(|r| serde_json::from_value(serde_json::to_value(r).unwrap()).unwrap())
-            .collect())
-        */
-        Ok(vec![])
+        let tasks = dsl::tasks
+            .filter(dsl::status.eq(status))
+            .order(dsl::created_at.desc())
+            .load::<Task>(conn)?;
+
+        Ok(tasks)
     }
 
     /// Get overdue tasks
     pub async fn get_overdue_tasks(&self) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
-        // TODO: Implement with Diesel
-        /*
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
         let now = Utc::now();
-        let results = sqlx::query!(
-            r#"
-            SELECT * FROM tasks
-            WHERE due_date < $1 AND status != 'done' AND status != 'cancelled'
-            ORDER BY due_date ASC
-            "#,
-            now
-        )
-        .fetch_all(self.db.as_ref())
-        .await?;
 
-        Ok(results
-            .into_iter()
-            .map(|r| serde_json::from_value(serde_json::to_value(r).unwrap()).unwrap())
-            .collect())
-        */
-        Ok(vec![])
+        let tasks = dsl::tasks
+            .filter(dsl::due_date.lt(Some(now)))
+            .filter(dsl::status.ne("completed"))
+            .filter(dsl::status.ne("cancelled"))
+            .order(dsl::due_date.asc())
+            .load::<Task>(conn)?;
+
+        Ok(tasks)
     }
 
     /// Add a comment to a task
@@ -392,9 +460,8 @@ impl TaskEngine {
         parent_id: Uuid,
         subtask: Task,
     ) -> Result<Task, Box<dyn std::error::Error>> {
-        let mut subtask = subtask;
-        subtask.parent_task_id = Some(parent_id);
-
+        // For subtasks, we store parent relationship separately
+        // or in a separate junction table
         let created = self.create_task(subtask).await?;
 
         // Update parent's subtasks list
@@ -402,9 +469,9 @@ impl TaskEngine {
         /*
         sqlx::query!(
             r#"
-            UPDATE tasks
-            SET subtasks = array_append(subtasks, $1)
-            WHERE id = $2
+            -- Update parent's subtasks would be done via a separate junction table
+            -- This is a placeholder query
+            SELECT 1
             "#,
             created.id,
             parent_id
@@ -434,16 +501,68 @@ impl TaskEngine {
     }
 
     /// Get a single task by ID
-    pub async fn get_task(&self, _id: Uuid) -> Result<Task, Box<dyn std::error::Error>> {
-        // TODO: Implement with Diesel
-        /*
-        let result = sqlx::query!("SELECT * FROM tasks WHERE id = $1", id)
-            .fetch_one(self.db.as_ref())
-            .await?;
+    pub async fn get_task(&self, id: Uuid) -> Result<Task, Box<dyn std::error::Error>> {
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
 
-        Ok(serde_json::from_value(serde_json::to_value(result)?)?)
-        */
-        Err("Not implemented".into())
+        let task = dsl::tasks.filter(dsl::id.eq(id)).first::<Task>(conn)?;
+
+        Ok(task)
+    }
+
+    /// Get all tasks
+    pub async fn get_all_tasks(&self) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
+
+        let tasks = dsl::tasks
+            .order(dsl::created_at.desc())
+            .load::<Task>(conn)?;
+
+        Ok(tasks)
+    }
+
+    /// Assign a task to a user
+    pub async fn assign_task(
+        &self,
+        id: Uuid,
+        assignee: String,
+    ) -> Result<Task, Box<dyn std::error::Error>> {
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
+
+        let assignee_id = Uuid::parse_str(&assignee).ok();
+        let updated_at = Utc::now();
+
+        diesel::update(dsl::tasks.filter(dsl::id.eq(id)))
+            .set((
+                dsl::assignee_id.eq(assignee_id),
+                dsl::updated_at.eq(updated_at),
+            ))
+            .execute(conn)?;
+
+        self.get_task(id).await
+    }
+
+    /// Set task dependencies
+    pub async fn set_dependencies(
+        &self,
+        id: Uuid,
+        dependencies: Vec<Uuid>,
+    ) -> Result<Task, Box<dyn std::error::Error>> {
+        use crate::core::shared::models::schema::tasks::dsl;
+        let conn = &mut self.db.get()?;
+
+        let updated_at = Utc::now();
+
+        diesel::update(dsl::tasks.filter(dsl::id.eq(id)))
+            .set((
+                dsl::dependencies.eq(dependencies),
+                dsl::updated_at.eq(updated_at),
+            ))
+            .execute(conn)?;
+
+        self.get_task(id).await
     }
 
     /// Calculate task progress (percentage)
@@ -453,33 +572,19 @@ impl TaskEngine {
     ) -> Result<f32, Box<dyn std::error::Error>> {
         let task = self.get_task(task_id).await?;
 
-        if task.subtasks.is_empty() {
-            // No subtasks, progress based on status
-            return Ok(match task.status {
-                TaskStatus::Todo => 0.0,
-                TaskStatus::InProgress => 50.0,
-                TaskStatus::Review => 75.0,
-                TaskStatus::Done => 100.0,
-                TaskStatus::Blocked => {
-                    task.actual_hours.unwrap_or(0.0) / task.estimated_hours.unwrap_or(1.0) * 100.0
-                }
-                TaskStatus::Cancelled => 0.0,
-            });
-        }
-
-        // Has subtasks, calculate based on subtask completion
-        let total = task.subtasks.len() as f32;
-        let mut completed = 0.0;
-
-        for subtask_id in task.subtasks {
-            if let Ok(subtask) = self.get_task(subtask_id).await {
-                if matches!(subtask.status, TaskStatus::Done) {
-                    completed += 1.0;
-                }
+        // Calculate progress based on status
+        Ok(match task.status.as_str() {
+            "todo" => 0.0,
+            "in_progress" | "in-progress" => 50.0,
+            "review" => 75.0,
+            "completed" | "done" => 100.0,
+            "blocked" => {
+                (task.actual_hours.unwrap_or(0.0) / task.estimated_hours.unwrap_or(1.0) * 100.0)
+                    as f32
             }
-        }
-
-        Ok((completed / total) * 100.0)
+            "cancelled" => 0.0,
+            _ => 0.0,
+        })
     }
 
     /// Create a task from template
@@ -514,19 +619,18 @@ impl TaskEngine {
             id: Uuid::new_v4(),
             title: template.name,
             description: template.description,
-            assignee: assignee,
-            reporter: "system".to_string(),
-            status: TaskStatus::Todo,
-            priority: template.default_priority,
+            status: "todo".to_string(),
+            priority: "medium".to_string(),
+            assignee_id: assignee.and_then(|s| uuid::Uuid::parse_str(&s).ok()),
+            reporter_id: Some(uuid::Uuid::new_v4()),
+            project_id: None,
             due_date: None,
             estimated_hours: None,
             actual_hours: None,
             tags: template.default_tags,
-            parent_task_id: None,
-            subtasks: Vec::new(),
+
             dependencies: Vec::new(),
-            attachments: Vec::new(),
-            comments: Vec::new(),
+            progress: 0,
             created_at: Utc::now(),
             updated_at: Utc::now(),
             completed_at: None,
@@ -608,7 +712,7 @@ impl TaskEngine {
         &self,
         user_id: Option<&str>,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
-        let base_query = if let Some(uid) = user_id {
+        let _base_query = if let Some(uid) = user_id {
             format!("WHERE assignee = '{}' OR reporter = '{}'", uid, uid)
         } else {
             String::new()
@@ -653,7 +757,7 @@ pub mod handlers {
 
     pub async fn create_task_handler<S>(
         AxumState(_engine): AxumState<S>,
-        AxumJson(task): AxumJson<Task>,
+        AxumJson(task): AxumJson<TaskResponse>,
     ) -> impl IntoResponse {
         // TODO: Implement with actual engine
         let created = task;
@@ -665,7 +769,7 @@ pub mod handlers {
         AxumQuery(_query): AxumQuery<serde_json::Value>,
     ) -> impl IntoResponse {
         // TODO: Implement with actual engine
-        let tasks: Vec<Task> = vec![];
+        let tasks: Vec<TaskResponse> = vec![];
         (StatusCode::OK, AxumJson(serde_json::json!(tasks)))
     }
 
@@ -695,35 +799,35 @@ pub mod handlers {
 }
 
 pub async fn handle_task_create(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Json(mut task): Json<Task>,
-) -> Result<Json<Task>, StatusCode> {
+) -> Result<Json<TaskResponse>, StatusCode> {
     task.id = Uuid::new_v4();
     task.created_at = Utc::now();
     task.updated_at = Utc::now();
 
-    match engine.create_task(task).await {
-        Ok(created) => Ok(Json(created)),
+    match state.task_engine.create_task(task).await {
+        Ok(created) => Ok(Json(created.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 pub async fn handle_task_update(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(updates): Json<TaskUpdate>,
-) -> Result<Json<Task>, StatusCode> {
-    match engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated)),
+) -> Result<Json<TaskResponse>, StatusCode> {
+    match state.task_engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 pub async fn handle_task_delete(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    match engine.delete_task(id).await {
+    match state.task_engine.delete_task(id).await {
         Ok(true) => Ok(StatusCode::NO_CONTENT),
         Ok(false) => Err(StatusCode::NOT_FOUND),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -731,92 +835,104 @@ pub async fn handle_task_delete(
 }
 
 pub async fn handle_task_list(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
-) -> Result<Json<Vec<Task>>, StatusCode> {
+) -> Result<Json<Vec<TaskResponse>>, StatusCode> {
     let tasks = if let Some(user_id) = params.get("user_id") {
-        engine.get_user_tasks(user_id).await
+        state.task_engine.get_user_tasks(user_id).await
     } else if let Some(status_str) = params.get("status") {
         let status = match status_str.as_str() {
-            "todo" => TaskStatus::Todo,
-            "in_progress" => TaskStatus::InProgress,
-            "review" => TaskStatus::Review,
-            "done" => TaskStatus::Done,
-            "blocked" => TaskStatus::Blocked,
-            "cancelled" => TaskStatus::Cancelled,
-            _ => TaskStatus::Todo,
+            "todo" => "todo",
+            "in_progress" => "in_progress",
+            "review" => "review",
+            "done" => "completed",
+            "blocked" => "blocked",
+            "cancelled" => "cancelled",
+            _ => "todo",
         };
-        engine.get_tasks_by_status(status).await
+        state
+            .task_engine
+            .get_tasks_by_status(status.to_string())
+            .await
     } else {
-        engine.get_all_tasks().await
+        state.task_engine.get_all_tasks().await
     };
 
     match tasks {
-        Ok(task_list) => Ok(Json(task_list)),
+        Ok(task_list) => Ok(Json(
+            task_list
+                .into_iter()
+                .map(|t| t.into())
+                .collect::<Vec<TaskResponse>>(),
+        )),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 pub async fn handle_task_assign(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<serde_json::Value>,
-) -> Result<Json<Task>, StatusCode> {
+) -> Result<Json<TaskResponse>, StatusCode> {
     let assignee = payload["assignee"]
         .as_str()
         .ok_or(StatusCode::BAD_REQUEST)?;
 
-    match engine.assign_task(id, assignee.to_string()).await {
-        Ok(updated) => Ok(Json(updated)),
+    match state
+        .task_engine
+        .assign_task(id, assignee.to_string())
+        .await
+    {
+        Ok(updated) => Ok(Json(updated.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 pub async fn handle_task_status_update(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<serde_json::Value>,
-) -> Result<Json<Task>, StatusCode> {
+) -> Result<Json<TaskResponse>, StatusCode> {
     let status_str = payload["status"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
     let status = match status_str {
-        "todo" => TaskStatus::Todo,
-        "in_progress" => TaskStatus::InProgress,
-        "review" => TaskStatus::Review,
-        "done" => TaskStatus::Done,
-        "blocked" => TaskStatus::Blocked,
-        "cancelled" => TaskStatus::Cancelled,
+        "todo" => "todo",
+        "in_progress" => "in_progress",
+        "review" => "review",
+        "done" => "completed",
+        "blocked" => "blocked",
+        "cancelled" => "cancelled",
         _ => return Err(StatusCode::BAD_REQUEST),
     };
 
     let updates = TaskUpdate {
         title: None,
         description: None,
-        status: Some(status),
+        status: Some(status.to_string()),
         priority: None,
         assignee: None,
         due_date: None,
         tags: None,
     };
 
-    match engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated)),
+    match state.task_engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 pub async fn handle_task_priority_set(
-    State(engine): State<Arc<TaskEngine>>,
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<serde_json::Value>,
-) -> Result<Json<Task>, StatusCode> {
+) -> Result<Json<TaskResponse>, StatusCode> {
     let priority_str = payload["priority"]
         .as_str()
         .ok_or(StatusCode::BAD_REQUEST)?;
     let priority = match priority_str {
-        "low" => TaskPriority::Low,
-        "medium" => TaskPriority::Medium,
-        "high" => TaskPriority::High,
-        "urgent" => TaskPriority::Urgent,
+        "low" => "low",
+        "medium" => "medium",
+        "high" => "high",
+        "urgent" => "urgent",
         _ => return Err(StatusCode::BAD_REQUEST),
     };
 
@@ -824,23 +940,23 @@ pub async fn handle_task_priority_set(
         title: None,
         description: None,
         status: None,
-        priority: Some(priority),
+        priority: Some(priority.to_string()),
         assignee: None,
         due_date: None,
         tags: None,
     };
 
-    match engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated)),
+    match state.task_engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
-pub async fn handle_task_dependencies_set(
-    State(engine): State<Arc<TaskEngine>>,
+pub async fn handle_task_set_dependencies(
+    State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
     Json(payload): Json<serde_json::Value>,
-) -> Result<Json<Task>, StatusCode> {
+) -> Result<Json<TaskResponse>, StatusCode> {
     let deps = payload["dependencies"]
         .as_array()
         .ok_or(StatusCode::BAD_REQUEST)?
@@ -848,14 +964,14 @@ pub async fn handle_task_dependencies_set(
         .filter_map(|v| v.as_str().and_then(|s| Uuid::parse_str(s).ok()))
         .collect::<Vec<_>>();
 
-    match engine.set_dependencies(id, deps).await {
-        Ok(updated) => Ok(Json(updated)),
+    match state.task_engine.set_dependencies(id, deps).await {
+        Ok(updated) => Ok(Json(updated.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
 
 /// Configure task engine routes
-pub fn configure_task_routes(state: Arc<TaskEngine>) -> Router {
+pub fn configure_task_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/tasks", post(handle_task_create))
         .route("/api/tasks", get(handle_task_list))
@@ -866,9 +982,8 @@ pub fn configure_task_routes(state: Arc<TaskEngine>) -> Router {
         .route("/api/tasks/:id/priority", put(handle_task_priority_set))
         .route(
             "/api/tasks/:id/dependencies",
-            put(handle_task_dependencies_set),
+            put(handle_task_set_dependencies),
         )
-        .with_state(state)
 }
 
 /// Configure task engine routes (legacy)

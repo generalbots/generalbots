@@ -1,7 +1,7 @@
 use async_trait::async_trait;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+// use std::collections::HashMap; // Unused import
 
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::models::BotResponse;
