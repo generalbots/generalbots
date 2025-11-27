@@ -211,7 +211,7 @@ async fn send_message_to_recipient(
             adapter.send_message(response).await?;
         }
         "instagram" => {
-            let adapter = InstagramAdapter::new(state.conn.clone(), user.bot_id);
+            let adapter = InstagramAdapter::new();
             let response = crate::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
@@ -471,14 +471,48 @@ async fn send_instagram_file(
     state: Arc<AppState>,
     user: &UserSession,
     recipient_id: &str,
-    _file_data: Vec<u8>,
-    _caption: &str,
+    file_data: Vec<u8>,
+    caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Instagram file sending implementation
-    // Similar to WhatsApp but using Instagram API
-    let _adapter = InstagramAdapter::new(state.conn.clone(), user.bot_id);
+    let adapter = InstagramAdapter::new();
 
-    // Upload and send via Instagram Messaging API
+    // Upload file to temporary storage
+    let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
+
+    if let Some(s3) = &state.s3_client {
+        s3.put_object()
+            .bucket("uploads")
+            .key(&file_key)
+            .body(aws_sdk_s3::primitives::ByteStream::from(file_data))
+            .send()
+            .await?;
+
+        let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
+
+        // Send via Instagram with caption
+        adapter
+            .send_media_message(recipient_id, &file_url, "file")
+            .await?;
+
+        if !caption.is_empty() {
+            adapter
+                .send_instagram_message(recipient_id, caption)
+                .await?;
+        }
+
+        // Clean up temp file after 1 hour
+        tokio::spawn(async move {
+            tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
+            if let Some(s3) = &state.s3_client {
+                let _ = s3
+                    .delete_object()
+                    .bucket("uploads")
+                    .key(&file_key)
+                    .send()
+                    .await;
+            }
+        });
+    }
 
     Ok(())
 }

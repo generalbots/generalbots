@@ -20,14 +20,14 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use futures_util::stream::StreamExt;
+
 use serde::{Deserialize, Serialize};
 // use serde_json::json; // Unused import
 use std::sync::Arc;
 
 pub mod document_processing;
 pub mod drive_monitor;
-pub mod files;
+pub mod file;
 pub mod vectordb;
 
 // ===== Request/Response Structures =====
@@ -230,8 +230,6 @@ pub async fn list_files(
                 .delimiter("/")
                 .into_paginator()
                 .send();
-
-            use futures_util::TryStreamExt;
 
             let mut stream = paginator;
             while let Some(result) = stream.try_next().await.map_err(|e| {
