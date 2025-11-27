@@ -10,7 +10,7 @@
 
 ## 📋 Implementation Status
 
-### ☁️ Weather APIs (7 keywords) - `weather-apis.vbs`
+### ☁️ Weather APIs (7 keywords) - `weather-apis.bas`
 - [x] 7Timer! Astro Weather - Astronomical weather forecast
 - [x] 7Timer! Civil Weather - 7-day weather forecast
 - [x] Open-Meteo Weather - Real-time weather data
@@ -20,7 +20,7 @@
 - [x] AQICN Air Quality - Air quality index by city
 - [x] Get Weather Icon - Weather condition to emoji converter
 
-### 🐾 Animals APIs (17 keywords) - `animals-apis.vbs`
+### 🐾 Animals APIs (17 keywords) - `animals-apis.bas`
 - [x] Random Cat Fact - Cat facts
 - [x] Random Dog Fact - Dog facts
 - [x] Random Dog Image - Dog pictures
@@ -40,7 +40,7 @@
 - [x] Dog Breeds List - All dog breeds
 - [x] Specific Dog Breed Image - Image by breed name
 
-### 😄 Entertainment APIs (19 keywords) - `entertainment-apis.vbs`
+### 😄 Entertainment APIs (19 keywords) - `entertainment-apis.bas`
 - [x] Chuck Norris Joke - Random Chuck Norris joke
 - [x] Chuck Norris Categories - Available joke categories
 - [x] Chuck Norris Joke by Category - Category-specific jokes
@@ -66,7 +66,7 @@
 - [x] Insult Generator - Clean insults
 - [x] Compliment Generator - Random compliments
 
-### 🍽️ Food & Drink APIs (13 keywords) - `food-apis.vbs`
+### 🍽️ Food & Drink APIs (13 keywords) - `food-apis.bas`
 - [x] Random Coffee Image - Coffee images
 - [x] Random Food Dish - Food dish images
 - [x] Random Food by Category - Category-specific food
@@ -84,7 +84,7 @@
 - [x] High ABV Beers - High alcohol content beers
 - [x] Bacon Ipsum Text - Bacon-themed lorem ipsum
 
-### 🔧 Data Utility & Geocoding APIs (19 keywords) - `data-utility-apis.vbs`
+### 🔧 Data Utility & Geocoding APIs (19 keywords) - `data-utility-apis.bas`
 - [x] Generate UUID - Single UUID generation
 - [x] Generate Multiple UUIDs - Multiple UUIDs
 - [x] Get My IP Address - Current public IP
@@ -199,11 +199,11 @@ botserver/templates/public-apis.gbai/
 ├── README.md (758 lines)
 ├── KEYWORDS_CHECKLIST.md (this file)
 └── public-apis.gbdialog/
-    ├── weather-apis.vbs (244 lines, 8 keywords)
-    ├── animals-apis.vbs (366 lines, 17 keywords)
-    ├── entertainment-apis.vbs (438 lines, 19 keywords)
-    ├── food-apis.vbs (503 lines, 13 keywords)
-    └── data-utility-apis.vbs (568 lines, 19 keywords)
+    ├── weather-apis.bas (244 lines, 8 keywords)
+    ├── animals-apis.bas (366 lines, 17 keywords)
+    ├── entertainment-apis.bas (438 lines, 19 keywords)
+    ├── food-apis.bas (503 lines, 13 keywords)
+    └── data-utility-apis.bas (568 lines, 19 keywords)
 ```
 
 **Total Lines of Code**: ~2,877 lines

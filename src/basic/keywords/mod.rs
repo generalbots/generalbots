@@ -1,6 +1,5 @@
 pub mod add_member;
 pub mod add_suggestion;
-pub mod add_website;
 pub mod book;
 pub mod bot_memory;
 pub mod clear_kb;
@@ -28,5 +27,6 @@ pub mod set_user;
 pub mod universal_messaging;
 pub mod use_kb;
 pub mod use_tool;
+pub mod use_website;
 pub mod wait;
 pub mod weather;

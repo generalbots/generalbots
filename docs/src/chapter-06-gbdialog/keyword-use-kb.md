@@ -163,7 +163,7 @@ END
 ```basic
 ' Refresh collection with new documents
 CLEAR KB "news"
-ADD WEBSITE "https://example.com/news"
+USE WEBSITE "https://example.com/news"
 USE KB "news"
 ```
 
@@ -194,9 +194,9 @@ USE TOOL "check_stock"
 ' Tool can access inventory knowledge when executing
 ```
 
-### With ADD WEBSITE
+### With USE WEBSITE
 ```basic
-ADD WEBSITE "https://docs.example.com" TO "documentation"
+USE WEBSITE "https://docs.example.com"
 USE KB "documentation"
 ' Fresh web content now searchable
 ```
@@ -266,6 +266,6 @@ Solution: Wait for indexing to complete (automatic)
 ## See Also
 
 - [CLEAR KB](./keyword-clear-kb.md) - Deactivate knowledge bases
-- [ADD WEBSITE](./keyword-add-website.md) - Add web content to KB
+- [USE WEBSITE](./keyword-use-website.md) - Associate website with conversation
 - [Knowledge Base Guide](../chapter-03/README.md) - Complete KB documentation
 - [Vector Collections](../chapter-03/vector-collections.md) - How collections work

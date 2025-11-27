@@ -813,7 +813,7 @@ pub async fn create_folder(
 /// POST /files/shareFolder - Share a folder
 pub async fn share_folder(
     State(_state): State<Arc<AppState>>,
-    Json(req): Json<ShareFolderRequest>,
+    Json(_params): Json<ShareParams>,
 ) -> Result<Json<ApiResponse<ShareResponse>>, (StatusCode, Json<ApiResponse<()>>)> {
     // TODO: Implement actual sharing logic with database
     let share_id = Uuid::new_v4().to_string();
@@ -825,11 +825,288 @@ pub async fn share_folder(
             success: true,
             share_id,
             share_link: Some(share_link),
-            expires_at: req.expires_at,
         }),
         message: Some("Folder shared successfully".to_string()),
-        error: None,
     }))
+}
+
+// S3/MinIO helper functions for storage operations
+
+pub async fn save_to_s3(
+    state: &Arc<AppState>,
+    bucket: &str,
+    key: &str,
+    content: &[u8],
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    s3_client
+        .put_object()
+        .bucket(bucket)
+        .key(key)
+        .body(ByteStream::from(content.to_vec()))
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+pub async fn delete_from_s3(
+    state: &Arc<AppState>,
+    bucket: &str,
+    key: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    s3_client
+        .delete_object()
+        .bucket(bucket)
+        .key(key)
+        .send()
+        .await?;
+
+    Ok(())
+}
+
+#[derive(Debug)]
+pub struct BucketStats {
+    pub object_count: usize,
+    pub total_size: u64,
+    pub last_modified: Option<String>,
+}
+
+pub async fn get_bucket_stats(
+    state: &Arc<AppState>,
+    bucket: &str,
+) -> Result<BucketStats, Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    let list_response = s3_client.list_objects_v2().bucket(bucket).send().await?;
+
+    let mut total_size = 0u64;
+    let mut object_count = 0usize;
+    let mut last_modified = None;
+
+    if let Some(contents) = list_response.contents() {
+        object_count = contents.len();
+        for object in contents {
+            if let Some(size) = object.size() {
+                total_size += size as u64;
+            }
+            if let Some(modified) = object.last_modified() {
+                let modified_str = modified.to_string();
+                if last_modified.is_none() || last_modified.as_ref().unwrap() < &modified_str {
+                    last_modified = Some(modified_str);
+                }
+            }
+        }
+    }
+
+    Ok(BucketStats {
+        object_count,
+        total_size,
+        last_modified,
+    })
+}
+
+pub async fn cleanup_old_files(
+    state: &Arc<AppState>,
+    bucket: &str,
+    cutoff_date: chrono::DateTime<chrono::Utc>,
+) -> Result<(usize, u64), Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    let list_response = s3_client.list_objects_v2().bucket(bucket).send().await?;
+
+    let mut deleted_count = 0usize;
+    let mut freed_bytes = 0u64;
+
+    if let Some(contents) = list_response.contents() {
+        for object in contents {
+            if let Some(modified) = object.last_modified() {
+                let modified_time = chrono::DateTime::parse_from_rfc3339(&modified.to_string())
+                    .map(|dt| dt.with_timezone(&chrono::Utc))
+                    .unwrap_or_else(|_| chrono::Utc::now());
+
+                if modified_time < cutoff_date {
+                    if let Some(key) = object.key() {
+                        if let Some(size) = object.size() {
+                            freed_bytes += size as u64;
+                        }
+
+                        s3_client
+                            .delete_object()
+                            .bucket(bucket)
+                            .key(key)
+                            .send()
+                            .await?;
+
+                        deleted_count += 1;
+                    }
+                }
+            }
+        }
+    }
+
+    Ok((deleted_count, freed_bytes))
+}
+
+pub async fn create_bucket_backup(
+    state: &Arc<AppState>,
+    source_bucket: &str,
+    backup_bucket: &str,
+    backup_id: &str,
+) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    // Create backup bucket if it doesn't exist
+    let _ = s3_client.create_bucket().bucket(backup_bucket).send().await;
+
+    let list_response = s3_client
+        .list_objects_v2()
+        .bucket(source_bucket)
+        .send()
+        .await?;
+
+    let mut file_count = 0usize;
+
+    if let Some(contents) = list_response.contents() {
+        for object in contents {
+            if let Some(key) = object.key() {
+                let backup_key = format!("{}/{}", backup_id, key);
+
+                // Copy object to backup bucket
+                let copy_source = format!("{}/{}", source_bucket, key);
+                s3_client
+                    .copy_object()
+                    .copy_source(&copy_source)
+                    .bucket(backup_bucket)
+                    .key(&backup_key)
+                    .send()
+                    .await?;
+
+                file_count += 1;
+            }
+        }
+    }
+
+    Ok(file_count)
+}
+
+pub async fn restore_bucket_backup(
+    state: &Arc<AppState>,
+    backup_bucket: &str,
+    target_bucket: &str,
+    backup_id: &str,
+) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
+    let s3_client = &state.s3_client;
+
+    let prefix = format!("{}/", backup_id);
+    let list_response = s3_client
+        .list_objects_v2()
+        .bucket(backup_bucket)
+        .prefix(&prefix)
+        .send()
+        .await?;
+
+    let mut file_count = 0usize;
+
+    if let Some(contents) = list_response.contents() {
+        for object in contents {
+            if let Some(key) = object.key() {
+                // Remove backup_id prefix from key
+                let restored_key = key.strip_prefix(&prefix).unwrap_or(key);
+
+                // Copy object back to target bucket
+                let copy_source = format!("{}/{}", backup_bucket, key);
+                s3_client
+                    .copy_object()
+                    .copy_source(&copy_source)
+                    .bucket(target_bucket)
+                    .key(restored_key)
+                    .send()
+                    .await?;
+
+                file_count += 1;
+            }
+        }
+    }
+
+    Ok(file_count)
+}
+
+pub async fn create_archive(
+    state: &Arc<AppState>,
+    bucket: &str,
+    prefix: &str,
+    archive_key: &str,
+) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
+    use flate2::write::GzEncoder;
+    use flate2::Compression;
+    use std::io::Write;
+
+    let s3_client = &state.s3_client;
+
+    let list_response = s3_client
+        .list_objects_v2()
+        .bucket(bucket)
+        .prefix(prefix)
+        .send()
+        .await?;
+
+    let mut archive_data = Vec::new();
+    {
+        let mut encoder = GzEncoder::new(&mut archive_data, Compression::default());
+
+        if let Some(contents) = list_response.contents() {
+            for object in contents {
+                if let Some(key) = object.key() {
+                    // Get object content
+                    let get_response = s3_client
+                        .get_object()
+                        .bucket(bucket)
+                        .key(key)
+                        .send()
+                        .await?;
+
+                    let body_bytes = get_response
+                        .body
+                        .collect()
+                        .await
+                        .map_err(|e| format!("Failed to collect body: {}", e))?;
+                    let bytes = body_bytes.into_bytes();
+
+                    // Write to archive with key as filename
+                    encoder.write_all(key.as_bytes())?;
+                    encoder.write_all(b"\n")?;
+                    encoder.write_all(&bytes)?;
+                    encoder.write_all(b"\n---\n")?;
+                }
+            }
+        }
+
+        encoder.finish()?;
+    }
+
+    let archive_size = archive_data.len() as u64;
+
+    // Upload archive
+    s3_client
+        .put_object()
+        .bucket(bucket)
+        .key(archive_key)
+        .body(ByteStream::from(archive_data))
+        .send()
+        .await?;
+
+    Ok(archive_size)
+}
+
+pub async fn get_bucket_metrics(
+    state: &Arc<AppState>,
+    bucket: &str,
+) -> Result<BucketStats, Box<dyn std::error::Error + Send + Sync>> {
+    get_bucket_stats(state, bucket).await
 }
 
 /// GET /files/dirFolder - Directory listing (alias for list)

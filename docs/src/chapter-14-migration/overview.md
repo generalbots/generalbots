@@ -46,11 +46,13 @@ Transform static documents into searchable knowledge:
 ```basic
 ' Convert SharePoint documents to searchable KB
 USE KB "company_docs"
-ADD WEBSITE "https://sharepoint.company.com/docs"
+USE WEBSITE "https://sharepoint.company.com/docs"
 
 ' Now accessible via natural language
-answer = HEAR "What's our vacation policy?"
-' System automatically searches KB and responds
+question = HEAR "What would you like to know?"
+FIND question
+answer = LLM "Based on the search results, provide a helpful answer"
+TALK answer
 ```
 
 ## Migration Phases

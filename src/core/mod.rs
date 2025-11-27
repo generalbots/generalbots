@@ -2,6 +2,7 @@ pub mod automation;
 pub mod bootstrap;
 pub mod bot;
 pub mod config;
+pub mod kb;
 pub mod package_manager;
 pub mod session;
 pub mod shared;

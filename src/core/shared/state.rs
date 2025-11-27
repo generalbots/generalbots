@@ -1,10 +1,11 @@
-#[cfg(feature = "directory")]
-use crate::directory::AuthService;
 use crate::core::bot::channels::{ChannelAdapter, VoiceAdapter, WebChannelAdapter};
 use crate::core::config::AppConfig;
+use crate::core::kb::KnowledgeBaseManager;
+use crate::core::session::SessionManager;
+#[cfg(feature = "directory")]
+use crate::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
-use crate::core::session::SessionManager;
 use crate::shared::models::BotResponse;
 use crate::shared::utils::DbPool;
 #[cfg(feature = "drive")]
@@ -32,6 +33,7 @@ pub struct AppState {
     pub response_channels: Arc<tokio::sync::Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
     pub web_adapter: Arc<WebChannelAdapter>,
     pub voice_adapter: Arc<VoiceAdapter>,
+    pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
 }
 impl Clone for AppState {
     fn clone(&self) -> Self {
@@ -48,6 +50,7 @@ impl Clone for AppState {
             llm_provider: Arc::clone(&self.llm_provider),
             #[cfg(feature = "directory")]
             auth_service: Arc::clone(&self.auth_service),
+            kb_manager: self.kb_manager.clone(),
             channels: Arc::clone(&self.channels),
             response_channels: Arc::clone(&self.response_channels),
             web_adapter: Arc::clone(&self.web_adapter),
@@ -66,7 +69,8 @@ impl std::fmt::Debug for AppState {
         #[cfg(feature = "redis-cache")]
         debug.field("cache", &self.cache.is_some());
 
-        debug.field("bucket_name", &self.bucket_name)
+        debug
+            .field("bucket_name", &self.bucket_name)
             .field("config", &self.config)
             .field("conn", &"DbPool")
             .field("session_manager", &"Arc<Mutex<SessionManager>>");

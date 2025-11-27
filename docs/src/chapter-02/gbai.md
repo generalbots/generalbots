@@ -40,7 +40,7 @@ BASIC scripts that control conversation flow:
 
 ```
 my-bot.gbdialog/
-  start.bas           # Runs when session starts
+  start.bas           # Optional - needed to activate tools/KB
   auth.bas            # Login flow
   tools/              # Callable functions
     book-meeting.bas
@@ -49,12 +49,15 @@ my-bot.gbdialog/
     on-email.bas
 ```
 
-Example `start.bas`:
+Example `start.bas` (optional, but required for tools/KB):
 ```basic
-TALK "Hi! I'm your assistant."
-answer = HEAR
-TALK "I can help you with: " + answer
+USE KB "policies"
+USE TOOL "book-meeting"
+USE TOOL "check-status"
+TALK "Hi! I'm your assistant with tools and knowledge ready."
 ```
+
+Note: If you don't need tools or knowledge bases, `start.bas` is optional. The LLM will handle basic conversations without it.
 
 ### .gbkb/ - Your Bot's Knowledge
 
@@ -109,7 +112,7 @@ Here's a complete customer support bot:
 ```
 support.gbai/
   support.gbdialog/
-    start.bas
+    start.bas         # Optional, but needed for tools/KB
     tools/
       create-ticket.bas
       check-status.bas
@@ -122,7 +125,7 @@ support.gbai/
     config.csv
 ```
 
-`start.bas`:
+`start.bas` (activates tools and knowledge bases):
 ```basic
 USE KB "faqs"
 USE KB "guides"
@@ -212,7 +215,7 @@ templates/
 ### Required
 - Folder must end with `.gbai`
 - Subfolders must match: `botname.gbdialog`, `botname.gbkb`, etc.
-- Main script must be `start.bas`
+- `start.bas` is optional, but required if you want to use tools or knowledge bases (must USE TOOL and USE KB to activate them)
 
 ### Recommended
 - Use lowercase with hyphens: `customer-service.gbai`
@@ -229,20 +232,14 @@ When BotServer starts:
 
 Takes about 5-10 seconds per bot.
 
-## Hot Reload
+## UI Architecture
 
-Change files while running:
-
-```bash
-# Edit script
-vim templates/my-bot.gbai/my-bot.gbdialog/start.bas
-
-# Reload just that bot
-curl http://localhost:8080/api/admin/reload/my-bot
-
-# Or restart everything
-./botserver restart
-```
+The web interface uses **vanilla JavaScript and Alpine.js** - no build process required:
+- Pure HTML/CSS/JS files
+- Alpine.js for reactivity
+- No webpack, no npm build
+- Edit and refresh to see changes
+- Zero compilation time
 
 ## Package Size Limits
 
@@ -258,7 +255,7 @@ Default limits (configurable):
 **Bot not appearing?**
 - Check folder ends with `.gbai`
 - Verify subfolders match bot name
-- Look for `start.bas` in `.gbdialog/`
+- If using tools/KB, ensure `start.bas` exists with USE TOOL/USE KB commands
 
 **Documents not searchable?**
 - Ensure files are in `.gbkb/` subfolder

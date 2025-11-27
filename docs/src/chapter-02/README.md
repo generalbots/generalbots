@@ -29,7 +29,7 @@ Drop the folder in `templates/`, it loads automatically.
 
 ### Dialogs (.gbdialog)
 - BASIC scripts that control conversation
-- Must have `start.bas` as entry point
+- `start.bas` is optional (but needed to activate tools/KB with USE TOOL/USE KB)
 - Simple commands like TALK and HEAR
 
 ### Knowledge Base (.gbkb)
@@ -58,6 +58,8 @@ Drop the folder in `templates/`, it loads automatically.
 4. **Activation**: Bot is ready
 
 No build process. No compilation. Just folders and files.
+
+The web UI uses **vanilla JavaScript and Alpine.js** - no webpack, no npm build, just edit and refresh.
 
 ## Topics Covered
 

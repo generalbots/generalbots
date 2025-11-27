@@ -73,14 +73,26 @@ TALK "What product information can I help you with?"
 
 ## Script Structure
 
-### Entry Point: start.bas
-Every bot needs a `start.bas` file in the [`.gbdialog`](../chapter-02/gbdialog.md) folder:
+### Entry Point: start.bas (Optional)
+The `start.bas` file in the [`.gbdialog`](../chapter-02/gbdialog.md) folder is **optional**, but required if you want to activate tools or knowledge bases:
 
 ```basic
-' Minimal start script - let system AI handle conversations
+' Optional start script - needed only to activate tools/KB
 USE KB "company_docs"
+USE TOOL "book-meeting"
+USE TOOL "check-status"
 TALK "Welcome! How can I assist you today?"
 ```
+
+**When you need start.bas:**
+- To activate knowledge bases with `USE KB`
+- To activate tools with `USE TOOL`
+- To set initial context or configuration
+
+**When you don't need start.bas:**
+- For simple conversational bots
+- When the LLM can handle everything without tools/KB
+- For basic Q&A without document search
 
 ### Tool Definitions
 Create separate `.bas` files for each tool. See [KB and Tools](../chapter-03/kb-and-tools.md) for more information:

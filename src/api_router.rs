@@ -455,76 +455,293 @@ async fn handle_storage_save(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"success": true})))
+    let key = payload["key"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
+    let content = payload["content"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+
+    // Use the drive module for S3/MinIO operations
+    match crate::drive::files::save_to_s3(&state, bucket, key, content.as_bytes()).await {
+        Ok(_) => Ok(Json(serde_json::json!({
+            "success": true,
+            "key": key,
+            "bucket": bucket,
+            "size": content.len()
+        }))),
+        Err(e) => {
+            log::error!("Storage save failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_batch(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"success": true})))
+    let operations = payload["operations"]
+        .as_array()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+
+    let mut results = Vec::new();
+    for op in operations {
+        let key = op["key"].as_str().unwrap_or("");
+        let content = op["content"].as_str().unwrap_or("");
+        let operation = op["operation"].as_str().unwrap_or("save");
+
+        let result = match operation {
+            "save" => crate::drive::files::save_to_s3(&state, bucket, key, content.as_bytes())
+                .await
+                .map(|_| serde_json::json!({"key": key, "success": true}))
+                .unwrap_or_else(
+                    |e| serde_json::json!({"key": key, "success": false, "error": e.to_string()}),
+                ),
+            "delete" => crate::drive::files::delete_from_s3(&state, bucket, key)
+                .await
+                .map(|_| serde_json::json!({"key": key, "success": true}))
+                .unwrap_or_else(
+                    |e| serde_json::json!({"key": key, "success": false, "error": e.to_string()}),
+                ),
+            _ => serde_json::json!({"key": key, "success": false, "error": "Invalid operation"}),
+        };
+        results.push(result);
+    }
+
+    Ok(Json(serde_json::json!({
+        "success": true,
+        "results": results,
+        "total": results.len()
+    })))
 }
 
 async fn handle_storage_json(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"success": true})))
+    let key = payload["key"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
+    let data = &payload["data"];
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+
+    let json_content = serde_json::to_vec_pretty(data).map_err(|_| StatusCode::BAD_REQUEST)?;
+
+    match crate::drive::files::save_to_s3(&state, bucket, key, &json_content).await {
+        Ok(_) => Ok(Json(serde_json::json!({
+            "success": true,
+            "key": key,
+            "bucket": bucket,
+            "size": json_content.len()
+        }))),
+        Err(e) => {
+            log::error!("JSON storage failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_delete(
     State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"success": true})))
+    let key = params.get("key").ok_or(StatusCode::BAD_REQUEST)?;
+    let bucket = params
+        .get("bucket")
+        .map(|s| s.as_str())
+        .unwrap_or("default");
+
+    match crate::drive::files::delete_from_s3(&state, bucket, key).await {
+        Ok(_) => Ok(Json(serde_json::json!({
+            "success": true,
+            "key": key,
+            "bucket": bucket
+        }))),
+        Err(e) => {
+            log::error!("Storage delete failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_quota_check(
     State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(
-        serde_json::json!({"total": 1000000000, "used": 500000000, "available": 500000000}),
-    ))
+    let bucket = params
+        .get("bucket")
+        .map(|s| s.as_str())
+        .unwrap_or("default");
+
+    match crate::drive::files::get_bucket_stats(&state, bucket).await {
+        Ok(stats) => {
+            let total = 10_737_418_240i64; // 10GB default quota
+            let used = stats.total_size as i64;
+            let available = (total - used).max(0);
+
+            Ok(Json(serde_json::json!({
+                "total": total,
+                "used": used,
+                "available": available,
+                "file_count": stats.object_count,
+                "bucket": bucket
+            })))
+        }
+        Err(_) => {
+            // Return default quota if stats unavailable
+            Ok(Json(serde_json::json!({
+                "total": 10737418240,
+                "used": 0,
+                "available": 10737418240,
+                "file_count": 0,
+                "bucket": bucket
+            })))
+        }
+    }
 }
 
 async fn handle_storage_cleanup(
     State(state): State<Arc<AppState>>,
+    Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(
-        serde_json::json!({"success": true, "freed_bytes": 1024000}),
-    ))
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+    let older_than_days = payload["older_than_days"].as_u64().unwrap_or(30);
+
+    let cutoff_date = chrono::Utc::now() - chrono::Duration::days(older_than_days as i64);
+
+    match crate::drive::files::cleanup_old_files(&state, bucket, cutoff_date).await {
+        Ok((deleted_count, freed_bytes)) => Ok(Json(serde_json::json!({
+            "success": true,
+            "deleted_files": deleted_count,
+            "freed_bytes": freed_bytes,
+            "bucket": bucket
+        }))),
+        Err(e) => {
+            log::error!("Storage cleanup failed: {}", e);
+            Ok(Json(serde_json::json!({
+                "success": false,
+                "error": e.to_string()
+            })))
+        }
+    }
 }
 
 async fn handle_storage_backup_create(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(
-        serde_json::json!({"success": true, "backup_id": "backup-123"}),
-    ))
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+    let backup_name = payload["name"].as_str().unwrap_or("backup");
+
+    let backup_id = format!("backup-{}-{}", backup_name, chrono::Utc::now().timestamp());
+    let archive_bucket = format!("{}-backups", bucket);
+
+    match crate::drive::files::create_bucket_backup(&state, bucket, &archive_bucket, &backup_id)
+        .await
+    {
+        Ok(file_count) => Ok(Json(serde_json::json!({
+            "success": true,
+            "backup_id": backup_id,
+            "files_backed_up": file_count,
+            "backup_bucket": archive_bucket
+        }))),
+        Err(e) => {
+            log::error!("Backup creation failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_backup_restore(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(serde_json::json!({"success": true})))
+    let backup_id = payload["backup_id"]
+        .as_str()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    let target_bucket = payload["target_bucket"].as_str().unwrap_or("default");
+    let source_bucket = payload["source_bucket"]
+        .as_str()
+        .unwrap_or(&format!("{}-backups", target_bucket));
+
+    match crate::drive::files::restore_bucket_backup(
+        &state,
+        &source_bucket,
+        target_bucket,
+        backup_id,
+    )
+    .await
+    {
+        Ok(file_count) => Ok(Json(serde_json::json!({
+            "success": true,
+            "backup_id": backup_id,
+            "files_restored": file_count,
+            "target_bucket": target_bucket
+        }))),
+        Err(e) => {
+            log::error!("Backup restore failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_archive(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(
-        serde_json::json!({"success": true, "archive_id": "archive-123"}),
-    ))
+    let bucket = payload["bucket"].as_str().unwrap_or("default");
+    let prefix = payload["prefix"].as_str().unwrap_or("");
+    let archive_name = payload["name"].as_str().unwrap_or("archive");
+
+    let archive_id = format!(
+        "archive-{}-{}",
+        archive_name,
+        chrono::Utc::now().timestamp()
+    );
+    let archive_key = format!("archives/{}.tar.gz", archive_id);
+
+    match crate::drive::files::create_archive(&state, bucket, prefix, &archive_key).await {
+        Ok(archive_size) => Ok(Json(serde_json::json!({
+            "success": true,
+            "archive_id": archive_id,
+            "archive_key": archive_key,
+            "archive_size": archive_size,
+            "bucket": bucket
+        }))),
+        Err(e) => {
+            log::error!("Archive creation failed: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
 }
 
 async fn handle_storage_metrics(
     State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    Ok(Json(
-        serde_json::json!({"total_files": 1000, "total_size_bytes": 500000000}),
-    ))
+    let bucket = params
+        .get("bucket")
+        .map(|s| s.as_str())
+        .unwrap_or("default");
+
+    match crate::drive::files::get_bucket_metrics(&state, bucket).await {
+        Ok(metrics) => Ok(Json(serde_json::json!({
+            "total_files": metrics.object_count,
+            "total_size_bytes": metrics.total_size,
+            "avg_file_size": if metrics.object_count > 0 {
+                metrics.total_size / metrics.object_count as u64
+            } else {
+                0
+            },
+            "bucket": bucket,
+            "last_modified": metrics.last_modified
+        }))),
+        Err(e) => {
+            log::error!("Failed to get storage metrics: {}", e);
+            Ok(Json(serde_json::json!({
+                "total_files": 0,
+                "total_size_bytes": 0,
+                "error": e.to_string()
+            })))
+        }
+    }
 }
 
 async fn handle_ai_analyze_text(

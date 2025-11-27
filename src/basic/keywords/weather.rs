@@ -1,182 +1,451 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{error, trace};
-use reqwest::Client;
+use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use std::time::Duration;
 
-#[derive(Debug, Clone, Deserialize, Serialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct WeatherData {
     pub location: String,
-    pub temperature: String,
-    pub condition: String,
-    pub forecast: String,
+    pub temperature: f32,
+    pub temperature_unit: String,
+    pub description: String,
+    pub humidity: u32,
+    pub wind_speed: f32,
+    pub wind_direction: String,
+    pub feels_like: f32,
+    pub pressure: u32,
+    pub visibility: f32,
+    pub uv_index: Option<f32>,
+    pub forecast: Vec<ForecastDay>,
 }
 
-/// Fetches weather data from 7Timer! API (free, no auth)
-pub async fn fetch_weather(location: &str) -> Result<WeatherData, Box<dyn std::error::Error>> {
-    // Parse location to get coordinates (simplified - in production use geocoding)
-    let (lat, lon) = parse_location(location)?;
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ForecastDay {
+    pub date: String,
+    pub temp_high: f32,
+    pub temp_low: f32,
+    pub description: String,
+    pub rain_chance: u32,
+}
 
-    // 7Timer! API endpoint
-    let url = format!(
-        "http://www.7timer.info/bin/api.pl?lon={}&lat={}&product=civil&output=json",
-        lon, lat
-    );
+/// Register WEATHER keyword in BASIC
+pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let state_clone = Arc::clone(&state);
+    let user_clone = user.clone();
 
-    trace!("Fetching weather from: {}", url);
+    engine
+        .register_custom_syntax(&["WEATHER", "$expr$"], false, move |context, inputs| {
+            let location = context.eval_expression_tree(&inputs[0])?.to_string();
 
-    let client = Client::builder().timeout(Duration::from_secs(10)).build()?;
+            trace!(
+                "WEATHER command executed: {} for user: {}",
+                location,
+                user_clone.user_id
+            );
 
-    let response = client.get(&url).send().await?;
+            let state_for_task = Arc::clone(&state_clone);
+            let user_for_task = user_clone.clone();
+            let location_for_task = location.clone();
+            let (tx, rx) = std::sync::mpsc::channel();
 
-    if !response.status().is_success() {
-        return Err(format!("Weather API returned status: {}", response.status()).into());
-    }
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Builder::new_multi_thread()
+                    .worker_threads(2)
+                    .enable_all()
+                    .build();
 
-    let json: serde_json::Value = response.json().await?;
+                let send_err = if let Ok(rt) = rt {
+                    let result = rt.block_on(async move {
+                        get_weather(&state_for_task, &user_for_task, &location_for_task).await
+                    });
+                    tx.send(result).err()
+                } else {
+                    tx.send(Err("Failed to build tokio runtime".to_string()))
+                        .err()
+                };
 
-    // Parse 7Timer response
-    let dataseries = json["dataseries"]
-        .as_array()
-        .ok_or("Invalid weather response")?;
+                if send_err.is_some() {
+                    error!("Failed to send WEATHER result from thread");
+                }
+            });
 
-    if dataseries.is_empty() {
-        return Err("No weather data available".into());
-    }
+            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                Ok(Ok(weather_info)) => Ok(Dynamic::from(weather_info)),
+                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    format!("WEATHER failed: {}", e).into(),
+                    rhai::Position::NONE,
+                ))),
+                Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    "WEATHER request timed out".into(),
+                    rhai::Position::NONE,
+                ))),
+            }
+        })
+        .unwrap();
 
-    let current = &dataseries[0];
-    let temp = current["temp2m"].as_i64().unwrap_or(0);
-    let weather_code = current["weather"].as_str().unwrap_or("unknown");
+    // Register FORECAST keyword for extended forecast
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
 
-    let condition = match weather_code {
-        "clear" => "Clear sky",
-        "pcloudy" => "Partly cloudy",
-        "cloudy" => "Cloudy",
-        "rain" => "Rain",
-        "lightrain" => "Light rain",
-        "humid" => "Humid",
-        "snow" => "Snow",
-        "lightsnow" => "Light snow",
-        _ => "Unknown",
-    };
+    engine
+        .register_custom_syntax(
+            &["FORECAST", "$expr$", ",", "$expr$"],
+            false,
+            move |context, inputs| {
+                let location = context.eval_expression_tree(&inputs[0])?.to_string();
+                let days = context
+                    .eval_expression_tree(&inputs[1])?
+                    .as_int()
+                    .unwrap_or(5) as u32;
 
-    // Build forecast string
-    let mut forecast_parts = Vec::new();
-    for (i, item) in dataseries.iter().take(3).enumerate() {
-        if let (Some(temp), Some(weather)) = (item["temp2m"].as_i64(), item["weather"].as_str()) {
-            forecast_parts.push(format!("{}h: {}°C, {}", i * 3, temp, weather));
+                trace!(
+                    "FORECAST command executed: {} for {} days, user: {}",
+                    location,
+                    days,
+                    user_clone2.user_id
+                );
+
+                let state_for_task = Arc::clone(&state_clone2);
+                let user_for_task = user_clone2.clone();
+                let location_for_task = location.clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            get_forecast(&state_for_task, &user_for_task, &location_for_task, days)
+                                .await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".to_string()))
+                            .err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send FORECAST result from thread");
+                    }
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                    Ok(Ok(forecast_info)) => Ok(Dynamic::from(forecast_info)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("FORECAST failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "FORECAST request timed out".into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            },
+        )
+        .unwrap();
+}
+
+async fn get_weather(
+    state: &AppState,
+    _user: &UserSession,
+    location: &str,
+) -> Result<String, String> {
+    // Get API key from bot config or environment
+    let api_key = get_weather_api_key(state)?;
+
+    // Try OpenWeatherMap API first
+    match fetch_openweathermap_current(&api_key, location).await {
+        Ok(weather) => {
+            info!("Weather data fetched for {}", location);
+            Ok(format_weather_response(&weather))
+        }
+        Err(e) => {
+            error!("OpenWeatherMap API failed: {}", e);
+            // Try fallback weather service
+            fetch_fallback_weather(location).await
         }
     }
-    let forecast = forecast_parts.join("; ");
+}
 
+async fn get_forecast(
+    state: &AppState,
+    _user: &UserSession,
+    location: &str,
+    days: u32,
+) -> Result<String, String> {
+    let api_key = get_weather_api_key(state)?;
+
+    match fetch_openweathermap_forecast(&api_key, location, days).await {
+        Ok(forecast) => {
+            info!("Forecast data fetched for {} ({} days)", location, days);
+            Ok(format_forecast_response(&forecast))
+        }
+        Err(e) => {
+            error!("Forecast API failed: {}", e);
+            Err(format!("Could not get forecast for {}: {}", location, e))
+        }
+    }
+}
+
+async fn fetch_openweathermap_current(
+    api_key: &str,
+    location: &str,
+) -> Result<WeatherData, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://api.openweathermap.org/data/2.5/weather?q={}&appid={}&units=metric",
+        urlencoding::encode(location),
+        api_key
+    );
+
+    let response = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("API returned status: {}", response.status()));
+    }
+
+    let data: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
+
+    // Parse OpenWeatherMap response
     Ok(WeatherData {
-        location: location.to_string(),
-        temperature: format!("{}°C", temp),
-        condition: condition.to_string(),
-        forecast,
+        location: data["name"].as_str().unwrap_or(location).to_string(),
+        temperature: data["main"]["temp"].as_f64().unwrap_or(0.0) as f32,
+        temperature_unit: "°C".to_string(),
+        description: data["weather"][0]["description"]
+            .as_str()
+            .unwrap_or("Unknown")
+            .to_string(),
+        humidity: data["main"]["humidity"].as_u64().unwrap_or(0) as u32,
+        wind_speed: data["wind"]["speed"].as_f64().unwrap_or(0.0) as f32,
+        wind_direction: degrees_to_compass(data["wind"]["deg"].as_f64().unwrap_or(0.0)),
+        feels_like: data["main"]["feels_like"].as_f64().unwrap_or(0.0) as f32,
+        pressure: data["main"]["pressure"].as_u64().unwrap_or(0) as u32,
+        visibility: data["visibility"].as_f64().unwrap_or(0.0) as f32 / 1000.0, // Convert to km
+        uv_index: None, // Would need separate API call for UV index
+        forecast: Vec::new(),
     })
 }
 
-/// Simple location parser (lat,lon or city name)
-pub fn parse_location(location: &str) -> Result<(f64, f64), Box<dyn std::error::Error>> {
-    // Check if it's coordinates (lat,lon)
-    if let Some((lat_str, lon_str)) = location.split_once(',') {
-        let lat = lat_str.trim().parse::<f64>()?;
-        let lon = lon_str.trim().parse::<f64>()?;
-        return Ok((lat, lon));
+async fn fetch_openweathermap_forecast(
+    api_key: &str,
+    location: &str,
+    days: u32,
+) -> Result<WeatherData, String> {
+    let client = reqwest::Client::new();
+    let url = format!(
+        "https://api.openweathermap.org/data/2.5/forecast?q={}&appid={}&units=metric&cnt={}",
+        urlencoding::encode(location),
+        api_key,
+        days * 8 // 8 forecasts per day (every 3 hours)
+    );
+
+    let response = client
+        .get(&url)
+        .await
+        .map_err(|e| format!("Request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        return Err(format!("API returned status: {}", response.status()));
     }
 
-    // Default city coordinates (extend as needed)
-    let coords = match location.to_lowercase().as_str() {
-        "london" => (51.5074, -0.1278),
-        "paris" => (48.8566, 2.3522),
-        "new york" | "newyork" => (40.7128, -74.0060),
-        "tokyo" => (35.6762, 139.6503),
-        "sydney" => (-33.8688, 151.2093),
-        "são paulo" | "sao paulo" => (-23.5505, -46.6333),
-        "rio de janeiro" | "rio" => (-22.9068, -43.1729),
-        "brasília" | "brasilia" => (-15.8267, -47.9218),
-        "buenos aires" => (-34.6037, -58.3816),
-        "berlin" => (52.5200, 13.4050),
-        "madrid" => (40.4168, -3.7038),
-        "rome" => (41.9028, 12.4964),
-        "moscow" => (55.7558, 37.6173),
-        "beijing" => (39.9042, 116.4074),
-        "mumbai" => (19.0760, 72.8777),
-        "dubai" => (25.2048, 55.2708),
-        "los angeles" | "la" => (34.0522, -118.2437),
-        "chicago" => (41.8781, -87.6298),
-        "toronto" => (43.6532, -79.3832),
-        "mexico city" => (19.4326, -99.1332),
-        _ => {
-            return Err(format!(
-                "Unknown location: {}. Use 'lat,lon' format or known city",
-                location
-            )
-            .into())
-        }
-    };
+    let data: serde_json::Value = response
+        .json()
+        .await
+        .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    Ok(coords)
+    // Process forecast data
+    let mut forecast_days = Vec::new();
+    let mut daily_data: std::collections::HashMap<String, (f32, f32, String, u32)> =
+        std::collections::HashMap::new();
+
+    if let Some(list) = data["list"].as_array() {
+        for item in list {
+            let dt_txt = item["dt_txt"].as_str().unwrap_or("");
+            let date = dt_txt.split(' ').next().unwrap_or("");
+            let temp = item["main"]["temp"].as_f64().unwrap_or(0.0) as f32;
+            let description = item["weather"][0]["description"]
+                .as_str()
+                .unwrap_or("Unknown")
+                .to_string();
+            let rain_chance = (item["pop"].as_f64().unwrap_or(0.0) * 100.0) as u32;
+
+            let entry = daily_data.entry(date.to_string()).or_insert((
+                temp,
+                temp,
+                description.clone(),
+                rain_chance,
+            ));
+
+            // Update min/max temperatures
+            if temp < entry.0 {
+                entry.0 = temp;
+            }
+            if temp > entry.1 {
+                entry.1 = temp;
+            }
+            // Update rain chance to max for the day
+            if rain_chance > entry.3 {
+                entry.3 = rain_chance;
+            }
+        }
+    }
+
+    // Convert to forecast days
+    for (date, (temp_low, temp_high, description, rain_chance)) in daily_data.iter() {
+        forecast_days.push(ForecastDay {
+            date: date.clone(),
+            temp_high: *temp_high,
+            temp_low: *temp_low,
+            description: description.clone(),
+            rain_chance: *rain_chance,
+        });
+    }
+
+    // Sort by date
+    forecast_days.sort_by(|a, b| a.date.cmp(&b.date));
+
+    Ok(WeatherData {
+        location: data["city"]["name"]
+            .as_str()
+            .unwrap_or(location)
+            .to_string(),
+        temperature: 0.0, // Not relevant for forecast
+        temperature_unit: "°C".to_string(),
+        description: "Forecast".to_string(),
+        humidity: 0,
+        wind_speed: 0.0,
+        wind_direction: String::new(),
+        feels_like: 0.0,
+        pressure: 0,
+        visibility: 0.0,
+        uv_index: None,
+        forecast: forecast_days,
+    })
 }
 
-/// Register WEATHER keyword in Rhai engine
-pub fn weather_keyword(_state: Arc<AppState>, _user_session: UserSession, engine: &mut Engine) {
-    let _ = engine.register_custom_syntax(&["WEATHER", "$expr$"], false, move |context, inputs| {
-        let location = context.eval_expression_tree(&inputs[0])?;
-        let location_str = location.to_string();
+async fn fetch_fallback_weather(location: &str) -> Result<String, String> {
+    // This could use another weather API like WeatherAPI.com or NOAA
+    // For now, return a simulated response
+    info!("Using fallback weather for {}", location);
 
-        trace!("WEATHER keyword called for: {}", location_str);
+    Ok(format!(
+        "Weather information for {} is temporarily unavailable. Please try again later.",
+        location
+    ))
+}
 
-        // Create channel for async result
-        let (tx, rx) = std::sync::mpsc::channel();
+fn format_weather_response(weather: &WeatherData) -> String {
+    format!(
+        "Current weather in {}:\n\
+        🌡️ Temperature: {:.1}{} (feels like {:.1}{})\n\
+        ☁️ Conditions: {}\n\
+        💧 Humidity: {}%\n\
+        💨 Wind: {:.1} m/s {}\n\
+        🔍 Visibility: {:.1} km\n\
+        📊 Pressure: {} hPa",
+        weather.location,
+        weather.temperature,
+        weather.temperature_unit,
+        weather.feels_like,
+        weather.temperature_unit,
+        weather.description,
+        weather.humidity,
+        weather.wind_speed,
+        weather.wind_direction,
+        weather.visibility,
+        weather.pressure
+    )
+}
 
-        // Spawn blocking task
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Builder::new_current_thread()
-                .enable_all()
-                .build();
+fn format_forecast_response(weather: &WeatherData) -> String {
+    let mut response = format!("Weather forecast for {}:\n\n", weather.location);
 
-            let result = if let Ok(rt) = rt {
-                rt.block_on(async {
-                    match fetch_weather(&location_str).await {
-                        Ok(weather) => {
-                            let msg = format!(
-                                "Weather for {}: {} ({}). Forecast: {}",
-                                weather.location,
-                                weather.temperature,
-                                weather.condition,
-                                weather.forecast
-                            );
-                            Ok(msg)
-                        }
-                        Err(e) => {
-                            error!("Weather fetch failed: {}", e);
-                            Err(format!("Could not fetch weather: {}", e))
-                        }
-                    }
-                })
-            } else {
-                Err("Failed to create runtime".to_string())
-            };
+    for day in &weather.forecast {
+        response.push_str(&format!(
+            "📅 {}\n\
+            🌡️ High: {:.1}°C, Low: {:.1}°C\n\
+            ☁️ {}\n\
+            ☔ Rain chance: {}%\n\n",
+            day.date, day.temp_high, day.temp_low, day.description, day.rain_chance
+        ));
+    }
 
-            let _ = tx.send(result);
-        });
+    response
+}
 
-        // Wait for result
-        match rx.recv() {
-            Ok(Ok(weather_msg)) => Ok(Dynamic::from(weather_msg)),
-            Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                e.into(),
-                rhai::Position::NONE,
-            ))),
-            Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                "Weather request timeout".into(),
-                rhai::Position::NONE,
-            ))),
+fn degrees_to_compass(degrees: f64) -> String {
+    let directions = [
+        "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
+        "NW", "NNW",
+    ];
+    let index = ((degrees + 11.25) / 22.5) as usize % 16;
+    directions[index].to_string()
+}
+
+fn get_weather_api_key(state: &AppState) -> Result<String, String> {
+    // Try to get from bot config first
+    if let Some(config) = &state.config {
+        if let Some(api_key) = config.bot_config.get_setting("weather-api-key") {
+            if !api_key.is_empty() {
+                return Ok(api_key);
+            }
         }
-    });
+    }
+
+    // Fallback to environment variable
+    std::env::var("OPENWEATHERMAP_API_KEY")
+        .or_else(|_| std::env::var("WEATHER_API_KEY"))
+        .map_err(|_| {
+            "Weather API key not found. Please set 'weather-api-key' in config.csv or WEATHER_API_KEY environment variable".to_string()
+        })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_degrees_to_compass() {
+        assert_eq!(degrees_to_compass(0.0), "N");
+        assert_eq!(degrees_to_compass(45.0), "NE");
+        assert_eq!(degrees_to_compass(90.0), "E");
+        assert_eq!(degrees_to_compass(180.0), "S");
+        assert_eq!(degrees_to_compass(270.0), "W");
+        assert_eq!(degrees_to_compass(315.0), "NW");
+    }
+
+    #[test]
+    fn test_format_weather_response() {
+        let weather = WeatherData {
+            location: "London".to_string(),
+            temperature: 15.0,
+            temperature_unit: "°C".to_string(),
+            description: "Partly cloudy".to_string(),
+            humidity: 65,
+            wind_speed: 3.5,
+            wind_direction: "NE".to_string(),
+            feels_like: 14.0,
+            pressure: 1013,
+            visibility: 10.0,
+            uv_index: Some(3.0),
+            forecast: Vec::new(),
+        };
+
+        let response = format_weather_response(&weather);
+        assert!(response.contains("London"));
+        assert!(response.contains("15.0"));
+        assert!(response.contains("Partly cloudy"));
+    }
 }

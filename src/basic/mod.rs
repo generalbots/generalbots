@@ -9,7 +9,6 @@ pub mod compiler;
 pub mod keywords;
 use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
-use self::keywords::add_website::add_website_keyword;
 use self::keywords::book::book_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
 use self::keywords::clear_kb::register_clear_kb_keyword;
@@ -29,6 +28,7 @@ use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
 use self::keywords::send_mail::send_mail_keyword;
 use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
+use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
 
 use self::keywords::llm_keyword::llm_keyword;
 use self::keywords::on::on_keyword;
@@ -72,7 +72,8 @@ impl ScriptService {
         use_tool_keyword(state.clone(), user.clone(), &mut engine);
         clear_tools_keyword(state.clone(), user.clone(), &mut engine);
 
-        add_website_keyword(state.clone(), user.clone(), &mut engine);
+        use_website_keyword(state.clone(), user.clone(), &mut engine);
+        clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
 
         // Register the 6 new power keywords

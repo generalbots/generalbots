@@ -45,3 +45,7 @@ custom-port,5432
 custom-database,mycustomdb
 custom-username,
 custom-password,
+,
+website-expires,1d
+website-max-depth,3
+website-max-pages,100

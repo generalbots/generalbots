@@ -10,10 +10,35 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 #[async_trait]
 pub trait ChannelAdapter: Send + Sync {
+    fn name(&self) -> &str {
+        "Unknown"
+    }
+
+    fn is_configured(&self) -> bool {
+        true
+    }
+
     async fn send_message(
         &self,
         response: BotResponse,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>>;
+
+    async fn receive_message(
+        &self,
+        payload: serde_json::Value,
+    ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(None)
+    }
+
+    async fn get_user_info(
+        &self,
+        user_id: &str,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        Ok(serde_json::json!({
+            "id": user_id,
+            "platform": self.name()
+        }))
+    }
 }
 #[derive(Debug)]
 pub struct WebChannelAdapter {
