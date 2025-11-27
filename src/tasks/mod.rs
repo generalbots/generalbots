@@ -773,7 +773,7 @@ impl TaskEngine {
             description: template.description.clone(),
             status: "todo".to_string(),
             priority: "medium".to_string(),
-            assignee_id: assignee_id,
+            assignee_id,
             reporter_id: Some(Uuid::new_v4()),
             project_id: None,
             due_date: None,
@@ -868,7 +868,7 @@ impl TaskEngine {
         Ok(task)
     }
     /// Send notification to assignee
-    async fn notify_assignee(
+    async fn _notify_assignee(
         &self,
         assignee: &str,
         task: &Task,
@@ -1083,7 +1083,7 @@ pub async fn handle_task_status_update(
     };
 
     match state.task_engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated.into())),
+        Ok(updated_task) => Ok(Json(updated_task.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }
@@ -1115,7 +1115,7 @@ pub async fn handle_task_priority_set(
     };
 
     match state.task_engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated.into())),
+        Ok(updated_task) => Ok(Json(updated_task.into())),
         Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
     }
 }

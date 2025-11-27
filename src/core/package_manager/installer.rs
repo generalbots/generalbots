@@ -554,7 +554,7 @@ impl PackageManager {
         );
     }
 
-    fn register_botserver(&mut self) {
+    fn _register_botserver(&mut self) {
         self.components.insert(
             "system".to_string(),
             ComponentConfig {

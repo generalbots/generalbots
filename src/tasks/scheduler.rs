@@ -41,7 +41,7 @@ pub struct TaskExecution {
 
 #[derive(Clone)]
 pub struct TaskScheduler {
-    _state: Arc<AppState>,
+    state: Arc<AppState>,
     running_tasks: Arc<RwLock<HashMap<Uuid, tokio::task::JoinHandle<()>>>>,
     task_registry: Arc<RwLock<HashMap<String, TaskHandler>>>,
     scheduled_tasks: Arc<RwLock<Vec<ScheduledTask>>>,
@@ -68,7 +68,7 @@ type TaskHandler = Arc<
 impl TaskScheduler {
     pub fn new(state: Arc<AppState>) -> Self {
         let scheduler = Self {
-            _state: state,
+            state: state,
             running_tasks: Arc::new(RwLock::new(HashMap::new())),
             task_registry: Arc::new(RwLock::new(HashMap::new())),
             scheduled_tasks: Arc::new(RwLock::new(Vec::new())),
@@ -81,7 +81,7 @@ impl TaskScheduler {
 
     fn register_default_handlers(&self) {
         let registry = self.task_registry.clone();
-        let _state = self._state.clone();
+        let _state = self.state.clone();
 
         tokio::spawn(async move {
             let mut handlers = registry.write().await;
@@ -328,7 +328,7 @@ impl TaskScheduler {
 
     async fn execute_task(&self, mut task: ScheduledTask) {
         let task_id = task.id;
-        let state = self._state.clone();
+        let state = self.state.clone();
         let registry = self.task_registry.clone();
         let running_tasks = self.running_tasks.clone();
 
