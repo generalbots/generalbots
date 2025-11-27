@@ -224,7 +224,7 @@ pub struct TaskEngine {
 }
 
 impl TaskEngine {
-    pub fn new(db: Arc<DbPool>) -> Self {
+    pub fn new(db: DbPool) -> Self {
         Self {
             db,
             cache: Arc::new(RwLock::new(vec![])),
@@ -265,61 +265,11 @@ impl TaskEngine {
         Ok(task.into())
     }
 
-    pub async fn update_task(
-        &self,
-        id: Uuid,
-        update: TaskUpdate,
-    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
-        let mut cache = self.cache.write().await;
+    // Removed duplicate update_task - using database version below
 
-        if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
-            if let Some(title) = update.title {
-                task.title = title;
-            }
-            if let Some(description) = update.description {
-                task.description = Some(description);
-            }
-            if let Some(status) = update.status {
-                task.status = status;
-                if task.status == "completed" || task.status == "done" {
-                    task.completed_at = Some(Utc::now());
-                }
-            }
-            if let Some(priority) = update.priority {
-                task.priority = priority;
-            }
-            if let Some(assignee) = update.assignee {
-                task.assignee_id = Some(Uuid::parse_str(&assignee)?);
-            }
-            if let Some(due_date) = update.due_date {
-                task.due_date = Some(due_date);
-            }
-            if let Some(tags) = update.tags {
-                task.tags = tags;
-            }
-            task.updated_at = Utc::now();
+    // Removed duplicate delete_task - using database version below
 
-            Ok(task.clone().into())
-        } else {
-            Err("Task not found".into())
-        }
-    }
-
-    pub async fn delete_task(&self, id: Uuid) -> Result<(), Box<dyn std::error::Error>> {
-        let mut cache = self.cache.write().await;
-        cache.retain(|t| t.id != id);
-        Ok(())
-    }
-
-    pub async fn get_task(&self, id: Uuid) -> Result<TaskResponse, Box<dyn std::error::Error>> {
-        let cache = self.cache.read().await;
-        cache
-            .iter()
-            .find(|t| t.id == id)
-            .cloned()
-            .map(|t| t.into())
-            .ok_or_else(|| "Task not found".into())
-    }
+    // Removed duplicate get_task - using database version below
 
     pub async fn list_tasks(
         &self,
@@ -359,22 +309,7 @@ impl TaskEngine {
         Ok(tasks.into_iter().map(|t| t.into()).collect())
     }
 
-    pub async fn assign_task(
-        &self,
-        id: Uuid,
-        assignee: String,
-    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
-        let assignee_id = Uuid::parse_str(&assignee)?;
-        let mut cache = self.cache.write().await;
-
-        if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
-            task.assignee_id = Some(assignee_id);
-            task.updated_at = Utc::now();
-            Ok(task.clone().into())
-        } else {
-            Err("Task not found".into())
-        }
-    }
+    // Removed duplicate - using database version below
 
     pub async fn update_status(
         &self,
@@ -402,10 +337,7 @@ pub async fn handle_task_create(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateTaskRequest>,
 ) -> Result<Json<TaskResponse>, StatusCode> {
-    let task_engine = state
-        .task_engine
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let task_engine = &state.task_engine;
 
     match task_engine.create_task(payload).await {
         Ok(task) => Ok(Json(task)),
@@ -421,13 +353,10 @@ pub async fn handle_task_update(
     Path(id): Path<Uuid>,
     Json(payload): Json<TaskUpdate>,
 ) -> Result<Json<TaskResponse>, StatusCode> {
-    let task_engine = state
-        .task_engine
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let task_engine = &state.task_engine;
 
     match task_engine.update_task(id, payload).await {
-        Ok(task) => Ok(Json(task)),
+        Ok(task) => Ok(Json(task.into())),
         Err(e) => {
             log::error!("Failed to update task: {}", e);
             Err(StatusCode::INTERNAL_SERVER_ERROR)
@@ -439,10 +368,7 @@ pub async fn handle_task_delete(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let task_engine = state
-        .task_engine
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let task_engine = &state.task_engine;
 
     match task_engine.delete_task(id).await {
         Ok(_) => Ok(StatusCode::NO_CONTENT),
@@ -457,13 +383,10 @@ pub async fn handle_task_get(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<Json<TaskResponse>, StatusCode> {
-    let task_engine = state
-        .task_engine
-        .as_ref()
-        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+    let task_engine = &state.task_engine;
 
     match task_engine.get_task(id).await {
-        Ok(task) => Ok(Json(task)),
+        Ok(task) => Ok(Json(task.into())),
         Err(e) => {
             log::error!("Failed to get task: {}", e);
             Err(StatusCode::NOT_FOUND)
@@ -718,7 +641,9 @@ impl TaskEngine {
     ) -> Result<Task, Box<dyn std::error::Error>> {
         // For subtasks, we store parent relationship separately
         // or in a separate junction table
-        let created = self.create_task(subtask).await?;
+
+        // Use create_task_with_db which accepts and returns Task
+        let created = self.create_task_with_db(subtask).await?;
 
         // Update parent's subtasks list
         // TODO: Implement with Diesel
@@ -749,6 +674,7 @@ impl TaskEngine {
 
         for dep_id in task.dependencies {
             if let Ok(dep_task) = self.get_task(dep_id).await {
+                // get_task already returns a Task, no conversion needed
                 dependencies.push(dep_task);
             }
         }
@@ -892,7 +818,19 @@ impl TaskEngine {
             completed_at: None,
         };
 
-        let created = self.create_task(task).await?;
+        // Convert Task to CreateTaskRequest for create_task
+        let task_request = CreateTaskRequest {
+            title: task.title,
+            description: task.description,
+            assignee_id: task.assignee_id,
+            reporter_id: task.reporter_id,
+            project_id: task.project_id,
+            priority: Some(task.priority),
+            due_date: task.due_date,
+            tags: Some(task.tags),
+            estimated_hours: task.estimated_hours,
+        };
+        let created = self.create_task(task_request).await?;
 
         // Create checklist items
         for item in template.checklist {
@@ -922,7 +860,45 @@ impl TaskEngine {
             */
         }
 
-        Ok(created)
+        // Convert TaskResponse to Task
+        let task = Task {
+            id: created.id,
+            title: created.title,
+            description: created.description,
+            status: match created.status {
+                TaskStatus::Todo => "todo".to_string(),
+                TaskStatus::InProgress => "in_progress".to_string(),
+                TaskStatus::Completed => "completed".to_string(),
+                TaskStatus::OnHold => "on_hold".to_string(),
+                TaskStatus::Review => "review".to_string(),
+                TaskStatus::Blocked => "blocked".to_string(),
+                TaskStatus::Cancelled => "cancelled".to_string(),
+                TaskStatus::Done => "done".to_string(),
+            },
+            priority: match created.priority {
+                TaskPriority::Low => "low".to_string(),
+                TaskPriority::Medium => "medium".to_string(),
+                TaskPriority::High => "high".to_string(),
+                TaskPriority::Urgent => "urgent".to_string(),
+            },
+            assignee_id: created.assignee.and_then(|a| Uuid::parse_str(&a).ok()),
+            reporter_id: if created.reporter == "system" {
+                None
+            } else {
+                Uuid::parse_str(&created.reporter).ok()
+            },
+            project_id: None,
+            tags: created.tags,
+            dependencies: created.dependencies,
+            due_date: created.due_date,
+            estimated_hours: created.estimated_hours,
+            actual_hours: created.actual_hours,
+            progress: created.progress,
+            created_at: created.created_at,
+            updated_at: created.updated_at,
+            completed_at: created.completed_at,
+        };
+        Ok(task)
     }
     /// Send notification to assignee
     async fn notify_assignee(
