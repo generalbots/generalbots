@@ -406,7 +406,7 @@ async fn broadcast_message(
 
 // Channel-specific implementations
 async fn send_whatsapp_file(
-    state: Arc<AppState>,
+    _state: Arc<AppState>,
     recipient: &str,
     file_data: Vec<u8>,
     caption: &str,
@@ -467,7 +467,7 @@ async fn send_whatsapp_file(
 }
 
 async fn send_instagram_file(
-    state: Arc<AppState>,
+    _state: Arc<AppState>,
     _recipient: &str,
     _file_data: Vec<u8>,
     _caption: &str,
@@ -494,7 +494,8 @@ async fn send_teams_file(
 
     // Upload to Teams and send as attachment
     let access_token = std::env::var("TEAMS_ACCESS_TOKEN").unwrap_or_default();
-    let service_url = std::env::var("TEAMS_SERVICE_URL").unwrap_or_else(|_| "https://smba.trafficmanager.net/apis".to_string());
+    let service_url = std::env::var("TEAMS_SERVICE_URL")
+        .unwrap_or_else(|_| "https://smba.trafficmanager.net/apis".to_string());
     let url = format!(
         "{}/v3/conversations/{}/activities",
         service_url.trim_end_matches('/'),

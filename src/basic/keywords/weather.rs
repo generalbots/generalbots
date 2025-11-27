@@ -253,6 +253,7 @@ async fn fetch_openweathermap_forecast(
 
     let response = client
         .get(&url)
+        .send()
         .await
         .map_err(|e| format!("Request failed: {}", e))?;
 
@@ -394,17 +395,8 @@ fn degrees_to_compass(degrees: f64) -> String {
     directions[index].to_string()
 }
 
-fn get_weather_api_key(state: &AppState) -> Result<String, String> {
-    // Try to get from bot config first
-    if let Some(config) = &state.config {
-        if let Some(api_key) = config.bot_config.get_setting("weather-api-key") {
-            if !api_key.is_empty() {
-                return Ok(api_key);
-            }
-        }
-    }
-
-    // Fallback to environment variable
+fn get_weather_api_key(_state: &AppState) -> Result<String, String> {
+    // Get API key from environment variable
     std::env::var("OPENWEATHERMAP_API_KEY")
         .or_else(|_| std::env::var("WEATHER_API_KEY"))
         .map_err(|_| {
