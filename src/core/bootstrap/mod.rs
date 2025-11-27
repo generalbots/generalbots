@@ -143,6 +143,14 @@ impl BootstrapManager {
                         error!("Failed to setup Directory: {}", e);
                     }
                 }
+
+                // Auto-configure Email after installation
+                if component == "email" {
+                    info!("🔧 Auto-configuring Email (Stalwart)...");
+                    if let Err(e) = self.setup_email().await {
+                        error!("Failed to setup Email: {}", e);
+                    }
+                }
             }
         }
         Ok(())
@@ -220,7 +228,7 @@ impl BootstrapManager {
     }
 
     /// Setup Email (Stalwart) with Directory integration
-    async fn setup_email(&self) -> Result<()> {
+    pub async fn setup_email(&self) -> Result<()> {
         let config_path = PathBuf::from("./config/email_config.json");
         let directory_config_path = PathBuf::from("./config/directory_config.json");
 

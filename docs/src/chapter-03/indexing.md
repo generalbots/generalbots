@@ -8,7 +8,7 @@ The system automatically indexes documents when:
 - Files are added to any `.gbkb` folder
 - `USE KB` is called for a collection
 - Files are modified or updated
-- `ADD WEBSITE` crawls new content
+- `USE WEBSITE` registers websites for crawling (preprocessing) and associates them with sessions (runtime)
 
 ## How Indexing Works
 
@@ -35,8 +35,9 @@ To keep web content fresh, schedule regular crawls:
 ' In update-docs.bas
 SET SCHEDULE "0 2 * * *"  ' Run daily at 2 AM
 
-ADD WEBSITE "https://docs.example.com"
-' Website is crawled and indexed automatically
+USE WEBSITE "https://docs.example.com"
+' Website is registered for crawling during preprocessing
+' At runtime, it associates the crawled content with the session
 ```
 
 ### Scheduling Options
@@ -106,11 +107,10 @@ Schedule regular web updates:
 ' In maintenance.bas
 SET SCHEDULE "0 1 * * *"
 
-' Update news daily
-ADD WEBSITE "https://company.com/news"
-
-' Update product docs on schedule
-ADD WEBSITE "https://company.com/products"
+' Register websites for crawling
+USE WEBSITE "https://company.com/news"
+USE WEBSITE "https://company.com/products"
+' Websites are crawled by background service
 ```
 
 ## Best Practices

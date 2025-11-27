@@ -6,11 +6,11 @@ This package provides 50+ free API keywords for General Bots, allowing you to in
 
 This `.gbai` template includes the following BASIC keyword files:
 
-- `weather-apis.vbs` - Weather data and forecasts
-- `animals-apis.vbs` - Animal facts and images
-- `entertainment-apis.vbs` - Jokes, quotes, and fun content
-- `food-apis.vbs` - Food recipes and drink information
-- `data-utility-apis.vbs` - Data utilities and geocoding
+- `weather-apis.bas` - Weather data and forecasts
+- `animals-apis.bas` - Animal facts and images
+- `entertainment-apis.bas` - Jokes, quotes, and fun content
+- `food-apis.bas` - Food recipes and drink information
+- `data-utility-apis.bas` - Data utilities and geocoding
 
 ## 🌤️ Weather APIs
 
@@ -735,7 +735,7 @@ END IF
 
 To add more API keywords:
 1. Find a free, no-auth API from [public-apis](https://github.com/public-apis/public-apis)
-2. Create a `.vbs` or `.bas` file in the appropriate category
+2. Create a `.bas` or `.bas` file in the appropriate category
 3. Follow the existing keyword pattern
 4. Test thoroughly
 5. Update this README

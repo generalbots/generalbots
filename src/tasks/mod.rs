@@ -185,16 +185,13 @@ impl TaskEngine {
         let updated_at = Utc::now();
 
         // Check if status is changing to Done
-        let completing = updates.status
+        let completing = updates
+            .status
             .as_ref()
             .map(|s| matches!(s, TaskStatus::Done))
             .unwrap_or(false);
 
-        let completed_at = if completing {
-            Some(Utc::now())
-        } else {
-            None
-        };
+        let completed_at = if completing { Some(Utc::now()) } else { None };
 
         // TODO: Implement with Diesel
         /*
@@ -450,7 +447,10 @@ impl TaskEngine {
     }
 
     /// Calculate task progress (percentage)
-    pub async fn calculate_progress(&self, task_id: Uuid) -> Result<f32, Box<dyn std::error::Error>> {
+    pub async fn calculate_progress(
+        &self,
+        task_id: Uuid,
+    ) -> Result<f32, Box<dyn std::error::Error>> {
         let task = self.get_task(task_id).await?;
 
         if task.subtasks.is_empty() {
@@ -460,7 +460,9 @@ impl TaskEngine {
                 TaskStatus::InProgress => 50.0,
                 TaskStatus::Review => 75.0,
                 TaskStatus::Done => 100.0,
-                TaskStatus::Blocked => task.actual_hours.unwrap_or(0.0) / task.estimated_hours.unwrap_or(1.0) * 100.0,
+                TaskStatus::Blocked => {
+                    task.actual_hours.unwrap_or(0.0) / task.estimated_hours.unwrap_or(1.0) * 100.0
+                }
                 TaskStatus::Cancelled => 0.0,
             });
         }
@@ -645,9 +647,9 @@ impl TaskEngine {
 /// HTTP API handlers
 pub mod handlers {
     use super::*;
-    use axum::extract::{State as AxumState, Query as AxumQuery, Path as AxumPath};
-    use axum::response::{Json as AxumJson, IntoResponse};
+    use axum::extract::{Path as AxumPath, Query as AxumQuery, State as AxumState};
     use axum::http::StatusCode;
+    use axum::response::{IntoResponse, Json as AxumJson};
 
     pub async fn create_task_handler<S>(
         AxumState(_engine): AxumState<S>,
@@ -656,7 +658,6 @@ pub mod handlers {
         // TODO: Implement with actual engine
         let created = task;
         (StatusCode::OK, AxumJson(serde_json::json!(created)))
-
     }
 
     pub async fn get_tasks_handler<S>(
@@ -693,7 +694,184 @@ pub mod handlers {
     }
 }
 
+pub async fn handle_task_create(
+    State(engine): State<Arc<TaskEngine>>,
+    Json(mut task): Json<Task>,
+) -> Result<Json<Task>, StatusCode> {
+    task.id = Uuid::new_v4();
+    task.created_at = Utc::now();
+    task.updated_at = Utc::now();
+
+    match engine.create_task(task).await {
+        Ok(created) => Ok(Json(created)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_update(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+    Json(updates): Json<TaskUpdate>,
+) -> Result<Json<Task>, StatusCode> {
+    match engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_delete(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode, StatusCode> {
+    match engine.delete_task(id).await {
+        Ok(true) => Ok(StatusCode::NO_CONTENT),
+        Ok(false) => Err(StatusCode::NOT_FOUND),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_list(
+    State(engine): State<Arc<TaskEngine>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<Vec<Task>>, StatusCode> {
+    let tasks = if let Some(user_id) = params.get("user_id") {
+        engine.get_user_tasks(user_id).await
+    } else if let Some(status_str) = params.get("status") {
+        let status = match status_str.as_str() {
+            "todo" => TaskStatus::Todo,
+            "in_progress" => TaskStatus::InProgress,
+            "review" => TaskStatus::Review,
+            "done" => TaskStatus::Done,
+            "blocked" => TaskStatus::Blocked,
+            "cancelled" => TaskStatus::Cancelled,
+            _ => TaskStatus::Todo,
+        };
+        engine.get_tasks_by_status(status).await
+    } else {
+        engine.get_all_tasks().await
+    };
+
+    match tasks {
+        Ok(task_list) => Ok(Json(task_list)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_assign(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Task>, StatusCode> {
+    let assignee = payload["assignee"]
+        .as_str()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+
+    match engine.assign_task(id, assignee.to_string()).await {
+        Ok(updated) => Ok(Json(updated)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_status_update(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Task>, StatusCode> {
+    let status_str = payload["status"].as_str().ok_or(StatusCode::BAD_REQUEST)?;
+    let status = match status_str {
+        "todo" => TaskStatus::Todo,
+        "in_progress" => TaskStatus::InProgress,
+        "review" => TaskStatus::Review,
+        "done" => TaskStatus::Done,
+        "blocked" => TaskStatus::Blocked,
+        "cancelled" => TaskStatus::Cancelled,
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    let updates = TaskUpdate {
+        title: None,
+        description: None,
+        status: Some(status),
+        priority: None,
+        assignee: None,
+        due_date: None,
+        tags: None,
+    };
+
+    match engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_priority_set(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Task>, StatusCode> {
+    let priority_str = payload["priority"]
+        .as_str()
+        .ok_or(StatusCode::BAD_REQUEST)?;
+    let priority = match priority_str {
+        "low" => TaskPriority::Low,
+        "medium" => TaskPriority::Medium,
+        "high" => TaskPriority::High,
+        "urgent" => TaskPriority::Urgent,
+        _ => return Err(StatusCode::BAD_REQUEST),
+    };
+
+    let updates = TaskUpdate {
+        title: None,
+        description: None,
+        status: None,
+        priority: Some(priority),
+        assignee: None,
+        due_date: None,
+        tags: None,
+    };
+
+    match engine.update_task(id, updates).await {
+        Ok(updated) => Ok(Json(updated)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
+pub async fn handle_task_dependencies_set(
+    State(engine): State<Arc<TaskEngine>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<serde_json::Value>,
+) -> Result<Json<Task>, StatusCode> {
+    let deps = payload["dependencies"]
+        .as_array()
+        .ok_or(StatusCode::BAD_REQUEST)?
+        .iter()
+        .filter_map(|v| v.as_str().and_then(|s| Uuid::parse_str(s).ok()))
+        .collect::<Vec<_>>();
+
+    match engine.set_dependencies(id, deps).await {
+        Ok(updated) => Ok(Json(updated)),
+        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}
+
 /// Configure task engine routes
+pub fn configure_task_routes(state: Arc<TaskEngine>) -> Router {
+    Router::new()
+        .route("/api/tasks", post(handle_task_create))
+        .route("/api/tasks", get(handle_task_list))
+        .route("/api/tasks/:id", put(handle_task_update))
+        .route("/api/tasks/:id", delete(handle_task_delete))
+        .route("/api/tasks/:id/assign", post(handle_task_assign))
+        .route("/api/tasks/:id/status", put(handle_task_status_update))
+        .route("/api/tasks/:id/priority", put(handle_task_priority_set))
+        .route(
+            "/api/tasks/:id/dependencies",
+            put(handle_task_dependencies_set),
+        )
+        .with_state(state)
+}
+
+/// Configure task engine routes (legacy)
 pub fn configure<S>(router: Router<S>) -> Router<S>
 where
     S: Clone + Send + Sync + 'static,
@@ -704,5 +882,8 @@ where
         .route("/api/tasks", post(handlers::create_task_handler::<S>))
         .route("/api/tasks", get(handlers::get_tasks_handler::<S>))
         .route("/api/tasks/:id", put(handlers::update_task_handler::<S>))
-        .route("/api/tasks/statistics", get(handlers::get_statistics_handler::<S>))
+        .route(
+            "/api/tasks/statistics",
+            get(handlers::get_statistics_handler::<S>),
+        )
 }

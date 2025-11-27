@@ -33,7 +33,7 @@ The source code for each keyword lives in `src/basic/keywords/`. Only the keywor
 
 - [USE KB](./keyword-use-kb.md) - Load knowledge base
 - [CLEAR KB](./keyword-clear-kb.md) - Unload knowledge base
-- [ADD WEBSITE](./keyword-add-website.md) - Index website to KB
+- [USE WEBSITE](./keyword-use-website.md) - Associate website with conversation
 - [FIND](./keyword-find.md) - Search in KB
 
 ## Tools & Automation

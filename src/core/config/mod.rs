@@ -207,6 +207,29 @@ impl ConfigManager {
         };
         Ok(value)
     }
+
+    pub async fn get_bot_config_value(
+        &self,
+        target_bot_id: &uuid::Uuid,
+        key: &str,
+    ) -> Result<String, String> {
+        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use diesel::prelude::*;
+
+        let mut conn = self
+            .get_conn()
+            .map_err(|e| format!("Failed to acquire connection: {}", e))?;
+
+        let value = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq(key))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .map_err(|e| format!("Failed to get bot config value: {}", e))?;
+
+        Ok(value)
+    }
+
     pub fn sync_gbot_config(&self, bot_id: &uuid::Uuid, content: &str) -> Result<usize, String> {
         use sha2::{Digest, Sha256};
         let mut hasher = Sha256::new();

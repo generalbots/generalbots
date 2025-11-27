@@ -1,10 +1,13 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
+use crate::core::kb::{ChangeType, KnowledgeBaseManager};
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
 use log::info;
 use std::collections::HashMap;
 use std::error::Error;
+use std::path::PathBuf;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 #[derive(Debug, Clone)]
@@ -17,14 +20,23 @@ pub struct DriveMonitor {
     bucket_name: String,
     file_states: Arc<tokio::sync::RwLock<HashMap<String, FileState>>>,
     bot_id: uuid::Uuid,
+    kb_manager: Arc<KnowledgeBaseManager>,
+    work_root: PathBuf,
+    is_processing: Arc<AtomicBool>,
 }
 impl DriveMonitor {
     pub fn new(state: Arc<AppState>, bucket_name: String, bot_id: uuid::Uuid) -> Self {
+        let work_root = PathBuf::from("work");
+        let kb_manager = Arc::new(KnowledgeBaseManager::new(work_root.clone()));
+
         Self {
             state,
             bucket_name,
             file_states: Arc::new(tokio::sync::RwLock::new(HashMap::new())),
             bot_id,
+            kb_manager,
+            work_root,
+            is_processing: Arc::new(AtomicBool::new(false)),
         }
     }
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
@@ -36,9 +48,25 @@ impl DriveMonitor {
             let mut tick = interval(Duration::from_secs(90));
             loop {
                 tick.tick().await;
+
+                // Check if we're already processing to prevent reentrancy
+                if self.is_processing.load(Ordering::Acquire) {
+                    log::warn!(
+                        "Drive monitor is still processing previous changes, skipping this tick"
+                    );
+                    continue;
+                }
+
+                // Set processing flag
+                self.is_processing.store(true, Ordering::Release);
+
+                // Process changes
                 if let Err(e) = self.check_for_changes().await {
                     log::error!("Error checking for drive changes: {}", e);
                 }
+
+                // Clear processing flag
+                self.is_processing.store(false, Ordering::Release);
             }
         })
     }
@@ -49,6 +77,7 @@ impl DriveMonitor {
         };
         self.check_gbdialog_changes(client).await?;
         self.check_gbot(client).await?;
+        self.check_gbkb_changes(client).await?;
         Ok(())
     }
     async fn check_gbdialog_changes(
@@ -350,6 +379,202 @@ impl DriveMonitor {
             Ok::<(), Box<dyn Error + Send + Sync>>(())
         })
         .await??;
+        Ok(())
+    }
+
+    async fn check_gbkb_changes(
+        &self,
+        client: &Client,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let bot_name = self
+            .bucket_name
+            .strip_suffix(".gbai")
+            .unwrap_or(&self.bucket_name);
+
+        let gbkb_prefix = format!("{}.gbkb/", bot_name);
+        let mut current_files = HashMap::new();
+        let mut continuation_token = None;
+
+        // Add progress tracking for large file sets
+        let mut files_processed = 0;
+        let mut files_to_process = Vec::new();
+
+        loop {
+            let list_objects = match tokio::time::timeout(
+                Duration::from_secs(30),
+                client
+                    .list_objects_v2()
+                    .bucket(&self.bucket_name.to_lowercase())
+                    .prefix(&gbkb_prefix)
+                    .set_continuation_token(continuation_token)
+                    .send(),
+            )
+            .await
+            {
+                Ok(Ok(list)) => list,
+                Ok(Err(e)) => return Err(e.into()),
+                Err(_) => {
+                    log::error!(
+                        "Timeout listing .gbkb objects in bucket {}",
+                        self.bucket_name
+                    );
+                    return Ok(());
+                }
+            };
+
+            for obj in list_objects.contents.unwrap_or_default() {
+                let path = obj.key().unwrap_or_default().to_string();
+
+                // Skip directories
+                if path.ends_with('/') {
+                    continue;
+                }
+
+                let file_state = FileState {
+                    etag: obj.e_tag().unwrap_or_default().to_string(),
+                };
+                current_files.insert(path.clone(), file_state);
+            }
+
+            if !list_objects.is_truncated.unwrap_or(false) {
+                break;
+            }
+            continuation_token = list_objects.next_continuation_token;
+        }
+
+        let mut file_states = self.file_states.write().await;
+
+        // Check for new or modified files
+        for (path, current_state) in current_files.iter() {
+            let is_new = !file_states.contains_key(path);
+            let is_modified = file_states
+                .get(path)
+                .map(|prev| prev.etag != current_state.etag)
+                .unwrap_or(false);
+
+            if is_new || is_modified {
+                info!(
+                    "Detected {} in .gbkb: {}",
+                    if is_new { "new file" } else { "change" },
+                    path
+                );
+
+                // Queue file for batch processing instead of immediate download
+                files_to_process.push(path.clone());
+                files_processed += 1;
+
+                // Process in batches of 10 to avoid overwhelming the system
+                if files_to_process.len() >= 10 {
+                    for file_path in files_to_process.drain(..) {
+                        if let Err(e) = self.download_gbkb_file(client, &file_path).await {
+                            log::error!("Failed to download .gbkb file {}: {}", file_path, e);
+                            continue;
+                        }
+                    }
+
+                    // Add small delay between batches to prevent system overload
+                    tokio::time::sleep(Duration::from_millis(100)).await;
+                }
+
+                // Extract KB name from path (e.g., "mybot.gbkb/docs/file.pdf" -> "docs")
+                let path_parts: Vec<&str> = path.split('/').collect();
+                if path_parts.len() >= 2 {
+                    let kb_name = path_parts[1];
+                    let kb_folder_path = self
+                        .work_root
+                        .join(bot_name)
+                        .join(&gbkb_prefix)
+                        .join(kb_name);
+
+                    // Trigger indexing
+                    if let Err(e) = self
+                        .kb_manager
+                        .handle_gbkb_change(bot_name, &kb_folder_path)
+                        .await
+                    {
+                        log::error!("Failed to process .gbkb change: {}", e);
+                    }
+                }
+            }
+        }
+
+        // Check for deleted files first
+        let paths_to_remove: Vec<String> = file_states
+            .keys()
+            .filter(|path| path.starts_with(&gbkb_prefix) && !current_files.contains_key(*path))
+            .cloned()
+            .collect();
+
+        // Process remaining files in the queue
+        for file_path in files_to_process {
+            if let Err(e) = self.download_gbkb_file(client, &file_path).await {
+                log::error!("Failed to download .gbkb file {}: {}", file_path, e);
+            }
+        }
+
+        if files_processed > 0 {
+            info!("Processed {} .gbkb files", files_processed);
+        }
+
+        // Update file states after checking for deletions
+        for (path, state) in current_files {
+            file_states.insert(path, state);
+        }
+
+        for path in paths_to_remove {
+            info!("Detected deletion in .gbkb: {}", path);
+            file_states.remove(&path);
+
+            // Extract KB name and trigger cleanup
+            let path_parts: Vec<&str> = path.split('/').collect();
+            if path_parts.len() >= 2 {
+                let kb_name = path_parts[1];
+
+                // Check if entire KB folder was deleted
+                let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
+                if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
+                    // No more files in this KB, clear the collection
+                    if let Err(e) = self.kb_manager.clear_kb(bot_name, kb_name).await {
+                        log::error!("Failed to clear KB {}: {}", kb_name, e);
+                    }
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    async fn download_gbkb_file(
+        &self,
+        client: &Client,
+        file_path: &str,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        let bot_name = self
+            .bucket_name
+            .strip_suffix(".gbai")
+            .unwrap_or(&self.bucket_name);
+
+        // Create local path
+        let local_path = self.work_root.join(bot_name).join(file_path);
+
+        // Create parent directories
+        if let Some(parent) = local_path.parent() {
+            tokio::fs::create_dir_all(parent).await?;
+        }
+
+        // Download file
+        let response = client
+            .get_object()
+            .bucket(&self.bucket_name)
+            .key(file_path)
+            .send()
+            .await?;
+
+        let bytes = response.body.collect().await?.into_bytes();
+        tokio::fs::write(&local_path, bytes).await?;
+
+        info!("Downloaded .gbkb file {} to {:?}", file_path, local_path);
+
         Ok(())
     }
 }

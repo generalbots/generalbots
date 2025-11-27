@@ -154,7 +154,7 @@ Add `.bas` files to `.gbdialog`:
 ### Development Tools
 
 #### api-client.gbai
-- **Files**: `climate.vbs`, `msft-partner-center.bas`
+- **Files**: `climate.bas`, `msft-partner-center.bas`
 - **Examples**: REST API patterns
 - **Integration**: External services
 

@@ -191,7 +191,7 @@ NEXT
 ## Related Keywords
 
 - [USE KB](./keyword-use-kb.md) - Load knowledge bases
-- [ADD WEBSITE](./keyword-add-website.md) - Create KB from website
+- [USE WEBSITE](./keyword-use-website.md) - Associate website with conversation
 - [FIND](./keyword-find.md) - Search within loaded KBs
 - [LLM](./keyword-llm.md) - Use KB context in responses
 
