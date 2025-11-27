@@ -12,7 +12,6 @@ use tower_http::cors::CorsLayer;
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-mod api_router;
 use botserver::basic;
 use botserver::core;
 use botserver::shared;
@@ -128,11 +127,8 @@ async fn run_axum_server(
         .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(3600));
 
-    // Use unified API router configuration
-    let mut api_router = crate::api_router::configure_api_routes();
-
-    // Add session-specific routes
-    api_router = api_router
+    // Build API router with module-specific routes
+    let mut api_router = Router::new()
         .route("/api/sessions", post(create_session))
         .route("/api/sessions", get(get_sessions))
         .route(
@@ -183,6 +179,12 @@ async fn run_axum_server(
 
     // Add task engine routes
     api_router = api_router.merge(botserver::tasks::configure_task_routes());
+
+    // Add calendar routes if calendar feature is enabled
+    #[cfg(feature = "calendar")]
+    {
+        api_router = api_router.merge(crate::calendar::configure_calendar_routes());
+    }
 
     // Build static file serving
     let static_path = std::path::Path::new("./web/desktop");

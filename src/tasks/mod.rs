@@ -18,6 +18,29 @@ use crate::shared::utils::DbPool;
 // TODO: Replace sqlx queries with Diesel queries
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateTaskRequest {
+    pub title: String,
+    pub description: Option<String>,
+    pub assignee_id: Option<Uuid>,
+    pub reporter_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
+    pub priority: Option<String>,
+    pub due_date: Option<DateTime<Utc>>,
+    pub tags: Option<Vec<String>>,
+    pub estimated_hours: Option<f64>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskFilters {
+    pub status: Option<String>,
+    pub priority: Option<String>,
+    pub assignee: Option<String>,
+    pub project_id: Option<Uuid>,
+    pub tag: Option<String>,
+    pub limit: Option<usize>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskUpdate {
     pub title: Option<String>,
     pub description: Option<String>,
@@ -201,26 +224,259 @@ pub struct TaskEngine {
 }
 
 impl TaskEngine {
-    pub fn new(db: DbPool) -> Self {
+    pub fn new(db: Arc<DbPool>) -> Self {
         Self {
             db,
-            cache: Arc::new(RwLock::new(Vec::new())),
+            cache: Arc::new(RwLock::new(vec![])),
         }
     }
 
-    /// Create a new task
-    pub async fn create_task(&self, task: Task) -> Result<Task, Box<dyn std::error::Error>> {
-        use crate::core::shared::models::schema::tasks::dsl;
-        let conn = &mut self.db.get()?;
+    pub async fn create_task(
+        &self,
+        request: CreateTaskRequest,
+    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
 
-        diesel::insert_into(dsl::tasks)
-            .values(&task)
-            .execute(conn)?;
+        let task = Task {
+            id,
+            title: request.title,
+            description: request.description,
+            status: "todo".to_string(),
+            priority: request.priority.unwrap_or("medium".to_string()),
+            assignee_id: request.assignee_id,
+            reporter_id: request.reporter_id,
+            project_id: request.project_id,
+            due_date: request.due_date,
+            tags: request.tags.unwrap_or_default(),
+            dependencies: vec![],
+            estimated_hours: request.estimated_hours,
+            actual_hours: None,
+            progress: 0,
+            created_at: now,
+            updated_at: now,
+            completed_at: None,
+        };
 
-        Ok(task)
+        // Store in cache
+        let mut cache = self.cache.write().await;
+        cache.push(task.clone());
+
+        Ok(task.into())
     }
 
-    pub async fn create_task_old(&self, task: Task) -> Result<Task, Box<dyn std::error::Error>> {
+    pub async fn update_task(
+        &self,
+        id: Uuid,
+        update: TaskUpdate,
+    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
+        let mut cache = self.cache.write().await;
+
+        if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
+            if let Some(title) = update.title {
+                task.title = title;
+            }
+            if let Some(description) = update.description {
+                task.description = Some(description);
+            }
+            if let Some(status) = update.status {
+                task.status = status;
+                if task.status == "completed" || task.status == "done" {
+                    task.completed_at = Some(Utc::now());
+                }
+            }
+            if let Some(priority) = update.priority {
+                task.priority = priority;
+            }
+            if let Some(assignee) = update.assignee {
+                task.assignee_id = Some(Uuid::parse_str(&assignee)?);
+            }
+            if let Some(due_date) = update.due_date {
+                task.due_date = Some(due_date);
+            }
+            if let Some(tags) = update.tags {
+                task.tags = tags;
+            }
+            task.updated_at = Utc::now();
+
+            Ok(task.clone().into())
+        } else {
+            Err("Task not found".into())
+        }
+    }
+
+    pub async fn delete_task(&self, id: Uuid) -> Result<(), Box<dyn std::error::Error>> {
+        let mut cache = self.cache.write().await;
+        cache.retain(|t| t.id != id);
+        Ok(())
+    }
+
+    pub async fn get_task(&self, id: Uuid) -> Result<TaskResponse, Box<dyn std::error::Error>> {
+        let cache = self.cache.read().await;
+        cache
+            .iter()
+            .find(|t| t.id == id)
+            .cloned()
+            .map(|t| t.into())
+            .ok_or_else(|| "Task not found".into())
+    }
+
+    pub async fn list_tasks(
+        &self,
+        filters: TaskFilters,
+    ) -> Result<Vec<TaskResponse>, Box<dyn std::error::Error>> {
+        let cache = self.cache.read().await;
+
+        let mut tasks: Vec<Task> = cache.clone();
+
+        // Apply filters
+        if let Some(status) = filters.status {
+            tasks.retain(|t| t.status == status);
+        }
+        if let Some(priority) = filters.priority {
+            tasks.retain(|t| t.priority == priority);
+        }
+        if let Some(assignee) = filters.assignee {
+            if let Ok(assignee_id) = Uuid::parse_str(&assignee) {
+                tasks.retain(|t| t.assignee_id == Some(assignee_id));
+            }
+        }
+        if let Some(project_id) = filters.project_id {
+            tasks.retain(|t| t.project_id == Some(project_id));
+        }
+        if let Some(tag) = filters.tag {
+            tasks.retain(|t| t.tags.contains(&tag));
+        }
+
+        // Sort by creation date (newest first)
+        tasks.sort_by(|a, b| b.created_at.cmp(&a.created_at));
+
+        // Apply limit
+        if let Some(limit) = filters.limit {
+            tasks.truncate(limit);
+        }
+
+        Ok(tasks.into_iter().map(|t| t.into()).collect())
+    }
+
+    pub async fn assign_task(
+        &self,
+        id: Uuid,
+        assignee: String,
+    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
+        let assignee_id = Uuid::parse_str(&assignee)?;
+        let mut cache = self.cache.write().await;
+
+        if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
+            task.assignee_id = Some(assignee_id);
+            task.updated_at = Utc::now();
+            Ok(task.clone().into())
+        } else {
+            Err("Task not found".into())
+        }
+    }
+
+    pub async fn update_status(
+        &self,
+        id: Uuid,
+        status: String,
+    ) -> Result<TaskResponse, Box<dyn std::error::Error>> {
+        let mut cache = self.cache.write().await;
+
+        if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
+            task.status = status.clone();
+            if status == "completed" || status == "done" {
+                task.completed_at = Some(Utc::now());
+                task.progress = 100;
+            }
+            task.updated_at = Utc::now();
+            Ok(task.clone().into())
+        } else {
+            Err("Task not found".into())
+        }
+    }
+}
+
+// Task API handlers
+pub async fn handle_task_create(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateTaskRequest>,
+) -> Result<Json<TaskResponse>, StatusCode> {
+    let task_engine = state
+        .task_engine
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match task_engine.create_task(payload).await {
+        Ok(task) => Ok(Json(task)),
+        Err(e) => {
+            log::error!("Failed to create task: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_task_update(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<TaskUpdate>,
+) -> Result<Json<TaskResponse>, StatusCode> {
+    let task_engine = state
+        .task_engine
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match task_engine.update_task(id, payload).await {
+        Ok(task) => Ok(Json(task)),
+        Err(e) => {
+            log::error!("Failed to update task: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_task_delete(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode, StatusCode> {
+    let task_engine = state
+        .task_engine
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match task_engine.delete_task(id).await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            log::error!("Failed to delete task: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_task_get(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<Json<TaskResponse>, StatusCode> {
+    let task_engine = state
+        .task_engine
+        .as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match task_engine.get_task(id).await {
+        Ok(task) => Ok(Json(task)),
+        Err(e) => {
+            log::error!("Failed to get task: {}", e);
+            Err(StatusCode::NOT_FOUND)
+        }
+    }
+}
+
+// Database operations for TaskEngine
+impl TaskEngine {
+    pub async fn create_task_with_db(
+        &self,
+        task: Task,
+    ) -> Result<Task, Box<dyn std::error::Error>> {
         // TODO: Implement with Diesel
         /*
         let result = sqlx::query!(
@@ -668,7 +924,6 @@ impl TaskEngine {
 
         Ok(created)
     }
-
     /// Send notification to assignee
     async fn notify_assignee(
         &self,
@@ -798,41 +1053,7 @@ pub mod handlers {
     }
 }
 
-pub async fn handle_task_create(
-    State(state): State<Arc<AppState>>,
-    Json(mut task): Json<Task>,
-) -> Result<Json<TaskResponse>, StatusCode> {
-    task.id = Uuid::new_v4();
-    task.created_at = Utc::now();
-    task.updated_at = Utc::now();
-
-    match state.task_engine.create_task(task).await {
-        Ok(created) => Ok(Json(created.into())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-pub async fn handle_task_update(
-    State(state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-    Json(updates): Json<TaskUpdate>,
-) -> Result<Json<TaskResponse>, StatusCode> {
-    match state.task_engine.update_task(id, updates).await {
-        Ok(updated) => Ok(Json(updated.into())),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
-
-pub async fn handle_task_delete(
-    State(state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-) -> Result<StatusCode, StatusCode> {
-    match state.task_engine.delete_task(id).await {
-        Ok(true) => Ok(StatusCode::NO_CONTENT),
-        Ok(false) => Err(StatusCode::NOT_FOUND),
-        Err(_) => Err(StatusCode::INTERNAL_SERVER_ERROR),
-    }
-}
+// Duplicate handlers removed - using the ones defined above
 
 pub async fn handle_task_list(
     State(state): State<Arc<AppState>>,

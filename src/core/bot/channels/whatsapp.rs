@@ -6,10 +6,12 @@ use serde::{Deserialize, Serialize};
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::models::BotResponse;
 
+#[derive(Debug)]
 pub struct WhatsAppAdapter {
     api_key: String,
     phone_number_id: String,
     webhook_verify_token: String,
+    #[allow(dead_code)]
     business_account_id: String,
     api_version: String,
 }
@@ -188,6 +190,165 @@ impl WhatsAppAdapter {
 
     pub fn verify_webhook(&self, token: &str) -> bool {
         token == self.webhook_verify_token
+    }
+
+    /// Create a new message template in the business account
+    pub async fn create_message_template(
+        &self,
+        template_name: &str,
+        template_category: &str,
+        template_body: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/message_templates",
+            self.api_version, self.business_account_id
+        );
+
+        let payload = serde_json::json!({
+            "name": template_name,
+            "category": template_category,
+            "language": "en",
+            "components": [{
+                "type": "BODY",
+                "text": template_body
+            }]
+        });
+
+        let response = client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&payload)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            let result: serde_json::Value = response.json().await?;
+            Ok(result["id"].as_str().unwrap_or("").to_string())
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("Failed to create template: {}", error_text).into())
+        }
+    }
+
+    /// Upload media to WhatsApp Business API
+    pub async fn upload_media(
+        &self,
+        file_path: &str,
+        mime_type: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/media",
+            self.api_version, self.business_account_id
+        );
+
+        let file = tokio::fs::read(file_path).await?;
+
+        let response = client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("Content-Type", mime_type)
+            .body(file)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            let result: serde_json::Value = response.json().await?;
+            Ok(result["id"].as_str().unwrap_or("").to_string())
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("Failed to upload media: {}", error_text).into())
+        }
+    }
+
+    /// Get business profile information
+    pub async fn get_business_profile(
+        &self,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/whatsapp_business_profile",
+            self.api_version, self.business_account_id
+        );
+
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .query(&[(
+                "fields",
+                "about,address,description,email,profile_picture_url,websites",
+            )])
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(response.json().await?)
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("Failed to get business profile: {}", error_text).into())
+        }
+    }
+
+    /// Update business profile
+    pub async fn update_business_profile(
+        &self,
+        profile_data: serde_json::Value,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/whatsapp_business_profile",
+            self.api_version, self.business_account_id
+        );
+
+        let response = client
+            .post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .json(&profile_data)
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(())
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("Failed to update business profile: {}", error_text).into())
+        }
+    }
+
+    /// Get message template analytics
+    pub async fn get_template_analytics(
+        &self,
+        template_name: &str,
+    ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/template_analytics",
+            self.api_version, self.business_account_id
+        );
+
+        let response = client
+            .get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .query(&[
+                ("template_name", template_name),
+                ("start", "30_days_ago"),
+                ("end", "now"),
+            ])
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            Ok(response.json().await?)
+        } else {
+            let error_text = response.text().await?;
+            Err(format!("Failed to get template analytics: {}", error_text).into())
+        }
     }
 }
 

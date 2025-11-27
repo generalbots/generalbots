@@ -144,6 +144,7 @@ pub struct KbStatistics {
 }
 
 /// Integration with drive monitor
+#[derive(Debug)]
 pub struct DriveMonitorIntegration {
     kb_manager: Arc<KnowledgeBaseManager>,
 }

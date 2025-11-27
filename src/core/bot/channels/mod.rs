@@ -25,7 +25,7 @@ pub trait ChannelAdapter: Send + Sync {
 
     async fn receive_message(
         &self,
-        payload: serde_json::Value,
+        _payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
         Ok(None)
     }

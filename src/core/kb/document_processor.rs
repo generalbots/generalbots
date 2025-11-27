@@ -222,6 +222,7 @@ impl DocumentProcessor {
     }
 
     /// Extract PDF using poppler-utils
+    #[allow(dead_code)]
     async fn extract_pdf_with_poppler(&self, file_path: &Path) -> Result<String> {
         let output = tokio::process::Command::new("pdftotext")
             .arg(file_path)

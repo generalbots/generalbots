@@ -93,6 +93,70 @@ pub enum ReminderChannel {
     InApp,
 }
 
+// API Request/Response structs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CreateEventRequest {
+    pub title: String,
+    pub description: Option<String>,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+    pub location: Option<String>,
+    pub attendees: Option<Vec<String>>,
+    pub organizer: String,
+    pub reminder_minutes: Option<i32>,
+    pub recurrence_rule: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateEventRequest {
+    pub title: Option<String>,
+    pub description: Option<String>,
+    pub start_time: Option<DateTime<Utc>>,
+    pub end_time: Option<DateTime<Utc>>,
+    pub location: Option<String>,
+    pub status: Option<EventStatus>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ScheduleMeetingRequest {
+    pub title: String,
+    pub description: Option<String>,
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+    pub location: Option<String>,
+    pub attendees: Vec<String>,
+    pub organizer: String,
+    pub reminder_minutes: Option<i32>,
+    pub meeting_url: Option<String>,
+    pub meeting_id: Option<String>,
+    pub platform: Option<MeetingPlatform>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct SetReminderRequest {
+    pub event_id: Uuid,
+    pub remind_at: DateTime<Utc>,
+    pub message: String,
+    pub channel: ReminderChannel,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EventListQuery {
+    pub start_date: Option<DateTime<Utc>>,
+    pub end_date: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EventSearchQuery {
+    pub query: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct CheckAvailabilityQuery {
+    pub start_time: DateTime<Utc>,
+    pub end_time: DateTime<Utc>,
+}
+
 #[derive(Clone)]
 pub struct CalendarEngine {
     db: Arc<DbPool>,
@@ -359,6 +423,151 @@ impl CalendarEngine {
         */
         Ok(vec![])
     }
+    pub async fn create_event(&self, event: CreateEventRequest) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
+        let id = Uuid::new_v4();
+        let now = Utc::now();
+
+        let calendar_event = CalendarEvent {
+            id,
+            title: event.title,
+            description: event.description,
+            start_time: event.start_time,
+            end_time: event.end_time,
+            location: event.location,
+            attendees: event.attendees.unwrap_or_default(),
+            organizer: event.organizer,
+            reminder_minutes: event.reminder_minutes,
+            recurrence_rule: event.recurrence_rule,
+            status: EventStatus::Scheduled,
+            created_at: now,
+            updated_at: now,
+        };
+
+        // Store in cache
+        self.cache.write().await.push(calendar_event.clone());
+
+        Ok(calendar_event)
+    }
+
+    pub async fn update_event(&self, id: Uuid, update: UpdateEventRequest) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
+        let mut cache = self.cache.write().await;
+
+        if let Some(event) = cache.iter_mut().find(|e| e.id == id) {
+            if let Some(title) = update.title {
+                event.title = title;
+            }
+            if let Some(description) = update.description {
+                event.description = Some(description);
+            }
+            if let Some(start_time) = update.start_time {
+                event.start_time = start_time;
+            }
+            if let Some(end_time) = update.end_time {
+                event.end_time = end_time;
+            }
+            if let Some(location) = update.location {
+                event.location = Some(location);
+            }
+            if let Some(status) = update.status {
+                event.status = status;
+            }
+            event.updated_at = Utc::now();
+
+            Ok(event.clone())
+        } else {
+            Err("Event not found".into())
+        }
+    }
+
+    pub async fn delete_event(&self, id: Uuid) -> Result<(), Box<dyn std::error::Error>> {
+        let mut cache = self.cache.write().await;
+        cache.retain(|e| e.id != id);
+        Ok(())
+    }
+
+    pub async fn list_events(&self, start_date: Option<DateTime<Utc>>, end_date: Option<DateTime<Utc>>) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
+        let cache = self.cache.read().await;
+
+        let events: Vec<CalendarEvent> = if let (Some(start), Some(end)) = (start_date, end_date) {
+            cache.iter()
+                .filter(|e| e.start_time >= start && e.start_time <= end)
+                .cloned()
+                .collect()
+        } else {
+            cache.clone()
+        };
+
+        Ok(events)
+    }
+
+    pub async fn search_events(&self, query: &str) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
+        let cache = self.cache.read().await;
+        let query_lower = query.to_lowercase();
+
+        let events: Vec<CalendarEvent> = cache
+            .iter()
+            .filter(|e| {
+                e.title.to_lowercase().contains(&query_lower) ||
+                e.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_lower))
+            })
+            .cloned()
+            .collect();
+
+        Ok(events)
+    }
+
+    pub async fn check_availability(&self, start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Result<bool, Box<dyn std::error::Error>> {
+        let cache = self.cache.read().await;
+
+        let has_conflict = cache.iter().any(|event| {
+            (event.start_time < end_time && event.end_time > start_time) &&
+            event.status != EventStatus::Cancelled
+        });
+
+        Ok(!has_conflict)
+    }
+
+    pub async fn schedule_meeting(&self, meeting: ScheduleMeetingRequest) -> Result<Meeting, Box<dyn std::error::Error>> {
+        // First create the calendar event
+        let event = self.create_event(CreateEventRequest {
+            title: meeting.title.clone(),
+            description: meeting.description.clone(),
+            start_time: meeting.start_time,
+            end_time: meeting.end_time,
+            location: meeting.location.clone(),
+            attendees: Some(meeting.attendees.clone()),
+            organizer: meeting.organizer.clone(),
+            reminder_minutes: meeting.reminder_minutes,
+            recurrence_rule: None,
+        }).await?;
+
+        // Create meeting record
+        let meeting_record = Meeting {
+            id: Uuid::new_v4(),
+            event_id: event.id,
+            meeting_url: meeting.meeting_url,
+            meeting_id: meeting.meeting_id,
+            platform: meeting.platform.unwrap_or(MeetingPlatform::Internal),
+            recording_url: None,
+            notes: None,
+            action_items: vec![],
+        };
+
+        Ok(meeting_record)
+    }
+
+    pub async fn set_reminder(&self, reminder: SetReminderRequest) -> Result<CalendarReminder, Box<dyn std::error::Error>> {
+        let reminder_record = CalendarReminder {
+            id: Uuid::new_v4(),
+            event_id: reminder.event_id,
+            remind_at: reminder.remind_at,
+            message: reminder.message,
+            channel: reminder.channel,
+            sent: false,
+        };
+
+        Ok(reminder_record)
+    }
 
     async fn refresh_cache(&self) -> Result<(), Box<dyn std::error::Error>> {
         // TODO: Implement with Diesel
@@ -371,6 +580,149 @@ impl CalendarEngine {
 
         Ok(())
     }
+}
+
+// Calendar API handlers
+pub async fn handle_event_create(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<CreateEventRequest>,
+) -> Result<Json<CalendarEvent>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.create_event(payload).await {
+        Ok(event) => Ok(Json(event)),
+        Err(e) => {
+            log::error!("Failed to create event: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_event_update(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+    Json(payload): Json<UpdateEventRequest>,
+) -> Result<Json<CalendarEvent>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.update_event(id, payload).await {
+        Ok(event) => Ok(Json(event)),
+        Err(e) => {
+            log::error!("Failed to update event: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_event_delete(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<Uuid>,
+) -> Result<StatusCode, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.delete_event(id).await {
+        Ok(_) => Ok(StatusCode::NO_CONTENT),
+        Err(e) => {
+            log::error!("Failed to delete event: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_events_list(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<EventListQuery>,
+) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.list_events(query.start_date, query.end_date).await {
+        Ok(events) => Ok(Json(events)),
+        Err(e) => {
+            log::error!("Failed to list events: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_events_search(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<EventSearchQuery>,
+) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.search_events(&query.query).await {
+        Ok(events) => Ok(Json(events)),
+        Err(e) => {
+            log::error!("Failed to search events: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_check_availability(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<CheckAvailabilityQuery>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.check_availability(query.start_time, query.end_time).await {
+        Ok(available) => Ok(Json(serde_json::json!({ "available": available }))),
+        Err(e) => {
+            log::error!("Failed to check availability: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_schedule_meeting(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<ScheduleMeetingRequest>,
+) -> Result<Json<Meeting>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.schedule_meeting(payload).await {
+        Ok(meeting) => Ok(Json(meeting)),
+        Err(e) => {
+            log::error!("Failed to schedule meeting: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+pub async fn handle_set_reminder(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<SetReminderRequest>,
+) -> Result<Json<CalendarReminder>, StatusCode> {
+    let calendar = state.calendar_engine.as_ref()
+        .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
+
+    match calendar.set_reminder(payload).await {
+        Ok(reminder) => Ok(Json(reminder)),
+        Err(e) => {
+            log::error!("Failed to set reminder: {}", e);
+            Err(StatusCode::INTERNAL_SERVER_ERROR)
+        }
+    }
+}
+
+// Configure calendar routes
+pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
+    Router::new()
+        .route("/api/calendar/events", post(handle_event_create))
+        .route("/api/calendar/events", get(handle_events_list))
+        .route("/api/calendar/events/:id", put(handle_event_update))
+        .route("/api/calendar/events/:id", delete(handle_event_delete))
+        .route("/api/calendar/events/search", get(handle_events_search))
+        .route("/api/calendar/availability", get(handle_check_availability))
+        .route("/api/calendar/meetings", post(handle_schedule_meeting))
+        .route("/api/calendar/reminders", post(handle_set_reminder))
 }
 
 #[derive(Deserialize)]
