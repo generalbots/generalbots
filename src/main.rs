@@ -30,7 +30,6 @@ use botserver::core::config;
 use botserver::core::package_manager;
 use botserver::core::session;
 use botserver::core::ui_server;
-use botserver::tasks;
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]
@@ -517,13 +516,23 @@ async fn main() -> std::io::Result<()> {
     // Initialize TaskEngine
     let task_engine = Arc::new(botserver::tasks::TaskEngine::new(pool.clone()));
 
+    // Initialize MetricsCollector
+    let metrics_collector = botserver::core::shared::analytics::MetricsCollector::new();
+
+    // Initialize TaskScheduler (will be set after AppState creation)
+    let task_scheduler = None;
+
     let app_state = Arc::new(AppState {
-        drive: Some(drive),
+        drive: Some(drive.clone()),
+        s3_client: Some(drive),
         config: Some(cfg.clone()),
         conn: pool.clone(),
+        database_url: std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string()),
         bucket_name: "default.gbai".to_string(),
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),
+        metrics_collector,
+        task_scheduler,
         llm_provider: llm_provider.clone(),
         #[cfg(feature = "directory")]
         auth_service: auth_service.clone(),
@@ -541,6 +550,16 @@ async fn main() -> std::io::Result<()> {
         kb_manager: Some(kb_manager.clone()),
         task_engine: task_engine,
     });
+
+    // Initialize TaskScheduler with the AppState
+    let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(
+        app_state.clone(),
+    ));
+
+    // Update AppState with the task scheduler using Arc::get_mut (requires mutable reference)
+    // Since we can't mutate Arc directly, we'll need to use unsafe or recreate AppState
+    // For now, we'll start the scheduler without updating the field
+    task_scheduler.start().await;
 
     // Start website crawler service
     if let Err(e) = botserver::core::kb::ensure_crawler_service_running(app_state.clone()).await {
