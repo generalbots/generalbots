@@ -13,7 +13,7 @@ pub struct WhatsAppAdapter {
     api_key: String,
     phone_number_id: String,
     webhook_verify_token: String,
-    business_account_id: String,
+    _business_account_id: String,
     api_version: String,
 }
 
@@ -49,7 +49,7 @@ impl WhatsAppAdapter {
             api_key,
             phone_number_id,
             webhook_verify_token,
-            business_account_id,
+            _business_account_id: business_account_id,
             api_version,
         }
     }
@@ -309,7 +309,9 @@ impl WhatsAppAdapter {
         Ok(())
     }
 
-    pub async fn get_business_profile(&self) -> Result<WhatsAppBusinessProfile, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_business_profile(
+        &self,
+    ) -> Result<WhatsAppBusinessProfile, Box<dyn std::error::Error + Send + Sync>> {
         let client = reqwest::Client::new();
 
         let url = format!(
@@ -320,7 +322,10 @@ impl WhatsAppAdapter {
         let response = client
             .get(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
-            .query(&[("fields", "about,address,description,email,profile_picture_url,websites,vertical")])
+            .query(&[(
+                "fields",
+                "about,address,description,email,profile_picture_url,websites,vertical",
+            )])
             .send()
             .await?;
 
@@ -328,7 +333,8 @@ impl WhatsAppAdapter {
             let profiles: serde_json::Value = response.json().await?;
             if let Some(data) = profiles["data"].as_array() {
                 if let Some(first_profile) = data.first() {
-                    let profile: WhatsAppBusinessProfile = serde_json::from_value(first_profile.clone())?;
+                    let profile: WhatsAppBusinessProfile =
+                        serde_json::from_value(first_profile.clone())?;
                     return Ok(profile);
                 }
             }
@@ -443,36 +449,48 @@ impl ChannelAdapter for WhatsAppAdapter {
                                 }
 
                                 // Extract message content based on type
-                                let message_type = first_message["type"].as_str().unwrap_or("unknown");
+                                let message_type =
+                                    first_message["type"].as_str().unwrap_or("unknown");
 
                                 return match message_type {
-                                    "text" => {
-                                        Ok(first_message["text"]["body"].as_str().map(|s| s.to_string()))
-                                    }
+                                    "text" => Ok(first_message["text"]["body"]
+                                        .as_str()
+                                        .map(|s| s.to_string())),
                                     "image" | "video" | "audio" | "document" => {
                                         let caption = first_message[message_type]["caption"]
                                             .as_str()
                                             .unwrap_or("");
-                                        Ok(Some(format!("Received {} with caption: {}", message_type, caption)))
+                                        Ok(Some(format!(
+                                            "Received {} with caption: {}",
+                                            message_type, caption
+                                        )))
                                     }
                                     "location" => {
-                                        let lat = first_message["location"]["latitude"].as_f64().unwrap_or(0.0);
-                                        let lon = first_message["location"]["longitude"].as_f64().unwrap_or(0.0);
+                                        let lat = first_message["location"]["latitude"]
+                                            .as_f64()
+                                            .unwrap_or(0.0);
+                                        let lon = first_message["location"]["longitude"]
+                                            .as_f64()
+                                            .unwrap_or(0.0);
                                         Ok(Some(format!("Location: {}, {}", lat, lon)))
                                     }
-                                    "button" => {
-                                        Ok(first_message["button"]["text"].as_str().map(|s| s.to_string()))
-                                    }
+                                    "button" => Ok(first_message["button"]["text"]
+                                        .as_str()
+                                        .map(|s| s.to_string())),
                                     "interactive" => {
-                                        if let Some(button_reply) = first_message["interactive"]["button_reply"].as_object() {
+                                        if let Some(button_reply) =
+                                            first_message["interactive"]["button_reply"].as_object()
+                                        {
                                             Ok(button_reply["id"].as_str().map(|s| s.to_string()))
-                                        } else if let Some(list_reply) = first_message["interactive"]["list_reply"].as_object() {
+                                        } else if let Some(list_reply) =
+                                            first_message["interactive"]["list_reply"].as_object()
+                                        {
                                             Ok(list_reply["id"].as_str().map(|s| s.to_string()))
                                         } else {
                                             Ok(None)
                                         }
                                     }
-                                    _ => Ok(None)
+                                    _ => Ok(None),
                                 };
                             }
                         }

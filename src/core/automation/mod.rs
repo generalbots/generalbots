@@ -20,6 +20,7 @@ pub struct AutomationService {
     state: Arc<AppState>,
 }
 impl AutomationService {
+    #[must_use]
     pub fn new(state: Arc<AppState>) -> Self {
         crate::llm::compact_prompt::start_compact_prompt_scheduler(Arc::clone(&state));
         Self { state }

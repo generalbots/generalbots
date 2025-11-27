@@ -53,8 +53,8 @@ pub struct FileSearchResult {
 
 /// Per-user drive vector DB manager
 pub struct UserDriveVectorDB {
-    user_id: Uuid,
-    bot_id: Uuid,
+    _user_id: Uuid,
+    _bot_id: Uuid,
     collection_name: String,
     db_path: PathBuf,
     #[cfg(feature = "vectordb")]
@@ -67,8 +67,8 @@ impl UserDriveVectorDB {
         let collection_name = format!("drive_{}_{}", bot_id, user_id);
 
         Self {
-            user_id,
-            bot_id,
+            _user_id: user_id,
+            _bot_id: bot_id,
             collection_name,
             db_path,
             #[cfg(feature = "vectordb")]
@@ -486,6 +486,7 @@ impl UserDriveVectorDB {
 }
 
 /// File content extractor for different file types
+#[derive(Debug)]
 pub struct FileContentExtractor;
 
 impl FileContentExtractor {

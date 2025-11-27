@@ -274,7 +274,7 @@ async fn fetch_openweathermap_forecast(
     if let Some(list) = data["list"].as_array() {
         for item in list {
             let dt_txt = item["dt_txt"].as_str().unwrap_or("");
-            let date = dt_txt.split(' ').next().unwrap_or("");
+            let forecast_date = dt_txt.split(' ').next().unwrap_or("");
             let temp = item["main"]["temp"].as_f64().unwrap_or(0.0) as f32;
             let description = item["weather"][0]["description"]
                 .as_str()
@@ -282,7 +282,7 @@ async fn fetch_openweathermap_forecast(
                 .to_string();
             let rain_chance = (item["pop"].as_f64().unwrap_or(0.0) * 100.0) as u32;
 
-            let entry = daily_data.entry(date.to_string()).or_insert((
+            let entry = daily_data.entry(forecast_date.to_string()).or_insert((
                 temp,
                 temp,
                 description.clone(),

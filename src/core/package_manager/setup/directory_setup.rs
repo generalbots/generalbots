@@ -450,7 +450,7 @@ impl DirectorySetup {
 /// Generate Zitadel configuration file
 pub async fn generate_directory_config(config_path: PathBuf, _db_path: PathBuf) -> Result<()> {
     let yaml_config = format!(
-        r#"
+        r"
 Log:
   Level: info
 
@@ -475,7 +475,7 @@ ExternalSecure: false
 
 TLS:
   Enabled: false
-"#
+"
     );
 
     fs::write(config_path, yaml_config).await?;

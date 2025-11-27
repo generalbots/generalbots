@@ -82,6 +82,7 @@ pub struct BasicCompiler {
     previous_schedules: HashSet<String>,
 }
 impl BasicCompiler {
+    #[must_use]
     pub fn new(state: Arc<AppState>, bot_id: uuid::Uuid) -> Self {
         Self {
             state,
@@ -95,30 +96,29 @@ impl BasicCompiler {
         output_dir: &str,
     ) -> Result<CompilationResult, Box<dyn Error + Send + Sync>> {
         let source_content = fs::read_to_string(source_path)
-            .map_err(|e| format!("Failed to read source file: {}", e))?;
+            .map_err(|e| format!("Failed to read source file: {e}"))?;
         let tool_def = self.parse_tool_definition(&source_content, source_path)?;
         let file_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
             .ok_or("Invalid file name")?;
-        let ast_path = format!("{}/{}.ast", output_dir, file_name);
+        let ast_path = format!("{output_dir}/{file_name}.ast");
         let ast_content = self.preprocess_basic(&source_content, source_path, self.bot_id)?;
-        fs::write(&ast_path, &ast_content)
-            .map_err(|e| format!("Failed to write AST file: {}", e))?;
-        let (mcp_json, tool_json) = if !tool_def.parameters.is_empty() {
+        fs::write(&ast_path, &ast_content).map_err(|e| format!("Failed to write AST file: {e}"))?;
+        let (mcp_json, tool_json) = if tool_def.parameters.is_empty() {
+            (None, None)
+        } else {
             let mcp = self.generate_mcp_tool(&tool_def)?;
             let openai = self.generate_openai_tool(&tool_def)?;
-            let mcp_path = format!("{}/{}.mcp.json", output_dir, file_name);
-            let tool_path = format!("{}/{}.tool.json", output_dir, file_name);
+            let mcp_path = format!("{output_dir}/{file_name}.mcp.json");
+            let tool_path = format!("{output_dir}/{file_name}.tool.json");
             let mcp_json_str = serde_json::to_string_pretty(&mcp)?;
             fs::write(&mcp_path, mcp_json_str)
-                .map_err(|e| format!("Failed to write MCP JSON: {}", e))?;
+                .map_err(|e| format!("Failed to write MCP JSON: {e}"))?;
             let tool_json_str = serde_json::to_string_pretty(&openai)?;
             fs::write(&tool_path, tool_json_str)
-                .map_err(|e| format!("Failed to write tool JSON: {}", e))?;
+                .map_err(|e| format!("Failed to write tool JSON: {e}"))?;
             (Some(mcp), Some(openai))
-        } else {
-            (None, None)
         };
         Ok(CompilationResult {
             mcp_tool: mcp_json,
@@ -172,7 +172,7 @@ impl BasicCompiler {
         }
         let parts: Vec<&str> = line.split_whitespace().collect();
         if parts.len() < 4 {
-            warn!("Invalid PARAM line: {}", line);
+            warn!("Invalid PARAM line: {line}");
             return Ok(None);
         }
         let name = parts[1].to_string();
@@ -314,7 +314,7 @@ impl BasicCompiler {
                 .state
                 .conn
                 .get()
-                .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                .map_err(|e| format!("Failed to get database connection: {e}"))?;
             use crate::shared::models::system_automations::dsl::*;
             diesel::delete(
                 system_automations
@@ -359,7 +359,7 @@ impl BasicCompiler {
                         .state
                         .conn
                         .get()
-                        .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                        .map_err(|e| format!("Failed to get database connection: {e}"))?;
                     if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
                         log::error!(
                             "Failed to schedule SET_SCHEDULE during preprocessing: {}",

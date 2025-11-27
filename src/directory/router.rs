@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use axum::{
     routing::{delete, get, post, put},
     Router,

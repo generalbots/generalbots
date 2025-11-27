@@ -61,8 +61,50 @@ impl BotOrchestrator {
     // ... (All existing methods unchanged) ...
 
     pub async fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // No-op: bot mounting is handled elsewhere
-        info!("mount_all_bots called (no-op)");
+        info!("Starting to mount all bots");
+
+        // Get all active bots from database
+        let bots = {
+            let mut conn = self.state.conn.get()?;
+            use crate::shared::models::schema::bots::dsl::*;
+            use diesel::prelude::*;
+
+            bots.filter(is_active.eq(true))
+                .select((id, name))
+                .load::<(Uuid, String)>(&mut conn)?
+        };
+
+        info!("Found {} active bots to mount", bots.len());
+
+        // Mount each bot
+        for (bot_id, bot_name) in bots {
+            info!("Mounting bot: {} ({})", bot_name, bot_id);
+
+            // Create DriveMonitor for this bot
+            let drive_monitor = Arc::new(DriveMonitor::new(
+                self.state.clone(),
+                format!("bot-{}", bot_id), // bucket name
+                bot_id,
+            ));
+
+            // Start monitoring
+            let monitor_clone = drive_monitor.clone();
+            tokio::spawn(async move {
+                if let Err(e) = monitor_clone.start_monitoring().await {
+                    error!("Failed to start monitoring for bot {}: {}", bot_id, e);
+                }
+            });
+
+            // Store in mounted_bots
+            self.mounted_bots
+                .lock()
+                .await
+                .insert(bot_id.to_string(), drive_monitor);
+
+            info!("Bot {} mounted successfully", bot_name);
+        }
+
+        info!("All bots mounted successfully");
         Ok(())
     }
 
@@ -265,6 +307,33 @@ impl BotOrchestrator {
         let mut session_manager = self.state.session_manager.lock().await;
         let history = session_manager.get_conversation_history(session_id, user_id)?;
         Ok(history)
+    }
+
+    pub async fn unmount_bot(
+        &self,
+        bot_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut mounted = self.mounted_bots.lock().await;
+
+        if let Some(monitor) = mounted.remove(bot_id) {
+            // Stop monitoring
+            monitor.stop_monitoring().await?;
+            info!("Bot {} unmounted successfully", bot_id);
+        } else {
+            warn!("Bot {} was not mounted", bot_id);
+        }
+
+        Ok(())
+    }
+
+    pub async fn get_mounted_bots(&self) -> Vec<String> {
+        let mounted = self.mounted_bots.lock().await;
+        mounted.keys().cloned().collect()
+    }
+
+    pub async fn is_bot_mounted(&self, bot_id: &str) -> bool {
+        let mounted = self.mounted_bots.lock().await;
+        mounted.contains_key(bot_id)
     }
 
     // ... (Remaining BotOrchestrator methods unchanged) ...
@@ -554,13 +623,83 @@ pub async fn create_bot_handler(
 
 /// Mount an existing bot (placeholder implementation)
 pub async fn mount_bot_handler(
-    Extension(_state): Extension<Arc<AppState>>,
+    Extension(state): Extension<Arc<AppState>>,
     Json(payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let bot_guid = payload.get("bot_guid").cloned().unwrap_or_default();
+
+    // Parse bot UUID
+    let bot_uuid = match Uuid::parse_str(&bot_guid) {
+        Ok(uuid) => uuid,
+        Err(e) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({ "error": format!("Invalid bot UUID: {}", e) })),
+            );
+        }
+    };
+
+    // Verify bot exists in database
+    let bot_name = {
+        let mut conn = match state.conn.get() {
+            Ok(conn) => conn,
+            Err(e) => {
+                return (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
+                );
+            }
+        };
+
+        use crate::shared::models::schema::bots::dsl::*;
+        use diesel::prelude::*;
+
+        match bots
+            .filter(id.eq(bot_uuid))
+            .select(name)
+            .first::<String>(&mut conn)
+        {
+            Ok(n) => n,
+            Err(_) => {
+                return (
+                    StatusCode::NOT_FOUND,
+                    Json(serde_json::json!({ "error": "Bot not found" })),
+                );
+            }
+        }
+    };
+
+    // Create DriveMonitor for this bot
+    let drive_monitor = Arc::new(DriveMonitor::new(
+        state.clone(),
+        format!("bot-{}", bot_uuid),
+        bot_uuid,
+    ));
+
+    // Start monitoring
+    let monitor_clone = drive_monitor.clone();
+    tokio::spawn(async move {
+        if let Err(e) = monitor_clone.start_monitoring().await {
+            error!("Failed to start monitoring for bot {}: {}", bot_uuid, e);
+        }
+    });
+
+    // Mount the bot
+    let orchestrator = BotOrchestrator::new(state.clone());
+    orchestrator
+        .mounted_bots
+        .lock()
+        .await
+        .insert(bot_guid.clone(), drive_monitor);
+
+    info!("Bot {} ({}) mounted successfully", bot_name, bot_guid);
+
     (
         StatusCode::OK,
-        Json(serde_json::json!({ "status": format!("bot '{}' mounted", bot_guid) })),
+        Json(serde_json::json!({
+            "status": format!("bot '{}' mounted", bot_guid),
+            "bot_name": bot_name
+        })),
     )
 }
 
