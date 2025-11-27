@@ -1,3 +1,5 @@
+.tmp*
+.tmp/*
 *.log
 target*
 .env
