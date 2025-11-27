@@ -88,11 +88,13 @@ struct EmbeddingResponse {
 #[derive(Debug, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
+    #[allow(dead_code)]
     index: usize,
 }
 
 #[derive(Debug, Deserialize)]
 struct EmbeddingUsage {
+    #[allow(dead_code)]
     prompt_tokens: usize,
     total_tokens: usize,
 }
@@ -434,7 +436,7 @@ mod tests {
     #[tokio::test]
     async fn test_text_cleaning_for_embedding() {
         let text = "This is a test\n\nWith multiple lines";
-        let generator = EmbeddingGenerator::new("http://localhost:8082".to_string());
+        let _generator = EmbeddingGenerator::new("http://localhost:8082".to_string());
 
         // This would test actual embedding generation if service is available
         // For unit tests, we just verify the structure is correct

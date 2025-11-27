@@ -10,6 +10,7 @@ use tokio::time::{interval, Duration};
 use uuid::Uuid;
 
 /// Service for periodically checking and recrawling websites
+#[derive(Debug)]
 pub struct WebsiteCrawlerService {
     db_pool: DbPool,
     kb_manager: Arc<KnowledgeBaseManager>,

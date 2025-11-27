@@ -96,6 +96,7 @@ pub struct WebPage {
 }
 
 /// Web crawler for website content
+#[derive(Debug)]
 pub struct WebCrawler {
     client: reqwest::Client,
     config: WebsiteCrawlConfig,
