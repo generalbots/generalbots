@@ -6,6 +6,8 @@ use serde::{Deserialize, Serialize};
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::models::BotResponse;
 
+#[derive(Debug)]
+#[derive(Debug)]
 pub struct InstagramAdapter {
     access_token: String,
     verify_token: String,
@@ -33,7 +35,37 @@ impl InstagramAdapter {
         }
     }
 
-    async fn send_instagram_message(
+    pub fn get_instagram_account_id(&self) -> &str {
+        &self.instagram_account_id
+    }
+
+    pub async fn get_instagram_business_account(&self) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+        
+        let url = format!(
+            "https://graph.facebook.com/{}/{}/instagram_business_account",
+            self.api_version, self.page_id
+        );
+
+        let response = client
+            .get(&url)
+            .query(&[("access_token", &self.access_token)])
+            .send()
+            .await?;
+
+        if response.status().is_success() {
+            let result: serde_json::Value = response.json().await?;
+            Ok(result["id"].as_str().unwrap_or(&self.instagram_account_id).to_string())
+        } else {
+            Ok(self.instagram_account_id.clone())
+        }
+    }
+
+    pub async fn post_to_instagram(&self, image_url: &str, caption: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        let client = reqwest::Client::new();
+        let account_id = if self.instagram_account_id.is_empty() {
+            self.get_instagram_business_account().await?
+        } else {
         &self,
         recipient_id: &str,
         message: &str,

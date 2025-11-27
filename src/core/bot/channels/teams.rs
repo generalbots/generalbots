@@ -6,6 +6,7 @@ use serde::{Deserialize, Serialize};
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::models::BotResponse;
 
+#[derive(Debug)]
 pub struct TeamsAdapter {
     app_id: String,
     app_password: String,
