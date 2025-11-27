@@ -1,12 +1,10 @@
 use async_trait::async_trait;
 use log::{error, info};
 use serde::{Deserialize, Serialize};
-// use std::collections::HashMap; // Unused import
 
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::models::BotResponse;
 
-#[derive(Debug)]
 #[derive(Debug)]
 pub struct InstagramAdapter {
     access_token: String,
@@ -39,9 +37,11 @@ impl InstagramAdapter {
         &self.instagram_account_id
     }
 
-    pub async fn get_instagram_business_account(&self) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn get_instagram_business_account(
+        &self,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let client = reqwest::Client::new();
-        
+
         let url = format!(
             "https://graph.facebook.com/{}/{}/instagram_business_account",
             self.api_version, self.page_id
@@ -55,17 +55,78 @@ impl InstagramAdapter {
 
         if response.status().is_success() {
             let result: serde_json::Value = response.json().await?;
-            Ok(result["id"].as_str().unwrap_or(&self.instagram_account_id).to_string())
+            Ok(result["id"]
+                .as_str()
+                .unwrap_or(&self.instagram_account_id)
+                .to_string())
         } else {
             Ok(self.instagram_account_id.clone())
         }
     }
 
-    pub async fn post_to_instagram(&self, image_url: &str, caption: &str) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn post_to_instagram(
+        &self,
+        image_url: &str,
+        caption: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let client = reqwest::Client::new();
         let account_id = if self.instagram_account_id.is_empty() {
             self.get_instagram_business_account().await?
         } else {
+            self.instagram_account_id.clone()
+        };
+
+        // Step 1: Create media container
+        let container_url = format!(
+            "https://graph.facebook.com/{}/{}/media",
+            self.api_version, account_id
+        );
+
+        let container_response = client
+            .post(&container_url)
+            .query(&[
+                ("access_token", &self.access_token),
+                ("image_url", &image_url.to_string()),
+                ("caption", &caption.to_string()),
+            ])
+            .send()
+            .await?;
+
+        if !container_response.status().is_success() {
+            let error_text = container_response.text().await?;
+            return Err(format!("Failed to create media container: {}", error_text).into());
+        }
+
+        let container_result: serde_json::Value = container_response.json().await?;
+        let creation_id = container_result["id"]
+            .as_str()
+            .ok_or("No creation_id in response")?;
+
+        // Step 2: Publish the media
+        let publish_url = format!(
+            "https://graph.facebook.com/{}/{}/media_publish",
+            self.api_version, account_id
+        );
+
+        let publish_response = client
+            .post(&publish_url)
+            .query(&[
+                ("access_token", &self.access_token),
+                ("creation_id", &creation_id.to_string()),
+            ])
+            .send()
+            .await?;
+
+        if publish_response.status().is_success() {
+            let publish_result: serde_json::Value = publish_response.json().await?;
+            Ok(publish_result["id"].as_str().unwrap_or("").to_string())
+        } else {
+            let error_text = publish_response.text().await?;
+            Err(format!("Failed to publish media: {}", error_text).into())
+        }
+    }
+
+    pub async fn send_instagram_message(
         &self,
         recipient_id: &str,
         message: &str,
@@ -265,8 +326,8 @@ impl ChannelAdapter for InstagramAdapter {
                                 }
                             }
                         } else if let Some(postback) = first_message["postback"].as_object() {
-                            if let Some(payload) = postback["payload"].as_str() {
-                                return Ok(Some(format!("Postback: {}", payload)));
+                            if let Some(payload_str) = postback["payload"].as_str() {
+                                return Ok(Some(format!("Postback: {}", payload_str)));
                             }
                         }
                     }
@@ -420,4 +481,3 @@ pub fn create_media_template(media_type: &str, attachment_id: &str) -> serde_jso
         }
     })
 }
-    

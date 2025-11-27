@@ -1,665 +1,427 @@
-//! Analytics & Reporting Module
-//!
-//! Provides comprehensive analytics, reporting, and insights generation capabilities.
-
+use crate::shared::state::AppState;
 use axum::{
-    extract::{Query, State},
+    extract::{Json, Query, State},
     http::StatusCode,
-    response::Json,
 };
-use chrono::{DateTime, Utc};
+use chrono::{DateTime, Duration, Utc};
+use diesel::prelude::*;
 use log::info;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
-use uuid::Uuid;
+use tokio::sync::RwLock;
 
-use crate::shared::state::AppState;
-
-// ===== Request/Response Structures =====
-
-#[derive(Debug, Deserialize)]
-pub struct ReportQuery {
-    pub report_type: String,
-    pub start_date: Option<String>,
-    pub end_date: Option<String>,
-    pub group_by: Option<String>,
-    pub filters: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ScheduleReportRequest {
-    pub report_type: String,
-    pub frequency: String,
-    pub recipients: Vec<String>,
-    pub format: String,
-    pub filters: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct MetricsCollectionRequest {
-    pub metric_type: String,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Metric {
+    pub name: String,
     pub value: f64,
-    pub labels: Option<serde_json::Value>,
-    pub timestamp: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct InsightsQuery {
-    pub data_source: String,
-    pub analysis_type: String,
-    pub time_range: String,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct TrendsQuery {
-    pub metric: String,
-    pub start_date: String,
-    pub end_date: String,
-    pub granularity: Option<String>,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct ExportRequest {
-    pub data_type: String,
-    pub format: String,
-    pub filters: Option<serde_json::Value>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct DashboardResponse {
-    pub overview: OverviewStats,
-    pub recent_activity: Vec<ActivityItem>,
-    pub charts: Vec<ChartData>,
-    pub alerts: Vec<AlertItem>,
-    pub updated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct OverviewStats {
-    pub total_users: u32,
-    pub active_users: u32,
-    pub total_files: u64,
-    pub total_storage_gb: f64,
-    pub total_messages: u64,
-    pub total_calls: u32,
-    pub growth_rate: f64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ActivityItem {
-    pub id: Uuid,
-    pub action: String,
-    pub user_id: Option<Uuid>,
-    pub user_name: String,
-    pub resource_type: String,
-    pub resource_id: String,
+    pub labels: HashMap<String, String>,
     pub timestamp: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct ChartData {
-    pub chart_type: String,
-    pub title: String,
-    pub labels: Vec<String>,
-    pub datasets: Vec<DatasetInfo>,
+#[derive(Debug, Clone)]
+pub struct MetricsCollector {
+    metrics: Arc<RwLock<Vec<Metric>>>,
+    aggregates: Arc<RwLock<HashMap<String, f64>>>,
 }
 
-#[derive(Debug, Serialize)]
-pub struct DatasetInfo {
+impl MetricsCollector {
+    pub fn new() -> Self {
+        Self {
+            metrics: Arc::new(RwLock::new(Vec::new())),
+            aggregates: Arc::new(RwLock::new(HashMap::new())),
+        }
+    }
+
+    pub async fn record(&self, name: String, value: f64, labels: HashMap<String, String>) {
+        let metric = Metric {
+            name: name.clone(),
+            value,
+            labels,
+            timestamp: Utc::now(),
+        };
+
+        let mut metrics = self.metrics.write().await;
+        metrics.push(metric);
+
+        let mut aggregates = self.aggregates.write().await;
+        let entry = aggregates.entry(name).or_insert(0.0);
+        *entry += value;
+
+        if metrics.len() > 10000 {
+            let cutoff = Utc::now() - Duration::hours(1);
+            metrics.retain(|m| m.timestamp > cutoff);
+        }
+    }
+
+    pub async fn increment(&self, name: String, labels: HashMap<String, String>) {
+        self.record(name, 1.0, labels).await;
+    }
+
+    pub async fn gauge(&self, name: String, value: f64, labels: HashMap<String, String>) {
+        self.record(name, value, labels).await;
+    }
+
+    pub async fn get_metrics(&self) -> Vec<Metric> {
+        self.metrics.read().await.clone()
+    }
+
+    pub async fn get_aggregate(&self, name: &str) -> Option<f64> {
+        self.aggregates.read().await.get(name).copied()
+    }
+
+    pub async fn get_rate(&self, name: &str, window: Duration) -> f64 {
+        let cutoff = Utc::now() - window;
+        let metrics = self.metrics.read().await;
+        let count = metrics
+            .iter()
+            .filter(|m| m.name == name && m.timestamp > cutoff)
+            .count();
+        count as f64 / window.num_seconds() as f64
+    }
+
+    pub async fn get_percentile(&self, name: &str, percentile: f64) -> Option<f64> {
+        let metrics = self.metrics.read().await;
+        let mut values: Vec<f64> = metrics
+            .iter()
+            .filter(|m| m.name == name)
+            .map(|m| m.value)
+            .collect();
+
+        if values.is_empty() {
+            return None;
+        }
+
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        let index = ((percentile / 100.0) * values.len() as f64) as usize;
+        values.get(index.min(values.len() - 1)).copied()
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DashboardData {
+    pub total_users: i64,
+    pub active_users: i64,
+    pub total_messages: i64,
+    pub total_sessions: i64,
+    pub storage_used_gb: f64,
+    pub api_calls_per_minute: f64,
+    pub error_rate: f64,
+    pub response_time_p95: f64,
+    pub charts: Vec<ChartData>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChartData {
+    pub title: String,
+    pub chart_type: String,
+    pub labels: Vec<String>,
+    pub datasets: Vec<DataSet>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct DataSet {
     pub label: String,
     pub data: Vec<f64>,
     pub color: String,
 }
 
-#[derive(Debug, Serialize)]
-pub struct AlertItem {
-    pub id: Uuid,
-    pub severity: String,
-    pub title: String,
-    pub message: String,
-    pub timestamp: DateTime<Utc>,
+pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
+    let mut conn = state.conn.get().unwrap();
+
+    // Direct SQL queries instead of using schema
+    #[derive(QueryableByName)]
+    struct CountResult {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        count: i64,
+    }
+
+    let total_users: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM users")
+        .get_result::<CountResult>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
+
+    let _active_cutoff = Utc::now() - Duration::days(7);
+    let active_users: i64 = 50; // Placeholder for now, would query DB in production
+
+    let total_sessions: i64 = 1000; // Placeholder for now
+
+    let storage_bytes: i64 = 1024 * 1024 * 1024; // 1GB placeholder
+
+    let storage_gb = storage_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
+
+    let mut labels = HashMap::new();
+    labels.insert("source".to_string(), "system".to_string());
+
+    collector
+        .gauge(
+            "users.total".to_string(),
+            total_users as f64,
+            labels.clone(),
+        )
+        .await;
+    collector
+        .gauge(
+            "users.active".to_string(),
+            active_users as f64,
+            labels.clone(),
+        )
+        .await;
+    collector
+        .gauge(
+            "sessions.total".to_string(),
+            total_sessions as f64,
+            labels.clone(),
+        )
+        .await;
+    collector
+        .gauge("storage.gb".to_string(), storage_gb, labels.clone())
+        .await;
 }
 
-#[derive(Debug, Serialize)]
-pub struct ReportResponse {
-    pub id: Uuid,
-    pub report_type: String,
-    pub generated_at: DateTime<Utc>,
-    pub data: serde_json::Value,
-    pub summary: Option<String>,
-    pub download_url: Option<String>,
+pub async fn track_api_call(
+    collector: &MetricsCollector,
+    endpoint: String,
+    duration_ms: f64,
+    status: u16,
+) {
+    let mut labels = HashMap::new();
+    labels.insert("endpoint".to_string(), endpoint);
+    labels.insert("status".to_string(), status.to_string());
+
+    collector
+        .increment("api.calls".to_string(), labels.clone())
+        .await;
+    collector
+        .record("api.duration_ms".to_string(), duration_ms, labels.clone())
+        .await;
+
+    if status >= 500 {
+        collector.increment("api.errors".to_string(), labels).await;
+    }
 }
 
-#[derive(Debug, Serialize)]
-pub struct ScheduledReportResponse {
-    pub id: Uuid,
-    pub report_type: String,
-    pub frequency: String,
-    pub recipients: Vec<String>,
-    pub format: String,
-    pub next_run: DateTime<Utc>,
-    pub last_run: Option<DateTime<Utc>>,
-    pub status: String,
+pub async fn track_message(collector: &MetricsCollector, channel: String, user_id: String) {
+    let mut labels = HashMap::new();
+    labels.insert("channel".to_string(), channel);
+    labels.insert("user_id".to_string(), user_id);
+
+    collector
+        .increment("messages.total".to_string(), labels)
+        .await;
 }
 
-#[derive(Debug, Serialize)]
-pub struct MetricResponse {
-    pub metric_type: String,
-    pub value: f64,
-    pub timestamp: DateTime<Utc>,
-    pub labels: serde_json::Value,
+pub async fn track_file_operation(
+    collector: &MetricsCollector,
+    operation: String,
+    size_bytes: i64,
+    success: bool,
+) {
+    let mut labels = HashMap::new();
+    labels.insert("operation".to_string(), operation);
+    labels.insert("success".to_string(), success.to_string());
+
+    collector
+        .increment("files.operations".to_string(), labels.clone())
+        .await;
+
+    if success {
+        collector
+            .record("files.bytes".to_string(), size_bytes as f64, labels)
+            .await;
+    }
 }
 
-#[derive(Debug, Serialize)]
-pub struct InsightsResponse {
-    pub insights: Vec<Insight>,
-    pub confidence_score: f64,
-    pub generated_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct Insight {
-    pub title: String,
-    pub description: String,
-    pub insight_type: String,
-    pub severity: String,
-    pub data: serde_json::Value,
-    pub recommendations: Vec<String>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct TrendsResponse {
-    pub metric: String,
-    pub trend_direction: String,
-    pub change_percentage: f64,
-    pub data_points: Vec<TrendDataPoint>,
-    pub forecast: Option<Vec<TrendDataPoint>>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct TrendDataPoint {
-    pub timestamp: DateTime<Utc>,
-    pub value: f64,
-}
-
-#[derive(Debug, Serialize)]
-pub struct ExportResponse {
-    pub export_id: Uuid,
-    pub format: String,
-    pub size_bytes: u64,
-    pub download_url: String,
-    pub expires_at: DateTime<Utc>,
-}
-
-#[derive(Debug, Serialize)]
-pub struct SuccessResponse {
-    pub success: bool,
-    pub message: Option<String>,
-}
-
-// ===== API Handlers =====
-
-/// GET /analytics/dashboard - Get analytics dashboard
 pub async fn get_dashboard(
     State(state): State<Arc<AppState>>,
-) -> Result<Json<DashboardResponse>, (StatusCode, Json<serde_json::Value>)> {
+) -> Result<Json<DashboardData>, StatusCode> {
+    let collector = &state.metrics_collector;
+
+    collect_system_metrics(collector, &state).await;
+
+    let total_users = collector.get_aggregate("users.total").await.unwrap_or(0.0) as i64;
+    let active_users = collector.get_aggregate("users.active").await.unwrap_or(0.0) as i64;
+    let total_messages = collector
+        .get_aggregate("messages.total")
+        .await
+        .unwrap_or(0.0) as i64;
+    let total_sessions = collector
+        .get_aggregate("sessions.total")
+        .await
+        .unwrap_or(0.0) as i64;
+    let storage_used_gb = collector.get_aggregate("storage.gb").await.unwrap_or(0.0);
+
+    let api_calls_per_minute = collector.get_rate("api.calls", Duration::minutes(1)).await * 60.0;
+    let error_rate = collector.get_rate("api.errors", Duration::minutes(5)).await
+        / collector
+            .get_rate("api.calls", Duration::minutes(5))
+            .await
+            .max(1.0);
+    let response_time_p95 = collector
+        .get_percentile("api.duration_ms", 95.0)
+        .await
+        .unwrap_or(0.0);
+
+    let mut charts = Vec::new();
+
+    // API calls chart
     let now = Utc::now();
+    let mut api_labels = Vec::new();
+    let mut api_data = Vec::new();
 
-    // Get real metrics from database
-    let conn = &mut state.conn.get().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
-        )
-    })?;
+    for i in (0..24).rev() {
+        let hour = now - Duration::hours(i);
+        api_labels.push(hour.format("%H:00").to_string());
+        let rate = collector.get_rate("api.calls", Duration::hours(1)).await;
+        api_data.push(rate * 3600.0);
+    }
 
-    // Count active sessions
-    let mut session_manager = state.session_manager.lock().await;
-    let active_users = session_manager.active_count() as f64;
-    let total_sessions = session_manager.total_count() as f64;
-    drop(session_manager);
-
-    // Get storage usage if drive is enabled
-    let storage_used = if let Some(_drive) = &state.drive {
-        // Get bucket stats - simplified for now
-        234.5 // Placeholder in GB
-    } else {
-        0.0
-    };
-
-    let dashboard = DashboardResponse {
-        overview: OverviewStats {
-            total_users: 1250,
-            active_users: 892,
-            total_files: 45678,
-            total_storage_gb: 234.5,
-            total_messages: 123456,
-            total_calls: 3456,
-            growth_rate: 12.5,
-        },
-        recent_activity: vec![
-            ActivityItem {
-                id: Uuid::new_v4(),
-                action: "file_upload".to_string(),
-                user_id: Some(Uuid::new_v4()),
-                user_name: "John Doe".to_string(),
-                resource_type: "file".to_string(),
-                resource_id: "document.pdf".to_string(),
-                timestamp: now,
-            },
-            ActivityItem {
-                id: Uuid::new_v4(),
-                action: "user_login".to_string(),
-                user_id: Some(Uuid::new_v4()),
-                user_name: "Jane Smith".to_string(),
-                resource_type: "session".to_string(),
-                resource_id: "session-123".to_string(),
-                timestamp: now,
-            },
-        ],
-        charts: vec![
-            ChartData {
-                chart_type: "line".to_string(),
-                title: "Daily Active Users".to_string(),
-                labels: vec![
-                    "Mon".to_string(),
-                    "Tue".to_string(),
-                    "Wed".to_string(),
-                    "Thu".to_string(),
-                    "Fri".to_string(),
-                ],
-                datasets: vec![DatasetInfo {
-                    label: "Active Users".to_string(),
-                    data: vec![850.0, 920.0, 880.0, 950.0, 892.0],
-                    color: "#3b82f6".to_string(),
-                }],
-            },
-            ChartData {
-                chart_type: "bar".to_string(),
-                title: "Storage Usage".to_string(),
-                labels: vec![
-                    "Files".to_string(),
-                    "Media".to_string(),
-                    "Backups".to_string(),
-                ],
-                datasets: vec![DatasetInfo {
-                    label: "GB".to_string(),
-                    data: vec![120.5, 80.3, 33.7],
-                    color: "#10b981".to_string(),
-                }],
-            },
-        ],
-        alerts: vec![AlertItem {
-            id: Uuid::new_v4(),
-            severity: "warning".to_string(),
-            title: "Storage capacity".to_string(),
-            message: "Storage usage is at 78%".to_string(),
-            timestamp: now,
+    charts.push(ChartData {
+        title: "API Calls (24h)".to_string(),
+        chart_type: "line".to_string(),
+        labels: api_labels,
+        datasets: vec![DataSet {
+            label: "Calls/hour".to_string(),
+            data: api_data,
+            color: "#3b82f6".to_string(),
         }],
-        updated_at: now,
+    });
+
+    // User activity chart
+    let mut activity_labels = Vec::new();
+    let mut activity_data = Vec::new();
+
+    for i in (0..7).rev() {
+        let day = now - Duration::days(i);
+        activity_labels.push(day.format("%a").to_string());
+        activity_data.push((active_users as f64 / 7.0) * (1.0 + (i as f64 * 0.1)));
+    }
+
+    charts.push(ChartData {
+        title: "User Activity (7 days)".to_string(),
+        chart_type: "bar".to_string(),
+        labels: activity_labels,
+        datasets: vec![DataSet {
+            label: "Active Users".to_string(),
+            data: activity_data,
+            color: "#10b981".to_string(),
+        }],
+    });
+
+    let dashboard = DashboardData {
+        total_users,
+        active_users,
+        total_messages,
+        total_sessions,
+        storage_used_gb,
+        api_calls_per_minute,
+        error_rate,
+        response_time_p95,
+        charts,
     };
 
     Ok(Json(dashboard))
 }
 
-/// POST /analytics/reports/generate - Generate analytics report
-pub async fn generate_report(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<ReportQuery>,
-) -> Result<Json<ReportResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let report_id = Uuid::new_v4();
-
-    // Collect real data from database
-    let conn = &mut state.conn.get().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
-        )
-    })?;
-
-    // Get task statistics if enabled
-    #[cfg(feature = "tasks")]
-    let task_stats = state
-        .task_engine
-        .get_statistics(None)
-        .await
-        .unwrap_or_default();
-    let now = Utc::now();
-
-    let report_data = match params.report_type.as_str() {
-        "user_activity" => {
-            serde_json::json!({
-                "total_users": 1250,
-                "active_users": 892,
-                "new_users_this_month": 45,
-                "user_engagement_score": 7.8,
-                "top_users": [
-                    {"name": "John Doe", "activity_score": 95},
-                    {"name": "Jane Smith", "activity_score": 88},
-                ],
-            })
-        }
-        "storage" => {
-            serde_json::json!({
-                "total_storage_gb": 234.5,
-                "used_storage_gb": 182.3,
-                "available_storage_gb": 52.2,
-                "growth_rate_monthly": 8.5,
-                "largest_consumers": [
-                    {"user": "John Doe", "storage_gb": 15.2},
-                    {"user": "Jane Smith", "storage_gb": 12.8},
-                ],
-            })
-        }
-        "communication" => {
-            serde_json::json!({
-                "total_messages": 123456,
-                "total_calls": 3456,
-                "average_call_duration_minutes": 23.5,
-                "most_active_channels": [
-                    {"name": "General", "messages": 45678},
-                    {"name": "Development", "messages": 23456},
-                ],
-            })
-        }
-        _ => {
-            serde_json::json!({
-                "message": "Report data not available for this type"
-            })
-        }
-    };
-
-    let report = ReportResponse {
-        id: report_id,
-        report_type: params.report_type,
-        generated_at: now,
-        data: report_data,
-        summary: Some("Report generated successfully".to_string()),
-        download_url: Some(format!("/analytics/reports/{}/download", report_id)),
-    };
-
-    Ok(Json(report))
+#[derive(Debug, Deserialize)]
+pub struct MetricQuery {
+    pub name: String,
+    pub window_minutes: Option<i64>,
+    pub aggregation: Option<String>,
 }
 
-/// POST /analytics/reports/schedule - Schedule recurring report
-pub async fn schedule_report(
+pub async fn get_metric(
     State(state): State<Arc<AppState>>,
-    Json(req): Json<ScheduleReportRequest>,
-) -> Result<Json<ScheduledReportResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let schedule_id = Uuid::new_v4();
+    Query(query): Query<MetricQuery>,
+) -> Json<serde_json::Value> {
+    let collector = &state.metrics_collector;
 
-    // Store schedule in database
-    let conn = &mut state.conn.get().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
-        )
-    })?;
-
-    // TODO: Store schedule configuration in database for cron job processing
-    info!(
-        "Scheduled report {} with frequency: {}",
-        schedule_id, req.frequency
-    );
-    let now = Utc::now();
-
-    let next_run = match req.frequency.as_str() {
-        "daily" => now.checked_add_signed(chrono::Duration::days(1)).unwrap(),
-        "weekly" => now.checked_add_signed(chrono::Duration::weeks(1)).unwrap(),
-        "monthly" => now.checked_add_signed(chrono::Duration::days(30)).unwrap(),
-        _ => now.checked_add_signed(chrono::Duration::days(1)).unwrap(),
+    let result = match query.aggregation.as_deref() {
+        Some("sum") => collector.get_aggregate(&query.name).await,
+        Some("p50") => collector.get_percentile(&query.name, 50.0).await,
+        Some("p95") => collector.get_percentile(&query.name, 95.0).await,
+        Some("p99") => collector.get_percentile(&query.name, 99.0).await,
+        Some("rate") => {
+            let window = Duration::minutes(query.window_minutes.unwrap_or(1));
+            Some(collector.get_rate(&query.name, window).await)
+        }
+        _ => collector.get_aggregate(&query.name).await,
     };
 
-    let scheduled = ScheduledReportResponse {
-        id: schedule_id,
-        report_type: req.report_type,
-        frequency: req.frequency,
-        recipients: req.recipients,
-        format: req.format,
-        next_run,
-        last_run: None,
-        status: "active".to_string(),
-    };
-
-    Ok(Json(scheduled))
+    Json(match result {
+        Some(value) => serde_json::json!({
+            "metric": query.name,
+            "value": value,
+            "timestamp": Utc::now(),
+        }),
+        None => serde_json::json!({
+            "error": "Metric not found",
+            "metric": query.name,
+        }),
+    })
 }
 
-/// POST /analytics/metrics/collect - Collect metric data
-pub async fn collect_metrics(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<MetricsCollectionRequest>,
-) -> Result<Json<MetricResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let timestamp = req.timestamp.unwrap_or_else(Utc::now);
+pub async fn export_metrics(State(state): State<Arc<AppState>>) -> (StatusCode, String) {
+    let collector = &state.metrics_collector;
+    let metrics = collector.get_metrics().await;
 
-    // Store metrics in database or cache
-    #[cfg(feature = "redis-cache")]
-    if let Some(cache) = &state.cache {
-        let key = format!("metrics:{}:{}", req.metric_type, timestamp.timestamp());
-        let value = serde_json::to_string(&req.value).unwrap_or_default();
+    let mut prometheus_format = String::new();
+    let mut seen_metrics = HashMap::new();
 
-        // Store in Redis cache with 1 hour TTL
-        if let Ok(mut conn) = cache.get_connection() {
-            let _: Result<(), _> = redis::cmd("SETEX")
-                .arg(&key)
-                .arg(3600)
-                .arg(&value)
-                .query(&mut conn);
+    for metric in metrics {
+        if !seen_metrics.contains_key(&metric.name) {
+            prometheus_format.push_str(&format!("# TYPE {} gauge\n", metric.name));
+            seen_metrics.insert(metric.name.clone(), true);
+        }
+
+        let labels = metric
+            .labels
+            .iter()
+            .map(|(k, v)| format!("{}=\"{}\"", k, v))
+            .collect::<Vec<_>>()
+            .join(",");
+
+        if labels.is_empty() {
+            prometheus_format.push_str(&format!(
+                "{} {} {}\n",
+                metric.name,
+                metric.value,
+                metric.timestamp.timestamp_millis()
+            ));
+        } else {
+            prometheus_format.push_str(&format!(
+                "{}{{{}}} {} {}\n",
+                metric.name,
+                labels,
+                metric.value,
+                metric.timestamp.timestamp_millis()
+            ));
         }
     }
 
-    info!("Collected {} metric: {:?}", req.metric_type, req.value);
-
-    let metric = MetricResponse {
-        metric_type: req.metric_type,
-        value: req.value,
-        labels: req.labels.unwrap_or_else(|| serde_json::json!({})),
-        timestamp,
-    };
-
-    Ok(Json(metric))
+    (StatusCode::OK, prometheus_format)
 }
 
-/// POST /analytics/insights/generate - Generate insights from data
-pub async fn generate_insights(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<InsightsQuery>,
-) -> Result<Json<InsightsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let now = Utc::now();
+pub fn configure() -> axum::routing::Router<Arc<AppState>> {
+    use axum::routing::{get, Router};
 
-    // Analyze real data patterns
-    let session_manager = state.session_manager.lock().await;
-    let active_sessions = session_manager.active_count();
-    drop(session_manager);
-
-    let insights = match params.analysis_type.as_str() {
-        "performance" => {
-            vec![
-                Insight {
-                    title: "High User Engagement".to_string(),
-                    description: "User engagement has increased by 15% this week".to_string(),
-                    insight_type: "positive".to_string(),
-                    severity: "info".to_string(),
-                    data: serde_json::json!({
-                        "current_engagement": 7.8,
-                        "previous_engagement": 6.8,
-                        "change_percentage": 15.0
-                    }),
-                    recommendations: vec![
-                        "Continue current engagement strategies".to_string(),
-                        "Consider expanding successful features".to_string(),
-                    ],
-                },
-                Insight {
-                    title: "Storage Optimization Needed".to_string(),
-                    description: "Storage usage growing faster than expected".to_string(),
-                    insight_type: "warning".to_string(),
-                    severity: "medium".to_string(),
-                    data: serde_json::json!({
-                        "current_usage_gb": 182.3,
-                        "projected_usage_gb": 250.0,
-                        "days_until_full": 45
-                    }),
-                    recommendations: vec![
-                        "Review and archive old files".to_string(),
-                        "Implement storage quotas per user".to_string(),
-                        "Consider upgrading storage capacity".to_string(),
-                    ],
-                },
-            ]
-        }
-        "usage" => {
-            vec![Insight {
-                title: "Peak Usage Times".to_string(),
-                description: "Highest activity between 9 AM - 11 AM".to_string(),
-                insight_type: "informational".to_string(),
-                severity: "info".to_string(),
-                data: serde_json::json!({
-                    "peak_hours": ["09:00", "10:00", "11:00"],
-                    "average_users": 750
-                }),
-                recommendations: vec![
-                    "Schedule maintenance outside peak hours".to_string(),
-                    "Ensure adequate resources during peak times".to_string(),
-                ],
-            }]
-        }
-        "security" => {
-            vec![Insight {
-                title: "Failed Login Attempts".to_string(),
-                description: "Unusual number of failed login attempts detected".to_string(),
-                insight_type: "security".to_string(),
-                severity: "high".to_string(),
-                data: serde_json::json!({
-                    "failed_attempts": 127,
-                    "affected_accounts": 15,
-                    "suspicious_ips": ["192.168.1.1", "10.0.0.5"]
-                }),
-                recommendations: vec![
-                    "Enable two-factor authentication".to_string(),
-                    "Review and block suspicious IP addresses".to_string(),
-                    "Notify affected users".to_string(),
-                ],
-            }]
-        }
-        _ => vec![],
-    };
-
-    let response = InsightsResponse {
-        insights,
-        confidence_score: 0.85,
-        generated_at: now,
-    };
-
-    Ok(Json(response))
+    Router::new()
+        .route("/api/analytics/dashboard", get(get_dashboard))
+        .route("/api/analytics/metric", get(get_metric))
+        .route("/api/metrics", get(export_metrics))
 }
 
-/// POST /analytics/trends/analyze - Analyze trends
-pub async fn analyze_trends(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<TrendsQuery>,
-) -> Result<Json<TrendsResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let start_date = DateTime::parse_from_rfc3339(&params.start_date)
-        .unwrap_or_else(|_| {
-            Utc::now()
-                .checked_sub_signed(chrono::Duration::days(30))
-                .unwrap()
-                .into()
-        })
-        .with_timezone(&Utc);
+pub fn spawn_metrics_collector(state: Arc<AppState>) {
+    tokio::spawn(async move {
+        let mut interval = tokio::time::interval(std::time::Duration::from_secs(60));
 
-    let end_date = DateTime::parse_from_rfc3339(&params.end_date)
-        .unwrap_or_else(|_| Utc::now().into())
-        .with_timezone(&Utc);
+        loop {
+            interval.tick().await;
 
-    let data_points = vec![
-        TrendDataPoint {
-            timestamp: start_date,
-            value: 850.0,
-        },
-        TrendDataPoint {
-            timestamp: start_date
-                .checked_add_signed(chrono::Duration::days(5))
-                .unwrap(),
-            value: 920.0,
-        },
-        TrendDataPoint {
-            timestamp: start_date
-                .checked_add_signed(chrono::Duration::days(10))
-                .unwrap(),
-            value: 880.0,
-        },
-        TrendDataPoint {
-            timestamp: start_date
-                .checked_add_signed(chrono::Duration::days(15))
-                .unwrap(),
-            value: 950.0,
-        },
-        TrendDataPoint {
-            timestamp: end_date,
-            value: 892.0,
-        },
-    ];
+            let collector = &state.metrics_collector;
+            collect_system_metrics(collector, &state).await;
 
-    let forecast = vec![
-        TrendDataPoint {
-            timestamp: end_date
-                .checked_add_signed(chrono::Duration::days(5))
-                .unwrap(),
-            value: 910.0,
-        },
-        TrendDataPoint {
-            timestamp: end_date
-                .checked_add_signed(chrono::Duration::days(10))
-                .unwrap(),
-            value: 935.0,
-        },
-    ];
-
-    let trends = TrendsResponse {
-        metric: params.metric,
-        trend_direction: "upward".to_string(),
-        change_percentage: 4.9,
-        data_points,
-        forecast: Some(forecast),
-    };
-
-    Ok(Json(trends))
-}
-
-/// POST /analytics/export - Export analytics data
-pub async fn export_analytics(
-    State(state): State<Arc<AppState>>,
-    Json(req): Json<ExportRequest>,
-) -> Result<Json<ExportResponse>, (StatusCode, Json<serde_json::Value>)> {
-    let export_id = Uuid::new_v4();
-
-    // Collect data to export
-    let _conn = &mut state.conn.get().map_err(|e| {
-        (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": format!("Database error: {}", e) })),
-        )
-    })?;
-
-    // Generate export file in requested format
-    let file_path = format!("/tmp/analytics_export_{}.{}", export_id, req.format);
-
-    // Save to S3 if drive is enabled
-    if let Some(_drive) = &state.drive {
-        let export_key = format!("exports/analytics_{}.{}", export_id, req.format);
-        // TODO: Upload generated file to S3
-        info!("Exporting analytics data to S3: {}", export_key);
-    }
-    let now = Utc::now();
-    let expires_at = now.checked_add_signed(chrono::Duration::hours(24)).unwrap();
-
-    let export = ExportResponse {
-        export_id,
-        format: req.format,
-        size_bytes: 1024 * 1024 * 5,
-        download_url: format!("/analytics/exports/{}/download", export_id),
-        expires_at,
-    };
-
-    Ok(Json(export))
+            info!("System metrics collected");
+        }
+    });
 }
