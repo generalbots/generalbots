@@ -255,10 +255,10 @@ impl BootstrapManager {
     }
 
     async fn get_drive_client(config: &AppConfig) -> Client {
-        let endpoint = if !config.drive.server.ends_with('/') {
-            format!("{}/", config.drive.server)
-        } else {
+        let endpoint = if config.drive.server.ends_with('/') {
             config.drive.server.clone()
+        } else {
+            format!("{}/", config.drive.server)
         };
         let base_config = aws_config::defaults(BehaviorVersion::latest())
             .endpoint_url(endpoint)
@@ -351,10 +351,10 @@ impl BootstrapManager {
         prefix: &'a str,
     ) -> std::pin::Pin<Box<dyn std::future::Future<Output = Result<()>> + 'a>> {
         Box::pin(async move {
-            let _normalized_path = if !local_path.to_string_lossy().ends_with('/') {
-                format!("{}/", local_path.to_string_lossy())
-            } else {
+            let _normalized_path = if local_path.to_string_lossy().ends_with('/') {
                 local_path.to_string_lossy().to_string()
+            } else {
+                format!("{}/", local_path.display())
             };
             let mut read_dir = tokio::fs::read_dir(local_path).await?;
             while let Some(entry) = read_dir.next_entry().await? {

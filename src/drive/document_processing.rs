@@ -278,7 +278,7 @@ pub async fn convert_document(
                 serde_json::to_string_pretty(&result).unwrap_or_else(|_| "[]".to_string())
             }
         }
-        ("html", "txt") | ("html", "text") => {
+        ("html", "txt" | "text") => {
             source_content
                 .replace("<br>", "\n")
                 .replace("<p>", "\n")

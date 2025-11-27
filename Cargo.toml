@@ -2,6 +2,8 @@
 name = "botserver"
 version = "6.1.0"
 edition = "2021"
+keywords = ["chatbot", "ai", "llm", "automation", "bot-framework"]
+categories = ["web-programming", "api-bindings", "development-tools"]
 authors = [
     "Pragmatismo.com.br ",
     "General Bots Community ",

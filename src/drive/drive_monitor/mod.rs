@@ -3,7 +3,7 @@ use crate::config::ConfigManager;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
-use log::info;
+use log::{error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ use tokio::time::{interval, Duration};
 pub struct FileState {
     pub etag: String,
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct DriveMonitor {
     state: Arc<AppState>,
     bucket_name: String,
@@ -38,6 +38,51 @@ impl DriveMonitor {
             work_root,
             is_processing: Arc::new(AtomicBool::new(false)),
         }
+    }
+
+    pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Starting DriveMonitor for bot {}", self.bot_id);
+
+        // Set processing flag
+        self.is_processing
+            .store(true, std::sync::atomic::Ordering::SeqCst);
+
+        // Initialize file states from storage
+        self.check_for_changes().await?;
+
+        // Start periodic sync
+        let self_clone = Arc::new(self.clone());
+        tokio::spawn(async move {
+            let mut interval = tokio::time::interval(Duration::from_secs(30));
+
+            while self_clone
+                .is_processing
+                .load(std::sync::atomic::Ordering::SeqCst)
+            {
+                interval.tick().await;
+
+                if let Err(e) = self_clone.check_for_changes().await {
+                    error!("Error during sync for bot {}: {}", self_clone.bot_id, e);
+                }
+            }
+        });
+
+        info!("DriveMonitor started for bot {}", self.bot_id);
+        Ok(())
+    }
+
+    pub async fn stop_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Stopping DriveMonitor for bot {}", self.bot_id);
+
+        // Clear processing flag
+        self.is_processing
+            .store(false, std::sync::atomic::Ordering::SeqCst);
+
+        // Clear file states
+        self.file_states.write().await.clear();
+
+        info!("DriveMonitor stopped for bot {}", self.bot_id);
+        Ok(())
     }
     pub fn spawn(self: Arc<Self>) -> tokio::task::JoinHandle<()> {
         tokio::spawn(async move {
@@ -468,7 +513,6 @@ impl DriveMonitor {
                     for file_path in files_to_process.drain(..) {
                         if let Err(e) = self.download_gbkb_file(client, &file_path).await {
                             log::error!("Failed to download .gbkb file {}: {}", file_path, e);
-                            continue;
                         }
                     }
 

@@ -42,6 +42,7 @@ pub struct ScriptService {
     pub engine: Engine,
 }
 impl ScriptService {
+    #[must_use]
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
         let mut engine = Engine::new();
         engine.set_allow_anonymous_fn(true);
@@ -125,9 +126,8 @@ impl ScriptService {
                     result.push(';');
                     result.push('\n');
                     continue;
-                } else {
-                    panic!("NEXT without matching FOR EACH");
                 }
+                panic!("NEXT without matching FOR EACH");
             }
             if trimmed == "EXIT FOR" {
                 result.push_str(&" ".repeat(current_indent));

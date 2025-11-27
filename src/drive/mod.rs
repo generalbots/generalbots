@@ -25,10 +25,15 @@ use serde::{Deserialize, Serialize};
 // use serde_json::json; // Unused import
 use std::sync::Arc;
 
+pub mod api;
 pub mod document_processing;
 pub mod drive_monitor;
 pub mod file;
+pub mod files;
 pub mod vectordb;
+
+// Note: Most functions are defined locally in this module
+// The file module functions are not imported as they're either private or redefined here
 
 // ===== Request/Response Structures =====
 

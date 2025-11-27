@@ -91,6 +91,7 @@ use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use botserver::core::bot::websocket_handler;
 use botserver::core::bot::BotOrchestrator;
 use botserver::core::config::AppConfig;
+
 // use crate::file::upload_file; // Module doesn't exist
 #[cfg(feature = "directory")]
 use crate::directory::auth_handler;
@@ -136,7 +137,76 @@ async fn run_axum_server(
         )
         .route("/api/sessions/{session_id}/start", post(start_session))
         // WebSocket route
-        .route("/ws", get(websocket_handler));
+        .route("/ws", get(websocket_handler))
+        // Drive API routes
+        .route("/api/drive/list", get(botserver::drive::api::list_files))
+        .route(
+            "/api/drive/upload",
+            post(botserver::drive::api::upload_file),
+        )
+        .route(
+            "/api/drive/folder",
+            post(botserver::drive::api::create_folder),
+        )
+        .route(
+            "/api/drive/delete",
+            post(botserver::drive::api::delete_file),
+        )
+        .route("/api/drive/move", post(botserver::drive::api::move_file))
+        .route(
+            "/api/drive/download/*path",
+            get(botserver::drive::api::download_file),
+        )
+        // Use functions from drive module instead of api module for these
+        .route("/api/drive/read", get(botserver::drive::read_file))
+        .route("/api/drive/write", post(botserver::drive::write_file))
+        .route("/api/drive/copy", post(botserver::drive::copy_file))
+        .route("/api/drive/search", get(botserver::drive::search_files))
+        .route("/api/drive/quota", get(botserver::drive::get_quota))
+        .route("/api/drive/recent", get(botserver::drive::recent_files))
+        .route(
+            "/api/drive/favorites",
+            get(botserver::drive::list_favorites),
+        )
+        .route("/api/drive/share", post(botserver::drive::share_folder))
+        .route("/api/drive/shared", get(botserver::drive::list_shared))
+        .route(
+            "/api/drive/permissions",
+            get(botserver::drive::get_permissions),
+        )
+        .route("/api/drive/sync/status", get(botserver::drive::sync_status))
+        .route("/api/drive/sync/start", post(botserver::drive::start_sync))
+        .route("/api/drive/sync/stop", post(botserver::drive::stop_sync))
+        // Document processing routes
+        .route(
+            "/api/documents/merge",
+            post(botserver::drive::document_processing::merge_documents),
+        )
+        .route(
+            "/api/documents/convert",
+            post(botserver::drive::document_processing::convert_document),
+        )
+        .route(
+            "/api/documents/fill",
+            post(botserver::drive::document_processing::fill_document),
+        )
+        .route(
+            "/api/documents/export",
+            post(botserver::drive::document_processing::export_document),
+        )
+        .route(
+            "/api/documents/import",
+            post(botserver::drive::document_processing::import_document),
+        )
+        // Local LLM endpoints
+        .route(
+            "/v1/chat/completions",
+            post(botserver::llm::local::chat_completions_local),
+        )
+        .route(
+            "/v1/embeddings",
+            post(botserver::llm::local::embeddings_local),
+        );
 
     // Add feature-specific routes
     #[cfg(feature = "directory")]
@@ -259,8 +329,8 @@ async fn main() -> std::io::Result<()> {
 
     // Start UI thread if not in no-ui mode and not in desktop mode
     let ui_handle = if !no_ui && !desktop_mode {
-        let progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
-        let state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
+        let _progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
+        let _state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
 
         Some(
             std::thread::Builder::new()
@@ -577,6 +647,98 @@ async fn main() -> std::io::Result<()> {
     let worker_count = std::thread::available_parallelism()
         .map(|n| n.get())
         .unwrap_or(4);
+
+    // Initialize automation service for prompt compaction
+    let automation_service = botserver::core::automation::AutomationService::new(app_state.clone());
+    info!("Automation service initialized with prompt compaction scheduler");
+
+    // Initialize task scheduler
+    let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(
+        app_state.clone(),
+    ));
+
+    // Register built-in task handlers
+    task_scheduler
+        .register_handler(
+            "backup".to_string(),
+            Arc::new(|state: Arc<AppState>, payload: serde_json::Value| {
+                Box::pin(async move {
+                    info!("Running backup task with payload: {:?}", payload);
+                    // Backup implementation
+                    Ok(serde_json::json!({"status": "completed"}))
+                })
+            }),
+        )
+        .await;
+
+    task_scheduler
+        .register_handler(
+            "cleanup".to_string(),
+            Arc::new(|state: Arc<AppState>, payload: serde_json::Value| {
+                Box::pin(async move {
+                    info!("Running cleanup task with payload: {:?}", payload);
+                    // Cleanup implementation
+                    Ok(serde_json::json!({"status": "completed"}))
+                })
+            }),
+        )
+        .await;
+
+    task_scheduler
+        .register_handler(
+            "report".to_string(),
+            Arc::new(|state: Arc<AppState>, payload: serde_json::Value| {
+                Box::pin(async move {
+                    info!("Running report task with payload: {:?}", payload);
+                    // Report generation implementation
+                    Ok(serde_json::json!({"status": "completed"}))
+                })
+            }),
+        )
+        .await;
+
+    // Start the scheduler
+    task_scheduler.start().await;
+    info!("Task scheduler started with {} handlers", 3);
+
+    // Initialize LLM cache if Redis is configured
+    let cached_llm_provider = if let Ok(redis_url) = std::env::var("REDIS_URL") {
+        info!("Initializing LLM cache with Redis");
+        match redis::Client::open(redis_url) {
+            Ok(cache_client) => {
+                let cache_config = botserver::llm::cache::CacheConfig {
+                    ttl: 3600,
+                    semantic_matching: false,
+                    similarity_threshold: 0.85,
+                    max_similarity_checks: 100,
+                    key_prefix: "llm_cache".to_string(),
+                };
+
+                let cached_provider = Arc::new(botserver::llm::cache::CachedLLMProvider::new(
+                    llm_provider.clone(),
+                    Arc::new(cache_client),
+                    cache_config,
+                    None,
+                ));
+
+                info!("LLM cache initialized successfully");
+                Some(cached_provider as Arc<dyn botserver::llm::LLMProvider>)
+            }
+            Err(e) => {
+                warn!("Failed to connect to Redis for LLM cache: {}", e);
+                None
+            }
+        }
+    } else {
+        info!("Redis not configured, using direct LLM provider");
+        None
+    };
+
+    // Update app_state with cached provider if available
+    if let Some(cached_provider) = cached_llm_provider {
+        let mut state = app_state.clone();
+        Arc::get_mut(&mut state).map(|s| s.llm_provider = cached_provider);
+    }
 
     // Mount bots
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());

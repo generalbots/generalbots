@@ -11,7 +11,7 @@ use uuid::Uuid;
 // Calendar types - would be from crate::calendar when feature is enabled
 #[derive(Debug)]
 pub struct CalendarEngine {
-    db: crate::shared::utils::DbPool,
+    _db: crate::shared::utils::DbPool,
 }
 
 #[derive(Debug)]
@@ -48,8 +48,9 @@ pub struct RecurrenceRule {
 }
 
 impl CalendarEngine {
+    #[must_use]
     pub fn new(db: crate::shared::utils::DbPool) -> Self {
-        Self { db }
+        Self { _db: db }
     }
 
     pub async fn create_event(

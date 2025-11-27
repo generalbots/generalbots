@@ -336,9 +336,8 @@ async fn parse_recipient(
         // Email address - could be email or Teams
         if recipient.ends_with("@teams.ms") || recipient.contains("@microsoft") {
             return Ok(("teams".to_string(), recipient.to_string()));
-        } else {
-            return Ok(("email".to_string(), recipient.to_string()));
         }
+        return Ok(("email".to_string(), recipient.to_string()));
     }
 
     // Check if it's a known web session
@@ -630,10 +629,10 @@ async fn send_web_file(
     }
 
     // Send file URL as message
-    let message = if !caption.is_empty() {
-        format!("{}\n[File: {}]", caption, file_url)
-    } else {
+    let message = if caption.is_empty() {
         format!("[File: {}]", file_url)
+    } else {
+        format!("{}\n[File: {}]", caption, file_url)
     };
 
     send_web_message(state, session_id, &message).await
