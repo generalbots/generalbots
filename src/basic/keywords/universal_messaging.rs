@@ -193,7 +193,7 @@ async fn send_message_to_recipient(
 
     match channel.as_str() {
         "whatsapp" => {
-            let adapter = WhatsAppAdapter::new();
+            let adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
             let response = crate::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
@@ -211,7 +211,7 @@ async fn send_message_to_recipient(
             adapter.send_message(response).await?;
         }
         "instagram" => {
-            let adapter = InstagramAdapter::new();
+            let adapter = InstagramAdapter::new(state.conn.clone(), user.bot_id);
             let response = crate::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
@@ -229,7 +229,7 @@ async fn send_message_to_recipient(
             adapter.send_message(response).await?;
         }
         "teams" => {
-            let adapter = TeamsAdapter::new();
+            let adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
             let response = crate::shared::models::BotResponse {
                 bot_id: "default".to_string(),
                 session_id: user.id.to_string(),
@@ -274,7 +274,7 @@ async fn send_file_to_recipient(
 
 async fn send_file_with_caption_to_recipient(
     state: Arc<AppState>,
-    _user: &UserSession,
+    user: &UserSession,
     recipient: &str,
     file: Dynamic,
     caption: &str,
@@ -292,13 +292,13 @@ async fn send_file_with_caption_to_recipient(
 
     match channel.as_str() {
         "whatsapp" => {
-            send_whatsapp_file(state, &recipient_id, file_data, caption).await?;
+            send_whatsapp_file(state, user, &recipient_id, file_data, caption).await?;
         }
         "instagram" => {
-            send_instagram_file(state, &recipient_id, file_data, caption).await?;
+            send_instagram_file(state, user, &recipient_id, file_data, caption).await?;
         }
         "teams" => {
-            send_teams_file(state, &recipient_id, file_data, caption).await?;
+            send_teams_file(state, user, &recipient_id, file_data, caption).await?;
         }
         "web" => {
             send_web_file(state, &recipient_id, file_data, caption).await?;
@@ -406,14 +406,15 @@ async fn broadcast_message(
 
 // Channel-specific implementations
 async fn send_whatsapp_file(
-    _state: Arc<AppState>,
+    state: Arc<AppState>,
+    user: &UserSession,
     recipient: &str,
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use reqwest::Client;
 
-    let _adapter = WhatsAppAdapter::new();
+    let _adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
 
     // First, upload the file to WhatsApp
     let upload_url = format!(
@@ -467,14 +468,15 @@ async fn send_whatsapp_file(
 }
 
 async fn send_instagram_file(
-    _state: Arc<AppState>,
-    _recipient: &str,
+    state: Arc<AppState>,
+    user: &UserSession,
+    recipient_id: &str,
     _file_data: Vec<u8>,
     _caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     // Instagram file sending implementation
     // Similar to WhatsApp but using Instagram API
-    let _adapter = InstagramAdapter::new();
+    let _adapter = InstagramAdapter::new(state.conn.clone(), user.bot_id);
 
     // Upload and send via Instagram Messaging API
 
@@ -483,11 +485,12 @@ async fn send_instagram_file(
 
 async fn send_teams_file(
     state: Arc<AppState>,
+    user: &UserSession,
     recipient_id: &str,
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let _adapter = TeamsAdapter::new();
+    let _adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
 
     // Get conversation ID
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;

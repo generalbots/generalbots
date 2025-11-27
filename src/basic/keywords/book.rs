@@ -499,7 +499,7 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
 
     for format in formats {
         if let Ok(dt) = chrono::NaiveDateTime::parse_from_str(time_str, format) {
-            return Ok(DateTime::from_utc(dt, Utc));
+            return Ok(DateTime::from_naive_utc_and_offset(dt, Utc));
         }
     }
 
@@ -545,7 +545,7 @@ fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
 
     for format in formats {
         if let Ok(dt) = chrono::NaiveDate::parse_from_str(date_str, format) {
-            return Ok(dt.and_hms(0, 0, 0).and_utc());
+            return Ok(dt.and_hms_opt(0, 0, 0).unwrap().and_utc());
         }
     }
 

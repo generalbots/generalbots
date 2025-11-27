@@ -1399,7 +1399,7 @@ pub async fn recent_files(
         if let Some(drive) = &state.drive {
             let bucket = "drive";
 
-            for (path, _) in recent_files.iter().take(query.limit.unwrap_or(20)) {
+            for (path, _) in recent_files.iter().take(query.limit.unwrap_or(20) as usize) {
                 // TODO: Fix get_object_info API call
                 /*
                 if let Ok(object) = drive.get_object_info(bucket, path).await {
@@ -1417,9 +1417,16 @@ pub async fn recent_files(
             }
         }
 
+        let total = items.len() as i64;
+        let limit = items.len() as i32;
         return Ok(Json(ApiResponse {
             success: true,
-            data: Some(ListResponse { items }),
+            data: Some(ListResponse {
+                files: items,
+                total,
+                offset: 0,
+                limit,
+            }),
             message: None,
             error: None,
         }));
@@ -1621,9 +1628,9 @@ pub async fn get_permissions(
     Ok(Json(ApiResponse {
         success: true,
         data: Some(PermissionsResponse {
+            success: true,
             path,
             permissions,
-            inherited,
         }),
         message: None,
         error: None,
@@ -1772,15 +1779,13 @@ pub async fn get_shared(
             }
 
             shared_files.push(SharedFile {
-                id: share_id,
-                name: path.split('/').last().unwrap_or(&path).to_string(),
+                share_id,
                 path,
-                size,
-                modified,
-                shared_by: shared_by.unwrap_or_else(|| "Unknown".to_string()),
-                shared_at: created_at,
+                shared_with: vec![shared_by.unwrap_or_else(|| "Unknown".to_string())],
                 permissions,
+                created_at,
                 expires_at,
+                access_count: 0,
             });
         }
     }

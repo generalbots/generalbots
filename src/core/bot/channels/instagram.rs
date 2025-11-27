@@ -420,3 +420,4 @@ pub fn create_media_template(media_type: &str, attachment_id: &str) -> serde_jso
         }
     })
 }
+    
