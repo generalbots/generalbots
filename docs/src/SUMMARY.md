@@ -62,7 +62,7 @@
     - [SET BOT MEMORY](./chapter-06-gbdialog/keyword-set-bot-memory.md)
     - [USE KB](./chapter-06-gbdialog/keyword-use-kb.md)
     - [CLEAR KB](./chapter-06-gbdialog/keyword-clear-kb.md)
-    - [ADD WEBSITE](./chapter-06-gbdialog/keyword-add-website.md)
+    - [USE WEBSITE](./chapter-06-gbdialog/keyword-use-website.md)
     - [USE TOOL](./chapter-06-gbdialog/keyword-use-tool.md)
     - [CLEAR TOOLS](./chapter-06-gbdialog/keyword-clear-tools.md)
     - [GET](./chapter-06-gbdialog/keyword-get.md)

@@ -346,7 +346,7 @@ impl BasicCompiler {
                 .replace("CLEAR SUGGESTIONS", "CLEAR_SUGGESTIONS")
                 .replace("ADD SUGGESTION", "ADD_SUGGESTION")
                 .replace("USE KB", "USE_KB")
-                .replace("ADD WEBSITE", "ADD_WEBSITE")
+                .replace("USE WEBSITE", "USE_WEBSITE")
                 .replace("GET BOT MEMORY", "GET_BOT_MEMORY")
                 .replace("SET BOT MEMORY", "SET_BOT_MEMORY")
                 .replace("CREATE DRAFT", "CREATE_DRAFT");
@@ -368,6 +368,32 @@ impl BasicCompiler {
                     }
                 } else {
                     log::warn!("Malformed SET_SCHEDULE line ignored: {}", normalized);
+                }
+                continue;
+            }
+            if normalized.starts_with("USE_WEBSITE") {
+                let parts: Vec<&str> = normalized.split('"').collect();
+                if parts.len() >= 2 {
+                    let url = parts[1];
+                    let mut conn = self
+                        .state
+                        .conn
+                        .get()
+                        .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                    if let Err(e) =
+                        crate::basic::keywords::use_website::execute_use_website_preprocessing(
+                            &mut conn, url, bot_id,
+                        )
+                    {
+                        log::error!("Failed to register USE_WEBSITE during preprocessing: {}", e);
+                    } else {
+                        log::info!(
+                            "Registered website {} for crawling during preprocessing",
+                            url
+                        );
+                    }
+                } else {
+                    log::warn!("Malformed USE_WEBSITE line ignored: {}", normalized);
                 }
                 continue;
             }

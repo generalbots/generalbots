@@ -46,7 +46,7 @@ Each document is processed into vector embeddings using:
 ### Creating Collections
 ```basic
 USE KB "company-policies"
-ADD WEBSITE "https://company.com/docs"
+USE WEBSITE "https://company.com/docs"
 ```
 
 ### Using Collections

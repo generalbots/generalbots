@@ -111,8 +111,8 @@ To keep web content updated, schedule regular crawls:
 ```basic
 ' In update-content.bas
 SET SCHEDULE "0 3 * * *"  ' Run daily at 3 AM
-ADD WEBSITE "https://example.com/docs"
-' Website content is crawled and added to the collection
+USE WEBSITE "https://example.com/docs"
+' Website is registered for crawling and will be available in conversations
 ```
 
 ## How Search Works

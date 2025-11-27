@@ -2091,7 +2091,7 @@
 
 ### Bug Fixes
 
-* **basic:** Fix default bot.vbs missing parenthesis in code. ([8501002](https://github.com/pragmatismo-io/BotServer/commit/8501002))
+* **basic:** Fix default bot.bas missing parenthesis in code. ([8501002](https://github.com/pragmatismo-io/BotServer/commit/8501002))
 
 ## [1.7.1](https://github.com/pragmatismo-io/BotServer/compare/1.7.0...1.7.1) (2019-08-30)
 

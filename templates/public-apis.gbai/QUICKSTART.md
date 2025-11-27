@@ -244,7 +244,7 @@ END IF
 
 ### Method 1: Direct Testing
 ```vbs
-REM Create a test dialog file: test.gbdialog/test-apis.vbs
+REM Create a test dialog file: test.gbdialog/test-apis.bas
 
 TALK "Testing Weather API..."
 weather = GET "https://api.open-meteo.com/v1/forecast?latitude=52.52&longitude=13.41&current_weather=true"

@@ -130,103 +130,62 @@ async fn run_axum_server(
         .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(3600));
 
-    // Build API routes with State
-    let mut api_router = Router::new()
-        // Session routes
+    // Use unified API router configuration
+    let mut api_router = crate::api_router::configure_api_routes();
+
+    // Add session-specific routes
+    api_router = api_router
         .route("/api/sessions", post(create_session))
         .route("/api/sessions", get(get_sessions))
         .route(
             "/api/sessions/{session_id}/history",
             get(get_session_history),
         )
-        .route("/api/sessions/{session_id}/start", post(start_session));
-    // File routes
-    // .route("/api/files/upload/{folder_path}", post(upload_file)) // Function doesn't exist
+        .route("/api/sessions/{session_id}/start", post(start_session))
+        // WebSocket route
+        .route("/ws", get(websocket_handler));
 
-    // Auth route
+    // Add feature-specific routes
     #[cfg(feature = "directory")]
     {
         api_router = api_router.route("/api/auth", get(auth_handler));
     }
 
-    // Voice/Meet routes
     #[cfg(feature = "meet")]
     {
         api_router = api_router
             .route("/api/voice/start", post(voice_start))
             .route("/api/voice/stop", post(voice_stop))
-            .route("/api/meet/create", post(crate::meet::create_meeting))
-            .route("/api/meet/rooms", get(crate::meet::list_rooms))
-            .route("/api/meet/rooms/:room_id", get(crate::meet::get_room))
-            .route(
-                "/api/meet/rooms/:room_id/join",
-                post(crate::meet::join_room),
-            )
-            .route(
-                "/api/meet/rooms/:room_id/transcription/start",
-                post(crate::meet::start_transcription),
-            )
-            .route("/api/meet/token", post(crate::meet::get_meeting_token))
-            .route("/api/meet/invite", post(crate::meet::send_meeting_invites))
-            .route("/ws/meet", get(crate::meet::meeting_websocket));
+            .route("/ws/meet", get(crate::meet::meeting_websocket))
+            .merge(crate::meet::configure());
     }
-
-    api_router = api_router
-        // Media/Multimedia routes
-        .route(
-            "/api/media/upload",
-            post(crate::bot::multimedia::upload_media_handler),
-        )
-        .route(
-            "/api/media/:media_id",
-            get(crate::bot::multimedia::download_media_handler),
-        )
-        .route(
-            "/api/media/:media_id/thumbnail",
-            get(crate::bot::multimedia::generate_thumbnail_handler),
-        )
-        .route(
-            "/api/media/search",
-            post(crate::bot::multimedia::web_search_handler),
-        )
-        // WebSocket route
-        .route("/ws", get(websocket_handler))
-        // Bot routes
-        .route("/api/bots", post(crate::bot::create_bot_handler))
-        .route(
-            "/api/bots/{bot_id}/mount",
-            post(crate::bot::mount_bot_handler),
-        )
-        .route(
-            "/api/bots/{bot_id}/input",
-            post(crate::bot::handle_user_input_handler),
-        )
-        .route(
-            "/api/bots/{bot_id}/sessions",
-            get(crate::bot::get_user_sessions_handler),
-        )
-        .route(
-            "/api/bots/{bot_id}/history",
-            get(crate::bot::get_conversation_history_handler),
-        )
-        .route(
-            "/api/bots/{bot_id}/warning",
-            post(crate::bot::send_warning_handler),
-        );
-
-    // Add email routes if feature is enabled
-    // Merge drive, email, meet, and auth module routes
-    api_router = api_router.merge(crate::drive::configure());
-
-    #[cfg(feature = "meet")]
-    {
-        api_router = api_router.merge(crate::meet::configure());
-    }
-
-    api_router = api_router.nest("/api", crate::directory::router::configure());
 
     #[cfg(feature = "email")]
-    let api_router = api_router.merge(crate::email::configure());
+    {
+        api_router = api_router.merge(crate::email::configure());
+    }
+
+    // Add calendar routes with CalDAV if feature is enabled
+    #[cfg(feature = "calendar")]
+    {
+        let calendar_engine =
+            Arc::new(crate::calendar::CalendarEngine::new(app_state.conn.clone()));
+
+        // Start reminder job
+        let reminder_engine = Arc::clone(&calendar_engine);
+        tokio::spawn(async move {
+            crate::calendar::start_reminder_job(reminder_engine).await;
+        });
+
+        // Add CalDAV router
+        api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
+            calendar_engine,
+        ));
+    }
+
+    // Add task engine routes
+    let task_engine = Arc::new(crate::tasks::TaskEngine::new(app_state.conn.clone()));
+    api_router = api_router.merge(crate::tasks::configure_task_routes(task_engine));
 
     // Build static file serving
     let static_path = std::path::Path::new("./web/desktop");
@@ -241,8 +200,7 @@ async fn run_axum_server(
         .nest_service("/mail", ServeDir::new(static_path.join("mail")))
         .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
         // API routes
-        .merge(api_router)
-        .with_state(app_state.clone())
+        .merge(api_router.with_state(app_state.clone()))
         // Root index route - only matches exact "/"
         .route("/", get(crate::ui_server::index))
         // Layers
@@ -554,6 +512,9 @@ async fn main() -> std::io::Result<()> {
         base_llm_provider
     };
 
+    // Initialize Knowledge Base Manager
+    let kb_manager = Arc::new(botserver::core::kb::KnowledgeBaseManager::new("work"));
+
     let app_state = Arc::new(AppState {
         drive: Some(drive),
         config: Some(cfg.clone()),
@@ -575,7 +536,13 @@ async fn main() -> std::io::Result<()> {
         response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
+        kb_manager: Some(kb_manager.clone()),
     });
+
+    // Start website crawler service
+    if let Err(e) = botserver::core::kb::ensure_crawler_service_running(app_state.clone()).await {
+        log::warn!("Failed to start website crawler service: {}", e);
+    }
 
     state_tx.send(app_state.clone()).await.ok();
     progress_tx.send(BootstrapProgress::BootstrapComplete).ok();
