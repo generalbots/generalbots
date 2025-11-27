@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use std::sync::Arc;
+// use std::sync::Arc; // Unused import
 use tokio::fs;
 use uuid::Uuid;
 
@@ -157,9 +157,9 @@ impl UserDriveVectorDB {
             let points: Vec<PointStruct> = files
                 .iter()
                 .filter_map(|(file, embedding)| {
-                    serde_json::to_value(file)
-                        .ok()
-                        .map(|payload| PointStruct::new(file.id.clone(), embedding.clone(), payload))
+                    serde_json::to_value(file).ok().map(|payload| {
+                        PointStruct::new(file.id.clone(), embedding.clone(), payload)
+                    })
                 })
                 .collect();
 
@@ -286,12 +286,15 @@ impl UserDriveVectorDB {
                     let query_lower = query.query_text.to_lowercase();
                     if file.file_name.to_lowercase().contains(&query_lower)
                         || file.content_text.to_lowercase().contains(&query_lower)
-                        || file.content_summary.as_ref().map_or(false, |s| {
-                            s.to_lowercase().contains(&query_lower)
-                        })
+                        || file
+                            .content_summary
+                            .as_ref()
+                            .map_or(false, |s| s.to_lowercase().contains(&query_lower))
                     {
-                        let snippet = self.create_snippet(&file.content_text, &query.query_text, 200);
-                        let highlights = self.extract_highlights(&file.content_text, &query.query_text, 3);
+                        let snippet =
+                            self.create_snippet(&file.content_text, &query.query_text, 200);
+                        let highlights =
+                            self.extract_highlights(&file.content_text, &query.query_text, 3);
 
                         results.push(FileSearchResult {
                             file,
@@ -507,7 +510,6 @@ impl FileContentExtractor {
             // - Excel/spreadsheet extraction
             // - Images (OCR)
             // - Audio (transcription)
-
             _ => {
                 log::warn!("Unsupported file type for indexing: {}", mime_type);
                 Ok(String::new())
@@ -568,7 +570,10 @@ mod tests {
     fn test_should_index() {
         assert!(FileContentExtractor::should_index("text/plain", 1024));
         assert!(FileContentExtractor::should_index("text/markdown", 5000));
-        assert!(!FileContentExtractor::should_index("text/plain", 20 * 1024 * 1024));
+        assert!(!FileContentExtractor::should_index(
+            "text/plain",
+            20 * 1024 * 1024
+        ));
         assert!(!FileContentExtractor::should_index("video/mp4", 1024));
     }
 

@@ -9,8 +9,8 @@ use axum::{
     body::Body,
     extract::{Multipart, Path, Query, State},
     http::{header, StatusCode},
-    response::{IntoResponse, Json, Response},
-    routing::{delete, get, post, put},
+    response::{Json, Response},
+    routing::{delete, get, post},
     Router,
 };
 use chrono::{DateTime, Utc};
@@ -115,6 +115,9 @@ pub struct ShareFolderRequest {
     pub permissions: Vec<String>, // read, write, delete
     pub expires_at: Option<DateTime<Utc>>,
 }
+
+// Type alias for share parameters
+pub type ShareParams = ShareFolderRequest;
 
 #[derive(Debug, Serialize)]
 pub struct ShareResponse {
@@ -825,8 +828,10 @@ pub async fn share_folder(
             success: true,
             share_id,
             share_link: Some(share_link),
+            expires_at: None,
         }),
         message: Some("Folder shared successfully".to_string()),
+        error: None,
     }))
 }
 
@@ -838,7 +843,7 @@ pub async fn save_to_s3(
     key: &str,
     content: &[u8],
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     s3_client
         .put_object()
@@ -856,7 +861,7 @@ pub async fn delete_from_s3(
     bucket: &str,
     key: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     s3_client
         .delete_object()
@@ -879,7 +884,7 @@ pub async fn get_bucket_stats(
     state: &Arc<AppState>,
     bucket: &str,
 ) -> Result<BucketStats, Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let list_response = s3_client.list_objects_v2().bucket(bucket).send().await?;
 
@@ -887,7 +892,7 @@ pub async fn get_bucket_stats(
     let mut object_count = 0usize;
     let mut last_modified = None;
 
-    if let Some(contents) = list_response.contents() {
+    if let Some(contents) = list_response.contents {
         object_count = contents.len();
         for object in contents {
             if let Some(size) = object.size() {
@@ -914,14 +919,14 @@ pub async fn cleanup_old_files(
     bucket: &str,
     cutoff_date: chrono::DateTime<chrono::Utc>,
 ) -> Result<(usize, u64), Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let list_response = s3_client.list_objects_v2().bucket(bucket).send().await?;
 
     let mut deleted_count = 0usize;
     let mut freed_bytes = 0u64;
 
-    if let Some(contents) = list_response.contents() {
+    if let Some(contents) = list_response.contents {
         for object in contents {
             if let Some(modified) = object.last_modified() {
                 let modified_time = chrono::DateTime::parse_from_rfc3339(&modified.to_string())
@@ -957,7 +962,7 @@ pub async fn create_bucket_backup(
     backup_bucket: &str,
     backup_id: &str,
 ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     // Create backup bucket if it doesn't exist
     let _ = s3_client.create_bucket().bucket(backup_bucket).send().await;
@@ -970,7 +975,7 @@ pub async fn create_bucket_backup(
 
     let mut file_count = 0usize;
 
-    if let Some(contents) = list_response.contents() {
+    if let Some(contents) = list_response.contents {
         for object in contents {
             if let Some(key) = object.key() {
                 let backup_key = format!("{}/{}", backup_id, key);
@@ -999,7 +1004,7 @@ pub async fn restore_bucket_backup(
     target_bucket: &str,
     backup_id: &str,
 ) -> Result<usize, Box<dyn std::error::Error + Send + Sync>> {
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let prefix = format!("{}/", backup_id);
     let list_response = s3_client
@@ -1011,7 +1016,7 @@ pub async fn restore_bucket_backup(
 
     let mut file_count = 0usize;
 
-    if let Some(contents) = list_response.contents() {
+    if let Some(contents) = list_response.contents {
         for object in contents {
             if let Some(key) = object.key() {
                 // Remove backup_id prefix from key
@@ -1041,11 +1046,7 @@ pub async fn create_archive(
     prefix: &str,
     archive_key: &str,
 ) -> Result<u64, Box<dyn std::error::Error + Send + Sync>> {
-    use flate2::write::GzEncoder;
-    use flate2::Compression;
-    use std::io::Write;
-
-    let s3_client = &state.s3_client;
+    let s3_client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let list_response = s3_client
         .list_objects_v2()
@@ -1055,37 +1056,34 @@ pub async fn create_archive(
         .await?;
 
     let mut archive_data = Vec::new();
-    {
-        let mut encoder = GzEncoder::new(&mut archive_data, Compression::default());
 
-        if let Some(contents) = list_response.contents() {
-            for object in contents {
-                if let Some(key) = object.key() {
-                    // Get object content
-                    let get_response = s3_client
-                        .get_object()
-                        .bucket(bucket)
-                        .key(key)
-                        .send()
-                        .await?;
+    // Create simple tar-like format without compression
+    if let Some(contents) = list_response.contents {
+        for object in contents {
+            if let Some(key) = object.key() {
+                // Get object content
+                let get_response = s3_client
+                    .get_object()
+                    .bucket(bucket)
+                    .key(key)
+                    .send()
+                    .await?;
 
-                    let body_bytes = get_response
-                        .body
-                        .collect()
-                        .await
-                        .map_err(|e| format!("Failed to collect body: {}", e))?;
-                    let bytes = body_bytes.into_bytes();
+                let body_bytes = get_response
+                    .body
+                    .collect()
+                    .await
+                    .map_err(|e| format!("Failed to collect body: {}", e))?;
+                let bytes = body_bytes.into_bytes();
 
-                    // Write to archive with key as filename
-                    encoder.write_all(key.as_bytes())?;
-                    encoder.write_all(b"\n")?;
-                    encoder.write_all(&bytes)?;
-                    encoder.write_all(b"\n---\n")?;
-                }
+                // Write to archive with key as filename (simple tar-like format)
+                use std::io::Write;
+                archive_data.write_all(key.as_bytes())?;
+                archive_data.write_all(b"\n")?;
+                archive_data.write_all(&bytes)?;
+                archive_data.write_all(b"\n---\n")?;
             }
         }
-
-        encoder.finish()?;
     }
 
     let archive_size = archive_data.len() as u64;
@@ -1204,11 +1202,13 @@ pub async fn list_files(
                 ),
                 created_at: obj
                     .last_modified()
-                    .map(|t| DateTime::from(*t))
+                    .and_then(|t| chrono::DateTime::parse_from_rfc3339(&t.to_string()).ok())
+                    .map(|dt| dt.with_timezone(&Utc))
                     .unwrap_or_else(Utc::now),
                 modified_at: obj
                     .last_modified()
-                    .map(|t| DateTime::from(*t))
+                    .and_then(|t| chrono::DateTime::parse_from_rfc3339(&t.to_string()).ok())
+                    .map(|dt| dt.with_timezone(&Utc))
                     .unwrap_or_else(Utc::now),
                 created_by: "system".to_string(),
                 modified_by: "system".to_string(),
@@ -1296,11 +1296,13 @@ pub async fn search_files(
                     ),
                     created_at: obj
                         .last_modified()
-                        .map(|t| DateTime::from(*t))
+                        .and_then(|t| chrono::DateTime::parse_from_rfc3339(&t.to_string()).ok())
+                        .map(|dt| dt.with_timezone(&Utc))
                         .unwrap_or_else(Utc::now),
                     modified_at: obj
                         .last_modified()
-                        .map(|t| DateTime::from(*t))
+                        .and_then(|t| chrono::DateTime::parse_from_rfc3339(&t.to_string()).ok())
+                        .map(|dt| dt.with_timezone(&Utc))
                         .unwrap_or_else(Utc::now),
                     created_by: "system".to_string(),
                     modified_by: "system".to_string(),

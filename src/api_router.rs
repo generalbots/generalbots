@@ -3,7 +3,14 @@
 //! Combines all API endpoints from all specialized modules into a unified router.
 //! This provides a centralized configuration for all REST API routes.
 
-use axum::{routing::delete, routing::get, routing::post, routing::put, Router};
+use axum::{
+    extract::{Path, Query, State},
+    http::StatusCode,
+    response::Json,
+    routing::{delete, get, post, put},
+    Router,
+};
+use serde_json::json;
 use std::sync::Arc;
 
 use crate::shared::state::AppState;
@@ -331,7 +338,7 @@ pub fn configure_api_routes() -> Router<Arc<AppState>> {
 // ===== Placeholder handlers for endpoints not yet fully implemented =====
 // These forward to existing functionality or provide basic responses
 
-use axum::{extract::State, http::StatusCode, response::Json};
+// Using imports from top of file
 
 async fn handle_calendar_event_create(
     State(state): State<Arc<AppState>>,
@@ -587,9 +594,9 @@ async fn handle_storage_quota_check(
         Err(_) => {
             // Return default quota if stats unavailable
             Ok(Json(serde_json::json!({
-                "total": 10737418240,
+                "total": 10737418240i64,
                 "used": 0,
-                "available": 10737418240,
+                "available": 10737418240i64,
                 "file_count": 0,
                 "bucket": bucket
             })))
@@ -657,9 +664,8 @@ async fn handle_storage_backup_restore(
         .as_str()
         .ok_or(StatusCode::BAD_REQUEST)?;
     let target_bucket = payload["target_bucket"].as_str().unwrap_or("default");
-    let source_bucket = payload["source_bucket"]
-        .as_str()
-        .unwrap_or(&format!("{}-backups", target_bucket));
+    let default_source = format!("{}-backups", target_bucket);
+    let source_bucket = payload["source_bucket"].as_str().unwrap_or(&default_source);
 
     match crate::drive::files::restore_bucket_backup(
         &state,

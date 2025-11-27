@@ -350,6 +350,58 @@ impl SessionManager {
         }
         Ok(())
     }
+
+    /// Get count of active sessions (for analytics)
+    pub fn active_count(&self) -> usize {
+        self.sessions.len()
+    }
+
+    /// Get total count of sessions from database
+    pub fn total_count(&mut self) -> usize {
+        use crate::shared::models::user_sessions::dsl::*;
+        user_sessions
+            .count()
+            .first::<i64>(&mut self.conn)
+            .unwrap_or(0) as usize
+    }
+
+    /// Get sessions created in the last N hours
+    pub fn recent_sessions(
+        &mut self,
+        hours: i64,
+    ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
+        use crate::shared::models::user_sessions::dsl::*;
+        let since = chrono::Utc::now() - chrono::Duration::hours(hours);
+        let sessions = user_sessions
+            .filter(created_at.gt(since))
+            .order(created_at.desc())
+            .load::<UserSession>(&mut self.conn)?;
+        Ok(sessions)
+    }
+
+    /// Get session statistics for analytics
+    pub fn get_statistics(&mut self) -> Result<serde_json::Value, Box<dyn Error + Send + Sync>> {
+        use crate::shared::models::user_sessions::dsl::*;
+
+        let total = user_sessions.count().first::<i64>(&mut self.conn)?;
+
+        let active = self.sessions.len() as i64;
+
+        let today = chrono::Utc::now().date_naive();
+        let today_start = today.and_hms_opt(0, 0, 0).unwrap().and_utc();
+
+        let today_count = user_sessions
+            .filter(created_at.ge(today_start))
+            .count()
+            .first::<i64>(&mut self.conn)?;
+
+        Ok(serde_json::json!({
+            "total_sessions": total,
+            "active_sessions": active,
+            "today_sessions": today_count,
+            "waiting_for_input": self.waiting_for_input.len()
+        }))
+    }
 }
 
 /* Axum handlers */

@@ -19,12 +19,14 @@ use crate::shared::state::AppState;
 pub struct CreateGroupRequest {
     pub name: String,
     pub description: Option<String>,
+    pub members: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateGroupRequest {
     pub name: Option<String>,
     pub description: Option<String>,
+    pub members: Option<Vec<String>>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -53,10 +55,18 @@ pub struct GroupResponse {
 
 #[derive(Debug, Serialize)]
 pub struct GroupListResponse {
-    pub groups: Vec<GroupResponse>,
+    pub groups: Vec<GroupInfo>,
     pub total: usize,
     pub page: u32,
     pub per_page: u32,
+}
+
+#[derive(Debug, Serialize)]
+pub struct GroupInfo {
+    pub id: String,
+    pub name: String,
+    pub description: Option<String>,
+    pub member_count: usize,
 }
 
 #[derive(Debug, Serialize)]
@@ -96,17 +106,56 @@ pub async fn create_group(
         auth_service.client().clone()
     };
 
-    // In Zitadel, groups are typically managed within organizations
-    // For now, we'll return success with a generated ID
-    // In production, you'd call Zitadel's organization creation API
-    let group_id = Uuid::new_v4().to_string();
+    // Create group metadata in Zitadel
+    let metadata_key = format!("group_{}", Uuid::new_v4());
+    let metadata_value = serde_json::json!({
+        "name": req.name,
+        "description": req.description,
+        "members": req.members.unwrap_or_default(),
+        "created_at": chrono::Utc::now().to_rfc3339()
+    })
+    .to_string();
 
-    info!("Group created successfully: {}", group_id);
-    Ok(Json(SuccessResponse {
-        success: true,
-        message: Some(format!("Group '{}' created successfully", req.name)),
-        group_id: Some(group_id),
-    }))
+    // Store group metadata using Zitadel's metadata API
+    match client
+        .http_post(format!("{}/metadata/organization", client.api_url()))
+        .await
+        .json(&serde_json::json!({
+            "key": metadata_key,
+            "value": metadata_value
+        }))
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
+            info!("Group created successfully: {}", metadata_key);
+            Ok(Json(SuccessResponse {
+                success: true,
+                message: Some(format!("Group '{}' created successfully", req.name)),
+                group_id: Some(metadata_key),
+            }))
+        }
+        Ok(response) => {
+            error!("Failed to create group: {}", response.status());
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: format!("Failed to create group: {}", response.status()),
+                    details: None,
+                }),
+            ))
+        }
+        Err(e) => {
+            error!("Error creating group: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Internal error: {}", e),
+                    details: Some(e.to_string()),
+                }),
+            ))
+        }
+    }
 }
 
 /// Update an existing group
@@ -122,22 +171,60 @@ pub async fn update_group(
         auth_service.client().clone()
     };
 
-    // Verify organization exists
-    match client.get_organization(&group_id).await {
-        Ok(_) => {
-            info!("Group {} updated successfully", group_id);
+    // Build update payload
+    let mut update_data = serde_json::Map::new();
+    if let Some(name) = &req.name {
+        update_data.insert("name".to_string(), serde_json::json!(name));
+    }
+    if let Some(description) = &req.description {
+        update_data.insert("description".to_string(), serde_json::json!(description));
+    }
+    if let Some(members) = &req.members {
+        update_data.insert("members".to_string(), serde_json::json!(members));
+    }
+    update_data.insert(
+        "updated_at".to_string(),
+        serde_json::json!(chrono::Utc::now().to_rfc3339()),
+    );
+
+    // Update group metadata using Zitadel's metadata API
+    match client
+        .http_put(format!(
+            "{}/metadata/organization/{}",
+            client.api_url(),
+            group_id
+        ))
+        .await
+        .json(&serde_json::json!({
+            "value": serde_json::Value::Object(update_data).to_string()
+        }))
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
+            info!("Group updated successfully: {}", group_id);
             Ok(Json(SuccessResponse {
                 success: true,
-                message: Some(format!("Group {} updated successfully", group_id)),
+                message: Some(format!("Group '{}' updated successfully", group_id)),
                 group_id: Some(group_id),
             }))
         }
-        Err(e) => {
-            error!("Failed to update group: {}", e);
+        Ok(response) => {
+            error!("Failed to update group: {}", response.status());
             Err((
-                StatusCode::NOT_FOUND,
+                StatusCode::BAD_REQUEST,
                 Json(ErrorResponse {
-                    error: "Group not found".to_string(),
+                    error: format!("Failed to update group: {}", response.status()),
+                    details: None,
+                }),
+            ))
+        }
+        Err(e) => {
+            error!("Error updating group: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Internal error: {}", e),
                     details: Some(e.to_string()),
                 }),
             ))
@@ -195,16 +282,85 @@ pub async fn list_groups(
         auth_service.client().clone()
     };
 
-    // In production, you'd fetch organizations from Zitadel
-    // For now, return empty list with proper structure
-    info!("Found 0 groups");
+    // Fetch all group metadata from Zitadel
+    match client
+        .http_get(format!("{}/metadata/organization", client.api_url()))
+        .await
+        .query(&[
+            ("limit", per_page.to_string()),
+            ("offset", ((page - 1) * per_page).to_string()),
+        ])
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
+            let metadata: Vec<serde_json::Value> = response.json().await.unwrap_or_default();
 
-    Ok(Json(GroupListResponse {
-        groups: vec![],
-        total: 0,
-        page,
-        per_page,
-    }))
+            let groups: Vec<GroupInfo> = metadata
+                .iter()
+                .filter_map(|item| {
+                    if let Some(key) = item.get("key").and_then(|k| k.as_str()) {
+                        if key.starts_with("group_") {
+                            if let Some(value_str) = item.get("value").and_then(|v| v.as_str()) {
+                                if let Ok(group_data) =
+                                    serde_json::from_str::<serde_json::Value>(value_str)
+                                {
+                                    return Some(GroupInfo {
+                                        id: key.to_string(),
+                                        name: group_data
+                                            .get("name")
+                                            .and_then(|n| n.as_str())
+                                            .unwrap_or("Unknown")
+                                            .to_string(),
+                                        description: group_data
+                                            .get("description")
+                                            .and_then(|d| d.as_str())
+                                            .map(|s| s.to_string()),
+                                        member_count: group_data
+                                            .get("members")
+                                            .and_then(|m| m.as_array())
+                                            .map(|a| a.len())
+                                            .unwrap_or(0),
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    None
+                })
+                .collect();
+
+            let total = groups.len();
+            info!("Found {} groups", total);
+
+            Ok(Json(GroupListResponse {
+                groups,
+                total,
+                page,
+                per_page,
+            }))
+        }
+        Ok(response) => {
+            error!("Failed to list groups: {}", response.status());
+            Err((
+                StatusCode::BAD_REQUEST,
+                Json(ErrorResponse {
+                    error: format!("Failed to list groups: {}", response.status()),
+                    details: None,
+                }),
+            ))
+        }
+        Err(e) => {
+            error!("Error listing groups: {}", e);
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Internal error: {}", e),
+                    details: Some(e.to_string()),
+                }),
+            ))
+        }
+    }
 }
 
 /// Get members of a group
@@ -219,38 +375,84 @@ pub async fn get_group_members(
         auth_service.client().clone()
     };
 
-    // Get organization members from Zitadel
-    match client.get_org_members(&group_id).await {
-        Ok(members_json) => {
-            let members: Vec<GroupMemberResponse> = members_json
-                .into_iter()
-                .filter_map(|m| {
-                    Some(GroupMemberResponse {
-                        user_id: m.get("userId")?.as_str()?.to_string(),
-                        username: None,
-                        roles: m
-                            .get("roles")
-                            .and_then(|r| r.as_array())
-                            .map(|arr| {
-                                arr.iter()
-                                    .filter_map(|v| v.as_str().map(String::from))
-                                    .collect()
-                            })
-                            .unwrap_or_default(),
-                        email: None,
-                    })
-                })
-                .collect();
+    // Fetch group metadata to get member list
+    match client
+        .http_get(format!(
+            "{}/metadata/organization/{}",
+            client.api_url(),
+            group_id
+        ))
+        .await
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
+            let metadata: serde_json::Value = response.json().await.unwrap_or_default();
 
-            info!("Found {} members in group {}", members.len(), group_id);
-            Ok(Json(members))
+            if let Some(value_str) = metadata.get("value").and_then(|v| v.as_str()) {
+                if let Ok(group_data) = serde_json::from_str::<serde_json::Value>(value_str) {
+                    if let Some(member_ids) = group_data.get("members").and_then(|m| m.as_array()) {
+                        // Fetch details for each member
+                        let mut members = Vec::new();
+
+                        for member_id in member_ids {
+                            if let Some(user_id) = member_id.as_str() {
+                                // Fetch user details from Zitadel
+                                if let Ok(user_response) = client
+                                    .http_get(format!("{}/users/{}", client.api_url(), user_id))
+                                    .await
+                                    .send()
+                                    .await
+                                {
+                                    if user_response.status().is_success() {
+                                        if let Ok(user_data) =
+                                            user_response.json::<serde_json::Value>().await
+                                        {
+                                            members.push(GroupMemberResponse {
+                                                user_id: user_id.to_string(),
+                                                username: user_data
+                                                    .get("userName")
+                                                    .and_then(|u| u.as_str())
+                                                    .map(|s| s.to_string()),
+                                                email: user_data
+                                                    .get("profile")
+                                                    .and_then(|p| p.get("email"))
+                                                    .and_then(|e| e.as_str())
+                                                    .map(|s| s.to_string()),
+                                                roles: vec![],
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        info!("Found {} members in group {}", members.len(), group_id);
+                        return Ok(Json(members));
+                    }
+                }
+            }
+
+            // Group exists but has no members
+            info!("Group {} has no members", group_id);
+            Ok(Json(vec![]))
+        }
+        Ok(response) => {
+            error!("Failed to get group members: {}", response.status());
+            Err((
+                StatusCode::NOT_FOUND,
+                Json(ErrorResponse {
+                    error: "Group not found".to_string(),
+                    details: None,
+                }),
+            ))
         }
         Err(e) => {
-            error!("Failed to get group members: {}", e);
+            error!("Error getting group members: {}", e);
             Err((
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(ErrorResponse {
-                    error: "Failed to get group members".to_string(),
+                    error: format!("Internal error: {}", e),
                     details: Some(e.to_string()),
                 }),
             ))

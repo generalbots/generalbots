@@ -31,6 +31,7 @@ use botserver::core::config;
 use botserver::core::package_manager;
 use botserver::core::session;
 use botserver::core::ui_server;
+use botserver::tasks;
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]
@@ -71,9 +72,6 @@ mod msteams;
 
 #[cfg(feature = "nvidia")]
 mod nvidia;
-
-#[cfg(feature = "tasks")]
-mod tasks;
 
 #[cfg(feature = "vectordb")]
 mod vector_db;
@@ -184,8 +182,7 @@ async fn run_axum_server(
     }
 
     // Add task engine routes
-    let task_engine = Arc::new(crate::tasks::TaskEngine::new(app_state.conn.clone()));
-    api_router = api_router.merge(crate::tasks::configure_task_routes(task_engine));
+    api_router = api_router.merge(botserver::tasks::configure_task_routes());
 
     // Build static file serving
     let static_path = std::path::Path::new("./web/desktop");
@@ -515,6 +512,9 @@ async fn main() -> std::io::Result<()> {
     // Initialize Knowledge Base Manager
     let kb_manager = Arc::new(botserver::core::kb::KnowledgeBaseManager::new("work"));
 
+    // Initialize TaskEngine
+    let task_engine = Arc::new(botserver::tasks::TaskEngine::new(pool.clone()));
+
     let app_state = Arc::new(AppState {
         drive: Some(drive),
         config: Some(cfg.clone()),
@@ -537,6 +537,7 @@ async fn main() -> std::io::Result<()> {
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
         kb_manager: Some(kb_manager.clone()),
+        task_engine: task_engine,
     });
 
     // Start website crawler service

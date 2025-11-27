@@ -4,7 +4,7 @@
 //! and maintenance operations.
 
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Query, State},
     http::StatusCode,
     response::Json,
 };
@@ -205,7 +205,7 @@ pub struct SuccessResponse {
 
 /// GET /admin/system/status - Get overall system status
 pub async fn get_system_status(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemStatusResponse>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
@@ -271,7 +271,7 @@ pub async fn get_system_status(
 
 /// GET /admin/system/metrics - Get system performance metrics
 pub async fn get_system_metrics(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemMetricsResponse>, (StatusCode, Json<serde_json::Value>)> {
     let metrics = SystemMetricsResponse {
         cpu_usage: 23.5,
@@ -293,8 +293,8 @@ pub async fn get_system_metrics(
 
 /// GET /admin/logs/view - View system logs
 pub async fn view_logs(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<LogQuery>,
+    State(_state): State<Arc<AppState>>,
+    Query(_params): Query<LogQuery>,
 ) -> Result<Json<Vec<LogEntry>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
@@ -344,8 +344,8 @@ pub async fn view_logs(
 
 /// POST /admin/logs/export - Export system logs
 pub async fn export_logs(
-    State(state): State<Arc<AppState>>,
-    Query(params): Query<LogQuery>,
+    State(_state): State<Arc<AppState>>,
+    Query(_params): Query<LogQuery>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -355,7 +355,7 @@ pub async fn export_logs(
 
 /// GET /admin/config - Get system configuration
 pub async fn get_config(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<ConfigResponse>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
@@ -398,7 +398,7 @@ pub async fn get_config(
 
 /// PUT /admin/config/update - Update system configuration
 pub async fn update_config(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<ConfigUpdateRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
@@ -412,7 +412,7 @@ pub async fn update_config(
 
 /// POST /admin/maintenance/schedule - Schedule maintenance window
 pub async fn schedule_maintenance(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<MaintenanceScheduleRequest>,
 ) -> Result<Json<MaintenanceResponse>, (StatusCode, Json<serde_json::Value>)> {
     let maintenance_id = Uuid::new_v4();
@@ -431,7 +431,7 @@ pub async fn schedule_maintenance(
 
 /// POST /admin/backup/create - Create system backup
 pub async fn create_backup(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<BackupRequest>,
 ) -> Result<Json<BackupResponse>, (StatusCode, Json<serde_json::Value>)> {
     let backup_id = Uuid::new_v4();
@@ -452,7 +452,7 @@ pub async fn create_backup(
 
 /// POST /admin/backup/restore - Restore from backup
 pub async fn restore_backup(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<RestoreRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
@@ -463,7 +463,7 @@ pub async fn restore_backup(
 
 /// GET /admin/backups - List available backups
 pub async fn list_backups(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BackupResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
@@ -493,7 +493,7 @@ pub async fn list_backups(
 
 /// POST /admin/users/manage - Manage user accounts
 pub async fn manage_users(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<UserManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     let message = match req.action.as_str() {
@@ -512,7 +512,7 @@ pub async fn manage_users(
 
 /// GET /admin/roles - Get all roles
 pub async fn get_roles(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
     let roles = vec![
         serde_json::json!({
@@ -543,7 +543,7 @@ pub async fn get_roles(
 
 /// POST /admin/roles/manage - Create or update role
 pub async fn manage_roles(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<RoleManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
@@ -554,7 +554,7 @@ pub async fn manage_roles(
 
 /// GET /admin/quotas - Get all quotas
 pub async fn get_quotas(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<QuotaResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let quotas = vec![
         QuotaResponse {
@@ -582,7 +582,7 @@ pub async fn get_quotas(
 
 /// POST /admin/quotas/manage - Set or update quotas
 pub async fn manage_quotas(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<QuotaManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
@@ -593,7 +593,7 @@ pub async fn manage_quotas(
 
 /// GET /admin/licenses - Get license information
 pub async fn get_licenses(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<LicenseResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
 
@@ -618,7 +618,7 @@ pub async fn get_licenses(
 
 /// POST /admin/licenses/manage - Add or update license
 pub async fn manage_licenses(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<LicenseManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {

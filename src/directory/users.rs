@@ -7,7 +7,7 @@ use chrono::{DateTime, Utc};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use uuid::Uuid;
+// use uuid::Uuid; // Unused import
 
 use crate::shared::state::AppState;
 
@@ -28,10 +28,12 @@ pub struct CreateUserRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct UpdateUserRequest {
+    pub username: Option<String>,
     pub first_name: Option<String>,
     pub last_name: Option<String>,
     pub display_name: Option<String>,
     pub email: Option<String>,
+    pub phone: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -136,15 +138,52 @@ pub async fn update_user(
         auth_service.client().clone()
     };
 
-    // Verify user exists first
-    match client.get_user(&user_id).await {
-        Ok(_) => {
+    // Build update payload
+    let mut update_data = serde_json::Map::new();
+    if let Some(username) = &req.username {
+        update_data.insert("userName".to_string(), serde_json::json!(username));
+    }
+    if let Some(email) = &req.email {
+        update_data.insert("email".to_string(), serde_json::json!(email));
+    }
+    if let Some(first_name) = &req.first_name {
+        update_data.insert("firstName".to_string(), serde_json::json!(first_name));
+    }
+    if let Some(last_name) = &req.last_name {
+        update_data.insert("lastName".to_string(), serde_json::json!(last_name));
+    }
+    if let Some(display_name) = &req.display_name {
+        update_data.insert("displayName".to_string(), serde_json::json!(display_name));
+    }
+    if let Some(phone) = &req.phone {
+        update_data.insert("phone".to_string(), serde_json::json!(phone));
+    }
+
+    // Update user via Zitadel API
+    match client
+        .http_patch(format!("{}/users/{}", client.api_url(), user_id))
+        .await
+        .json(&serde_json::Value::Object(update_data))
+        .send()
+        .await
+    {
+        Ok(response) if response.status().is_success() => {
             info!("User {} updated successfully", user_id);
             Ok(Json(SuccessResponse {
                 success: true,
                 message: Some(format!("User {} updated successfully", user_id)),
                 user_id: Some(user_id),
             }))
+        }
+        Ok(_) => {
+            error!("Failed to update user: unexpected response");
+            Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: "Failed to update user".to_string(),
+                    details: Some("Unexpected response from server".to_string()),
+                }),
+            ))
         }
         Err(e) => {
             error!("Failed to update user: {}", e);

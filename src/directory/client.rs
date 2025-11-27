@@ -36,6 +36,35 @@ impl ZitadelClient {
         })
     }
 
+    /// Get the API base URL
+    pub fn api_url(&self) -> &str {
+        &self.config.api_url
+    }
+
+    /// Make a GET request with authentication
+    pub async fn http_get(&self, url: String) -> reqwest::RequestBuilder {
+        let token = self.get_access_token().await.unwrap_or_default();
+        self.http_client.get(url).bearer_auth(token)
+    }
+
+    /// Make a POST request with authentication
+    pub async fn http_post(&self, url: String) -> reqwest::RequestBuilder {
+        let token = self.get_access_token().await.unwrap_or_default();
+        self.http_client.post(url).bearer_auth(token)
+    }
+
+    /// Make a PUT request with authentication
+    pub async fn http_put(&self, url: String) -> reqwest::RequestBuilder {
+        let token = self.get_access_token().await.unwrap_or_default();
+        self.http_client.put(url).bearer_auth(token)
+    }
+
+    /// Make a PATCH request with authentication
+    pub async fn http_patch(&self, url: String) -> reqwest::RequestBuilder {
+        let token = self.get_access_token().await.unwrap_or_default();
+        self.http_client.patch(url).bearer_auth(token)
+    }
+
     pub async fn get_access_token(&self) -> Result<String> {
         // Check if we have a cached token
         {
@@ -274,7 +303,10 @@ impl ZitadelClient {
         roles: Vec<String>,
     ) -> Result<()> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/organizations/{}/members", self.config.api_url, org_id);
+        let url = format!(
+            "{}/v2/organizations/{}/members",
+            self.config.api_url, org_id
+        );
 
         let body = serde_json::json!({
             "userId": user_id,
@@ -323,7 +355,10 @@ impl ZitadelClient {
 
     pub async fn get_org_members(&self, org_id: &str) -> Result<Vec<serde_json::Value>> {
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/organizations/{}/members", self.config.api_url, org_id);
+        let url = format!(
+            "{}/v2/organizations/{}/members",
+            self.config.api_url, org_id
+        );
 
         let response = self
             .http_client
@@ -413,14 +448,24 @@ impl ZitadelClient {
         permission: &str,
         resource: &str,
     ) -> Result<bool> {
-        // Basic permission check - can be extended
+        // Check if user has specific permission on resource
         let token = self.get_access_token().await?;
-        let url = format!("{}/v2/users/{}/permissions", self.config.api_url, user_id);
+        let url = format!(
+            "{}/v2/users/{}/permissions/check",
+            self.config.api_url, user_id
+        );
+
+        let check_payload = serde_json::json!({
+            "permission": permission,
+            "resource": resource,
+            "namespace": self.config.project_id.clone()
+        });
 
         let response = self
             .http_client
-            .get(&url)
+            .post(&url)
             .bearer_auth(&token)
+            .json(&check_payload)
             .send()
             .await
             .map_err(|e| anyhow!("Failed to check permissions: {}", e))?;
