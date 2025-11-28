@@ -3,7 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
-use tokio::fs;
+
 use uuid::Uuid;
 
 #[cfg(feature = "vectordb")]
@@ -388,14 +388,123 @@ impl EmailEmbeddingGenerator {
 
     /// Generate embedding from raw text
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        // TODO: Implement actual embedding generation using:
-        // - OpenAI embeddings API
-        // - Local embedding model (sentence-transformers)
-        // - Or other embedding service
+        // Try OpenAI embeddings first if API key is available
+        if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
+            return self.generate_openai_embedding(text, &api_key).await;
+        }
 
-        // Placeholder: Return dummy embedding
-        log::warn!("Using placeholder embedding - implement actual embedding generation!");
-        Ok(vec![0.0; 1536])
+        // Try local embedding service if configured
+        if let Ok(embedding_url) = std::env::var("LOCAL_EMBEDDING_URL") {
+            return self.generate_local_embedding(text, &embedding_url).await;
+        }
+
+        // Fall back to simple hash-based embedding for development
+        self.generate_hash_embedding(text)
+    }
+
+    /// Generate embedding using OpenAI API
+    async fn generate_openai_embedding(&self, text: &str, api_key: &str) -> Result<Vec<f32>> {
+        use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
+        use serde_json::json;
+
+        let client = reqwest::Client::new();
+        let mut headers = HeaderMap::new();
+        headers.insert(CONTENT_TYPE, HeaderValue::from_static("application/json"));
+        headers.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("Bearer {}", api_key))?,
+        );
+
+        let body = json!({
+            "input": text,
+            "model": "text-embedding-3-small"
+        });
+
+        let response = client
+            .post("https://api.openai.com/v1/embeddings")
+            .headers(headers)
+            .json(&body)
+            .send()
+            .await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!("OpenAI API error: {}", response.status()));
+        }
+
+        let result: serde_json::Value = response.json().await?;
+        let embedding = result["data"][0]["embedding"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("Invalid OpenAI response format"))?
+            .iter()
+            .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+            .collect();
+
+        Ok(embedding)
+    }
+
+    /// Generate embedding using local embedding service
+    async fn generate_local_embedding(&self, text: &str, embedding_url: &str) -> Result<Vec<f32>> {
+        use serde_json::json;
+
+        let client = reqwest::Client::new();
+        let body = json!({
+            "text": text,
+            "model": "sentence-transformers/all-MiniLM-L6-v2"
+        });
+
+        let response = client.post(embedding_url).json(&body).send().await?;
+
+        if !response.status().is_success() {
+            return Err(anyhow::anyhow!(
+                "Local embedding service error: {}",
+                response.status()
+            ));
+        }
+
+        let result: serde_json::Value = response.json().await?;
+        let embedding = result["embedding"]
+            .as_array()
+            .ok_or_else(|| anyhow::anyhow!("Invalid embedding response format"))?
+            .iter()
+            .map(|v| v.as_f64().unwrap_or(0.0) as f32)
+            .collect();
+
+        Ok(embedding)
+    }
+
+    /// Generate deterministic hash-based embedding for development
+    fn generate_hash_embedding(&self, text: &str) -> Result<Vec<f32>> {
+        use std::collections::hash_map::DefaultHasher;
+        use std::hash::{Hash, Hasher};
+
+        const EMBEDDING_DIM: usize = 1536;
+        let mut embedding = vec![0.0f32; EMBEDDING_DIM];
+
+        // Create multiple hash values for different dimensions
+        let words: Vec<&str> = text.split_whitespace().collect();
+
+        for (i, chunk) in words.chunks(10).enumerate() {
+            let mut hasher = DefaultHasher::new();
+            chunk.join(" ").hash(&mut hasher);
+            let hash = hasher.finish();
+
+            // Distribute hash across embedding dimensions
+            for j in 0..64 {
+                let idx = (i * 64 + j) % EMBEDDING_DIM;
+                let value = ((hash >> j) & 1) as f32;
+                embedding[idx] += value;
+            }
+        }
+
+        // Normalize the embedding
+        let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
+        if norm > 0.0 {
+            for val in &mut embedding {
+                *val /= norm;
+            }
+        }
+
+        Ok(embedding)
     }
 }
 

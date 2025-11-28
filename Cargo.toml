@@ -53,7 +53,7 @@ llm = []
 nvidia = []
 
 # ===== COMMUNICATION CHANNELS =====
-email = ["dep:imap", "dep:lettre", "dep:mailparse"]
+email = ["dep:imap", "dep:lettre", "dep:mailparse", "dep:native-tls"]
 whatsapp = []
 instagram = []
 msteams = []
@@ -62,7 +62,7 @@ msteams = []
 chat = []
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:mime_guess"]
 tasks = ["dep:cron"]
-calendar = []
+calendar = ["dep:sqlx"]
 meet = ["dep:livekit"]
 mail = ["email"]
 
@@ -138,6 +138,9 @@ zitadel = { version = "5.5.1", features = ["api", "credentials"] }
 
 # === FEATURE-SPECIFIC DEPENDENCIES (Optional) ===
 
+# Database (for calendar and other features)
+sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"], optional = true }
+
 # Desktop UI (desktop feature)
 tauri = { version = "2", features = ["unstable"], optional = true }
 tauri-plugin-dialog = { version = "2", optional = true }
@@ -147,6 +150,7 @@ tauri-plugin-opener = { version = "2", optional = true }
 imap = { version = "3.0.0-alpha.15", optional = true }
 lettre = { version = "0.11", features = ["smtp-transport", "builder", "tokio1", "tokio1-native-tls"], optional = true }
 mailparse = { version = "0.15", optional = true }
+native-tls = { version = "0.2", optional = true }
 
 # Video Meetings (meet feature)
 livekit = { version = "0.7", optional = true }

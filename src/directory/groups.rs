@@ -17,7 +17,6 @@ use crate::shared::state::AppState;
 // Request/Response Types
 // ============================================================================
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct CreateGroupRequest {
     pub name: String,
@@ -25,7 +24,6 @@ pub struct CreateGroupRequest {
     pub members: Option<Vec<String>>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct UpdateGroupRequest {
     pub name: Option<String>,
@@ -33,7 +31,6 @@ pub struct UpdateGroupRequest {
     pub members: Option<Vec<String>>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct GroupQuery {
     pub page: Option<u32>,
@@ -41,14 +38,12 @@ pub struct GroupQuery {
     pub search: Option<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 pub struct AddMemberRequest {
     pub user_id: String,
     pub roles: Option<Vec<String>>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct GroupResponse {
     pub id: String,
@@ -60,7 +55,6 @@ pub struct GroupResponse {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct GroupListResponse {
     pub groups: Vec<GroupInfo>,
@@ -69,7 +63,6 @@ pub struct GroupListResponse {
     pub per_page: u32,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct GroupInfo {
     pub id: String,
@@ -78,7 +71,6 @@ pub struct GroupInfo {
     pub member_count: usize,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Serialize)]
 pub struct GroupMemberResponse {
     pub user_id: String,

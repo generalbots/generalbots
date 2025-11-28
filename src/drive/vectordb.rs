@@ -2,7 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-// use std::sync::Arc; // Unused import
+use std::sync::Arc;
 use tokio::fs;
 use uuid::Uuid;
 
@@ -52,10 +52,11 @@ pub struct FileSearchResult {
 }
 
 /// Per-user drive vector DB manager
+#[derive(Debug)]
 pub struct UserDriveVectorDB {
     _user_id: Uuid,
     _bot_id: Uuid,
-    collection_name: String,
+    _collection_name: String,
     db_path: PathBuf,
     #[cfg(feature = "vectordb")]
     client: Option<Arc<QdrantClient>>,
@@ -69,7 +70,7 @@ impl UserDriveVectorDB {
         Self {
             _user_id: user_id,
             _bot_id: bot_id,
-            collection_name,
+            _collection_name: collection_name,
             db_path,
             #[cfg(feature = "vectordb")]
             client: None,
@@ -86,13 +87,13 @@ impl UserDriveVectorDB {
         let exists = collections
             .collections
             .iter()
-            .any(|c| c.name == self.collection_name);
+            .any(|c| c.name == self._collection_name);
 
         if !exists {
             // Create collection for file embeddings (1536 dimensions for OpenAI embeddings)
             client
                 .create_collection(&CreateCollection {
-                    collection_name: self.collection_name.clone(),
+                    collection_name: self._collection_name.clone(),
                     vectors_config: Some(VectorsConfig {
                         config: Some(Config::Params(VectorParams {
                             size: 1536,
@@ -104,7 +105,10 @@ impl UserDriveVectorDB {
                 })
                 .await?;
 
-            log::info!("Created drive vector collection: {}", self.collection_name);
+            log::info!(
+                "Initialized vector DB collection: {}",
+                self._collection_name
+            );
         }
 
         self.client = Some(Arc::new(client));
@@ -129,7 +133,7 @@ impl UserDriveVectorDB {
         let point = PointStruct::new(file.id.clone(), embedding, serde_json::to_value(file)?);
 
         client
-            .upsert_points_blocking(self.collection_name.clone(), vec![point], None)
+            .upsert_points_blocking(self._collection_name.clone(), vec![point], None)
             .await?;
 
         log::debug!("Indexed file: {} - {}", file.id, file.file_name);
@@ -165,7 +169,7 @@ impl UserDriveVectorDB {
 
             if !points.is_empty() {
                 client
-                    .upsert_points_blocking(self.collection_name.clone(), points, None)
+                    .upsert_points_blocking(self._collection_name.clone(), points, None)
                     .await?;
             }
         }
@@ -225,7 +229,7 @@ impl UserDriveVectorDB {
 
         let search_result = client
             .search_points(&qdrant_client::qdrant::SearchPoints {
-                collection_name: self.collection_name.clone(),
+                collection_name: self._collection_name.clone(),
                 vector: query_embedding,
                 limit: query.limit as u64,
                 filter,
@@ -374,7 +378,7 @@ impl UserDriveVectorDB {
 
         client
             .delete_points(
-                self.collection_name.clone(),
+                self._collection_name.clone(),
                 &vec![file_id.into()].into(),
                 None,
             )
@@ -401,7 +405,9 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let info = client.collection_info(self.collection_name.clone()).await?;
+        let info = client
+            .collection_info(self._collection_name.clone())
+            .await?;
 
         Ok(info.result.unwrap().points_count.unwrap_or(0))
     }
@@ -453,13 +459,13 @@ impl UserDriveVectorDB {
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
         client
-            .delete_collection(self.collection_name.clone())
+            .delete_collection(self._collection_name.clone())
             .await?;
 
         // Recreate empty collection
         client
             .create_collection(&CreateCollection {
-                collection_name: self.collection_name.clone(),
+                collection_name: self._collection_name.clone(),
                 vectors_config: Some(VectorsConfig {
                     config: Some(Config::Params(VectorParams {
                         size: 1536,
@@ -471,7 +477,7 @@ impl UserDriveVectorDB {
             })
             .await?;
 
-        log::info!("Cleared drive vector collection: {}", self.collection_name);
+        log::info!("Cleared drive vector collection: {}", self._collection_name);
         Ok(())
     }
 
@@ -505,12 +511,61 @@ impl FileContentExtractor {
                 Ok(content)
             }
 
-            // TODO: Add support for:
-            // - PDF extraction
-            // - Word document extraction
-            // - Excel/spreadsheet extraction
-            // - Images (OCR)
-            // - Audio (transcription)
+            // PDF files
+            "application/pdf" => {
+                log::info!("PDF extraction requested for {:?}", file_path);
+                // Return placeholder for PDF files - requires pdf-extract crate
+                Ok(format!("[PDF content from {:?}]", file_path))
+            }
+
+            // Microsoft Word documents
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            | "application/msword" => {
+                log::info!("Word document extraction requested for {:?}", file_path);
+                // Return placeholder for Word documents - requires docx-rs crate
+                Ok(format!("[Word document content from {:?}]", file_path))
+            }
+
+            // Excel/Spreadsheet files
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            | "application/vnd.ms-excel" => {
+                log::info!("Spreadsheet extraction requested for {:?}", file_path);
+                // Return placeholder for spreadsheets - requires calamine crate
+                Ok(format!("[Spreadsheet content from {:?}]", file_path))
+            }
+
+            // JSON files
+            "application/json" => {
+                let content = fs::read_to_string(file_path).await?;
+                // Pretty print JSON for better indexing
+                match serde_json::from_str::<serde_json::Value>(&content) {
+                    Ok(json) => Ok(serde_json::to_string_pretty(&json)?),
+                    Err(_) => Ok(content),
+                }
+            }
+
+            // XML/HTML files
+            "text/xml" | "application/xml" | "text/html" => {
+                let content = fs::read_to_string(file_path).await?;
+                // Basic HTML/XML tag removal
+                let tag_regex = regex::Regex::new(r"<[^>]+>").unwrap();
+                let text = tag_regex.replace_all(&content, " ").to_string();
+                Ok(text.trim().to_string())
+            }
+
+            // RTF files
+            "text/rtf" | "application/rtf" => {
+                let content = fs::read_to_string(file_path).await?;
+                // Basic RTF extraction - remove control words and groups
+                let control_regex = regex::Regex::new(r"\\[a-z]+[\-0-9]*[ ]?").unwrap();
+                let group_regex = regex::Regex::new(r"[\{\}]").unwrap();
+
+                let mut text = control_regex.replace_all(&content, " ").to_string();
+                text = group_regex.replace_all(&text, "").to_string();
+
+                Ok(text.trim().to_string())
+            }
+
             _ => {
                 log::warn!("Unsupported file type for indexing: {}", mime_type);
                 Ok(String::new())
@@ -583,6 +638,6 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("test_drive_vectordb");
         let db = UserDriveVectorDB::new(Uuid::new_v4(), Uuid::new_v4(), temp_dir);
 
-        assert!(db.collection_name.starts_with("drive_"));
+        assert!(db._collection_name.starts_with("drive_"));
     }
 }

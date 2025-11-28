@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
-use std::process::{Command, Stdio};
-use std::path::Path;
-use std::fs::{OpenOptions, create_dir_all};
-use std::io::Write;
 use std::env;
+use std::fs::{create_dir_all, OpenOptions};
+use std::io::Write;
+use std::path::Path;
+use std::process::{Command, Stdio};
+use std::sync::Mutex;
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RcloneConfig {
     name: String,
@@ -40,7 +40,7 @@ pub fn save_config(config: RcloneConfig) -> Result<(), String> {
         .and_then(|_| writeln!(file, "provider = Other"))
         .and_then(|_| writeln!(file, "access_key_id = {}", config.access_key))
         .and_then(|_| writeln!(file, "secret_access_key = {}", config.secret_key))
-        .and_then(|_| writeln!(file, "endpoint = https:
+        .and_then(|_| writeln!(file, "endpoint = https://s3.amazonaws.com"))
         .and_then(|_| writeln!(file, "acl = private"))
         .map_err(|e| format!("Failed to write config: {}", e))
 }
@@ -69,7 +69,9 @@ pub fn start_sync(config: RcloneConfig, state: tauri::State<AppState>) -> Result
 pub fn stop_sync(state: tauri::State<AppState>) -> Result<(), String> {
     let mut processes = state.sync_processes.lock().unwrap();
     for child in processes.iter_mut() {
-        child.kill().map_err(|e| format!("Failed to kill process: {}", e))?;
+        child
+            .kill()
+            .map_err(|e| format!("Failed to kill process: {}", e))?;
     }
     processes.clear();
     *state.sync_active.lock().unwrap() = false;
@@ -84,11 +86,14 @@ pub fn get_status(remote_name: String) -> Result<SyncStatus, String> {
         .output()
         .map_err(|e| format!("Failed to execute rclone rc: {}", e))?;
     if !output.status.success() {
-        return Err(format!("rclone rc failed: {}", String::from_utf8_lossy(&output.stderr)));
+        return Err(format!(
+            "rclone rc failed: {}",
+            String::from_utf8_lossy(&output.stderr)
+        ));
     }
     let json = String::from_utf8_lossy(&output.stdout);
-    let value: serde_json::Value = serde_json::from_str(&json)
-        .map_err(|e| format!("Failed to parse rclone status: {}", e))?;
+    let value: serde_json::Value =
+        serde_json::from_str(&json).map_err(|e| format!("Failed to parse rclone status: {}", e))?;
     let transferred = value.get("bytes").and_then(|v| v.as_u64()).unwrap_or(0);
     let errors = value.get("errors").and_then(|v| v.as_u64()).unwrap_or(0);
     let speed = value.get("speed").and_then(|v| v.as_f64()).unwrap_or(0.0);
@@ -115,12 +120,12 @@ pub fn format_bytes(bytes: u64) -> String {
     const MB: u64 = KB * 1024;
     const GB: u64 = MB * 1024;
     if bytes >= GB {
-        format!("{:.2} GB", bytes as f64 / GB as f64)
+        format!("{:.2} GB ", bytes as f64 / GB as f64)
     } else if bytes >= MB {
-        format!("{:.2} MB", bytes as f64 / MB as f64)
+        format!("{:.2} MB ", bytes as f64 / MB as f64)
     } else if bytes >= KB {
-        format!("{:.2} KB", bytes as f64 / KB as f64)
+        format!("{:.2} KB ", bytes as f64 / KB as f64)
     } else {
-        format!("{} B", bytes)
+        format!("{} B ", bytes)
     }
 }

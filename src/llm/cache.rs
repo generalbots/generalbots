@@ -14,7 +14,7 @@ use crate::config::ConfigManager;
 use crate::shared::utils::{estimate_token_count, DbPool};
 
 /// Configuration for semantic caching
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct CacheConfig {
     /// TTL for cache entries in seconds
     pub ttl: u64,
@@ -60,6 +60,18 @@ pub struct CachedResponse {
 }
 
 /// LLM provider wrapper with caching capabilities
+// Manual Debug implementation needed for trait objects
+
+impl std::fmt::Debug for CachedLLMProvider {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CachedLLMProvider")
+            .field("cache", &self.cache)
+            .field("config", &self.config)
+            .field("embedding_service", &self.embedding_service.is_some())
+            .field("db_pool", &self.db_pool.is_some())
+            .finish()
+    }
+}
 pub struct CachedLLMProvider {
     /// The underlying LLM provider
     provider: Arc<dyn LLMProvider>,
@@ -501,7 +513,7 @@ impl CachedLLMProvider {
 }
 
 /// Cache statistics
-#[derive(Serialize, Deserialize, Debug)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct CacheStats {
     pub total_entries: usize,
     pub total_hits: u32,
@@ -630,6 +642,9 @@ impl LLMProvider for CachedLLMProvider {
 }
 
 /// Basic embedding service implementation using local embeddings
+// Manual Debug implementation needed for trait objects
+
+#[derive(Debug)]
 pub struct LocalEmbeddingService {
     embedding_url: String,
     model: String,
@@ -645,25 +660,6 @@ impl LocalEmbeddingService {
 }
 
 /// Helper function to enable semantic cache for a specific bot
-pub async fn enable_semantic_cache_for_bot(
-    cache: &redis::Client,
-    bot_id: &str,
-    enabled: bool,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let mut conn = cache.get_multiplexed_async_connection().await?;
-    let config_key = format!("bot_config:{}:llm-cache", bot_id);
-    let value = if enabled { "true" } else { "false" };
-
-    conn.set_ex::<_, _, ()>(&config_key, value, 86400).await?; // 24 hour TTL
-
-    info!(
-        "Semantic cache {} for bot {}",
-        if enabled { "enabled" } else { "disabled" },
-        bot_id
-    );
-
-    Ok(())
-}
 
 #[async_trait]
 impl EmbeddingService for LocalEmbeddingService {
