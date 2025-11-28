@@ -1,15 +1,17 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+#[cfg(feature = "vectordb")]
 use std::sync::Arc;
 use tokio::fs;
 use uuid::Uuid;
 
 #[cfg(feature = "vectordb")]
-use qdrant_client::{
-    prelude::*,
-    qdrant::{vectors_config::Config, CreateCollection, Distance, VectorParams, VectorsConfig},
+use qdrant_client::qdrant::{
+    vectors_config::Config, CreateCollection, Distance, PointStruct, VectorParams, VectorsConfig,
 };
 
 /// File metadata for vector DB indexing
@@ -80,7 +82,7 @@ impl UserDriveVectorDB {
     /// Initialize vector DB collection
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
-        let client = QdrantClient::from_url(qdrant_url).build()?;
+        let client = qdrant_client::Qdrant::from_url(qdrant_url).build()?;
 
         // Check if collection exists
         let collections = client.list_collections().await?;
@@ -130,10 +132,14 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let point = PointStruct::new(file.id.clone(), embedding, serde_json::to_value(file)?);
+        let payload = serde_json::to_value(file)?
+            .as_object()
+            .map(|m| m.clone())
+            .unwrap_or_default();
+        let point = PointStruct::new(file.id.clone(), embedding, payload);
 
         client
-            .upsert_points_blocking(self._collection_name.clone(), vec![point], None)
+            .upsert_points(self._collection_name.clone(), None, vec![point], None)
             .await?;
 
         log::debug!("Indexed file: {} - {}", file.id, file.file_name);
@@ -161,15 +167,17 @@ impl UserDriveVectorDB {
             let points: Vec<PointStruct> = files
                 .iter()
                 .filter_map(|(file, embedding)| {
-                    serde_json::to_value(file).ok().map(|payload| {
-                        PointStruct::new(file.id.clone(), embedding.clone(), payload)
+                    serde_json::to_value(file).ok().and_then(|v| {
+                        v.as_object().map(|m| {
+                            PointStruct::new(file.id.clone(), embedding.clone(), m.clone())
+                        })
                     })
                 })
                 .collect();
 
             if !points.is_empty() {
                 client
-                    .upsert_points_blocking(self._collection_name.clone(), points, None)
+                    .upsert_points(self._collection_name.clone(), None, points, None)
                     .await?;
             }
         }

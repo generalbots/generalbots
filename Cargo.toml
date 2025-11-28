@@ -62,7 +62,7 @@ msteams = []
 chat = []
 drive = ["dep:aws-config", "dep:aws-sdk-s3", "dep:pdf-extract", "dep:zip", "dep:downloader", "dep:mime_guess"]
 tasks = ["dep:cron"]
-calendar = ["dep:sqlx"]
+calendar = []
 meet = ["dep:livekit"]
 mail = ["email"]
 
@@ -137,9 +137,6 @@ uuid = { version = "1.11", features = ["serde", "v4"] }
 zitadel = { version = "5.5.1", features = ["api", "credentials"] }
 
 # === FEATURE-SPECIFIC DEPENDENCIES (Optional) ===
-
-# Database (for calendar and other features)
-sqlx = { version = "0.8", features = ["runtime-tokio-rustls", "postgres", "chrono", "uuid"], optional = true }
 
 # Desktop UI (desktop feature)
 tauri = { version = "2", features = ["unstable"], optional = true }

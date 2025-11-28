@@ -8,6 +8,17 @@ use tokio::sync::RwLock;
 use tokio::time::{sleep, Duration};
 use uuid::Uuid;
 
+#[cfg(feature = "vectordb")]
+use crate::drive::vectordb::UserDriveVectorDB;
+#[cfg(feature = "vectordb")]
+use crate::drive::vectordb::{FileContentExtractor, FileDocument};
+#[cfg(all(feature = "vectordb", feature = "email"))]
+use crate::email::vectordb::UserEmailVectorDB;
+#[cfg(all(feature = "vectordb", feature = "email"))]
+use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator};
+use crate::shared::utils::DbPool;
+use anyhow::Result;
+
 // UserWorkspace struct for managing user workspace paths
 #[derive(Debug, Clone)]
 struct UserWorkspace {
@@ -26,14 +37,13 @@ impl UserWorkspace {
     }
 
     fn get_path(&self) -> PathBuf {
-        self.root.join(self.bot_id.to_string()).join(self.user_id.to_string())
+        self.root
+            .join(self.bot_id.to_string())
+            .join(self.user_id.to_string())
     }
 }
-use crate::shared::utils::DbPool;
 
 // VectorDB types are defined locally in this module
-#[cfg(feature = "vectordb")]
-use qdrant_client::prelude::*;
 
 /// Indexing job status
 #[derive(Debug, Clone, PartialEq)]
@@ -93,7 +103,7 @@ impl VectorDBIndexer {
             db_pool,
             work_root,
             qdrant_url,
-            embedding_generator: Arc::new(EmailEmbeddingGenerator::new(llm_endpoint)),
+            embedding_generator: Arc::new(EmailEmbeddingGenerator { llm_endpoint }),
             jobs: Arc::new(RwLock::new(HashMap::new())),
             running: Arc::new(RwLock::new(false)),
             interval_seconds: 300, // Run every 5 minutes
@@ -373,7 +383,7 @@ impl VectorDBIndexer {
                     for file in chunk {
                         // Check if file should be indexed
                         let mime_type = file.mime_type.as_ref().map(|s| s.as_str()).unwrap_or("");
-                        if !FileContentExtractor::should_index(mime_type, file.file_size) {
+                        if !FileContentExtractor::should_index(&mime_type, file.file_size) {
                             continue;
                         }
 
@@ -448,7 +458,7 @@ impl VectorDBIndexer {
         &self,
         _user_id: Uuid,
         _account_id: &str,
-    ) -> Result<Vec<EmailDocument>> {
+    ) -> Result<Vec<EmailDocument>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual email fetching from IMAP
         // This should:
         // 1. Connect to user's email account
@@ -460,7 +470,10 @@ impl VectorDBIndexer {
     }
 
     /// Get unindexed files (placeholder - needs actual implementation)
-    async fn get_unindexed_files(&self, _user_id: Uuid) -> Result<Vec<FileDocument>> {
+    async fn get_unindexed_files(
+        &self,
+        _user_id: Uuid,
+    ) -> Result<Vec<FileDocument>, Box<dyn std::error::Error + Send + Sync>> {
         // TODO: Implement actual file fetching from drive
         // This should:
         // 1. List user's files from MinIO/S3

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::core::config::ConfigManager;
 use crate::llm::llm_models;
 use crate::shared::state::AppState;

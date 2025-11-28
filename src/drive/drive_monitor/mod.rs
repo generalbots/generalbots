@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::core::kb::KnowledgeBaseManager;
