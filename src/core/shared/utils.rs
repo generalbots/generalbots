@@ -1,4 +1,7 @@
+use crate::config::DriveConfig;
 use anyhow::{Context, Result};
+use aws_config::BehaviorVersion;
+use aws_sdk_s3::{config::Builder as S3ConfigBuilder, Client as S3Client};
 use diesel::Connection;
 use diesel::{
     r2d2::{ConnectionManager, Pool},
@@ -13,10 +16,9 @@ use smartstring::SmartString;
 use std::error::Error;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
-use aws_sdk_s3::{Client as S3Client, config::Builder as S3ConfigBuilder};
-use aws_config::BehaviorVersion;
-use crate::config::DriveConfig;
-pub async fn create_s3_operator(config: &DriveConfig) -> Result<S3Client, Box<dyn std::error::Error>> {
+pub async fn create_s3_operator(
+    config: &DriveConfig,
+) -> Result<S3Client, Box<dyn std::error::Error>> {
     let endpoint = if !config.server.ends_with('/') {
         format!("{}/", config.server)
     } else {
@@ -25,15 +27,13 @@ pub async fn create_s3_operator(config: &DriveConfig) -> Result<S3Client, Box<dy
     let base_config = aws_config::defaults(BehaviorVersion::latest())
         .endpoint_url(endpoint)
         .region("auto")
-        .credentials_provider(
-            aws_sdk_s3::config::Credentials::new(
-                config.access_key.clone(),
-                config.secret_key.clone(),
-                None,
-                None,
-                "static",
-            )
-        )
+        .credentials_provider(aws_sdk_s3::config::Credentials::new(
+            config.access_key.clone(),
+            config.secret_key.clone(),
+            None,
+            None,
+            "static",
+        ))
         .load()
         .await;
     let s3_config = S3ConfigBuilder::from(&base_config)
@@ -135,8 +135,7 @@ pub fn establish_pg_connection() -> Result<PgConnection> {
 }
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 pub fn create_conn() -> Result<DbPool, diesel::r2d2::PoolError> {
-    let database_url = std::env::var("DATABASE_URL")
-        .unwrap();
+    let database_url = std::env::var("DATABASE_URL").unwrap();
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder().build(manager)
 }
@@ -160,5 +159,29 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
             }
         }
     }
-    ("".to_string(), "".to_string(), "".to_string(), 5432, "".to_string())
+    (
+        "".to_string(),
+        "".to_string(),
+        "".to_string(),
+        5432,
+        "".to_string(),
+    )
+}
+
+/// Run database migrations
+pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
+
+    const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
+
+    let mut conn = pool.get()?;
+    conn.run_pending_migrations(MIGRATIONS).map_err(
+        |e| -> Box<dyn std::error::Error + Send + Sync> {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::Other,
+                format!("Migration error: {}", e),
+            ))
+        },
+    )?;
+    Ok(())
 }

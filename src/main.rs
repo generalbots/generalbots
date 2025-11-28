@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 use dotenvy::dotenv;
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -212,6 +212,7 @@ async fn main() -> std::io::Result<()> {
     // Initialize logger early to capture all logs with filters for noisy libraries
     let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| {
         // Default log level for botserver and suppress all other crates
+        // Note: r2d2 is set to warn to see database connection pool warnings
         "info,botserver=info,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
@@ -220,7 +221,7 @@ async fn main() -> std::io::Result<()> {
          reqwest=off,hyper=off,hyper_util=off,h2=off,\
          rustls=off,rustls_pemfile=off,tokio_rustls=off,\
          tracing=off,tracing_core=off,tracing_subscriber=off,\
-         diesel=off,diesel_migrations=off,r2d2=off,\
+         diesel=off,diesel_migrations=off,r2d2=warn,\
          serde=off,serde_json=off,\
          axum=off,axum_core=off,\
          tonic=off,prost=off,\
@@ -255,7 +256,7 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
     let desktop_mode = args.contains(&"--desktop".to_string());
-    let console_mode = args.contains(&"--console".to_string());
+    let no_console = args.contains(&"--noconsole".to_string());
 
     dotenv().ok();
 
@@ -281,10 +282,8 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    // Start UI thread if console mode is explicitly requested or if not in no-ui mode and not in desktop mode
-    let ui_handle: Option<std::thread::JoinHandle<()>> = if console_mode
-        || (!no_ui && !desktop_mode)
-    {
+    // Start UI thread if console is enabled (default) and not disabled by --noconsole or desktop mode
+    let ui_handle: Option<std::thread::JoinHandle<()>> = if !no_console && !desktop_mode && !no_ui {
         #[cfg(feature = "console")]
         {
             let progress_rx = Arc::new(tokio::sync::Mutex::new(_progress_rx));
@@ -327,10 +326,8 @@ async fn main() -> std::io::Result<()> {
         }
         #[cfg(not(feature = "console"))]
         {
-            if console_mode {
-                eprintln!("Console mode requested but console feature not enabled. Rebuild with --features console");
-            } else {
-                eprintln!("Console feature not enabled");
+            if !no_console {
+                eprintln!("Console feature not compiled. Rebuild with --features console or use --noconsole to suppress this message");
             }
             None
         }
@@ -364,13 +361,20 @@ async fn main() -> std::io::Result<()> {
         trace!("Checking for .env file at: {:?}", env_path);
 
         let cfg = if env_path.exists() {
-            trace!(".env file exists, starting all services...");
+            trace!(".env file exists, ensuring all services are running...");
+            info!("Ensuring database and drive services are running...");
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
                     "all services".to_string(),
                 ))
                 .ok();
             trace!("Calling bootstrap.start_all()...");
+
+            // Ensure critical services are started
+            if let Err(e) = bootstrap.ensure_services_running().await {
+                warn!("Some services might not be running: {}", e);
+            }
+
             bootstrap
                 .start_all()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
@@ -449,7 +453,19 @@ async fn main() -> std::io::Result<()> {
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
     let pool = match create_conn() {
-        Ok(pool) => pool,
+        Ok(pool) => {
+            // Run automatic migrations
+            trace!("Running database migrations...");
+            info!("Running database migrations...");
+            if let Err(e) = crate::shared::utils::run_migrations(&pool) {
+                error!("Failed to run migrations: {}", e);
+                // Continue anyway as some migrations might have already been applied
+                warn!("Continuing despite migration errors - database might be partially migrated");
+            } else {
+                info!("Database migrations completed successfully");
+            }
+            pool
+        }
         Err(e) => {
             error!("Failed to create database pool: {}", e);
             progress_tx
