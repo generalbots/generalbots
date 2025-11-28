@@ -1,3 +1,4 @@
+use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserSession};
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -84,7 +85,7 @@ pub async fn execute_talk(
         session_id: user_session.id.to_string(),
         channel: "web".to_string(),
         content: message,
-        message_type: 1,
+        message_type: MessageType::USER,
         stream_token: None,
         is_complete: true,
         suggestions,

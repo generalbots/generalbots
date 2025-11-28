@@ -11,6 +11,7 @@
 //! - Storage abstraction for S3-compatible backends
 //! - URL processing and validation
 
+use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserMessage};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -154,7 +155,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content,
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
@@ -182,7 +183,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content: response_content,
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
@@ -215,7 +216,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content: response_content,
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
@@ -248,7 +249,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content: response_content,
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
@@ -277,7 +278,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content: response_content,
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),
@@ -294,7 +295,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                     session_id: session_id.to_string(),
                     channel: "multimedia".to_string(),
                     content: "Message received and processing...".to_string(),
-                    message_type: 0,
+                    message_type: MessageType::EXTERNAL,
                     stream_token: None,
                     is_complete: true,
                     suggestions: Vec::new(),

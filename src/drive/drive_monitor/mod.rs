@@ -3,6 +3,7 @@
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::core::kb::KnowledgeBaseManager;
+use crate::shared::message_types::MessageType;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
 use log::{debug, error, info};
@@ -345,7 +346,7 @@ impl DriveMonitor {
                 session_id: session_id.clone(),
                 channel: "web".to_string(),
                 content: serde_json::to_string(&theme_data)?,
-                message_type: 2,
+                message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
                 suggestions: Vec::new(),

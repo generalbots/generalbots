@@ -7,6 +7,7 @@ use crate::llm::llm_models;
 use crate::llm::OpenAIClient;
 #[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
+use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserMessage, UserSession};
 use crate::shared::state::AppState;
 use axum::extract::ws::{Message, WebSocket};
@@ -209,7 +210,7 @@ impl BotOrchestrator {
                         session_id: message.session_id.clone(),
                         channel: message.channel.clone(),
                         content: processed,
-                        message_type: 2,
+                        message_type: MessageType::BOT_RESPONSE,
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
@@ -246,7 +247,7 @@ impl BotOrchestrator {
                         session_id: message.session_id.clone(),
                         channel: message.channel.clone(),
                         content: processed,
-                        message_type: 2,
+                        message_type: MessageType::BOT_RESPONSE,
                         stream_token: None,
                         is_complete: false,
                         suggestions: Vec::new(),
@@ -281,7 +282,7 @@ impl BotOrchestrator {
                     session_id: message.session_id.clone(),
                     channel: message.channel.clone(),
                     content: chunk,
-                    message_type: 2,
+                    message_type: MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: false,
                     suggestions: Vec::new(),
@@ -314,7 +315,7 @@ impl BotOrchestrator {
             session_id: message.session_id,
             channel: message.channel,
             content: full_response,
-            message_type: 2,
+            message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),
