@@ -13,7 +13,7 @@ use base64::{engine::general_purpose, Engine as _};
 use diesel::prelude::*;
 use imap::types::Seq;
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
-use log::{error, info};
+use log::info;
 use mailparse::{parse_mail, MailHeaderMap};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -44,9 +44,12 @@ pub fn configure() -> Router<Arc<AppState>> {
 // Export SaveDraftRequest for other modules
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDraftRequest {
+    pub account_id: String,
     pub to: String,
-    pub subject: String,
     pub cc: Option<String>,
+    pub bcc: Option<String>,
+    pub subject: String,
+    pub body: String,
     pub text: String,
 }
 
@@ -114,16 +117,6 @@ pub struct SendEmailRequest {
     pub subject: String,
     pub body: String,
     pub is_html: bool,
-}
-
-#[derive(Debug, Deserialize)]
-pub struct SaveDraftRequest {
-    pub account_id: String,
-    pub to: String,
-    pub cc: Option<String>,
-    pub bcc: Option<String>,
-    pub subject: String,
-    pub body: String,
 }
 
 #[derive(Debug, Serialize)]

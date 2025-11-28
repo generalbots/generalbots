@@ -10,10 +10,7 @@ use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
 #[cfg(feature = "vectordb")]
-pub mod vectordb_indexer;
-
-#[cfg(feature = "vectordb")]
-pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
+pub use crate::vector_db::vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};
 
 #[derive(Debug)]
 pub struct AutomationService {

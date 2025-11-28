@@ -1,6 +1,7 @@
-pub mod gpt_oss_20b;
 pub mod deepseek_r3;
 pub mod gpt_oss_120b;
+pub mod gpt_oss_20b;
+
 pub trait ModelHandler: Send + Sync {
     fn is_analysis_complete(&self, buffer: &str) -> bool;
     fn process_content(&self, content: &str) -> String;

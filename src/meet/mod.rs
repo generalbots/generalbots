@@ -6,10 +6,9 @@ use axum::{
     Router,
 };
 use log::{error, info};
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
-use uuid::Uuid;
 
 use crate::shared::state::AppState;
 

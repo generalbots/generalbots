@@ -7,6 +7,6 @@
 //! - Screen capture: Tauri commands (desktop) or WebRTC (web/mobile)
 //! - File sync: Tauri commands with local rclone process (desktop only)
 
-pub mod drive;
-pub mod keyword_services;
+// pub mod drive;
+// pub mod keyword_services;
 pub mod queue;

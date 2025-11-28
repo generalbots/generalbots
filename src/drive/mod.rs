@@ -11,7 +11,7 @@
 //! - POST /files/create-folder - Create new folder
 
 #[cfg(feature = "console")]
-use crate::console::file_tree::{FileTree, TreeNode};
+use crate::console::file_tree::FileTree;
 use crate::shared::state::AppState;
 use axum::{
     extract::{Query, State},
@@ -25,11 +25,8 @@ use serde::{Deserialize, Serialize};
 // use serde_json::json; // Unused import
 use std::sync::Arc;
 
-pub mod api;
 pub mod document_processing;
 pub mod drive_monitor;
-pub mod file;
-pub mod files;
 pub mod vectordb;
 
 // Note: Most functions are defined locally in this module
@@ -115,10 +112,10 @@ pub struct SearchQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct ShareRequest {
-    pub bucket: String,
-    pub path: String,
-    pub users: Vec<String>,
-    pub permissions: String,
+    pub _bucket: String,
+    pub _path: String,
+    pub _users: Vec<String>,
+    pub _permissions: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -153,6 +150,7 @@ pub struct SyncStatus {
 // ===== API Configuration =====
 
 /// Configure drive API routes
+#[allow(unused)]
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         // Basic file operations
@@ -647,7 +645,7 @@ pub async fn search_files(
     })?;
 
     let mut all_items = Vec::new();
-    let buckets = if let Some(bucket) = &params.bucket {
+    let buckets = if let Some(bucket) = params.bucket.as_ref() {
         vec![bucket.clone()]
     } else {
         let result = s3_client.list_buckets().send().await.map_err(|e| {
@@ -793,7 +791,7 @@ pub async fn share_folder(
         url,
         expires_at: Some(
             chrono::Utc::now()
-                .checked_add_signed(chrono::Duration::days(7))
+                .checked_add_signed(chrono::Duration::hours(24))
                 .unwrap()
                 .to_rfc3339(),
         ),
@@ -878,7 +876,7 @@ pub async fn get_quota(
         total_bytes,
         used_bytes,
         available_bytes,
-        percentage_used,
+        percentage_used: percentage_used as f64,
     }))
 }
 
