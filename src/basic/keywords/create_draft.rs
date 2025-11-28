@@ -55,7 +55,7 @@ async fn execute_create_draft(
             to: to.to_string(),
             subject: subject.to_string(),
             cc: None,
-            text: email_body,
+            body: email_body,
         };
 
         save_email_draft(&config.email, &draft_request)

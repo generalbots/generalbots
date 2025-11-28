@@ -129,16 +129,25 @@ impl BotOrchestrator {
 
         let system_prompt = std::env::var("SYSTEM_PROMPT")
             .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
-        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+        let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
+
+        // Inject bot_id into messages for cache system
+        if let serde_json::Value::Array(ref mut msgs) = messages {
+            let bot_id_obj = serde_json::json!({
+                "bot_id": bot_id.to_string()
+            });
+            msgs.push(bot_id_obj);
+        }
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
 
         let model_clone = model.clone();
         let key_clone = key.clone();
+        let messages_clone = messages.clone();
         tokio::spawn(async move {
             if let Err(e) = llm
-                .generate_stream("", &messages, stream_tx, &model_clone, &key_clone)
+                .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone)
                 .await
             {
                 error!("LLM streaming error: {}", e);

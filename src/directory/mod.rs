@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::shared::state::AppState;
 use axum::{
     extract::{Query, State},

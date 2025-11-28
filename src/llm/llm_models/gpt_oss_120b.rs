@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::ModelHandler;
 #[derive(Debug)]
 pub struct GptOss120bHandler {}

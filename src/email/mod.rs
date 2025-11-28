@@ -50,7 +50,6 @@ pub struct SaveDraftRequest {
     pub bcc: Option<String>,
     pub subject: String,
     pub body: String,
-    pub text: String,
 }
 
 // ===== Request/Response Structures =====

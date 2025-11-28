@@ -211,15 +211,13 @@ async fn execute_send_mail(
     {
         use crate::email::EmailService;
 
-        let email_service = EmailService::new(state.clone());
+        let email_service = EmailService::new(Arc::new(state.as_ref().clone()));
 
         if let Ok(_) = email_service
             .send_email(
                 &to,
                 &subject,
                 &body,
-                None, // cc
-                None, // bcc
                 if attachments.is_empty() {
                     None
                 } else {
