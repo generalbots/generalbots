@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 pub mod deepseek_r3;
 pub mod gpt_oss_120b;
 pub mod gpt_oss_20b;

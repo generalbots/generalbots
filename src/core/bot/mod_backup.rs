@@ -1,7 +1,4 @@
-pub mod kb_context;
 use crate::core::config::ConfigManager;
-
-#[cfg(feature = "drive")]
 use crate::drive::drive_monitor::DriveMonitor;
 use crate::llm::llm_models;
 use crate::llm::OpenAIClient;
@@ -129,25 +126,16 @@ impl BotOrchestrator {
 
         let system_prompt = std::env::var("SYSTEM_PROMPT")
             .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
-        let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
-
-        // Inject bot_id into messages for cache system
-        if let serde_json::Value::Array(ref mut msgs) = messages {
-            let bot_id_obj = serde_json::json!({
-                "bot_id": bot_id.to_string()
-            });
-            msgs.push(bot_id_obj);
-        }
+        let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);
         let llm = self.state.llm_provider.clone();
 
         let model_clone = model.clone();
         let key_clone = key.clone();
-        let messages_clone = messages.clone();
         tokio::spawn(async move {
             if let Err(e) = llm
-                .generate_stream("", &messages_clone, stream_tx, &model_clone, &key_clone)
+                .generate_stream("", &messages, stream_tx, &model_clone, &key_clone)
                 .await
             {
                 error!("LLM streaming error: {}", e);
@@ -169,7 +157,7 @@ impl BotOrchestrator {
                 .parse::<usize>()
                 .unwrap_or(0);
 
-            if let Ok(metrics) = get_system_metrics() {
+            if let Ok(metrics) = get_system_metrics(initial_tokens, max_context_size) {
                 eprintln!(
                     "\nNVIDIA: {:.1}% | CPU: {:.1}% | Tokens: {}/{}",
                     metrics.gpu_usage.unwrap_or(0.0),
@@ -440,9 +428,7 @@ pub async fn handle_user_input_handler(
 
     info!(
         "Processing user input: {} for session: {}",
-        // TODO: Inject KB context here using kb_context::inject_kb_context
-        user_input,
-        session_id
+        user_input, session_id
     );
 
     let orchestrator = BotOrchestrator::new(state);

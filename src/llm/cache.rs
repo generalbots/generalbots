@@ -15,6 +15,7 @@ use crate::shared::utils::{estimate_token_count, DbPool};
 
 /// Configuration for semantic caching
 #[derive(Clone, Debug)]
+
 pub struct CacheConfig {
     /// TTL for cache entries in seconds
     pub ttl: u64,
@@ -42,6 +43,7 @@ impl Default for CacheConfig {
 
 /// Cached LLM response with metadata
 #[derive(Serialize, Deserialize, Clone, Debug)]
+
 pub struct CachedResponse {
     /// The actual response text
     pub response: String,
@@ -72,6 +74,7 @@ impl std::fmt::Debug for CachedLLMProvider {
             .finish()
     }
 }
+
 pub struct CachedLLMProvider {
     /// The underlying LLM provider
     provider: Arc<dyn LLMProvider>,
@@ -87,6 +90,7 @@ pub struct CachedLLMProvider {
 
 /// Trait for embedding services
 #[async_trait]
+
 pub trait EmbeddingService: Send + Sync {
     async fn get_embedding(
         &self,
@@ -247,6 +251,7 @@ impl CachedLLMProvider {
     }
 
     /// Try to get a cached response
+
     async fn get_cached_response(
         &self,
         prompt: &str,
@@ -309,6 +314,7 @@ impl CachedLLMProvider {
     }
 
     /// Find semantically similar cached responses
+
     async fn find_similar_cached(
         &self,
         prompt: &str,
@@ -456,6 +462,7 @@ impl CachedLLMProvider {
     }
 
     /// Get cache statistics
+
     pub async fn get_cache_stats(
         &self,
     ) -> Result<CacheStats, Box<dyn std::error::Error + Send + Sync>> {
@@ -488,6 +495,7 @@ impl CachedLLMProvider {
     }
 
     /// Clear cache for a specific model or all models
+
     pub async fn clear_cache(
         &self,
         model: Option<&str>,
@@ -514,6 +522,7 @@ impl CachedLLMProvider {
 
 /// Cache statistics
 #[derive(Serialize, Deserialize, Clone, Debug)]
+
 pub struct CacheStats {
     pub total_entries: usize,
     pub total_hits: u32,
@@ -645,6 +654,7 @@ impl LLMProvider for CachedLLMProvider {
 // Manual Debug implementation needed for trait objects
 
 #[derive(Debug)]
+
 pub struct LocalEmbeddingService {
     embedding_url: String,
     model: String,

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use super::ModelHandler;
 use regex;
 #[derive(Debug)]
