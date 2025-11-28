@@ -48,6 +48,21 @@ pub struct TaskScheduler {
     task_executions: Arc<RwLock<Vec<TaskExecution>>>,
 }
 
+impl std::fmt::Debug for TaskScheduler {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TaskScheduler")
+            .field("state", &"Arc<AppState>")
+            .field("running_tasks", &"Arc<RwLock<HashMap<Uuid, JoinHandle>>>")
+            .field(
+                "task_registry",
+                &"Arc<RwLock<HashMap<String, TaskHandler>>>",
+            )
+            .field("scheduled_tasks", &self.scheduled_tasks)
+            .field("task_executions", &self.task_executions)
+            .finish()
+    }
+}
+
 type TaskHandler = Arc<
     dyn Fn(
             Arc<AppState>,

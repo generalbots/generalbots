@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ZitadelConfig {
     pub issuer_url: String,
@@ -16,7 +15,6 @@ pub struct ZitadelConfig {
     pub service_account_key: Option<String>,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub struct ZitadelClient {
     config: ZitadelConfig,

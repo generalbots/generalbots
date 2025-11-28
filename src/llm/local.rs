@@ -1,32 +1,12 @@
 use crate::config::ConfigManager;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
-use axum::{extract::State, http::StatusCode, response::Json};
 use diesel::prelude::*;
 use log::{error, info};
 use reqwest;
 use std::sync::Arc;
 use tokio;
 
-pub async fn chat_completions_local(
-    State(_data): State<Arc<AppState>>,
-    Json(_payload): Json<serde_json::Value>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({ "status": "chat_completions_local not implemented" })),
-    )
-}
-
-pub async fn embeddings_local(
-    State(_data): State<Arc<AppState>>,
-    Json(_payload): Json<serde_json::Value>,
-) -> (StatusCode, Json<serde_json::Value>) {
-    (
-        StatusCode::OK,
-        Json(serde_json::json!({ "status": "embeddings_local not implemented" })),
-    )
-}
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {

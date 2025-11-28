@@ -209,26 +209,27 @@ async fn execute_send_mail(
     // Send the actual email if email feature is enabled
     #[cfg(feature = "email")]
     {
-        let email_request = crate::email::EmailRequest {
-            to: to.to_string(),
-            subject: subject.to_string(),
-            body: body.to_string(),
-            cc: None,
-            bcc: None,
-            attachments: if attachments.is_empty() {
-                None
-            } else {
-                Some(attachments.clone())
-            },
-            reply_to: None,
-            headers: None,
-        };
+        use crate::email::EmailService;
 
-        if let Some(config) = &state.config {
-            if let Ok(_) = crate::email::send_email(&config.email, &email_request).await {
-                trace!("Email sent successfully: {}", message_id);
-                return Ok(format!("Email sent: {}", message_id));
-            }
+        let email_service = EmailService::new(state.clone());
+
+        if let Ok(_) = email_service
+            .send_email(
+                &to,
+                &subject,
+                &body,
+                None, // cc
+                None, // bcc
+                if attachments.is_empty() {
+                    None
+                } else {
+                    Some(attachments.clone())
+                },
+            )
+            .await
+        {
+            trace!("Email sent successfully: {}", message_id);
+            return Ok(format!("Email sent: {}", message_id));
         }
     }
 

@@ -154,6 +154,7 @@
   - [Email Integration](./chapter-11-features/email.md)
   - [Storage and Data](./chapter-11-features/storage.md)
   - [Multi-Channel Support](./chapter-11-features/channels.md)
+  - [Drive Monitor](./chapter-11-features/drive-monitor.md)
 
 # Part XI - Security
 

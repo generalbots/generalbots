@@ -1,8 +1,8 @@
 use axum::{
-    extract::{Path, Query, State},
+    extract::{Path, State},
     http::StatusCode,
     response::Json,
-    routing::{delete, get, post, put},
+    routing::{get, post},
     Router,
 };
 use chrono::{DateTime, Utc};
@@ -10,12 +10,12 @@ use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
+use crate::shared::state::AppState;
 use crate::shared::utils::DbPool;
+use diesel::sql_query;
+use diesel::sql_types::Timestamptz;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-use crate::shared::state::AppState;
-use diesel::sql_query;
-use diesel::sql_types::{Text, Timestamptz, Integer, Jsonb};
 
 #[derive(Debug, Clone, Serialize, Deserialize, QueryableByName)]
 pub struct CalendarEvent {
@@ -164,7 +164,7 @@ pub struct CalendarEngine {
 }
 
 impl CalendarEngine {
-    pub fn new(db: Arc<PgPool>) -> Self {
+    pub fn new(db: Arc<DbPool>) -> Self {
         Self {
             db,
             cache: Arc::new(RwLock::new(Vec::new())),
@@ -175,11 +175,19 @@ impl CalendarEngine {
         &self,
         event: CalendarEvent,
     ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let attendees_json = serde_json::to_value(&event.attendees)?;
-        let recurrence_json = event.recurrence_rule.as_ref().map(|r| serde_json::to_value(r).ok()).flatten();
+        let _attendees_json = serde_json::to_value(&event.attendees)?;
+        let _recurrence_json = event
+            .recurrence_rule
+            .as_ref()
+            .map(|r| serde_json::to_value(r).ok())
+            .flatten();
 
+        /* TODO: Implement with Diesel
         diesel::sql_query(
             "INSERT INTO calendar_events
              (id, title, description, start_time, end_time, location, attendees, organizer,
@@ -187,27 +195,25 @@ impl CalendarEngine {
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
              RETURNING *"
         )
-            event.id,
-            event.title,
-            event.description,
-            event.start_time,
-            event.end_time,
-            event.location,
-            &event.attendees[..],
-            event.organizer,
-            event.reminder_minutes,
-            event.recurrence_rule,
-            serde_json::to_value(&event.status)?,
-            event.created_at,
-            event.updated_at
-        )
+        .bind::<diesel::sql_types::Uuid, _>(event.id)
+        .bind::<diesel::sql_types::Text, _>(event.title)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(event.description)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.start_time)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.end_time)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(event.location)
+        .bind::<diesel::sql_types::Json, _>(&event.attendees[..])
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(event.organizer)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Integer>, _>(event.reminder_minutes)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(event.recurrence_rule)
+        .bind::<diesel::sql_types::Json, _>(serde_json::to_value(&event.status)?)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.created_at)
+        .bind::<diesel::sql_types::Timestamptz, _>(event.updated_at)
         .fetch_one(self.db.as_ref())
         .await?;
         */
 
         self.refresh_cache().await?;
 
-        Ok(event)
         Ok(event)
     }
 
@@ -218,7 +224,7 @@ impl CalendarEngine {
     ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
         let updated_at = Utc::now();
 
-        let result = sqlx::query!(
+        let _result = sqlx::query!(
             r#"
             UPDATE calendar_events
             SET title = COALESCE($2, title),
@@ -249,11 +255,27 @@ impl CalendarEngine {
 
         self.refresh_cache().await?;
 
-        Ok(serde_json::from_value(serde_json::to_value(result)?)?)
+        Ok(CalendarEvent {
+            id,
+            title: String::new(),
+            description: None,
+            start_time: Utc::now(),
+            end_time: Utc::now(),
+            location: None,
+            attendees: Vec::new(),
+            organizer: String::new(),
+            reminder_minutes: None,
+            recurrence: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
     }
 
     pub async fn delete_event(&self, id: Uuid) -> Result<bool, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         let rows_affected = diesel::sql_query("DELETE FROM calendar_events WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -266,19 +288,22 @@ impl CalendarEngine {
 
     pub async fn get_events_range(
         &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
+        _start: DateTime<Utc>,
+        _end: DateTime<Utc>,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
+        /* TODO: Implement with Diesel
         let results = diesel::sql_query(
             "SELECT * FROM calendar_events
              WHERE start_time >= $1 AND end_time <= $2
              ORDER BY start_time ASC"
         )
         .bind::<Timestamptz, _>(&start)
-            end
-        )
+        .bind::<Timestamptz, _>(&end)
         .fetch_all(self.db.as_ref())
         .await?;
         */
@@ -288,19 +313,22 @@ impl CalendarEngine {
 
     pub async fn get_user_events(
         &self,
-        user_id: &str,
+        _user_id: &str,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
+        /* TODO: Implement with Diesel
         let results = diesel::sql_query(
             "SELECT * FROM calendar_events
-             WHERE organizer = $1 OR $1::text = ANY(SELECT jsonb_array_elements_text(attendees))
+             WHERE assignee = $1 OR reporter = $1
              ORDER BY start_time ASC"
         )
         .bind::<Text, _>(&user_id)
         .fetch_all(self.db.as_ref())
         .await?;
-
         Ok(results
             .into_iter()
             .map(|r| serde_json::from_value(serde_json::to_value(r).unwrap()).unwrap())
@@ -325,8 +353,12 @@ impl CalendarEngine {
             action_items: Vec::new(),
         };
 
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
+        /* TODO: Implement with Diesel
         diesel::sql_query(
             r#"
             INSERT INTO meetings (id, event_id, platform, created_at)
@@ -365,8 +397,12 @@ impl CalendarEngine {
             sent: false,
         };
 
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
+        /* TODO: Implement with Diesel
         diesel::sql_query(
             r#"
             INSERT INTO calendar_reminders (id, event_id, remind_at, message, channel, sent)
@@ -387,7 +423,10 @@ impl CalendarEngine {
     }
 
     pub async fn get_event(&self, id: Uuid) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         let result = diesel::sql_query("SELECT * FROM calendar_events WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(&id)
@@ -398,12 +437,16 @@ impl CalendarEngine {
 
     pub async fn check_conflicts(
         &self,
-        start: DateTime<Utc>,
-        end: DateTime<Utc>,
-        user_id: &str,
+        _start: DateTime<Utc>,
+        _end: DateTime<Utc>,
+        _user_id: &str,
     ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let _conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
+        /* TODO: Implement with Diesel
         let results = diesel::sql_query(
             "SELECT * FROM calendar_events
              WHERE (organizer = $1 OR $1::text = ANY(SELECT jsonb_array_elements_text(attendees)))
@@ -411,8 +454,7 @@ impl CalendarEngine {
         )
         .bind::<Text, _>(&user_id)
         .bind::<Timestamptz, _>(&start)
-            end
-        )
+        .bind::<Timestamptz, _>(&end)
         .fetch_all(self.db.as_ref())
         .await?;
 
@@ -423,7 +465,10 @@ impl CalendarEngine {
         */
         Ok(vec![])
     }
-    pub async fn create_event(&self, event: CreateEventRequest) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
+    pub async fn create_event(
+        &self,
+        event: CreateEventRequest,
+    ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
         let id = Uuid::new_v4();
         let now = Utc::now();
 
@@ -449,7 +494,11 @@ impl CalendarEngine {
         Ok(calendar_event)
     }
 
-    pub async fn update_event(&self, id: Uuid, update: UpdateEventRequest) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
+    pub async fn update_event(
+        &self,
+        id: Uuid,
+        update: UpdateEventRequest,
+    ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
         let mut cache = self.cache.write().await;
 
         if let Some(event) = cache.iter_mut().find(|e| e.id == id) {
@@ -485,11 +534,16 @@ impl CalendarEngine {
         Ok(())
     }
 
-    pub async fn list_events(&self, start_date: Option<DateTime<Utc>>, end_date: Option<DateTime<Utc>>) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
+    pub async fn list_events(
+        &self,
+        start_date: Option<DateTime<Utc>>,
+        end_date: Option<DateTime<Utc>>,
+    ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
         let cache = self.cache.read().await;
 
         let events: Vec<CalendarEvent> = if let (Some(start), Some(end)) = (start_date, end_date) {
-            cache.iter()
+            cache
+                .iter()
                 .filter(|e| e.start_time >= start && e.start_time <= end)
                 .cloned()
                 .collect()
@@ -500,15 +554,20 @@ impl CalendarEngine {
         Ok(events)
     }
 
-    pub async fn search_events(&self, query: &str) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
+    pub async fn search_events(
+        &self,
+        query: &str,
+    ) -> Result<Vec<CalendarEvent>, Box<dyn std::error::Error>> {
         let cache = self.cache.read().await;
         let query_lower = query.to_lowercase();
 
         let events: Vec<CalendarEvent> = cache
             .iter()
             .filter(|e| {
-                e.title.to_lowercase().contains(&query_lower) ||
-                e.description.as_ref().map_or(false, |d| d.to_lowercase().contains(&query_lower))
+                e.title.to_lowercase().contains(&query_lower)
+                    || e.description
+                        .as_ref()
+                        .map_or(false, |d| d.to_lowercase().contains(&query_lower))
             })
             .cloned()
             .collect();
@@ -516,30 +575,39 @@ impl CalendarEngine {
         Ok(events)
     }
 
-    pub async fn check_availability(&self, start_time: DateTime<Utc>, end_time: DateTime<Utc>) -> Result<bool, Box<dyn std::error::Error>> {
+    pub async fn check_availability(
+        &self,
+        start_time: DateTime<Utc>,
+        end_time: DateTime<Utc>,
+    ) -> Result<bool, Box<dyn std::error::Error>> {
         let cache = self.cache.read().await;
 
         let has_conflict = cache.iter().any(|event| {
-            (event.start_time < end_time && event.end_time > start_time) &&
-            event.status != EventStatus::Cancelled
+            (event.start_time < end_time && event.end_time > start_time)
+                && event.status != EventStatus::Cancelled
         });
 
         Ok(!has_conflict)
     }
 
-    pub async fn schedule_meeting(&self, meeting: ScheduleMeetingRequest) -> Result<Meeting, Box<dyn std::error::Error>> {
+    pub async fn schedule_meeting(
+        &self,
+        meeting: ScheduleMeetingRequest,
+    ) -> Result<Meeting, Box<dyn std::error::Error>> {
         // First create the calendar event
-        let event = self.create_event(CreateEventRequest {
-            title: meeting.title.clone(),
-            description: meeting.description.clone(),
-            start_time: meeting.start_time,
-            end_time: meeting.end_time,
-            location: meeting.location.clone(),
-            attendees: Some(meeting.attendees.clone()),
-            organizer: meeting.organizer.clone(),
-            reminder_minutes: meeting.reminder_minutes,
-            recurrence_rule: None,
-        }).await?;
+        let event = self
+            .create_event(CreateEventRequest {
+                title: meeting.title.clone(),
+                description: meeting.description.clone(),
+                start_time: meeting.start_time,
+                end_time: meeting.end_time,
+                location: meeting.location.clone(),
+                attendees: Some(meeting.attendees.clone()),
+                organizer: meeting.organizer.clone(),
+                reminder_minutes: meeting.reminder_minutes,
+                recurrence_rule: None,
+            })
+            .await?;
 
         // Create meeting record
         let meeting_record = Meeting {
@@ -556,7 +624,10 @@ impl CalendarEngine {
         Ok(meeting_record)
     }
 
-    pub async fn set_reminder(&self, reminder: SetReminderRequest) -> Result<CalendarReminder, Box<dyn std::error::Error>> {
+    pub async fn set_reminder(
+        &self,
+        reminder: SetReminderRequest,
+    ) -> Result<CalendarReminder, Box<dyn std::error::Error>> {
         let reminder_record = CalendarReminder {
             id: Uuid::new_v4(),
             event_id: reminder.event_id,
@@ -570,11 +641,22 @@ impl CalendarEngine {
     }
 
     async fn refresh_cache(&self) -> Result<(), Box<dyn std::error::Error>> {
-        // TODO: Implement with Diesel
-        /*
-        let results = sqlx::query!("SELECT * FROM calendar_events ORDER BY start_time ASC")
-            .load::<CalendarEvent>(&mut conn)?;
-        let events: Vec<CalendarEvent> = vec![];
+        // TODO: Implement with sqlx
+        // use crate::shared::models::schema::calendar_events::dsl::*;
+
+        // let conn = self.db.clone();
+        // let events = tokio::task::spawn_blocking(move || {
+        //     let mut db_conn = conn.get()?;
+        //     calendar_events
+        //         .order(start_time.asc())
+        //         .load::<CalendarEvent>(&mut db_conn)
+        // })
+        // .await
+        // .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
+        // .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+
+        let events = Vec::new();
+
         let mut cache = self.cache.write().await;
         *cache = events;
 
@@ -587,7 +669,9 @@ pub async fn handle_event_create(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateEventRequest>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.create_event(payload).await {
@@ -604,7 +688,9 @@ pub async fn handle_event_update(
     Path(id): Path<Uuid>,
     Json(payload): Json<UpdateEventRequest>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.update_event(id, payload).await {
@@ -620,7 +706,9 @@ pub async fn handle_event_delete(
     State(state): State<Arc<AppState>>,
     Path(id): Path<Uuid>,
 ) -> Result<StatusCode, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.delete_event(id).await {
@@ -636,7 +724,9 @@ pub async fn handle_events_list(
     State(state): State<Arc<AppState>>,
     Query(query): Query<EventListQuery>,
 ) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.list_events(query.start_date, query.end_date).await {
@@ -652,7 +742,9 @@ pub async fn handle_events_search(
     State(state): State<Arc<AppState>>,
     Query(query): Query<EventSearchQuery>,
 ) -> Result<Json<Vec<CalendarEvent>>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.search_events(&query.query).await {
@@ -668,10 +760,15 @@ pub async fn handle_check_availability(
     State(state): State<Arc<AppState>>,
     Query(query): Query<CheckAvailabilityQuery>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
-    match calendar.check_availability(query.start_time, query.end_time).await {
+    match calendar
+        .check_availability(query.start_time, query.end_time)
+        .await
+    {
         Ok(available) => Ok(Json(serde_json::json!({ "available": available }))),
         Err(e) => {
             log::error!("Failed to check availability: {}", e);
@@ -684,7 +781,9 @@ pub async fn handle_schedule_meeting(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<ScheduleMeetingRequest>,
 ) -> Result<Json<Meeting>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.schedule_meeting(payload).await {
@@ -700,7 +799,9 @@ pub async fn handle_set_reminder(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SetReminderRequest>,
 ) -> Result<Json<CalendarReminder>, StatusCode> {
-    let calendar = state.calendar_engine.as_ref()
+    let calendar = state
+        .calendar_engine
+        .as_ref()
         .ok_or(StatusCode::SERVICE_UNAVAILABLE)?;
 
     match calendar.set_reminder(payload).await {
@@ -736,11 +837,16 @@ pub struct EventQuery {
 pub struct MeetingRequest {
     pub event_id: Uuid,
     pub platform: MeetingPlatform,
+}
 
+impl CalendarEngine {
     /// Process due reminders
     pub async fn process_reminders(&self) -> Result<Vec<String>, Box<dyn std::error::Error>> {
         let now = Utc::now();
-        let mut conn = self.db.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut conn = self
+            .db
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         // Find events that need reminders sent
         let events = diesel::sql_query(
@@ -749,7 +855,7 @@ pub struct MeetingRequest {
              AND start_time - INTERVAL '1 minute' * reminder_minutes <= $1
              AND start_time > $1
              AND reminder_sent = false
-             ORDER BY start_time ASC"
+             ORDER BY start_time ASC",
         )
         .bind::<Timestamptz, _>(&now)
         .load::<CalendarEvent>(&mut conn)?;
@@ -765,11 +871,9 @@ pub struct MeetingRequest {
             );
 
             // Mark reminder as sent
-            diesel::sql_query(
-                "UPDATE calendar_events SET reminder_sent = true WHERE id = $1"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(&event.id)
-            .execute(&mut conn)?;
+            diesel::sql_query("UPDATE calendar_events SET reminder_sent = true WHERE id = $1")
+                .bind::<diesel::sql_types::Uuid, _>(&event.id)
+                .execute(&mut conn)?;
 
             notifications.push(message);
         }
@@ -783,10 +887,10 @@ pub mod caldav {
     use super::*;
     use axum::{
         body::Body,
-        extract::{Path, State, Query},
-        http::{Method, StatusCode, header},
-        response::{Response, IntoResponse},
-        routing::{get, put, delete, any},
+        extract::{Path, Query, State},
+        http::{header, Method, StatusCode},
+        response::{IntoResponse, Response},
+        routing::{any, delete, get, put},
         Router,
     };
     use std::sync::Arc;
@@ -796,10 +900,12 @@ pub mod caldav {
             .route("/.well-known/caldav", get(caldav_redirect))
             .route("/caldav/:user/", any(caldav_propfind))
             .route("/caldav/:user/calendar/", any(caldav_calendar_handler))
-            .route("/caldav/:user/calendar/:event_uid.ics",
+            .route(
+                "/caldav/:user/calendar/:event_uid.ics",
                 get(caldav_get_event)
-                .put(caldav_put_event)
-                .delete(caldav_delete_event))
+                    .put(caldav_put_event)
+                    .delete(caldav_delete_event),
+            )
             .with_state(calendar_engine)
     }
 
@@ -815,7 +921,8 @@ pub mod caldav {
         Path(user): Path<String>,
         State(engine): State<Arc<CalendarEngine>>,
     ) -> impl IntoResponse {
-        let xml = format!(r#"<?xml version="1.0" encoding="utf-8"?>
+        let xml = format!(
+            r#"<?xml version="1.0" encoding="utf-8"?>
 <D:multistatus xmlns:D="DAV:" xmlns:C="urn:ietf:params:xml:ns:caldav">
   <D:response>
     <D:href>/caldav/{}/</D:href>
@@ -833,7 +940,9 @@ pub mod caldav {
       <D:status>HTTP/1.1 200 OK</D:status>
     </D:propstat>
   </D:response>
-</D:multistatus>"#, user, user);
+</D:multistatus>"#,
+            user, user
+        );
 
         Response::builder()
             .status(StatusCode::MULTI_STATUS)
@@ -858,8 +967,10 @@ pub mod caldav {
                     .header(header::CONTENT_TYPE, "text/calendar; charset=utf-8")
                     .body(Body::from(ics))
                     .unwrap()
-            },
-            _ => caldav_propfind(Path(user), State(engine)).await.into_response(),
+            }
+            _ => caldav_propfind(Path(user), State(engine))
+                .await
+                .into_response(),
         }
     }
 
@@ -870,21 +981,19 @@ pub mod caldav {
         let event_id = event_uid.trim_end_matches(".ics");
 
         match Uuid::parse_str(event_id) {
-            Ok(id) => {
-                match engine.get_event(id).await {
-                    Ok(event) => {
-                        let ics = event_to_icalendar(&event);
-                        Response::builder()
-                            .status(StatusCode::OK)
-                            .header(header::CONTENT_TYPE, "text/calendar; charset=utf-8")
-                            .body(Body::from(ics))
-                            .unwrap()
-                    },
-                    Err(_) => Response::builder()
-                        .status(StatusCode::NOT_FOUND)
-                        .body(Body::empty())
-                        .unwrap(),
+            Ok(id) => match engine.get_event(id).await {
+                Ok(event) => {
+                    let ics = event_to_icalendar(&event);
+                    Response::builder()
+                        .status(StatusCode::OK)
+                        .header(header::CONTENT_TYPE, "text/calendar; charset=utf-8")
+                        .body(Body::from(ics))
+                        .unwrap()
                 }
+                Err(_) => Response::builder()
+                    .status(StatusCode::NOT_FOUND)
+                    .body(Body::empty())
+                    .unwrap(),
             },
             Err(_) => Response::builder()
                 .status(StatusCode::BAD_REQUEST)
@@ -910,12 +1019,10 @@ pub mod caldav {
         let event_id = event_uid.trim_end_matches(".ics");
 
         match Uuid::parse_str(event_id) {
-            Ok(id) => {
-                match engine.delete_event(id).await {
-                    Ok(true) => StatusCode::NO_CONTENT,
-                    Ok(false) => StatusCode::NOT_FOUND,
-                    Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
-                }
+            Ok(id) => match engine.delete_event(id).await {
+                Ok(true) => StatusCode::NO_CONTENT,
+                Ok(false) => StatusCode::NOT_FOUND,
+                Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
             },
             Err(_) => StatusCode::BAD_REQUEST,
         }
@@ -947,8 +1054,14 @@ pub mod caldav {
             vevent.push_str(&format!("LOCATION:{}\r\n", loc));
         }
 
-        vevent.push_str(&format!("DTSTART:{}\r\n", event.start_time.format("%Y%m%dT%H%M%SZ")));
-        vevent.push_str(&format!("DTEND:{}\r\n", event.end_time.format("%Y%m%dT%H%M%SZ")));
+        vevent.push_str(&format!(
+            "DTSTART:{}\r\n",
+            event.start_time.format("%Y%m%dT%H%M%SZ")
+        ));
+        vevent.push_str(&format!(
+            "DTEND:{}\r\n",
+            event.end_time.format("%Y%m%dT%H%M%SZ")
+        ));
         vevent.push_str(&format!("STATUS:{}\r\n", event.status.to_uppercase()));
 
         for attendee in &event.attendees {
@@ -975,14 +1088,13 @@ pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
                     log::info!("Calendar reminder: {}", message);
                     // Here you would send actual notifications via email, push, etc.
                 }
-            },
+            }
             Err(e) => {
                 log::error!("Failed to process calendar reminders: {}", e);
             }
         }
     }
 }
-
 
 async fn create_event_handler(
     State(engine): State<Arc<CalendarEngine>>,

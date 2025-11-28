@@ -35,6 +35,8 @@ pub mod directory;
 
 #[cfg(feature = "drive")]
 pub mod drive;
+#[cfg(feature = "drive")]
+pub use drive::drive_monitor::DriveMonitor;
 
 #[cfg(feature = "email")]
 pub mod email;
@@ -44,6 +46,8 @@ pub mod instagram;
 
 #[cfg(feature = "llm")]
 pub mod llm;
+#[cfg(feature = "llm")]
+pub use llm::cache::{CacheConfig, CachedLLMProvider, CachedResponse, LocalEmbeddingService};
 
 #[cfg(feature = "meet")]
 pub mod meet;
@@ -56,8 +60,10 @@ pub mod nvidia;
 
 #[cfg(feature = "tasks")]
 pub mod tasks;
+pub use tasks::TaskEngine;
 
 #[cfg(feature = "vectordb")]
+#[path = "vector-db/mod.rs"]
 pub mod vector_db;
 
 #[cfg(feature = "weba")]

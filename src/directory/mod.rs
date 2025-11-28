@@ -16,7 +16,6 @@ pub mod users;
 
 use self::client::{ZitadelClient, ZitadelConfig};
 
-#[allow(dead_code)]
 pub struct AuthService {
     client: Arc<ZitadelClient>,
 }
