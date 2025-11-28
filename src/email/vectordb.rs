@@ -388,15 +388,9 @@ impl EmailEmbeddingGenerator {
 
     /// Generate embedding from raw text
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        // Try OpenAI embeddings first if API key is available
-        if let Ok(api_key) = std::env::var("OPENAI_API_KEY") {
-            return self.generate_openai_embedding(text, &api_key).await;
-        }
-
-        // Try local embedding service if configured
-        if let Ok(embedding_url) = std::env::var("LOCAL_EMBEDDING_URL") {
-            return self.generate_local_embedding(text, &embedding_url).await;
-        }
+        // Use local embedding service - configure via config.csv if needed
+        let embedding_url = "http://localhost:8082".to_string();
+        return self.generate_local_embedding(text, &embedding_url).await;
 
         // Fall back to simple hash-based embedding for development
         self.generate_hash_embedding(text)

@@ -34,10 +34,16 @@ pub struct EmailDomain {
 
 impl EmailSetup {
     pub fn new(base_url: String, config_path: PathBuf) -> Self {
-        let admin_user =
-            std::env::var("EMAIL_ADMIN_USER").unwrap_or_else(|_| "admin@localhost".to_string());
-        let admin_pass =
-            std::env::var("EMAIL_ADMIN_PASSWORD").unwrap_or_else(|_| "EmailAdmin123!".to_string());
+        // Generate dynamic credentials
+        let admin_user = format!(
+            "admin_{}@botserver.local",
+            uuid::Uuid::new_v4()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
+        let admin_pass = Self::generate_secure_password();
 
         Self {
             base_url,
@@ -45,6 +51,19 @@ impl EmailSetup {
             admin_pass,
             config_path,
         }
+    }
+
+    /// Generate a secure random password
+    fn generate_secure_password() -> String {
+        use rand::distr::Alphanumeric;
+        use rand::Rng;
+        let mut rng = rand::rng();
+        (0..16)
+            .map(|_| {
+                let byte = rng.sample(Alphanumeric);
+                char::from(byte)
+            })
+            .collect()
     }
 
     /// Wait for email service to be ready

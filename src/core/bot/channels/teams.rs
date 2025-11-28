@@ -24,15 +24,15 @@ impl TeamsAdapter {
         // Load from bot_configuration table with fallback to environment variables
         let app_id = config_manager
             .get_config(&bot_id, "teams-app-id", None)
-            .unwrap_or_else(|_| std::env::var("TEAMS_APP_ID").unwrap_or_default());
+            .unwrap_or_default();
 
         let app_password = config_manager
             .get_config(&bot_id, "teams-app-password", None)
-            .unwrap_or_else(|_| std::env::var("TEAMS_APP_PASSWORD").unwrap_or_default());
+            .unwrap_or_default();
 
         let tenant_id = config_manager
             .get_config(&bot_id, "teams-tenant-id", None)
-            .unwrap_or_else(|_| std::env::var("TEAMS_TENANT_ID").unwrap_or_default());
+            .unwrap_or_default();
 
         let service_url = config_manager
             .get_config(
@@ -40,14 +40,11 @@ impl TeamsAdapter {
                 "teams-service-url",
                 Some("https://smba.trafficmanager.net"),
             )
-            .unwrap_or_else(|_| {
-                std::env::var("TEAMS_SERVICE_URL")
-                    .unwrap_or_else(|_| "https://smba.trafficmanager.net".to_string())
-            });
+            .unwrap_or_else(|_| "https://smba.trafficmanager.net".to_string());
 
         let teams_bot_id = config_manager
             .get_config(&bot_id, "teams-bot-id", None)
-            .unwrap_or_else(|_| std::env::var("TEAMS_BOT_ID").unwrap_or_else(|_| app_id.clone()));
+            .unwrap_or_else(|_| app_id.clone());
 
         Self {
             app_id,

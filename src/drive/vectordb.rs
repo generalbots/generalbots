@@ -10,8 +10,12 @@ use tokio::fs;
 use uuid::Uuid;
 
 #[cfg(feature = "vectordb")]
-use qdrant_client::qdrant::{
-    vectors_config::Config, CreateCollection, Distance, PointStruct, VectorParams, VectorsConfig,
+use qdrant_client::{
+    client::QdrantClient,
+    qdrant::{
+        vectors_config::Config, CreateCollection, Distance, PointStruct, VectorParams,
+        VectorsConfig,
+    },
 };
 
 /// File metadata for vector DB indexing

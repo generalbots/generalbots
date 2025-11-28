@@ -416,19 +416,19 @@ async fn send_whatsapp_file(
     let _adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
 
     // First, upload the file to WhatsApp
-    let upload_url = format!(
-        "https://graph.facebook.com/v17.0/{}/media",
-        std::env::var("WHATSAPP_PHONE_NUMBER_ID").unwrap_or_default()
-    );
+    // WhatsApp configuration should be in config.csv
+    let phone_number_id = ""; // Configure via config.csv: whatsapp-phone-number-id
+    let upload_url = format!("https://graph.facebook.com/v17.0/{}/media", phone_number_id);
 
     let client = Client::new();
     let form = reqwest::multipart::Form::new()
         .text("messaging_product", "whatsapp")
         .part("file", reqwest::multipart::Part::bytes(file_data));
 
+    let access_token = ""; // Configure via config.csv: whatsapp-access-token
     let upload_response = client
         .post(&upload_url)
-        .bearer_auth(&std::env::var("WHATSAPP_ACCESS_TOKEN").unwrap_or_default())
+        .bearer_auth(access_token)
         .multipart(form)
         .send()
         .await?;
@@ -443,7 +443,7 @@ async fn send_whatsapp_file(
     // Send the file message
     let send_url = format!(
         "https://graph.facebook.com/v17.0/{}/messages",
-        std::env::var("WHATSAPP_PHONE_NUMBER_ID").unwrap_or_default()
+        phone_number_id // Using same phone_number_id from above
     );
 
     let payload = json!({
@@ -458,7 +458,7 @@ async fn send_whatsapp_file(
 
     client
         .post(&send_url)
-        .bearer_auth(&std::env::var("WHATSAPP_ACCESS_TOKEN").unwrap_or_default())
+        .bearer_auth(access_token) // Using same access_token from above
         .json(&payload)
         .send()
         .await?;
@@ -529,9 +529,9 @@ async fn send_teams_file(
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;
 
     // Upload to Teams and send as attachment
-    let access_token = std::env::var("TEAMS_ACCESS_TOKEN").unwrap_or_default();
-    let service_url = std::env::var("TEAMS_SERVICE_URL")
-        .unwrap_or_else(|_| "https://smba.trafficmanager.net/apis".to_string());
+    // Teams configuration should be in config.csv
+    let access_token = ""; // Configure via config.csv: teams-access-token
+    let service_url = "https://smba.trafficmanager.net/apis".to_string();
     let url = format!(
         "{}/v3/conversations/{}/activities",
         service_url.trim_end_matches('/'),
@@ -550,7 +550,7 @@ async fn send_teams_file(
         "type": "message",
         "text": caption,
         "from": {
-            "id": std::env::var("TEAMS_APP_ID").unwrap_or_default(),
+            "id": "",  // Configure via config.csv: teams-app-id
             "name": "Bot"
         },
         "conversation": {

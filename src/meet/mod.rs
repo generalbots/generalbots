@@ -25,10 +25,10 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/voice/stop", post(voice_stop))
         .route("/api/meet/create", post(create_meeting))
         .route("/api/meet/rooms", get(list_rooms))
-        .route("/api/meet/rooms/:room_id", get(get_room))
-        .route("/api/meet/rooms/:room_id/join", post(join_room))
+        .route("/api/meet/rooms/{room_id}", get(get_room))
+        .route("/api/meet/rooms/{room_id}/join", post(join_room))
         .route(
-            "/api/meet/rooms/:room_id/transcription/start",
+            "/api/meet/rooms/{room_id}/transcription/start",
             post(start_transcription),
         )
         .route("/api/meet/token", post(get_meeting_token))
@@ -40,7 +40,7 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(conversations::create_conversation),
         )
         .route(
-            "/conversations/:id/join",
+            "/conversations/{id}/join",
             post(conversations::join_conversation),
         )
         .route(
