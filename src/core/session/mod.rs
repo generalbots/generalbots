@@ -321,15 +321,19 @@ impl SessionManager {
         uid: Uuid,
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
+
+        // Try to query sessions, return empty vec if database error
         let sessions = if uid == Uuid::nil() {
             user_sessions
                 .order(created_at.desc())
-                .load::<UserSession>(&mut self.conn)?
+                .load::<UserSession>(&mut self.conn)
+                .unwrap_or_else(|_| Vec::new())
         } else {
             user_sessions
                 .filter(user_id.eq(uid))
                 .order(created_at.desc())
-                .load::<UserSession>(&mut self.conn)?
+                .load::<UserSession>(&mut self.conn)
+                .unwrap_or_else(|_| Vec::new())
         };
         Ok(sessions)
     }
@@ -408,43 +412,68 @@ impl SessionManager {
 
 /// Create a new session (anonymous user)
 pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-    // Using a fixed anonymous user ID for simplicity
-    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-    let bot_id = Uuid::nil();
-    let session_result = {
-        let mut sm = state.session_manager.lock().await;
-        sm.get_or_create_user_session(user_id, bot_id, "New Conversation")
-    };
-    match session_result {
-        Ok(Some(session)) => (
-            StatusCode::OK,
-            Json(serde_json::json!({
-                "session_id": session.id,
-                "title": "New Conversation",
-                "created_at": Utc::now()
-            })),
-        ),
-        Ok(None) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": "Failed to create session" })),
-        ),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e.to_string() })),
-        ),
+    // Always create a session, even without database
+    let temp_session_id = Uuid::new_v4();
+
+    // Try to create in database if available
+    if state.conn.get().is_ok() {
+        // Using a fixed anonymous user ID for simplicity
+        let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
+        let bot_id = Uuid::nil();
+
+        let session_result = {
+            let mut sm = state.session_manager.lock().await;
+            // Try to create, but don't fail if database has issues
+            match sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {
+                Ok(Some(session)) => {
+                    return (
+                        StatusCode::OK,
+                        Json(serde_json::json!({
+                            "session_id": session.id,
+                            "title": "New Conversation",
+                            "created_at": Utc::now()
+                        })),
+                    );
+                }
+                _ => {
+                    // Fall through to temporary session
+                }
+            }
+        };
     }
+
+    // Return temporary session if database is unavailable or has errors
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "session_id": temp_session_id,
+            "title": "New Conversation",
+            "created_at": Utc::now(),
+            "temporary": true
+        })),
+    )
 }
 
 /// Get list of sessions for the anonymous user
 pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
+    // Return empty array if database is not ready or has issues
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
+
+    // Try to get a fresh connection from the pool
+    let conn_result = state.conn.get();
+    if conn_result.is_err() {
+        // Database not available, return empty sessions array
+        return (StatusCode::OK, Json(serde_json::json!([])));
+    }
+
     let orchestrator = BotOrchestrator::new(state.clone());
     match orchestrator.get_user_sessions(user_id).await {
         Ok(sessions) => (StatusCode::OK, Json(serde_json::json!(sessions))),
-        Err(e) => (
-            StatusCode::INTERNAL_SERVER_ERROR,
-            Json(serde_json::json!({ "error": e.to_string() })),
-        ),
+        Err(_) => {
+            // On any error, return empty array instead of error message
+            // This allows the UI to continue functioning
+            (StatusCode::OK, Json(serde_json::json!([])))
+        }
     }
 }
 

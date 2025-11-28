@@ -4,7 +4,7 @@ The `default.gbui` template provides a complete desktop interface with multiple 
 
 ## Overview
 
-Location: `ui/desktop/default.gbui`
+Location: `ui/suite/default.gbui`
 
 The default template includes:
 - Multi-application layout (Chat, Drive, Tasks, Mail)

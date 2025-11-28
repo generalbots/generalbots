@@ -1,4 +1,5 @@
 #![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
+use axum::extract::Extension;
 use axum::{
     routing::{get, post},
     Router,
@@ -174,7 +175,7 @@ async fn run_axum_server(
     }
 
     // Build static file serving
-    let static_path = std::path::Path::new("./web/desktop");
+    let static_path = std::path::Path::new("./ui/suite");
 
     let app = Router::new()
         // Static file services must come first to match before other routes
@@ -187,6 +188,7 @@ async fn run_axum_server(
         .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
         // API routes
         .merge(api_router.with_state(app_state.clone()))
+        .layer(Extension(app_state.clone()))
         // Root index route - only matches exact "/"
         .route("/", get(crate::ui_server::index))
         // Layers
