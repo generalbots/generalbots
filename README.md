@@ -72,6 +72,8 @@ cargo run -- --container
 
 ### Default Behavior
 - **Console UI is enabled by default** - Shows real-time system status, logs, and file browser
+- **Minimal UI is served by default** at `http://localhost:8080` - Lightweight, fast-loading interface
+- Full suite UI available at `http://localhost:8080/suite` - Complete multi-application interface
 - Use `--noconsole` to disable the terminal UI and run as a background service
 - The HTTP server always runs on port 8080 unless in desktop mode
 

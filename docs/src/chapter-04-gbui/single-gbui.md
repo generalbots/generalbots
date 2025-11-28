@@ -4,7 +4,7 @@ The `single.gbui` template provides a streamlined, single-page chat interface fo
 
 ## Overview
 
-Location: `ui/desktop/single.gbui`
+Location: `ui/suite/single.gbui`
 
 A minimalist chat interface that includes:
 - Clean, focused chat experience
@@ -127,7 +127,7 @@ function sendMessage() {
 Perfect for embedding in existing websites:
 
 ```html
-<iframe src="http://localhost:8080/ui/desktop/single.gbui" 
+<iframe src="http://localhost:8080/ui/suite/single.gbui" 
         width="400" 
         height="600">
 </iframe>
