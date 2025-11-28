@@ -5,6 +5,19 @@ pub mod core;
 // Re-export shared from core
 pub use core::shared;
 
+// Bootstrap progress tracking
+#[derive(Debug, Clone)]
+pub enum BootstrapProgress {
+    StartingBootstrap,
+    InstallingComponent(String),
+    StartingComponent(String),
+    UploadingTemplates,
+    ConnectingDatabase,
+    StartingLLM,
+    BootstrapComplete,
+    BootstrapError(String),
+}
+
 // Re-exports from core (always included)
 pub use core::automation;
 pub use core::bootstrap;
@@ -71,16 +84,3 @@ pub mod weba;
 
 #[cfg(feature = "whatsapp")]
 pub mod whatsapp;
-
-// Bootstrap progress enum used by UI
-#[derive(Debug, Clone)]
-pub enum BootstrapProgress {
-    StartingBootstrap,
-    InstallingComponent(String),
-    StartingComponent(String),
-    UploadingTemplates,
-    ConnectingDatabase,
-    StartingLLM,
-    BootstrapComplete,
-    BootstrapError(String),
-}

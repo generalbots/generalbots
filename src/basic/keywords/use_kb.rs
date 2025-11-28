@@ -138,7 +138,7 @@ fn add_kb_to_session(
     };
 
     // Get the tool name from call stack if available
-    let tool_name = std::env::var("CURRENT_TOOL_NAME").ok();
+    let tool_name: Option<String> = None;
 
     // Add or update KB association for this session
     let assoc_id = Uuid::new_v4();

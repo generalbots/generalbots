@@ -127,8 +127,7 @@ impl BotOrchestrator {
             .await??
         };
 
-        let system_prompt = std::env::var("SYSTEM_PROMPT")
-            .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
+        let system_prompt = "You are a helpful assistant.".to_string();
         let mut messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
 
         // Inject bot_id into messages for cache system
@@ -159,6 +158,9 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let handler = llm_models::get_handler(&model);
 
+        // Log which handler is being used for thinking detection
+        trace!("Using model handler for {}", model);
+
         #[cfg(feature = "nvidia")]
         {
             let initial_tokens = crate::shared::utils::estimate_token_count(&context_data);
@@ -182,18 +184,94 @@ impl BotOrchestrator {
 
         while let Some(chunk) = stream_rx.recv().await {
             trace!("Received LLM chunk: {:?}", chunk);
+
+            // Accumulate chunk for analysis detection
             analysis_buffer.push_str(&chunk);
 
-            if handler.has_analysis_markers(&analysis_buffer) && !in_analysis {
+            // Check if we're entering thinking/analysis mode
+            if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
+                log::debug!(
+                    "Detected start of thinking/analysis content for model {}",
+                    model
+                );
+
+                // Extract content before thinking marker if any
+                let processed = handler.process_content(&analysis_buffer);
+                if !processed.is_empty() && processed != analysis_buffer {
+                    // There was content before the thinking marker
+                    full_response.push_str(&processed);
+
+                    // Send the pre-thinking content to user
+                    let response = BotResponse {
+                        bot_id: message.bot_id.clone(),
+                        user_id: message.user_id.clone(),
+                        session_id: message.session_id.clone(),
+                        channel: message.channel.clone(),
+                        content: processed,
+                        message_type: 2,
+                        stream_token: None,
+                        is_complete: false,
+                        suggestions: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                    };
+
+                    if response_tx.send(response).await.is_err() {
+                        warn!("Response channel closed");
+                        break;
+                    }
+                }
+                continue; // Skip sending thinking content
             }
 
+            // Check if thinking/analysis is complete
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
+                log::debug!(
+                    "Detected end of thinking/analysis content for model {}",
+                    model
+                );
+
+                // Process to remove thinking markers and get clean content
+                let processed = handler.process_content(&analysis_buffer);
+                if !processed.is_empty() {
+                    full_response.push_str(&processed);
+
+                    // Send the processed content
+                    let response = BotResponse {
+                        bot_id: message.bot_id.clone(),
+                        user_id: message.user_id.clone(),
+                        session_id: message.session_id.clone(),
+                        channel: message.channel.clone(),
+                        content: processed,
+                        message_type: 2,
+                        stream_token: None,
+                        is_complete: false,
+                        suggestions: Vec::new(),
+                        context_name: None,
+                        context_length: 0,
+                        context_max_length: 0,
+                    };
+
+                    if response_tx.send(response).await.is_err() {
+                        warn!("Response channel closed");
+                        break;
+                    }
+                }
+
                 analysis_buffer.clear();
                 continue;
             }
 
+            // If we're in analysis mode, accumulate but don't send
+            if in_analysis {
+                trace!("Accumulating thinking content, not sending to user");
+                continue;
+            }
+
+            // Normal content - send to user
             if !in_analysis {
                 full_response.push_str(&chunk);
 
@@ -440,9 +518,7 @@ pub async fn handle_user_input_handler(
 
     info!(
         "Processing user input: {} for session: {}",
-        // TODO: Inject KB context here using kb_context::inject_kb_context
-        user_input,
-        session_id
+        user_input, session_id
     );
 
     let orchestrator = BotOrchestrator::new(state);

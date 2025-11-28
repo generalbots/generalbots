@@ -1,5 +1,7 @@
 use crate::config::ConfigManager;
+#[cfg(feature = "nvidia")]
 use crate::nvidia;
+#[cfg(feature = "nvidia")]
 use crate::nvidia::get_system_metrics;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
@@ -32,6 +34,7 @@ impl StatusPanel {
             .unwrap()
             .as_secs()
             % 1000) as usize;
+        #[cfg(feature = "nvidia")]
         let _system_metrics = nvidia::get_system_metrics().unwrap_or_default();
         self.cached_content = self.render(None);
         self.last_update = std::time::Instant::now();
@@ -51,13 +54,19 @@ impl StatusPanel {
         let cpu_usage = self.system.global_cpu_usage();
         let cpu_bar = Self::create_progress_bar(cpu_usage, 20);
         lines.push(format!(" CPU: {:5.1}% {}", cpu_usage, cpu_bar));
-        let system_metrics = get_system_metrics().unwrap_or_default();
-
-        if let Some(gpu_usage) = system_metrics.gpu_usage {
-            let gpu_bar = Self::create_progress_bar(gpu_usage, 20);
-            lines.push(format!(" GPU: {:5.1}% {}", gpu_usage, gpu_bar));
-        } else {
-            lines.push(" GPU: Not available".to_string());
+        #[cfg(feature = "nvidia")]
+        {
+            let system_metrics = get_system_metrics().unwrap_or_default();
+            if let Some(gpu_usage) = system_metrics.gpu_usage {
+                let gpu_bar = Self::create_progress_bar(gpu_usage, 20);
+                lines.push(format!(" GPU: {:5.1}% {}", gpu_usage, gpu_bar));
+            } else {
+                lines.push(" GPU: Not available".to_string());
+            }
+        }
+        #[cfg(not(feature = "nvidia"))]
+        {
+            lines.push(" GPU: Feature not enabled".to_string());
         }
 
         let total_mem = self.system.total_memory() as f32 / 1024.0 / 1024.0 / 1024.0;

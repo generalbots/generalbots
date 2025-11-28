@@ -124,8 +124,7 @@ impl BotOrchestrator {
             .await??
         };
 
-        let system_prompt = std::env::var("SYSTEM_PROMPT")
-            .unwrap_or_else(|_| "You are a helpful assistant.".to_string());
+        let system_prompt = "You are a helpful assistant.".to_string();
         let messages = OpenAIClient::build_messages(&system_prompt, &context_data, &history);
 
         let (stream_tx, mut stream_rx) = mpsc::channel::<String>(100);

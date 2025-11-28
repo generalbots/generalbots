@@ -38,11 +38,10 @@ impl Default for EmbeddingConfig {
 impl EmbeddingConfig {
     /// Create config from environment or config.csv values
     pub fn from_env() -> Self {
-        let embedding_url =
-            std::env::var("EMBEDDING_URL").unwrap_or_else(|_| "http://localhost:8082".to_string());
+        // Use defaults - can be configured via config.csv if needed
+        let embedding_url = "http://localhost:8082".to_string();
 
-        let embedding_model =
-            std::env::var("EMBEDDING_MODEL").unwrap_or_else(|_| "bge-small-en-v1.5".to_string());
+        let embedding_model = "bge-small-en-v1.5".to_string();
 
         // Detect dimensions based on model name
         let dimensions = Self::detect_dimensions(&embedding_model);
@@ -230,62 +229,11 @@ impl KbEmbeddingGenerator {
     }
 
     /// Generate embeddings using OpenAI API (fallback)
-    async fn generate_openai_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
-        let api_key = std::env::var("OPENAI_API_KEY")
-            .context("OPENAI_API_KEY not set for fallback embedding generation")?;
-
-        let request = serde_json::json!({
-            "input": texts,
-            "model": "text-embedding-ada-002"
-        });
-
-        let response = self
-            .client
-            .post("https://api.openai.com/v1/embeddings")
-            .header("Authorization", format!("Bearer {}", api_key))
-            .json(&request)
-            .send()
-            .await
-            .context("Failed to send request to OpenAI")?;
-
-        if !response.status().is_success() {
-            let status = response.status();
-            let error_text = response.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!(
-                "OpenAI API error {}: {}",
-                status,
-                error_text
-            ));
-        }
-
-        let response_json: serde_json::Value = response
-            .json()
-            .await
-            .context("Failed to parse OpenAI response")?;
-
-        let mut embeddings = Vec::new();
-
-        if let Some(data) = response_json["data"].as_array() {
-            for item in data {
-                if let Some(embedding) = item["embedding"].as_array() {
-                    let vector: Vec<f32> = embedding
-                        .iter()
-                        .filter_map(|v| v.as_f64().map(|f| f as f32))
-                        .collect();
-
-                    embeddings.push(Embedding {
-                        vector,
-                        dimensions: 1536, // OpenAI ada-002 dimensions
-                        model: "text-embedding-ada-002".to_string(),
-                        tokens_used: response_json["usage"]["total_tokens"]
-                            .as_u64()
-                            .map(|t| t as usize),
-                    });
-                }
-            }
-        }
-
-        Ok(embeddings)
+    async fn generate_openai_embeddings(&self, _texts: &[String]) -> Result<Vec<Embedding>> {
+        // OpenAI embeddings disabled - use local embedding service instead
+        Err(anyhow::anyhow!(
+            "OpenAI embeddings not configured - use local embedding service"
+        ))
     }
 
     /// Generate embedding for a single text

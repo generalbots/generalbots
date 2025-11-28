@@ -396,12 +396,9 @@ fn degrees_to_compass(degrees: f64) -> String {
 }
 
 fn get_weather_api_key(_state: &AppState) -> Result<String, String> {
-    // Get API key from environment variable
-    std::env::var("OPENWEATHERMAP_API_KEY")
-        .or_else(|_| std::env::var("WEATHER_API_KEY"))
-        .map_err(|_| {
-            "Weather API key not found. Please set 'weather-api-key' in config.csv or WEATHER_API_KEY environment variable".to_string()
-        })
+    // Weather API key should be configured in config.csv: weather-api-key
+    // For now, return error indicating configuration needed
+    Err("Weather API key not configured. Please set 'weather-api-key' in config.csv".to_string())
 }
 
 #[cfg(test)]

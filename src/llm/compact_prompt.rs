@@ -37,7 +37,12 @@ async fn compact_prompt_for_bots(
         let compact_threshold = config_manager
             .get_config(&session.bot_id, "prompt-compact", None)?
             .parse::<i32>()
-            .unwrap_or(0);
+            .unwrap_or(4); // Default to 4 if not configured
+
+        let history_to_keep = config_manager
+            .get_config(&session.bot_id, "prompt-history", None)?
+            .parse::<usize>()
+            .unwrap_or(2); // Default to 2 if not configured
 
         if compact_threshold == 0 {
             return Ok(());
@@ -46,6 +51,7 @@ async fn compact_prompt_for_bots(
                 "Negative compact threshold detected for bot {}, skipping",
                 session.bot_id
             );
+            continue;
         }
         let session_id = session.id;
         let history = {
@@ -92,16 +98,31 @@ async fn compact_prompt_for_bots(
         }
 
         trace!(
-            "Compacting prompt for session {}: {} messages since last summary",
+            "Compacting prompt for session {}: {} messages since last summary (keeping last {})",
             session.id,
-            messages_since_summary
+            messages_since_summary,
+            history_to_keep
         );
+
+        // Determine which messages to summarize and which to keep
+        let total_messages = history.len() - start_index;
+        let messages_to_summarize = if total_messages > history_to_keep {
+            total_messages - history_to_keep
+        } else {
+            0
+        };
+
+        if messages_to_summarize == 0 {
+            trace!("Not enough messages to compact for session {}", session.id);
+            continue;
+        }
 
         let mut conversation = String::new();
         conversation
             .push_str("Please summarize this conversation between user and bot: \n\n [[[***** \n");
 
-        for (role, content) in history.iter().skip(start_index) {
+        // Only summarize messages beyond the history_to_keep threshold
+        for (role, content) in history.iter().skip(start_index).take(messages_to_summarize) {
             if role == "compact" {
                 continue;
             }
@@ -159,13 +180,17 @@ async fn compact_prompt_for_bots(
             }
         };
         info!(
-            "Prompt compacted {}: {} messages",
-            session.id,
-            history.len()
+            "Prompt compacted {}: {} messages summarized, {} kept",
+            session.id, messages_to_summarize, history_to_keep
         );
+
+        // Save the summary
         {
             let mut session_manager = state.session_manager.lock().await;
             session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
+
+            // Mark older messages as compacted (optional - for cleanup)
+            // This allows the system to potentially archive or remove old messages
         }
 
         let _session_cleanup = guard((), |_| {

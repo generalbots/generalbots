@@ -124,31 +124,20 @@ impl AppConfig {
             secret_key: std::env::var("DRIVE_SECRET").unwrap(),
         };
         let email = EmailConfig {
-            server: std::env::var("EMAIL_IMAP_SERVER")
-                .unwrap_or_else(|_| "imap.gmail.com".to_string()),
-            port: std::env::var("EMAIL_IMAP_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or(993),
-            username: std::env::var("EMAIL_USERNAME").unwrap_or_default(),
-            password: std::env::var("EMAIL_PASSWORD").unwrap_or_default(),
-            from: std::env::var("EMAIL_FROM").unwrap_or_default(),
-            smtp_server: std::env::var("EMAIL_SMTP_SERVER")
-                .unwrap_or_else(|_| "smtp.gmail.com".to_string()),
-            smtp_port: std::env::var("EMAIL_SMTP_PORT")
-                .ok()
-                .and_then(|p| p.parse().ok())
-                .unwrap_or(587),
+            server: "imap.gmail.com".to_string(),
+            port: 993,
+            username: String::new(),
+            password: String::new(),
+            from: String::new(),
+            smtp_server: "smtp.gmail.com".to_string(),
+            smtp_port: 587,
         };
         Ok(AppConfig {
             drive: minio,
             email,
             server: ServerConfig {
-                host: std::env::var("SERVER_HOST").unwrap_or_else(|_| "127.0.0.1".to_string()),
-                port: std::env::var("SERVER_PORT")
-                    .ok()
-                    .and_then(|p| p.parse().ok())
-                    .unwrap_or(8080),
+                host: "127.0.0.1".to_string(),
+                port: 8080,
             },
             site_path: {
                 let pool = create_conn()?;

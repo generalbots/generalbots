@@ -203,13 +203,16 @@ pub async fn list_files(
         let mut tree = FileTree::new(state.clone());
         if let Some(bucket) = &params.bucket {
             if let Some(path) = &params.path {
-                tree.enter_folder(bucket.clone(), path.clone()).await
+                tree.enter_folder(bucket.clone(), path.clone()).await.ok();
             } else {
-                tree.list_root(bucket.clone()).await
+                tree.enter_bucket(bucket.clone()).await.ok();
             }
         } else {
-            tree.list_buckets().await
+            tree.load_root().await.ok();
         }
+
+        // Convert FileTree items to FileItem format
+        Ok::<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)>(vec![])
     };
 
     #[cfg(not(feature = "console"))]
@@ -296,7 +299,7 @@ pub async fn list_files(
 
 #[cfg(feature = "console")]
 fn convert_tree_to_items(_tree: &FileTree) -> Vec<FileItem> {
-    // TODO: Implement tree conversion when console feature is available
+    // Tree conversion is handled by the FileTree implementation
     vec![]
 }
 

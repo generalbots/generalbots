@@ -19,9 +19,8 @@ pub struct QdrantConfig {
 impl Default for QdrantConfig {
     fn default() -> Self {
         Self {
-            url: std::env::var("QDRANT_URL")
-                .unwrap_or_else(|_| "http://localhost:6333".to_string()),
-            api_key: std::env::var("QDRANT_API_KEY").ok(),
+            url: "http://localhost:6333".to_string(),
+            api_key: None,
             timeout_secs: 30,
         }
     }

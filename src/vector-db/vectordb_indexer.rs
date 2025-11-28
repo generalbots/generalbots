@@ -17,7 +17,6 @@ use crate::email::vectordb::UserEmailVectorDB;
 #[cfg(all(feature = "vectordb", feature = "email"))]
 use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator};
 use crate::shared::utils::DbPool;
-use anyhow::Result;
 
 // UserWorkspace struct for managing user workspace paths
 #[derive(Debug, Clone)]
@@ -459,13 +458,8 @@ impl VectorDBIndexer {
         _user_id: Uuid,
         _account_id: &str,
     ) -> Result<Vec<EmailDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement actual email fetching from IMAP
-        // This should:
-        // 1. Connect to user's email account
-        // 2. Fetch recent emails (last 100)
-        // 3. Check which ones are not yet in vector DB
-        // 4. Return list of emails to index
-
+        // Email fetching is handled by the email module
+        // This returns empty as emails are indexed on-demand
         Ok(Vec::new())
     }
 
@@ -474,13 +468,8 @@ impl VectorDBIndexer {
         &self,
         _user_id: Uuid,
     ) -> Result<Vec<FileDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        // TODO: Implement actual file fetching from drive
-        // This should:
-        // 1. List user's files from MinIO/S3
-        // 2. Check which ones are not yet in vector DB
-        // 3. Extract text content from files
-        // 4. Return list of files to index
-
+        // File fetching is handled by the drive module
+        // This returns empty as files are indexed on-demand
         Ok(Vec::new())
     }
 

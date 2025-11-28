@@ -45,7 +45,7 @@ default = ["ui-server", "chat", "automation", "tasks", "drive", "llm", "redis-ca
 # ===== UI FEATURES =====
 desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener", "ui-server"]
 ui-server = []
-console = ["dep:crossterm", "dep:ratatui"]
+console = ["dep:crossterm", "dep:ratatui", "monitoring"]
 
 # ===== CORE INTEGRATIONS =====
 vectordb = ["dep:qdrant-client"]
