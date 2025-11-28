@@ -1,3 +1,4 @@
+use crate::shared::message_types::MessageType;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
@@ -51,7 +52,7 @@ pub struct UserMessage {
     pub session_id: String,
     pub channel: String,
     pub content: String,
-    pub message_type: i32,
+    pub message_type: MessageType,
     pub media_url: Option<String>,
     pub timestamp: DateTime<Utc>,
     pub context_name: Option<String>,
@@ -68,7 +69,7 @@ pub struct BotResponse {
     pub session_id: String,
     pub channel: String,
     pub content: String,
-    pub message_type: i32,
+    pub message_type: MessageType,
     pub stream_token: Option<String>,
     pub is_complete: bool,
     pub suggestions: Vec<Suggestion>,
@@ -90,7 +91,7 @@ impl BotResponse {
             session_id: session_id.to_string(),
             channel,
             content,
-            message_type: 2,
+            message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),

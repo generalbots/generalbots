@@ -4,6 +4,17 @@
         <meta charset="utf-8" />
         <title>General Bots</title>
         <meta name="viewport" content="width=device-width,initial-scale=1.0" />
+        <script>
+            // Message Type Constants inline since we don't have a /shared route
+            const MessageType = {
+                EXTERNAL: 0,
+                USER: 1,
+                BOT_RESPONSE: 2,
+                CONTINUE: 3,
+                SUGGESTION: 4,
+                CONTEXT_CHANGE: 5,
+            };
+        </script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/livekit-client/dist/livekit-client.umd.min.js"></script>
         <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -733,12 +744,21 @@
                 isUserScrolling = false,
                 autoScrollEnabled = true,
                 isContextChange = false;
-            const maxReconnectAttempts = 5,
-                messagesDiv = document.getElementById("messages"),
-                input = document.getElementById("messageInput"),
-                sendBtn = document.getElementById("sendBtn"),
-                voiceBtn = document.getElementById("voiceBtn"),
-                connectionStatus = document.getElementById("connectionStatus"),
+            const maxReconnectAttempts = 5;
+            let messagesDiv = document.getElementById("messages");
+            let input = document.getElementById("messageInput");
+            let sendBtn = document.getElementById("sendBtn");
+            let voiceBtn = document.getElementById("voiceBtn");
+
+            // Debug element initialization
+            console.log("Element initialization:");
+            console.log("messagesDiv:", messagesDiv);
+            console.log("input:", input);
+            console.log("sendBtn:", sendBtn);
+            console.log("voiceBtn:", voiceBtn);
+
+            const connectionStatus =
+                    document.getElementById("connectionStatus"),
                 flashOverlay = document.getElementById("flashOverlay"),
                 suggestionsContainer = document.getElementById("suggestions"),
                 floatLogo = document.getElementById("floatLogo"),
@@ -878,17 +898,29 @@
 
             async function initializeAuth() {
                 try {
+                    console.log("Starting auth initialization...");
                     updateConnectionStatus("connecting");
                     const p = window.location.pathname
                             .split("/")
                             .filter((s) => s),
-                        b = p.length > 0 ? p[0] : "default",
-                        r = await fetch(
-                            `http://localhost:8080/api/auth?bot_name=${encodeURIComponent(b)}`,
+                        b = p.length > 0 ? p[0] : "default";
+                    console.log("Bot name:", b);
+                    const r = await fetch(
+                            `/api/auth?bot_name=${encodeURIComponent(b)}`,
                         ),
                         a = await r.json();
+                    console.log("Auth response:", a);
                     currentUserId = a.user_id;
                     currentSessionId = a.session_id;
+                    currentBotId = a.bot_id || "default_bot";
+                    console.log(
+                        "Auth initialized - User:",
+                        currentUserId,
+                        "Session:",
+                        currentSessionId,
+                        "Bot:",
+                        currentBotId,
+                    );
                     connectWebSocket();
                     loadSessions();
                 } catch (e) {
@@ -984,6 +1016,7 @@
                 const u = getWebSocketUrl();
                 ws = new WebSocket(u);
                 ws.onmessage = function (e) {
+                    console.log("WebSocket message received:", e.data);
                     try {
                         if (!e.data || e.data.trim() === "") {
                             console.warn("Empty WebSocket message received");
@@ -997,19 +1030,35 @@
                         if (r.bot_id) {
                             currentBotId = r.bot_id;
                         }
-                        if (r.message_type === 2) {
-                            try {
-                                const d = JSON.parse(r.content);
-                                handleEvent(d.event, d.data);
-                            } catch (parseErr) {
-                                console.error(
-                                    "Failed to parse event content:",
-                                    parseErr,
-                                );
+                        // BOT_RESPONSE type is used for both regular streaming content and special event messages
+                        // Event messages have JSON-encoded content with 'event' and 'data' properties
+                        // Regular messages have plain text content that should be displayed directly
+                        if (r.message_type === MessageType.BOT_RESPONSE) {
+                            // Check if content looks like JSON (starts with { or [)
+                            const contentTrimmed = r.content.trim();
+                            if (
+                                contentTrimmed.startsWith("{") ||
+                                contentTrimmed.startsWith("[")
+                            ) {
+                                try {
+                                    const d = JSON.parse(r.content);
+                                    if (d.event && d.data) {
+                                        // This is an event message
+                                        handleEvent(d.event, d.data);
+                                        return;
+                                    }
+                                } catch (parseErr) {
+                                    // Not a valid event message, treat as regular content
+                                    console.debug(
+                                        "Content is not an event message, processing as regular message",
+                                    );
+                                }
                             }
+                            // Process as regular message content
+                            processMessageContent(r);
                             return;
                         }
-                        if (r.message_type === 5) {
+                        if (r.message_type === MessageType.CONTEXT_CHANGE) {
                             isContextChange = true;
                             return;
                         }
@@ -1024,7 +1073,10 @@
                     }
                 };
                 ws.onopen = function () {
-                    console.log("Connected to WebSocket");
+                    console.log(
+                        "Connected to WebSocket, readyState:",
+                        ws.readyState,
+                    );
                     updateConnectionStatus("connected");
                     reconnectAttempts = 0;
                     hasReceivedInitialMessage = false;
@@ -1218,7 +1270,7 @@
                         session_id: currentSessionId,
                         channel: "web",
                         content: "continue",
-                        message_type: 3,
+                        message_type: MessageType.CONTINUE,
                         media_url: null,
                         timestamp: new Date().toISOString(),
                     };
@@ -1327,7 +1379,8 @@
                             const h = (e) => {
                                 const d = JSON.parse(e.data);
                                 if (
-                                    d.message_type === 5 &&
+                                    d.message_type ===
+                                        MessageType.CONTEXT_CHANGE &&
                                     d.context_name === c
                                 ) {
                                     ws.removeEventListener("message", h);
@@ -1341,7 +1394,7 @@
                                 session_id: currentSessionId,
                                 channel: "web",
                                 content: t,
-                                message_type: 4,
+                                message_type: MessageType.SUGGESTION,
                                 is_suggestion: true,
                                 context_name: c,
                                 timestamp: new Date().toISOString(),
@@ -1367,12 +1420,42 @@
             }
 
             async function sendMessage() {
+                console.log("=== sendMessage called ===");
+                console.log("input element:", input);
+                console.log(
+                    "input.value:",
+                    input ? input.value : "input is null",
+                );
+
                 if (pendingContextChange) {
                     await pendingContextChange;
                     pendingContextChange = null;
                 }
+
+                if (!input) {
+                    console.error("Input element is null!");
+                    return;
+                }
+
                 const m = input.value.trim();
-                if (!m || !ws || ws.readyState !== WebSocket.OPEN) {
+                console.log(
+                    "Attempting to send message:",
+                    m,
+                    "WS state:",
+                    ws ? ws.readyState : "no ws",
+                    "WebSocket.OPEN value:",
+                    WebSocket.OPEN,
+                );
+
+                if (!m) {
+                    console.log("Message is empty, not sending");
+                    return;
+                }
+
+                if (!ws || ws.readyState !== WebSocket.OPEN) {
+                    console.log(
+                        "WebSocket not connected, attempting reconnect",
+                    );
                     if (!ws || ws.readyState !== WebSocket.OPEN) {
                         showWarning(
                             "Conexão não disponível. Tentando reconectar...",
@@ -1384,26 +1467,43 @@
                 if (isThinking) {
                     hideThinkingIndicator();
                 }
+
+                console.log("Adding message to UI");
                 addMessage("user", m);
+
+                console.log("Building message data object");
+                console.log("currentBotId:", currentBotId);
+                console.log("currentUserId:", currentUserId);
+                console.log("currentSessionId:", currentSessionId);
+
                 const d = {
-                    bot_id: currentBotId,
+                    bot_id: currentBotId || "default_bot",
                     user_id: currentUserId,
                     session_id: currentSessionId,
                     channel: "web",
                     content: m,
-                    message_type: 1,
+                    message_type: MessageType.USER,
                     media_url: null,
                     timestamp: new Date().toISOString(),
                 };
-                ws.send(JSON.stringify(d));
+                console.log("Message data object:", JSON.stringify(d, null, 2));
+
+                try {
+                    const messageString = JSON.stringify(d);
+                    console.log("Stringified message:", messageString);
+                    console.log("About to call ws.send()");
+                    ws.send(messageString);
+                    console.log("ws.send() completed successfully");
+                } catch (error) {
+                    console.error("Error sending message:", error);
+                    console.error("Error stack:", error.stack);
+                }
+
+                console.log("Clearing input field");
                 input.value = "";
                 input.focus();
+                console.log("=== sendMessage completed ===");
             }
-
-            sendBtn.onclick = sendMessage;
-            input.addEventListener("keypress", (e) => {
-                if (e.key === "Enter") sendMessage();
-            });
 
             async function toggleVoiceMode() {
                 isVoiceMode = !isVoiceMode;
@@ -1569,7 +1669,44 @@
                 scrollToBottomBtn.classList.remove("visible");
             }
 
-            window.addEventListener("load", initializeAuth);
+            window.addEventListener("load", () => {
+                console.log("Page loaded, initializing...");
+
+                // Re-get elements after DOM is ready
+                messagesDiv = document.getElementById("messages");
+                input = document.getElementById("messageInput");
+                sendBtn = document.getElementById("sendBtn");
+                voiceBtn = document.getElementById("voiceBtn");
+
+                console.log("After load - input:", !!input);
+                console.log("After load - sendBtn:", !!sendBtn);
+
+                // Attach event listeners after DOM is ready
+                if (sendBtn) {
+                    sendBtn.onclick = () => {
+                        console.log("Send button clicked!");
+                        sendMessage();
+                    };
+                    console.log("sendBtn.onclick attached");
+                } else {
+                    console.error("sendBtn element not found!");
+                }
+
+                if (input) {
+                    input.addEventListener("keypress", (e) => {
+                        console.log("Key pressed:", e.key);
+                        if (e.key === "Enter") {
+                            console.log("Enter key detected, sending message");
+                            sendMessage();
+                        }
+                    });
+                    console.log("input keypress listener attached");
+                } else {
+                    console.error("input element not found!");
+                }
+
+                initializeAuth();
+            });
             window.addEventListener("focus", function () {
                 if (!ws || ws.readyState !== WebSocket.OPEN) {
                     connectWebSocket();

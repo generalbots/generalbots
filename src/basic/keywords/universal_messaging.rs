@@ -1,6 +1,7 @@
 use crate::core::bot::channels::{
     instagram::InstagramAdapter, teams::TeamsAdapter, whatsapp::WhatsAppAdapter, ChannelAdapter,
 };
+use crate::shared::message_types::MessageType;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -200,7 +201,7 @@ async fn send_message_to_recipient(
                 user_id: recipient_id.clone(),
                 channel: "whatsapp".to_string(),
                 content: message.to_string(),
-                message_type: 0,
+                message_type: MessageType::EXTERNAL,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
@@ -218,7 +219,7 @@ async fn send_message_to_recipient(
                 user_id: recipient_id.clone(),
                 channel: "instagram".to_string(),
                 content: message.to_string(),
-                message_type: 0,
+                message_type: MessageType::EXTERNAL,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
@@ -236,7 +237,7 @@ async fn send_message_to_recipient(
                 user_id: recipient_id.clone(),
                 channel: "teams".to_string(),
                 content: message.to_string(),
-                message_type: 0,
+                message_type: MessageType::EXTERNAL,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
@@ -588,7 +589,7 @@ async fn send_web_message(
         session_id: session_id.to_string(),
         channel: "web".to_string(),
         content: message.to_string(),
-        message_type: 1,
+        message_type: MessageType::USER,
         stream_token: None,
         is_complete: true,
         suggestions: Vec::new(),
