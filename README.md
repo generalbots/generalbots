@@ -48,6 +48,34 @@ General Bots is a **self-hosted AI automation platform** that provides:
 - ✅ **Git-like Version Control** - Full history with rollback capabilities
 - ✅ **Contract Analysis** - Legal document review and summary
 
+## 🎮 Command-Line Options
+
+```bash
+# Run with default settings (console UI enabled)
+cargo run
+
+# Run without console UI
+cargo run -- --noconsole
+
+# Run in desktop mode (Tauri)
+cargo run -- --desktop
+
+# Run without any UI
+cargo run -- --noui
+
+# Specify tenant
+cargo run -- --tenant <tenant_name>
+
+# Container mode
+cargo run -- --container
+```
+
+### Default Behavior
+- **Console UI is enabled by default** - Shows real-time system status, logs, and file browser
+- Use `--noconsole` to disable the terminal UI and run as a background service
+- The HTTP server always runs on port 8080 unless in desktop mode
+
+
 ## 🏆 Key Features
 
 ### 4 Essential Keywords
