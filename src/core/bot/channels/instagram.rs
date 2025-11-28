@@ -16,13 +16,12 @@ pub struct InstagramAdapter {
 
 impl InstagramAdapter {
     pub fn new() -> Self {
-        // Load from environment variables (would be from config.csv in production)
-        let access_token = std::env::var("INSTAGRAM_ACCESS_TOKEN").unwrap_or_default();
-        let verify_token = std::env::var("INSTAGRAM_VERIFY_TOKEN")
-            .unwrap_or_else(|_| "webhook_verify".to_string());
-        let page_id = std::env::var("INSTAGRAM_PAGE_ID").unwrap_or_default();
+        // Load from config.csv in production
+        let access_token = String::new(); // Configure via config.csv: instagram-access-token
+        let verify_token = "webhook_verify".to_string(); // Configure via config.csv: instagram-verify-token
+        let page_id = String::new(); // Configure via config.csv: instagram-page-id
         let api_version = "v17.0".to_string();
-        let instagram_account_id = std::env::var("INSTAGRAM_ACCOUNT_ID").unwrap_or_default();
+        let instagram_account_id = String::new(); // Configure via config.csv: instagram-account-id
 
         Self {
             access_token,

@@ -24,22 +24,19 @@ impl WhatsAppAdapter {
         // Load from bot_configuration table with fallback to environment variables
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)
-            .unwrap_or_else(|_| std::env::var("WHATSAPP_API_KEY").unwrap_or_default());
+            .unwrap_or_default();
 
         let phone_number_id = config_manager
             .get_config(&bot_id, "whatsapp-phone-number-id", None)
-            .unwrap_or_else(|_| std::env::var("WHATSAPP_PHONE_NUMBER_ID").unwrap_or_default());
+            .unwrap_or_default();
 
-        let webhook_verify_token = config_manager
-            .get_config(&bot_id, "whatsapp-verify-token", Some("webhook_verify"))
-            .unwrap_or_else(|_| {
-                std::env::var("WHATSAPP_VERIFY_TOKEN")
-                    .unwrap_or_else(|_| "webhook_verify".to_string())
-            });
+        let verify_token = config_manager
+            .get_config(&bot_id, "whatsapp-verify-token", None)
+            .unwrap_or_else(|_| "webhook_verify".to_string());
 
         let business_account_id = config_manager
             .get_config(&bot_id, "whatsapp-business-account-id", None)
-            .unwrap_or_else(|_| std::env::var("WHATSAPP_BUSINESS_ACCOUNT_ID").unwrap_or_default());
+            .unwrap_or_default();
 
         let api_version = config_manager
             .get_config(&bot_id, "whatsapp-api-version", Some("v17.0"))
@@ -48,7 +45,7 @@ impl WhatsAppAdapter {
         Self {
             api_key,
             phone_number_id,
-            webhook_verify_token,
+            webhook_verify_token: verify_token,
             _business_account_id: business_account_id,
             api_version,
         }

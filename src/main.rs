@@ -4,7 +4,7 @@ use axum::{
     Router,
 };
 use dotenvy::dotenv;
-use log::{error, info};
+use log::{error, info, trace};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -37,9 +37,6 @@ mod calendar;
 
 #[cfg(feature = "compliance")]
 mod compliance;
-
-#[cfg(feature = "console")]
-mod console;
 
 #[cfg(feature = "desktop")]
 mod desktop;
@@ -100,17 +97,8 @@ use crate::shared::state::AppState;
 use crate::shared::utils::create_conn;
 use crate::shared::utils::create_s3_operator;
 
-#[derive(Debug, Clone)]
-pub enum BootstrapProgress {
-    StartingBootstrap,
-    InstallingComponent(String),
-    StartingComponent(String),
-    UploadingTemplates,
-    ConnectingDatabase,
-    StartingLLM,
-    BootstrapComplete,
-    BootstrapError(String),
-}
+// Use BootstrapProgress from lib.rs
+use botserver::BootstrapProgress;
 
 async fn run_axum_server(
     app_state: Arc<AppState>,
@@ -220,9 +208,44 @@ async fn run_axum_server(
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
     dotenv().ok();
+
+    // Initialize logger early to capture all logs with filters for noisy libraries
+    let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+        // Default log level for botserver and suppress all other crates
+        "info,botserver=info,\
+         aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
+         aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
+         aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
+         mio=off,tokio=off,tokio_util=off,tower=off,tower_http=off,\
+         reqwest=off,hyper=off,hyper_util=off,h2=off,\
+         rustls=off,rustls_pemfile=off,tokio_rustls=off,\
+         tracing=off,tracing_core=off,tracing_subscriber=off,\
+         diesel=off,diesel_migrations=off,r2d2=off,\
+         serde=off,serde_json=off,\
+         axum=off,axum_core=off,\
+         tonic=off,prost=off,\
+         lettre=off,imap=off,mailparse=off,\
+         crossterm=off,ratatui=off,\
+         tauri=off,tauri_runtime=off,tauri_utils=off,\
+         notify=off,ignore=off,walkdir=off,\
+         want=off,try_lock=off,futures=off,\
+         base64=off,bytes=off,encoding_rs=off,\
+         url=off,percent_encoding=off,\
+         ring=off,webpki=off,\
+         hickory_resolver=off,hickory_proto=off"
+            .to_string()
+    });
+
+    // Set the RUST_LOG env var if not already set
+    std::env::set_var("RUST_LOG", &rust_log);
+
+    env_logger::Builder::from_env(env_logger::Env::default())
+        .write_style(env_logger::WriteStyle::Always)
+        .init();
+
     println!(
         "Starting {} {}...",
-        std::env::var("PLATFORM_NAME").unwrap_or("General Bots".to_string()),
+        "General Bots".to_string(),
         env!("CARGO_PKG_VERSION")
     );
 
@@ -232,11 +255,12 @@ async fn main() -> std::io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
     let desktop_mode = args.contains(&"--desktop".to_string());
+    let console_mode = args.contains(&"--console".to_string());
 
     dotenv().ok();
 
-    let (progress_tx, progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
-    let (state_tx, state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
+    let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
+    let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
 
     // Handle CLI commands
     if args.len() > 1 {
@@ -257,17 +281,19 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    // Start UI thread if not in no-ui mode and not in desktop mode
-    let ui_handle = if !no_ui && !desktop_mode {
-        let _progress_rx = Arc::new(tokio::sync::Mutex::new(progress_rx));
-        let _state_rx = Arc::new(tokio::sync::Mutex::new(state_rx));
+    // Start UI thread if console mode is explicitly requested or if not in no-ui mode and not in desktop mode
+    let ui_handle: Option<std::thread::JoinHandle<()>> = if console_mode
+        || (!no_ui && !desktop_mode)
+    {
+        #[cfg(feature = "console")]
+        {
+            let progress_rx = Arc::new(tokio::sync::Mutex::new(_progress_rx));
+            let state_rx = Arc::new(tokio::sync::Mutex::new(_state_rx));
 
-        Some(
-            std::thread::Builder::new()
-                .name("ui-thread".to_string())
-                .spawn(move || {
-                    #[cfg(feature = "console")]
-                    {
+            Some(
+                std::thread::Builder::new()
+                    .name("ui-thread".to_string())
+                    .spawn(move || {
                         let mut ui = botserver::console::XtreeUI::new();
                         ui.set_progress_channel(progress_rx.clone());
 
@@ -295,18 +321,20 @@ async fn main() -> std::io::Result<()> {
                         if let Err(e) = ui.start_ui() {
                             eprintln!("UI error: {}", e);
                         }
-                    }
-                    #[cfg(not(feature = "console"))]
-                    {
-                        eprintln!("Console feature not enabled");
-                    }
-                })
-                .expect("Failed to spawn UI thread"),
-        )
+                    })
+                    .expect("Failed to spawn UI thread"),
+            )
+        }
+        #[cfg(not(feature = "console"))]
+        {
+            if console_mode {
+                eprintln!("Console mode requested but console feature not enabled. Rebuild with --features console");
+            } else {
+                eprintln!("Console feature not enabled");
+            }
+            None
+        }
     } else {
-        env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-            .write_style(env_logger::WriteStyle::Always)
-            .init();
         None
     };
 
@@ -323,36 +351,55 @@ async fn main() -> std::io::Result<()> {
     };
 
     // Bootstrap
+    trace!("Starting bootstrap process...");
     let progress_tx_clone = progress_tx.clone();
     let cfg = {
         progress_tx_clone
             .send(BootstrapProgress::StartingBootstrap)
             .ok();
 
+        trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
         let env_path = std::env::current_dir().unwrap().join(".env");
+        trace!("Checking for .env file at: {:?}", env_path);
 
         let cfg = if env_path.exists() {
+            trace!(".env file exists, starting all services...");
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
                     "all services".to_string(),
                 ))
                 .ok();
+            trace!("Calling bootstrap.start_all()...");
             bootstrap
                 .start_all()
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            trace!("bootstrap.start_all() completed");
 
+            trace!("Connecting to database...");
             progress_tx_clone
                 .send(BootstrapProgress::ConnectingDatabase)
                 .ok();
 
+            trace!("Creating database connection...");
             match create_conn() {
-                Ok(pool) => AppConfig::from_database(&pool)
-                    .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config")),
-                Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
+                Ok(pool) => {
+                    trace!("Database connection successful, loading config from database");
+                    AppConfig::from_database(&pool)
+                        .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config"))
+                }
+                Err(e) => {
+                    trace!(
+                        "Database connection failed: {:?}, loading config from env",
+                        e
+                    );
+                    AppConfig::from_env().expect("Failed to load config from env")
+                }
             }
         } else {
+            trace!(".env file not found, running bootstrap.bootstrap()...");
             _ = bootstrap.bootstrap().await;
+            trace!("bootstrap.bootstrap() completed");
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
                     "all services".to_string(),
@@ -369,28 +416,36 @@ async fn main() -> std::io::Result<()> {
             }
         };
 
+        trace!("Config loaded, uploading templates...");
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
 
         if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
+            trace!("Template upload error: {}", e);
             progress_tx_clone
                 .send(BootstrapProgress::BootstrapError(format!(
                     "Failed to upload templates: {}",
                     e
                 )))
                 .ok();
+        } else {
+            trace!("Templates uploaded successfully");
         }
 
         Ok::<AppConfig, std::io::Error>(cfg)
     };
 
+    trace!("Bootstrap config phase complete");
     let cfg = cfg?;
+    trace!("Reloading dotenv...");
     dotenv().ok();
 
+    trace!("Loading refreshed config from env...");
     let refreshed_cfg = AppConfig::from_env().expect("Failed to load config from env");
     let config = std::sync::Arc::new(refreshed_cfg.clone());
 
+    trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
 
     let pool = match create_conn() {
@@ -410,8 +465,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let cache_url =
-        std::env::var("CACHE_URL").unwrap_or_else(|_| "redis://localhost:6379".to_string());
+    let cache_url = "redis://localhost:6379".to_string();
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -435,19 +489,14 @@ async fn main() -> std::io::Result<()> {
     // Create default Zitadel config (can be overridden with env vars)
     #[cfg(feature = "directory")]
     let zitadel_config = botserver::directory::client::ZitadelConfig {
-        issuer_url: std::env::var("ZITADEL_ISSUER_URL")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
-        issuer: std::env::var("ZITADEL_ISSUER")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
-        client_id: std::env::var("ZITADEL_CLIENT_ID").unwrap_or_else(|_| "client_id".to_string()),
-        client_secret: std::env::var("ZITADEL_CLIENT_SECRET")
-            .unwrap_or_else(|_| "client_secret".to_string()),
-        redirect_uri: std::env::var("ZITADEL_REDIRECT_URI")
-            .unwrap_or_else(|_| "http://localhost:8080/callback".to_string()),
-        project_id: std::env::var("ZITADEL_PROJECT_ID").unwrap_or_else(|_| "default".to_string()),
-        api_url: std::env::var("ZITADEL_API_URL")
-            .unwrap_or_else(|_| "http://localhost:8080".to_string()),
-        service_account_key: std::env::var("ZITADEL_SERVICE_ACCOUNT_KEY").ok(),
+        issuer_url: "http://localhost:8080".to_string(),
+        issuer: "http://localhost:8080".to_string(),
+        client_id: "client_id".to_string(),
+        client_secret: "client_secret".to_string(),
+        redirect_uri: "http://localhost:8080/callback".to_string(),
+        project_id: "default".to_string(),
+        api_url: "http://localhost:8080".to_string(),
+        service_account_key: None,
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
@@ -605,10 +654,13 @@ async fn main() -> std::io::Result<()> {
             error!("Failed to start LLM servers: {}", e);
         }
     });
+    trace!("Initial data setup task spawned");
 
+    trace!("Checking desktop mode: {}", desktop_mode);
     // Handle desktop mode vs server mode
     #[cfg(feature = "desktop")]
     if desktop_mode {
+        trace!("Desktop mode is enabled");
         // For desktop mode: Run HTTP server in a separate thread with its own runtime
         let app_state_for_server = app_state.clone();
         let port = config.server.port;
@@ -674,11 +726,33 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Non-desktop mode: Run HTTP server directly
-    run_axum_server(app_state, config.server.port, worker_count).await?;
+    #[cfg(not(feature = "desktop"))]
+    {
+        trace!(
+            "Running in non-desktop mode, starting HTTP server on port {}...",
+            config.server.port
+        );
+        run_axum_server(app_state, config.server.port, worker_count).await?;
 
-    // Wait for UI thread to finish if it was started
-    if let Some(handle) = ui_handle {
-        handle.join().ok();
+        // Wait for UI thread to finish if it was started
+        if let Some(handle) = ui_handle {
+            handle.join().ok();
+        }
+    }
+
+    // For builds with desktop feature but not running in desktop mode
+    #[cfg(feature = "desktop")]
+    if !desktop_mode {
+        trace!(
+            "Desktop feature available but not in desktop mode, starting HTTP server on port {}...",
+            config.server.port
+        );
+        run_axum_server(app_state, config.server.port, worker_count).await?;
+
+        // Wait for UI thread to finish if it was started
+        if let Some(handle) = ui_handle {
+            handle.join().ok();
+        }
     }
 
     Ok(())

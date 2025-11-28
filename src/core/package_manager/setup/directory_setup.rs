@@ -25,11 +25,23 @@ impl DirectorySetup {
     /// Get or initialize admin token
     pub async fn ensure_admin_token(&mut self) -> Result<()> {
         if self.admin_token.is_none() {
-            let token = std::env::var("DIRECTORY_ADMIN_TOKEN")
-                .unwrap_or_else(|_| "zitadel-admin-sa".to_string());
-            self.admin_token = Some(token);
+            // Token should be provided via configuration, not hardcoded
+            return Err(anyhow::anyhow!("Admin token must be configured"));
         }
         Ok(())
+    }
+
+    /// Generate a secure random password
+    fn generate_secure_password(&self) -> String {
+        use rand::distr::Alphanumeric;
+        use rand::Rng;
+        let mut rng = rand::rng();
+        (0..16)
+            .map(|_| {
+                let byte = rng.sample(Alphanumeric);
+                char::from(byte)
+            })
+            .collect()
     }
 }
 
@@ -187,8 +199,7 @@ impl DirectorySetup {
 
     /// Create default organization
     async fn create_default_organization(&self) -> Result<DefaultOrganization> {
-        let org_name =
-            std::env::var("DIRECTORY_DEFAULT_ORG").unwrap_or_else(|_| "BotServer".to_string());
+        let org_name = "BotServer".to_string();
 
         let response = self
             .client
@@ -277,12 +288,17 @@ impl DirectorySetup {
 
     /// Create default user in organization
     async fn create_default_user(&self, org_id: &str) -> Result<DefaultUser> {
-        let username =
-            std::env::var("DIRECTORY_DEFAULT_USERNAME").unwrap_or_else(|_| "admin".to_string());
-        let email = std::env::var("DIRECTORY_DEFAULT_EMAIL")
-            .unwrap_or_else(|_| "admin@localhost".to_string());
-        let password = std::env::var("DIRECTORY_DEFAULT_PASSWORD")
-            .unwrap_or_else(|_| "BotServer123!".to_string());
+        // Generate secure credentials
+        let username = format!(
+            "admin_{}",
+            uuid::Uuid::new_v4()
+                .to_string()
+                .chars()
+                .take(8)
+                .collect::<String>()
+        );
+        let email = format!("{}@botserver.local", username);
+        let password = self.generate_secure_password();
 
         let response = self
             .client
@@ -330,8 +346,7 @@ impl DirectorySetup {
         _org_id: &str,
     ) -> Result<(String, String, String)> {
         let app_name = "BotServer";
-        let redirect_uri = std::env::var("DIRECTORY_REDIRECT_URI")
-            .unwrap_or_else(|_| "http://localhost:8080/auth/callback".to_string());
+        let redirect_uri = "http://localhost:8080/auth/callback".to_string();
 
         // Create project
         let project_response = self

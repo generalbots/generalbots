@@ -5,7 +5,7 @@ use crate::config::ConfigManager;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::state::AppState;
 use aws_sdk_s3::Client;
-use log::{error, info};
+use log::{debug, error, info};
 use std::collections::HashMap;
 use std::error::Error;
 use std::path::PathBuf;
@@ -445,6 +445,7 @@ impl DriveMonitor {
         // Add progress tracking for large file sets
         let mut files_processed = 0;
         let mut files_to_process = Vec::new();
+        let mut pdf_files_found = 0;
 
         loop {
             let list_objects = match tokio::time::timeout(
@@ -500,11 +501,21 @@ impl DriveMonitor {
                 .unwrap_or(false);
 
             if is_new || is_modified {
-                info!(
-                    "Detected {} in .gbkb: {}",
-                    if is_new { "new file" } else { "change" },
-                    path
-                );
+                // Track PDF files for document processing verification
+                if path.to_lowercase().ends_with(".pdf") {
+                    pdf_files_found += 1;
+                    info!(
+                        "Detected {} PDF in .gbkb: {} (will extract text for vectordb)",
+                        if is_new { "new" } else { "changed" },
+                        path
+                    );
+                } else {
+                    info!(
+                        "Detected {} in .gbkb: {}",
+                        if is_new { "new file" } else { "change" },
+                        path
+                    );
+                }
 
                 // Queue file for batch processing instead of immediate download
                 files_to_process.push(path.clone());
@@ -532,13 +543,30 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-                    // Trigger indexing
-                    if let Err(e) = self
+                    // Trigger indexing - this will use DocumentProcessor to extract text
+                    info!(
+                        "Triggering KB indexing for folder: {:?} (PDF text extraction enabled)",
+                        kb_folder_path
+                    );
+                    match self
                         .kb_manager
                         .handle_gbkb_change(bot_name, &kb_folder_path)
                         .await
                     {
-                        log::error!("Failed to process .gbkb change: {}", e);
+                        Ok(_) => {
+                            debug!(
+                                "Successfully processed KB change for {}/{}",
+                                bot_name, kb_name
+                            );
+                        }
+                        Err(e) => {
+                            log::error!(
+                                "Failed to process .gbkb change for {}/{}: {}",
+                                bot_name,
+                                kb_name,
+                                e
+                            );
+                        }
                     }
                 }
             }
@@ -559,7 +587,10 @@ impl DriveMonitor {
         }
 
         if files_processed > 0 {
-            info!("Processed {} .gbkb files", files_processed);
+            info!(
+                "Processed {} .gbkb files (including {} PDFs for text extraction)",
+                files_processed, pdf_files_found
+            );
         }
 
         // Update file states after checking for deletions
@@ -600,8 +631,12 @@ impl DriveMonitor {
             .strip_suffix(".gbai")
             .unwrap_or(&self.bucket_name);
 
-        // Create local path
         let local_path = self.work_root.join(bot_name).join(file_path);
+
+        // Log file type for tracking document processing
+        if file_path.to_lowercase().ends_with(".pdf") {
+            debug!("Downloading PDF file for text extraction: {}", file_path);
+        }
 
         // Create parent directories
         if let Some(parent) = local_path.parent() {
