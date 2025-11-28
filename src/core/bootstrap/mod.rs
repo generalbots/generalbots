@@ -6,7 +6,7 @@ use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use dotenvy::dotenv;
-use log::{error, info, trace};
+use log::{error, info, trace, warn};
 use rand::distr::Alphanumeric;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -21,14 +21,14 @@ pub struct BootstrapManager {
     pub tenant: Option<String>,
 }
 impl BootstrapManager {
-    pub async fn new(install_mode: InstallMode, tenant: Option<String>) -> Self {
+    pub async fn new(mode: InstallMode, tenant: Option<String>) -> Self {
         trace!(
             "Initializing BootstrapManager with mode {:?} and tenant {:?}",
-            install_mode,
+            mode,
             tenant
         );
         Self {
-            install_mode,
+            install_mode: mode,
             tenant,
         }
     }
@@ -60,7 +60,17 @@ impl BootstrapManager {
         ];
         for component in components {
             if pm.is_installed(component.name) {
-                pm.start(component.name)?;
+                match pm.start(component.name) {
+                    Ok(_child) => {
+                        trace!("Started component: {}", component.name);
+                    }
+                    Err(e) => {
+                        warn!(
+                            "Component {} might already be running: {}",
+                            component.name, e
+                        );
+                    }
+                }
             }
         }
         Ok(())
@@ -74,6 +84,54 @@ impl BootstrapManager {
                 char::from(byte)
             })
             .collect()
+    }
+
+    /// Ensure critical services (tables and drive) are running
+    pub async fn ensure_services_running(&mut self) -> Result<()> {
+        info!("Ensuring critical services are running...");
+
+        let installer = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+
+        // Check and start PostgreSQL
+        if installer.is_installed("tables") {
+            info!("Starting PostgreSQL database service...");
+            match installer.start("tables") {
+                Ok(_child) => {
+                    info!("PostgreSQL started successfully");
+                    // Give PostgreSQL time to initialize
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                }
+                Err(e) => {
+                    // Check if it's already running (start might fail if already running)
+                    warn!(
+                        "PostgreSQL might already be running or failed to start: {}",
+                        e
+                    );
+                }
+            }
+        } else {
+            warn!("PostgreSQL (tables) component not installed");
+        }
+
+        // Check and start MinIO
+        if installer.is_installed("drive") {
+            info!("Starting MinIO drive service...");
+            match installer.start("drive") {
+                Ok(_child) => {
+                    info!("MinIO started successfully");
+                    // Give MinIO time to initialize
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                }
+                Err(e) => {
+                    // MinIO is not critical, just log
+                    warn!("MinIO might already be running or failed to start: {}", e);
+                }
+            }
+        } else {
+            warn!("MinIO (drive) component not installed");
+        }
+
+        Ok(())
     }
 
     pub async fn bootstrap(&mut self) -> Result<()> {
