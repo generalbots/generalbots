@@ -15,6 +15,7 @@ pub mod get;
 pub mod hear_talk;
 pub mod last;
 pub mod llm_keyword;
+pub mod multimodal;
 pub mod on;
 pub mod print;
 pub mod remember;
