@@ -1,3 +1,4 @@
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 use axum::{
     extract::{Json, Query, State},
@@ -406,9 +407,9 @@ pub fn configure() -> axum::routing::Router<Arc<AppState>> {
     use axum::routing::{get, Router};
 
     Router::new()
-        .route("/api/analytics/dashboard", get(get_dashboard))
-        .route("/api/analytics/metric", get(get_metric))
-        .route("/api/metrics", get(export_metrics))
+        .route(ApiUrls::ANALYTICS_DASHBOARD, get(get_dashboard))
+        .route(ApiUrls::ANALYTICS_METRIC, get(get_metric))
+        .route(ApiUrls::METRICS, get(export_metrics))
 }
 
 pub fn spawn_metrics_collector(state: Arc<AppState>) {

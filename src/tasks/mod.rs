@@ -1,5 +1,6 @@
 pub mod scheduler;
 
+use crate::core::urls::ApiUrls;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -1244,13 +1245,28 @@ pub async fn handle_task_set_dependencies(
 /// Configure task engine routes
 pub fn configure_task_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/tasks", post(handle_task_create))
-        .route("/api/tasks", get(handle_task_list))
-        .route("/api/tasks/{id}", put(handle_task_update))
-        .route("/api/tasks/{id}", delete(handle_task_delete))
-        .route("/api/tasks/{id}/assign", post(handle_task_assign))
-        .route("/api/tasks/{id}/status", put(handle_task_status_update))
-        .route("/api/tasks/{id}/priority", put(handle_task_priority_set))
+        .route(ApiUrls::TASKS, post(handle_task_create))
+        .route(ApiUrls::TASKS, get(handle_task_list))
+        .route(
+            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            put(handle_task_update),
+        )
+        .route(
+            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            delete(handle_task_delete),
+        )
+        .route(
+            ApiUrls::TASK_ASSIGN.replace(":id", "{id}"),
+            post(handle_task_assign),
+        )
+        .route(
+            ApiUrls::TASK_STATUS.replace(":id", "{id}"),
+            put(handle_task_status_update),
+        )
+        .route(
+            ApiUrls::TASK_PRIORITY.replace(":id", "{id}"),
+            put(handle_task_priority_set),
+        )
         .route(
             "/api/tasks/{id}/dependencies",
             put(handle_task_set_dependencies),
@@ -1262,9 +1278,12 @@ pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
     use axum::routing::{get, post, put};
 
     router
-        .route("/api/tasks", post(handlers::create_task_handler))
-        .route("/api/tasks", get(handlers::get_tasks_handler))
-        .route("/api/tasks/{id}", put(handlers::update_task_handler))
+        .route(ApiUrls::TASKS, post(handlers::create_task_handler))
+        .route(ApiUrls::TASKS, get(handlers::get_tasks_handler))
+        .route(
+            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            put(handlers::update_task_handler),
+        )
         .route(
             "/api/tasks/statistics",
             get(handlers::get_statistics_handler),

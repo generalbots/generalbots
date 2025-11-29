@@ -1,0 +1,860 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - BotServer{% endblock %}
+
+{% block content %}
+<div class="tasks-container">
+    <!-- Tasks Header -->
+    <div class="tasks-header">
+        <h1>Tasks</h1>
+        <div class="tasks-actions">
+            <button class="btn btn-primary"
+                    hx-get="/api/tasks/new"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                <span>➕</span> New Task
+            </button>
+            <button class="btn btn-secondary"
+                    hx-post="/api/tasks/refresh"
+                    hx-target="#tasks</span>-board"
+                    hx-swap="innerHTML">
+                <span>🔄</span> Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="tasks-content">
+        <!-- Sidebar -->
+        <div class="tasks-sidebar">
+            <!-- Views -->
+            <div class="task-views">
+                <div class="sidebar-item active"
+                     hx-get="/api/tasks?view=all"
+                     hx-target="#tasks-board"
+                     hx-swap="innerHTML">
+                    <span>📋</span> All Tasks
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/tasks?view=today"
+                     hx-target="#tasks-board"
+                     hx-swap="innerHTML">
+                    <span>📅</span> Today
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/tasks?view=week"
+                     hx-target="#tasks-board"
+                     hx-swap="innerHTML">
+                    <span>📆</span> This Week
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/tasks?view=assigned"
+                     hx-target="#tasks-board"
+                     hx-swap="innerHTML">
+                    <span>👤</span> Assigned to Me
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/tasks?view=completed"
+                     hx-target="#tasks-board"
+                     hx-swap="innerHTML">
+                    <span>✅</span> Completed
+                </div>
+            </div>
+
+            <!-- Projects -->
+            <div class="task-projects">
+                <div class="projects-header">
+                    <span>Projects</span>
+                    <button class="add-btn"
+                            hx-get="/api/projects/new"
+                            hx-target="#modal-container"
+                            hx-swap="innerHTML">+</button>
+                </div>
+                <div class="projects-list" id="projects-list"
+                     hx-get="/api/projects"
+                     hx-trigger="load"
+                     hx-swap="innerHTML">
+                    <div class="loading-small">Loading projects...</div>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            <div class="task-tags">
+                <div class="tags-header">Tags</div>
+                <div class="tags-list" id="tags-list"
+                     hx-get="/api/tasks/tags"
+                     hx-trigger="load"
+                     hx-swap="innerHTML">
+                    <div class="tag-item">
+                        <span class="tag-color" style="background: #3b82f6;"></span>
+                        <span>Important</span>
+                        <span class="tag-count">5</span>
+                    </div>
+                    <div class="tag-item">
+                        <span class="tag-color" style="background: #10b981;"></span>
+                        <span>Personal</span>
+                        <span class="tag-count">3</span>
+                    </div>
+                    <div class="tag-item">
+                        <span class="tag-color" style="background: #f59e0b;"></span>
+                        <span>Work</span>
+                        <span class="tag-count">12</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tasks Board -->
+        <div class="tasks-main">
+            <!-- View Selector -->
+            <div class="view-selector">
+                <button class="view-btn active" onclick="setView('kanban')">
+                    <span>📊</span> Kanban
+                </button>
+                <button class="view-btn" onclick="setView('list')">
+                    <span>📝</span> List
+                </button>
+                <button class="view-btn" onclick="setView('calendar')">
+                    <span>📅</span> Calendar
+                </button>
+            </div>
+
+            <!-- Search and Filters -->
+            <div class="tasks-toolbar">
+                <div class="search-box">
+                    <input type="text"
+                           placeholder="Search tasks..."
+                           name="query"
+                           hx-get="/api/tasks/search"
+                           hx-trigger="keyup changed delay:500ms"
+                           hx-target="#tasks-board"
+                           hx-swap="innerHTML">
+                </div>
+                <div class="filter-controls">
+                    <select class="filter-select"
+                            hx-get="/api/tasks"
+                            hx-trigger="change"
+                            hx-target="#tasks-board"
+                            hx-include="[name='status']">
+                        <option value="">All Status</option>
+                        <option value="todo">To Do</option>
+                        <option value="in-progress">In Progress</option>
+                        <option value="review">Review</option>
+                        <option value="done">Done</option>
+                    </select>
+                    <select class="filter-select"
+                            hx-get="/api/tasks"
+                            hx-trigger="change"
+                            hx-target="#tasks-board"
+                            hx-include="[name='priority']">
+                        <option value="">All Priority</option>
+                        <option value="high">High</option>
+                        <option value="medium">Medium</option>
+                        <option value="low">Low</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Tasks Board -->
+            <div class="tasks-board" id="tasks-board"
+                 hx-get="/api/tasks/board"
+                 hx-trigger="load, every 30s"
+                 hx-swap="innerHTML">
+                <!-- Kanban View (default) -->
+                <div class="kanban-board">
+                    <div class="kanban-column">
+                        <div class="column-header">
+                            <h3>To Do</h3>
+                            <span class="task-count">0</span>
+                        </div>
+                        <div class="column-tasks"
+                             hx-post="/api/tasks/drop"
+                             hx-trigger="drop"
+                             data-status="todo">
+                            <div class="empty-state">No tasks</div>
+                        </div>
+                        <button class="add-task-btn"
+                                hx-get="/api/tasks/quick-add?status=todo"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML">
+                            + Add Task
+                        </button>
+                    </div>
+
+                    <div class="kanban-column">
+                        <div class="column-header">
+                            <h3>In Progress</h3>
+                            <span class="task-count">0</span>
+                        </div>
+                        <div class="column-tasks"
+                             hx-post="/api/tasks/drop"
+                             hx-trigger="drop"
+                             data-status="in-progress">
+                            <div class="empty-state">No tasks</div>
+                        </div>
+                        <button class="add-task-btn"
+                                hx-get="/api/tasks/quick-add?status=in-progress"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML">
+                            + Add Task
+                        </button>
+                    </div>
+
+                    <div class="kanban-column">
+                        <div class="column-header">
+                            <h3>Review</h3>
+                            <span class="task-count">0</span>
+                        </div>
+                        <div class="column-tasks"
+                             hx-post="/api/tasks/drop"
+                             hx-trigger="drop"
+                             data-status="review">
+                            <div class="empty-state">No tasks</div>
+                        </div>
+                        <button class="add-task-btn"
+                                hx-get="/api/tasks/quick-add?status=review"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML">
+                            + Add Task
+                        </button>
+                    </div>
+
+                    <div class="kanban-column">
+                        <div class="column-header">
+                            <h3>Done</h3>
+                            <span class="task-count">0</span>
+                        </div>
+                        <div class="column-tasks"
+                             hx-post="/api/tasks/drop"
+                             hx-trigger="drop"
+                             data-status="done">
+                            <div class="empty-state">No tasks</div>
+                        </div>
+                        <button class="add-task-btn"
+                                hx-get="/api/tasks/quick-add?status=done"
+                                hx-target="#modal-container"
+                                hx-swap="innerHTML">
+                            + Add Task
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Task Details Panel -->
+        <div class="task-details" id="task-details" style="display: none;">
+            <div class="details-header">
+                <h3>Task Details</h3>
+                <button class="close-btn" onclick="closeTaskDetails()">✕</button>
+            </div>
+            <div class="details-content" id="task-details-content">
+                <!-- Task details loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+
+<!-- Task Card Template -->
+<template id="task-card-template">
+    <div class="task-card" draggable="true">
+        <div class="task-priority"></div>
+        <div class="task-title"></div>
+        <div class="task-description"></div>
+        <div class="task-meta">
+            <span class="task-due"></span>
+            <span class="task-assignee"></span>
+        </div>
+        <div class="task-tags"></div>
+    </div>
+</template>
+
+<style>
+.tasks-container {
+    height: calc(100vh - var(--header-height));
+    display: flex;
+    flex-direction: column;
+}
+
+.tasks-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.tasks-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.tasks-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.tasks-sidebar {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.task-views {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-item:hover {
+    background: var(--hover);
+}
+
+.sidebar-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.task-projects {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.projects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.add-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.projects-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.task-tags {
+    padding: 1rem;
+}
+
+.tags-header {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.tag-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.375rem 0;
+    cursor: pointer;
+}
+
+.tag-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+}
+
+.tag-count {
+    margin-left: auto;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.tasks-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--background);
+}
+
+.view-selector {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.view-btn {
+    padding: 0.5rem 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.view-btn.active {
+    background: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.tasks-toolbar {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.search-box {
+    flex: 1;
+}
+
+.search-box input {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: 0.875rem;
+}
+
+.filter-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.filter-select {
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.tasks-board {
+    flex: 1;
+    overflow: auto;
+    padding: 1.5rem;
+}
+
+.kanban-board {
+    display: flex;
+    gap: 1rem;
+    min-height: 100%;
+}
+
+.kanban-column {
+    flex: 1;
+    min-width: 280px;
+    background: var(--surface);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+}
+
+.column-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 2px solid var(--border);
+}
+
+.column-header h3 {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.task-count {
+    background: var(--border);
+    padding: 0.125rem 0.5rem;
+    border-radius: 12px;
+    font-size: 0.875rem;
+}
+
+.column-tasks {
+    flex: 1;
+    padding: 0.75rem;
+    min-height: 200px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+    font-size: 0.875rem;
+}
+
+.add-task-btn {
+    margin: 0.75rem;
+    padding: 0.5rem;
+    background: none;
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.2s;
+}
+
+.add-task-btn:hover {
+    background: var(--hover);
+    border-style: solid;
+}
+
+.task-card {
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.875rem;
+    margin-bottom: 0.5rem;
+    cursor: move;
+    transition: all 0.2s;
+}
+
+.task-card:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    transform: translateY(-2px);
+}
+
+.task-card.dragging {
+    opacity: 0.5;
+}
+
+.task-priority {
+    width: 100%;
+    height: 3px;
+    border-radius: 2px;
+    margin-bottom: 0.5rem;
+}
+
+.task-priority.high {
+    background: #ef4444;
+}
+
+.task-priority.medium {
+    background: #f59e0b;
+}
+
+.task-priority.low {
+    background: #10b981;
+}
+
+.task-title {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.task-description {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.task-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+}
+
+.task-due {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-assignee {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-tags {
+    display: flex;
+    gap: 0.25rem;
+    flex-wrap: wrap;
+}
+
+.task-tag {
+    padding: 0.125rem 0.5rem;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 12px;
+    font-size: 0.75rem;
+}
+
+.task-details {
+    width: 400px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.details-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.loading-small {
+    padding: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* List View */
+.list-view {
+    display: none;
+}
+
+.list-view.active {
+    display: block;
+}
+
+.task-list-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 0.5rem;
+}
+
+.task-checkbox {
+    width: 20px;
+    height: 20px;
+    cursor: pointer;
+}
+
+/* Calendar View */
+.calendar-view {
+    display: none;
+}
+
+.calendar-view.active {
+    display: block;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+    .tasks-sidebar {
+        width: 220px;
+    }
+
+    .task-details {
+        width: 350px;
+    }
+}
+
+@media (max-width: 768px) {
+    .tasks-sidebar {
+        display: none;
+    }
+
+    .task-details {
+        position: fixed;
+        top: 0;
+        right: -100%;
+        bottom: 0;
+        width: 100%;
+        z-index: 1000;
+        transition: right 0.3s;
+    }
+
+    .task-details.active {
+        right: 0;
+    }
+
+    .kanban-board {
+        flex-direction: column;
+    }
+
+    .kanban-column {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+// View switching
+function setView(viewType) {
+    // Update active button
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.closest('.view-btn').classList.add('active');
+
+    // Load view
+    htmx.ajax('GET', `/api/tasks?view=${viewType}`, {
+        target: '#tasks-board',
+        swap: 'innerHTML'
+    });
+}
+
+// Drag and drop
+let draggedTask = null;
+
+document.addEventListener('dragstart', function(e) {
+    if (e.target.classList.contains('task-card')) {
+        draggedTask = e.target;
+        e.target.classList.add('dragging');
+    }
+});
+
+document.addEventListener('dragend', function(e) {
+    if (e.target.classList.contains('task-card')) {
+        e.target.classList.remove('dragging');
+    }
+});
+
+document.addEventListener('dragover', function(e) {
+    e.preventDefault();
+    const column = e.target.closest('.column-tasks');
+    if (column && draggedTask) {
+        const afterElement = getDragAfterElement(column, e.clientY);
+        if (afterElement == null) {
+            column.appendChild(draggedTask);
+        } else {
+            column.insertBefore(draggedTask, afterElement);
+        }
+    }
+});
+
+document.addEventListener('drop', function(e) {
+    e.preventDefault();
+    const column = e.target.closest('.column-tasks');
+    if (column && draggedTask) {
+        const taskId = draggedTask.dataset.taskId;
+        const newStatus = column.dataset.status;
+
+        // Update task status via HTMX
+        htmx.ajax('POST', '/api/tasks/update-status', {
+            values: {
+                task_id: taskId,
+                status: newStatus
+            }
+        });
+    }
+    draggedTask = null;
+});
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.task-card:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+// Task details
+function openTaskDetails(taskId) {
+    document.getElementById('task-details').style.display = 'flex';
+
+    // Load task details
+    htmx.ajax('GET', `/api/tasks/${taskId}`, {
+        target: '#task-details-content',
+        swap: 'innerHTML'
+    });
+}
+
+function closeTaskDetails() {
+    document.getElementById('task-details').style.display = 'none';
+}
+
+// Handle task card clicks
+document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'tasks-board') {
+        // Attach click handlers to task cards
+        document.querySelectorAll('.task-card').forEach(card => {
+            card.addEventListener('click', function(e) {
+                if (!e.target.classList.contains('task-checkbox')) {
+                    const taskId = this.dataset.taskId;
+                    if (taskId) {
+                        openTaskDetails(taskId);
+                    }
+                }
+            });
+        });
+
+        // Update task counts
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const count = column.querySelectorAll('.task-card').length;
+            column.querySelector('.task-count').textContent = count;
+        });
+    }
+});
+
+// Initialize on load
+document.addEventListener('DOMContentLoaded', function() {
+    // Load initial data
+    htmx.ajax('GET', '/api/tasks/stats', {
+        swap: 'none'
+    }).then(response => {
+        // Update stats if needed
+    });
+});
+</script>
+{% endblock %}

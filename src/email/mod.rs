@@ -1,4 +1,4 @@
-use crate::{config::EmailConfig, shared::state::AppState};
+use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -33,19 +33,33 @@ async fn extract_user_from_session(state: &Arc<AppState>) -> Result<Uuid, String
 /// Configure email API routes
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/email/accounts", get(list_email_accounts))
-        .route("/api/email/accounts/add", post(add_email_account))
+        .route(ApiUrls::EMAIL_ACCOUNTS, get(list_email_accounts))
         .route(
-            "/api/email/accounts/{account_id}",
+            &format!("{}/add", ApiUrls::EMAIL_ACCOUNTS),
+            post(add_email_account),
+        )
+        .route(
+            ApiUrls::EMAIL_ACCOUNT_BY_ID.replace(":id", "{account_id}"),
             axum::routing::delete(delete_email_account),
         )
-        .route("/api/email/list", post(list_emails))
-        .route("/api/email/send", post(send_email))
-        .route("/api/email/draft", post(save_draft))
-        .route("/api/email/folders/{account_id}", get(list_folders))
-        .route("/api/email/latest", post(get_latest_email_from))
-        .route("/api/email/get/{campaign_id}", get(get_emails))
-        .route("/api/email/click/{campaign_id}/{email}", get(save_click))
+        .route(ApiUrls::EMAIL_LIST, post(list_emails))
+        .route(ApiUrls::EMAIL_SEND, post(send_email))
+        .route(ApiUrls::EMAIL_DRAFT, post(save_draft))
+        .route(
+            ApiUrls::EMAIL_FOLDERS.replace(":account_id", "{account_id}"),
+            get(list_folders),
+        )
+        .route(ApiUrls::EMAIL_LATEST, post(get_latest_email_from))
+        .route(
+            ApiUrls::EMAIL_GET.replace(":campaign_id", "{campaign_id}"),
+            get(get_emails),
+        )
+        .route(
+            ApiUrls::EMAIL_CLICK
+                .replace(":campaign_id", "{campaign_id}")
+                .replace(":email", "{email}"),
+            get(save_click),
+        )
 }
 
 // Export SaveDraftRequest for other modules
