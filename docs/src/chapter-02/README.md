@@ -59,7 +59,7 @@ Drop the folder in `templates/`, it loads automatically.
 
 No build process. No compilation. Just folders and files.
 
-The web UI uses **vanilla JavaScript and Alpine.js** - no webpack, no npm build, just edit and refresh.
+The web UI uses **HTMX with server-side rendering** - minimal JavaScript, no build process, just HTML templates powered by Rust.
 
 ## Topics Covered
 
