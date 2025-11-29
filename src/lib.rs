@@ -1,6 +1,7 @@
 // Core modules (always included)
 pub mod basic;
 pub mod core;
+pub mod multimodal;
 pub mod security;
 pub mod web;
 

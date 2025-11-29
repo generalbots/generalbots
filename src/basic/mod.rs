@@ -23,6 +23,7 @@ use self::keywords::format::format_keyword;
 use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::last::last_keyword;
+use self::keywords::multimodal::register_multimodal_keywords;
 use self::keywords::remember::remember_keyword;
 use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
 use self::keywords::send_mail::send_mail_keyword;
@@ -92,6 +93,10 @@ impl ScriptService {
             &mut engine,
         );
 
+        // Register multimodal keywords (IMAGE, VIDEO, AUDIO, SEE)
+        // These connect to botmodels for image/video/audio generation and vision/captioning
+        register_multimodal_keywords(state.clone(), user.clone(), &mut engine);
+
         ScriptService { engine }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {
@@ -158,6 +163,11 @@ impl ScriptService {
                 "SET USER",
                 "GET BOT MEMORY",
                 "SET BOT MEMORY",
+                "IMAGE",
+                "VIDEO",
+                "AUDIO",
+                "SEE",
+                "SEND FILE",
             ];
             let is_basic_command = basic_commands.iter().any(|&cmd| trimmed.starts_with(cmd));
             let is_control_flow = trimmed.starts_with("IF")
