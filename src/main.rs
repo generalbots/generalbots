@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use dotenvy::dotenv;
+// Configuration comes from Directory service, not .env files
 use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::net::SocketAddr;
@@ -241,10 +241,10 @@ async fn run_axum_server(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    dotenv().ok();
+    // Configuration comes from Directory service, not .env files
 
     // Initialize logger early to capture all logs with filters for noisy libraries
-    let rust_log = std::env::var("RUST_LOG").unwrap_or_else(|_| {
+    let rust_log = {
         // Default log level for botserver and suppress all other crates
         // Note: r2d2 is set to warn to see database connection pool warnings
         "info,botserver=info,\
@@ -292,7 +292,7 @@ async fn main() -> std::io::Result<()> {
     let desktop_mode = args.contains(&"--desktop".to_string());
     let no_console = args.contains(&"--noconsole".to_string());
 
-    dotenv().ok();
+    // Configuration comes from Directory service, not .env files
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
@@ -391,11 +391,12 @@ async fn main() -> std::io::Result<()> {
 
         trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
-        let env_path = std::env::current_dir().unwrap().join(".env");
-        trace!("Checking for .env file at: {:?}", env_path);
 
-        let cfg = if env_path.exists() {
-            trace!(".env file exists, ensuring all services are running...");
+        // Check if services are already configured in Directory
+        let services_configured = std::path::Path::new("./botserver-stack/conf/directory/zitadel.yaml").exists();
+
+        let cfg = if services_configured {
+            trace!("Services already configured, ensuring all are running...");
             info!("Ensuring database and drive services are running...");
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(

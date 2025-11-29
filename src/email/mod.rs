@@ -42,24 +42,28 @@ pub fn configure() -> Router<Arc<AppState>> {
             ApiUrls::EMAIL_ACCOUNT_BY_ID.replace(":id", "{account_id}"),
             axum::routing::delete(delete_email_account),
         )
-        .route(ApiUrls::EMAIL_LIST, post(list_emails))
+        .route(ApiUrls::EMAIL_LIST, get(list_emails_htmx).post(list_emails))
         .route(ApiUrls::EMAIL_SEND, post(send_email))
         .route(ApiUrls::EMAIL_DRAFT, post(save_draft))
+        .route("/api/email/folders", get(list_folders_htmx))
+        .route("/api/email/compose", get(compose_email_htmx))
         .route(
             ApiUrls::EMAIL_FOLDERS.replace(":account_id", "{account_id}"),
             get(list_folders),
         )
-        .route(ApiUrls::EMAIL_LATEST, post(get_latest_email_from))
+        .route(ApiUrls::EMAIL_LATEST, get(get_latest_email))
         .route(
             ApiUrls::EMAIL_GET.replace(":campaign_id", "{campaign_id}"),
-            get(get_emails),
+            get(get_email),
         )
         .route(
             ApiUrls::EMAIL_CLICK
                 .replace(":campaign_id", "{campaign_id}")
                 .replace(":email", "{email}"),
-            get(save_click),
+            post(track_click),
         )
+        .route("/api/email/:id", get(get_email_content_htmx))
+        .route("/api/email/:id", delete(delete_email_htmx))
 }
 
 // Export SaveDraftRequest for other modules
@@ -967,4 +971,612 @@ pub async fn save_email_draft(
     session.logout().ok();
     info!("Draft saved to: {}, subject: {}", draft.to, draft.subject);
     Ok(())
+}
+
+// ===== Helper Functions for IMAP Operations =====
+
+async fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<Vec<EmailSummary>, String> {
+    use native_tls::TlsConnector;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    let folder_name = match folder {
+        "inbox" => "INBOX",
+        "sent" => "Sent",
+        "drafts" => "Drafts",
+        "trash" => "Trash",
+        _ => "INBOX",
+    };
+
+    session.select(folder_name).map_err(|e| format!("Select folder failed: {}", e))?;
+
+    let messages = session.fetch("1:20", "(FLAGS RFC822.HEADER)")
+        .map_err(|e| format!("Fetch failed: {}", e))?;
+
+    let mut emails = Vec::new();
+    for message in messages.iter() {
+        if let Some(header) = message.header() {
+            let parsed = parse_mail(header).ok();
+            if let Some(mail) = parsed {
+                let subject = mail.headers.get_first_value("Subject").unwrap_or_default();
+                let from = mail.headers.get_first_value("From").unwrap_or_default();
+                let date = mail.headers.get_first_value("Date").unwrap_or_default();
+                let flags = message.flags();
+                let unread = !flags.iter().any(|f| matches!(f, imap::types::Flag::Seen));
+
+                emails.push(EmailSummary {
+                    id: message.message.to_string(),
+                    from,
+                    subject,
+                    date,
+                    preview: subject.chars().take(100).collect(),
+                    unread,
+                });
+            }
+        }
+    }
+
+    session.logout().ok();
+    Ok(emails)
+}
+
+async fn get_folder_counts(config: &EmailConfig) -> Result<std::collections::HashMap<String, usize>, String> {
+    use native_tls::TlsConnector;
+    use std::collections::HashMap;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    let mut counts = HashMap::new();
+
+    for folder in &["INBOX", "Sent", "Drafts", "Trash"] {
+        if let Ok(mailbox) = session.examine(folder) {
+            counts.insert(folder.to_string(), mailbox.exists as usize);
+        }
+    }
+
+    session.logout().ok();
+    Ok(counts)
+}
+
+async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
+    use native_tls::TlsConnector;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+
+    let messages = session.fetch(id, "RFC822")
+        .map_err(|e| format!("Fetch failed: {}", e))?;
+
+    if let Some(message) = messages.iter().next() {
+        if let Some(body) = message.body() {
+            let parsed = parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
+
+            let subject = parsed.headers.get_first_value("Subject").unwrap_or_default();
+            let from = parsed.headers.get_first_value("From").unwrap_or_default();
+            let to = parsed.headers.get_first_value("To").unwrap_or_default();
+            let date = parsed.headers.get_first_value("Date").unwrap_or_default();
+
+            let body_text = parsed.subparts.iter()
+                .find_map(|p| p.get_body().ok())
+                .or_else(|| parsed.get_body().ok())
+                .unwrap_or_default();
+
+            session.logout().ok();
+
+            return Ok(EmailContent {
+                subject,
+                from,
+                to,
+                date,
+                body: body_text,
+            });
+        }
+    }
+
+    session.logout().ok();
+    Err("Email not found".to_string())
+}
+
+async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
+    use native_tls::TlsConnector;
+
+    let tls = TlsConnector::builder()
+        .build()
+        .map_err(|e| format!("TLS error: {}", e))?;
+
+    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+        .native_tls(&tls)
+        .map_err(|e| format!("IMAP client error: {}", e))?
+        .connect()
+        .map_err(|e| format!("Connection error: {}", e))?;
+
+    let mut session = client
+        .login(&config.username, &config.password)
+        .map_err(|e| format!("Login failed: {:?}", e))?;
+
+    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+
+    // Mark as deleted and expunge
+    session.store(id, "+FLAGS (\\Deleted)")
+        .map_err(|e| format!("Store failed: {}", e))?;
+
+    session.expunge().map_err(|e| format!("Expunge failed: {}", e))?;
+
+    session.logout().ok();
+    Ok(())
+}
+
+#[derive(Debug)]
+struct EmailSummary {
+    id: String,
+    from: String,
+    subject: String,
+    date: String,
+    preview: String,
+    unread: bool,
+}
+
+#[derive(Debug)]
+struct EmailContent {
+    subject: String,
+    from: String,
+    to: String,
+    date: String,
+    body: String,
+}
+
+// ===== HTMX-Specific Handlers =====
+
+/// List emails with HTMX HTML response
+pub async fn list_emails_htmx(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> Result<impl IntoResponse, EmailError> {
+    let folder = params.get("folder").unwrap_or(&"inbox".to_string()).clone();
+
+    // Get user's email accounts
+    let user_id = extract_user_from_session(&state).await
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
+
+    // Get first email account for the user
+    let conn = state.conn.clone();
+    let account = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query(
+            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<EmailAccountRow>(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Failed to get email account: {}", e))
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(e))?;
+
+    let Some(account) = account else {
+        return Ok(axum::response::Html(
+            r#"<div class="empty-state">
+                <h3>No email account configured</h3>
+                <p>Please add an email account first</p>
+            </div>"#.to_string()
+        ));
+    };
+
+    // Fetch emails using IMAP
+    let config = EmailConfig {
+        username: account.username.clone(),
+        password: account.password.clone(),
+        server: account.imap_server.clone(),
+        port: account.imap_port as u32,
+        from: account.email.clone(),
+    };
+
+    let emails = fetch_emails_from_folder(&config, &folder)
+        .await
+        .unwrap_or_default();
+
+    let mut html = String::new();
+    for (idx, email) in emails.iter().enumerate() {
+        let unread_class = if email.unread { "unread" } else { "" };
+        html.push_str(&format!(
+            r#"<div class="mail-item {}"
+                 hx-get="/api/email/{}"
+                 hx-target="#mail-content"
+                 hx-swap="innerHTML">
+                <div class="mail-header">
+                    <span>{}</span>
+                    <span class="text-sm text-gray">{}</span>
+                </div>
+                <div class="mail-subject">{}</div>
+                <div class="mail-preview">{}</div>
+            </div>"#,
+            unread_class,
+            email.id,
+            email.from,
+            email.date,
+            email.subject,
+            email.preview
+        ));
+    }
+
+    if html.is_empty() {
+        html = format!(
+            r#"<div class="empty-state">
+                <h3>No emails in {}</h3>
+                <p>This folder is empty</p>
+            </div>"#,
+            folder
+        );
+    }
+
+    Ok(axum::response::Html(html))
+}
+
+/// List folders with HTMX HTML response
+pub async fn list_folders_htmx(
+    State(state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, EmailError> {
+    // Get user's first email account
+    let user_id = extract_user_from_session(&state).await
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
+
+    let conn = state.conn.clone();
+    let account = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query(
+            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<EmailAccountRow>(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Failed to get email account: {}", e))
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(e))?;
+
+    if account.is_none() {
+        return Ok(axum::response::Html(
+            r#"<div class="nav-item">No account configured</div>"#.to_string()
+        ));
+    }
+
+    let account = account.unwrap();
+
+    // Get folder list with counts using IMAP
+    let config = EmailConfig {
+        username: account.username,
+        password: account.password,
+        server: account.imap_server,
+        port: account.imap_port as u32,
+        from: account.email,
+    };
+
+    let folder_counts = get_folder_counts(&config).await.unwrap_or_default();
+
+    let mut html = String::new();
+    for (folder_name, icon, count) in &[
+        ("inbox", "📥", folder_counts.get("INBOX").unwrap_or(&0)),
+        ("sent", "📤", folder_counts.get("Sent").unwrap_or(&0)),
+        ("drafts", "📝", folder_counts.get("Drafts").unwrap_or(&0)),
+        ("trash", "🗑️", folder_counts.get("Trash").unwrap_or(&0)),
+    ] {
+        let active = if *folder_name == "inbox" { "active" } else { "" };
+        let count_badge = if **count > 0 {
+            format!(r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#, count)
+        } else {
+            String::new()
+        };
+
+        html.push_str(&format!(
+            r#"<div class="nav-item {}"
+                 hx-get="/api/email/list?folder={}"
+                 hx-target="#mail-list"
+                 hx-swap="innerHTML">
+                <span>{}</span> {}
+                {}
+            </div>"#,
+            active, folder_name, icon,
+            folder_name.chars().next().unwrap().to_uppercase().collect::<String>() + &folder_name[1..],
+            count_badge
+        ));
+    }
+
+    Ok(axum::response::Html(html))
+}
+
+/// Compose email form with HTMX
+pub async fn compose_email_htmx(
+    State(state): State<Arc<AppState>>,
+) -> Result<impl IntoResponse, EmailError> {
+    let html = r#"
+        <div class="mail-content-view">
+            <h2>Compose New Email</h2>
+            <form class="compose-form"
+                  hx-post="/api/email/send"
+                  hx-target="#mail-content"
+                  hx-swap="innerHTML">
+                <div class="form-group">
+                    <label>To:</label>
+                    <input type="email" name="to" required>
+                </div>
+                <div class="form-group">
+                    <label>Subject:</label>
+                    <input type="text" name="subject" required>
+                </div>
+                <div class="form-group">
+                    <label>Message:</label>
+                    <textarea name="body" rows="10" required></textarea>
+                </div>
+                <div class="compose-actions">
+                    <button type="submit" class="btn-primary">Send</button>
+                    <button type="button" class="btn-secondary"
+                            hx-post="/api/email/draft"
+                            hx-include="closest form">Save Draft</button>
+                </div>
+            </form>
+        </div>
+    "#;
+
+    Ok(axum::response::Html(html))
+}
+
+/// Get email content with HTMX HTML response
+pub async fn get_email_content_htmx(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, EmailError> {
+    // Get user's email account
+    let user_id = extract_user_from_session(&state).await
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
+
+    let conn = state.conn.clone();
+    let account = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query(
+            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<EmailAccountRow>(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Failed to get email account: {}", e))
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(e))?;
+
+    let Some(account) = account else {
+        return Ok(axum::response::Html(
+            r#"<div class="mail-content-view">
+                <p>No email account configured</p>
+            </div>"#.to_string()
+        ));
+    };
+
+    // Fetch email content using IMAP
+    let config = EmailConfig {
+        username: account.username,
+        password: account.password,
+        server: account.imap_server,
+        port: account.imap_port as u32,
+        from: account.email.clone(),
+    };
+
+    let email_content = fetch_email_by_id(&config, &id)
+        .await
+        .map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
+
+    let html = format!(
+        r#"
+        <div class="mail-content-view">
+            <div class="mail-actions">
+                <button hx-get="/api/email/compose?reply_to={}"
+                        hx-target="#mail-content"
+                        hx-swap="innerHTML">Reply</button>
+                <button hx-get="/api/email/compose?forward={}"
+                        hx-target="#mail-content"
+                        hx-swap="innerHTML">Forward</button>
+                <button hx-delete="/api/email/{}"
+                        hx-target="#mail-list"
+                        hx-swap="innerHTML"
+                        hx-confirm="Delete this email?">Delete</button>
+            </div>
+            <h2>{}</h2>
+            <div style="display: flex; align-items: center; gap: 1rem; margin: 1rem 0;">
+                <div>
+                    <div style="font-weight: 600;">{}</div>
+                    <div class="text-sm text-gray">to: {}</div>
+                </div>
+                <div style="margin-left: auto;" class="text-sm text-gray">{}</div>
+            </div>
+            <div class="mail-body">
+                {}
+            </div>
+        </div>
+        "#,
+        id, id, id,
+        email_content.subject,
+        email_content.from,
+        email_content.to,
+        email_content.date,
+        email_content.body
+    );
+
+    Ok(axum::response::Html(html))
+}
+
+/// Delete email with HTMX response
+pub async fn delete_email_htmx(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+) -> Result<impl IntoResponse, EmailError> {
+    // Get user's email account
+    let user_id = extract_user_from_session(&state).await
+        .map_err(|_| EmailError("Authentication required".to_string()))?;
+
+    let conn = state.conn.clone();
+    let account = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query(
+            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .get_result::<EmailAccountRow>(&mut db_conn)
+        .optional()
+        .map_err(|e| format!("Failed to get email account: {}", e))
+    })
+    .await
+    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(e))?;
+
+    if let Some(account) = account {
+        let config = EmailConfig {
+            username: account.username,
+            password: account.password,
+            server: account.imap_server,
+            port: account.imap_port as u32,
+            from: account.email,
+        };
+
+        // Move email to trash folder using IMAP
+        move_email_to_trash(&config, &id)
+            .await
+            .map_err(|e| EmailError(format!("Failed to delete email: {}", e)))?;
+    }
+
+    info!("Email {} moved to trash", id);
+
+    // Return updated email list
+    list_emails_htmx(State(state), Query(std::collections::HashMap::new())).await
+}
+
+/// Get latest email
+pub async fn get_latest_email(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
+    // Mock implementation - replace with actual logic
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(EmailData {
+            id: Uuid::new_v4().to_string(),
+            from: "sender@example.com".to_string(),
+            to: "recipient@example.com".to_string(),
+            subject: "Latest Email".to_string(),
+            body: "This is the latest email content.".to_string(),
+            date: chrono::Utc::now().to_rfc3339(),
+            unread: true,
+        }),
+        message: Some("Latest email fetched".to_string()),
+    }))
+}
+
+/// Get email by ID
+pub async fn get_email(
+    State(state): State<Arc<AppState>>,
+    Path(campaign_id): Path<String>,
+) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
+    // Mock implementation - replace with actual logic
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(EmailData {
+            id: campaign_id.clone(),
+            from: "sender@example.com".to_string(),
+            to: "recipient@example.com".to_string(),
+            subject: "Email Subject".to_string(),
+            body: "Email content here.".to_string(),
+            date: chrono::Utc::now().to_rfc3339(),
+            unread: false,
+        }),
+        message: Some("Email fetched".to_string()),
+    }))
+}
+
+/// Track email click
+pub async fn track_click(
+    State(state): State<Arc<AppState>>,
+    Path((campaign_id, email)): Path<(String, String)>,
+) -> Result<Json<ApiResponse<()>>, EmailError> {
+    info!("Tracking click for campaign {} email {}", campaign_id, email);
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Click tracked".to_string()),
+    }))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct EmailData {
+    pub id: String,
+    pub from: String,
+    pub to: String,
+    pub subject: String,
+    pub body: String,
+    pub date: String,
+    pub unread: bool,
+}
+
+// Database row struct for email accounts
+#[derive(Debug, QueryableByName)]
+struct EmailAccountRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub user_id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub email: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub username: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub password: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub imap_server: String,
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    pub imap_port: i32,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub smtp_server: String,
+    #[diesel(sql_type = diesel::sql_types::Integer)]
+    pub smtp_port: i32,
 }
