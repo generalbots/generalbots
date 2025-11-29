@@ -43,14 +43,11 @@ impl PackageManager {
         self.register_llm();
         self.register_email();
         self.register_proxy();
+        self.register_dns();
         self.register_directory();
         self.register_alm();
         self.register_alm_ci();
-        self.register_dns();
-        self.register_webmail();
         self.register_meeting();
-        self.register_table_editor();
-        self.register_doc_editor();
         self.register_desktop();
         self.register_devtools();
         self.register_vector_db();
@@ -82,7 +79,7 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/system/certificates/minio > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
@@ -110,9 +107,13 @@ impl PackageManager {
                     "echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl_cert_file = '{{CONF_PATH}}/system/certificates/postgres/server.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl_key_file = '{{CONF_PATH}}/system/certificates/postgres/server.key'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl_ca_file = '{{CONF_PATH}}/system/certificates/ca/ca.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"host all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
+                    "echo \"hostssl all all all md5\" > {{CONF_PATH}}/pg_hba.conf".to_string(),
                     "touch {{CONF_PATH}}/pg_ident.conf".to_string(),
                     "./bin/pg_ctl -D {{DATA_PATH}}/pgdata -l {{LOGS_PATH}}/postgres.log start -w -t 30".to_string(),
                     "sleep 5".to_string(),
@@ -140,28 +141,25 @@ impl PackageManager {
             "cache".to_string(),
             ComponentConfig {
                 name: "cache".to_string(),
-
                 ports: vec![6379],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://download.valkey.io/releases/valkey-9.0.0-jammy-x86_64.tar.gz".to_string(),
+                    "https://download.redis.io/redis-stable.tar.gz".to_string(),
                 ),
-                binary_name: Some("valkey-server".to_string()),
+                binary_name: Some("redis-server".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "chmod +x {{BIN_PATH}}/bin/valkey-server".to_string(),
-                ],
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/bin/valkey-server --port 6379 --dir {{DATA_PATH}} > {{LOGS_PATH}}/valkey.log 2>&1 && {{BIN_PATH}}/bin/valkey-cli CONFIG SET stop-writes-on-bgsave-error no 2>&1 &".to_string(),
-                check_cmd: "{{BIN_PATH}}/bin/valkey-cli ping | grep -q PONG".to_string(),
+                exec_cmd: "{{BIN_PATH}}/redis-server --port 0 --tls-port 6379 --tls-cert-file {{CONF_PATH}}/system/certificates/redis/server.crt --tls-key-file {{CONF_PATH}}/system/certificates/redis/server.key --tls-ca-cert-file {{CONF_PATH}}/system/certificates/ca/ca.crt".to_string(),
+                check_cmd: "ps -ef | grep redis-server | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
     }
@@ -192,8 +190,8 @@ impl PackageManager {
                     "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
                 ],
-                exec_cmd: "".to_string(),
-                check_cmd: "".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
+                check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -203,27 +201,30 @@ impl PackageManager {
             "email".to_string(),
             ComponentConfig {
                 name: "email".to_string(),
-                ports: vec![25, 80, 110, 143, 465, 587, 993, 995, 4190],
+                ports: vec![25, 143, 465, 993, 8025],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/stalwartlabs/stalwart/releases/download/v0.13.1/stalwart-x86_64-unknown-linux-gnu.tar.gz".to_string(),
+                    "https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-linux.tar.gz"
+                        .to_string(),
                 ),
-                binary_name: Some("stalwart".to_string()),
+                binary_name: Some("stalwart-mail".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "setcap 'cap_net_bind_service=+ep' {{BIN_PATH}}/stalwart".to_string(),
-                ],
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
+                env_vars: HashMap::from([
+                    ("STALWART_TLS_ENABLE".to_string(), "true".to_string()),
+                    ("STALWART_TLS_CERT".to_string(), "{{CONF_PATH}}/system/certificates/email/server.crt".to_string()),
+                    ("STALWART_TLS_KEY".to_string(), "{{CONF_PATH}}/system/certificates/email/server.key".to_string()),
+                ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/stalwart --config {{CONF_PATH}}/config.toml".to_string(),
-                check_cmd: "curl -f http://localhost:25 >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
+                check_cmd: "curl -f -k https://localhost:8025/health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -263,28 +264,31 @@ impl PackageManager {
             "directory".to_string(),
             ComponentConfig {
                 name: "directory".to_string(),
-
                 ports: vec![8080],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/zitadel/zitadel/releases/download/v2.71.2/zitadel-linux-amd64.tar.gz".to_string(),
+                    "https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz"
+                        .to_string(),
                 ),
                 binary_name: Some("zitadel".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "setcap 'cap_net_bind_service=+ep' {{BIN_PATH}}/zitadel".to_string(),
-                ],
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
+                env_vars: HashMap::from([
+                    ("ZITADEL_EXTERNALSECURE".to_string(), "true".to_string()),
+                    ("ZITADEL_TLS_ENABLED".to_string(), "true".to_string()),
+                    ("ZITADEL_TLS_CERT".to_string(), "{{CONF_PATH}}/system/certificates/directory/server.crt".to_string()),
+                    ("ZITADEL_TLS_KEY".to_string(), "{{CONF_PATH}}/system/certificates/directory/server.key".to_string()),
+                ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/zitadel.yaml".to_string(),
-                check_cmd: "curl -f http://localhost:8080 >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv".to_string(),
+                check_cmd: "curl -f -k https://localhost:8080/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -294,7 +298,6 @@ impl PackageManager {
             "alm".to_string(),
             ComponentConfig {
                 name: "alm".to_string(),
-
                 ports: vec![3000],
                 dependencies: vec![],
                 linux_packages: vec![],
@@ -315,8 +318,8 @@ impl PackageManager {
                     ("HOME".to_string(), "{{DATA_PATH}}".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}}".to_string(),
-                check_cmd: "curl -f http://localhost:3000 >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key".to_string(),
+                check_cmd: "curl -f -k https://localhost:3000 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -357,28 +360,25 @@ impl PackageManager {
             "dns".to_string(),
             ComponentConfig {
                 name: "dns".to_string(),
-
                 ports: vec![53],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/coredns/coredns/releases/download/v1.12.4/coredns_1.12.4_linux_amd64.tgz".to_string(),
+                    "https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linux_amd64.tgz".to_string(),
                 ),
                 binary_name: Some("coredns".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![
-                    "setcap cap_net_bind_service=+ep {{BIN_PATH}}/coredns".to_string(),
-                ],
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/Corefile".to_string(),
-                check_cmd: "dig @localhost example.com >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/coredns -conf {{CONF_PATH}}/dns/Corefile".to_string(),
+                check_cmd: "dig @localhost botserver.local >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -412,24 +412,24 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
-                check_cmd: "curl -f http://localhost:8080 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k https://localhost:8080 >/dev/null 2>&1".to_string(),
             },
         );
     }
 
     fn register_meeting(&mut self) {
         self.components.insert(
-            "meeting".to_string(),
+            "meet".to_string(),
             ComponentConfig {
-                name: "meeting".to_string(),
-
-                ports: vec![7880, 3478],
+                name: "meet".to_string(),
+                ports: vec![7880],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/livekit/livekit/releases/download/v1.8.4/livekit_1.8.4_linux_amd64.tar.gz".to_string(),
+                    "https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2_linux_amd64.tar.gz"
+                        .to_string(),
                 ),
                 binary_name: Some("livekit-server".to_string()),
                 pre_install_cmds_linux: vec![],
@@ -440,8 +440,8 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/config.yaml".to_string(),
-                check_cmd: "curl -f http://localhost:7880 >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
+                check_cmd: "curl -f -k https://localhost:7880 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -468,7 +468,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/nocodb".to_string(),
-                check_cmd: "curl -f http://localhost:5757 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k https://localhost:5757 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -495,7 +495,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
-                check_cmd: "curl -f http://localhost:9980 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k https://localhost:9980 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -604,8 +604,8 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}}".to_string(),
-                check_cmd: "curl -f http://localhost:6333 >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}} --enable-tls --cert {{CONF_PATH}}/system/certificates/qdrant/server.crt --key {{CONF_PATH}}/system/certificates/qdrant/server.key".to_string(),
+                check_cmd: "curl -f -k https://localhost:6334/metrics >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -648,7 +648,7 @@ impl PackageManager {
         if let Some(component) = self.components.get(component) {
             let bin_path = self.base_path.join("bin").join(&component.name);
             let data_path = self.base_path.join("data").join(&component.name);
-            let conf_path = self.base_path.join("conf").join(&component.name);
+            let conf_path = self.base_path.join("conf");
             let logs_path = self.base_path.join("logs").join(&component.name);
 
             // First check if the service is already running

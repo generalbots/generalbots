@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - BotServer</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --secondary: #64748b;
+            --background: #ffffff;
+            --surface: #f8fafc;
+            --text: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+            --error: #ef4444;
+            --success: #10b981;
+        }
+
+        [data-theme="dark"] {
+            --background: #0f172a;
+            --surface: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --border: #334155;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-container {
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+
+        .login-card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 2rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+            border: 1px solid var(--border);
+        }
+
+        .logo {
+            text-align: center;
+            margin-bottom: 2rem;
+        }
+
+        .logo-icon {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        h1 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: var(--text);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+
+        input[type="email"],
+        input[type="password"],
+        input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 1rem;
+            background: var(--background);
+            color: var(--text);
+            transition: all 0.2s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        input[type="checkbox"] {
+            margin-right: 0.5rem;
+            width: 1.25rem;
+            height: 1.25rem;
+            cursor: pointer;
+        }
+
+        .checkbox-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 0.75rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-hover);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            margin: 1.5rem 0;
+        }
+
+        .divider::before,
+        .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+
+        .divider span {
+            padding: 0 1rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .btn-oauth {
+            background: var(--background);
+            color: var(--text);
+            border: 1px solid var(--border);
+            margin-bottom: 0.75rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .btn-oauth:hover {
+            background: var(--surface);
+        }
+
+        .error-message {
+            background: rgb(239 68 68 / 0.1);
+            color: var(--error);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            border: 1px solid rgb(239 68 68 / 0.2);
+        }
+
+        .success-message {
+            background: rgb(16 185 129 / 0.1);
+            color: var(--success);
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            border: 1px solid rgb(16 185 129 / 0.2);
+        }
+
+        .loading-spinner {
+            display: none;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.6s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .htmx-request .loading-spinner {
+            display: inline-block;
+        }
+
+        .htmx-request .btn-text {
+            display: none;
+        }
+
+        .link {
+            color: var(--primary);
+            text-decoration: none;
+            font-size: 0.875rem;
+        }
+
+        .link:hover {
+            text-decoration: underline;
+        }
+
+        .footer-links {
+            text-align: center;
+            margin-top: 1.5rem;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .theme-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            font-size: 1.25rem;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle:hover {
+            background: var(--background);
+        }
+
+        .dev-mode-banner {
+            background: rgb(251 146 60 / 0.1);
+            color: rgb(234 88 12);
+            padding: 0.5rem;
+            text-align: center;
+            font-size: 0.875rem;
+            border-bottom: 1px solid rgb(251 146 60 / 0.2);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+    </style>
+</head>
+<body>
+    <!-- Theme Toggle -->
+    <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme">
+        <span id="theme-icon">🌙</span>
+    </button>
+
+    <!-- Dev Mode Banner (shown when Zitadel is not available) -->
+    <div id="dev-mode-banner" class="dev-mode-banner" style="display: none;">
+        ⚠️ Development Mode: Use any email with password "password"
+    </div>
+
+    <div class="login-container">
+        <div class="login-card">
+            <!-- Logo -->
+            <div class="logo">
+                <div class="logo-icon">🤖</div>
+                <div class="logo-text">BotServer</div>
+            </div>
+
+            <h1>Sign in to your account</h1>
+
+            <!-- Error Message -->
+            {% if error_message %}
+            <div class="error-message">
+                {{ error_message }}
+            </div>
+            {% endif %}
+
+            <!-- Success Message Target -->
+            <div id="message-container"></div>
+
+            <!-- Login Form -->
+            <form id="login-form"
+                  hx-post="/auth/login"
+                  hx-target="#message-container"
+                  hx-indicator=".loading-spinner">
+
+                <div class="form-group">
+                    <label for="email">Email address</label>
+                    <input type="email"
+                           id="email"
+                           name="email"
+                           required
+                           autocomplete="email"
+                           placeholder="user@example.com">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password"
+                           id="password"
+                           name="password"
+                           required
+                           autocomplete="current-password"
+                           placeholder="Enter your password">
+                </div>
+
+                <div class="checkbox-group">
+                    <input type="checkbox" id="remember_me" name="remember_me" value="true">
+                    <label for="remember_me" class="checkbox-label">Remember me</label>
+                </div>
+
+                {% if redirect_url %}
+                <input type="hidden" name="redirect" value="{{ redirect_url }}">
+                {% endif %}
+
+                <button type="submit" class="btn btn-primary">
+                    <span class="btn-text">Sign in</span>
+                    <span class="loading-spinner"></span>
+                </button>
+            </form>
+
+            <!-- OAuth Options -->
+            <div class="divider">
+                <span>or continue with</span>
+            </div>
+
+            <button type="button"
+                    class="btn btn-oauth"
+                    hx-get="/auth/oauth/zitadel"
+                    hx-target="body">
+                🔐 Sign in with Zitadel
+            </button>
+
+            <!-- Footer Links -->
+            <div class="footer-links">
+                <a href="/auth/forgot-password" class="link">Forgot password?</a>
+                <span> · </span>
+                <a href="/auth/register" class="link">Create account</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Theme management
+        function init</span>Theme() {
+            const savedTheme = localStorage.getItem('theme') || 'light';
+            document.documentElement.setAttribute('data-theme', savedTheme);
+            updateThemeIcon(savedTheme);
+        }
+
+        function toggleTheme() {
+            const currentTheme = document.documentElement.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            document.documentElement.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateThemeIcon(newTheme);
+        }
+
+        function updateThemeIcon(theme) {
+            const icon = document.getElementById('theme-icon');
+            icon.textContent = theme === 'light' ? '🌙' : '☀️';
+        }
+
+        // Check if in development mode
+        async function checkDevMode() {
+            try {
+                const response = await fetch('/api/auth/mode');
+                const data = await response.json();
+                if (data.mode === 'development') {
+                    document.getElementById('dev-mode-banner').style.display = 'block';
+                    document.body.style.paddingTop = '2.5rem';
+                }
+            } catch (err) {
+                // Assume dev mode if can't check
+                document.getElementById('dev-mode-banner').style.display = 'block';
+                document.body.style.paddingTop = '2.5rem';
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            initTheme();
+            checkDevMode();
+
+            // Handle form validation
+            const form = document.getElementById('login-form');
+            form.addEventListener('submit', (e) => {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+
+                if (!email || !password) {
+                    e.preventDefault();
+                    showError('Please fill in all fields');
+                    return false;
+                }
+            });
+        });
+
+        // Show error message
+        function showError(message) {
+            const container = document.getElementById('message-container');
+            container.innerHTML = `<div class="error-message">${message}</div>`;
+        }
+
+        // Handle HTMX events
+        document.body.addEventListener('htmx:afterRequest', (event) => {
+            if (event.detail.xhr.status === 200) {
+                // Check if we got a redirect header
+                const redirect = event.detail.xhr.getResponseHeader('HX-Redirect');
+                if (redirect) {
+                    window.location.href = redirect;
+                }
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', (event) => {
+            showError('Authentication failed. Please check your credentials.');
+        });
+    </script>
+</body>
+</html>

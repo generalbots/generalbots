@@ -1,6 +1,8 @@
 // Core modules (always included)
 pub mod basic;
 pub mod core;
+pub mod security;
+pub mod web;
 
 // Re-export shared from core
 pub use core::shared;
@@ -26,6 +28,9 @@ pub use core::config;
 pub use core::package_manager;
 pub use core::session;
 pub use core::ui_server;
+
+// Re-exports from security
+pub use security::{get_secure_port, SecurityConfig, SecurityManager};
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]

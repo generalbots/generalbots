@@ -5,9 +5,14 @@ use crate::shared::utils::establish_pg_connection;
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
+use chrono;
 use dotenvy::dotenv;
 use log::{error, info, trace, warn};
 use rand::distr::Alphanumeric;
+use rcgen::{
+    BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa, SanType,
+};
+use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -135,24 +140,36 @@ impl BootstrapManager {
     }
 
     pub async fn bootstrap(&mut self) -> Result<()> {
-        let env_path = std::env::current_dir().unwrap().join(".env");
-        let db_password = self.generate_secure_password(32);
-        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            format!("postgres://gbuser:{}@localhost:5432/botserver", db_password)
-        });
+        // Generate certificates first
+        info!("🔒 Generating TLS certificates...");
+        if let Err(e) = self.generate_certificates().await {
+            error!("Failed to generate certificates: {}", e);
+        }
 
-        let drive_password = self.generate_secure_password(16);
-        let drive_user = "gbdriveuser".to_string();
-        let drive_env = format!(
-            "\nDRIVE_SERVER=http://localhost:9000\nDRIVE_ACCESSKEY={}\nDRIVE_SECRET={}\n",
-            drive_user, drive_password
+        let env_path = std::env::current_dir().unwrap().join(".env");
+
+        // Directory (Zitadel) is the root service - only Directory credentials in .env
+        let directory_password = self.generate_secure_password(32);
+        let directory_masterkey = self.generate_secure_password(32);
+        let directory_env = format!(
+            "ZITADEL_MASTERKEY={}\nZITADEL_EXTERNALSECURE=true\nZITADEL_EXTERNALPORT=443\nZITADEL_EXTERNALDOMAIN=localhost\n",
+            directory_masterkey
         );
-        let contents_env = format!("DATABASE_URL={}\n{}", database_url, drive_env);
-        let _ = std::fs::write(&env_path, contents_env);
+        let _ = std::fs::write(&env_path, directory_env);
         dotenv().ok();
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
-        let required_components = vec!["tables", "drive", "cache", "llm"];
+        // Directory must be installed first as it's the root service
+        let required_components = vec![
+            "directory", // Root service - manages all other services
+            "tables",    // Database - credentials stored in Directory
+            "drive",     // S3 storage - credentials stored in Directory
+            "cache",     // Redis cache
+            "llm",       // LLM service
+            "email",     // Email service integrated with Directory
+            "proxy",     // Caddy reverse proxy
+            "dns",       // CoreDNS for dynamic DNS
+        ];
         for component in required_components {
             if !pm.is_installed(component) {
                 let termination_cmd = pm
@@ -189,28 +206,210 @@ impl BootstrapManager {
                     }
                 }
                 _ = pm.install(component).await;
+
+                // Directory must be configured first as root service
+                if component == "directory" {
+                    info!("🔧 Configuring Directory as root service...");
+                    if let Err(e) = self.setup_directory().await {
+                        error!("Failed to setup Directory: {}", e);
+                        return Err(anyhow::anyhow!("Directory is required as root service"));
+                    }
+
+                    // After directory is setup, configure database and drive credentials there
+                    if let Err(e) = self.configure_services_in_directory().await {
+                        error!("Failed to configure services in Directory: {}", e);
+                    }
+                }
+
                 if component == "tables" {
                     let mut conn = establish_pg_connection().unwrap();
                     self.apply_migrations(&mut conn)?;
                 }
 
-                // Auto-configure Directory after installation
-                if component == "directory" {
-                    info!("🔧 Auto-configuring Directory (Zitadel)...");
-                    if let Err(e) = self.setup_directory().await {
-                        error!("Failed to setup Directory: {}", e);
-                    }
-                }
-
-                // Auto-configure Email after installation
                 if component == "email" {
                     info!("🔧 Auto-configuring Email (Stalwart)...");
                     if let Err(e) = self.setup_email().await {
                         error!("Failed to setup Email: {}", e);
                     }
                 }
+
+                if component == "proxy" {
+                    info!("🔧 Configuring Caddy reverse proxy...");
+                    if let Err(e) = self.setup_caddy_proxy().await {
+                        error!("Failed to setup Caddy: {}", e);
+                    }
+                }
+
+                if component == "dns" {
+                    info!("🔧 Configuring CoreDNS for dynamic DNS...");
+                    if let Err(e) = self.setup_coredns().await {
+                        error!("Failed to setup CoreDNS: {}", e);
+                    }
+                }
             }
         }
+        Ok(())
+    }
+
+    /// Configure database and drive credentials in Directory
+    async fn configure_services_in_directory(&self) -> Result<()> {
+        info!("Storing service credentials in Directory...");
+
+        // Generate credentials for services
+        let db_password = self.generate_secure_password(32);
+        let drive_password = self.generate_secure_password(16);
+        let drive_user = "gbdriveuser".to_string();
+
+        // Create Zitadel configuration with service accounts
+        let zitadel_config_path = PathBuf::from("./botserver-stack/conf/directory/zitadel.yaml");
+        fs::create_dir_all(zitadel_config_path.parent().unwrap())?;
+
+        let zitadel_config = format!(
+            r#"
+Database:
+  postgres:
+    Host: localhost
+    Port: 5432
+    Database: zitadel
+    User: zitadel
+    Password: {}
+    SSL:
+      Mode: require
+      RootCert: /botserver-stack/conf/system/certificates/postgres/ca.crt
+
+SystemDefaults:
+  SecretGenerators:
+    PasswordSaltCost: 14
+
+ExternalSecure: true
+ExternalDomain: localhost
+ExternalPort: 443
+
+# Service accounts for integrated services
+ServiceAccounts:
+  - Name: database-service
+    Description: PostgreSQL Database Service
+    Credentials:
+      Username: gbuser
+      Password: {}
+  - Name: drive-service
+    Description: MinIO S3 Storage Service
+    Credentials:
+      AccessKey: {}
+      SecretKey: {}
+  - Name: email-service
+    Description: Email Service Integration
+    OAuth: true
+  - Name: git-service
+    Description: Forgejo Git Service
+    OAuth: true
+"#,
+            self.generate_secure_password(24),
+            db_password,
+            drive_user,
+            drive_password
+        );
+
+        fs::write(zitadel_config_path, zitadel_config)?;
+
+        info!("✅ Service credentials configured in Directory");
+        Ok(())
+    }
+
+    /// Setup Caddy as reverse proxy for all services
+    async fn setup_caddy_proxy(&self) -> Result<()> {
+        let caddy_config = PathBuf::from("./botserver-stack/conf/proxy/Caddyfile");
+        fs::create_dir_all(caddy_config.parent().unwrap())?;
+
+        let config = r#"{
+    admin off
+    auto_https disable_redirects
+}
+
+# Main API
+api.botserver.local {
+    tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
+    reverse_proxy localhost:8080
+}
+
+# Directory/Auth
+auth.botserver.local {
+    tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
+    reverse_proxy localhost:8080
+}
+
+# LLM Service
+llm.botserver.local {
+    tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
+    reverse_proxy localhost:8081
+}
+
+# Email
+mail.botserver.local {
+    tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
+    reverse_proxy localhost:8025
+}
+
+# Meet
+meet.botserver.local {
+    tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
+    reverse_proxy localhost:7880
+}
+"#;
+
+        fs::write(caddy_config, config)?;
+        info!("✅ Caddy proxy configured");
+        Ok(())
+    }
+
+    /// Setup CoreDNS for dynamic DNS service
+    async fn setup_coredns(&self) -> Result<()> {
+        let dns_config = PathBuf::from("./botserver-stack/conf/dns/Corefile");
+        fs::create_dir_all(dns_config.parent().unwrap())?;
+
+        let zone_file = PathBuf::from("./botserver-stack/conf/dns/botserver.local.zone");
+
+        // Create Corefile
+        let corefile = r#"botserver.local:53 {
+    file /botserver-stack/conf/dns/botserver.local.zone
+    reload 10s
+    log
+}
+
+.:53 {
+    forward . 8.8.8.8 8.8.4.4
+    cache 30
+    log
+}
+"#;
+
+        fs::write(dns_config, corefile)?;
+
+        // Create initial zone file
+        let zone = r#"$ORIGIN botserver.local.
+$TTL 60
+@       IN      SOA     ns1.botserver.local. admin.botserver.local. (
+                        2024010101      ; Serial
+                        3600            ; Refresh
+                        1800            ; Retry
+                        604800          ; Expire
+                        60              ; Minimum TTL
+)
+        IN      NS      ns1.botserver.local.
+ns1     IN      A       127.0.0.1
+
+; Static entries
+api     IN      A       127.0.0.1
+auth    IN      A       127.0.0.1
+llm     IN      A       127.0.0.1
+mail    IN      A       127.0.0.1
+meet    IN      A       127.0.0.1
+
+; Dynamic entries will be added below
+"#;
+
+        fs::write(zone_file, zone)?;
+        info!("✅ CoreDNS configured for dynamic DNS");
         Ok(())
     }
 
@@ -221,7 +420,10 @@ impl BootstrapManager {
         // Ensure config directory exists
         tokio::fs::create_dir_all("./config").await?;
 
-        let mut setup = DirectorySetup::new("http://localhost:8080".to_string(), config_path);
+        // Wait for Directory to be ready
+        tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+
+        let mut setup = DirectorySetup::new("https://localhost:8080".to_string(), config_path);
 
         // Create default organization
         let org_name = "default";
@@ -230,13 +432,44 @@ impl BootstrapManager {
             .await?;
         info!("✅ Created default organization: {}", org_name);
 
+        // Generate secure passwords
+        let admin_password = self.generate_secure_password(16);
+        let user_password = self.generate_secure_password(16);
+
+        // Save initial credentials to secure file
+        let creds_path = PathBuf::from("./botserver-stack/conf/system/initial-credentials.txt");
+        fs::create_dir_all(creds_path.parent().unwrap())?;
+        let creds_content = format!(
+            "INITIAL SETUP CREDENTIALS\n\
+             ========================\n\
+             Generated at: {}\n\n\
+             Admin Account:\n\
+             Username: admin@default\n\
+             Password: {}\n\n\
+             User Account:\n\
+             Username: user@default\n\
+             Password: {}\n\n\
+             IMPORTANT: Delete this file after saving credentials securely.\n",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+            admin_password,
+            user_password
+        );
+        fs::write(&creds_path, creds_content)?;
+
+        // Set restrictive permissions on Unix-like systems
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            fs::set_permissions(&creds_path, fs::Permissions::from_mode(0o600))?;
+        }
+
         // Create admin@default account for bot administration
         let admin_user = setup
             .create_user(
                 &org_id,
                 "admin",
                 "admin@default",
-                "Admin123!",
+                &admin_password,
                 "Admin",
                 "Default",
                 true, // is_admin
@@ -250,7 +483,7 @@ impl BootstrapManager {
                 &org_id,
                 "user",
                 "user@default",
-                "User123!",
+                &user_password,
                 "User",
                 "Default",
                 false, // is_admin
@@ -277,10 +510,14 @@ impl BootstrapManager {
 
         info!("✅ Directory initialized successfully!");
         info!("   Organization: default");
-        info!("   Admin User: admin@default / Admin123!");
-        info!("   Regular User: user@default / User123!");
+        info!("   Admin User: admin@default");
+        info!("   Regular User: user@default");
         info!("   Client ID: {}", client_id);
         info!("   Login URL: {}", config.base_url);
+        info!("");
+        info!("   ⚠️  IMPORTANT: Initial credentials saved to:");
+        info!("      ./botserver-stack/conf/system/initial-credentials.txt");
+        info!("      Please save these credentials securely and delete the file.");
 
         Ok(())
     }
@@ -290,7 +527,7 @@ impl BootstrapManager {
         let config_path = PathBuf::from("./config/email_config.json");
         let directory_config_path = PathBuf::from("./config/directory_config.json");
 
-        let mut setup = EmailSetup::new("http://localhost:8080".to_string(), config_path);
+        let mut setup = EmailSetup::new("https://localhost:8080".to_string(), config_path);
 
         // Try to integrate with Directory if it exists
         let directory_config = if directory_config_path.exists() {
@@ -458,6 +695,161 @@ impl BootstrapManager {
             return Err(anyhow::anyhow!("Migration error: {}", e));
         }
 
+        Ok(())
+    }
+
+    /// Generate TLS certificates for all services
+    async fn generate_certificates(&self) -> Result<()> {
+        let cert_dir = PathBuf::from("./botserver-stack/conf/system/certificates");
+
+        // Create certificate directory structure
+        fs::create_dir_all(&cert_dir)?;
+        fs::create_dir_all(cert_dir.join("ca"))?;
+
+        // Check if CA already exists
+        let ca_cert_path = cert_dir.join("ca/ca.crt");
+        let ca_key_path = cert_dir.join("ca/ca.key");
+
+        let ca_cert = if ca_cert_path.exists() && ca_key_path.exists() {
+            info!("Using existing CA certificate");
+            // Load existing CA
+            let cert_pem = fs::read_to_string(&ca_cert_path)?;
+            let key_pem = fs::read_to_string(&ca_key_path)?;
+            let key_pair = rcgen::KeyPair::from_pem(&key_pem)?;
+            let params = CertificateParams::from_ca_cert_pem(&cert_pem, key_pair)?;
+            Certificate::from_params(params)?
+        } else {
+            info!("Generating new CA certificate");
+            // Generate new CA
+            let mut ca_params = CertificateParams::default();
+            ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+
+            let mut dn = DistinguishedName::new();
+            dn.push(DnType::CountryName, "BR");
+            dn.push(DnType::OrganizationName, "BotServer");
+            dn.push(DnType::CommonName, "BotServer CA");
+            ca_params.distinguished_name = dn;
+
+            ca_params.not_before = time::OffsetDateTime::now_utc();
+            ca_params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(3650);
+
+            let ca_cert = Certificate::from_params(ca_params)?;
+
+            // Save CA certificate and key
+            fs::write(&ca_cert_path, ca_cert.serialize_pem()?)?;
+            fs::write(&ca_key_path, ca_cert.serialize_private_key_pem())?;
+
+            ca_cert
+        };
+
+        // Services that need certificates
+        let services = vec![
+            ("api", vec!["localhost", "127.0.0.1", "api.botserver.local"]),
+            ("llm", vec!["localhost", "127.0.0.1", "llm.botserver.local"]),
+            (
+                "embedding",
+                vec!["localhost", "127.0.0.1", "embedding.botserver.local"],
+            ),
+            (
+                "qdrant",
+                vec!["localhost", "127.0.0.1", "qdrant.botserver.local"],
+            ),
+            (
+                "postgres",
+                vec!["localhost", "127.0.0.1", "postgres.botserver.local"],
+            ),
+            (
+                "redis",
+                vec!["localhost", "127.0.0.1", "redis.botserver.local"],
+            ),
+            (
+                "minio",
+                vec!["localhost", "127.0.0.1", "minio.botserver.local"],
+            ),
+            (
+                "directory",
+                vec![
+                    "localhost",
+                    "127.0.0.1",
+                    "directory.botserver.local",
+                    "auth.botserver.local",
+                ],
+            ),
+            (
+                "email",
+                vec![
+                    "localhost",
+                    "127.0.0.1",
+                    "mail.botserver.local",
+                    "smtp.botserver.local",
+                    "imap.botserver.local",
+                ],
+            ),
+            (
+                "meet",
+                vec![
+                    "localhost",
+                    "127.0.0.1",
+                    "meet.botserver.local",
+                    "turn.botserver.local",
+                ],
+            ),
+            (
+                "caddy",
+                vec![
+                    "localhost",
+                    "127.0.0.1",
+                    "*.botserver.local",
+                    "botserver.local",
+                ],
+            ),
+        ];
+
+        for (service, sans) in services {
+            let service_dir = cert_dir.join(service);
+            fs::create_dir_all(&service_dir)?;
+
+            let cert_path = service_dir.join("server.crt");
+            let key_path = service_dir.join("server.key");
+
+            // Skip if certificate already exists
+            if cert_path.exists() && key_path.exists() {
+                trace!("Certificate for {} already exists", service);
+                continue;
+            }
+
+            info!("Generating certificate for {}", service);
+
+            // Generate service certificate
+            let mut params = CertificateParams::default();
+            params.not_before = time::OffsetDateTime::now_utc();
+            params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(365);
+
+            let mut dn = DistinguishedName::new();
+            dn.push(DnType::CountryName, "BR");
+            dn.push(DnType::OrganizationName, "BotServer");
+            dn.push(DnType::CommonName, &format!("{}.botserver.local", service));
+            params.distinguished_name = dn;
+
+            // Add SANs
+            for san in sans {
+                params
+                    .subject_alt_names
+                    .push(rcgen::SanType::DnsName(san.to_string()));
+            }
+
+            let cert = Certificate::from_params(params)?;
+            let cert_pem = cert.serialize_pem_with_signer(&ca_cert)?;
+
+            // Save certificate and key
+            fs::write(cert_path, cert_pem)?;
+            fs::write(key_path, cert.serialize_private_key_pem())?;
+
+            // Copy CA cert to service directory for easy access
+            fs::copy(&ca_cert_path, service_dir.join("ca.crt"))?;
+        }
+
+        info!("✅ TLS certificates generated successfully");
         Ok(())
     }
 }

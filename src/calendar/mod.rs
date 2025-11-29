@@ -10,6 +10,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -242,9 +243,12 @@ pub async fn delete_event(
 
 pub fn router(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/api/calendar/events", get(list_events).post(create_event))
         .route(
-            "/api/calendar/events/:id",
+            ApiUrls::CALENDAR_EVENTS,
+            get(list_events).post(create_event),
+        )
+        .route(
+            ApiUrls::CALENDAR_EVENT_BY_ID.replace(":id", "{id}"),
             get(get_event).put(update_event).delete(delete_event),
         )
         .with_state(state)
