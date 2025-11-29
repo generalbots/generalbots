@@ -1,0 +1,423 @@
+{% extends "base.html" %}
+
+{% block title %}Drive - BotServer{% endblock %}
+
+{% block content %}
+<div class="drive-container">
+    <!-- Header -->
+    <div class="drive-header">
+        <h1>Drive</h1>
+        <div class="drive-actions">
+            <button class="btn btn-primary"
+                    hx-get="/api/drive/upload"
+                    hx-target="#modal-container"
+                    hx-swap="innerHTML">
+                <span>📤</span> Upload
+            </button>
+            <button class="btn btn-secondary"
+                    hx-post="/api/drive/folder/new</span>"
+                    hx-target="#file-tree"
+                    hx-swap="outerHTML">
+                <span>📁</span> New Folder
+            </button>
+        </div>
+    </div>
+
+    <!-- Storage Info -->
+    <div class="storage-info"
+         hx-get="/api/drive/storage"
+         hx-trigger="load, every 30s"
+         hx-swap="innerHTML">
+        <div class="storage-bar">
+            <div class="storage-used" style="width: 25%"></div>
+        </div>
+        <div class="storage-text">12.3 GB of 50 GB used</div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="drive-content">
+        <!-- Sidebar -->
+        <div class="drive-sidebar">
+            <div class="quick-access">
+                <div class="sidebar-item active"
+                     hx-get="/api/drive/files?filter=all"
+                     hx-target="#file-list"
+                     hx-swap="innerHTML">
+                    <span>📁</span> All Files
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/drive/files?filter=recent"
+                     hx-target="#file-list"
+                     hx-swap="innerHTML">
+                    <span>🕐</span> Recent
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/drive/files?filter=starred"
+                     hx-target="#file-list"
+                     hx-swap="innerHTML">
+                    <span>⭐</span> Starred
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/drive/files?filter=shared"
+                     hx-target="#file-list"
+                     hx-swap="innerHTML">
+                    <span>👥</span> Shared
+                </div>
+                <div class="sidebar-item"
+                     hx-get="/api/drive/files?filter=trash"
+                     hx-target="#file-list"
+                     hx-swap="innerHTML">
+                    <span>🗑️</span> Trash
+                </div>
+            </div>
+
+            <!-- Folders Tree -->
+            <div class="folders-tree" id="folder-tree"
+                 hx-get="/api/drive/folders"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="loading">Loading folders...</div>
+            </div>
+        </div>
+
+        <!-- File List -->
+        <div class="drive-main">
+            <!-- Breadcrumb -->
+            <div class="breadcrumb"
+                 id="breadcrumb"
+                 hx-get="/api/drive/breadcrumb"
+                 hx-trigger="load, path-changed from:body"
+                 hx-swap="innerHTML">
+                <span class="breadcrumb-item">Home</span>
+            </div>
+
+            <!-- Search Bar -->
+            <div class="search-container">
+                <input type="text"
+                       class="search-input"
+                       placeholder="Search files..."
+                       name="query"
+                       hx-get="/api/drive/search"
+                       hx-trigger="keyup changed delay:500ms"
+                       hx-target="#file-list"
+                       hx-swap="innerHTML">
+            </div>
+
+            <!-- File Grid/List -->
+            <div class="file-list" id="file-list"
+                 hx-get="/api/drive/files"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                <div class="loading">Loading files...</div>
+            </div>
+        </div>
+
+        <!-- File Preview Panel -->
+        <div class="file-preview" id="file-preview" style="display: none;">
+            <div class="preview-header">
+                <h3>File Preview</h3>
+                <button class="close-btn" onclick="closePreview()">✕</button>
+            </div>
+            <div class="preview-content" id="preview-content">
+                <!-- Preview content loaded here -->
+            </div>
+            <div class="preview-actions">
+                <button class="btn btn-secondary"
+                        hx-get="/api/drive/file/download"
+                        hx-include="#preview-file-id">
+                    <span>⬇️</span> Download
+                </button>
+                <button class="btn btn-secondary"
+                        hx-post="/api/drive/file/share"
+                        hx-include="#preview-file-id">
+                    <span>🔗</span> Share
+                </button>
+                <button class="btn btn-danger"
+                        hx-delete="/api/drive/file"
+                        hx-include="#preview-file-id"
+                        hx-confirm="Are you sure you want to delete this file?">
+                    <span>🗑️</span> Delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Container -->
+<div id="modal-container"></div>
+
+<!-- Hidden file ID input for preview actions -->
+<input type="hidden" id="preview-file-id" name="file_id" value="">
+
+<style>
+.drive-container {
+    height: calc(100vh - var(--header-height));
+    display: flex;
+    flex-direction: column;
+}
+
+.drive-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.drive-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.storage-info {
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+}
+
+.storage-bar {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 0.5rem;
+}
+
+.storage-used {
+    height: 100%;
+    background: var(--primary);
+    transition: width 0.3s ease;
+}
+
+.storage-text {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.drive-content {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+}
+
+.drive-sidebar {
+    width: 240px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    overflow-y: auto;
+}
+
+.quick-access {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 0.25rem;
+}
+
+.sidebar-item:hover {
+    background: var(--hover);
+}
+
+.sidebar-item.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.folders-tree {
+    padding: 1rem;
+}
+
+.drive-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.breadcrumb {
+    padding: 0.75rem 1.5rem;
+    background: var(--background);
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.breadcrumb-item {
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.breadcrumb-item:hover {
+    color: var(--primary);
+}
+
+.breadcrumb-item:not(:last-child)::after {
+    content: '/';
+    margin-left: 0.5rem;
+    color: var(--border);
+}
+
+.search-container {
+    padding: 1rem 1.5rem;
+}
+
+.search-input {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--surface);
+    font-size: 0.875rem;
+}
+
+.file-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 1.5rem;
+}
+
+.file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+}
+
+.file-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.file-item:hover {
+    background: var(--hover);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.file-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+}
+
+.file-name {
+    font-size: 0.875rem;
+    text-align: center;
+    word-break: break-word;
+    max-width: 100%;
+}
+
+.file-preview {
+    width: 320px;
+    background: var(--surface);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+}
+
+.preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+}
+
+.preview-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem;
+}
+
+.preview-actions {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .drive-sidebar {
+        display: none;
+    }
+
+    .file-preview {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: 100%;
+        z-index: 1000;
+    }
+}
+</style>
+
+<script>
+function closePreview() {
+    document.getElementById('file-preview').style.display = 'none';
+}
+
+function openPreview(fileId) {
+    document.getElementById('preview-file-id').value = fileId;
+    document.getElementById('file-preview').style.display = 'flex';
+
+    // Load preview content
+    htmx.ajax('GET', `/api/drive/file/${fileId}/preview`, {
+        target: '#preview-content',
+        swap: 'innerHTML'
+    });
+}
+
+// Handle file selection
+document.addEventListener('htmx:afterSwap', function(evt) {
+    if (evt.detail.target.id === 'file-list') {
+        // Attach click handlers to file items
+        document.querySelectorAll('.file-item').forEach(item => {
+            item.addEventListener('click', function() {
+                const fileId = this.dataset.fileId;
+                if (fileId) {
+                    openPreview(fileId);
+                }
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

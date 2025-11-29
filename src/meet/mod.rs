@@ -10,6 +10,7 @@ use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
 
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 
 pub mod conversations;
@@ -21,19 +22,25 @@ use service::{DefaultTranscriptionService, MeetingService};
 /// Configure meet API routes
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/voice/start", post(voice_start))
-        .route("/api/voice/stop", post(voice_stop))
-        .route("/api/meet/create", post(create_meeting))
-        .route("/api/meet/rooms", get(list_rooms))
-        .route("/api/meet/rooms/{room_id}", get(get_room))
-        .route("/api/meet/rooms/{room_id}/join", post(join_room))
+        .route(ApiUrls::VOICE_START, post(voice_start))
+        .route(ApiUrls::VOICE_STOP, post(voice_stop))
+        .route(ApiUrls::MEET_CREATE, post(create_meeting))
+        .route(ApiUrls::MEET_ROOMS, get(list_rooms))
         .route(
-            "/api/meet/rooms/{room_id}/transcription/start",
+            ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
+            get(get_room),
+        )
+        .route(
+            ApiUrls::MEET_JOIN.replace(":id", "{room_id}"),
+            post(join_room),
+        )
+        .route(
+            ApiUrls::MEET_TRANSCRIPTION.replace(":id", "{room_id}"),
             post(start_transcription),
         )
-        .route("/api/meet/token", post(get_meeting_token))
-        .route("/api/meet/invite", post(send_meeting_invites))
-        .route("/ws/meet", get(meeting_websocket))
+        .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))
+        .route(ApiUrls::MEET_INVITE, post(send_meeting_invites))
+        .route(ApiUrls::WS_MEET, get(meeting_websocket))
         // Conversations routes
         .route(
             "/conversations/create",

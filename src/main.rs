@@ -16,6 +16,7 @@ use tower_http::trace::TraceLayer;
 use botserver::basic;
 use botserver::core;
 use botserver::shared;
+use botserver::web;
 
 #[cfg(feature = "console")]
 use botserver::console;
@@ -113,32 +114,39 @@ async fn run_axum_server(
         .allow_headers(tower_http::cors::Any)
         .max_age(std::time::Duration::from_secs(3600));
 
+    use crate::core::urls::ApiUrls;
+
     // Build API router with module-specific routes
     let mut api_router = Router::new()
-        .route("/api/sessions", post(create_session))
-        .route("/api/sessions", get(get_sessions))
+        .route(ApiUrls::SESSIONS, post(create_session))
+        .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(
-            "/api/sessions/{session_id}/history",
+            ApiUrls::SESSION_HISTORY.replace(":id", "{session_id}"),
             get(get_session_history),
         )
-        .route("/api/sessions/{session_id}/start", post(start_session))
+        .route(
+            ApiUrls::SESSION_START.replace(":id", "{session_id}"),
+            post(start_session),
+        )
         // WebSocket route
-        .route("/ws", get(websocket_handler))
+        .route(ApiUrls::WS, get(websocket_handler))
         // Merge drive routes using the configure() function
         .merge(botserver::drive::configure());
 
     // Add feature-specific routes
     #[cfg(feature = "directory")]
     {
-        api_router = api_router.route("/api/auth", get(auth_handler));
+        api_router = api_router
+            .route(ApiUrls::AUTH, get(auth_handler))
+            .merge(crate::core::directory::api::configure_user_routes());
     }
 
     #[cfg(feature = "meet")]
     {
         api_router = api_router
-            .route("/api/voice/start", post(voice_start))
-            .route("/api/voice/stop", post(voice_stop))
-            .route("/ws/meet", get(crate::meet::meeting_websocket))
+            .route(ApiUrls::VOICE_START, post(voice_start))
+            .route(ApiUrls::VOICE_STOP, post(voice_stop))
+            .route(ApiUrls::WS_MEET, get(crate::meet::meeting_websocket))
             .merge(crate::meet::configure());
     }
 
@@ -177,34 +185,58 @@ async fn run_axum_server(
     // Build static file serving
     let static_path = std::path::Path::new("./ui/suite");
 
+    // Create web router with authentication
+    let web_router = web::create_router(app_state.clone());
+
     let app = Router::new()
-        // Static file services must come first to match before other routes
-        .nest_service("/js", ServeDir::new(static_path.join("js")))
-        .nest_service("/css", ServeDir::new(static_path.join("css")))
-        .nest_service("/public", ServeDir::new(static_path.join("public")))
-        .nest_service("/drive", ServeDir::new(static_path.join("drive")))
-        .nest_service("/chat", ServeDir::new(static_path.join("chat")))
-        .nest_service("/mail", ServeDir::new(static_path.join("mail")))
-        .nest_service("/tasks", ServeDir::new(static_path.join("tasks")))
-        // API routes
+        // Static file services for remaining assets
+        .nest_service("/static/js", ServeDir::new(static_path.join("js")))
+        .nest_service("/static/css", ServeDir::new(static_path.join("css")))
+        .nest_service("/static/public", ServeDir::new(static_path.join("public")))
+        // Web module with authentication (handles all pages and auth)
+        .merge(web_router)
+        // Legacy API routes (will be migrated to web module)
         .merge(api_router.with_state(app_state.clone()))
         .layer(Extension(app_state.clone()))
-        // Root index route - only matches exact "/"
-        .route("/", get(crate::ui_server::index))
         // Layers
         .layer(cors)
         .layer(TraceLayer::new_for_http());
 
+    // Always use HTTPS - load certificates from botserver-stack
+    let cert_dir = std::path::Path::new("./botserver-stack/conf/system/certificates");
+    let cert_path = cert_dir.join("api/server.crt");
+    let key_path = cert_dir.join("api/server.key");
+
     // Bind to address
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-    let listener = tokio::net::TcpListener::bind(addr).await?;
 
-    info!("HTTP server listening on {}", addr);
+    // Check if certificates exist
+    if cert_path.exists() && key_path.exists() {
+        // Use HTTPS with existing certificates
+        let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert_path, key_path)
+            .await
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
-    // Serve the app
-    axum::serve(listener, app.into_make_service())
-        .await
-        .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+        info!("HTTPS server listening on {} with TLS", addr);
+
+        axum_server::bind_rustls(addr, tls_config)
+            .serve(app.into_make_service())
+            .await
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    } else {
+        // Generate self-signed certificate if not present
+        warn!("TLS certificates not found, generating self-signed certificate...");
+
+        // Fall back to HTTP temporarily (bootstrap will generate certs)
+        let listener = tokio::net::TcpListener::bind(addr).await?;
+        info!(
+            "HTTP server listening on {} (certificates will be generated on next restart)",
+            addr
+        );
+        axum::serve(listener, app.into_make_service())
+            .await
+            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+    }
 }
 
 #[tokio::main]
@@ -483,7 +515,7 @@ async fn main() -> std::io::Result<()> {
         }
     };
 
-    let cache_url = "redis://localhost:6379".to_string();
+    let cache_url = "rediss://localhost:6379".to_string();
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
@@ -507,13 +539,13 @@ async fn main() -> std::io::Result<()> {
     // Create default Zitadel config (can be overridden with env vars)
     #[cfg(feature = "directory")]
     let zitadel_config = botserver::directory::client::ZitadelConfig {
-        issuer_url: "http://localhost:8080".to_string(),
-        issuer: "http://localhost:8080".to_string(),
+        issuer_url: "https://localhost:8080".to_string(),
+        issuer: "https://localhost:8080".to_string(),
         client_id: "client_id".to_string(),
         client_secret: "client_secret".to_string(),
-        redirect_uri: "http://localhost:8080/callback".to_string(),
+        redirect_uri: "https://localhost:8080/callback".to_string(),
         project_id: "default".to_string(),
-        api_url: "http://localhost:8080".to_string(),
+        api_url: "https://localhost:8080".to_string(),
         service_account_key: None,
     };
     #[cfg(feature = "directory")]
@@ -528,8 +560,8 @@ async fn main() -> std::io::Result<()> {
     let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
 
     let llm_url = config_manager
-        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
-        .unwrap_or_else(|_| "http://localhost:8081".to_string());
+        .get_config(&default_bot_id, "llm-url", Some("https://localhost:8081"))
+        .unwrap_or_else(|_| "https://localhost:8081".to_string());
 
     // Create base LLM provider
     let base_llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
@@ -544,9 +576,9 @@ async fn main() -> std::io::Result<()> {
             .get_config(
                 &default_bot_id,
                 "embedding-url",
-                Some("http://localhost:8082"),
+                Some("https://localhost:8082"),
             )
-            .unwrap_or_else(|_| "http://localhost:8082".to_string());
+            .unwrap_or_else(|_| "https://localhost:8082".to_string());
         let embedding_model = config_manager
             .get_config(&default_bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
             .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());
