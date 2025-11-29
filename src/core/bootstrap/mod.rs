@@ -50,16 +50,8 @@ impl BootstrapManager {
             ComponentInfo { name: "alm" },
             ComponentInfo { name: "alm_ci" },
             ComponentInfo { name: "dns" },
-            ComponentInfo { name: "webmail" },
             ComponentInfo { name: "meeting" },
-            ComponentInfo {
-                name: "table_editor",
-            },
-            ComponentInfo { name: "doc_editor" },
             ComponentInfo { name: "desktop" },
-            ComponentInfo { name: "devtools" },
-            ComponentInfo { name: "bot" },
-            ComponentInfo { name: "system" },
             ComponentInfo { name: "vector_db" },
             ComponentInfo { name: "host" },
         ];
@@ -146,17 +138,12 @@ impl BootstrapManager {
             error!("Failed to generate certificates: {}", e);
         }
 
-        let env_path = std::env::current_dir().unwrap().join(".env");
-
-        // Directory (Zitadel) is the root service - only Directory credentials in .env
+        // Directory (Zitadel) is the root service - stores all configuration
         let directory_password = self.generate_secure_password(32);
         let directory_masterkey = self.generate_secure_password(32);
-        let directory_env = format!(
-            "ZITADEL_MASTERKEY={}\nZITADEL_EXTERNALSECURE=true\nZITADEL_EXTERNALPORT=443\nZITADEL_EXTERNALDOMAIN=localhost\n",
-            directory_masterkey
-        );
-        let _ = std::fs::write(&env_path, directory_env);
-        dotenv().ok();
+
+        // Configuration is stored in Directory service, not .env files
+        info!("Configuring services through Directory...");
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
         // Directory must be installed first as it's the root service
@@ -312,7 +299,7 @@ ServiceAccounts:
 
         fs::write(zitadel_config_path, zitadel_config)?;
 
-        info!("✅ Service credentials configured in Directory");
+        info!("Service credentials configured in Directory");
         Ok(())
     }
 
@@ -321,44 +308,51 @@ ServiceAccounts:
         let caddy_config = PathBuf::from("./botserver-stack/conf/proxy/Caddyfile");
         fs::create_dir_all(caddy_config.parent().unwrap())?;
 
-        let config = r#"{
+        let config = format!(
+            r#"{{
     admin off
     auto_https disable_redirects
-}
+}}
 
 # Main API
-api.botserver.local {
+api.botserver.local {{
     tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
-    reverse_proxy localhost:8080
-}
+    reverse_proxy {}
+}}
 
-# Directory/Auth
-auth.botserver.local {
+# Directory/Auth service
+auth.botserver.local {{
     tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
-    reverse_proxy localhost:8080
-}
+    reverse_proxy {}
+}}
 
-# LLM Service
-llm.botserver.local {
+# LLM service
+llm.botserver.local {{
     tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
-    reverse_proxy localhost:8081
-}
+    reverse_proxy {}
+}}
 
-# Email
-mail.botserver.local {
+# Mail service
+mail.botserver.local {{
     tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
-    reverse_proxy localhost:8025
-}
+    reverse_proxy {}
+}}
 
-# Meet
-meet.botserver.local {
+# Meet service
+meet.botserver.local {{
     tls /botserver-stack/conf/system/certificates/caddy/server.crt /botserver-stack/conf/system/certificates/caddy/server.key
-    reverse_proxy localhost:7880
-}
-"#;
+    reverse_proxy {}
+}}
+"#,
+            crate::core::urls::InternalUrls::DIRECTORY_BASE.replace("https://", ""),
+            crate::core::urls::InternalUrls::DIRECTORY_BASE.replace("https://", ""),
+            crate::core::urls::InternalUrls::LLM.replace("https://", ""),
+            crate::core::urls::InternalUrls::EMAIL.replace("https://", ""),
+            crate::core::urls::InternalUrls::LIVEKIT.replace("https://", "")
+        );
 
         fs::write(caddy_config, config)?;
-        info!("✅ Caddy proxy configured");
+        info!("Caddy proxy configured");
         Ok(())
     }
 
@@ -409,7 +403,7 @@ meet    IN      A       127.0.0.1
 "#;
 
         fs::write(zone_file, zone)?;
-        info!("✅ CoreDNS configured for dynamic DNS");
+        info!("CoreDNS configured for dynamic DNS");
         Ok(())
     }
 
@@ -423,14 +417,17 @@ meet    IN      A       127.0.0.1
         // Wait for Directory to be ready
         tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
 
-        let mut setup = DirectorySetup::new("https://localhost:8080".to_string(), config_path);
+        let mut setup = DirectorySetup::new(
+            crate::core::urls::InternalUrls::DIRECTORY_BASE.to_string(),
+            config_path,
+        );
 
         // Create default organization
         let org_name = "default";
         let org_id = setup
             .create_organization(org_name, "Default Organization")
             .await?;
-        info!("✅ Created default organization: {}", org_name);
+        info!("Created default organization: {}", org_name);
 
         // Generate secure passwords
         let admin_password = self.generate_secure_password(16);
@@ -475,7 +472,7 @@ meet    IN      A       127.0.0.1
                 true, // is_admin
             )
             .await?;
-        info!("✅ Created admin user: admin@default");
+        info!("Created admin user: admin@default");
 
         // Create user@default account for regular bot usage
         let regular_user = setup
@@ -489,13 +486,13 @@ meet    IN      A       127.0.0.1
                 false, // is_admin
             )
             .await?;
-        info!("✅ Created regular user: user@default");
+        info!("Created regular user: user@default");
         info!("   Regular user ID: {}", regular_user.id);
 
         // Create OAuth2 application for BotServer
         let (project_id, client_id, client_secret) =
             setup.create_oauth_application(&org_id).await?;
-        info!("✅ Created OAuth2 application in project: {}", project_id);
+        info!("Created OAuth2 application in project: {}", project_id);
 
         // Save configuration
         let config = setup
@@ -508,7 +505,7 @@ meet    IN      A       127.0.0.1
             )
             .await?;
 
-        info!("✅ Directory initialized successfully!");
+        info!("Directory initialized successfully!");
         info!("   Organization: default");
         info!("   Admin User: admin@default");
         info!("   Regular User: user@default");
@@ -527,7 +524,10 @@ meet    IN      A       127.0.0.1
         let config_path = PathBuf::from("./config/email_config.json");
         let directory_config_path = PathBuf::from("./config/directory_config.json");
 
-        let mut setup = EmailSetup::new("https://localhost:8080".to_string(), config_path);
+        let mut setup = EmailSetup::new(
+            crate::core::urls::InternalUrls::DIRECTORY_BASE.to_string(),
+            config_path,
+        );
 
         // Try to integrate with Directory if it exists
         let directory_config = if directory_config_path.exists() {
@@ -538,7 +538,7 @@ meet    IN      A       127.0.0.1
 
         let config = setup.initialize(directory_config).await?;
 
-        info!("✅ Email server initialized successfully!");
+        info!("Email server initialized successfully!");
         info!("   SMTP: {}:{}", config.smtp_host, config.smtp_port);
         info!("   IMAP: {}:{}", config.imap_host, config.imap_port);
         info!("   Admin: {} / {}", config.admin_user, config.admin_pass);
@@ -849,7 +849,7 @@ meet    IN      A       127.0.0.1
             fs::copy(&ca_cert_path, service_dir.join("ca.crt"))?;
         }
 
-        info!("✅ TLS certificates generated successfully");
+        info!("TLS certificates generated successfully");
         Ok(())
     }
 }

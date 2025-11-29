@@ -90,9 +90,9 @@ impl AppConfig {
                 .unwrap_or(default)
         };
         let drive = DriveConfig {
-            server: std::env::var("DRIVE_SERVER").unwrap(),
-            access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
-            secret_key: std::env::var("DRIVE_SECRET").unwrap(),
+            server: crate::core::urls::InternalUrls::DRIVE.to_string(),
+            access_key: String::new(), // Retrieved from Directory service
+            secret_key: String::new(), // Retrieved from Directory service
         };
         let email = EmailConfig {
             server: get_str("EMAIL_IMAP_SERVER", "imap.gmail.com"),
@@ -119,9 +119,9 @@ impl AppConfig {
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
         let minio = DriveConfig {
-            server: std::env::var("DRIVE_SERVER").unwrap(),
-            access_key: std::env::var("DRIVE_ACCESSKEY").unwrap(),
-            secret_key: std::env::var("DRIVE_SECRET").unwrap(),
+            server: crate::core::urls::InternalUrls::DRIVE.to_string(),
+            access_key: String::new(), // Retrieved from Directory service
+            secret_key: String::new(), // Retrieved from Directory service
         };
         let email = EmailConfig {
             server: "imap.gmail.com".to_string(),

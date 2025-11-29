@@ -1,4 +1,4 @@
-<div class="tasks-container" x-data="tasksApp()" x-init="init()" x-cloak>
+<div class="tasks-container">
     <!-- Header -->
     <div class="tasks-header">
         <div class="header-content">
@@ -6,254 +6,155 @@
                 <span class="tasks-icon">✓</span>
                 Tasks
             </h1>
-            <div class="header-stats">
+            <div class="header-stats" id="task-stats">
                 <span class="stat-item">
-                    <span class="stat-value" x-text="tasks.length"></span>
+                    <span class="stat-value">0</span>
                     <span class="stat-label">Total</span>
                 </span>
                 <span class="stat-item">
-                    <span class="stat-value" x-text="activeTasks"></span>
+                    <span class="stat-value">0</span>
                     <span class="stat-label">Active</span>
                 </span>
                 <span class="stat-item">
-                    <span class="stat-value" x-text="completedTasks"></span>
-                    <span class="stat-label">Done</span>
+                    <span class="stat-value">0</span>
+                    <span class="stat-label">Completed</span>
                 </span>
             </div>
         </div>
     </div>
 
-    <!-- Task Input -->
-    <div class="task-input-section">
-        <div class="input-wrapper">
-            <svg class="input-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="8" x2="12" y2="16"></line>
-                <line x1="8" y1="12" x2="16" y2="12"></line>
-            </svg>
+    <!-- Add Task Form -->
+    <div class="add-task-section">
+        <form
+            class="add-task-form"
+            hx-post="/api/tasks"
+            hx-target="#task-list"
+            hx-swap="afterbegin"
+            hx-on::after-request="this.reset()"
+        >
             <input
                 type="text"
+                name="text"
                 class="task-input"
-                x-model="newTask"
-                @keyup.enter="addTask()"
-                placeholder="Add a new task... (Press Enter)"
-                :disabled="!newTask.trim()"
+                placeholder="What needs to be done?"
+                required
+                autofocus
             />
-            <button
-                class="button-primary add-task-btn"
-                @click="addTask()"
-                :disabled="!newTask.trim()"
-            >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                </svg>
+            <select name="category" class="task-category-select">
+                <option value="">No Category</option>
+                <option value="work">Work</option>
+                <option value="personal">Personal</option>
+                <option value="shopping">Shopping</option>
+                <option value="health">Health</option>
+            </select>
+            <input
+                type="date"
+                name="dueDate"
+                class="task-date-input"
+                placeholder="Due date"
+            />
+            <button type="submit" class="button-primary add-task-btn">
+                <span class="plus-icon">+</span>
                 Add Task
             </button>
-        </div>
+        </form>
     </div>
 
     <!-- Filter Tabs -->
     <div class="filter-tabs">
         <button
-            class="filter-tab"
-            :class="{ active: filter === 'all' }"
-            @click="filter = 'all'"
+            class="filter-tab active"
+            hx-get="/api/tasks?filter=all"
+            hx-target="#task-list"
+            hx-swap="innerHTML"
+            onclick="setActiveTab(this)"
         >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <line x1="8" y1="6" x2="21" y2="6"></line>
-                <line x1="8" y1="12" x2="21" y2="12"></line>
-                <line x1="8" y1="18" x2="21" y2="18"></line>
-                <line x1="3" y1="6" x2="3.01" y2="6"></line>
-                <line x1="3" y1="12" x2="3.01" y2="12"></line>
-                <line x1="3" y1="18" x2="3.01" y2="18"></line>
-            </svg>
-            All
-            <span class="tab-badge" x-text="tasks.length"></span>
+            <span class="tab-icon">📋</span>
+            <span>All</span>
+            <span class="tab-count" id="count-all">0</span>
         </button>
         <button
             class="filter-tab"
-            :class="{ active: filter === 'active' }"
-            @click="filter = 'active'"
+            hx-get="/api/tasks?filter=active"
+            hx-target="#task-list"
+            hx-swap="innerHTML"
+            onclick="setActiveTab(this)"
         >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="12" cy="12" r="10"></circle>
-            </svg>
-            Active
-            <span class="tab-badge" x-text="activeTasks"></span>
+            <span class="tab-icon">⏳</span>
+            <span>Active</span>
+            <span class="tab-count" id="count-active">0</span>
         </button>
         <button
             class="filter-tab"
-            :class="{ active: filter === 'completed' }"
-            @click="filter = 'completed'"
+            hx-get="/api/tasks?filter=completed"
+            hx-target="#task-list"
+            hx-swap="innerHTML"
+            onclick="setActiveTab(this)"
         >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-            Completed
-            <span class="tab-badge" x-text="completedTasks"></span>
+            <span class="tab-icon">✓</span>
+            <span>Completed</span>
+            <span class="tab-count" id="count-completed">0</span>
         </button>
         <button
             class="filter-tab priority-tab"
-            :class="{ active: filter === 'priority' }"
-            @click="filter = 'priority'"
+            hx-get="/api/tasks?filter=priority"
+            hx-target="#task-list"
+            hx-swap="innerHTML"
+            onclick="setActiveTab(this)"
         >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-            </svg>
-            Priority
-            <span class="tab-badge" x-text="priorityTasks"></span>
+            <span class="tab-icon">⭐</span>
+            <span>Priority</span>
+            <span class="tab-count" id="count-priority">0</span>
         </button>
     </div>
 
-    <!-- Task List -->
-    <div class="tasks-main">
-        <div class="task-list">
-            <template x-if="filteredTasks.length === 0">
-                <div class="empty-state">
-                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
-                        <polyline points="9 11 12 14 22 4"></polyline>
-                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
-                    </svg>
-                    <h3 x-show="filter === 'all'">No tasks yet</h3>
-                    <h3 x-show="filter === 'active'">No active tasks</h3>
-                    <h3 x-show="filter === 'completed'">No completed tasks</h3>
-                    <h3 x-show="filter === 'priority'">No priority tasks</h3>
-                    <p x-show="filter === 'all'">Create your first task to get started</p>
-                    <p x-show="filter !== 'all'">Switch to another view or add new tasks</p>
-                </div>
-            </template>
-
-            <template x-for="task in filteredTasks" :key="task.id">
-                <div
-                    class="task-item"
-                    :class="{
-                        completed: task.completed,
-                        priority: task.priority,
-                        editing: editingTask === task.id
-                    }"
-                    @dblclick="startEdit(task)"
-                >
-                    <!-- Checkbox -->
-                    <div class="task-checkbox-wrapper">
-                        <input
-                            type="checkbox"
-                            class="task-checkbox"
-                            :id="'task-' + task.id"
-                            :checked="task.completed"
-                            @change="toggleTask(task.id)"
-                        />
-                        <label :for="'task-' + task.id" class="checkbox-label">
-                            <svg class="checkbox-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
-                        </label>
-                    </div>
-
-                    <!-- Task Content -->
-                    <div class="task-content">
-                        <template x-if="editingTask !== task.id">
-                            <div class="task-text-wrapper">
-                                <span class="task-text" x-text="task.text"></span>
-                                <div class="task-meta" x-show="task.category || task.dueDate">
-                                    <span class="task-category" x-show="task.category" x-text="task.category"></span>
-                                    <span class="task-due-date" x-show="task.dueDate">
-                                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-                                            <line x1="16" y1="2" x2="16" y2="6"></line>
-                                            <line x1="8" y1="2" x2="8" y2="6"></line>
-                                            <line x1="3" y1="10" x2="21" y2="10"></line>
-                                        </svg>
-                                        <span x-text="task.dueDate"></span>
-                                    </span>
-                                </div>
-                            </div>
-                        </template>
-
-                        <template x-if="editingTask === task.id">
-                            <input
-                                type="text"
-                                class="task-edit-input"
-                                x-model="editingText"
-                                @keyup.enter="saveEdit(task)"
-                                @keyup.escape="cancelEdit()"
-                                @blur="saveEdit(task)"
-                                x-ref="editInput"
-                            />
-                        </template>
-                    </div>
-
-                    <!-- Task Actions -->
-                    <div class="task-actions">
-                        <button
-                            class="action-btn priority-btn"
-                            :class="{ active: task.priority }"
-                            @click.stop="togglePriority(task.id)"
-                            title="Priority"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
-                            </svg>
-                        </button>
-                        <button
-                            class="action-btn edit-btn"
-                            @click.stop="startEdit(task)"
-                            title="Edit"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                            </svg>
-                        </button>
-                        <button
-                            class="action-btn delete-btn"
-                            @click.stop="deleteTask(task.id)"
-                            title="Delete"
-                        >
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-            </template>
+    <!-- Task List Container -->
+    <div class="task-list-container">
+        <div
+            class="task-list"
+            id="task-list"
+            hx-get="/api/tasks"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Loading state -->
+            <div class="loading-state">
+                <div class="spinner"></div>
+                <p>Loading tasks...</p>
+            </div>
         </div>
     </div>
 
     <!-- Footer Actions -->
-    <div class="tasks-footer" x-show="tasks.length > 0">
+    <div class="tasks-footer" id="task-footer">
         <div class="footer-info">
-            <span class="info-text">
-                <template x-if="activeTasks > 0">
-                    <span>
-                        <strong</span> x-text="activeTasks"></strong>
-                        <span x-text="activeTasks === 1 ? 'task' : 'tasks'"></span>
-                        remaining
-                    </span>
-                </template>
-                <template x-if="activeTasks === 0">
-                    <span>All tasks completed! 🎉</span>
-                </template>
+            <span class="info-text" id="footer-text">
+                <strong>0</strong> tasks remaining
             </span>
         </div>
         <div class="footer-actions">
             <button
                 class="button-secondary"
-                @click="clearCompleted()"
-                x-show="completedTasks > 0"
+                hx-delete="/api/tasks/completed"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                hx-confirm="Are you sure you want to clear all completed tasks?"
             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="3 6 5 6 21 6"></polyline>
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                </svg>
-                Clear Completed (<span x-text="completedTasks"></span>)
+                Clear Completed
             </button>
             <button
                 class="button-secondary"
-                @click="exportTasks()"
+                onclick="exportTasks()"
                 title="Export as JSON"
             >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <svg
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
                     <line x1="12" y1="15" x2="12" y2="3"></line>
@@ -263,3 +164,715 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Container */
+    .tasks-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        min-height: 100vh;
+    }
+
+    /* Header */
+    .tasks-header {
+        margin-bottom: 2rem;
+    }
+
+    .header-content {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .tasks-title {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 2rem;
+        color: #f1f5f9;
+    }
+
+    .tasks-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-radius: 12px;
+        font-size: 1.5rem;
+    }
+
+    .header-stats {
+        display: flex;
+        gap: 2rem;
+    }
+
+    .stat-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #f1f5f9;
+    }
+
+    .stat-label {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: #64748b;
+        margin-top: 0.25rem;
+    }
+
+    /* Add Task Section */
+    .add-task-section {
+        background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .add-task-form {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .task-input {
+        flex: 1;
+        min-width: 200px;
+        padding: 0.75rem 1rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid #475569;
+        border-radius: 8px;
+        color: #f1f5f9;
+        font-size: 1rem;
+        transition: all 0.2s;
+    }
+
+    .task-input:focus {
+        outline: none;
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .task-category-select,
+    .task-date-input {
+        padding: 0.75rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid #475569;
+        border-radius: 8px;
+        color: #f1f5f9;
+        transition: all 0.2s;
+    }
+
+    .task-category-select:focus,
+    .task-date-input:focus {
+        outline: none;
+        border-color: #667eea;
+    }
+
+    .button-primary {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .button-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .button-primary:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .plus-icon {
+        font-size: 1.25rem;
+    }
+
+    /* Filter Tabs */
+    .filter-tabs {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        background: #1e293b;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-tab {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: #94a3b8;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .filter-tab:hover {
+        background: rgba(100, 116, 139, 0.1);
+        color: #cbd5e1;
+    }
+
+    .filter-tab.active {
+        background: #334155;
+        color: #f1f5f9;
+    }
+
+    .priority-tab.active {
+        background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+        color: #0f172a;
+    }
+
+    .tab-icon {
+        font-size: 1.125rem;
+    }
+
+    .tab-count {
+        padding: 0.125rem 0.5rem;
+        background: rgba(100, 116, 139, 0.2);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .filter-tab.active .tab-count {
+        background: rgba(241, 245, 249, 0.2);
+    }
+
+    /* Task List */
+    .task-list-container {
+        min-height: 300px;
+        margin-bottom: 2rem;
+    }
+
+    .task-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .task-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem 1.25rem;
+        background: #1e293b;
+        border-radius: 12px;
+        transition: all 0.2s;
+        animation: slideIn 0.3s ease;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .task-item:hover {
+        background: #334155;
+        transform: translateX(4px);
+    }
+
+    .task-item.completed {
+        opacity: 0.6;
+    }
+
+    .task-item.completed .task-text {
+        text-decoration: line-through;
+        color: #64748b;
+    }
+
+    .task-checkbox {
+        width: 24px;
+        height: 24px;
+        border-radius: 6px;
+        border: 2px solid #475569;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .task-checkbox:checked {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border-color: transparent;
+    }
+
+    .task-content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .task-text-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+
+    .task-text {
+        color: #f1f5f9;
+        font-size: 1rem;
+    }
+
+    .task-meta {
+        display: flex;
+        gap: 0.75rem;
+        align-items: center;
+    }
+
+    .task-category {
+        padding: 0.25rem 0.75rem;
+        background: rgba(100, 116, 139, 0.2);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .task-due-date {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-size: 0.75rem;
+        color: #94a3b8;
+    }
+
+    .task-due-date.overdue {
+        color: #ef4444;
+    }
+
+    .task-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        padding: 0.5rem;
+        background: transparent;
+        border: none;
+        border-radius: 6px;
+        color: #64748b;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .action-btn:hover {
+        background: rgba(100, 116, 139, 0.1);
+        color: #cbd5e1;
+    }
+
+    .priority-btn.active {
+        color: #fbbf24;
+    }
+
+    .edit-btn:hover {
+        color: #3b82f6;
+    }
+
+    .delete-btn:hover {
+        color: #ef4444;
+    }
+
+    /* Task input for editing */
+    .task-edit-input {
+        flex: 1;
+        padding: 0.5rem;
+        background: rgba(15, 23, 42, 0.5);
+        border: 1px solid #475569;
+        border-radius: 6px;
+        color: #f1f5f9;
+        font-size: 1rem;
+    }
+
+    /* Empty state */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem 2rem;
+        text-align: center;
+    }
+
+    .empty-state svg {
+        color: #475569;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.25rem;
+        color: #94a3b8;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #64748b;
+    }
+
+    /* Loading state */
+    .loading-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 4rem;
+        color: #64748b;
+    }
+
+    /* Footer */
+    .tasks-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1.5rem;
+        background: #1e293b;
+        border-radius: 12px;
+    }
+
+    .footer-info {
+        color: #94a3b8;
+    }
+
+    .footer-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+
+    .button-secondary {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        background: transparent;
+        border: 1px solid #475569;
+        border-radius: 8px;
+        color: #94a3b8;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .button-secondary:hover {
+        background: #334155;
+        color: #f1f5f9;
+        border-color: #475569;
+    }
+
+    /* Spinner */
+    @keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
+    }
+
+    .spinner {
+        width: 2rem;
+        height: 2rem;
+        border: 3px solid #334155;
+        border-top-color: #667eea;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+        margin-bottom: 1rem;
+    }
+
+    /* HTMX loading states */
+    .htmx-request .task-item {
+        opacity: 0.6;
+    }
+
+    .htmx-request.filter-tab {
+        pointer-events: none;
+        opacity: 0.7;
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+        .tasks-container {
+            padding: 1rem;
+        }
+
+        .header-content {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .header-stats {
+            width: 100%;
+            justify-content: space-around;
+        }
+
+        .add-task-form {
+            flex-direction: column;
+        }
+
+        .task-input {
+            width: 100%;
+        }
+
+        .filter-tabs {
+            flex-wrap: wrap;
+        }
+
+        .tasks-footer {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+</style>
+
+<script>
+    // Set active tab
+    function setActiveTab(button) {
+        document.querySelectorAll(".filter-tab").forEach((tab) => {
+            tab.classList.remove("active");
+        });
+        button.classList.add("active");
+    }
+
+    // Export tasks as JSON
+    function exportTasks() {
+        fetch("/api/tasks?format=json")
+            .then((response) => response.json())
+            .then((tasks) => {
+                const dataStr = JSON.stringify(tasks, null, 2);
+                const dataUri =
+                    "data:application/json;charset=utf-8," +
+                    encodeURIComponent(dataStr);
+
+                const exportFileDefaultName = `tasks-${new Date().toISOString().split("T")[0]}.json`;
+
+                const linkElement = document.createElement("a");
+                linkElement.setAttribute("href", dataUri);
+                linkElement.setAttribute("download", exportFileDefaultName);
+                linkElement.click();
+            });
+    }
+
+    // Update task statistics
+    function updateStats() {
+        fetch("/api/tasks/stats")
+            .then((response) => response.json())
+            .then((stats) => {
+                // Update header stats
+                document.querySelector(
+                    ".stat-item:nth-child(1) .stat-value",
+                ).textContent = stats.total || 0;
+                document.querySelector(
+                    ".stat-item:nth-child(2) .stat-value",
+                ).textContent = stats.active || 0;
+                document.querySelector(
+                    ".stat-item:nth-child(3) .stat-value",
+                ).textContent = stats.completed || 0;
+
+                // Update tab counts
+                document.getElementById("count-all").textContent =
+                    stats.total || 0;
+                document.getElementById("count-active").textContent =
+                    stats.active || 0;
+                document.getElementById("count-completed").textContent =
+                    stats.completed || 0;
+                document.getElementById("count-priority").textContent =
+                    stats.priority || 0;
+
+                // Update footer text
+                const footerText = document.getElementById("footer-text");
+                if (stats.active === 0) {
+                    footerText.innerHTML = "All tasks completed! 🎉";
+                } else {
+                    footerText.innerHTML = `<strong>${stats.active}</strong> ${stats.active === 1 ? "task" : "tasks"} remaining`;
+                }
+
+                // Show/hide footer
+                const footer = document.getElementById("task-footer");
+                footer.style.display = stats.total > 0 ? "flex" : "none";
+            });
+    }
+
+    // Handle checkbox changes
+    document.addEventListener("change", function (e) {
+        if (e.target.classList.contains("task-checkbox")) {
+            const taskId = e.target.dataset.taskId;
+            const completed = e.target.checked;
+
+            fetch(`/api/tasks/${taskId}/status`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ completed }),
+            }).then(() => {
+                const taskItem = e.target.closest(".task-item");
+                if (completed) {
+                    taskItem.classList.add("completed");
+                } else {
+                    taskItem.classList.remove("completed");
+                }
+                updateStats();
+            });
+        }
+    });
+
+    // Handle task actions
+    document.addEventListener("click", function (e) {
+        // Priority toggle
+        if (e.target.closest('[data-action="priority"]')) {
+            const btn = e.target.closest('[data-action="priority"]');
+            const taskId = btn.dataset.taskId;
+            const priority = !btn.classList.contains("active");
+
+            fetch(`/api/tasks/${taskId}/priority`, {
+                method: "PATCH",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ priority }),
+            }).then(() => {
+                btn.classList.toggle("active");
+                updateStats();
+            });
+        }
+
+        // Edit task
+        if (e.target.closest('[data-action="edit"]')) {
+            const btn = e.target.closest('[data-action="edit"]');
+            const taskId = btn.dataset.taskId;
+            const taskItem = btn.closest(".task-item");
+            const taskText = taskItem.querySelector(".task-text");
+            const currentText = taskText.textContent;
+
+            const input = document.createElement("input");
+            input.type = "text";
+            input.className = "task-edit-input";
+            input.value = currentText;
+
+            taskText.replaceWith(input);
+            input.focus();
+            input.select();
+
+            input.addEventListener("blur", function () {
+                saveEdit();
+            });
+
+            input.addEventListener("keydown", function (e) {
+                if (e.key === "Enter") {
+                    saveEdit();
+                } else if (e.key === "Escape") {
+                    cancelEdit();
+                }
+            });
+
+            function saveEdit() {
+                const newText = input.value.trim();
+                if (newText && newText !== currentText) {
+                    fetch(`/api/tasks/${taskId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ text: newText }),
+                    }).then(() => {
+                        const span = document.createElement("span");
+                        span.className = "task-text";
+                        span.textContent = newText;
+                        input.replaceWith(span);
+                    });
+                } else {
+                    cancelEdit();
+                }
+            }
+
+            function cancelEdit() {
+                const span = document.createElement("span");
+                span.className = "task-text";
+                span.textContent = currentText;
+                input.replaceWith(span);
+            }
+        }
+
+        // Delete task
+        if (e.target.closest('[data-action="delete"]')) {
+            const btn = e.target.closest('[data-action="delete"]');
+            const taskId = btn.dataset.taskId;
+
+            if (confirm("Delete this task?")) {
+                fetch(`/api/tasks/${taskId}`, {
+                    method: "DELETE",
+                }).then(() => {
+                    const taskItem = btn.closest(".task-item");
+                    taskItem.style.animation = "slideOut 0.3s ease";
+                    setTimeout(() => {
+                        taskItem.remove();
+                        updateStats();
+                    }, 300);
+                });
+            }
+        }
+    });
+
+    // Animation for removing tasks
+    const style = document.createElement("style");
+    style.textContent = `
+    @keyframes slideOut {
+        to {
+            opacity: 0;
+            transform: translateX(-100%);
+        }
+    }
+`;
+    document.head.appendChild(style);
+
+    // Update stats after any HTMX request
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+        if (evt.detail.target.id === "task-list") {
+            updateStats();
+        }
+    });
+
+    // Initial stats load
+    document.addEventListener("DOMContentLoaded", function () {
+        updateStats();
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener("keydown", function (e) {
+        // Alt + N for new task
+        if (e.altKey && e.key === "n") {
+            e.preventDefault();
+            document.querySelector(".task-input").focus();
+        }
+
+        // Alt + 1-4 for filter tabs
+        if (e.altKey && e.key >= "1" && e.key <= "4") {
+            e.preventDefault();
+            const tabs = document.querySelectorAll(".filter-tab");
+            const index = parseInt(e.key) - 1;
+            if (tabs[index]) {
+                tabs[index].click();
+            }
+        }
+    });
+</script>

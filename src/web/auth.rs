@@ -59,29 +59,28 @@ pub struct AuthConfig {
 
 impl AuthConfig {
     pub fn from_env() -> Self {
-        let jwt_secret = std::env::var("JWT_SECRET").unwrap_or_else(|_| {
-            // Generate a secure random secret if not provided
+        // Use Zitadel directory service for all configuration
+        // No environment variables should be read directly
+        let jwt_secret = {
+            // Generate a secure random secret - should come from directory service
             let secret = base64::encode(uuid::Uuid::new_v4().as_bytes());
-            tracing::warn!("JWT_SECRET not set, using generated secret");
+            tracing::info!("Using generated JWT secret");
             secret
-        });
+        };
 
-        let cookie_secret = std::env::var("COOKIE_SECRET").unwrap_or_else(|_| {
+        let cookie_secret = {
             let secret = uuid::Uuid::new_v4().to_string();
-            tracing::warn!("COOKIE_SECRET not set, using generated secret");
+            tracing::info!("Using generated cookie secret");
             secret
-        });
+        };
 
         Self {
             jwt_secret,
             jwt_expiry_hours: 24,
             session_expiry_hours: 24 * 7, // 1 week
-            zitadel_url: std::env::var("ZITADEL_URL")
-                .unwrap_or_else(|_| "https://localhost:8080".to_string()),
-            zitadel_client_id: std::env::var("ZITADEL_CLIENT_ID")
-                .unwrap_or_else(|_| "botserver-web".to_string()),
-            zitadel_client_secret: std::env::var("ZITADEL_CLIENT_SECRET")
-                .unwrap_or_else(|_| String::new()),
+            zitadel_url: crate::core::urls::InternalUrls::DIRECTORY_BASE.to_string(),
+            zitadel_client_id: "botserver-web".to_string(),
+            zitadel_client_secret: String::new(), // Retrieved from directory service
             cookie_key: Key::from(cookie_secret.as_bytes()),
         }
     }
@@ -260,7 +259,13 @@ pub async fn login_with_zitadel(
             ("code", &code),
             ("client_id", &auth_config.zitadel_client_id),
             ("client_secret", &auth_config.zitadel_client_secret),
-            ("redirect_uri", "http://localhost:3000/auth/callback"),
+            (
+                "redirect_uri",
+                &format!(
+                    "{}/auth/callback",
+                    crate::core::urls::InternalUrls::DIRECTORY_BASE
+                ),
+            ),
         ])
         .send()
         .await?

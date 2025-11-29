@@ -1,286 +1,315 @@
-// Minimal HTMX Application Initialization
-// Pure HTMX-based with no external dependencies except HTMX itself
-
+// HTMX-based application initialization
 (function() {
     'use strict';
 
     // Configuration
     const config = {
-        sessionRefreshInterval: 15 * 60 * 1000, // 15 minutes
-        tokenKey: 'auth_token',
-        themeKey: 'app_theme'
+        wsUrl: '/ws',
+        apiBase: '/api',
+        reconnectDelay: 3000,
+        maxReconnectAttempts: 5
     };
 
-    // Initialize HTMX settings
+    // State
+    let reconnectAttempts = 0;
+    let wsConnection = null;
+
+    // Initialize HTMX extensions
     function initHTMX() {
         // Configure HTMX
         htmx.config.defaultSwapStyle = 'innerHTML';
         htmx.config.defaultSettleDelay = 100;
         htmx.config.timeout = 10000;
-        htmx.config.scrollBehavior = 'smooth';
 
-        // Add authentication token to all requests
+        // Add CSRF token to all requests if available
         document.body.addEventListener('htmx:configRequest', (event) => {
-            // Get token from cookie (httpOnly cookies are automatically sent)
-            // For additional security, we can also check localStorage
-            const token = localStorage.getItem(config.tokenKey);
+            const token = localStorage.getItem('csrf_token');
             if (token) {
-                event.detail.headers['Authorization'] = `Bearer ${token}`;
+                event.detail.headers['X-CSRF-Token'] = token;
             }
         });
 
-        // Handle authentication errors
+        // Handle errors globally
         document.body.addEventListener('htmx:responseError', (event) => {
-            if (event.detail.xhr.status === 401) {
-                // Unauthorized - redirect to login
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-            } else if (event.detail.xhr.status === 403) {
-                // Forbidden - show error
-                showNotification('Access denied', 'error');
-            }
+            console.error('HTMX Error:', event.detail);
+            showNotification('Connection error. Please try again.', 'error');
         });
 
-        // Handle successful responses
+        // Handle successful swaps
         document.body.addEventListener('htmx:afterSwap', (event) => {
-            // Auto-initialize any new HTMX elements
-            htmx.process(event.detail.target);
-
-            // Trigger any custom events
-            if (event.detail.target.dataset.afterSwap) {
-                htmx.trigger(event.detail.target, event.detail.target.dataset.afterSwap);
+            // Auto-scroll messages if in chat
+            const messages = document.getElementById('messages');
+            if (messages && event.detail.target === messages) {
+                messages.scrollTop = messages.scrollHeight;
             }
         });
 
-        // Handle redirects
-        document.body.addEventListener('htmx:beforeSwap', (event) => {
-            if (event.detail.xhr.getResponseHeader('HX-Redirect')) {
-                event.detail.shouldSwap = false;
-                window.location.href = event.detail.xhr.getResponseHeader('HX-Redirect');
-            }
+        // Handle WebSocket messages
+        document.body.addEventListener('htmx:wsMessage', (event) => {
+            handleWebSocketMessage(JSON.parse(event.detail.message));
+        });
+
+        // Handle WebSocket connection events
+        document.body.addEventListener('htmx:wsConnecting', () => {
+            updateConnectionStatus('connecting');
+        });
+
+        document.body.addEventListener('htmx:wsOpen', () => {
+            updateConnectionStatus('connected');
+            reconnectAttempts = 0;
+        });
+
+        document.body.addEventListener('htmx:wsClose', () => {
+            updateConnectionStatus('disconnected');
+            attemptReconnect();
         });
     }
 
-    // Theme management
-    function initTheme() {
-        // Get saved theme or default to system preference
-        const savedTheme = localStorage.getItem(config.themeKey) ||
-                          (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-        document.documentElement.setAttribute('data-theme', savedTheme);
-
-        // Listen for theme changes
-        document.body.addEventListener('theme-changed', (event) => {
-            const newTheme = event.detail.theme ||
-                           (document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light');
-
-            document.documentElement.setAttribute('data-theme', newTheme);
-            localStorage.setItem(config.themeKey, newTheme);
-
-            // Update theme icons
-            document.querySelectorAll('[data-theme-icon]').forEach(icon => {
-                icon.textContent = newTheme === 'light' ? '🌙' : '☀️';
-            });
-        });
-    }
-
-    // Session management
-    function initSession() {
-        // Check session validity on page load
-        checkSession();
-
-        // Periodically refresh token
-        setInterval(refreshToken, config.sessionRefreshInterval);
-
-        // Check session before page unload
-        window.addEventListener('beforeunload', () => {
-            // Save any pending data
-            htmx.trigger(document.body, 'save-pending');
-        });
-    }
-
-    // Check if user session is valid
-    async function checkSession() {
-        try {
-            const response = await fetch('/api/auth/check');
-            const data = await response.json();
-
-            if (!data.authenticated && !isPublicPath()) {
-                window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-            }
-        } catch (err) {
-            console.error('Session check failed:', err);
+    // Handle WebSocket messages
+    function handleWebSocketMessage(message) {
+        switch(message.type) {
+            case 'message':
+                appendMessage(message);
+                break;
+            case 'notification':
+                showNotification(message.text, message.severity);
+                break;
+            case 'status':
+                updateStatus(message);
+                break;
+            case 'suggestion':
+                addSuggestion(message.text);
+                break;
+            default:
+                console.log('Unknown message type:', message.type);
         }
     }
 
-    // Refresh authentication token
-    async function refreshToken() {
-        if (!isPublicPath()) {
-            try {
-                const response = await fetch('/api/auth/refresh', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    }
-                });
+    // Append message to chat
+    function appendMessage(message) {
+        const messagesEl = document.getElementById('messages');
+        if (!messagesEl) return;
 
-                if (response.ok) {
-                    const data = await response.json();
-                    if (data.refreshed && data.token) {
-                        localStorage.setItem(config.tokenKey, data.token);
-                    }
-                } else if (response.status === 401) {
-                    // Token expired, redirect to login
-                    window.location.href = '/login?redirect=' + encodeURIComponent(window.location.pathname);
-                }
-            } catch (err) {
-                console.error('Token refresh failed:', err);
-            }
-        }
+        const messageEl = document.createElement('div');
+        messageEl.className = `message ${message.sender === 'user' ? 'user' : 'bot'}`;
+        messageEl.innerHTML = `
+            <div class="message-content">
+                <span class="sender">${message.sender}</span>
+                <span class="text">${escapeHtml(message.text)}</span>
+                <span class="time">${formatTime(message.timestamp)}</span>
+            </div>
+        `;
+
+        messagesEl.appendChild(messageEl);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    // Check if current path is public (doesn't require auth)
-    function isPublicPath() {
-        const publicPaths = ['/login', '/logout', '/auth/callback', '/health', '/register', '/forgot-password'];
-        const currentPath = window.location.pathname;
-        return publicPaths.some(path => currentPath.startsWith(path));
+    // Add suggestion chip
+    function addSuggestion(text) {
+        const suggestionsEl = document.getElementById('suggestions');
+        if (!suggestionsEl) return;
+
+        const chip = document.createElement('button');
+        chip.className = 'suggestion-chip';
+        chip.textContent = text;
+        chip.setAttribute('hx-post', '/api/sessions/current/message');
+        chip.setAttribute('hx-vals', JSON.stringify({content: text}));
+        chip.setAttribute('hx-target', '#messages');
+        chip.setAttribute('hx-swap', 'beforeend');
+
+        suggestionsEl.appendChild(chip);
+        htmx.process(chip);
+    }
+
+    // Update connection status
+    function updateConnectionStatus(status) {
+        const statusEl = document.getElementById('connectionStatus');
+        if (!statusEl) return;
+
+        statusEl.className = `connection-status ${status}`;
+        statusEl.textContent = status.charAt(0).toUpperCase() + status.slice(1);
+    }
+
+    // Update general status
+    function updateStatus(message) {
+        const statusEl = document.getElementById('status-' + message.id);
+        if (statusEl) {
+            statusEl.textContent = message.text;
+            statusEl.className = `status ${message.severity}`;
+        }
     }
 
     // Show notification
-    function showNotification(message, type = 'info') {
-        const container = document.getElementById('notifications') || createNotificationContainer();
-
+    function showNotification(text, type = 'info') {
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <span class="notification-message">${escapeHtml(message)}</span>
-            <button class="notification-close" onclick="this.parentElement.remove()">×</button>
-        `;
+        notification.textContent = text;
 
+        const container = document.getElementById('notifications') || document.body;
         container.appendChild(notification);
 
-        // Auto-dismiss after 5 seconds
         setTimeout(() => {
             notification.classList.add('fade-out');
             setTimeout(() => notification.remove(), 300);
-        }, 5000);
+        }, 3000);
     }
 
-    // Create notification container if it doesn't exist
-    function createNotificationContainer() {
-        const container = document.createElement('div');
-        container.id = 'notifications';
-        container.className = 'notifications-container';
-        document.body.appendChild(container);
-        return container;
+    // Attempt to reconnect WebSocket
+    function attemptReconnect() {
+        if (reconnectAttempts >= config.maxReconnectAttempts) {
+            showNotification('Connection lost. Please refresh the page.', 'error');
+            return;
+        }
+
+        reconnectAttempts++;
+        setTimeout(() => {
+            console.log(`Reconnection attempt ${reconnectAttempts}...`);
+            htmx.trigger(document.body, 'htmx:wsReconnect');
+        }, config.reconnectDelay);
     }
 
-    // Escape HTML to prevent XSS
+    // Utility: Escape HTML
     function escapeHtml(text) {
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // Handle keyboard shortcuts
+    // Utility: Format timestamp
+    function formatTime(timestamp) {
+        if (!timestamp) return '';
+        const date = new Date(timestamp);
+        return date.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true
+        });
+    }
+
+    // Handle navigation
+    function initNavigation() {
+        // Update active nav item on page change
+        document.addEventListener('htmx:pushedIntoHistory', (event) => {
+            const path = event.detail.path;
+            updateActiveNav(path);
+        });
+
+        // Handle browser back/forward
+        window.addEventListener('popstate', (event) => {
+            updateActiveNav(window.location.pathname);
+        });
+    }
+
+    // Update active navigation item
+    function updateActiveNav(path) {
+        document.querySelectorAll('.nav-item, .app-item').forEach(item => {
+            const href = item.getAttribute('href');
+            if (href === path || (path === '/' && href === '/chat')) {
+                item.classList.add('active');
+            } else {
+                item.classList.remove('active');
+            }
+        });
+    }
+
+    // Initialize keyboard shortcuts
     function initKeyboardShortcuts() {
         document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + K - Quick search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            // Send message on Enter (when in input)
+            if (e.key === 'Enter' && !e.shiftKey) {
+                const input = document.getElementById('messageInput');
+                if (input && document.activeElement === input) {
+                    e.preventDefault();
+                    const form = input.closest('form');
+                    if (form) {
+                        htmx.trigger(form, 'submit');
+                    }
+                }
+            }
+
+            // Focus input on /
+            if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
                 e.preventDefault();
-                const searchInput = document.querySelector('[data-search-input]');
-                if (searchInput) {
-                    searchInput.focus();
-                }
+                const input = document.getElementById('messageInput');
+                if (input) input.focus();
             }
 
-            // Escape - Close modals
+            // Escape to blur input
             if (e.key === 'Escape') {
-                const modal = document.querySelector('.modal.active');
-                if (modal) {
-                    htmx.trigger(modal, 'close-modal');
+                const input = document.getElementById('messageInput');
+                if (input && document.activeElement === input) {
+                    input.blur();
                 }
             }
         });
     }
 
-    // Handle form validation
-    function initFormValidation() {
-        document.addEventListener('htmx:validateUrl', (event) => {
-            // Custom URL validation if needed
-            return true;
-        });
+    // Initialize scroll behavior
+    function initScrollBehavior() {
+        const scrollBtn = document.getElementById('scrollToBottom');
+        const messages = document.getElementById('messages');
 
-        document.addEventListener('htmx:beforeRequest', (event) => {
-            // Add loading state to forms
-            const form = event.target.closest('form');
-            if (form) {
-                form.classList.add('loading');
-                // Disable submit buttons
-                form.querySelectorAll('[type="submit"]').forEach(btn => {
-                    btn.disabled = true;
-                });
-            }
-        });
+        if (scrollBtn && messages) {
+            // Show/hide scroll button
+            messages.addEventListener('scroll', () => {
+                const isAtBottom = messages.scrollHeight - messages.scrollTop <= messages.clientHeight + 100;
+                scrollBtn.style.display = isAtBottom ? 'none' : 'flex';
+            });
 
-        document.addEventListener('htmx:afterRequest', (event) => {
-            // Remove loading state from forms
-            const form = event.target.closest('form');
-            if (form) {
-                form.classList.remove('loading');
-                // Re-enable submit buttons
-                form.querySelectorAll('[type="submit"]').forEach(btn => {
-                    btn.disabled = false;
+            // Scroll to bottom on click
+            scrollBtn.addEventListener('click', () => {
+                messages.scrollTo({
+                    top: messages.scrollHeight,
+                    behavior: 'smooth'
                 });
-            }
-        });
+            });
+        }
     }
 
-    // Initialize offline detection
-    function initOfflineDetection() {
-        window.addEventListener('online', () => {
-            document.body.classList.remove('offline');
-            showNotification('Connection restored', 'success');
-            // Retry any pending requests
-            htmx.trigger(document.body, 'retry-pending');
-        });
-
-        window.addEventListener('offline', () => {
-            document.body.classList.add('offline');
-            showNotification('No internet connection', 'warning');
-        });
+    // Initialize theme if ThemeManager exists
+    function initTheme() {
+        if (window.ThemeManager) {
+            ThemeManager.init();
+        }
     }
 
     // Main initialization
     function init() {
         console.log('Initializing HTMX application...');
 
-        // Initialize core features
+        // Initialize HTMX
         initHTMX();
-        initTheme();
-        initSession();
+
+        // Initialize navigation
+        initNavigation();
+
+        // Initialize keyboard shortcuts
         initKeyboardShortcuts();
-        initFormValidation();
-        initOfflineDetection();
 
-        // Mark app as initialized
-        document.body.classList.add('app-initialized');
+        // Initialize scroll behavior
+        initScrollBehavior();
 
-        console.log('Application initialized successfully');
+        // Initialize theme
+        initTheme();
+
+        // Set initial active nav
+        updateActiveNav(window.location.pathname);
+
+        console.log('HTMX application initialized');
     }
 
-    // Wait for DOM to be ready
+    // Wait for DOM and HTMX to be ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
     } else {
-        // DOM is already ready
         init();
     }
 
-    // Expose public API for other scripts if needed
+    // Expose public API
     window.BotServerApp = {
         showNotification,
-        checkSession,
-        refreshToken,
+        appendMessage,
+        updateConnectionStatus,
         config
     };
 })();

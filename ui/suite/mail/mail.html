@@ -1,64 +1,439 @@
-<div class="mail-layout" x-data="mailApp()" x-cloak>
-  <div class="panel mail-sidebar">
-    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
-      <button style="width: 100%; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;">
-        ✏ Compose
-      </button>
-    </div>
-    <template x-for="folder in folders" :key="folder.name">
-      <div class="nav-item" 
-           :class="{ active: currentFolder === folder.name }"
-           @click="currentFolder = folder.name">
-        <span x-text="folder.icon"></span>
-        <span x-text="folder.name"></span>
-        <span style="margin-left: auto; font-size: 0.875rem; color: #64748b;" 
-              x-show="folder.count > 0" 
-              x-text="folder.count"></span>
-      </div>
-    </template>
-  </div>
-
-  <div class="panel mail-list">
-    <div style="padding: 1rem; border-bottom: 1px solid #334155;">
-      <h3 x-text="currentFolder"></h3>
-    </div>
-    <template x-for="mail in filteredMails" :key="mail.id">
-      <div class="mail-item" 
-           :class="{ unread: !mail.read, selected: selectedMail?.id === mail.id }"
-           @click="selectMail(mail)">
-        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
-          <span style="font-weight: 600;" x-text="mail.from"></span>
-          <span class="text-xs text-gray" x-text="mail.time"></span>
+<div class="mail-layout">
+    <!-- Sidebar -->
+    <div class="panel mail-sidebar">
+        <div style="padding: 1rem; border-bottom: 1px solid #334155;">
+            <button
+                style="width: 100%; padding: 0.75rem; background: #3b82f6; color: white; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600;"
+                hx-get="/api/email/compose"
+                hx-target="#mail-content"
+                hx-swap="innerHTML"
+            >
+                ✏ Compose
+            </button>
         </div>
-        <div style="font-weight: 600; margin-bottom: 0.25rem;" x-text="mail.subject"></div>
-        <div class="text-sm text-gray" x-text="mail.preview"></div>
-      </div>
-    </template>
-  </div>
 
-  <div class="panel mail-content">
-    <template x-if="selectedMail">
-      <div class="mail-content-view">
-        <div class="mail-header">
-          <h2 x-text="selectedMail.subject"></h2>
-          <div style="display: flex; align-items: center; gap: 1rem; margin-top: 1rem;">
-            <div>
-              <div style="font-weight: 600;" x-text="selectedMail.from"></div>
-              <div class="text-sm text-gray" x-text="'to: ' + selectedMail.to"></div>
+        <!-- Folder List -->
+        <div id="mail-folders"
+             hx-get="/api/email/folders"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="nav-item active"
+                 hx-get="/api/email/list?folder=inbox"
+                 hx-target="#mail-list"
+                 hx-swap="innerHTML">
+                <span>📥</span> Inbox
+                <span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">0</span>
             </div>
-            <div style="margin-left: auto;" class="text-sm text-gray" x-text="selectedMail.date"></div>
-          </div>
+            <div class="nav-item"
+                 hx-get="/api/email/list?folder=sent"
+                 hx-target="#mail-list"
+                 hx-swap="innerHTML">
+                <span>📤</span> Sent
+            </div>
+            <div class="nav-item"
+                 hx-get="/api/email/list?folder=drafts"
+                 hx-target="#mail-list"
+                 hx-swap="innerHTML">
+                <span>📝</span> Drafts
+            </div>
+            <div class="nav-item"
+                 hx-get="/api/email/list?folder=trash"
+                 hx-target="#mail-list"
+                 hx-swap="innerHTML">
+                <span>🗑️</span> Trash
+            </div>
         </div>
-        <div class="mail-body" x-html="selectedMail.body"></div>
-      </div>
-    </template>
-    <template x-if="!selectedMail">
-      <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b;">
-        <div style="text-align: center;">
-          <div style="font-size: 4rem; margin-bottom: 1rem;">✉</div>
-          <p>Select a message to read</p>
+    </div>
+
+    <!-- Mail List -->
+    <div class="panel mail-list">
+        <div style="padding: 1rem; border-bottom: 1px solid #334155;">
+            <h3 id="folder-title">Inbox</h3>
         </div>
-      </div>
-    </template>
-  </div>
+        <div id="mail-list"
+             hx-get="/api/email/list?folder=inbox"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <!-- Loading state -->
+            <div style="padding: 2rem; text-align: center; color: #64748b;">
+                Loading emails...
+            </div>
+        </div>
+    </div>
+
+    <!-- Mail Content -->
+    <div class="panel mail-content">
+        <div id="mail-content">
+            <div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #64748b;">
+                <div style="text-align: center;">
+                    <div style="font-size: 3rem; margin-bottom: 1rem;">📧</div>
+                    <h3>Select an email to read</h3>
+                </div>
+            </div>
+        </div>
+    </div</h3>>
 </div>
+
+<style>
+.mail-layout {
+    display: grid;
+    grid-template-columns: 250px 350px 1fr;
+    height: calc(100vh - 64px);
+    gap: 1px;
+    background: #1e293b;
+}
+
+.panel {
+    background: #0f172a;
+    overflow-y: auto;
+}
+
+.mail-sidebar {
+    border-right: 1px solid #334155;
+}
+
+.mail-list {
+    border-right: 1px solid #334155;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: #e2e8f0;
+    gap: 0.75rem;
+}
+
+.nav-item:hover {
+    background: #1e293b;
+}
+
+.nav-item.active {
+    background: #1e293b;
+    color: #3b82f6;
+}
+
+.mail-item {
+    padding: 1rem;
+    border-bottom: 1px solid #334155;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.mail-item:hover {
+    background: #1e293b;
+}
+
+.mail-item.unread {
+    background: rgba(59, 130, 246, 0.1);
+}
+
+.mail-item.selected {
+    background: #1e293b;
+    border-left: 3px solid #3b82f6;
+}
+
+.mail-header {
+    font-weight: 600;
+    color: #f1f5f9;
+    margin-bottom: 0.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.mail-from {
+    color: #94a3b8;
+    font-size: 0.875rem;
+    margin-bottom: 0.25rem;
+}
+
+.mail-subject {
+    color: #e2e8f0;
+    margin-bottom: 0.5rem;
+}
+
+.mail-preview {
+    color: #64748b;
+    font-size: 0.875rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mail-content-view {
+    padding: 2rem;
+}
+
+.mail-content-view h2 {
+    color: #f1f5f9;
+    margin-bottom: 1rem;
+}
+
+.mail-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 1rem;
+    border-bottom: 1px solid #334155;
+}
+
+.mail-actions button {
+    padding: 0.5rem 1rem;
+    background: #1e293b;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.mail-actions button:hover {
+    background: #334155;
+}
+
+.mail-body {
+    padding: 1.5rem;
+    color: #e2e8f0;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.text-sm {
+    font-size: 0.875rem;
+}
+
+.text-gray {
+    color: #64748b;
+}
+
+.compose-form {
+    padding: 1.5rem;
+}
+
+.compose-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.compose-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #94a3b8;
+    font-size: 0.875rem;
+}
+
+.compose-form input,
+.compose-form textarea {
+    width: 100%;
+    padding: 0.5rem;
+    background: #1e293b;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+    border-radius: 0.375rem;
+}
+
+.compose-form textarea {
+    min-height: 300px;
+    resize: vertical;
+}
+
+.compose-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+.compose-actions button {
+    padding: 0.5rem 1.5rem;
+    border-radius: 0.375rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    background: #2563eb;
+}
+
+.btn-secondary {
+    background: #1e293b;
+    color: #e2e8f0;
+    border: 1px solid #334155;
+}
+
+.btn-secondary:hover {
+    background: #334155;
+}
+
+/* Empty state */
+.empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: #64748b;
+}
+
+.empty-state h3 {
+    margin: 1rem 0;
+    color: #94a3b8;
+}
+
+/* Loading spinner */
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.spinner {
+    display: inline-block;
+    width: 1.5rem;
+    height: 1.5rem;
+    border: 2px solid #334155;
+    border-top-color: #3b82f6;
+    border-radius: 50%;
+    animation: spin 0.6s linear infinite;
+}
+
+/* HTMX loading states */
+.htmx-request .spinner {
+    display: inline-block;
+}
+
+.htmx-request.mail-item {
+    opacity: 0.6;
+}
+
+/* Folder badges */
+.folder-badge {
+    display: inline-block;
+    padding: 0.125rem 0.5rem;
+    background: #1e293b;
+    color: #94a3b8;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.folder-badge.unread {
+    background: #3b82f6;
+    color: white;
+}
+
+/* Responsive design */
+@media (max-width: 1024px) {
+    .mail-layout {
+        grid-template-columns: 200px 300px 1fr;
+    }
+}
+
+@media (max-width: 768px) {
+    .mail-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr;
+    }
+
+    .mail-sidebar {
+        display: none;
+    }
+
+    .mail-list {
+        border-right: none;
+    }
+
+    .mail-content {
+        display: none;
+    }
+
+    .mail-content.active {
+        display: block;
+        position: fixed;
+        top: 64px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 100;
+    }
+}
+</style>
+
+<script>
+// Handle folder selection
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.nav-item')) {
+        // Update active state
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+        e.target.closest('.nav-item').classList.add('active');
+
+        // Update folder title
+        const folderName = e.target.closest('.nav-item').textContent.trim().split(' ')[1];
+        const titleEl = document.getElementById('folder-title');
+        if (titleEl) {
+            titleEl.textContent = folderName;
+        }
+    }
+
+    // Handle mail selection
+    if (e.target.closest('.mail-item')) {
+        document.querySelectorAll('.mail-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        e.target.closest('.mail-item').classList.add('selected');
+
+        // Mark as read
+        e.target.closest('.mail-item').classList.remove('unread');
+    }
+});
+
+// Handle HTMX events for better UX
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+    // Add loading state
+    if (evt.detail.target.id === 'mail-list') {
+        evt.detail.target.innerHTML = '<div style="padding: 2rem; text-align: center;"><div class="spinner"></div></div>';
+    }
+});
+
+document.body.addEventListener('htmx:afterSwap', function(evt) {
+    // Scroll to top after loading new emails
+    if (evt.detail.target.id === 'mail-list') {
+        evt.detail.target.scrollTop = 0;
+    }
+});
+
+// Handle compose form submission
+document.body.addEventListener('htmx:beforeRequest', function(evt) {
+    if (evt.detail.elt.matches('.compose-form')) {
+        // Validate form
+        const form = evt.detail.elt;
+        const to = form.querySelector('[name="to"]').value;
+        const subject = form.querySelector('[name="subject"]').value;
+        const body = form.querySelector('[name="body"]').value;
+
+        if (!to || !subject || !body) {
+            evt.preventDefault();
+            alert('Please fill in all required fields');
+        }
+    }
+});
+
+// Handle keyboard shortcuts
+document.addEventListener('keydown', function(e) {
+    // Ctrl/Cmd + N for new email
+    if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        document.querySelector('.mail-sidebar button').click();
+    }
+
+    // Delete key for delete email
+    if (e.key === 'Delete' && document.querySelector('.mail-item.selected')) {
+        const selected = document.querySelector('.mail-item.selected');
+        const deleteBtn = selected.querySelector('[data-action="delete"]');
+        if (deleteBtn) deleteBtn.click();
+    }
+});
+</script>

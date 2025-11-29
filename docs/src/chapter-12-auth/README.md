@@ -1,91 +1,266 @@
-# Authentication and Security
+# Chapter 12: Security and Privacy
 
-## User Authentication
+## Your Security
 
-General Bots provides robust authentication with:
+BotServer protects your information with enterprise-grade security while keeping things simple for you to use.
 
-- **Argon2 password hashing** for secure credential storage
-- **Session management** tied to user identity
-- **Anonymous user support** for guest access
+## Logging In
 
-### Authentication Flow
+### First Time Access
 
-1. Client requests `/api/auth` endpoint with credentials
-2. System verifies credentials against stored hash
-3. New session is created or existing session is returned
-4. Session token is provided for subsequent requests
+When you first access BotServer, you'll see the login screen:
 
-## Password Security
+1. **Enter your email** - Use your work or personal email
+2. **Enter your password** - Choose a strong password
+3. **Click Sign In** - You're ready to go
 
-- All passwords are hashed using Argon2 (winner of Password Hashing Competition)
-- Random salt generation for each password
-- Secure password update mechanism
-- Password management delegated to Directory Service
+### Staying Signed In
 
-## API Endpoints
+- Check "Remember me" to stay logged in for a week
+- Uncheck it on shared computers
+- You'll be automatically signed out after 24 hours of inactivity
 
-### `GET /api/auth`
-Authenticates user and returns session
+### Single Sign-On
 
-**Parameters:**
-- `bot_name`: Name of bot to authenticate against
-- `token`: Authentication token (optional)
+If your organization uses single sign-on:
+1. Click "Sign in with your organization"
+2. Enter your work credentials
+3. You're automatically connected to all services
 
-**Response:**
-```json
-{
-  "user_id": "uuid",
-  "session_id": "uuid", 
-  "status": "authenticated"
-}
-```
+## Your Account Security
 
-## User Management
+### Password Protection
 
-### Creating Users
-Users are created through the Directory Service with randomly generated initial passwords.
+Your password is protected with:
+- Industry-standard encryption
+- Never stored in plain text
+- Never visible to administrators
+- Never sent over unencrypted connections
 
-### Verifying Users
-User verification is handled through the Directory Service OAuth2/OIDC flow.
+### Two-Factor Authentication (Coming Soon)
 
-### Updating Passwords
-Password updates are managed through the Directory Service's built-in password reset workflows.
+For extra security, you can enable:
+- SMS verification codes
+- Authenticator apps
+- Hardware security keys
 
-## Bot Authentication
+### Active Sessions
 
-- Bots can be authenticated by name
-- Each bot can have custom authentication scripts
-- Authentication scripts are stored in `.gbdialog/auth.ast`
+View and manage where you're logged in:
 
-```bas
-// Example bot auth script
-IF token != generated_token THEN
-    RETURN false
-ENDIF
-RETURN true
-```
+1. Go to **Settings** → **Security**
+2. See all active sessions
+3. Sign out of any device remotely
+4. Get alerts for new sign-ins
 
-## Security Considerations
+## Your Data Privacy
 
-- All authentication requests are logged
-- Failed attempts are rate-limited
-- Session tokens have limited lifetime
-- Password hashes are never logged
+### What We Protect
+
+- **Conversations** - All chat messages are private
+- **Files** - Documents encrypted at rest
+- **Emails** - Secure transmission and storage
+- **Meetings** - End-to-end encryption available
+- **Tasks** - Private to you and your team
+
+### Who Can See Your Data
+
+**Only You Can See:**
+- Your private conversations
+- Personal files in your drive
+- Your email messages
+- Your task lists
+
+**Your Team Can See:**
+- Shared conversations (when you share them)
+- Files you explicitly share
+- Team tasks you're assigned to
+- Meetings you're invited to
+
+**Administrators Cannot See:**
+- Your password
+- Private conversations
+- Personal files
+- Email contents
+
+### Data Location
+
+Your data is stored:
+- On your organization's servers
+- Never on public clouds (unless configured)
+- With automatic backups
+- Following your local data regulations
+
+## Security Features You'll Notice
+
+### Automatic Protection
+
+These happen without you doing anything:
+
+- **Secure connections** - Green padlock in your browser
+- **Session timeout** - Automatic logout when idle
+- **Password requirements** - Ensures strong passwords
+- **Encrypted storage** - Files and messages protected
+
+### Security Indicators
+
+Look for these signs that you're secure:
+
+- 🔒 **Padlock icon** - Secure connection active
+- ✓ **Green checkmark** - Verified sender
+- 🛡️ **Shield icon** - Protected content
+- 🔐 **Lock icon** - Encrypted message
+
+## Managing Your Security
+
+### Changing Your Password
+
+1. Go to **Settings** → **Security**
+2. Click "Change Password"
+3. Enter current password
+4. Enter new password twice
+5. Click "Update Password"
+
+### Reviewing Account Activity
+
+1. Go to **Settings** → **Security**
+2. Click "Activity Log"
+3. See recent sign-ins
+4. Check for unusual activity
+5. Report anything suspicious
+
+### Privacy Settings
+
+Control who can:
+- See when you're online
+- Send you messages
+- Access your shared files
+- Invite you to meetings
+
+## Secure Communication
+
+### Chat Security
+
+Your conversations are protected:
+- Messages encrypted in transit
+- History saved securely
+- No external access
+- Deleted messages are permanently removed
+
+### Email Security
+
+When using email through BotServer:
+- Connections use TLS encryption
+- Spam filtering active
+- Virus scanning enabled
+- Phishing protection
+
+### Meeting Security
+
+Video meetings include:
+- Optional waiting rooms
+- Meeting passwords available
+- Screen sharing controls
+- Recording permissions
+
+## File Security
+
+### Uploading Files
+
+When you upload files:
+- Automatic virus scanning
+- Encrypted storage
+- Version history kept
+- Sharing controls available
+
+### Sharing Files
+
+Control who accesses your files:
+- Share with specific people
+- Set expiration dates
+- Require passwords
+- Track who viewed files
+
+## Development Mode
+
+When you see "Development Mode" banner:
+- You're in a test environment
+- Security is relaxed for testing
+- Don't use real passwords
+- Don't store sensitive data
+
+## Security Best Practices
+
+### Do's
+- ✓ Use a strong, unique password
+- ✓ Log out on shared computers
+- ✓ Keep your browser updated
+- ✓ Report suspicious activity
+- ✓ Verify before clicking links
+
+### Don'ts
+- ✗ Share your password
+- ✗ Use the same password elsewhere
+- ✗ Click suspicious links
+- ✗ Ignore security warnings
+- ✗ Leave your session open
+
+## Getting Help
+
+### Lost Password
+
+1. Click "Forgot Password" on login
+2. Enter your email
+3. Check your inbox
+4. Click the reset link
+5. Choose a new password
+
+### Locked Account
+
+If you're locked out:
+- Wait 15 minutes and try again
+- Contact your administrator
+- Use password reset if available
+
+### Security Questions
+
+Contact support for:
+- Suspicious activity
+- Security concerns
+- Access issues
+- Privacy questions
+
+## Compliance
+
+BotServer helps your organization meet:
+- GDPR requirements (Europe)
+- HIPAA standards (Healthcare)
+- SOC 2 compliance (Enterprise)
+- Local privacy laws
+
+## Your Rights
+
+You have the right to:
+- Access your data
+- Export your information
+- Delete your account
+- Know how data is used
+- Opt-out of features
+
+## Security Updates
+
+We continuously improve security:
+- Automatic security updates
+- No action required from you
+- Notifications for important changes
+- Regular security audits
+
+## Summary
+
+Your security is automatic and transparent. You don't need to be a security expert - BotServer handles the complex parts while you focus on your work. If something seems wrong, the system will alert you and guide you to safety.
 
 ## See Also
 
-- [Services Overview](./services.md) - System services architecture
-- [Compliance Requirements](./compliance-requirements.md) - Security and compliance
-- [Chapter 1: Installation](../chapter-01/installation.md) - Initial setup
-- [Chapter 2: Packages](../chapter-02/README.md) - Bot package system
-- [Chapter 3: Knowledge Base](../chapter-03/README.md) - KB infrastructure
-- [Chapter 7: Configuration](../chapter-07/README.md) - System configuration
-- [Chapter 9: Storage](../chapter-09/storage.md) - Storage architecture
-- [Chapter 10: Development](../chapter-10/README.md) - Development environment
-- [Chapter 12: Web API](../chapter-12/README.md) - API endpoints
-
----
-
-<div align="center">
-  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
-</div>
+- [Chapter 1: Getting Started](../chapter-01/README.md) - Begin using BotServer
+- [Chapter 4: User Interface](../chapter-04-gbui/README.md) - Navigate the interface
+- [Account Settings](../chapter-04-gbui/README.md#account-settings) - Manage your profile

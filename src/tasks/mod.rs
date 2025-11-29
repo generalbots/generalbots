@@ -1245,15 +1245,19 @@ pub async fn handle_task_set_dependencies(
 /// Configure task engine routes
 pub fn configure_task_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route(ApiUrls::TASKS, post(handle_task_create))
-        .route(ApiUrls::TASKS, get(handle_task_list))
+        .route(
+            ApiUrls::TASKS,
+            post(handle_task_create).get(handle_task_list_htmx),
+        )
+        .route("/api/tasks/stats", get(handle_task_stats))
+        .route("/api/tasks/completed", delete(handle_clear_completed))
         .route(
             ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
             put(handle_task_update),
         )
         .route(
             ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
-            delete(handle_task_delete),
+            delete(handle_task_delete).patch(handle_task_patch),
         )
         .route(
             ApiUrls::TASK_ASSIGN.replace(":id", "{id}"),
@@ -1288,4 +1292,303 @@ pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
             "/api/tasks/statistics",
             get(handlers::get_statistics_handler),
         )
+}
+
+// ===== HTMX-Specific Handlers =====
+
+/// List tasks with HTMX HTML response
+pub async fn handle_task_list_htmx(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    let filter = params.get("filter").unwrap_or(&"all".to_string()).clone();
+
+    // Get tasks from database
+    let conn = state.conn.clone();
+    let filter_clone = filter.clone();
+
+    let tasks = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        let mut query = String::from("SELECT id, title, completed, priority, category, due_date FROM tasks WHERE 1=1");
+
+        match filter_clone.as_str() {
+            "active" => query.push_str(" AND completed = false"),
+            "completed" => query.push_str(" AND completed = true"),
+            "priority" => query.push_str(" AND priority = true"),
+            _ => {}
+        }
+
+        query.push_str(" ORDER BY created_at DESC LIMIT 50");
+
+        diesel::sql_query(&query)
+            .load::<TaskRow>(&mut db_conn)
+            .map_err(|e| format!("Query failed: {}", e))
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::error!("Task query failed: {}", e);
+        Err(format!("Task query failed: {}", e))
+    })
+    .unwrap_or_default();
+
+    let mut html = String::new();
+
+    for task in tasks {
+
+        let completed_class = if task.completed { "completed" } else { "" };
+        let priority_class = if task.priority { "active" } else { "" };
+        let checked = if task.completed { "checked" } else { "" };
+
+        html.push_str(&format!(
+            r#"
+            <div class="task-item {}">
+                <input type="checkbox"
+                       class="task-checkbox"
+                       data-task-id="{}"
+                       {}>
+                <div class="task-content">
+                    <div class="task-text-wrapper">
+                        <span class="task-text">{}</span>
+                        <div class="task-meta">
+                            {}
+                            {}
+                        </div>
+                    </div>
+                </div>
+                <div class="task-actions">
+                    <button class="action-btn priority-btn {}"
+                            data-action="priority"
+                            data-task-id="{}">
+                        ⭐
+                    </button>
+                    <button class="action-btn edit-btn"
+                            data-action="edit"
+                            data-task-id="{}">
+                        ✏️
+                    </button>
+                    <button class="action-btn delete-btn"
+                            data-action="delete"
+                            data-task-id="{}">
+                        🗑️
+                    </button>
+                </div>
+            </div>
+            "#,
+            completed_class,
+            task.id,
+            checked,
+            task.title,
+            if let Some(cat) = &task.category {
+                format!(r#"<span class="task-category">{}</span>"#, cat)
+            } else {
+                String::new()
+            },
+            if let Some(due) = &task.due_date {
+                format!(r#"<span class="task-due-date">📅 {}</span>"#, due.format("%Y-%m-%d"))
+            } else {
+                String::new()
+            },
+            priority_class,
+            task.id,
+            task.id,
+            task.id
+        ));
+    }
+
+    if html.is_empty() {
+        html = format!(
+            r#"
+            <div class="empty-state">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+                    <polyline points="9 11 12 14 22 4"></polyline>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"></path>
+                </svg>
+                <h3>No {} tasks</h3>
+                <p>{}</p>
+            </div>
+            "#,
+            filter,
+            if filter == "all" {
+                "Create your first task to get started"
+            } else {
+                "Switch to another view or add new tasks"
+            }
+        );
+    }
+
+    axum::response::Html(html)
+}
+
+/// Get task statistics
+pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskStats> {
+    let conn = state.conn.clone();
+
+    let stats = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks")
+            .get_result::<CountResult>(&mut db_conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+        let active: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = false")
+            .get_result::<CountResult>(&mut db_conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+        let completed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = true")
+            .get_result::<CountResult>(&mut db_conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+        let priority: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority = true")
+            .get_result::<CountResult>(&mut db_conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+        Ok::<_, String>(TaskStats {
+            total: total as usize,
+            active: active as usize,
+            completed: completed as usize,
+            priority: priority as usize,
+        })
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::error!("Stats query failed: {}", e);
+        Err(format!("Stats query failed: {}", e))
+    })
+    .unwrap_or(TaskStats {
+        total: 0,
+        active: 0,
+        completed: 0,
+        priority: 0,
+    });
+
+    Json(stats)
+}
+
+/// Clear completed tasks
+pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let conn = state.conn.clone();
+
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query("DELETE FROM tasks WHERE completed = true")
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Delete failed: {}", e))?;
+
+        Ok::<_, String>(())
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::error!("Clear completed failed: {}", e);
+        Err(format!("Clear completed failed: {}", e))
+    })
+    .ok();
+
+    log::info!("Cleared completed tasks");
+
+    // Return updated task list
+    handle_task_list_htmx(State(state), Query(std::collections::HashMap::new())).await
+}
+
+/// Patch task (for status/priority updates)
+pub async fn handle_task_patch(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<String>,
+    Json(update): Json<TaskPatch>,
+) -> Result<Json<ApiResponse<()>>, (StatusCode, String)> {
+    log::info!("Updating task {} with {:?}", id, update);
+
+    let conn = state.conn.clone();
+    let task_id = id.parse::<Uuid>().map_err(|e| {
+        (StatusCode::BAD_REQUEST, format!("Invalid task ID: {}", e))
+    })?;
+
+    tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        if let Some(completed) = update.completed {
+            diesel::sql_query("UPDATE tasks SET completed = $1 WHERE id = $2")
+                .bind::<diesel::sql_types::Bool, _>(completed)
+                .bind::<diesel::sql_types::Uuid, _>(task_id)
+                .execute(&mut db_conn)
+                .map_err(|e| format!("Update failed: {}", e))?;
+        }
+
+        if let Some(priority) = update.priority {
+            diesel::sql_query("UPDATE tasks SET priority = $1 WHERE id = $2")
+                .bind::<diesel::sql_types::Bool, _>(priority)
+                .bind::<diesel::sql_types::Uuid, _>(task_id)
+                .execute(&mut db_conn)
+                .map_err(|e| format!("Update failed: {}", e))?;
+        }
+
+        if let Some(text) = update.text {
+            diesel::sql_query("UPDATE tasks SET title = $1 WHERE id = $2")
+                .bind::<diesel::sql_types::Text, _>(text)
+                .bind::<diesel::sql_types::Uuid, _>(task_id)
+                .execute(&mut db_conn)
+                .map_err(|e| format!("Update failed: {}", e))?;
+        }
+
+        Ok::<_, String>(())
+    })
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Task join error: {}", e)))?
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
+
+    Ok(Json(ApiResponse {
+        success: true,
+        data: Some(()),
+        message: Some("Task updated".to_string()),
+    }))
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskStats {
+    pub total: usize,
+    pub active: usize,
+    pub completed: usize,
+    pub priority: usize,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct TaskPatch {
+    pub completed: Option<bool>,
+    pub priority: Option<bool>,
+    pub text: Option<String>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ApiResponse<T> {
+    pub success: bool,
+    pub data: Option<T>,
+    pub message: Option<String>,
+}
+
+// Database row structs
+#[derive(Debug, QueryableByName)]
+struct TaskRow {
+    #[diesel(sql_type = diesel::sql_types::Uuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub title: String,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    pub completed: bool,
+    #[diesel(sql_type = diesel::sql_types::Bool)]
+    pub priority: bool,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+    pub category: Option<String>,
+    #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+    pub due_date: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+#[derive(Debug, QueryableByName)]
+struct CountResult {
+    #[diesel(sql_type = diesel::sql_types::BigInt)]
+    pub count: i64,
 }

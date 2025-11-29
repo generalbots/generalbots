@@ -234,9 +234,9 @@ Takes about 5-10 seconds per bot.
 
 ## UI Architecture
 
-The web interface uses **vanilla JavaScript and Alpine.js** - no build process required:
-- Pure HTML/CSS/JS files
-- Alpine.js for reactivity
+The web interface uses **HTMX with server-side rendering** - minimal client-side code:
+- Askama templates for HTML generation
+- HTMX for dynamic updates without JavaScript
 - No webpack, no npm build
 - Edit and refresh to see changes
 - Zero compilation time
