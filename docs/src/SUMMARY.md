@@ -1,5 +1,6 @@
 # Summary
 
+[🚀 Executive Vision](./executive-vision.md)
 [Introduction](./introduction.md)
 
 # Part I - Getting Started
