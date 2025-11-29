@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Message Handler Test</title>
+    <style>
+        body {
+            font-family: monospace;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-case {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .info {
+            color: blue;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        #output {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            height: 300px;
+            overflow-y: auto;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WebSocket Message Handler Test Suite</h1>
+
+    <div class="test-section">
+        <h2>Test Cases</h2>
+        <button onclick="runAllTests()">Run All Tests</button>
+        <button onclick="clearOutput()">Clear Output</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Individual Tests</h2>
+        <button onclick="testEmptyMessage()">Test Empty Message</button>
+        <button onclick="testValidEventMessage()">Test Valid Event Message</button>
+        <button onclick="testRegularTextMessage()">Test Regular Text Message</button>
+        <button onclick="testMalformedJSON()">Test Malformed JSON</button>
+        <button onclick="testIncompleteJSON()">Test Incomplete JSON</button>
+        <button onclick="testContextMessage()">Test Context Message</button>
+    </div>
+
+    <div id="output"></div>
+
+    <script>
+        // Simulate the message handler from the actual implementation
+        function handleEvent(eventType, eventData) {
+            log(`Event handled: ${eventType}`, 'info');
+            log(`Event data: ${JSON.stringify(eventData)}`, 'info');
+        }
+
+        function processMessageContent(message) {
+            log(`Processing message content: ${message.content}`, 'info');
+        }
+
+        function handleWebSocketMessage(rawData) {
+            try {
+                if (!rawData || rawData.trim() === "") {
+                    log("Empty WebSocket message received", 'error');
+                    return { success: false, reason: "Empty message" };
+                }
+
+                const r = JSON.parse(rawData);
+
+                if (r.type === "connected") {
+                    log("WebSocket welcome message", 'info');
+                    return { success: true, type: "connected" };
+                }
+
+                if (r.message_type === 2) {
+                    // Check if content looks like JSON (starts with { or [)
+                    const contentTrimmed = r.content.trim();
+                    if (contentTrimmed.startsWith("{") || contentTrimmed.startsWith("[")) {
+                        try {
+                            const d = JSON.parse(r.content);
+                            if (d.event && d.data) {
+                                // This is an event message
+                                handleEvent(d.event, d.data);
+                                return { success: true, type: "event", event: d.event };
+                            }
+                        } catch (parseErr) {
+                            // Not a valid event message, treat as regular content
+                            log("Content is not an event message, processing as regular message", 'info');
+                        }
+                    }
+                    // Process as regular message content
+                    processMessageContent(r);
+                    return { success: true, type: "regular_message" };
+                }
+
+                if (r.message_type === 5) {
+                    log("Context change message", 'info');
+                    return { success: true, type: "context_change" };
+                }
+
+                processMessageContent(r);
+                return { success: true, type: "default_message" };
+
+            } catch (err) {
+                log(`WebSocket message parse error: ${err.message}`, 'error');
+                return { success: false, reason: err.message };
+            }
+        }
+
+        // Test cases
+        function testEmptyMessage() {
+            log("\n=== Testing Empty Message ===", 'info');
+            const result = handleWebSocketMessage("");
+            if (!result.success && result.reason === "Empty message") {
+                log("✓ Empty message handled correctly", 'success');
+            } else {
+                log("✗ Empty message not handled correctly", 'error');
+            }
+        }
+
+        function testValidEventMessage() {
+            log("\n=== Testing Valid Event Message ===", 'info');
+            const message = JSON.stringify({
+                message_type: 2,
+                content: JSON.stringify({
+                    event: "thinking_start",
+                    data: { message: "Processing..." }
+                })
+            });
+            const result = handleWebSocketMessage(message);
+            if (result.success && result.type === "event") {
+                log("✓ Valid event message handled correctly", 'success');
+            } else {
+                log("✗ Valid event message not handled correctly", 'error');
+            }
+        }
+
+        function testRegularTextMessage() {
+            log("\n=== Testing Regular Text Message (type 2) ===", 'info');
+            const message = JSON.stringify({
+                message_type: 2,
+                content: "This is a regular text message, not JSON"
+            });
+            const result = handleWebSocketMessage(message);
+            if (result.success && result.type === "regular_message") {
+                log("✓ Regular text message handled correctly", 'success');
+            } else {
+                log("✗ Regular text message not handled correctly", 'error');
+            }
+        }
+
+        function testMalformedJSON() {
+            log("\n=== Testing Malformed JSON in Content ===", 'info');
+            const message = JSON.stringify({
+                message_type: 2,
+                content: "{invalid json: true"
+            });
+            const result = handleWebSocketMessage(message);
+            if (result.success && result.type === "regular_message") {
+                log("✓ Malformed JSON handled gracefully", 'success');
+            } else {
+                log("✗ Malformed JSON not handled correctly", 'error');
+            }
+        }
+
+        function testIncompleteJSON() {
+            log("\n=== Testing Incomplete JSON ===", 'info');
+            const message = JSON.stringify({
+                message_type: 2,
+                content: '{"event": "test", "data":'  // Incomplete JSON
+            });
+            const result = handleWebSocketMessage(message);
+            if (result.success && result.type === "regular_message") {
+                log("✓ Incomplete JSON handled gracefully", 'success');
+            } else {
+                log("✗ Incomplete JSON not handled correctly", 'error');
+            }
+        }
+
+        function testContextMessage() {
+            log("\n=== Testing Context Message (type 5) ===", 'info');
+            const message = JSON.stringify({
+                message_type: 5,
+                context_name: "test_context",
+                content: "Context content"
+            });
+            const result = handleWebSocketMessage(message);
+            if (result.success && result.type === "context_change") {
+                log("✓ Context message handled correctly", 'success');
+            } else {
+                log("✗ Context message not handled correctly", 'error');
+            }
+        }
+
+        function runAllTests() {
+            log("Starting all tests...\n", 'info');
+            testEmptyMessage();
+            testValidEventMessage();
+            testRegularTextMessage();
+            testMalformedJSON();
+            testIncompleteJSON();
+            testContextMessage();
+            log("\n=== All tests completed ===", 'info');
+        }
+
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toISOString().split('T')[1].split('.')[0];
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+
+        function clearOutput() {
+            document.getElementById('output').innerHTML = '';
+        }
+
+        // Run tests on page load
+        window.onload = function() {
+            log("WebSocket Message Handler Test Suite Ready", 'info');
+            log("Click 'Run All Tests' to begin\n", 'info');
+        };
+    </script>
+</body>
+</html>
