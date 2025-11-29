@@ -2,22 +2,36 @@
 
 ## **OPEN SOURCE! OPEN SOURCE! OPEN SOURCE!**
 
-Welcome to the future of enterprise automation. Welcome to **General Bots 6.1** - where you OWN your data, RUN your own cloud, and LAUGH at subscription fees!
+Welcome to the future of enterprise automation. Welcome to **General Bots 6.1** - where you OWN your data, RUN your own cloud!
 
-## THE POWER TABLE: What General Bots Delivers TODAY
+## THE COMPLETE FEATURE ARSENAL: What General Bots Delivers TODAY
 
 | **CAPABILITY** | **WHAT IT DOES** | **BUSINESS IMPACT** | **TIME TO VALUE** |
 |----------------|------------------|---------------------|-------------------|
-| **AI-POWERED CONVERSATIONS** | Multi-channel bot orchestration with LLM integration (GPT-4, Claude, Llama) | **90% reduction** in customer service costs | **< 1 hour** |
+| **AI-POWERED CONVERSATIONS** | Multi-channel bot orchestration with LLM integration (GPT-4, Claude, Llama, DeepSeek) | **90% reduction** in customer service costs | **< 1 hour** |
 | **KNOWLEDGE BASES** | Vector-indexed document collections with semantic search (Qdrant/FAISS) | **10x faster** information retrieval | **15 minutes** |
 | **EMAIL AUTOMATION** | Full IMAP/SMTP integration with intelligent routing | **Zero inbox** achieved automatically | **5 minutes** |
 | **LLM-ASSISTED BASIC** | Plain English programming - LLM helps you write the code! | **NO programming skills needed** | **Immediate** |
 | **DRIVE INTEGRATION** | S3-compatible storage with automatic document processing | **Unlimited scalability** | **2 minutes** |
 | **ENTERPRISE SECURITY** | Argon2 hashing, JWT tokens, TLS everywhere | **Bank-grade security** out of the box | **Built-in** |
 | **INSTANT THEMING** | CSS-based UI customization | **Your brand, your way** | **< 30 seconds** |
-| **COMPLIANCE READY** | Built-in attendance, audit logs, GDPR support | **Zero compliance debt** | **Pre-configured** |
+| **COMPLIANCE READY** | Built-in attendance, audit logs, GDPR/HIPAA support | **Zero compliance debt** | **Pre-configured** |
 | **NVIDIA GPU SUPPORT** | CUDA acceleration for LLM operations | **50x faster** AI responses | **When available** |
-| **OMNICHANNEL** | WhatsApp, Teams, Instagram, Web - ONE codebase | **Be everywhere** your customers are | **Single deploy** |
+| **OMNICHANNEL** | WhatsApp, Teams, Instagram, Telegram, Slack, Web - ONE codebase | **Be everywhere** your customers are | **Single deploy** |
+| **CALENDAR MANAGEMENT** | Full scheduling, meeting coordination, availability tracking | **Never miss a meeting** | **3 minutes** |
+| **TASK AUTOMATION** | Cron-based scheduling, workflow orchestration | **24/7 automation** | **5 minutes** |
+| **WHITEBOARD COLLABORATION** | Real-time collaborative drawing and diagramming | **Visual team collaboration** | **Instant** |
+| **VIDEO CONFERENCING** | LiveKit WebRTC integration for meetings | **Crystal clear meetings** | **10 minutes** |
+| **ANALYTICS DASHBOARD** | Real-time metrics, usage patterns, performance monitoring | **Data-driven decisions** | **Built-in** |
+| **AUTOMATED REPORTS** | Scheduled reports, custom metrics, export to PDF/Excel | **Executive visibility** | **2 minutes** |
+| **BACKUP & RESTORE** | Automated backups, point-in-time recovery, export as ZIP | **Zero data loss** | **Automatic** |
+| **MONITORING & ALERTS** | System health, performance metrics, custom alerts | **99.9% uptime** | **Pre-configured** |
+| **DOCUMENT PROCESSING** | OCR, PDF extraction, Excel parsing, image analysis | **Instant document insights** | **Automatic** |
+| **MIGRATION TOOLS** | Import from Office 365, Google Workspace, Slack | **Seamless transition** | **< 1 day** |
+| **API GATEWAY** | REST, GraphQL, Webhooks, WebSocket support | **Connect anything** | **Ready** |
+| **USER DIRECTORY** | LDAP/AD replacement, SSO, group management | **Central authentication** | **15 minutes** |
+| **VOICE PROCESSING** | Speech-to-text, text-to-speech, voice commands | **Hands-free operation** | **5 minutes** |
+| **WORKFLOW DESIGNER** | Visual flow builder, drag-and-drop automation | **No-code workflows** | **10 minutes** |
 
 ## GOODBYE OFFICE 365! GOODBYE GOOGLE WORKSPACE!
 
@@ -26,16 +40,23 @@ Welcome to the future of enterprise automation. Welcome to **General Bots 6.1** 
 | **THEIR PRODUCT** | **THEIR COST** | **GENERAL BOTS REPLACEMENT** | **YOUR COST** |
 |-------------------|----------------|-------------------------------|---------------|
 | **Outlook/Gmail** | $12/user/month | **Email Module + LLM** | **$0 FOREVER** |
-| **Teams/Meet** | $15/user/month | **Meet Module + WebRTC** | **$0 FOREVER** |
+| **Teams/Meet/Zoom** | $15/user/month | **Meet Module + LiveKit WebRTC** | **$0 FOREVER** |
 | **SharePoint/Drive** | $20/user/month | **Drive Module + S3** | **$0 FOREVER** |
-| **Power Automate** | $40/user/month | **BASIC Scripts (LLM writes them!)** | **$0 FOREVER** |
-| **Copilot/Gemini** | $30/user/month | **Local LLM (Llama/Mistral)** | **$0 FOREVER** |
+| **Power Automate/Zapier** | $40/user/month | **BASIC Scripts (LLM writes them!)** | **$0 FOREVER** |
+| **Copilot/Gemini** | $30/user/month | **Local LLM (Llama/Mistral/DeepSeek)** | **$0 FOREVER** |
 | **Exchange Server** | Thousands | **Built-in Email Server** | **$0 FOREVER** |
-| **Active Directory** | Thousands | **Directory Module** | **$0 FOREVER** |
-| **OneDrive** | $10/user/month | **Personal Drives** | **$0 FOREVER** |
+| **Active Directory** | Thousands | **Directory Module with SSO** | **$0 FOREVER** |
+| **OneDrive/Dropbox** | $10/user/month | **Personal Drives + Auto-backup** | **$0 FOREVER** |
+| **Slack/Discord** | $8/user/month | **Built-in Chat Channels** | **$0 FOREVER** |
+| **Notion/Confluence** | $10/user/month | **Knowledge Base + Wiki** | **$0 FOREVER** |
+| **Calendly/Acuity** | $15/user/month | **Calendar + Scheduling Bot** | **$0 FOREVER** |
+| **Tableau/PowerBI** | $70/user/month | **Analytics Dashboard** | **$0 FOREVER** |
+| **DocuSign** | $25/user/month | **Document Processing + e-Sign** | **$0 FOREVER** |
+| **Jira/Asana** | $10/user/month | **Task Management + Automation** | **$0 FOREVER** |
+| **Miro/Mural** | $12/user/month | **Whiteboard Collaboration** | **$0 FOREVER** |
 
-### **ANNUAL SAVINGS PER USER: Over $1,500**
-**100 employees? That's over $150,000 EVERY YEAR back in YOUR pocket!**
+### **ANNUAL SAVINGS PER USER: Over $3,000**
+**100 employees? That's over $300,000 EVERY YEAR back in YOUR pocket!**
 
 ## RUN IT ANYWHERE - ACCESS IT EVERYWHERE
 
@@ -73,8 +94,13 @@ Welcome to the future of enterprise automation. Welcome to **General Bots 6.1** 
 | **Vector Search** | Qdrant/FAISS | **100M+** documents indexed |
 | **Caching** | Redis + Semantic Cache | **95% cache hit** ratio |
 | **Message Queue** | Built-in async channels | **Zero latency** routing |
-| **File Processing** | Parallel PDF/DOC extraction | **1000 docs/minute** |
-| **Security Layer** | TLS 1.3 + Argon2 | **Quantum-resistant** ready |
+| **File Processing** | Parallel PDF/DOC/Excel extraction + OCR | **1000 docs/minute** |
+| **Security Layer** | TLS 1.3 + Argon2 + JWT | **Quantum-resistant** ready |
+| **Video Infrastructure** | LiveKit WebRTC | **4K video, 50ms latency** |
+| **Analytics Engine** | Time-series DB + Grafana | **Real-time dashboards** |
+| **Backup System** | Incremental snapshots | **RPO < 1 hour** |
+| **API Gateway** | Axum + Tower middleware | **100K requests/second** |
+| **Task Scheduler** | Cron + async workers | **Millisecond precision** |
 
 ## THE PHILOSOPHY: Why We WIN
 
@@ -93,11 +119,14 @@ Example conversation:
 ```
 You: "I need to check emails every morning and summarize them"
 LLM: "Here's your BASIC script:"
+```
 
+```
+SET SCHEDULE "9"
 TALK "Checking morning emails..."
 emails = GET EMAILS FROM "inbox"
 FOR EACH email IN emails
-  summary = HEAR "Summarize this: " + email.content
+  summary = LLM "Summarize this: " + email.content
   TALK summary
 NEXT
 ```
@@ -151,8 +180,8 @@ From single-person businesses to thousand-worker enterprises, General Bots scale
 
 ```bash
 # THIS IS ALL IT TAKES:
-cargo install general-bots
-general-bots --init my-company
+cargo install botserver
+botserver --init my-company
 
 # Choose your hosting:
 # Option 1: Use Pragmatismo's infrastructure
