@@ -1,0 +1,509 @@
+<div class="monitoring-container" id="monitoring-app">
+    <header class="monitoring-header">
+        <h2>
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="header-icon"
+            >
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    fill="none"
+                    opacity="0.3</h2>"
+                />
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="6.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    fill="none"
+                    opacity="0.6"
+                />
+                <circle cx="12" cy="12" r="2" fill="currentColor" />
+                <line
+                    x1="12"
+                    y1="2"
+                    x2="12"
+                    y2="5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                />
+                <line
+                    x1="12"
+                    y1="19"
+                    x2="12"
+                    y2="22"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                />
+                <line
+                    x1="2"
+                    y1="12"
+                    x2="5"
+                    y2="12"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                />
+                <line
+                    x1="19"
+                    y1="12"
+                    x2="22"
+                    y2="12"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                />
+            </svg>
+            Monitoring Dashboard
+        </h2>
+        <span
+            class="last-updated"
+            hx-get="/api/monitoring/timestamp"
+            hx-trigger="load, every 5s"
+            hx-swap="innerHTML"
+            >--</span
+        >
+    </header>
+
+    <div class="monitoring-grid">
+        <!-- Sessions Panel -->
+        <div
+            class="monitor-panel"
+            hx-get="/api/monitoring/sessions"
+            hx-trigger="load, every 5s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <circle
+                        cx="12"
+                        cy="8"
+                        r="4"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <path
+                        d="M4 20c0-4 4-6 8-6s8 2 8 6"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Sessions</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Messages Panel -->
+        <div
+            class="monitor-panel"
+            hx-get="/api/monitoring/messages"
+            hx-trigger="load, every 10s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <path
+                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Messages</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resources Panel -->
+        <div
+            class="monitor-panel resources-panel"
+            hx-get="/api/monitoring/resources"
+            hx-trigger="load, every 15s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="16"
+                        rx="2"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <line
+                        x1="4"
+                        y1="12"
+                        x2="20"
+                        y2="12"
+                        stroke="currentColor"
+                        stroke-width="1"
+                    />
+                    <line
+                        x1="12"
+                        y1="4"
+                        x2="12"
+                        y2="20"
+                        stroke="currentColor"
+                        stroke-width="1"
+                    />
+                </svg>
+                <span>Resources</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Services Panel -->
+        <div
+            class="monitor-panel services-panel"
+            hx-get="/api/monitoring/services"
+            hx-trigger="load, every 30s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="2"
+                        y="3"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <rect
+                        x="2"
+                        y="10"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <rect
+                        x="2"
+                        y="17"
+                        width="20"
+                        height="4"
+                        rx="1"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                </svg>
+                <span>Services</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bots Panel -->
+        <div
+            class="monitor-panel bots-panel"
+            hx-get="/api/monitoring/bots"
+            hx-trigger="load, every 30s"
+            hx-swap="innerHTML"
+        >
+            <div class="panel-header">
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    class="panel-icon"
+                >
+                    <rect
+                        x="4"
+                        y="4"
+                        width="16"
+                        height="14"
+                        rx="3"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                    />
+                    <circle cx="9" cy="10" r="1.5" fill="currentColor" />
+                    <circle cx="15" cy="10" r="1.5" fill="currentColor" />
+                    <path
+                        d="M9 14 Q12 16 15 14"
+                        stroke="currentColor"
+                        stroke-width="1.5"
+                        fill="none"
+                    />
+                </svg>
+                <span>Active Bots</span>
+            </div>
+            <div class="tree-view">
+                <div class="tree-node">
+                    <span class="tree-branch"></span>
+                    <span class="tree-label">Loading...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .monitoring-container {
+            padding: 1.5rem;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .monitoring-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+        }
+
+        .monitoring-header h2 {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+            margin: 0;
+        }
+
+        .header-icon {
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .last-updated {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #6b7280);
+        }
+
+        .monitoring-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .monitor-panel {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 0.75rem;
+            padding: 1.25rem;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            color: var(--text-primary, #1f2937);
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-color, #e5e7eb);
+        }
+
+        .panel-icon {
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .tree-view {
+            font-family:
+                system-ui,
+                -apple-system,
+                sans-serif;
+            font-size: 0.875rem;
+        }
+
+        .tree-node {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            position: relative;
+        }
+
+        .tree-branch,
+        .tree-branch-last {
+            width: 1.25rem;
+            height: 1.25rem;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        .tree-branch::before {
+            content: "";
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            width: 1px;
+            height: 100%;
+            background: var(--primary-color, #3b82f6);
+            opacity: 0.4;
+        }
+
+        .tree-branch::after,
+        .tree-branch-last::after {
+            content: "";
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            width: 0.5rem;
+            height: 1px;
+            background: var(--primary-color, #3b82f6);
+            opacity: 0.6;
+        }
+
+        .tree-branch-last::before {
+            content: "";
+            position: absolute;
+            left: 0.5rem;
+            top: 0;
+            width: 1px;
+            height: 50%;
+            background: var(--primary-color, #3b82f6);
+            opacity: 0.4;
+        }
+
+        .tree-label {
+            color: var(--text-secondary, #6b7280);
+            flex: 1;
+        }
+
+        .tree-value {
+            font-weight: 600;
+            color: var(--text-primary, #1f2937);
+        }
+
+        .tree-status {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #6b7280);
+        }
+
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        .status-indicator.running {
+            background: #10b981;
+            box-shadow: 0 0 4px #10b981;
+        }
+
+        .status-indicator.warning {
+            background: #f59e0b;
+            box-shadow: 0 0 4px #f59e0b;
+        }
+
+        .status-indicator.stopped {
+            background: #ef4444;
+        }
+
+        .resource-node {
+            flex-wrap: wrap;
+        }
+
+        .progress-bar {
+            flex: 1;
+            height: 8px;
+            background: var(--border-color, #e5e7eb);
+            border-radius: 4px;
+            overflow: hidden;
+            min-width: 100px;
+            max-width: 150px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .progress-fill.gpu {
+            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+        }
+
+        .progress-fill.disk {
+            background: linear-gradient(90deg, #10b981, #34d399);
+        }
+
+        .progress-fill.warning {
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+        }
+
+        .progress-fill.critical {
+            background: linear-gradient(90deg, #ef4444, #f87171);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .monitoring-container {
+                --text-primary: #f9fafb;
+                --text-secondary: #9ca3af;
+                --card-bg: #1f2937;
+                --border-color: #374151;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .monitoring-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .monitoring-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</div>

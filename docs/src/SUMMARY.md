@@ -1,6 +1,6 @@
 # Summary
 
-[🚀 Executive Vision](./executive-vision.md)
+[Executive Vision](./executive-vision.md)
 [Introduction](./introduction.md)
 
 # Part I - Getting Started
@@ -39,6 +39,8 @@
   - [default.gbui - Full Desktop](./chapter-04-gbui/default-gbui.md)
   - [single.gbui - Simple Chat](./chapter-04-gbui/single-gbui.md)
   - [Console Mode](./chapter-04-gbui/console-mode.md)
+  - [Player - Media Viewer](./chapter-04-gbui/player.md)
+  - [Monitoring Dashboard](./chapter-04-gbui/monitoring.md)
 
 # Part V - Themes and Styling
 
@@ -82,6 +84,44 @@
     - [EXIT FOR](./chapter-06-gbdialog/keyword-exit-for.md)
     - [SEND MAIL](./chapter-06-gbdialog/keyword-send-mail.md)
     - [FIND](./chapter-06-gbdialog/keyword-find.md)
+    - [INSTR](./chapter-06-gbdialog/keyword-instr.md)
+    - [IS NUMERIC](./chapter-06-gbdialog/keyword-is-numeric.md)
+    - [SWITCH](./chapter-06-gbdialog/keyword-switch.md)
+    - [WEBHOOK](./chapter-06-gbdialog/keyword-webhook.md)
+  - [HTTP & API Operations](./chapter-06-gbdialog/keywords-http.md)
+    - [POST](./chapter-06-gbdialog/keyword-post.md)
+    - [PUT](./chapter-06-gbdialog/keyword-put.md)
+    - [PATCH](./chapter-06-gbdialog/keyword-patch.md)
+    - [DELETE_HTTP](./chapter-06-gbdialog/keyword-delete-http.md)
+    - [SET_HEADER](./chapter-06-gbdialog/keyword-set-header.md)
+    - [GRAPHQL](./chapter-06-gbdialog/keyword-graphql.md)
+    - [SOAP](./chapter-06-gbdialog/keyword-soap.md)
+  - [Data Operations](./chapter-06-gbdialog/keywords-data.md)
+    - [SAVE](./chapter-06-gbdialog/keyword-save.md)
+    - [INSERT](./chapter-06-gbdialog/keyword-insert.md)
+    - [UPDATE](./chapter-06-gbdialog/keyword-update.md)
+    - [DELETE](./chapter-06-gbdialog/keyword-delete.md)
+    - [MERGE](./chapter-06-gbdialog/keyword-merge.md)
+    - [FILL](./chapter-06-gbdialog/keyword-fill.md)
+    - [MAP](./chapter-06-gbdialog/keyword-map.md)
+    - [FILTER](./chapter-06-gbdialog/keyword-filter.md)
+    - [AGGREGATE](./chapter-06-gbdialog/keyword-aggregate.md)
+    - [JOIN](./chapter-06-gbdialog/keyword-join.md)
+    - [PIVOT](./chapter-06-gbdialog/keyword-pivot.md)
+    - [GROUP_BY](./chapter-06-gbdialog/keyword-group-by.md)
+  - [File Operations](./chapter-06-gbdialog/keywords-file.md)
+    - [READ](./chapter-06-gbdialog/keyword-read.md)
+    - [WRITE](./chapter-06-gbdialog/keyword-write.md)
+    - [DELETE_FILE](./chapter-06-gbdialog/keyword-delete-file.md)
+    - [COPY](./chapter-06-gbdialog/keyword-copy.md)
+    - [MOVE](./chapter-06-gbdialog/keyword-move.md)
+    - [LIST](./chapter-06-gbdialog/keyword-list.md)
+    - [COMPRESS](./chapter-06-gbdialog/keyword-compress.md)
+    - [EXTRACT](./chapter-06-gbdialog/keyword-extract.md)
+    - [UPLOAD](./chapter-06-gbdialog/keyword-upload.md)
+    - [DOWNLOAD](./chapter-06-gbdialog/keyword-download.md)
+    - [GENERATE_PDF](./chapter-06-gbdialog/keyword-generate-pdf.md)
+    - [MERGE_PDF](./chapter-06-gbdialog/keyword-merge-pdf.md)
 
 # Part VII - Extending General Bots
 
@@ -103,7 +143,7 @@
   - [Bot Parameters](./chapter-08-config/parameters.md)
   - [LLM Configuration](./chapter-08-config/llm-config.md)
   - [Context Configuration](./chapter-08-config/context-config.md)
-  - [Drive Integration](./chapter-08-config/minio.md)
+  - [Drive Integration](./chapter-08-config/drive.md)
 
 # Part IX - Tools and Integration
 
@@ -159,7 +199,7 @@
 
 # Part XI - Security
 
-- [Chapter 12: Authentication](./chapter-12-auth/README.md)
+- [Chapter 12: Authentication & Permissions](./chapter-12-auth/README.md)
   - [User Authentication](./chapter-12-auth/user-auth.md)
   - [Password Security](./chapter-12-auth/password-security.md)
   - [API Endpoints](./chapter-12-auth/api-endpoints.md)
@@ -167,6 +207,8 @@
   - [Security Features](./chapter-12-auth/security-features.md)
   - [Security Policy](./chapter-12-auth/security-policy.md)
   - [Compliance Requirements](./chapter-12-auth/compliance-requirements.md)
+  - [Permissions Matrix](./chapter-12-auth/permissions-matrix.md)
+  - [User Context vs System Context](./chapter-12-auth/user-system-context.md)
 
 # Part XII - Community
 
@@ -191,10 +233,20 @@
 
 # Appendices
 
-- [Appendix XV: Database Model](./appendix-15/README.md)
+- [Appendix A: Database Model](./appendix-15/README.md)
   - [Schema Overview](./appendix-15/schema.md)
   - [Tables](./appendix-15/tables.md)
   - [Relationships](./appendix-15/relationships.md)
+
+- [Appendix B: External Services](./appendix-external-services/README.md)
+  - [Service Catalog](./appendix-external-services/catalog.md)
+  - [LLM Providers](./appendix-external-services/llm-providers.md)
+  - [Weather API](./appendix-external-services/weather.md)
+  - [Channel Integrations](./appendix-external-services/channels.md)
+  - [Storage Services](./appendix-external-services/storage.md)
+  - [Directory Services](./appendix-external-services/directory.md)
+
+- [Appendix C: Environment Variables](./appendix-env-vars/README.md)
 
 [Glossary](./glossary.md)
 [Contact](./contact/README.md)

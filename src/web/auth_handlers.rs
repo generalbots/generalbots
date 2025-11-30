@@ -113,23 +113,18 @@ pub async fn login_submit(
 
         return Redirect::to(&auth_url).into_response();
     } else {
-        // Development mode: Create local session
-        warn!("Zitadel not available, using development authentication");
+        // Development mode: Authentication is required via Zitadel
+        // Do not use hardcoded credentials - configure Zitadel for proper authentication
+        warn!("Zitadel not configured. Please set up Zitadel for authentication.");
+        warn!("See docs/src/chapter-12-auth/README.md for authentication setup.");
 
-        // Simple password check for development
-        if form.password != "password" {
-            return LoginTemplate {
-                error_message: Some("Invalid credentials".to_string()),
-                redirect_url: None,
-            }
-            .into_response();
+        return LoginTemplate {
+            error_message: Some(
+                "Authentication service not configured. Please contact administrator.".to_string(),
+            ),
+            redirect_url: None,
         }
-
-        create_dev_session(
-            &form.email,
-            &form.email.split('@').next().unwrap_or("User"),
-            &auth_config,
-        )
+        .into_response();
     };
 
     // Store session
