@@ -45,7 +45,7 @@ IF action = "create_po" THEN
 
     WHILE adding_items = true DO
         TALK "Enter item code (or 'done' to finish):"
-        item_code = HEAR
+        HEAR item_code AS "done", *
 
         IF item_code = "done" THEN
             adding_items = false
@@ -56,16 +56,10 @@ IF action = "create_po" THEN
                 TALK "Item not found. Try again."
             ELSE
                 TALK "Quantity to order:"
-                quantity = HEAR
+                HEAR quantity AS INTEGER
 
                 TALK "Unit price (or press Enter for last cost: " + item.last_cost + "):"
-                price_input = HEAR
-
-                IF price_input = "" THEN
-                    unit_price = item.last_cost
-                ELSE
-                    unit_price = price_input
-                END IF
+                HEAR unit_price AS MONEY DEFAULT item.last_cost
 
                 line = CREATE OBJECT
                 SET line.id = FORMAT GUID()
@@ -101,7 +95,7 @@ IF action = "approve_po" THEN
 
     IF po_number = "" THEN
         TALK "Enter PO number to approve:"
-        po_number = HEAR
+        HEAR po_number
     END IF
 
     po = FIND "purchase_orders", "po_number = '" + po_number + "'"
@@ -128,9 +122,9 @@ IF action = "approve_po" THEN
     END FOR
 
     TALK "Approve this PO? (yes/no)"
-    approval = HEAR
+    HEAR approval AS "yes", "no"
 
-    IF approval = "yes" OR approval = "YES" OR approval = "Yes" THEN
+    IF approval = "yes" THEN
         po.status = "approved"
         po.approved_by = user_id
         po.approved_date = current_time
@@ -158,7 +152,7 @@ IF action = "vendor_performance" THEN
 
     IF vendor_code = "" THEN
         TALK "Enter vendor code:"
-        vendor_code = HEAR
+        HEAR vendor_code
     END IF
 
     vendor = FIND "vendors", "vendor_code = '" + vendor_code + "'"
@@ -266,16 +260,16 @@ IF action = "requisition" THEN
 
     WHILE adding = true DO
         TALK "Enter item description (or 'done'):"
-        item_desc = HEAR
+        HEAR item_desc AS "done", *
 
         IF item_desc = "done" THEN
             adding = false
         ELSE
             TALK "Quantity needed:"
-            quantity = HEAR
+            HEAR quantity AS INTEGER
 
             TALK "Reason/Project:"
-            reason = HEAR
+            HEAR reason
 
             req_item = CREATE OBJECT
             SET req_item.description = item_desc
@@ -304,7 +298,7 @@ IF action = "price_comparison" THEN
 
     IF item_code = "" THEN
         TALK "Enter item code:"
-        item_code = HEAR
+        HEAR item_code
     END IF
 
     item = FIND "items", "item_code = '" + item_code + "'"

@@ -1,0 +1,1399 @@
+<!-- Content Projector/Player Component -->
+<!-- Displays video, images, PDFs, presentations, code, and more -->
+
+<div id="projector-overlay" class="projector-overlay hidden" onclick="closeProjectorOnOverlay(event)">
+    <div class="projector-container" onclick="event.stopPropagation()">
+        <!-- Header -->
+        <div class="projector-header">
+            <div class="projector-title-section">
+                <span class="projector-icon" id="projector-icon">🎬</span>
+                <span class="projector-title" id="projector-title">Content Viewer</span>
+            </div>
+            <div class="projector-actions">
+                <button class="projector-btn" onclick="toggleFullscreen()" title="Fullscreen">
+                    <span id="fullscreen-icon">⛶</span>
+                </button>
+                <button class="projector-btn" onclick="downloadContent()" title="Download">
+                    ⬇️
+                </button>
+                <button class="projector-btn" onclick="shareContent()" title="Share">
+                    🔗
+                </button>
+                <button class="projector-btn close-btn" onclick="closeProjector()" title="Close">
+                    ✕
+                </button>
+            </div>
+        </div>
+
+        <!-- Content Area -->
+        <div class="projector-content" id="projector-content">
+            <!-- Dynamic content loaded here -->
+            <div class="projector-loading" id="projector-loading">
+                <div class="loading-spinner"></div>
+                <span>Loading content...</span>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="projector-controls" id="projector-controls">
+            <!-- Video/Audio Controls -->
+            <div class="media-controls hidden" id="media-controls">
+                <button class="control-btn" onclick="mediaSeekBack()" title="Back 10s">
+                    ⏪
+                </button>
+                <button class="control-btn play-btn" onclick="togglePlayPause()" id="play-pause-btn" title="Play/Pause">
+                    ▶️
+                </button>
+                <button class="control-btn" onclick="mediaSeekForward()" title="Forward 10s">
+                    ⏩
+                </button>
+                <div class="progress-container">
+                    <input type="range" class="progress-bar" id="progress-bar"
+                           min="0" max="100" value="0"
+                           oninput="seekTo(this.value)">
+                    <span class="time-display" id="time-display">0:00 / 0:00</span>
+                </div>
+                <button class="control-btn" onclick="toggleMute()" id="mute-btn" title="Mute">
+                    🔊
+                </button>
+                <input type="range" class="volume-slider" id="volume-slider"
+                       min="0" max="100" value="100"
+                       oninput="setVolume(this.value)">
+                <button class="control-btn" onclick="toggleLoop()" id="loop-btn" title="Loop">
+                    🔁
+                </button>
+                <select class="speed-select" id="speed-select" onchange="setPlaybackSpeed(this.value)">
+                    <option value="0.5">0.5x</option>
+                    <option value="0.75">0.75x</option>
+                    <option value="1" selected>1x</option>
+                    <option value="1.25">1.25x</option>
+                    <option value="1.5">1.5x</option>
+                    <option value="2">2x</option>
+                </select>
+            </div>
+
+            <!-- Presentation/PDF Controls -->
+            <div class="slide-controls hidden" id="slide-controls">
+                <button class="control-btn" onclick="prevSlide()" title="Previous">
+                    ◀️
+                </button>
+                <span class="slide-info" id="slide-info">Slide 1 of 1</span>
+                <button class="control-btn" onclick="nextSlide()" title="Next">
+                    ▶️
+                </button>
+                <div class="slide-nav">
+                    <input type="number" id="slide-input" min="1" value="1"
+                           onchange="goToSlide(this.value)">
+                </div>
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In">
+                    🔍+
+                </button>
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
+                    🔍-
+                </button>
+                <span class="zoom-level" id="zoom-level">100%</span>
+            </div>
+
+            <!-- Image Controls -->
+            <div class="image-controls hidden" id="image-controls">
+                <button class="control-btn" onclick="prevImage()" id="prev-image-btn" title="Previous">
+                    ◀️
+                </button>
+                <span class="image-info" id="image-info">1 of 1</span>
+                <button class="control-btn" onclick="nextImage()" id="next-image-btn" title="Next">
+                    ▶️
+                </button>
+                <button class="control-btn" onclick="zoomIn()" title="Zoom In">
+                    🔍+
+                </button>
+                <button class="control-btn" onclick="zoomOut()" title="Zoom Out">
+                    🔍-
+                </button>
+                <button class="control-btn" onclick="rotateImage()" title="Rotate">
+                    🔄
+                </button>
+                <button class="control-btn" onclick="fitToScreen()" title="Fit to Screen">
+                    📐
+                </button>
+            </div>
+
+            <!-- Code Controls -->
+            <div class="code-controls hidden" id="code-controls">
+                <span class="code-info" id="code-info">code.rs</span>
+                <button class="control-btn" onclick="toggleLineNumbers()" title="Line Numbers">
+                    #️⃣
+                </button>
+                <button class="control-btn" onclick="toggleWordWrap()" title="Word Wrap">
+                    ↩️
+                </button>
+                <select class="theme-select" id="theme-select" onchange="setCodeTheme(this.value)">
+                    <option value="dark">Dark</option>
+                    <option value="light">Light</option>
+                    <option value="monokai">Monokai</option>
+                    <option value="github">GitHub</option>
+                </select>
+                <button class="control-btn" onclick="copyCode()" title="Copy">
+                    📋
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Projector Overlay */
+.projector-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.9);
+    z-index: 10000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.2s ease;
+}
+
+.projector-overlay.hidden {
+    display: none;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+/* Container */
+.projector-container {
+    width: 95%;
+    max-width: 1400px;
+    height: 90%;
+    max-height: 900px;
+    background: #1a1a1a;
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.projector-container.fullscreen {
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    border-radius: 0;
+}
+
+/* Header */
+.projector-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 20px;
+    background: #252525;
+    border-bottom: 1px solid #333;
+}
+
+.projector-title-section {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.projector-icon {
+    font-size: 20px;
+}
+
+.projector-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 500;
+    max-width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.projector-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.projector-btn {
+    background: transparent;
+    border: none;
+    color: #aaa;
+    font-size: 18px;
+    padding: 8px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.projector-btn:hover {
+    background: #333;
+    color: #fff;
+}
+
+.projector-btn.close-btn:hover {
+    background: #e74c3c;
+    color: #fff;
+}
+
+/* Content Area */
+.projector-content {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    position: relative;
+    background: #000;
+}
+
+/* Loading */
+.projector-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: #888;
+}
+
+.projector-loading.hidden {
+    display: none;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid #333;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Video Player */
+.projector-video {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+}
+
+/* Audio Player */
+.projector-audio {
+    width: 80%;
+    max-width: 600px;
+}
+
+.audio-visualizer {
+    width: 100%;
+    height: 200px;
+    background: linear-gradient(180deg, #1a1a2e 0%, #16213e 100%);
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+/* Image Viewer */
+.projector-image {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.3s ease;
+}
+
+/* PDF Viewer */
+.projector-pdf {
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* Code Viewer */
+.projector-code {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background: #1e1e1e;
+    padding: 20px;
+}
+
+.projector-code pre {
+    margin: 0;
+    font-family: 'Fira Code', 'Monaco', 'Consolas', monospace;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #d4d4d4;
+}
+
+.projector-code.line-numbers pre {
+    counter-reset: line;
+}
+
+.projector-code.line-numbers pre .line::before {
+    counter-increment: line;
+    content: counter(line);
+    display: inline-block;
+    width: 40px;
+    padding-right: 20px;
+    color: #666;
+    text-align: right;
+}
+
+/* Presentation Viewer */
+.projector-presentation {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.slide-container {
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    aspect-ratio: 16/9;
+    max-width: 90%;
+    max-height: 90%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.slide-content {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Iframe Viewer */
+.projector-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #fff;
+}
+
+/* Markdown Viewer */
+.projector-markdown {
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    padding: 40px;
+    background: #fff;
+    color: #333;
+}
+
+.projector-markdown h1,
+.projector-markdown h2,
+.projector-markdown h3 {
+    color: #1a1a1a;
+    margin-top: 24px;
+    margin-bottom: 12px;
+}
+
+.projector-markdown code {
+    background: #f0f0f0;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.projector-markdown pre code {
+    display: block;
+    padding: 16px;
+    overflow-x: auto;
+}
+
+/* Controls */
+.projector-controls {
+    padding: 12px 20px;
+    background: #252525;
+    border-top: 1px solid #333;
+}
+
+.media-controls,
+.slide-controls,
+.image-controls,
+.code-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.media-controls.hidden,
+.slide-controls.hidden,
+.image-controls.hidden,
+.code-controls.hidden {
+    display: none;
+}
+
+.control-btn {
+    background: #333;
+    border: none;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.2s ease;
+}
+
+.control-btn:hover {
+    background: #444;
+}
+
+.control-btn.active {
+    background: #667eea;
+}
+
+.play-btn {
+    font-size: 20px;
+    padding: 8px 16px;
+}
+
+/* Progress Bar */
+.progress-container {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 200px;
+}
+
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #444;
+    border-radius: 3px;
+    cursor: pointer;
+}
+
+.progress-bar::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    background: #667eea;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.progress-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    background: #667eea;
+    border-radius: 50%;
+    cursor: pointer;
+    border: none;
+}
+
+.time-display {
+    color: #888;
+    font-size: 12px;
+    min-width: 100px;
+    text-align: right;
+}
+
+/* Volume */
+.volume-slider {
+    width: 80px;
+    height: 4px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #444;
+    border-radius: 2px;
+    cursor: pointer;
+}
+
+.volume-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 12px;
+    height: 12px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Speed/Theme Select */
+.speed-select,
+.theme-select {
+    background: #333;
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+/* Slide Info */
+.slide-info,
+.image-info,
+.code-info,
+.zoom-level {
+    color: #888;
+    font-size: 14px;
+}
+
+.slide-nav input {
+    width: 50px;
+    background: #333;
+    border: none;
+    color: #fff;
+    padding: 6px;
+    border-radius: 4px;
+    text-align: center;
+}
+
+/* Error State */
+.projector-error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    color: #e74c3c;
+}
+
+.projector-error-icon {
+    font-size: 48px;
+}
+
+.projector-error-message {
+    font-size: 16px;
+    color: #888;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .projector-container {
+        width: 100%;
+        height: 100%;
+        max-width: none;
+        max-height: none;
+        border-radius: 0;
+    }
+
+    .projector-header {
+        padding: 10px 16px;
+    }
+
+    .projector-title {
+        max-width: 150px;
+        font-size: 14px;
+    }
+
+    .projector-controls {
+        padding: 10px 16px;
+    }
+
+    .progress-container {
+        min-width: 120px;
+    }
+
+    .time-display {
+        display: none;
+    }
+
+    .volume-slider {
+        display: none;
+    }
+}
+</style>
+
+<script>
+// Projector State
+let projectorState = {
+    isOpen: false,
+    contentType: null,
+    source: null,
+    options: {},
+    currentSlide: 1,
+    totalSlides: 1,
+    currentImage: 0,
+    totalImages: 1,
+    zoom: 100,
+    rotation: 0,
+    isPlaying: false,
+    isLooping: false,
+    isMuted: false,
+    lineNumbers: true,
+    wordWrap: false
+};
+
+// Get media element
+function getMediaElement() {
+    return document.querySelector('.projector-video, .projector-audio');
+}
+
+// Open Projector
+function openProjector(data) {
+    const overlay = document.getElementById('projector-overlay');
+    const content = document.getElementById('projector-content');
+    const loading = document.getElementById('projector-loading');
+    const title = document.getElementById('projector-title');
+    const icon = document.getElementById('projector-icon');
+
+    // Reset state
+    projectorState = {
+        ...projectorState,
+        isOpen: true,
+        contentType: data.content_type,
+        source: data.source_url,
+        options: data.options || {}
+    };
+
+    // Set title
+    title.textContent = data.title || 'Content Viewer';
+
+    // Set icon based on content type
+    const icons = {
+        'Video': '🎬',
+        'Audio': '🎵',
+        'Image': '🖼️',
+        'Pdf': '📄',
+        'Presentation': '📊',
+        'Code': '💻',
+        'Spreadsheet': '📈',
+        'Markdown': '📝',
+        'Html': '🌐',
+        'Document': '📃'
+    };
+    icon.textContent = icons[data.content_type] || '📁';
+
+    // Show loading
+    loading.classList.remove('hidden');
+    hideAllControls();
+
+    // Show overlay
+    overlay.classList.remove('hidden');
+
+    // Load content based on type
+    loadContent(data);
+}
+
+// Load Content
+function loadContent(data) {
+    const content = document.getElementById('projector-content');
+    const loading = document.getElementById('projector-loading');
+
+    setTimeout(() => {
+        loading.classList.add('hidden');
+
+        switch (data.content_type) {
+            case 'Video':
+                loadVideo(content, data);
+                break;
+            case 'Audio':
+                loadAudio(content, data);
+                break;
+            case 'Image':
+                loadImage(content, data);
+                break;
+            case 'Pdf':
+                loadPdf(content, data);
+                break;
+            case 'Presentation':
+                loadPresentation(content, data);
+                break;
+            case 'Code':
+                loadCode(content, data);
+                break;
+            case 'Markdown':
+                loadMarkdown(content, data);
+                break;
+            case 'Iframe':
+            case 'Html':
+                loadIframe(content, data);
+                break;
+            default:
+                loadGeneric(content, data);
+        }
+    }, 300);
+}
+
+// Load Video
+function loadVideo(container, data) {
+    const loading = document.getElementById('projector-loading');
+
+    const video = document.createElement('video');
+    video.className = 'projector-video';
+    video.src = data.source_url;
+    video.controls = false;
+    video.autoplay = data.options?.autoplay || false;
+    video.loop = data.options?.loop_content || false;
+    video.muted = data.options?.muted || false;
+
+    video.addEventListener('loadedmetadata', () => {
+        loading.classList.add('hidden');
+        updateTimeDisplay();
+    });
+
+    video.addEventListener('timeupdate', () => {
+        updateProgress();
+        updateTimeDisplay();
+    });
+
+    video.addEventListener('play', () => {
+        projectorState.isPlaying = true;
+        document.getElementById('play-pause-btn').textContent = '⏸️';
+    });
+
+    video.addEventListener('pause', () => {
+        projectorState.isPlaying = false;
+        document.getElementById('play-pause-btn').textContent = '▶️';
+    });
+
+    video.addEventListener('ended', () => {
+        if (!projectorState.isLooping) {
+            projectorState.isPlaying = false;
+            document.getElementById('play-pause-btn').textContent = '▶️';
+        }
+    });
+
+    // Clear and add video
+    clearContent(container);
+    container.appendChild(video);
+
+    // Show media controls
+    showControls('media');
+}
+
+// Load Audio
+function loadAudio(container, data) {
+    const wrapper = document.createElement('div');
+    wrapper.style.textAlign = 'center';
+    wrapper.style.padding = '40px';
+
+    // Visualizer placeholder
+    const visualizer = document.createElement('canvas');
+    visualizer.className = 'audio-visualizer';
+    visualizer.id = 'audio-visualizer';
+    wrapper.appendChild(visualizer);
+
+    const audio = document.createElement('audio');
+    audio.className = 'projector-audio';
+    audio.src = data.source_url;
+    audio.autoplay = data.options?.autoplay || false;
+    audio.loop = data.options?.loop_content || false;
+
+    audio.addEventListener('loadedmetadata', () => updateTimeDisplay());
+    audio.addEventListener('timeupdate', () => {
+        updateProgress();
+        updateTimeDisplay();
+    });
+    audio.addEventListener('play', () => {
+        projectorState.isPlaying = true;
+        document.getElementById('play-pause-btn').textContent = '⏸️';
+    });
+    audio.addEventListener('pause', () => {
+        projectorState.isPlaying = false;
+        document.getElementById('play-pause-btn').textContent = '▶️';
+    });
+
+    wrapper.appendChild(audio);
+
+    clearContent(container);
+    container.appendChild(wrapper);
+
+    showControls('media');
+}
+
+// Load Image
+function loadImage(container, data) {
+    const img = document.createElement('img');
+    img.className = 'projector-image';
+    img.src = data.source_url;
+    img.alt = data.title || 'Image';
+    img.id = 'projector-img';
+
+    img.addEventListener('load', () => {
+        document.getElementById('projector-loading').classList.add('hidden');
+    });
+
+    img.addEventListener('error', () => {
+        showError('Failed to load image');
+    });
+
+    clearContent(container);
+    container.appendChild(img);
+
+    // Hide nav if single image
+    document.getElementById('prev-image-btn').style.display =
+        projectorState.totalImages > 1 ? 'block' : 'none';
+    document.getElementById('next-image-btn').style.display =
+        projectorState.totalImages > 1 ? 'block' : 'none';
+
+    showControls('image');
+    updateImageInfo();
+}
+
+// Load PDF
+function loadPdf(container, data) {
+    const iframe = document.createElement('iframe');
+    iframe.className = 'projector-pdf';
+    iframe.src = `/static/pdfjs/web/viewer.html?file=${encodeURIComponent(data.source_url)}`;
+
+    clearContent(container);
+    container.appendChild(iframe);
+
+    showControls('slide');
+}
+
+// Load Presentation
+function loadPresentation(container, data) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'projector-presentation';
+
+    const slideContainer = document.createElement('div');
+    slideContainer.className = 'slide-container';
+    slideContainer.id = 'slide-container';
+
+    // For now, show as images (each slide converted to image)
+    const slideImg = document.createElement('img');
+    slideImg.className = 'slide-content';
+    slideImg.id = 'slide-content';
+    slideImg.src = `${data.source_url}?slide=1`;
+
+    slideContainer.appendChild(slideImg);
+    wrapper.appendChild(slideContainer);
+
+    clearContent(container);
+    container.appendChild(wrapper);
+
+    showControls('slide');
+    updateSlideInfo();
+}
+
+// Load Code
+function loadCode(container, data) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'projector-code';
+    wrapper.id = 'code-container';
+    if (projectorState.lineNumbers) {
+        wrapper.classList.add('line-numbers');
+    }
+
+    const pre = document.createElement('pre');
+    const code = document.createElement('code');
+
+    // Fetch code content
+    fetch(data.source_url)
+        .then(res => res.text())
+        .then(text => {
+            // Split into lines for line numbers
+            const lines = text.split('\n').map(line =>
+                `<span class="line">${escapeHtml(line)}</span>`
+            ).join('\n');
+            code.innerHTML = lines;
+
+            // Apply syntax highlighting if Prism is available
+            if (window.Prism) {
+                Prism.highlightElement(code);
+            }
+        })
+        .catch(() => {
+            code.textContent = 'Failed to load code';
+        });
+
+    pre.appendChild(code);
+    wrapper.appendChild(pre);
+
+    clearContent(container);
+    container.appendChild(wrapper);
+
+    // Update code info
+    const filename = data.source_url.split('/').pop();
+    document.getElementById('code-info').textContent = filename;
+
+    showControls('code');
+}
+
+// Load Markdown
+function loadMarkdown(container, data) {
+    const wrapper = document.createElement('div');
+    wrapper.className = 'projector-markdown';
+
+    fetch(data.source_url)
+        .then(res => res.text())
+        .then(text => {
+            // Simple markdown parsing (use marked.js in production)
+            wrapper.innerHTML = parseMarkdown(text);
+        })
+        .catch(() => {
+            wrapper.innerHTML = '<p>Failed to load markdown</p>';
+        });
+
+    clearContent(container);
+    container.appendChild(wrapper);
+
+    hideAllControls();
+}
+
+// Load Iframe
+function loadIframe(container, data) {
+    const iframe = document.createElement('iframe');
+    iframe.className = 'projector-iframe';
+    iframe.src = data.source_url;
+    iframe.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture';
+    iframe.allowFullscreen = true;
+
+    clearContent(container);
+    container.appendChild(iframe);
+
+    hideAllControls();
+}
+
+// Load Generic
+function loadGeneric(container, data) {
+    const wrapper = document.createElement('div');
+    wrapper.style.textAlign = 'center';
+    wrapper.style.padding = '40px';
+    wrapper.style.color = '#888';
+
+    wrapper.innerHTML = `
+        <div style="font-size: 64px; margin-bottom: 20px;">📁</div>
+        <div style="font-size: 18px; margin-bottom: 10px;">Cannot preview this file type</div>
+        <a href="${data.source_url}" download style="color: #667eea; text-decoration: none;">
+            ⬇️ Download File
+        </a>
+    `;
+
+    clearContent(container);
+    container.appendChild(wrapper);
+
+    hideAllControls();
+}
+
+// Show Error
+function showError(message) {
+    const content = document.getElementById('projector-content');
+    content.innerHTML = `
+        <div class="projector-error">
+            <span class="projector-error-icon">❌</span>
+            <span class="projector-error-message">${message}</span>
+        </div>
+    `;
+}
+
+// Clear Content
+function clearContent(container) {
+    const loading = document.getElementById('projector-loading');
+    container.innerHTML = '';
+    container.appendChild(loading);
+}
+
+// Show/Hide Controls
+function showControls(type) {
+    hideAllControls();
+    const controls = document.getElementById(`${type}-controls`);
+    if (controls) {
+        controls.classList.remove('hidden');
+    }
+}
+
+function hideAllControls() {
+    document.getElementById('media-controls').classList.add('hidden');
+    document.getElementById('slide-controls').classList.add('hidden');
+    document.getElementById('image-controls').classList.add('hidden');
+    document.getElementById('code-controls').classList.add('hidden');
+}
+
+// Close Projector
+function closeProjector() {
+    const overlay = document.getElementById('projector-overlay');
+    overlay.classList.add('hidden');
+    projectorState.isOpen = false;
+
+    // Stop any playing media
+    const media = getMediaElement();
+    if (media) {
+        media.pause();
+        media.src = '';
+    }
+
+    // Clear content
+    const content = document.getElementById('projector-content');
+    const loading = document.getElementById('projector-loading');
+    content.innerHTML = '';
+    content.appendChild(loading);
+}
+
+function closeProjectorOnOverlay(event) {
+    if (event.target.id === 'projector-overlay') {
+        closeProjector();
+    }
+}
+
+// Media Controls
+function togglePlayPause() {
+    const media = getMediaElement();
+    if (media) {
+        if (media.paused) {
+            media.play();
+        } else {
+            media.pause();
+        }
+    }
+}
+
+function mediaSeekBack() {
+    const media = getMediaElement();
+    if (media) {
+        media.currentTime = Math.max(0, media.currentTime - 10);
+    }
+}
+
+function mediaSeekForward() {
+    const media = getMediaElement();
+    if (media) {
+        media.currentTime = Math.min(media.duration, media.currentTime + 10);
+    }
+}
+
+function seekTo(percent) {
+    const media = getMediaElement();
+    if (media && media.duration) {
+        media.currentTime = (percent / 100) * media.duration;
+    }
+}
+
+function setVolume(value) {
+    const media = getMediaElement();
+    if (media) {
+        media.volume = value / 100;
+        projectorState.isMuted = value === 0;
+        document.getElementById('mute-btn').textContent = value === 0 ? '🔇' : '🔊';
+    }
+}
+
+function toggleMute() {
+    const media = getMediaElement();
+    if (media) {
+        media.muted = !media.muted;
+        projectorState.isMuted = media.muted;
+        document.getElementById('mute-btn').textContent = media.muted ? '🔇' : '🔊';
+    }
+}
+
+function toggleLoop() {
+    const media = getMediaElement();
+    if (media) {
+        media.loop = !media.loop;
+        projectorState.isLooping = media.loop;
+        document.getElementById('loop-btn').classList.toggle('active', media.loop);
+    }
+}
+
+function setPlaybackSpeed(speed) {
+    const media = getMediaElement();
+    if (media) {
+        media.playbackRate = parseFloat(speed);
+    }
+}
+
+function updateProgress() {
+    const media = getMediaElement();
+    if (media && media.duration) {
+        const progress = (media.currentTime / media.duration) * 100;
+        document.getElementById('progress-bar').value = progress;
+    }
+}
+
+function updateTimeDisplay() {
+    const media = getMediaElement();
+    if (media) {
+        const current = formatTime(media.currentTime);
+        const duration = formatTime(media.duration || 0);
+        document.getElementById('time-display').textContent = `${current} / ${duration}`;
+    }
+}
+
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Slide/Page Controls
+function prevSlide() {
+    if (projectorState.currentSlide > 1) {
+        projectorState.currentSlide--;
+        updateSlide();
+    }
+}
+
+function nextSlide() {
+    if (projectorState.currentSlide < projectorState.totalSlides) {
+        projectorState.currentSlide++;
+        updateSlide();
+    }
+}
+
+function goToSlide(num) {
+    const slide = parseInt(num);
+    if (slide >= 1 && slide <= projectorState.totalSlides) {
+        projectorState.currentSlide = slide;
+        updateSlide();
+    }
+}
+
+function updateSlide() {
+    const slideContent = document.getElementById('slide-content');
+    if (slideContent) {
+        slideContent.src = `${projectorState.source}?slide=${projectorState.currentSlide}`;
+    }
+    updateSlideInfo();
+}
+
+function updateSlideInfo() {
+    document.getElementById('slide-info').textContent =
+        `Slide ${projectorState.currentSlide} of ${projectorState.totalSlides}`;
+    document.getElementById('slide-input').value = projectorState.currentSlide;
+}
+
+// Image Controls
+function prevImage() {
+    if (projectorState.currentImage > 0) {
+        projectorState.currentImage--;
+        updateImage();
+    }
+}
+
+function nextImage() {
+    if (projectorState.currentImage < projectorState.totalImages - 1) {
+        projectorState.currentImage++;
+        updateImage();
+    }
+}
+
+function updateImage() {
+    // Implementation for image galleries
+    updateImageInfo();
+}
+
+function updateImageInfo() {
+    document.getElementById('image-info').textContent =
+        `${projectorState.currentImage + 1} of ${projectorState.totalImages}`;
+}
+
+function rotateImage() {
+    projectorState.rotation = (projectorState.rotation + 90) % 360;
+    const img = document.getElementById('projector-img');
+    if (img) {
+        img.style.transform = `rotate(${projectorState.rotation}deg) scale(${projectorState.zoom / 100})`;
+    }
+}
+
+function fitToScreen() {
+    projectorState.zoom = 100;
+    projectorState.rotation = 0;
+    const img = document.getElementById('projector-img');
+    if (img) {
+        img.style.transform = 'none';
+    }
+    document.getElementById('zoom-level').textContent = '100%';
+}
+
+// Zoom Controls
+function zoomIn() {
+    projectorState.zoom = Math.min(300, projectorState.zoom + 25);
+    applyZoom();
+}
+
+function zoomOut() {
+    projectorState.zoom = Math.max(25, projectorState.zoom - 25);
+    applyZoom();
+}
+
+function applyZoom() {
+    const img = document.getElementById('projector-img');
+    const slideContainer = document.getElementById('slide-container');
+
+    if (img) {
+        img.style.transform = `rotate(${projectorState.rotation}deg) scale(${projectorState.zoom / 100})`;
+    }
+    if (slideContainer) {
+        slideContainer.style.transform = `scale(${projectorState.zoom / 100})`;
+    }
+
+    document.getElementById('zoom-level').textContent = `${projectorState.zoom}%`;
+}
+
+// Code Controls
+function toggleLineNumbers() {
+    projectorState.lineNumbers = !projectorState.lineNumbers;
+    const container = document.getElementById('code-container');
+    if (container) {
+        container.classList.toggle('line-numbers', projectorState.lineNumbers);
+    }
+}
+
+function toggleWordWrap() {
+    projectorState.wordWrap = !projectorState.wordWrap;
+    const container = document.getElementById('code-container');
+    if (container) {
+        container.style.whiteSpace = projectorState.wordWrap ? 'pre-wrap' : 'pre';
+    }
+}
+
+function setCodeTheme(theme) {
+    const container = document.getElementById('code-container');
+    if (container) {
+        container.className = `projector-code ${projectorState.lineNumbers ? 'line-numbers' : ''} theme-${theme}`;
+    }
+}
+
+function copyCode() {
+    const code = document.querySelector('.projector-code code');
+    if (code) {
+        navigator.clipboard.writeText(code.textContent).then(() => {
+            // Show feedback
+            const btn = document.querySelector('.code-controls .control-btn:last-child');
+            const originalText = btn.textContent;
+            btn.textContent = '✅';
+            setTimeout(() => btn.textContent = originalText, 2000);
+        });
+    }
+}
+
+// Fullscreen
+function toggleFullscreen() {
+    const container = document.querySelector('.projector-container');
+    const icon = document.getElementById('fullscreen-icon');
+
+    if (!document.fullscreenElement) {
+        container.requestFullscreen().then(() => {
+            container.classList.add('fullscreen');
+            icon.textContent = '⛶';
+        }).catch(() => {});
+    } else {
+        document.exitFullscreen().then(() => {
+            container.classList.remove('fullscreen');
+            icon.textContent = '⛶';
+        }).catch(() => {});
+    }
+}
+
+// Download
+function downloadContent() {
+    const link = document.createElement('a');
+    link.href = projectorState.source;
+    link.download = '';
+    link.click();
+}
+
+// Share
+function shareContent() {
+    if (navigator.share) {
+        navigator.share({
+            title: document.getElementById('projector-title').textContent,
+            url: projectorState.source
+        }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(window.location.origin + projectorState.source).then(() => {
+            alert('Link copied to clipboard!');
+        });
+    }
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    if (!projectorState.isOpen) return;
+
+    switch (e.key) {
+        case 'Escape':
+            closeProjector();
+            break;
+        case ' ':
+            e.preventDefault();
+            togglePlayPause();
+            break;
+        case 'ArrowLeft':
+            if (projectorState.contentType === 'Video' || projectorState.contentType === 'Audio') {
+                mediaSeekBack();
+            } else {
+                prevSlide();
+            }
+            break;
+        case 'ArrowRight':
+            if (projectorState.contentType === 'Video' || projectorState.contentType === 'Audio') {
+                mediaSeekForward();
+            } else {
+                nextSlide();
+            }
+            break;
+        case 'f':
+            toggleFullscreen();
+            break;
+        case 'm':
+            toggleMute();
+            break;
+        case '+':
+        case '=':
+            zoomIn();
+            break;
+        case '-':
+            zoomOut();
+            break;
+    }
+});
+
+// Helper Functions
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function parseMarkdown(text) {
+    // Simple markdown parsing - use marked.js for full support
+    return text
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*)\*\*/gim, '<strong>$1</strong>')
+        .replace(/\*(.*)\*/gim, '<em>$1</em>')
+        .replace(/`([^`]+)`/gim, '<code>$1</code>')
+        .replace(/\n/gim, '<br>');
+}
+
+// Listen for play messages from WebSocket
+if (window.htmx) {
+    htmx.on('htmx:wsMessage', function(event) {
+        try {
+            const data = JSON.parse(event.detail.message);
+            if (data.type === 'play') {
+                openProjector(data.data);
+            } else if (data.type === 'player_command') {
+                switch (data.command) {
+                    case 'stop':
+                        closeProjector();
+                        break;
+                    case 'pause':
+                        const media = getMediaElement();
+                        if (media) media.pause();
+                        break;
+                    case 'resume':
+                        const mediaR = getMediaElement();
+                        if (mediaR) mediaR.play();
+                        break;
+                }
+            }
+        } catch (e) {
+            // Not a projector message
+        }
+    });
+}
+</script>

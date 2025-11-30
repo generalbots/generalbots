@@ -12,6 +12,8 @@
 
         <!-- Styles -->
         <link rel="stylesheet" href="css/app.css" />
+        <link rel="stylesheet" href="css/apps-extended.css" />
+        <link rel="stylesheet" href="css/components.css" />
 
         <!-- External Libraries -->
         <script src="https://unpkg.com/htmx.org@1.9.10"></script>
@@ -68,9 +70,6 @@
                         viewBox="0 0 24 24"
                         fill="currentColor"
                         aria-hidden="true"
-                        hx-get="/api/apps"
-                        hx-target="#appsDropdown"
-                        hx-trigger="click"
                     >
                         <circle cx="5" cy="5" r="2"></circle>
                         <circle cx="12" cy="5" r="2"></circle>
@@ -93,6 +92,7 @@
                 >
                     <div class="apps-dropdown-title">Applications</div>
                     <div class="app-grid" role="group">
+                        <!-- Chat -->
                         <a
                             class="app-item active"
                             href="#chat"
@@ -103,9 +103,83 @@
                             hx-target="#main-content"
                             hx-push-url="true"
                         >
-                            <div class="app-icon" aria-hidden="true">💬</div>
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                                    />
+                                </svg>
+                            </div>
                             <span>Chat</span>
                         </a>
+
+                        <!-- Research</span> -->
+                        <a
+                            class="app-item"
+                            href="#research"
+                            data-section="research"
+                            role="menuitem"
+                            aria-label="Research application"
+                            hx-get="research/research.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="11" cy="11" r="8" />
+                                    <path d="m21 21-4.35-4.35" />
+                                    <path d="M11 8v6M8 11h6" />
+                                </svg>
+                            </div>
+                            <span>Research</span>
+                        </a>
+
+                        <!-- Paper -->
+                        <a
+                            class="app-item"
+                            href="#paper"
+                            data-section="paper"
+                            role="menuitem"
+                            aria-label="Paper - Notes & Writing"
+                            hx-get="paper/paper.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"
+                                    />
+                                    <polyline points="14 2 14 8 20 8" />
+                                    <line x1="16" y1="13" x2="8" y2="13" />
+                                    <line x1="16" y1="17" x2="8" y2="17" />
+                                </svg>
+                            </div>
+                            <span>Paper</span>
+                        </a>
+
+                        <!-- Drive -->
                         <a
                             class="app-item"
                             href="#drive"
@@ -116,9 +190,60 @@
                             hx-target="#main-content"
                             hx-push-url="true"
                         >
-                            <div class="app-icon" aria-hidden="true">📁</div>
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"
+                                    />
+                                </svg>
+                            </div>
                             <span>Drive</span>
                         </a>
+
+                        <!-- Calendar -->
+                        <a
+                            class="app-item"
+                            href="#calendar"
+                            data-section="calendar"
+                            role="menuitem"
+                            aria-label="Calendar application"
+                            hx-get="calendar/calendar.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <rect
+                                        x="3"
+                                        y="4"
+                                        width="18"
+                                        height="18"
+                                        rx="2"
+                                        ry="2"
+                                    />
+                                    <line x1="16" y1="2" x2="16" y2="6" />
+                                    <line x1="8" y1="2" x2="8" y2="6" />
+                                    <line x1="3" y1="10" x2="21" y2="10" />
+                                </svg>
+                            </div>
+                            <span>Calendar</span>
+                        </a>
+
+                        <!-- Tasks -->
                         <a
                             class="app-item"
                             href="#tasks"
@@ -129,9 +254,25 @@
                             hx-target="#main-content"
                             hx-push-url="true"
                         >
-                            <div class="app-icon" aria-hidden="true">✓</div>
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path d="M9 11l3 3L22 4" />
+                                    <path
+                                        d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"
+                                    />
+                                </svg>
+                            </div>
                             <span>Tasks</span>
                         </a>
+
+                        <!-- Mail -->
                         <a
                             class="app-item"
                             href="#mail"
@@ -142,8 +283,112 @@
                             hx-target="#main-content"
                             hx-push-url="true"
                         >
-                            <div class="app-icon" aria-hidden="true">✉</div>
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <path
+                                        d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"
+                                    />
+                                    <polyline points="22,6 12,13 2,6" />
+                                </svg>
+                            </div>
                             <span>Mail</span>
+                        </a>
+
+                        <!-- Meet -->
+                        <a
+                            class="app-item"
+                            href="#meet"
+                            data-section="meet"
+                            role="menuitem"
+                            aria-label="Meet application"
+                            hx-get="meet/meet.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <polygon points="23 7 16 12 23 17 23 7" />
+                                    <rect
+                                        x="1"
+                                        y="5"
+                                        width="15"
+                                        height="14"
+                                        rx="2"
+                                        ry="2"
+                                    />
+                                </svg>
+                            </div>
+                            <span>Meet</span>
+                        </a>
+
+                        <!-- Analytics -->
+                        <a
+                            class="app-item"
+                            href="#analytics"
+                            data-section="analytics"
+                            role="menuitem"
+                            aria-label="Analytics Dashboard"
+                            hx-get="analytics/analytics.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <line x1="18" y1="20" x2="18" y2="10" />
+                                    <line x1="12" y1="20" x2="12" y2="4" />
+                                    <line x1="6" y1="20" x2="6" y2="14" />
+                                </svg>
+                            </div>
+                            <span>Analytics</span>
+                        </a>
+
+                        <!-- Monitoring -->
+                        <a
+                            class="app-item"
+                            href="#monitoring"
+                            data-section="monitoring"
+                            role="menuitem"
+                            aria-label="System Monitoring"
+                            hx-get="monitoring/monitoring.html"
+                            hx-target="#main-content"
+                            hx-push-url="true"
+                        >
+                            <div class="app-icon" aria-hidden="true">
+                                <svg
+                                    width="20"
+                                    height="20"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                >
+                                    <circle cx="12" cy="12" r="10" />
+                                    <circle cx="12" cy="12" r="6" />
+                                    <circle cx="12" cy="12" r="2" />
+                                </svg>
+                            </div>
+                            <span>Monitoring</span>
                         </a>
                     </div>
                 </nav>
@@ -210,6 +455,70 @@
                         }
                     });
                 }
+
+                // Handle app item clicks - update active state
+                document.querySelectorAll(".app-item").forEach((item) => {
+                    item.addEventListener("click", function () {
+                        document
+                            .querySelectorAll(".app-item")
+                            .forEach((i) => i.classList.remove("active"));
+                        this.classList.add("active");
+                        appsDropdown.classList.remove("show");
+                        appsBtn.setAttribute("aria-expanded", "false");
+                    });
+                });
+
+                // Handle hash navigation
+                function handleHashChange() {
+                    const hash = window.location.hash.slice(1) || "chat";
+                    const appItem = document.querySelector(
+                        `[data-section="${hash}"]`,
+                    );
+                    if (appItem) {
+                        document
+                            .querySelectorAll(".app-item")
+                            .forEach((i) => i.classList.remove("active"));
+                        appItem.classList.add("active");
+
+                        // Trigger HTMX load if not already loaded
+                        const hxGet = appItem.getAttribute("hx-get");
+                        if (hxGet) {
+                            htmx.ajax("GET", hxGet, {
+                                target: "#main-content",
+                            });
+                        }
+                    }
+                }
+
+                // Load initial content based on hash or default to chat
+                window.addEventListener("hashchange", handleHashChange);
+
+                // Initial load
+                setTimeout(() => {
+                    handleHashChange();
+                }, 100);
+
+                // Keyboard shortcuts
+                document.addEventListener("keydown", (e) => {
+                    // Alt + number for quick app switching
+                    if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                        const num = parseInt(e.key);
+                        if (num >= 1 && num <= 9) {
+                            const items =
+                                document.querySelectorAll(".app-item");
+                            if (items[num - 1]) {
+                                items[num - 1].click();
+                                e.preventDefault();
+                            }
+                        }
+                    }
+
+                    // Alt + A to open apps menu
+                    if (e.altKey && e.key.toLowerCase() === "a") {
+                        appsBtn.click();
+                        e.preventDefault();
+                    }
+                });
             });
         </script>
     </body>

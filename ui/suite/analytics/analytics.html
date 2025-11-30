@@ -1,0 +1,1215 @@
+<div class="analytics-container" id="analytics-app">
+    <header class="analytics-header">
+        <div class="header-title">
+            <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                class="header-icon"
+            >
+                <path
+                    d="M3 3v18h18"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+                <path
+                    d="M7 16l4-4 4 4 5-6"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                />
+            </svg>
+            <h2>Analytics Dashboard</h2>
+        </div>
+        <div class="header-actions">
+            <select
+                id="timeRange"
+                class="time-selector"
+                onchange="updateTimeRange(this.value)"
+            >
+                <option value="1h">Last Hour</option>
+                <option value="6h">Last 6 Hours</option>
+                <option value="24h" selected>Last 24 Hours</option>
+                <option value="7d">Last 7 Days</option>
+                <option value="30d">Last 30 Days</option>
+            </select>
+            <button
+                class="btn-refresh"
+                onclick="refreshDashboard()"
+                title="Refresh Data"
+            >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path
+                        d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                    <path
+                        d="M21 3v5h-5"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    />
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <div class="analytics-layout">
+        <!-- Left Panel: Metrics Overview -->
+        <aside class="metrics-sidebar">
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/messages/count"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon messages">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Messages Today</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/sessions/active"
+                hx-trigger="load, every 10s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon sessions">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <circle
+                            cx="9"
+                            cy="7"
+                            r="4"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Active Sessions</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/response/avg"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon response">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <polygon
+                            points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Avg Response Time</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/llm/tokens"
+                hx-trigger="load, every 60s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon tokens">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M12 2a10 10 0 1 0 10 10H12V2z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <path
+                            d="M12 2a10 10 0 0 1 10 10"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="4"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">LLM Tokens Used</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/storage/usage"
+                hx-trigger="load, every 120s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon storage">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <ellipse
+                            cx="12"
+                            cy="5"
+                            rx="9"
+                            ry="3"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Storage Used</span>
+                </div>
+            </div>
+
+            <div
+                class="metric-card"
+                hx-get="/api/analytics/errors/count"
+                hx-trigger="load, every 30s"
+                hx-swap="innerHTML"
+            >
+                <div class="metric-icon errors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path
+                            d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                        />
+                        <line
+                            x1="12"
+                            y1="9"
+                            x2="12"
+                            y2="13"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                        <line
+                            x1="12"
+                            y1="17"
+                            x2="12.01"
+                            y2="17"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                </div>
+                <div class="metric-content">
+                    <span class="metric-value">--</span>
+                    <span class="metric-label">Errors Today</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="analytics-main">
+            <!-- Charts Row -->
+            <div class="charts-grid">
+                <!-- Messages Over Time Chart -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Messages Over Time</h3>
+                        <div class="chart-actions">
+                            <button
+                                class="chart-btn active"
+                                data-chart="messages"
+                                data-type="line"
+                            >
+                                Line
+                            </button>
+                            <button
+                                class="chart-btn"
+                                data-chart="messages"
+                                data-type="bar"
+                            >
+                                Bar
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="messagesChart"
+                        hx-get="/api/analytics/timeseries/messages"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Response Time Chart -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Response Time Distribution</h3>
+                        <div class="chart-actions">
+                            <button
+                                class="chart-btn active"
+                                data-chart="response"
+                                data-type="area"
+                            >
+                                Area
+                            </button>
+                            <button
+                                class="chart-btn"
+                                data-chart="response"
+                                data-type="line"
+                            >
+                                Line
+                            </button>
+                        </div>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="responseChart"
+                        hx-get="/api/analytics/timeseries/response_time"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Channel Distribution -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Channel Distribution</h3>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="channelChart"
+                        hx-get="/api/analytics/channels/distribution"
+                        hx-trigger="load, every 120s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bot Performance -->
+                <div class="chart-panel">
+                    <div class="chart-header">
+                        <h3>Bot Performance</h3>
+                    </div>
+                    <div
+                        class="chart-container"
+                        id="botChart"
+                        hx-get="/api/analytics/bots/performance"
+                        hx-trigger="load, every 60s"
+                        hx-swap="innerHTML"
+                    >
+                        <div class="chart-loading">
+                            <div class="spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- AI Analytics Chat Interface -->
+            <div class="analytics-chat-panel">
+                <div class="chat-header">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <circle
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="2"
+                        />
+                        <path
+                            d="M12 16v-4M12 8h.01"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            stroke-linecap="round"
+                        />
+                    </svg>
+                    <h3>AI Analytics Assistant</h3>
+                    <span class="chat-hint"
+                        >Ask questions about your metrics and data</span
+                    >
+                </div>
+
+                <div class="chat-messages" id="analyticsChatMessages">
+                    <div class="chat-message assistant">
+                        <div class="message-avatar">
+                            <svg
+                                width="16"
+                                height="16"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                            >
+                                <rect
+                                    x="3"
+                                    y="4"
+                                    width="18"
+                                    height="16"
+                                    rx="2"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                />
+                                <circle
+                                    cx="9"
+                                    cy="10"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <circle
+                                    cx="15"
+                                    cy="10"
+                                    r="2"
+                                    fill="currentColor"
+                                />
+                                <path
+                                    d="M9 15h6"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                />
+                            </svg>
+                        </div>
+                        <div class="message-content">
+                            <p>
+                                Hello! I can help you analyze your time-series
+                                data. Try asking:
+                            </p>
+                            <ul class="suggestion-list">
+                                <li
+                                    onclick="askAnalytics('What was the peak message volume today?')"
+                                >
+                                    What was the peak message volume today?
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Why did response times increase last hour</p>?')"
+                                >
+                                    Why did response times increase last hour?
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Compare this week vs last week traffic')"
+                                >
+                                    Compare this week vs last week traffic
+                                </li>
+                                <li
+                                    onclick="askAnalytics('Show me error patterns')"
+                                >
+                                    Show me error patterns
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chat-input-container">
+                    <input
+                        type="text"
+                        id="analyticsQuery"
+                        class="chat-input"
+                        placeholder="Ask about your analytics data..."
+                        onkeypress="if(event.key==='Enter') sendAnalyticsQuery()"
+                    />
+                    <button
+                        class="chat-send-btn"
+                        onclick="sendAnalyticsQuery()"
+                    >
+                        <svg
+                            width="20"
+                            height="20"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                        >
+                            <path
+                                d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+                                stroke="currentColor"
+                                stroke-width="2"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                            />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Panel: Recent Activity -->
+        <aside class="activity-sidebar">
+            <h3>Recent Activity</h3>
+            <div
+                class="activity-feed"
+                id="activityFeed"
+                hx-get="/api/analytics/activity/recent"
+                hx-trigger="load, every 15s"
+                hx-swap="innerHTML"
+            >
+                <div class="activity-loading">Loading activity...</div>
+            </div>
+
+            <h3 class="mt-4">Top Queries</h3>
+            <div
+                class="top-queries"
+                hx-get="/api/analytics/queries/top"
+                hx-trigger="load, every 60s"
+                hx-swap="innerHTML"
+            >
+                <div class="activity-loading">Loading queries...</div>
+            </div>
+        </aside>
+    </div>
+
+    <style>
+        .analytics-container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            background: var(--bg-primary, #f8fafc);
+        }
+
+        .analytics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 1.5rem;
+            background: var(--card-bg, #ffffff);
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .header-title h2 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .header-icon {
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+        }
+
+        .time-selector {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.5rem;
+            background: var(--card-bg, #ffffff);
+            color: var(--text-primary, #1e293b);
+            font-size: 0.875rem;
+            cursor: pointer;
+        }
+
+        .btn-refresh {
+            padding: 0.5rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.5rem;
+            background: var(--card-bg, #ffffff);
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-refresh:hover {
+            background: var(--primary-color, #3b82f6);
+            color: white;
+            border-color: var(--primary-color, #3b82f6);
+        }
+
+        .analytics-layout {
+            display: grid;
+            grid-template-columns: 200px 1fr 280px;
+            gap: 1rem;
+            padding: 1rem;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* Metrics Sidebar */
+        .metrics-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            overflow-y: auto;
+        }
+
+        .metric-card {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 1rem;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.75rem;
+            transition:
+                transform 0.2s,
+                box-shadow 0.2s;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .metric-icon {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 0.5rem;
+            background: var(--bg-secondary, #f1f5f9);
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .metric-icon.messages {
+            color: #3b82f6;
+            background: rgba(59, 130, 246, 0.1);
+        }
+        .metric-icon.sessions {
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.1);
+        }
+        .metric-icon.response {
+            color: #f59e0b;
+            background: rgba(245, 158, 11, 0.1);
+        }
+        .metric-icon.tokens {
+            color: #8b5cf6;
+            background: rgba(139, 92, 246, 0.1);
+        }
+        .metric-icon.storage {
+            color: #06b6d4;
+            background: rgba(6, 182, 212, 0.1);
+        }
+        .metric-icon.errors {
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.1);
+        }
+
+        .metric-content {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .metric-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .metric-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #64748b);
+        }
+
+        /* Main Content */
+        .analytics-main {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .chart-panel {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.75rem;
+            overflow: hidden;
+        }
+
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .chart-header h3 {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .chart-actions {
+            display: flex;
+            gap: 0.25rem;
+        }
+
+        .chart-btn {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.25rem;
+            background: transparent;
+            color: var(--text-secondary, #64748b);
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .chart-btn.active,
+        .chart-btn:hover {
+            background: var(--primary-color, #3b82f6);
+            color: white;
+            border-color: var(--primary-color, #3b82f6);
+        }
+
+        .chart-container {
+            height: 200px;
+            padding: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chart-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--text-secondary, #64748b);
+        }
+
+        .spinner {
+            width: 24px;
+            height: 24px;
+            border: 2px solid var(--border-color, #e2e8f0);
+            border-top-color: var(--primary-color, #3b82f6);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Analytics Chat Panel */
+        .analytics-chat-panel {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 300px;
+        }
+
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .chat-header h3 {
+            margin: 0;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .chat-hint {
+            margin-left: auto;
+            font-size: 0.75rem;
+            color: var(--text-secondary, #64748b);
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .chat-message {
+            display: flex;
+            gap: 0.75rem;
+            max-width: 85%;
+        }
+
+        .chat-message.assistant {
+            align-self: flex-start;
+        }
+
+        .chat-message.user {
+            align-self: flex-end;
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--bg-secondary, #f1f5f9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .message-content {
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            background: var(--bg-secondary, #f1f5f9);
+            color: var(--text-primary, #1e293b);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .message-content {
+            background: var(--primary-color, #3b82f6);
+            color: white;
+        }
+
+        .suggestion-list {
+            margin: 0.5rem 0 0 0;
+            padding: 0;
+            list-style: none;
+        }
+
+        .suggestion-list li {
+            padding: 0.5rem 0.75rem;
+            margin: 0.25rem 0;
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.8rem;
+        }
+
+        .suggestion-list li:hover {
+            background: var(--primary-color, #3b82f6);
+            color: white;
+            border-color: var(--primary-color, #3b82f6);
+        }
+
+        .chat-input-container {
+            display: flex;
+            gap: 0.5rem;
+            padding: 0.75rem;
+            border-top: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            background: var(--bg-secondary, #f8fafc);
+            color: var(--text-primary, #1e293b);
+        }
+
+        .chat-input:focus {
+            outline: none;
+            border-color: var(--primary-color, #3b82f6);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .chat-send-btn {
+            padding: 0.75rem;
+            border: none;
+            border-radius: 0.5rem;
+            background: var(--primary-color, #3b82f6);
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .chat-send-btn:hover {
+            background: var(--primary-hover, #2563eb);
+        }
+
+        /* Activity Sidebar */
+        .activity-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            overflow-y: auto;
+        }
+
+        .activity-sidebar h3 {
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary, #1e293b);
+            margin: 0 0 0.5rem 0;
+            padding: 0 0.5rem;
+        }
+
+        .mt-4 {
+            margin-top: 1rem;
+        }
+
+        .activity-feed,
+        .top-queries {
+            background: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 0.75rem;
+            padding: 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .activity-loading {
+            color: var(--text-secondary, #64748b);
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.5rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border-color, #e2e8f0);
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-icon {
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .activity-text {
+            flex: 1;
+            color: var(--text-primary, #1e293b);
+        }
+
+        .activity-time {
+            font-size: 0.7rem;
+            color: var(--text-secondary, #64748b);
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .analytics-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .metrics-sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .metric-card {
+                flex: 1;
+                min-width: 150px;
+            }
+
+            .activity-sidebar {
+                flex-direction: row;
+                flex-wrap: wrap;
+            }
+
+            .activity-sidebar h3 {
+                width: 100%;
+            }
+
+            .activity-feed,
+            .top-queries {
+                flex: 1;
+                min-width: 250px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .analytics-header {
+                flex-direction: column;
+                gap: 0.75rem;
+                align-items: flex-start;
+            }
+
+            .header-actions {
+                width: 100%;
+                justify-content: space-between;
+            }
+        }
+
+        /* Dark mode */
+        @media (prefers-color-scheme: dark) {
+            .analytics-container {
+                --bg-primary: #0f172a;
+                --bg-secondary: #1e293b;
+                --card-bg: #1e293b;
+                --border-color: #334155;
+                --text-primary: #f1f5f9;
+                --text-secondary: #94a3b8;
+            }
+        }
+    </style>
+
+    <script>
+        // Time range management
+        let currentTimeRange = "24h";
+
+        function updateTimeRange(range) {
+            currentTimeRange = range;
+            refreshDashboard();
+        }
+
+        function refreshDashboard() {
+            // Trigger all HTMX elements to refresh
+            document.querySelectorAll("[hx-get]").forEach((el) => {
+                htmx.trigger(el, "load");
+            });
+        }
+
+        // Analytics chat functionality
+        function askAnalytics(question) {
+            document.getElementById("analyticsQuery").value = question;
+            sendAnalyticsQuery();
+        }
+
+        async function sendAnalyticsQuery() {
+            const input = document.getElementById("analyticsQuery");
+            const query = input.value.trim();
+            if (!query) return;
+
+            const messagesContainer = document.getElementById(
+                "analyticsChatMessages",
+            );
+
+            // Add user message
+            const userMessage = document.createElement("div");
+            userMessage.className = "chat-message user";
+            userMessage.innerHTML = `
+                <div class="message-avatar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="12" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </div>
+                <div class="message-content">${escapeHtml(query)}</div>
+            `;
+            messagesContainer.appendChild(userMessage);
+
+            // Clear input
+            input.value = "";
+
+            // Scroll to bottom
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            // Add loading indicator
+            const loadingMessage = document.createElement("div");
+            loadingMessage.className = "chat-message assistant";
+            loadingMessage.id = "loading-message";
+            loadingMessage.innerHTML = `
+                <div class="message-avatar">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                        <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="9" cy="10" r="2" fill="currentColor"/>
+                        <circle cx="15" cy="10" r="2" fill="currentColor"/>
+                        <path d="M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <div class="message-content">
+                    <div class="spinner" style="width: 16px; height: 16px;"></div>
+                    Analyzing your data...
+                </div>
+            `;
+            messagesContainer.appendChild(loadingMessage);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+            try {
+                const response = await fetch("/api/analytics/query", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        query: query,
+                        timeRange: currentTimeRange,
+                    }),
+                });
+
+                const data = await response.json();
+
+                // Remove loading message
+                document.getElementById("loading-message")?.remove();
+
+                // Add assistant response
+                const assistantMessage = document.createElement("div");
+                assistantMessage.className = "chat-message assistant";
+                assistantMessage.innerHTML = `
+                    <div class="message-avatar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="9" cy="10" r="2" fill="currentColor"/>
+                            <circle cx="15" cy="10" r="2" fill="currentColor"/>
+                            <path d="M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="message-content">${formatAnalyticsResponse(data)}</div>
+                `;
+                messagesContainer.appendChild(assistantMessage);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            } catch (error) {
+                document.getElementById("loading-message")?.remove();
+
+                const errorMessage = document.createElement("div");
+                errorMessage.className = "chat-message assistant";
+                errorMessage.innerHTML = `
+                    <div class="message-avatar">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                            <rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/>
+                            <circle cx="9" cy="10" r="2" fill="currentColor"/>
+                            <circle cx="15" cy="10" r="2" fill="currentColor"/>
+                            <path d="M9 15h6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <div class="message-content">Sorry, I encountered an error analyzing your data. Please try again.</div>
+                `;
+                messagesContainer.appendChild(errorMessage);
+            }
+        }
+
+        function formatAnalyticsResponse(data) {
+            if (data.error) {
+                return `<p style="color: var(--text-secondary);">${escapeHtml(data.error)}</p>`;
+            }
+
+            let html = "";
+
+            if (data.answer) {
+                html += `<p>${escapeHtml(data.answer)}</p>`;
+            }
+
+            if (data.metrics && data.metrics.length > 0) {
+                html += '<div class="analytics-results">';
+                data.metrics.forEach((metric) => {
+                    html += `<div class="metric-result">
+                        <strong>${escapeHtml(metric.name)}:</strong> ${escapeHtml(metric.value)}
+                    </div>`;
+                });
+                html += "</div>";
+            }
+
+            if (data.insight) {
+                html += `<p class="insight"><em>${escapeHtml(data.insight)}</em></p>`;
+            }
+
+            return html || "<p>No data available for that query.</p>";
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement("div");
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Chart type switching
+        document.querySelectorAll(".chart-btn").forEach((btn) => {
+            btn.addEventListener("click", function () {
+                const chart = this.dataset.chart;
+                const type = this.dataset.type;
+
+                // Update active state
+                this.parentElement
+                    .querySelectorAll(".chart-btn")
+                    .forEach((b) => b.classList.remove("active"));
+                this.classList.add("active");
+
+                // Could trigger chart re-render here
+                console.log(`Switching ${chart} chart to ${type}`);
+            });
+        });
+
+        // Initialize
+        document.addEventListener("DOMContentLoaded", () => {
+            console.log("Analytics Dashboard initialized");
+        });
+    </script>
+</div>
