@@ -1,0 +1,1716 @@
+<!-- Paper - AI Writing & Notes -->
+<div class="paper-container" id="paper-app">
+    <!-- Sidebar - Notes List -->
+    <aside class="paper-sidebar" id="paper-sidebar">
+        <div class="sidebar-header">
+            <h2>Paper</h2>
+            <button class="btn-icon" title="New Note"
+                    hx-post="/api/paper/new"
+                    hx-target="#paper-list"
+                    hx-swap="afterbegin">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+
+        <!-- Search Notes -->
+        <div class="sidebar-search">
+            <input type="text"
+                   placeholder="Search notes..."
+                   name="q"
+                   hx-get="/api/paper/search"
+                   hx-trigger="keyup changed delay:300ms"
+                   hx-target="#paper-list">
+            <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+
+        <!-- Notes List -->
+        <div class="paper-list" id="paper-list"
+             hx-get="/api/paper/list"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <!-- Notes loaded here -->
+        </div>
+
+        <!-- AI Templates -->
+        <div class="sidebar-section">
+            <h3>Quick Start</h3>
+            <div class="template-grid">
+                <button class="template-btn" hx-post="/api/paper/template/blank" hx-target="#editor-content">
+                    <span class="template-icon">📄</span>
+                    <span>Blank</span>
+                </button>
+                <button class="template-btn" hx-post="/api/paper/template/meeting" hx-target="#editor-content">
+                    <span class="template-icon">📋</span>
+                    <span>Meeting</span>
+                </button>
+                <button class="template-btn" hx-post="/api/paper/template/todo" hx-target="#editor-content">
+                    <span class="template-icon">✓</span>
+                    <span>To-Do</span>
+                </button>
+                <button class="template-btn" hx-post="/api/paper/template/research" hx-target="#editor-content">
+                    <span class="template-icon">🔬</span>
+                    <span>Research</span>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Editor Area -->
+    <main class="paper-main">
+        <!-- Editor Toolbar -->
+        <div class="editor-toolbar" id="editor-toolbar">
+            <!-- Left: Document Actions -->
+            <div class="toolbar-left">
+                <button class="btn-icon" id="toggle-sidebar" title="Toggle Sidebar">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="9" y1="3" x2="9" y2="21"></line>
+                    </svg>
+                </button>
+                <span class="toolbar-divider"></span>
+                <button class="btn-icon" data-cmd="undo" title="Undo (Ctrl+Z)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 7v6h6"></path>
+                        <path d="M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13"></path>
+                    </svg>
+                </button>
+                <button class="btn-icon" data-cmd="redo" title="Redo (Ctrl+Y)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 7v6h-6"></path>
+                        <path d="M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Center: Formatting -->
+            <div class="toolbar-center">
+                <div class="toolbar-group">
+                    <select class="toolbar-select" id="heading-select" title="Heading Style">
+                        <option value="p">Paragraph</option>
+                        <option value="h1">Heading 1</option>
+                        <option value="h2">Heading 2</option>
+                        <option value="h3">Heading 3</option>
+                    </select>
+                </div>
+
+                <span class="toolbar-divider"></span>
+
+                <div class="toolbar-group">
+                    <button class="btn-icon" data-cmd="bold" title="Bold (Ctrl+B)">
+                        <strong>B</strong>
+                    </button>
+                    <button class="btn-icon" data-cmd="italic" title="Italic (Ctrl+I)">
+                        <em>I</em>
+                    </button>
+                    <button class="btn-icon" data-cmd="underline" title="Underline (Ctrl+U)">
+                        <u>U</u>
+                    </button>
+                    <button class="btn-icon" data-cmd="strikethrough" title="Strikethrough">
+                        <s>S</s>
+                    </button>
+                </div>
+
+                <span class="toolbar-divider"></span>
+
+                <div class="toolbar-group">
+                    <button class="btn-icon" data-cmd="highlight" title="Highlight">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M15.243 4.515l-6.738 6.737-.707 2.121-1.04 1.041 2.828 2.829 1.04-1.041 2.122-.707 6.737-6.738-4.242-4.242zm6.364 3.535a1 1 0 01-1.414 0l-4.243-4.243a1 1 0 010-1.414l.707-.707a1 1 0 011.414 0l4.243 4.243a1 1 0 010 1.414l-.707.707zM4.283 16.89l2.828 2.829-1.414 1.414-4.243-1.414 2.829-2.829z"></path>
+                        </svg>
+                    </button>
+                    <input type="color" class="color-picker" id="text-color" value="#000000" title="Text Color">
+                </div>
+
+                <span class="toolbar-divider"></span>
+
+                <div class="toolbar-group">
+                    <button class="btn-icon" data-cmd="alignLeft" title="Align Left">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="17" y1="10" x2="3" y2="10"></line>
+                            <line x1="21" y1="6" x2="3" y2="6"></line>
+                            <line x1="21" y1="14" x2="3" y2="14"></line>
+                            <line x1="17" y1="18" x2="3" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="alignCenter" title="Align Center">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="10" x2="6" y2="10"></line>
+                            <line x1="21" y1="6" x2="3" y2="6"></line>
+                            <line x1="21" y1="14" x2="3" y2="14"></line>
+                            <line x1="18" y1="18" x2="6" y2="18"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="alignRight" title="Align Right">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="21" y1="10" x2="7" y2="10"></line>
+                            <line x1="21" y1="6" x2="3" y2="6"></line>
+                            <line x1="21" y1="14" x2="3" y2="14"></line>
+                            <line x1="21" y1="18" x2="7" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <span class="toolbar-divider"></span>
+
+                <div class="toolbar-group">
+                    <button class="btn-icon" data-cmd="bulletList" title="Bullet List">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <circle cx="4" cy="6" r="1" fill="currentColor"></circle>
+                            <circle cx="4" cy="12" r="1" fill="currentColor"></circle>
+                            <circle cx="4" cy="18" r="1" fill="currentColor"></circle>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="numberedList" title="Numbered List">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="10" y1="6" x2="21" y2="6"></line>
+                            <line x1="10" y1="12" x2="21" y2="12"></line>
+                            <line x1="10" y1="18" x2="21" y2="18"></line>
+                            <text x="3" y="8" font-size="8" fill="currentColor">1</text>
+                            <text x="3" y="14" font-size="8" fill="currentColor">2</text>
+                            <text x="3" y="20" font-size="8" fill="currentColor">3</text>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="todoList" title="To-Do List">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="5" width="6" height="6" rx="1"></rect>
+                            <line x1="12" y1="8" x2="21" y2="8"></line>
+                            <path d="M4 14l2 2 4-4"></path>
+                            <line x1="12" y1="16" x2="21" y2="16"></line>
+                        </svg>
+                    </button>
+                </div>
+
+                <span class="toolbar-divider"></span>
+
+                <div class="toolbar-group">
+                    <button class="btn-icon" data-cmd="link" title="Insert Link">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"></path>
+                            <path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"></path>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="image" title="Insert Image">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                            <polyline points="21 15 16 10 5 21"></polyline>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="table" title="Insert Table">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="3" y1="9" x2="21" y2="9"></line>
+                            <line x1="3" y1="15" x2="21" y2="15"></line>
+                            <line x1="9" y1="3" x2="9" y2="21"></line>
+                            <line x1="15" y1="3" x2="15" y2="21"></line>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="code" title="Code Block">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="16 18 22 12 16 6"></polyline>
+                            <polyline points="8 6 2 12 8 18"></polyline>
+                        </svg>
+                    </button>
+                    <button class="btn-icon" data-cmd="quote" title="Quote">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M6 17h3l2-4V7H5v6h3zm8 0h3l2-4V7h-6v6h3z"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Right: AI Actions -->
+            <div class="toolbar-right">
+                <button class="btn-ai" id="ai-assist-btn" title="AI Assistant">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H5a2 2 0 01-2-2v-1H2a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2z"></path>
+                        <circle cx="9" cy="13" r="1"></circle>
+                        <circle cx="15" cy="13" r="1"></circle>
+                        <path d="M9 17h6"></path>
+                    </svg>
+                    <span>AI</span>
+                </button>
+                <button class="btn-icon" hx-post="/api/paper/save" hx-include="#editor-content" title="Save">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"></path>
+                        <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                        <polyline points="7 3 7 8 15 8"></polyline>
+                    </svg>
+                </button>
+                <button class="btn-icon" id="export-btn" title="Export">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"></path>
+                        <polyline points="7 10 12 15 17 10"></polyline>
+                        <line x1="12" y1="15" x2="12" y2="3"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Document Canvas -->
+        <div class="editor-canvas">
+            <div class="paper-page">
+                <!-- Title -->
+                <div class="paper-title"
+                     contenteditable="true"
+                     data-placeholder="Untitled"
+                     id="paper-title"></div>
+
+                <!-- Editor Content -->
+                <div class="editor-content"
+                     id="editor-content"
+                     contenteditable="true"
+                     data-placeholder="Start writing, or type / for commands..."
+                     hx-post="/api/paper/autosave"
+                     hx-trigger="keyup changed delay:2000ms"
+                     hx-swap="none"></div>
+            </div>
+        </div>
+
+        <!-- Slash Command Menu -->
+        <div class="slash-menu hidden" id="slash-menu">
+            <div class="slash-menu-header">Commands</div>
+            <div class="slash-menu-items">
+                <button class="slash-item" data-cmd="h1">
+                    <span class="slash-icon">H1</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Heading 1</span>
+                        <span class="slash-desc">Large section heading</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="h2">
+                    <span class="slash-icon">H2</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Heading 2</span>
+                        <span class="slash-desc">Medium section heading</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="h3">
+                    <span class="slash-icon">H3</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Heading 3</span>
+                        <span class="slash-desc">Small section heading</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="bullet">
+                    <span class="slash-icon">•</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Bullet List</span>
+                        <span class="slash-desc">Create a bullet list</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="number">
+                    <span class="slash-icon">1.</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Numbered List</span>
+                        <span class="slash-desc">Create a numbered list</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="todo">
+                    <span class="slash-icon">☑</span>
+                    <div class="slash-text">
+                        <span class="slash-label">To-Do</span>
+                        <span class="slash-desc">Track tasks with checkboxes</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="quote">
+                    <span class="slash-icon">"</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Quote</span>
+                        <span class="slash-desc">Capture a quote</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="code">
+                    <span class="slash-icon">&lt;/&gt;</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Code Block</span>
+                        <span class="slash-desc">Display code with syntax</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="divider">
+                    <span class="slash-icon">—</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Divider</span>
+                        <span class="slash-desc">Visual section break</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="callout">
+                    <span class="slash-icon">💡</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Callout</span>
+                        <span class="slash-desc">Highlight important info</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="table">
+                    <span class="slash-icon">▦</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Table</span>
+                        <span class="slash-desc">Add a table</span>
+                    </div>
+                </button>
+                <button class="slash-item" data-cmd="image">
+                    <span class="slash-icon">🖼</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Image</span>
+                        <span class="slash-desc">Upload or embed image</span>
+                    </div>
+                </button>
+                <div class="slash-menu-divider"></div>
+                <div class="slash-menu-header">AI Actions</div>
+                <button class="slash-item ai-item" data-cmd="ai-write">
+                    <span class="slash-icon">✨</span>
+                    <div class="slash-text">
+                        <span class="slash-label">AI Write</span>
+                        <span class="slash-desc">Generate content from prompt</span>
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-summarize">
+                    <span class="slash-icon">📝</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Summarize</span>
+                        <span class="slash-desc">Condense selected text</span>
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-expand">
+                    <span class="slash-icon">📖</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Expand</span>
+                        <span class="slash-desc">Add more detail</span>
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-improve">
+                    <span class="slash-icon">✏️</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Improve Writing</span>
+                        <span class="slash-desc">Fix grammar & clarity</span>
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-translate">
+                    <span class="slash-icon">🌐</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Translate</span>
+                        <span class="slash-desc">Convert to another language</span>
+                    </div>
+                </button>
+                <button class="slash-item ai-item" data-cmd="ai-extract">
+                    <span class="slash-icon">📋</span>
+                    <div class="slash-text">
+                        <span class="slash-label">Extract Actions</span>
+                        <span class="slash-desc">Pull tasks from text</span>
+                    </div>
+                </button>
+            </div>
+        </div>
+
+        <!-- AI Assistant Panel -->
+        <div class="ai-panel hidden" id="ai-panel">
+            <div class="ai-panel-header">
+                <h3>AI Assistant</h3>
+                <button class="btn-icon" id="close-ai-panel">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="ai-panel-content">
+                <!-- Quick Actions -->
+                <div class="ai-quick-actions">
+                    <button class="ai-action-btn" hx-post="/api/paper/ai/summarize" hx-include="[name='selected-text']">
+                        <span>📝</span> Summarize
+                    </button>
+                    <button class="ai-action-btn" hx-post="/api/paper/ai/expand" hx-include="[name='selected-text']">
+                        <span>📖</span> Expand
+                    </button>
+                    <button class="ai-action-btn" hx-post="/api/paper/ai/improve" hx-include="[name='selected-text']">
+                        <span>✏️</span> Improve
+                    </button>
+                    <button class="ai-action-btn" hx-post="/api/paper/ai/simplify" hx-include="[name='selected-text']">
+                        <span>🎯</span> Simplify
+                    </button>
+                </div>
+
+                <!-- Tone Selector -->
+                <div class="ai-tone-section">
+                    <label>Change Tone</label></span>
+                    <div class="tone-buttons">
+                        <button class="tone-btn" data-tone="professional">Professional</button>
+                        <button class="tone-btn" data-tone="casual">Casual</button>
+                        <button class="tone-btn" data-tone="friendly">Friendly</button>
+                        <button class="tone-btn" data-tone="formal">Formal</button>
+                    </div>
+                </div>
+
+                <!-- Translation -->
+                <div class="ai-translate-section">
+                    <label>Translate to</label>
+                    <select id="translate-lang" class="ai-select">
+                        <option value="en">English</option>
+                        <option value="pt">Portuguese</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option></label>
+                        <option value="de">German</option>
+                        <option value="zh">Chinese</option>
+                        <option value="ja">Japanese</option>
+                    </select>
+                    <button class="ai-action-btn" hx-post="/api/paper/ai/translate" hx-include="#translate-lang, [name='selected-text']">
+                        Translate
+                    </button>
+                </div>
+
+                <!-- Custom Prompt -->
+                <div class="ai-custom-section">
+                    <label>Custom</label> AI Command</label>
+                    <textarea id="ai-custom-prompt" placeholder="Tell AI what to do with selected text..."></textarea>
+                    <button class="btn-primary" hx-post="/api/paper/ai/custom" hx-include="#ai-custom-prompt, [name='selected-text']">
+                        Run Command
+                    </button>
+                </div>
+
+                <!-- Hidden field for selected text -->
+                <input type="hidden" name="selected-text" id="selected-text-input">
+            </div>
+
+            <!-- AI Response -->
+            <div class="ai-response hidden" id="ai-response">
+                <div class="ai-response-header">
+                    <span>AI Response</span>
+                    <div class="ai-response-actions">
+                        <button class="btn-icon" id="copy-ai-response" title="Copy">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2</span> 2 0 012 2v1"></path>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" id="insert-ai-response" title="Insert">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"></line>
+                                <polyline points="19 12 12 19 5 12"></polyline>
+                            </svg>
+                        </button>
+                        <button class="btn-icon" id="replace-ai-response" title="Replace Selection">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 1l4 4-4 4"></path>
+                                <path d="M3 11V9a4 4 0 014-4h14"></path>
+                                <path d="M7 23l-4-4 4-4"></path>
+                                <path d="M21 13v2a4 4 0 01-4 4H3"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="ai-response-content" id="ai-response-content">
+                    <!-- AI response loads here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="paper-status-bar">
+            <div class="status-left">
+                <span class="status-item" id="word-count">0 words</span>
+                <span class="status-item" id="char-count">0 characters</span>
+            </div>
+            <div class="status-center">
+                <span class="status-item save-status" id="save-status">Saved</span>
+            </div>
+            <div class="status-right">
+                <span class="status-item" id="last-edited">Last edited: Just now</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Export Modal -->
+    <div class="modal hidden" id="export-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Export Document</h3>
+                <button class="btn-icon close-modal">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="export-options">
+                    <button class="export-option" hx-get="/api/paper/export/pdf" hx-swap="none">
+                        <span class="export-icon">📄</span>
+                        <span class="export-label">PDF</span>
+                    </button>
+                    <button class="export-option" hx-get="/api/paper/export/docx" hx-swap="none">
+                        <span class="export-icon">📝</span>
+                        <span class="export-label">Word (.docx)</span>
+                    </button>
+                    <button class="export-option" hx-get="/api/paper/export/md" hx-swap="none">
+                        <span class="export-icon">📑</span>
+                        <span class="export-label">Markdown</span>
+                    </button>
+                    <button class="export-option" hx-get="/api/paper/export/html" hx-swap="none">
+                        <span class="export-icon">🌐</span>
+                        <span class="export-label">HTML</span>
+                    </button>
+                    <button class="export-option" hx-get="/api/paper/export/txt" hx-swap="none">
+                        <span class="export-icon">📋</span>
+                        <span class="export-label">Plain Text</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Paper Container */
+.paper-container {
+    display: flex;
+    height: calc(100vh - 60px);
+    background: var(--background);
+    color: var(--foreground);
+}
+
+/* Sidebar */
+.paper-sidebar {
+    width: 280px;
+    border-right: 1px solid var(--border);
+    background: var(--card);
+    display: flex;
+    flex-direction: column;
+    transition: width 0.2s ease;
+}
+
+.paper-sidebar.collapsed {
+    width: 0;
+    overflow: hidden;
+}
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h2 {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.sidebar-search {
+    padding: 12px 16px;
+    position: relative;
+}
+
+.sidebar-search input {
+    width: 100%;
+    padding: 8px 12px 8px 36px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 14px;
+}
+
+.sidebar-search input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.sidebar-search .search-icon {
+    position: absolute;
+    left: 28px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--muted-foreground);
+}
+
+.paper-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+}
+
+.sidebar-section {
+    padding: 16px;
+    border-top: 1px solid var(--border);
+}
+
+.sidebar-section h3 {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    margin: 0 0 12px 0;
+}
+
+.template-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.template-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 12px 8px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.template-btn:hover {
+    background: var(--accent);
+    border-color: var(--primary);
+}
+
+.template-icon {
+    font-size: 20px;
+}
+
+/* Main Editor */
+.paper-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+/* Toolbar */
+.editor-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    border-bottom: 1px solid var(--border);
+    background: var(--card);
+    gap: 16px;
+}
+
+.toolbar-left,
+.toolbar-center,
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.toolbar-divider {
+    width: 1px;
+    height: 24px;
+    background: var(--border);
+    margin: 0 8px;
+}
+
+.toolbar-select {
+    padding: 4px 8px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.btn-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.btn-icon:hover {
+    background: var(--accent);
+}
+
+.btn-icon.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+}
+
+.btn-ai {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 6px;
+    background: linear-gradient(135deg, var(--primary), var(--chart-2));
+    color: white;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-ai:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.color-picker {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+/* Editor Canvas */
+.editor-canvas {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px;
+    display: flex;
+    justify-content: center;
+    background: var(--muted);
+}
+
+.paper-page {
+    width: 100%;
+    max-width: 800px;
+    min-height: calc(100vh - 200px);
+    padding: 60px 80px;
+    background: var(--card);
+    border-radius: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.paper-title {
+    font-size: 36px;
+    font-weight: 700;
+    margin-bottom: 24px;
+    outline: none;
+    border: none;
+}
+
+.paper-title:empty:before {
+    content: attr(data-placeholder);
+    color: var(--muted-foreground);
+}
+
+.editor-content {
+    font-size: 16px;
+    line-height: 1.7;
+    outline: none;
+    min-height: 400px;
+}
+
+.editor-content:empty:before {
+    content: attr(data-placeholder);
+    color: var(--muted-foreground);
+}
+
+.editor-content h1 { font-size: 32px; font-weight: 700; margin: 24px 0 16px; }
+.editor-content h2 { font-size: 24px; font-weight: 600; margin: 20px 0 12px; }
+.editor-content h3 { font-size: 20px; font-weight: 600; margin: 16px 0 8px; }
+.editor-content p { margin: 12px 0; }
+.editor-content ul, .editor-content ol { padding-left: 24px; margin: 12px 0; }
+.editor-content li { margin: 4px 0; }
+.editor-content blockquote {
+    border-left: 4px solid var(--primary);
+    padding-left: 16px;
+    margin: 16px 0;
+    color: var(--muted-foreground);
+    font-style: italic;
+}
+.editor-content code {
+    background: var(--muted);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 14px;
+}
+.editor-content pre {
+    background: var(--muted);
+    padding: 16px;
+    border-radius: 8px;
+    overflow-x: auto;
+}
+.editor-content mark {
+    background: rgba(255, 255, 0, 0.3);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+.editor-content a {
+    color: var(--primary);
+    text-decoration: underline;
+}
+.editor-content hr {
+    border: none;
+    border-top: 2px solid var(--border);
+    margin: 24px 0;
+}
+.editor-content .callout {
+    background: var(--accent);
+    border-left: 4px solid var(--primary);
+    padding: 16px;
+    border-radius: 4px;
+    margin: 16px 0;
+}
+.editor-content .todo-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+.editor-content .todo-checkbox {
+    margin-top: 4px;
+}
+
+/* Slash Menu */
+.slash-menu {
+    position: absolute;
+    width: 320px;
+    max-height: 400px;
+    overflow-y: auto;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+}
+
+.slash-menu.hidden {
+    display: none;
+}
+
+.slash-menu-header {
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--muted-foreground);
+    background: var(--muted);
+}
+
+.slash-menu-items {
+    padding: 4px;
+}
+
+.slash-menu-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 4px 0;
+}
+
+.slash-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--foreground);
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.slash-item:hover {
+    background: var(--accent);
+}
+
+.slash-item.ai-item {
+    background: linear-gradient(90deg, transparent, rgba(var(--primary-rgb), 0.05));
+}
+
+.slash-item.ai-item:hover {
+    background: linear-gradient(90deg, var(--accent), rgba(var(--primary-rgb), 0.1));
+}
+
+.slash-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 4px;
+    background: var(--muted);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.slash-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.slash-label {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.slash-desc {
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+/* AI Panel */
+.ai-panel {
+    position: absolute;
+    right: 0;
+    top: 53px;
+    bottom: 32px;
+    width: 360px;
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 50;
+    transform: translateX(0);
+    transition: transform 0.2s ease;
+}
+
+.ai-panel.hidden {
+    transform: translateX(100%);
+}
+
+.ai-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+}
+
+.ai-panel-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ai-panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.ai-quick-actions {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    margin-bottom: 20px;
+}
+
+.ai-action-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.ai-action-btn:hover {
+    background: var(--accent);
+    border-color: var(--primary);
+}
+
+.ai-tone-section,
+.ai-translate-section,
+.ai-custom-section {
+    margin-bottom: 20px;
+}
+
+.ai-tone-section label,
+.ai-translate-section label,
+.ai-custom-section label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+    margin-bottom: 8px;
+}
+
+.tone-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tone-btn {
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.tone-btn:hover,
+.tone-btn.active {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border-color: var(--primary);
+}
+
+.ai-select {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 14px;
+    margin-bottom: 8px;
+}
+
+.ai-custom-section textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--background);
+    color: var(--foreground);
+    font-size: 14px;
+    resize: vertical;
+    min-height: 80px;
+    margin-bottom: 8px;
+}
+
+.btn-primary {
+    width: 100%;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 6px;
+    background: var(--primary);
+    color: var(--primary-foreground);
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s;
+}
+
+.btn-primary:hover {
+    opacity: 0.9;
+}
+
+.ai-response {
+    border-top: 1px solid var(--border);
+    padding: 16px;
+    background: var(--muted);
+}
+
+.ai-response.hidden {
+    display: none;
+}
+
+.ai-response-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.ai-response-header span {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted-foreground);
+}
+
+.ai-response-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.ai-response-content {
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 12px;
+    background: var(--card);
+    border-radius: 6px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+/* Status Bar */
+.paper-status-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 16px;
+    border-top: 1px solid var(--border);
+    background: var(--card);
+    font-size: 12px;
+    color: var(--muted-foreground);
+}
+
+.status-left,
+.status-center,
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.save-status.saving {
+    color: var(--chart-4);
+}
+
+.save-status.saved {
+    color: var(--chart-2);
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+}
+
+.modal.hidden {
+    display: none;
+}
+
+.modal-content {
+    width: 90%;
+    max-width: 480px;
+    background: var(--card);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+}
+
+.modal-body {
+    padding: 20px;
+}
+
+.export-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.export-option {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--background);
+    color: var(--foreground);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.export-option:hover {
+    background: var(--accent);
+    border-color: var(--primary);
+}
+
+.export-icon {
+    font-size: 28px;
+}
+
+.export-label {
+    font-size: 13px;
+    font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .paper-sidebar {
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        z-index: 60;
+        transform: translateX(-100%);
+    }
+
+    .paper-sidebar.open {
+        transform: translateX(0);
+    }
+
+    .editor-canvas {
+        padding: 20px;
+    }
+
+    .paper-page {
+        padding: 30px 20px;
+    }
+
+    .ai-panel {
+        width: 100%;
+    }
+
+    .toolbar-center {
+        display: none;
+    }
+}
+</style>
+
+<script>
+(function() {
+    const editor = document.getElementById('editor-content');
+    const title = document.getElementById('paper-title');
+    const slashMenu = document.getElementById('slash-menu');
+    const aiPanel = document.getElementById('ai-panel');
+    const sidebar = document.getElementById('paper-sidebar');
+
+    // Slash command handling
+    let slashPosition = null;
+
+    editor.addEventListener('input', function(e) {
+        updateWordCount();
+
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const text = range.startContainer.textContent || '';
+        const cursorPos = range.startOffset;
+
+        // Check for slash command
+        if (text[cursorPos - 1] === '/') {
+            showSlashMenu(range);
+        } else if (slashMenu && !slashMenu.classList.contains('hidden')) {
+            // Filter slash menu based on input after /
+            const slashIndex = text.lastIndexOf('/');
+            if (slashIndex >= 0 && cursorPos > slashIndex) {
+                const filter = text.substring(slashIndex + 1, cursorPos).toLowerCase();
+                filterSlashMenu(filter);
+            }
+        }
+    });
+
+    editor.addEventListener('keydown', function(e) {
+        // Handle slash menu navigation
+        if (!slashMenu.classList.contains('hidden')) {
+            if (e.key === 'Escape') {
+                hideSlashMenu();
+                e.preventDefault();
+            } else if (e.key === 'Enter') {
+                const selected = slashMenu.querySelector('.slash-item.selected') ||
+                                 slashMenu.querySelector('.slash-item');
+                if (selected) {
+                    executeSlashCommand(selected.dataset.cmd);
+                    e.preventDefault();
+                }
+            } else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+                navigateSlashMenu(e.key === 'ArrowDown' ? 1 : -1);
+                e.preventDefault();
+            }
+        }
+
+        // Keyboard shortcuts
+        if (e.ctrlKey || e.metaKey) {
+            switch(e.key.toLowerCase()) {
+                case 'b':
+                    e.preventDefault();
+                    document.execCommand('bold');
+                    break;
+                case 'i':
+                    e.preventDefault();
+                    document.execCommand('italic');
+                    break;
+                case 'u':
+                    e.preventDefault();
+                    document.execCommand('underline');
+                    break;
+                case 's':
+                    e.preventDefault();
+                    saveDocument();
+                    break;
+            }
+        }
+    });
+
+    function showSlashMenu(range) {
+        const rect = range.getBoundingClientRect();
+        const editorRect = editor.getBoundingClientRect();
+
+        slashMenu.style.top = (rect.bottom - editorRect.top + editor.scrollTop + 8) + 'px';
+        slashMenu.style.left = (rect.left - editorRect.left) + 'px';
+        slashMenu.classList.remove('hidden');
+        slashPosition = range.startOffset;
+    }
+
+    function hideSlashMenu() {
+        slashMenu.classList.add('hidden');
+        slashPosition = null;
+    }
+
+    function filterSlashMenu(filter) {
+        const items = slashMenu.querySelectorAll('.slash-item');
+        let firstVisible = null;
+
+        items.forEach(item => {
+            const label = item.querySelector('.slash-label').textContent.toLowerCase();
+            const matches = label.includes(filter);
+            item.style.display = matches ? 'flex' : 'none';
+            if (matches && !firstVisible) firstVisible = item;
+        });
+
+        // Select first visible
+        items.forEach(item => item.classList.remove('selected'));
+        if (firstVisible) firstVisible.classList.add('selected');
+    }
+
+    function navigateSlashMenu(direction) {
+        const items = Array.from(slashMenu.querySelectorAll('.slash-item'))
+                          .filter(i => i.style.display !== 'none');
+        const current = items.findIndex(i => i.classList.contains('selected'));
+
+        items.forEach(i => i.classList.remove('selected'));
+
+        let next = current + direction;
+        if (next < 0) next = items.length - 1;
+        if (next >= items.length) next = 0;
+
+        items[next]?.classList.add('selected');
+        items[next]?.scrollIntoView({ block: 'nearest' });
+    }
+
+    function executeSlashCommand(cmd) {
+        hideSlashMenu();
+
+        // Remove the slash character
+        const selection = window.getSelection();
+        const range = selection.getRangeAt(0);
+        const text = range.startContainer.textContent;
+        const slashIndex = text.lastIndexOf('/');
+
+        if (slashIndex >= 0) {
+            range.startContainer.textContent = text.substring(0, slashIndex) + text.substring(range.startOffset);
+            range.setStart(range.startContainer, slashIndex);
+            range.collapse(true);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        }
+
+        // Execute command
+        switch(cmd) {
+            case 'h1':
+                document.execCommand('formatBlock', false, 'h1');
+                break;
+            case 'h2':
+                document.execCommand('formatBlock', false, 'h2');
+                break;
+            case 'h3':
+                document.execCommand('formatBlock', false, 'h3');
+                break;
+            case 'bullet':
+                document.execCommand('insertUnorderedList');
+                break;
+            case 'number':
+                document.execCommand('insertOrderedList');
+                break;
+            case 'todo':
+                insertTodo();
+                break;
+            case 'quote':
+                document.execCommand('formatBlock', false, 'blockquote');
+                break;
+            case 'code':
+                document.execCommand('formatBlock', false, 'pre');
+                break;
+            case 'divider':
+                document.execCommand('insertHTML', false, '<hr>');
+                break;
+            case 'callout':
+                document.execCommand('insertHTML', false, '<div class="callout">💡 </div>');
+                break;
+            case 'table':
+                insertTable();
+                break;
+            case 'image':
+                insertImage();
+                break;
+            case 'ai-write':
+            case 'ai-summarize':
+            case 'ai-expand':
+            case 'ai-improve':
+            case 'ai-translate':
+            case 'ai-extract':
+                openAIPanel(cmd);
+                break;
+        }
+    }
+
+    function insertTodo() {
+        const html = '<div class="todo-item"><input type="checkbox" class="todo-checkbox"><span></span></div>';
+        document.execCommand('insertHTML', false, html);
+    }
+
+    function insertTable() {
+        const html = `
+            <table style="width: 100%; border-collapse: collapse;">
+                <tr>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                </tr>
+                <tr>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                    <td style="border: 1px solid var(--border); padding: 8px;"></td>
+                </tr>
+            </table>
+        `;
+        document.execCommand('insertHTML', false, html);
+    }
+
+    function insertImage() {
+        const url = prompt('Enter image URL:');
+        if (url) {
+            document.execCommand('insertHTML', false, `<img src="${url}" style="max-width: 100%;">`);
+        }
+    }
+
+    function openAIPanel(action) {
+        const selectedText = window.getSelection().toString();
+        document.getElementById('selected-text-input').value = selectedText;
+        aiPanel.classList.remove('hidden');
+    }
+
+    function updateWordCount() {
+        const text = editor.innerText || '';
+        const words = text.trim().split(/\s+/).filter(w => w.length > 0).length;
+        const chars = text.length;
+
+        document.getElementById('word-count').textContent = words + ' words';
+        document.getElementById('char-count').textContent = chars + ' characters';
+    }
+
+    function saveDocument() {
+        const status = document.getElementById('save-status');
+        status.textContent = 'Saving...';
+        status.className = 'status-item save-status saving';
+
+        htmx.ajax('POST', '/api/paper/save', {
+            target: 'none',
+            values: {
+                title: title.innerText,
+                content: editor.innerHTML
+            }
+        }).then(() => {
+            status.textContent = 'Saved';
+            status.className = 'status-item save-status saved';
+        });
+    }
+
+    // Toolbar commands
+    document.querySelectorAll('[data-cmd]').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const cmd = this.dataset.cmd;
+            switch(cmd) {
+                case 'bold':
+                    document.execCommand('bold');
+                    break;
+                case 'italic':
+                    document.execCommand('italic');
+                    break;
+                case 'underline':
+                    document.execCommand('underline');
+                    break;
+                case 'strikethrough':
+                    document.execCommand('strikeThrough');
+                    break;
+                case 'highlight':
+                    document.execCommand('hiliteColor', false, '#ffff00');
+                    break;
+                case 'alignLeft':
+                    document.execCommand('justifyLeft');
+                    break;
+                case 'alignCenter':
+                    document.execCommand('justifyCenter');
+                    break;
+                case 'alignRight':
+                    document.execCommand('justifyRight');
+                    break;
+                case 'bulletList':
+                    document.execCommand('insertUnorderedList');
+                    break;
+                case 'numberedList':
+                    document.execCommand('insertOrderedList');
+                    break;
+                case 'todoList':
+                    insertTodo();
+                    break;
+                case 'link':
+                    const url = prompt('Enter URL:');
+                    if (url) document.execCommand('createLink', false, url);
+                    break;
+                case 'image':
+                    insertImage();
+                    break;
+                case 'table':
+                    insertTable();
+                    break;
+                case 'code':
+                    document.execCommand('formatBlock', false, 'pre');
+                    break;
+                case 'quote':
+                    document.execCommand('formatBlock', false, 'blockquote');
+                    break;
+                case 'undo':
+                    document.execCommand('undo');
+                    break;
+                case 'redo':
+                    document.execCommand('redo');
+                    break;
+            }
+            editor.focus();
+        });
+    });
+
+    // Heading select
+    document.getElementById('heading-select').addEventListener('change', function() {
+        const value = this.value;
+        if (value === 'p') {
+            document.execCommand('formatBlock', false, 'p');
+        } else {
+            document.execCommand('formatBlock', false, value);
+        }
+        editor.focus();
+    });
+
+    // Toggle sidebar
+    document.getElementById('toggle-sidebar').addEventListener('click', function() {
+        sidebar.classList.toggle('collapsed');
+    });
+
+    // AI Panel
+    document.getElementById('ai-assist-btn').addEventListener('click', function() {
+        const selectedText = window.getSelection().toString();
+        document.getElementById('selected-text-input').value = selectedText;
+        aiPanel.classList.toggle('hidden');
+    });
+
+    document.getElementById('close-ai-panel').addEventListener('click', function() {
+        aiPanel.classList.add('hidden');
+    });
+
+    // Export modal
+    document.getElementById('export-btn').addEventListener('click', function() {
+        document.getElementById('export-modal').classList.remove('hidden');
+    });
+
+    document.querySelectorAll('.close-modal').forEach(btn => {
+        btn.addEventListener('click', function() {
+            this.closest('.modal').classList.add('hidden');
+        });
+    });
+
+    // Click outside modal to close
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.add('hidden');
+            }
+        });
+    });
+
+    // Click outside slash menu to close
+    document.addEventListener('click', function(e) {
+        if (!slashMenu.contains(e.target) && !editor.contains(e.target)) {
+            hideSlashMenu();
+        }
+    });
+
+    // Slash menu item click
+    slashMenu.querySelectorAll('.slash-item').forEach(item => {
+        item.addEventListener('click', function() {
+            executeSlashCommand(this.dataset.cmd);
+        });
+    });
+
+    // Tone buttons
+    document.querySelectorAll('.tone-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            document.querySelectorAll('.tone-btn').forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+
+            const tone = this.dataset.tone;
+            const selectedText = document.getElementById('selected-text-input').value;
+
+            htmx.ajax('POST', '/api/paper/ai/tone', {
+                target: '#ai-response-content',
+                values: {
+                    tone: tone,
+                    text: selectedText
+                }
+            }).then(() => {
+                document.getElementById('ai-response').classList.remove('hidden');
+            });
+        });
+    });
+
+    // AI response actions
+    document.getElementById('copy-ai-response')?.addEventListener('click', function() {
+        const content = document.getElementById('ai-response-content').innerText;
+        navigator.clipboard.writeText(content);
+    });
+
+    document.getElementById('insert-ai-response')?.addEventListener('click', function() {
+        const content = document.getElementById('ai-response-content').innerHTML;
+        editor.focus();
+        document.execCommand('insertHTML', false, content);
+    });
+
+    document.getElementById('replace-ai-response')?.addEventListener('click', function() {
+        const content = document.getElementById('ai-response-content').innerHTML;
+        document.execCommand('insertHTML', false, content);
+    });
+
+    // Initial word count
+    updateWordCount();
+})();
+</script>

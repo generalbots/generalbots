@@ -4,11 +4,22 @@ use crate::basic::keywords::string_functions::register_string_functions;
 use crate::basic::keywords::switch_case::switch_keyword;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
+use diesel::prelude::*;
 use log::info;
-use rhai::{Dynamic, Engine, EvalAltResult};
+use rhai::{Dynamic, Engine, EvalAltResult, Scope};
+use std::collections::HashMap;
 use std::sync::Arc;
 pub mod compiler;
 pub mod keywords;
+
+/// Helper struct for loading param config from database
+#[derive(QueryableByName)]
+struct ParamConfigRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_key: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    config_value: String,
+}
 use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
 use self::keywords::book::book_keyword;
@@ -53,11 +64,13 @@ use self::keywords::wait::wait_keyword;
 #[derive(Debug)]
 pub struct ScriptService {
     pub engine: Engine,
+    pub scope: Scope<'static>,
 }
 impl ScriptService {
     #[must_use]
     pub fn new(state: Arc<AppState>, user: UserSession) -> Self {
         let mut engine = Engine::new();
+        let scope = Scope::new();
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
 
@@ -163,11 +176,60 @@ impl ScriptService {
         // Error Handling: THROW, ERROR, IS_ERROR, ASSERT
         register_core_functions(state.clone(), user, &mut engine);
 
-        ScriptService { engine }
+        ScriptService { engine, scope }
+    }
+
+    /// Inject param-* configuration variables from config.csv into the script scope
+    /// Variables are made available without the "param-" prefix and normalized to lowercase
+    pub fn inject_config_variables(&mut self, config_vars: HashMap<String, String>) {
+        for (key, value) in config_vars {
+            // Remove "param-" prefix if present and normalize to lowercase
+            let var_name = if key.starts_with("param-") {
+                key.strip_prefix("param-").unwrap_or(&key).to_lowercase()
+            } else {
+                key.to_lowercase()
+            };
+
+            // Try to parse as number, otherwise use as string
+            if let Ok(int_val) = value.parse::<i64>() {
+                self.scope.push(&var_name, int_val);
+            } else if let Ok(float_val) = value.parse::<f64>() {
+                self.scope.push(&var_name, float_val);
+            } else if value.eq_ignore_ascii_case("true") {
+                self.scope.push(&var_name, true);
+            } else if value.eq_ignore_ascii_case("false") {
+                self.scope.push(&var_name, false);
+            } else {
+                self.scope.push(&var_name, value);
+            }
+        }
+    }
+
+    /// Load and inject param-* variables from bot configuration
+    pub fn load_bot_config_params(&mut self, state: &AppState, bot_id: uuid::Uuid) {
+        if let Ok(mut conn) = state.conn.get() {
+            // Query all config entries for this bot that start with "param-"
+            let result: Result<Vec<(String, String)>, _> = diesel::sql_query(
+                "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = $1 AND config_key LIKE 'param-%'"
+            )
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .load::<ParamConfigRow>(&mut conn);
+
+            if let Ok(params) = result {
+                let config_vars: HashMap<String, String> = params
+                    .into_iter()
+                    .map(|row| (row.config_key, row.config_value))
+                    .collect();
+                self.inject_config_variables(config_vars);
+            }
+        }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {
         // First, preprocess SWITCH/CASE blocks
         let script = preprocess_switch(script);
+
+        // Make variables case-insensitive by normalizing to lowercase
+        let script = Self::normalize_variables_to_lowercase(&script);
 
         let mut result = String::new();
         let mut for_stack: Vec<usize> = Vec::new();
@@ -420,8 +482,330 @@ impl ScriptService {
             Err(parse_error) => Err(Box::new(parse_error.into())),
         }
     }
-    pub fn run(&self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
-        self.engine.eval_ast(ast)
+    pub fn run(&mut self, ast: &rhai::AST) -> Result<Dynamic, Box<EvalAltResult>> {
+        self.engine.eval_ast_with_scope(&mut self.scope, ast)
+    }
+
+    /// Normalize variable names to lowercase for case-insensitive BASIC semantics
+    /// This transforms variable assignments and references to use lowercase names
+    /// while preserving string literals, keywords, and comments
+    fn normalize_variables_to_lowercase(script: &str) -> String {
+        use regex::Regex;
+
+        let mut result = String::new();
+
+        // Keywords that should remain uppercase (BASIC commands)
+        let keywords = [
+            "SET",
+            "CREATE",
+            "PRINT",
+            "FOR",
+            "FIND",
+            "GET",
+            "EXIT",
+            "IF",
+            "THEN",
+            "ELSE",
+            "END",
+            "WHILE",
+            "WEND",
+            "DO",
+            "LOOP",
+            "HEAR",
+            "TALK",
+            "NEXT",
+            "FUNCTION",
+            "SUB",
+            "CALL",
+            "RETURN",
+            "DIM",
+            "AS",
+            "NEW",
+            "ARRAY",
+            "OBJECT",
+            "LET",
+            "REM",
+            "AND",
+            "OR",
+            "NOT",
+            "TRUE",
+            "FALSE",
+            "NULL",
+            "SWITCH",
+            "CASE",
+            "DEFAULT",
+            "USE",
+            "KB",
+            "TOOL",
+            "CLEAR",
+            "ADD",
+            "SUGGESTION",
+            "SUGGESTIONS",
+            "TOOLS",
+            "CONTEXT",
+            "USER",
+            "BOT",
+            "MEMORY",
+            "IMAGE",
+            "VIDEO",
+            "AUDIO",
+            "SEE",
+            "SEND",
+            "FILE",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "SAVE",
+            "INSERT",
+            "UPDATE",
+            "MERGE",
+            "FILL",
+            "MAP",
+            "FILTER",
+            "AGGREGATE",
+            "JOIN",
+            "PIVOT",
+            "GROUP",
+            "BY",
+            "READ",
+            "WRITE",
+            "COPY",
+            "MOVE",
+            "LIST",
+            "COMPRESS",
+            "EXTRACT",
+            "UPLOAD",
+            "DOWNLOAD",
+            "GENERATE",
+            "PDF",
+            "WEBHOOK",
+            "TEMPLATE",
+            "FORM",
+            "SUBMIT",
+            "SCORE",
+            "LEAD",
+            "QUALIFY",
+            "AI",
+            "ABS",
+            "ROUND",
+            "INT",
+            "FIX",
+            "FLOOR",
+            "CEIL",
+            "MAX",
+            "MIN",
+            "MOD",
+            "RANDOM",
+            "RND",
+            "SGN",
+            "SQR",
+            "SQRT",
+            "LOG",
+            "EXP",
+            "POW",
+            "SIN",
+            "COS",
+            "TAN",
+            "SUM",
+            "AVG",
+            "NOW",
+            "TODAY",
+            "DATE",
+            "TIME",
+            "YEAR",
+            "MONTH",
+            "DAY",
+            "HOUR",
+            "MINUTE",
+            "SECOND",
+            "WEEKDAY",
+            "DATEADD",
+            "DATEDIFF",
+            "FORMAT",
+            "ISDATE",
+            "VAL",
+            "STR",
+            "CINT",
+            "CDBL",
+            "CSTR",
+            "ISNULL",
+            "ISEMPTY",
+            "TYPEOF",
+            "ISARRAY",
+            "ISOBJECT",
+            "ISSTRING",
+            "ISNUMBER",
+            "NVL",
+            "IIF",
+            "UBOUND",
+            "LBOUND",
+            "COUNT",
+            "SORT",
+            "UNIQUE",
+            "CONTAINS",
+            "INDEX",
+            "OF",
+            "PUSH",
+            "POP",
+            "SHIFT",
+            "REVERSE",
+            "SLICE",
+            "SPLIT",
+            "CONCAT",
+            "FLATTEN",
+            "RANGE",
+            "THROW",
+            "ERROR",
+            "IS",
+            "ASSERT",
+            "WARN",
+            "INFO",
+            "EACH",
+            "WITH",
+            "TO",
+            "STEP",
+            "BEGIN",
+            "SYSTEM",
+            "PROMPT",
+            "SCHEDULE",
+            "REFRESH",
+            "ALLOW",
+            "ROLE",
+            "ANSWER",
+            "MODE",
+            "SYNCHRONIZE",
+            "TABLE",
+            "ON",
+            "EMAIL",
+            "REPORT",
+            "RESET",
+            "WAIT",
+            "FIRST",
+            "LAST",
+            "LLM",
+            "INSTR",
+            "NUMERIC",
+            "LEN",
+            "LEFT",
+            "RIGHT",
+            "MID",
+            "LOWER",
+            "UPPER",
+            "TRIM",
+            "LTRIM",
+            "RTRIM",
+            "REPLACE",
+            "LIKE",
+            "DELEGATE",
+            "PRIORITY",
+            "BOTS",
+            "REMOVE",
+            "MEMBER",
+            "BOOK",
+            "REMEMBER",
+            "TASK",
+            "SITE",
+            "DRAFT",
+            "INSTAGRAM",
+            "FACEBOOK",
+            "LINKEDIN",
+            "TWITTER",
+            "METRICS",
+            "HEADER",
+            "HEADERS",
+            "GRAPHQL",
+            "SOAP",
+            "HTTP",
+            "DESCRIPTION",
+            "PARAM",
+            "REQUIRED",
+        ];
+
+        // Regex to match identifiers (variable names)
+        let identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+
+        for line in script.lines() {
+            let trimmed = line.trim();
+
+            // Skip comments entirely
+            if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
+                result.push_str(line);
+                result.push('\n');
+                continue;
+            }
+
+            // Process line character by character to handle strings properly
+            let mut processed_line = String::new();
+            let mut chars = line.chars().peekable();
+            let mut in_string = false;
+            let mut string_char = '"';
+            let mut current_word = String::new();
+
+            while let Some(c) = chars.next() {
+                if in_string {
+                    processed_line.push(c);
+                    if c == string_char {
+                        in_string = false;
+                    } else if c == '\\' {
+                        // Handle escape sequences
+                        if let Some(&next) = chars.peek() {
+                            processed_line.push(next);
+                            chars.next();
+                        }
+                    }
+                } else if c == '"' || c == '\'' {
+                    // Flush current word before string
+                    if !current_word.is_empty() {
+                        processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
+                        current_word.clear();
+                    }
+                    in_string = true;
+                    string_char = c;
+                    processed_line.push(c);
+                } else if c.is_alphanumeric() || c == '_' {
+                    current_word.push(c);
+                } else {
+                    // Flush current word
+                    if !current_word.is_empty() {
+                        processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
+                        current_word.clear();
+                    }
+                    processed_line.push(c);
+                }
+            }
+
+            // Flush any remaining word
+            if !current_word.is_empty() {
+                processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
+            }
+
+            result.push_str(&processed_line);
+            result.push('\n');
+        }
+
+        result
+    }
+
+    /// Normalize a single word - convert to lowercase if it's a variable (not a keyword)
+    fn normalize_word(word: &str, keywords: &[&str]) -> String {
+        let upper = word.to_uppercase();
+
+        // Check if it's a keyword (case-insensitive)
+        if keywords.contains(&upper.as_str()) {
+            // Return the keyword in uppercase for consistency
+            upper
+        } else if word
+            .chars()
+            .next()
+            .map(|c| c.is_ascii_digit())
+            .unwrap_or(false)
+        {
+            // It's a number, keep as-is
+            word.to_string()
+        } else {
+            // It's a variable - normalize to lowercase
+            word.to_lowercase()
+        }
     }
 }
-

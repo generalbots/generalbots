@@ -71,6 +71,7 @@ compliance = ["dep:csv"]
 attendance = []
 directory = []
 weba = []
+timeseries = []
 
 # ===== OPTIONAL INFRASTRUCTURE =====
 redis-cache = ["dep:redis"]
@@ -82,7 +83,7 @@ progress-bars = ["dep:indicatif"]
 # ===== META FEATURES (BUNDLES) =====
 full = [
     "ui-server", "desktop", "console",
-    "vectordb", "llm", "nvidia",
+    "vectordb", "llm", "nvidia", "timeseries",
     "email", "whatsapp", "instagram", "msteams",
     "chat", "drive", "tasks", "calendar", "meet", "mail",
     "compliance", "attendance", "directory", "weba",
@@ -91,7 +92,7 @@ full = [
 
 communications = ["email", "whatsapp", "instagram", "msteams", "chat", "redis-cache"]
 productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "redis-cache"]
-enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring"]
+enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring", "timeseries"]
 minimal = ["ui-server", "chat"]
 lightweight = ["ui-server", "chat", "drive", "tasks"]
 

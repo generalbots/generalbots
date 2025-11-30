@@ -1,0 +1,318 @@
+/* Extended App Menu Styles - Office 365 Style Grid */
+
+/* Override app grid for more columns */
+.app-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    padding: 8px 0;
+}
+
+/* Make dropdown wider to accommodate more apps */
+.apps-dropdown {
+    width: 360px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* App item refined styling */
+.app-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 12px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: hsl(var(--foreground));
+    transition: all 0.15s ease;
+    cursor: pointer;
+    border: 1px solid transparent;
+    background: transparent;
+    min-height: 70px;
+}
+
+.app-item:hover {
+    background: hsl(var(--accent));
+    border-color: hsl(var(--border));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px hsla(var(--foreground) / 0.08);
+}
+
+.app-item.active {
+    background: hsla(var(--primary) / 0.1);
+    border-color: hsl(var(--primary));
+}
+
+.app-item.active .app-icon {
+    transform: scale(1.05);
+}
+
+/* App icon styling */
+.app-icon {
+    font-size: 26px;
+    line-height: 1;
+    transition: transform 0.15s ease;
+    filter: drop-shadow(0 2px 4px hsla(var(--foreground) / 0.1));
+}
+
+.app-item:hover .app-icon {
+    transform: scale(1.1);
+}
+
+/* App name styling */
+.app-item span {
+    font-size: 11px;
+    font-weight: 500;
+    color: hsl(var(--foreground));
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+/* Dropdown title */
+.apps-dropdown-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: hsl(var(--muted-foreground));
+    margin-bottom: 12px;
+    padding: 0 4px;
+}
+
+/* Section divider within app menu */
+.app-grid-section {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: hsl(var(--muted-foreground));
+    padding: 12px 4px 6px;
+    margin-top: 8px;
+    border-top: 1px solid hsl(var(--border));
+}
+
+.app-grid-section:first-child {
+    margin-top: 0;
+    border-top: none;
+    padding-top: 0;
+}
+
+/* Custom scrollbar for dropdown */
+.apps-dropdown::-webkit-scrollbar {
+    width: 6px;
+}
+
+.apps-dropdown::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.apps-dropdown::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+}
+
+.apps-dropdown::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* App badges (for notifications, etc.) */
+.app-item-badge {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    border-radius: 8px;
+    background: hsl(var(--destructive));
+    color: hsl(var(--destructive-foreground));
+    font-size: 10px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.app-item {
+    position: relative;
+}
+
+/* Keyboard shortcut hints */
+.app-item::after {
+    content: attr(data-shortcut);
+    position: absolute;
+    bottom: 2px;
+    right: 4px;
+    font-size: 9px;
+    color: hsl(var(--muted-foreground));
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+
+.app-item:hover::after {
+    opacity: 0.7;
+}
+
+/* Responsive: 3 columns on smaller screens */
+@media (max-width: 480px) {
+    .apps-dropdown {
+        width: calc(100vw - 32px);
+        max-width: 320px;
+        right: 16px;
+    }
+
+    .app-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .app-icon {
+        font-size: 24px;
+    }
+
+    .app-item span {
+        font-size: 10px;
+    }
+}
+
+/* App categories for organized menu */
+.app-category {
+    display: contents;
+}
+
+/* Pinned/Favorite apps section */
+.app-grid-pinned {
+    display: flex;
+    gap: 8px;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid hsl(var(--border));
+    overflow-x: auto;
+}
+
+.app-grid-pinned .app-item {
+    flex-shrink: 0;
+    width: 72px;
+}
+
+/* Search within app menu */
+.app-search {
+    padding: 0 4px 12px;
+}
+
+.app-search input {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid hsl(var(--border));
+    border-radius: 6px;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-size: 13px;
+}
+
+.app-search input:focus {
+    outline: none;
+    border-color: hsl(var(--primary));
+    box-shadow: 0 0 0 3px hsla(var(--primary) / 0.1);
+}
+
+.app-search input::placeholder {
+    color: hsl(var(--muted-foreground));
+}
+
+/* Footer with settings link */
+.apps-dropdown-footer {
+    border-top: 1px solid hsl(var(--border));
+    padding-top: 12px;
+    margin-top: 12px;
+    display: flex;
+    justify-content: center;
+}
+
+.apps-dropdown-footer a {
+    font-size: 12px;
+    color: hsl(var(--primary));
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.apps-dropdown-footer a:hover {
+    text-decoration: underline;
+}
+
+/* Animation for menu items */
+.app-item {
+    animation: fadeInUp 0.2s ease backwards;
+}
+
+.app-item:nth-child(1) { animation-delay: 0.02s; }
+.app-item:nth-child(2) { animation-delay: 0.04s; }
+.app-item:nth-child(3) { animation-delay: 0.06s; }
+.app-item:nth-child(4) { animation-delay: 0.08s; }
+.app-item:nth-child(5) { animation-delay: 0.10s; }
+.app-item:nth-child(6) { animation-delay: 0.12s; }
+.app-item:nth-child(7) { animation-delay: 0.14s; }
+.app-item:nth-child(8) { animation-delay: 0.16s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Dark mode adjustments */
+[data-theme="dark"] .app-item:hover {
+    background: hsla(var(--foreground) / 0.1);
+}
+
+[data-theme="dark"] .app-icon {
+    filter: drop-shadow(0 2px 4px hsla(0 0% 0% / 0.3));
+}
+
+/* Focus styles for accessibility */
+.app-item:focus-visible {
+    outline: 2px solid hsl(var(--primary));
+    outline-offset: 2px;
+}
+
+/* App item tooltip */
+.app-item[title] {
+    position: relative;
+}
+
+/* Loading state for apps */
+.app-item.loading .app-icon {
+    opacity: 0.5;
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 0.5; }
+    50% { opacity: 1; }
+}
+
+/* New app indicator */
+.app-item.new::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: hsl(var(--chart-2));
+    box-shadow: 0 0 0 2px hsl(var(--card));
+}
