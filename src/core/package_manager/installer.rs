@@ -51,6 +51,7 @@ impl PackageManager {
         self.register_desktop();
         self.register_devtools();
         self.register_vector_db();
+        self.register_timeseries_db();
         self.register_host();
     }
 
@@ -606,6 +607,48 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}} --enable-tls --cert {{CONF_PATH}}/system/certificates/qdrant/server.crt --key {{CONF_PATH}}/system/certificates/qdrant/server.key".to_string(),
                 check_cmd: "curl -f -k https://localhost:6334/metrics >/dev/null 2>&1".to_string(),
+            },
+        );
+    }
+
+    fn register_timeseries_db(&mut self) {
+        self.components.insert(
+            "timeseries_db".to_string(),
+            ComponentConfig {
+                name: "timeseries_db".to_string(),
+                ports: vec![8086, 8083],
+                dependencies: vec![],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some(
+                    "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.5-linux-amd64.tar.gz".to_string(),
+                ),
+                binary_name: Some("influxd".to_string()),
+                pre_install_cmds_linux: vec![
+                    "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
+                    "mkdir -p {{CONF_PATH}}/influxdb".to_string(),
+                ],
+                post_install_cmds_linux: vec![
+                    "{{BIN_PATH}}/influx setup --org pragmatismo --bucket metrics --username admin --password {{GENERATED_PASSWORD}} --force".to_string(),
+                ],
+                pre_install_cmds_macos: vec![
+                    "mkdir -p {{DATA_PATH}}/influxdb".to_string(),
+                ],
+                post_install_cmds_macos: vec![],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: {
+                    let mut env = HashMap::new();
+                    env.insert("INFLUXD_ENGINE_PATH".to_string(), "{{DATA_PATH}}/influxdb/engine".to_string());
+                    env.insert("INFLUXD_BOLT_PATH".to_string(), "{{DATA_PATH}}/influxdb/influxd.bolt".to_string());
+                    env.insert("INFLUXD_HTTP_BIND_ADDRESS".to_string(), ":8086".to_string());
+                    env.insert("INFLUXD_REPORTING_DISABLED".to_string(), "true".to_string());
+                    env
+                },
+                data_download_list: Vec::new(),
+                exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
+                check_cmd: "curl -f http://localhost:8086/health >/dev/null 2>&1".to_string(),
             },
         );
     }

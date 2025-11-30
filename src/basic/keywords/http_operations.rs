@@ -247,11 +247,67 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
 pub fn register_delete_http_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
+    // DELETE HTTP (space-separated - preferred)
+    let state_clone2 = Arc::clone(&state);
+    engine
+        .register_custom_syntax(
+            &["DELETE", "HTTP", "$expr$"],
+            false,
+            move |context, inputs| {
+                let url = context.eval_expression_tree(&inputs[0])?.to_string();
+
+                trace!("DELETE HTTP request to: {}", url);
+
+                let (tx, rx) = std::sync::mpsc::channel();
+                let url_clone = url.clone();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            execute_http_request(Method::DELETE, &url_clone, None, None).await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".into())).err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send DELETE result from thread");
+                    }
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(60)) {
+                    Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "DELETE request timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE thread failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            },
+        )
+        .unwrap();
+
+    // DELETE_HTTP (underscore - backwards compatibility)
     engine
         .register_custom_syntax(&["DELETE_HTTP", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("DELETE request to: {}", url);
+            trace!("DELETE_HTTP request to: {}", url);
 
             let (tx, rx) = std::sync::mpsc::channel();
             let url_clone = url.clone();
@@ -303,7 +359,35 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
     // Use a shared state for headers that persists across calls
     let headers: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let headers_clone = Arc::clone(&headers);
+    let headers_clone2 = Arc::clone(&headers);
 
+    // SET HEADER (space-separated - preferred)
+    engine
+        .register_custom_syntax(
+            &["SET", "HEADER", "$expr$", ",", "$expr$"],
+            false,
+            move |context, inputs| {
+                let name = context.eval_expression_tree(&inputs[0])?.to_string();
+                let value = context.eval_expression_tree(&inputs[1])?.to_string();
+
+                trace!("SET HEADER: {} = {}", name, value);
+
+                // Store in thread-local storage
+                HTTP_HEADERS.with(|h| {
+                    h.borrow_mut().insert(name.clone(), value.clone());
+                });
+
+                // Also store in shared state
+                if let Ok(mut h) = headers_clone.lock() {
+                    h.insert(name, value);
+                }
+
+                Ok(Dynamic::UNIT)
+            },
+        )
+        .unwrap();
+
+    // SET_HEADER (underscore - backwards compatibility)
     engine
         .register_custom_syntax(
             &["SET_HEADER", "$expr$", ",", "$expr$"],
@@ -320,7 +404,7 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
                 });
 
                 // Also store in shared state
-                if let Ok(mut h) = headers_clone.lock() {
+                if let Ok(mut h) = headers_clone2.lock() {
                     h.insert(name, value);
                 }
 
@@ -337,6 +421,20 @@ pub fn register_clear_headers_keyword(
     _user: UserSession,
     engine: &mut Engine,
 ) {
+    // CLEAR HEADERS (space-separated - preferred)
+    engine
+        .register_custom_syntax(&["CLEAR", "HEADERS"], false, move |_context, _inputs| {
+            trace!("CLEAR HEADERS");
+
+            HTTP_HEADERS.with(|h| {
+                h.borrow_mut().clear();
+            });
+
+            Ok(Dynamic::UNIT)
+        })
+        .unwrap();
+
+    // CLEAR_HEADERS (underscore - backwards compatibility)
     engine
         .register_custom_syntax(&["CLEAR_HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR_HEADERS");

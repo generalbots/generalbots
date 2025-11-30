@@ -91,12 +91,13 @@
     - [IS NUMERIC](./chapter-06-gbdialog/keyword-is-numeric.md)
     - [SWITCH](./chapter-06-gbdialog/keyword-switch.md)
     - [WEBHOOK](./chapter-06-gbdialog/keyword-webhook.md)
+    - [TABLE](./chapter-06-gbdialog/keyword-table.md)
   - [HTTP & API Operations](./chapter-06-gbdialog/keywords-http.md)
     - [POST](./chapter-06-gbdialog/keyword-post.md)
     - [PUT](./chapter-06-gbdialog/keyword-put.md)
     - [PATCH](./chapter-06-gbdialog/keyword-patch.md)
-    - [DELETE_HTTP](./chapter-06-gbdialog/keyword-delete-http.md)
-    - [SET_HEADER](./chapter-06-gbdialog/keyword-set-header.md)
+    - [DELETE HTTP](./chapter-06-gbdialog/keyword-delete-http.md)
+    - [SET HEADER](./chapter-06-gbdialog/keyword-set-header.md)
     - [GRAPHQL](./chapter-06-gbdialog/keyword-graphql.md)
     - [SOAP](./chapter-06-gbdialog/keyword-soap.md)
   - [Data Operations](./chapter-06-gbdialog/keywords-data.md)
@@ -111,11 +112,11 @@
     - [AGGREGATE](./chapter-06-gbdialog/keyword-aggregate.md)
     - [JOIN](./chapter-06-gbdialog/keyword-join.md)
     - [PIVOT](./chapter-06-gbdialog/keyword-pivot.md)
-    - [GROUP_BY](./chapter-06-gbdialog/keyword-group-by.md)
+    - [GROUP BY](./chapter-06-gbdialog/keyword-group-by.md)
   - [File Operations](./chapter-06-gbdialog/keywords-file.md)
     - [READ](./chapter-06-gbdialog/keyword-read.md)
     - [WRITE](./chapter-06-gbdialog/keyword-write.md)
-    - [DELETE_FILE](./chapter-06-gbdialog/keyword-delete-file.md)
+    - [DELETE FILE](./chapter-06-gbdialog/keyword-delete-file.md)
     - [COPY](./chapter-06-gbdialog/keyword-copy.md)
     - [MOVE](./chapter-06-gbdialog/keyword-move.md)
     - [LIST](./chapter-06-gbdialog/keyword-list.md)
@@ -123,8 +124,8 @@
     - [EXTRACT](./chapter-06-gbdialog/keyword-extract.md)
     - [UPLOAD](./chapter-06-gbdialog/keyword-upload.md)
     - [DOWNLOAD](./chapter-06-gbdialog/keyword-download.md)
-    - [GENERATE_PDF](./chapter-06-gbdialog/keyword-generate-pdf.md)
-    - [MERGE_PDF](./chapter-06-gbdialog/keyword-merge-pdf.md)
+    - [GENERATE PDF](./chapter-06-gbdialog/keyword-generate-pdf.md)
+    - [MERGE PDF](./chapter-06-gbdialog/keyword-merge-pdf.md)
 
 # Part VII - Extending General Bots
 
@@ -158,6 +159,7 @@
   - [Tool Format](./chapter-09-api/openai-format.md)
   - [GET Keyword Integration](./chapter-09-api/get-integration.md)
   - [External APIs](./chapter-09-api/external-apis.md)
+  - [LLM REST Server](./chapter-09-api/llm-rest-server.md)
   - [NVIDIA GPU Setup for LXC](./chapter-09-api/nvidia-gpu-setup.md)
 
 
@@ -190,6 +192,7 @@
 # Part X - Feature Deep Dive
 
 - [Chapter 11: Feature Reference](./chapter-11-features/README.md)
+  - [Feature Editions](./chapter-11-features/editions.md)
   - [Core Features](./chapter-11-features/core-features.md)
   - [Conversation Management](./chapter-11-features/conversation.md)
   - [AI and LLM](./chapter-11-features/ai-llm.md)

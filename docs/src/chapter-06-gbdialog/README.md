@@ -334,6 +334,13 @@ The question is: what will you create?
 
 Continue to [BASIC Keywords Reference](./keywords.md) when you're ready for the complete reference.
 
+### Additional Documentation
+
+- [Script Execution Flow](./script-execution-flow.md) - Entry points, config injection, and lifecycle
+- [Prompt Blocks](./prompt-blocks.md) - BEGIN SYSTEM PROMPT & BEGIN TALK documentation
+- [Keywords Reference](./keywords.md) - Complete keyword list
+- [Basics](./basics.md) - Core concepts for LLM-first development
+
 ---
 
 <div align="center">

@@ -117,7 +117,11 @@ impl AutomationService {
             sm.get_or_create_user_session(admin_user, automation.bot_id, "Automation")?
                 .ok_or("Failed to create session")?
         };
-        let script_service = ScriptService::new(Arc::clone(&self.state), session);
+        let mut script_service = ScriptService::new(Arc::clone(&self.state), session);
+
+        // Inject param-* config variables from bot configuration
+        script_service.load_bot_config_params(&self.state, automation.bot_id);
+
         match script_service.compile(&script_content) {
             Ok(ast) => {
                 if let Err(e) = script_service.run(&ast) {

@@ -9,6 +9,43 @@ This section lists every BASIC keyword implemented in the GeneralBots engine. Ea
 
 The source code for each keyword lives in `src/basic/keywords/`. Only the keywords listed here exist in the system.
 
+## Important: Case Insensitivity
+
+**All variables in General Bots BASIC are case-insensitive.** The preprocessor normalizes variable names to lowercase automatically.
+
+```basic
+' These all refer to the same variable
+host = "https://api.example.com"
+result = GET Host + "/endpoint"
+TALK HOST
+```
+
+Keywords are also case-insensitive but conventionally written in UPPERCASE:
+
+```basic
+' Both work identically
+TALK "Hello"
+talk "Hello"
+```
+
+## Configuration Variables (param-*)
+
+Variables defined with `param-` prefix in `config.csv` are automatically available in scripts without the prefix:
+
+```csv
+name,value
+param-host,https://api.example.com
+param-limit,100
+param-pages,50
+```
+
+```basic
+' Access directly (lowercase, no param- prefix)
+result = GET host + "/items?limit=" + limit
+```
+
+See [Script Execution Flow](./script-execution-flow.md) for complete details.
+
 ---
 
 ## Complete Keyword List (Flat Reference)
@@ -78,6 +115,7 @@ The source code for each keyword lives in `src/basic/keywords/`. Only the keywor
 | `SET USER` | Session | Set user context |
 | `SOAP` | HTTP | Execute SOAP API call |
 | `SWITCH ... CASE ... END SWITCH` | Control | Switch statement |
+| `SYNCHRONIZE` | Data | Sync API data to table (planned) |
 | `TALK` | Dialog | Send message to user |
 | `UPDATE` | Data | Update existing records |
 | `UPLOAD` | Files | Upload file to storage |
@@ -162,6 +200,7 @@ The source code for each keyword lives in `src/basic/keywords/`. Only the keywor
 | JOIN | `result = JOIN left, right, "key"` | Join datasets |
 | PIVOT | `result = PIVOT data, "row", "value"` | Create pivot table |
 | GROUP BY | `result = GROUP BY data, "field"` | Group data |
+| SYNCHRONIZE | `SYNCHRONIZE endpoint, table, key, pageVar, limitVar` | Sync API to table |
 | MAP | `result = MAP data, "old->new"` | Map field names |
 | FILL | `result = FILL data, template` | Fill template |
 | FIRST | `result = FIRST collection` | Get first element |
@@ -205,8 +244,10 @@ The source code for each keyword lives in `src/basic/keywords/`. Only the keywor
 | IF...THEN...ELSE | `IF condition THEN ... ELSE ... END IF` | Conditional |
 | FOR EACH...NEXT | `FOR EACH item IN collection ... NEXT item` | Loop |
 | EXIT FOR | `EXIT FOR` | Exit loop early |
-| WHILE...WEND | `WHILE condition ... WEND` | While loop |
-| SWITCH...CASE | `SWITCH value CASE x ... END SWITCH` | Switch statement |
+| `WHILE...WEND` | `WHILE condition ... WEND` | While loop |
+| `SWITCH...CASE` | `SWITCH value CASE x ... END SWITCH` | Switch statement |
+| `REPORT` | `SEND EMAIL admin, REPORT` | Access sync statistics |
+| `RESET REPORT` | `RESET REPORT` | Clear sync statistics |
 
 ### Events & Scheduling
 
@@ -273,11 +314,90 @@ HEAR value AS STRING  ' Better - validates input type
 
 ---
 
+## Prompt Blocks
+
+Special multi-line blocks for AI configuration and formatted output:
+
+| Block | Purpose | Documentation |
+|-------|---------|---------------|
+| `BEGIN SYSTEM PROMPT ... END SYSTEM PROMPT` | Define AI persona, rules, capabilities | [Prompt Blocks](./prompt-blocks.md) |
+| `BEGIN TALK ... END TALK` | Formatted multi-line messages with Markdown | [Prompt Blocks](./prompt-blocks.md) |
+
+```basic
+BEGIN SYSTEM PROMPT
+You are a helpful assistant for AcmeStore.
+Rules:
+1. Always be polite
+2. Never discuss competitors
+END SYSTEM PROMPT
+
+BEGIN TALK
+**Welcome!** 🎉
+
+I can help you with:
+• Orders
+• Tracking
+• Returns
+END TALK
+```
+
+---
+
+## Script Structure
+
+### No MAIN Function
+
+Scripts execute from line 1 - no `MAIN` or entry point needed:
+
+```basic
+' ✅ CORRECT - Start directly
+TALK "Hello!"
+ADD TOOL "my-tool"
+
+' ❌ WRONG - Don't use MAIN
+SUB MAIN()
+    TALK "Hello"
+END SUB
+```
+
+### SUB and FUNCTION for Reuse
+
+Use for helper code within tools, not as entry points:
+
+```basic
+FUNCTION CalculateTotal(price, quantity)
+    RETURN price * quantity
+END FUNCTION
+
+SUB NotifyAdmin(message)
+    SEND EMAIL admin1, message
+END SUB
+
+' Execution starts here
+total = CalculateTotal(19.99, 3)
+CALL NotifyAdmin("Order processed")
+```
+
+See [Script Execution Flow](./script-execution-flow.md) for entry points and lifecycle.
+
+---
+
 ## Notes
 
 - Keywords are case-insensitive (TALK = talk = Talk)
+- Variables are case-insensitive (host = HOST = Host)
 - String parameters can use double quotes or single quotes
 - Comments start with REM or '
 - Line continuation uses underscore (_)
 - Objects are created with `#{ key: value }` syntax
 - Arrays use `[item1, item2, ...]` syntax
+- param-* config values become global variables
+
+---
+
+## See Also
+
+- [Script Execution Flow](./script-execution-flow.md) - Entry points and lifecycle
+- [Prompt Blocks](./prompt-blocks.md) - BEGIN SYSTEM PROMPT & BEGIN TALK
+- [Basics](./basics.md) - Core concepts
+- [Examples](./examples-consolidated.md) - Real-world patterns

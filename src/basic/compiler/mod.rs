@@ -1,4 +1,5 @@
 use crate::basic::keywords::set_schedule::execute_set_schedule;
+use crate::basic::keywords::table_definition::process_table_definitions;
 use crate::basic::keywords::webhook::execute_webhook_registration;
 use crate::shared::models::TriggerKind;
 use crate::shared::state::AppState;
@@ -98,6 +99,14 @@ impl BasicCompiler {
     ) -> Result<CompilationResult, Box<dyn Error + Send + Sync>> {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {e}"))?;
+
+        // Process TABLE...END TABLE definitions (creates tables on external DBs)
+        if let Err(e) =
+            process_table_definitions(Arc::clone(&self.state), self.bot_id, &source_content)
+        {
+            log::warn!("Failed to process TABLE definitions: {}", e);
+        }
+
         let tool_def = self.parse_tool_definition(&source_content, source_path)?;
         let file_name = Path::new(source_path)
             .file_stem()
