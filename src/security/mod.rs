@@ -6,12 +6,19 @@
 //! - Internal Certificate Authority (CA) management
 //! - Certificate lifecycle management
 //! - Security utilities and helpers
+//! - Antivirus and threat detection (ClamAV integration)
+//! - Windows Defender management
 
+pub mod antivirus;
 pub mod ca;
 pub mod integration;
 pub mod mutual_tls;
 pub mod tls;
 
+pub use antivirus::{
+    AntivirusConfig, AntivirusManager, ProtectionStatus, ScanResult, ScanStatus, ScanType, Threat,
+    ThreatSeverity, ThreatStatus, Vulnerability,
+};
 pub use ca::{CaConfig, CaManager, CertificateRequest, CertificateResponse};
 pub use integration::{
     create_https_client, get_tls_integration, init_tls_integration, to_secure_url, TlsIntegration,
