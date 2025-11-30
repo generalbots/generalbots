@@ -2,6 +2,12 @@
 //!
 //! This module provides automated compliance monitoring, audit logging,
 //! risk assessment, and security policy enforcement capabilities.
+//!
+//! Includes code scanning for BASIC files to detect:
+//! - Hardcoded passwords and secrets
+//! - Deprecated keywords and patterns
+//! - Configuration issues
+//! - Security vulnerabilities
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -9,9 +15,16 @@ use std::collections::HashMap;
 
 pub mod access_review;
 pub mod audit;
+pub mod code_scanner;
 pub mod policy_checker;
 pub mod risk_assessment;
 pub mod training_tracker;
+
+// Re-export commonly used types from code_scanner
+pub use code_scanner::{
+    CodeIssue, CodeScanner, ComplianceReporter, ComplianceScanResult, IssueSeverity, IssueType,
+    ScanStats,
+};
 
 /// Compliance framework types
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
