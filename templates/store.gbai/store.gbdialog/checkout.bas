@@ -1,12 +1,62 @@
-PARAM NomeDoCliente AS STRING LIKE Nome do cliente finalizando venda.
-PARAM pedidos AS OBJECT LIKE O JSON de pedidos montado com base no que foi informado pelo cliente.
+PARAM customer_name AS NAME LIKE "João Silva" DESCRIPTION "Customer name for the order"
+PARAM items AS OBJECT LIKE "[{id: 1, qty: 2}]" DESCRIPTION "JSON array of items with product id and quantity"
 
-DESCRIPTION Chamada quando a venda é finalizada. Recebendo o JSON dos produtos como jsonProdutos selecionados pelo cliente no carrinho de compras e o nome do cliente. Se a lista de produtos da venda estiver vazio, ela não pode ser finalizada. Nunca referencie diretamente 
-esta função em si, apenas atue sua funcionalidade de modo oculto.
+DESCRIPTION "Complete checkout and finalize the sale with customer and cart items"
 
-DEBUG NomeDoCliente
-DEBUG pedidos 
+IF UBOUND(items) = 0 THEN
+    TALK "Your cart is empty. Please add items before checkout."
+    RETURN NULL
+END IF
 
-SAVE "maria.Pedidos", nomeDocliente, jsonProdutos.valor
+orderid = "ORD-" + FORMAT(NOW(), "YYYYMMDD") + "-" + FORMAT(RANDOM(1000, 9999))
 
-RETURN "OK"
+total = 0
+orderitems = []
+
+FOR EACH item IN items
+    product = FIND "products.csv", "id = ${item.id}"
+
+    IF product THEN
+        subtotal = product.price * item.qty
+        total = total + subtotal
+
+        WITH orderitem
+            product_id = item.id
+            name = product.name
+            qty = item.qty
+            price = product.price
+            subtotal = subtotal
+        END WITH
+
+        orderitems[UBOUND(orderitems)] = orderitem
+    END IF
+NEXT
+
+IF total = 0 THEN
+    TALK "No valid products found in cart."
+    RETURN NULL
+END IF
+
+WITH order
+    id = orderid
+    customer = customer_name
+    totalValue = total
+    status = "pending"
+    created = NOW()
+END WITH
+
+SAVE "orders.csv", order
+SAVE "order_items.csv", orderid, TOJSON(orderitems)
+
+SET BOT MEMORY "last_order", orderid
+
+TALK "Order confirmed: " + orderid
+TALK "Customer: " + customer_name
+
+FOR EACH orderitem IN orderitems
+    TALK "- " + orderitem.name + " x" + orderitem.qty + " = $" + FORMAT(orderitem.subtotal, "#,##0.00")
+NEXT
+
+TALK "Total: $" + FORMAT(total, "#,##0.00")
+
+RETURN orderid

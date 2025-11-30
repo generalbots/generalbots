@@ -5,7 +5,7 @@
 ' This dialog handles user requests to access their personal data
 ' Companies can install this template for LGPD/GDPR compliance
 
-TALK "📋 **Data Access Request**"
+TALK "Data Access Request"
 TALK "You have the right to access all personal data we hold about you."
 TALK ""
 
@@ -16,7 +16,7 @@ HEAR email AS EMAIL WITH "Please provide your registered email address:"
 ' Check if email exists in system
 user = FIND "users" WHERE email = email
 IF user IS NULL THEN
-    TALK "❌ We couldn't find an account with that email address."
+    TALK "We couldn't find an account with that email address."
     TALK "Please check the email and try again, or contact support."
     EXIT
 END IF
@@ -34,18 +34,18 @@ This code expires in 15 minutes.
 If you did not request this, please ignore this email.
 "
 
-HEAR entered_code AS TEXT WITH "📧 We sent a verification code to your email. Please enter it:"
+HEAR entered_code AS TEXT WITH "We sent a verification code to your email. Please enter it:"
 
 IF entered_code <> code THEN
-    TALK "❌ Invalid verification code. Please start over."
+    TALK "Invalid verification code. Please start over."
     EXIT
 END IF
 
-TALK "✅ Identity verified successfully!"
+TALK "Identity verified successfully!"
 TALK ""
 
 ' Gather all user data
-TALK "🔍 Gathering your personal data... This may take a moment."
+TALK "Gathering your personal data... This may take a moment."
 TALK ""
 
 ' Get user profile data
@@ -131,22 +131,22 @@ INSERT INTO "privacy_requests" VALUES {
     "legal_basis": "LGPD Art. 18 / GDPR Art. 15"
 }
 
-TALK "✅ **Request Complete!**"
+TALK "Request Complete!"
 TALK ""
-TALK "📧 We have sent a comprehensive report to: " + email
+TALK "We have sent a comprehensive report to: " + email
 TALK ""
 TALK "The report includes:"
-TALK "• Your profile information"
-TALK "• " + COUNT(sessions) + " session records"
-TALK "• " + COUNT(messages) + " message records"
-TALK "• " + COUNT(files) + " files"
-TALK "• Consent history"
-TALK "• Activity logs"
+TALK "- Your profile information"
+TALK "- " + COUNT(sessions) + " session records"
+TALK "- " + COUNT(messages) + " message records"
+TALK "- " + COUNT(files) + " files"
+TALK "- Consent history"
+TALK "- Activity logs"
 TALK ""
 TALK "You can also download the report from your account settings."
 TALK ""
-TALK "🔒 **Your other privacy rights:**"
-TALK "• Say **'correct my data'** to update your information"
-TALK "• Say **'delete my data'** to request data erasure"
-TALK "• Say **'export my data'** for portable format"
-TALK "• Say **'privacy settings'** to manage consents"
+TALK "Your other privacy rights:"
+TALK "- Say 'correct my data' to update your information"
+TALK "- Say 'delete my data' to request data erasure"
+TALK "- Say 'export my data' for portable format"
+TALK "- Say 'privacy settings' to manage consents"

@@ -6,6 +6,7 @@ pub mod directory;
 pub mod dns;
 pub mod kb;
 pub mod package_manager;
+pub mod secrets;
 pub mod session;
 pub mod shared;
 pub mod ui_server;

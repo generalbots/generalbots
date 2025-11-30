@@ -1,39 +1,51 @@
-' =============================================================================
-' Privacy Rights Center - LGPD/GDPR Compliance Dialog
-' General Bots Template for Data Subject Rights Management
-' =============================================================================
-' This template helps organizations comply with:
-' - LGPD (Lei Geral de Proteção de Dados - Brazil)
-' - GDPR (General Data Protection Regulation - EU)
-' - CCPA (California Consumer Privacy Act)
-' =============================================================================
+ADD TOOL "request-data"
+ADD TOOL "export-data"
+ADD TOOL "delete-data"
+ADD TOOL "manage-consents"
+ADD TOOL "rectify-data"
+ADD TOOL "object-processing"
 
-TALK "Welcome to the Privacy Rights Center. I can help you exercise your data protection rights."
-TALK "As a data subject, you have the following rights under LGPD/GDPR:"
+USE KB "privacy.gbkb"
 
-TALK "1. Right of Access - View all data we hold about you"
-TALK "2. Right to Rectification - Correct inaccurate data"
-TALK "3. Right to Erasure - Request deletion of your data"
-TALK "4. Right to Portability - Export your data"
-TALK "5. Right to Object - Opt-out of certain processing"
-TALK "6. Consent Management - Review and update your consents"
+CLEAR SUGGESTIONS
 
-HEAR choice AS TEXT WITH "What would you like to do? (1-6 or type your request)"
+ADD SUGGESTION "access" AS "View my data"
+ADD SUGGESTION "export" AS "Export my data"
+ADD SUGGESTION "delete" AS "Delete my data"
+ADD SUGGESTION "consents" AS "Manage consents"
+ADD SUGGESTION "correct" AS "Correct my data"
+ADD SUGGESTION "object" AS "Object to processing"
 
-SELECT CASE choice
-    CASE "1", "access", "view", "see my data"
-        CALL "access-data.bas"
+SET CONTEXT "privacy rights" AS "You are a Privacy Rights Center assistant helping users exercise their data protection rights under LGPD, GDPR, and CCPA. Help with data access, rectification, erasure, portability, and consent management."
 
-    CASE "2", "rectification", "correct", "update", "fix"
-        CALL "rectify-data.bas"
+BEGIN TALK
+**Privacy Rights Center**
 
-    CASE "3", "erasure", "delete", "remove", "forget me"
-        CALL "erase-data.bas"
+As a data subject, you have the following rights:
 
-    CASE "4", "portability", "export", "download"
-        CALL "export-data.bas"
+1. **Access** - View all data we hold about you
+2. **Rectification** - Correct inaccurate data
+3. **Erasure** - Request deletion of your data
+4. **Portability** - Export your data
+5. **Object** - Opt-out of certain processing
+6. **Consent** - Review and update your consents
 
-    CASE "5", "object", "opt-out", "stop processing"
-        CALL "object-processing.bas"
+Select an option or describe your request.
+END TALK
 
-    CASE "6", "consent", "cons
+BEGIN SYSTEM PROMPT
+You are a Privacy Rights Center assistant for LGPD/GDPR/CCPA compliance.
+
+Data subject rights:
+- Right of Access: View all personal data
+- Right to Rectification: Correct inaccurate data
+- Right to Erasure: Delete personal data (right to be forgotten)
+- Right to Portability: Export data in machine-readable format
+- Right to Object: Opt-out of marketing, profiling, etc.
+- Consent Management: Review and withdraw consents
+
+Always verify identity before processing sensitive requests.
+Log all privacy requests for compliance audit.
+Provide clear timelines for request fulfillment.
+Escalate complex requests to the Data Protection Officer.
+END SYSTEM PROMPT

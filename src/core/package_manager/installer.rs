@@ -52,6 +52,8 @@ impl PackageManager {
         self.register_devtools();
         self.register_vector_db();
         self.register_timeseries_db();
+        self.register_secrets();
+        self.register_observability();
         self.register_host();
     }
 
@@ -188,8 +190,12 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: vec![
+                    // Default small model for CPU or minimal GPU (4GB VRAM)
                     "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
+                    // Embedding model for vector search
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
+                    // GPT-OSS 20B F16 - Recommended for small GPU (16GB VRAM), no CPU
+                    // Uncomment to download: "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf".to_string(),
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
@@ -333,8 +339,7 @@ impl PackageManager {
 
                 ports: vec![],
                 dependencies: vec!["alm".to_string()],
-                linux_packages: vec![
-                ],
+                linux_packages: vec![],
                 macos_packages: vec!["git".to_string(), "node".to_string()],
                 windows_packages: vec![],
                 download_url: Some(
@@ -342,15 +347,27 @@ impl PackageManager {
                 ),
                 binary_name: Some("forgejo-runner".to_string()),
                 pre_install_cmds_linux: vec![
+                    "mkdir -p {{CONF_PATH}}/alm-ci".to_string(),
                 ],
-                post_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    // Register runner with Forgejo instance
+                    // Token must be obtained from Forgejo admin panel: Site Administration > Actions > Runners
+                    "echo 'To register the runner, run:'".to_string(),
+                    "echo '{{BIN_PATH}}/forgejo-runner register --instance $ALM_URL --token $ALM_RUNNER_TOKEN --name gbo --labels ubuntu-latest:docker://node:20-bookworm'".to_string(),
+                    "echo 'Then start with: {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml'".to_string(),
+                ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
-                env_vars: HashMap::new(),
+                env_vars: {
+                    let mut env = HashMap::new();
+                    env.insert("ALM_URL".to_string(), "$ALM_URL".to_string());
+                    env.insert("ALM_RUNNER_TOKEN".to_string(), "$ALM_RUNNER_TOKEN".to_string());
+                    env
+                },
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/config.yaml".to_string(),
+                exec_cmd: "{{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml".to_string(),
                 check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
@@ -649,6 +666,109 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
                 check_cmd: "curl -f http://localhost:8086/health >/dev/null 2>&1".to_string(),
+            },
+        );
+    }
+
+    /// Register HashiCorp Vault for secrets management
+    /// Vault stores service credentials (drive, email, etc.) securely
+    /// Only VAULT_ADDR and VAULT_TOKEN needed in .env, all other secrets fetched from Vault
+    fn register_secrets(&mut self) {
+        self.components.insert(
+            "secrets".to_string(),
+            ComponentConfig {
+                name: "secrets".to_string(),
+                ports: vec![8200],
+                dependencies: vec![],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some(
+                    "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip".to_string(),
+                ),
+                binary_name: Some("vault".to_string()),
+                pre_install_cmds_linux: vec![
+                    "mkdir -p {{DATA_PATH}}/vault".to_string(),
+                    "mkdir -p {{CONF_PATH}}/vault".to_string(),
+                ],
+                post_install_cmds_linux: vec![
+                    // Initialize Vault and store root token
+                    "{{BIN_PATH}}/vault operator init -key-shares=1 -key-threshold=1 -format=json > {{CONF_PATH}}/vault/init.json".to_string(),
+                    // Extract and store unseal key and root token
+                    "VAULT_UNSEAL_KEY=$(cat {{CONF_PATH}}/vault/init.json | grep -o '\"unseal_keys_b64\":\\[\"[^\"]*\"' | cut -d'\"' -f4)".to_string(),
+                    "VAULT_ROOT_TOKEN=$(cat {{CONF_PATH}}/vault/init.json | grep -o '\"root_token\":\"[^\"]*\"' | cut -d'\"' -f4)".to_string(),
+                    // Unseal vault
+                    "{{BIN_PATH}}/vault operator unseal $VAULT_UNSEAL_KEY".to_string(),
+                    // Enable KV secrets engine
+                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault secrets enable -path=gbo kv-v2".to_string(),
+                    // Store initial secrets paths
+                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/drive accesskey={{GENERATED_PASSWORD}} secret={{GENERATED_PASSWORD}}".to_string(),
+                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/tables username=gbuser password={{GENERATED_PASSWORD}}".to_string(),
+                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/cache password={{GENERATED_PASSWORD}}".to_string(),
+                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/directory client_id= client_secret=".to_string(),
+                    "echo 'Vault initialized. Add VAULT_ADDR=https://localhost:8200 and VAULT_TOKEN to .env'".to_string(),
+                    "chmod 600 {{CONF_PATH}}/vault/init.json".to_string(),
+                ],
+                pre_install_cmds_macos: vec![
+                    "mkdir -p {{DATA_PATH}}/vault".to_string(),
+                    "mkdir -p {{CONF_PATH}}/vault".to_string(),
+                ],
+                post_install_cmds_macos: vec![],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: {
+                    let mut env = HashMap::new();
+                    env.insert("VAULT_ADDR".to_string(), "https://localhost:8200".to_string());
+                    env.insert("VAULT_SKIP_VERIFY".to_string(), "true".to_string());
+                    env
+                },
+                data_download_list: Vec::new(),
+                exec_cmd: "{{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl".to_string(),
+                check_cmd: "curl -f -k https://localhost:8200/v1/sys/health >/dev/null 2>&1".to_string(),
+            },
+        );
+    }
+
+    /// Register Vector for observability (log aggregation and metrics)
+    /// Component name: observability (like drive for minio)
+    /// Config path: ./botserver-stack/conf/monitoring/vector.toml
+    /// Logs path: ./botserver-stack/logs/ (monitors all component logs)
+    fn register_observability(&mut self) {
+        self.components.insert(
+            "observability".to_string(),
+            ComponentConfig {
+                name: "observability".to_string(),
+                ports: vec![8686], // Vector API port
+                dependencies: vec!["timeseries_db".to_string()],
+                linux_packages: vec![],
+                macos_packages: vec![],
+                windows_packages: vec![],
+                download_url: Some(
+                    "https://packages.timber.io/vector/0.35.0/vector-0.35.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
+                ),
+                binary_name: Some("vector".to_string()),
+                pre_install_cmds_linux: vec![
+                    "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
+                    "mkdir -p {{DATA_PATH}}/vector".to_string(),
+                ],
+                post_install_cmds_linux: vec![],
+                pre_install_cmds_macos: vec![
+                    "mkdir -p {{CONF_PATH}}/monitoring".to_string(),
+                    "mkdir -p {{DATA_PATH}}/vector".to_string(),
+                ],
+                post_install_cmds_macos: vec![],
+                pre_install_cmds_windows: vec![],
+                post_install_cmds_windows: vec![],
+                env_vars: HashMap::new(),
+                data_download_list: Vec::new(),
+                // Vector monitors all logs in botserver-stack/logs/
+                // - logs/system/ for botserver logs
+                // - logs/drive/ for minio logs
+                // - logs/tables/ for postgres logs
+                // - logs/cache/ for redis logs
+                // - etc.
+                exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml".to_string(),
+                check_cmd: "curl -f http://localhost:8686/health >/dev/null 2>&1".to_string(),
             },
         );
     }
