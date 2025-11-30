@@ -1,81 +1,338 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use chrono::{Local, Utc};
+use chrono::{Datelike, Local, Timelike, Utc};
 use log::debug;
-use rhai::Engine;
+use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
 
+/// Creates a datetime map object with property access
+/// Usage in BASIC:
+///   dt = NOW()
+///   dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
+///   dt.weekday, dt.timestamp, dt.formatted
+fn create_datetime_map(local: chrono::DateTime<Local>) -> Map {
+    let mut map = Map::new();
+
+    // Date components
+    map.insert("year".into(), Dynamic::from(local.year() as i64));
+    map.insert("month".into(), Dynamic::from(local.month() as i64));
+    map.insert("day".into(), Dynamic::from(local.day() as i64));
+
+    // Time components
+    map.insert("hour".into(), Dynamic::from(local.hour() as i64));
+    map.insert("minute".into(), Dynamic::from(local.minute() as i64));
+    map.insert("second".into(), Dynamic::from(local.second() as i64));
+
+    // Weekday (1=Sunday, 7=Saturday)
+    map.insert(
+        "weekday".into(),
+        Dynamic::from(local.weekday().num_days_from_sunday() as i64 + 1),
+    );
+
+    // Weekday name
+    let weekday_name = match local.weekday().num_days_from_sunday() {
+        0 => "Sunday",
+        1 => "Monday",
+        2 => "Tuesday",
+        3 => "Wednesday",
+        4 => "Thursday",
+        5 => "Friday",
+        6 => "Saturday",
+        _ => "Unknown",
+    };
+    map.insert(
+        "weekday_name".into(),
+        Dynamic::from(weekday_name.to_string()),
+    );
+
+    // Month name
+    let month_name = match local.month() {
+        1 => "January",
+        2 => "February",
+        3 => "March",
+        4 => "April",
+        5 => "May",
+        6 => "June",
+        7 => "July",
+        8 => "August",
+        9 => "September",
+        10 => "October",
+        11 => "November",
+        12 => "December",
+        _ => "Unknown",
+    };
+    map.insert("month_name".into(), Dynamic::from(month_name.to_string()));
+
+    // Timestamp (Unix epoch)
+    map.insert("timestamp".into(), Dynamic::from(local.timestamp()));
+
+    // Pre-formatted strings
+    map.insert(
+        "formatted".into(),
+        Dynamic::from(local.format("%Y-%m-%d %H:%M:%S").to_string()),
+    );
+    map.insert(
+        "date".into(),
+        Dynamic::from(local.format("%Y-%m-%d").to_string()),
+    );
+    map.insert(
+        "time".into(),
+        Dynamic::from(local.format("%H:%M:%S").to_string()),
+    );
+    map.insert(
+        "iso".into(),
+        Dynamic::from(local.format("%Y-%m-%dT%H:%M:%S%z").to_string()),
+    );
+
+    // Quarter
+    let quarter = ((local.month() - 1) / 3) + 1;
+    map.insert("quarter".into(), Dynamic::from(quarter as i64));
+
+    // Day of year
+    map.insert("day_of_year".into(), Dynamic::from(local.ordinal() as i64));
+
+    // Is weekend
+    let is_weekend =
+        local.weekday().num_days_from_sunday() == 0 || local.weekday().num_days_from_sunday() == 6;
+    map.insert("is_weekend".into(), Dynamic::from(is_weekend));
+
+    // AM/PM
+    let is_pm = local.hour() >= 12;
+    map.insert("is_pm".into(), Dynamic::from(is_pm));
+    map.insert(
+        "ampm".into(),
+        Dynamic::from(if is_pm { "PM" } else { "AM" }.to_string()),
+    );
+
+    // Hour in 12-hour format
+    let hour12 = if local.hour() == 0 {
+        12
+    } else if local.hour() > 12 {
+        local.hour() - 12
+    } else {
+        local.hour()
+    };
+    map.insert("hour12".into(), Dynamic::from(hour12 as i64));
+
+    map
+}
+
 pub fn now_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    engine.register_fn("NOW", || -> String {
+    // NOW() returns a datetime object with properties
+    // Usage: dt = NOW()
+    //        dt.year, dt.month, dt.day, dt.hour, dt.minute, dt.second
+    engine.register_fn("NOW", || -> Map { create_datetime_map(Local::now()) });
+
+    engine.register_fn("now", || -> Map { create_datetime_map(Local::now()) });
+
+    // NOW_UTC returns UTC datetime object
+    engine.register_fn("NOW_UTC", || -> Map {
+        let utc = Utc::now();
+        let local = utc.with_timezone(&Local);
+        create_datetime_map(local)
+    });
+
+    // NOW_STR for backward compatibility - returns plain string
+    engine.register_fn("NOW_STR", || -> String {
         Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
     });
 
-    engine.register_fn("now", || -> String {
+    engine.register_fn("now_str", || -> String {
         Local::now().format("%Y-%m-%d %H:%M:%S").to_string()
     });
 
-    engine.register_fn("NOW_UTC", || -> String {
-        Utc::now().format("%Y-%m-%d %H:%M:%S").to_string()
-    });
-
-    debug!("Registered NOW keyword");
+    debug!("Registered NOW keyword with .property access");
 }
 
 pub fn today_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    engine.register_fn("TODAY", || -> String {
+    // TODAY() returns a date object with properties
+    // Usage: d = TODAY()
+    //        d.year, d.month, d.day, d.weekday
+    engine.register_fn("TODAY", || -> Map {
+        let now = Local::now();
+        let mut map = Map::new();
+
+        map.insert("year".into(), Dynamic::from(now.year() as i64));
+        map.insert("month".into(), Dynamic::from(now.month() as i64));
+        map.insert("day".into(), Dynamic::from(now.day() as i64));
+        map.insert(
+            "weekday".into(),
+            Dynamic::from(now.weekday().num_days_from_sunday() as i64 + 1),
+        );
+        map.insert(
+            "formatted".into(),
+            Dynamic::from(now.format("%Y-%m-%d").to_string()),
+        );
+        map.insert("day_of_year".into(), Dynamic::from(now.ordinal() as i64));
+
+        let is_weekend =
+            now.weekday().num_days_from_sunday() == 0 || now.weekday().num_days_from_sunday() == 6;
+        map.insert("is_weekend".into(), Dynamic::from(is_weekend));
+
+        let quarter = ((now.month() - 1) / 3) + 1;
+        map.insert("quarter".into(), Dynamic::from(quarter as i64));
+
+        map
+    });
+
+    engine.register_fn("today", || -> Map {
+        let now = Local::now();
+        let mut map = Map::new();
+
+        map.insert("year".into(), Dynamic::from(now.year() as i64));
+        map.insert("month".into(), Dynamic::from(now.month() as i64));
+        map.insert("day".into(), Dynamic::from(now.day() as i64));
+        map.insert(
+            "weekday".into(),
+            Dynamic::from(now.weekday().num_days_from_sunday() as i64 + 1),
+        );
+        map.insert(
+            "formatted".into(),
+            Dynamic::from(now.format("%Y-%m-%d").to_string()),
+        );
+
+        map
+    });
+
+    // TODAY_STR for backward compatibility
+    engine.register_fn("TODAY_STR", || -> String {
         Local::now().format("%Y-%m-%d").to_string()
     });
 
-    engine.register_fn("today", || -> String {
+    engine.register_fn("today_str", || -> String {
         Local::now().format("%Y-%m-%d").to_string()
     });
 
-    debug!("Registered TODAY keyword");
+    debug!("Registered TODAY keyword with .property access");
 }
 
 pub fn time_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    engine.register_fn("TIME", || -> String {
+    // TIME() returns a time object with properties
+    // Usage: t = TIME()
+    //        t.hour, t.minute, t.second
+    engine.register_fn("TIME", || -> Map {
+        let now = Local::now();
+        let mut map = Map::new();
+
+        map.insert("hour".into(), Dynamic::from(now.hour() as i64));
+        map.insert("minute".into(), Dynamic::from(now.minute() as i64));
+        map.insert("second".into(), Dynamic::from(now.second() as i64));
+        map.insert(
+            "formatted".into(),
+            Dynamic::from(now.format("%H:%M:%S").to_string()),
+        );
+
+        let is_pm = now.hour() >= 12;
+        map.insert("is_pm".into(), Dynamic::from(is_pm));
+        map.insert(
+            "ampm".into(),
+            Dynamic::from(if is_pm { "PM" } else { "AM" }.to_string()),
+        );
+
+        let hour12 = if now.hour() == 0 {
+            12
+        } else if now.hour() > 12 {
+            now.hour() - 12
+        } else {
+            now.hour()
+        };
+        map.insert("hour12".into(), Dynamic::from(hour12 as i64));
+
+        map
+    });
+
+    engine.register_fn("time", || -> Map {
+        let now = Local::now();
+        let mut map = Map::new();
+
+        map.insert("hour".into(), Dynamic::from(now.hour() as i64));
+        map.insert("minute".into(), Dynamic::from(now.minute() as i64));
+        map.insert("second".into(), Dynamic::from(now.second() as i64));
+        map.insert(
+            "formatted".into(),
+            Dynamic::from(now.format("%H:%M:%S").to_string()),
+        );
+
+        map
+    });
+
+    // TIME_STR for backward compatibility
+    engine.register_fn("TIME_STR", || -> String {
         Local::now().format("%H:%M:%S").to_string()
     });
 
-    engine.register_fn("time", || -> String {
-        Local::now().format("%H:%M:%S").to_string()
-    });
-
+    // TIMESTAMP returns Unix epoch directly (not an object)
     engine.register_fn("TIMESTAMP", || -> i64 { Utc::now().timestamp() });
 
     engine.register_fn("timestamp", || -> i64 { Utc::now().timestamp() });
 
-    debug!("Registered TIME keyword");
+    debug!("Registered TIME keyword with .property access");
+}
+
+pub fn timestamp_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+    // Direct timestamp access - returns integer, not object
+    engine.register_fn("UNIX_TIMESTAMP", || -> i64 { Utc::now().timestamp() });
+
+    engine.register_fn("TIMESTAMP_MS", || -> i64 { Utc::now().timestamp_millis() });
+
+    debug!("Registered TIMESTAMP keyword");
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
+
     #[test]
-    fn test_now_format() {
-        let now = chrono::Local::now().format("%Y-%m-%d %H:%M:%S").to_string();
-        assert!(now.len() == 19);
-        assert!(now.contains('-'));
-        assert!(now.contains(':'));
+    fn test_create_datetime_map() {
+        let now = Local::now();
+        let map = create_datetime_map(now);
+
+        assert!(map.contains_key("year"));
+        assert!(map.contains_key("month"));
+        assert!(map.contains_key("day"));
+        assert!(map.contains_key("hour"));
+        assert!(map.contains_key("minute"));
+        assert!(map.contains_key("second"));
+        assert!(map.contains_key("weekday"));
+        assert!(map.contains_key("timestamp"));
+        assert!(map.contains_key("formatted"));
+        assert!(map.contains_key("is_weekend"));
+        assert!(map.contains_key("quarter"));
     }
 
     #[test]
-    fn test_today_format() {
-        let today = chrono::Local::now().format("%Y-%m-%d").to_string();
-        assert!(today.len() == 10);
-        assert!(today.contains('-'));
+    fn test_year_extraction() {
+        let now = Local::now();
+        let map = create_datetime_map(now);
+
+        let year = map.get("year").unwrap().as_int().unwrap();
+        assert!(year >= 2024);
     }
 
     #[test]
-    fn test_time_format() {
-        let time = chrono::Local::now().format("%H:%M:%S").to_string();
-        assert!(time.len() == 8);
-        assert!(time.contains(':'));
+    fn test_month_range() {
+        let now = Local::now();
+        let map = create_datetime_map(now);
+
+        let month = map.get("month").unwrap().as_int().unwrap();
+        assert!(month >= 1 && month <= 12);
     }
 
     #[test]
-    fn test_timestamp() {
-        let ts = chrono::Utc::now().timestamp();
-        assert!(ts > 1700000000);
+    fn test_hour12_range() {
+        let now = Local::now();
+        let map = create_datetime_map(now);
+
+        let hour12 = map.get("hour12").unwrap().as_int().unwrap();
+        assert!(hour12 >= 1 && hour12 <= 12);
+    }
+
+    #[test]
+    fn test_quarter_calculation() {
+        let now = Local::now();
+        let map = create_datetime_map(now);
+
+        let quarter = map.get("quarter").unwrap().as_int().unwrap();
+        assert!(quarter >= 1 && quarter <= 4);
     }
 }

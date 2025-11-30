@@ -22,6 +22,7 @@ mod editor;
 pub mod file_tree;
 mod log_panel;
 mod status_panel;
+pub mod wizard;
 use chat_panel::ChatPanel;
 use editor::Editor;
 use file_tree::{FileTree, TreeNode};

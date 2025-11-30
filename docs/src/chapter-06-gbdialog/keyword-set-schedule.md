@@ -1,24 +1,111 @@
 # SET SCHEDULE
 
-Schedule a script or task to run at specified times using cron expressions.
+Schedule a script or task to run at specified times using natural language or cron expressions.
 
 ## Syntax
 
 ```basic
-SET SCHEDULE cron_expression
+SET SCHEDULE expression
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `cron_expression` | String | Standard cron expression defining when to run |
+| `expression` | String | Natural language schedule or cron expression |
 
 ## Description
 
-The `SET SCHEDULE` keyword schedules the current script to run automatically at specified intervals. It uses standard cron syntax for maximum flexibility in scheduling.
+The `SET SCHEDULE` keyword schedules the current script to run automatically at specified intervals. It supports **natural language expressions** that are automatically converted to cron format, making scheduling intuitive and readable.
 
-## Cron Expression Format
+## Natural Language Patterns
+
+### Time Intervals
+
+```basic
+SET SCHEDULE "every minute"
+SET SCHEDULE "every 5 minutes"
+SET SCHEDULE "every 15 minutes"
+SET SCHEDULE "every 30 minutes"
+SET SCHEDULE "every hour"
+SET SCHEDULE "every 2 hours"
+SET SCHEDULE "every 6 hours"
+SET SCHEDULE "every day"
+SET SCHEDULE "every week"
+SET SCHEDULE "every month"
+SET SCHEDULE "every year"
+```
+
+### Aliases
+
+```basic
+SET SCHEDULE "hourly"      ' Same as "every hour"
+SET SCHEDULE "daily"       ' Same as "every day"
+SET SCHEDULE "weekly"      ' Same as "every week"
+SET SCHEDULE "monthly"     ' Same as "every month"
+SET SCHEDULE "yearly"      ' Same as "every year"
+```
+
+### Specific Times
+
+```basic
+SET SCHEDULE "at 9am"
+SET SCHEDULE "at 9:30am"
+SET SCHEDULE "at 2pm"
+SET SCHEDULE "at 14:00"
+SET SCHEDULE "at midnight"
+SET SCHEDULE "at noon"
+```
+
+### Day-Specific
+
+```basic
+SET SCHEDULE "every monday"
+SET SCHEDULE "every friday"
+SET SCHEDULE "every sunday"
+SET SCHEDULE "every monday at 9am"
+SET SCHEDULE "every friday at 5pm"
+```
+
+### Weekdays & Weekends
+
+```basic
+SET SCHEDULE "weekdays"              ' Monday-Friday at midnight
+SET SCHEDULE "every weekday"         ' Same as above
+SET SCHEDULE "weekdays at 8am"       ' Monday-Friday at 8 AM
+SET SCHEDULE "weekends"              ' Saturday & Sunday at midnight
+SET SCHEDULE "weekends at 10am"      ' Saturday & Sunday at 10 AM
+```
+
+### Combined Patterns
+
+```basic
+SET SCHEDULE "every day at 9am"
+SET SCHEDULE "every day at 6:30pm"
+SET SCHEDULE "every hour from 9 to 17"
+```
+
+### Business Hours
+
+```basic
+SET SCHEDULE "business hours"                           ' Every hour 9-17, Mon-Fri
+SET SCHEDULE "every hour during business hours"         ' Same as above
+SET SCHEDULE "every 30 minutes during business hours"   ' Every 30 min, 9-17, Mon-Fri
+SET SCHEDULE "every 15 minutes during business hours"
+```
+
+### Raw Cron (Advanced)
+
+You can still use standard cron expressions for maximum flexibility:
+
+```basic
+SET SCHEDULE "0 * * * *"       ' Every hour at minute 0
+SET SCHEDULE "*/5 * * * *"     ' Every 5 minutes
+SET SCHEDULE "0 9-17 * * 1-5"  ' Hourly 9AM-5PM on weekdays
+SET SCHEDULE "0 0 1 * *"       ' First day of each month
+```
+
+## Cron Expression Format (Reference)
 
 ```
 ┌───────────── minute (0-59)
@@ -30,147 +117,167 @@ The `SET SCHEDULE` keyword schedules the current script to run automatically at 
 * * * * *
 ```
 
+## Quick Reference Table
+
+| Natural Language | Cron Equivalent | Description |
+|-----------------|-----------------|-------------|
+| `every minute` | `* * * * *` | Runs every minute |
+| `every 5 minutes` | `*/5 * * * *` | Every 5 minutes |
+| `every hour` | `0 * * * *` | Start of every hour |
+| `hourly` | `0 * * * *` | Same as every hour |
+| `every day` | `0 0 * * *` | Daily at midnight |
+| `daily` | `0 0 * * *` | Same as every day |
+| `at 9am` | `0 9 * * *` | Daily at 9 AM |
+| `at 9:30am` | `30 9 * * *` | Daily at 9:30 AM |
+| `at noon` | `0 12 * * *` | Daily at noon |
+| `at midnight` | `0 0 * * *` | Daily at midnight |
+| `every monday` | `0 0 * * 1` | Monday at midnight |
+| `every monday at 9am` | `0 9 * * 1` | Monday at 9 AM |
+| `weekdays` | `0 0 * * 1-5` | Mon-Fri at midnight |
+| `weekdays at 8am` | `0 8 * * 1-5` | Mon-Fri at 8 AM |
+| `weekends` | `0 0 * * 0,6` | Sat-Sun at midnight |
+| `every week` | `0 0 * * 0` | Sunday at midnight |
+| `weekly` | `0 0 * * 0` | Same as every week |
+| `every month` | `0 0 1 * *` | 1st of month |
+| `monthly` | `0 0 1 * *` | Same as every month |
+| `business hours` | `0 9-17 * * 1-5` | Hourly 9-5 weekdays |
+| `every hour from 9 to 17` | `0 9-17 * * *` | Hourly 9 AM - 5 PM |
+
 ## Examples
 
-### Every Hour
+### Daily Report at 9 AM
+
 ```basic
-SET SCHEDULE "0 * * * *"
-' Runs at the start of every hour
-```
+SET SCHEDULE "every day at 9am"
 
-### Daily at Specific Time
-```basic
-SET SCHEDULE "0 9 * * *"
-' Runs every day at 9:00 AM
-```
-
-### Every 5 Minutes
-```basic
-SET SCHEDULE "*/5 * * * *"
-' Runs every 5 minutes
-```
-
-### Weekdays Only
-```basic
-SET SCHEDULE "0 8 * * 1-5"
-' Runs at 8 AM Monday through Friday
-```
-
-### Multiple Times Daily
-```basic
-SET SCHEDULE "0 9,12,17 * * *"
-' Runs at 9 AM, 12 PM, and 5 PM
-```
-
-### Monthly Reports
-```basic
-SET SCHEDULE "0 6 1 * *"
-' Runs at 6 AM on the first day of each month
-```
-
-## Common Patterns
-
-| Pattern | Cron Expression | Description |
-|---------|----------------|-------------|
-| Every minute | `* * * * *` | Runs every minute |
-| Every hour | `0 * * * *` | Start of every hour |
-| Every 30 minutes | `*/30 * * * *` | Every 30 minutes |
-| Daily at midnight | `0 0 * * *` | Every day at 12:00 AM |
-| Weekly on Monday | `0 0 * * 1` | Every Monday at midnight |
-| Last day of month | `0 0 28-31 * *` | End of month (approximate) |
-| Business hours | `0 9-17 * * 1-5` | Every hour 9 AM-5 PM weekdays |
-
-## Practical Use Cases
-
-### Daily Summary Generation
-```basic
-SET SCHEDULE "0 6 * * *"
-
-' Fetch and summarize daily data
 data = GET "reports/daily.json"
 summary = LLM "Summarize key metrics: " + data
-SET BOT MEMORY "daily_summary", summary
+SEND MAIL "team@company.com", "Daily Report", summary
 ```
 
-### Hourly Data Refresh
-```basic
-SET SCHEDULE "0 * * * *"
+### Hourly Data Sync
 
-' Update cached data every hour
-fresh_data = GET "https://server/data"
+```basic
+SET SCHEDULE "every hour"
+
+fresh_data = GET "https://api.example.com/data"
 SET BOT MEMORY "cached_data", fresh_data
+PRINT "Data refreshed at " + NOW()
 ```
 
-### Weekly Newsletter
-```basic
-SET SCHEDULE "0 10 * * 1"
+### Every 15 Minutes Monitoring
 
-' Send weekly newsletter every Monday at 10 AM
-subscribers = FIND "subscribers_custom", "active=true"
+```basic
+SET SCHEDULE "every 15 minutes"
+
+status = GET "https://api.example.com/health"
+IF status.healthy = false THEN
+    SEND MAIL "ops@company.com", "Alert: Service Down", status.message
+END IF
+```
+
+### Weekly Newsletter (Monday 10 AM)
+
+```basic
+SET SCHEDULE "every monday at 10am"
+
+subscribers = FIND "subscribers", "active=true"
+content = LLM "Generate weekly newsletter with latest updates"
+
 FOR EACH email IN subscribers
-    SEND MAIL email, "Weekly Update", newsletter_content
+    SEND MAIL email.address, "Weekly Update", content
 NEXT
 ```
 
-### Cancel Schedule
+### Business Hours Support Check
+
 ```basic
-' Schedules are automatically canceled when SET SCHEDULE is removed from .bas.
+SET SCHEDULE "every 30 minutes during business hours"
+
+tickets = FIND "support_tickets", "status=open AND priority=high"
+IF LEN(tickets) > 5 THEN
+    TALK TO "support-manager", "High priority ticket queue: " + LEN(tickets) + " tickets waiting"
+END IF
+```
+
+### Weekend Backup
+
+```basic
+SET SCHEDULE "weekends at 3am"
+
+PRINT "Starting weekend backup..."
+result = POST "https://backup.service/run", { "type": "full" }
+SET BOT MEMORY "last_backup", NOW()
+SEND MAIL "admin@company.com", "Backup Complete", result
+```
+
+### End of Month Report
+
+```basic
+SET SCHEDULE "monthly"
+
+' Runs on 1st of each month at midnight
+month_data = AGGREGATE "sales", "SUM(amount)", "month=" + MONTH(DATEADD("month", -1, NOW()))
+report = LLM "Generate monthly sales report for: " + month_data
+SEND MAIL "finance@company.com", "Monthly Sales Report", report
 ```
 
 ## Best Practices
 
-1. **Start Time Consideration**: Avoid scheduling all tasks at the same time
+1. **Use Natural Language**: Prefer readable expressions like `"every day at 9am"` over cron syntax
+
+2. **Stagger Tasks**: Avoid scheduling all tasks at the same time
    ```basic
-   ' Bad: Everything at midnight
-   SET SCHEDULE "0 0 * * *"
-   
-   ' Good: Stagger tasks
-   SET SCHEDULE "0 2 * * *"  ' Cleanup at 2 AM
-   SET SCHEDULE "0 3 * * *"  ' Backup at 3 AM
+   ' Good: Different times
+   SET SCHEDULE "every day at 2am"   ' Cleanup
+   SET SCHEDULE "every day at 3am"   ' Backup
+   SET SCHEDULE "every day at 4am"   ' Reports
    ```
 
-2. **Resource Management**: Consider system load
-   ```basic
-   ' Heavy processing during off-hours
-   SET SCHEDULE "0 2-4 * * *"
-   ```
+3. **Consider Time Zones**: Schedule times are in server's local time
 
-3. **Error Handling**: Include error recovery
+4. **Error Handling**: Always include error recovery
    ```basic
-   SET SCHEDULE "0 * * * *"
+   SET SCHEDULE "every hour"
    
    TRY
        PROCESS_DATA()
    CATCH
-       LOG "Schedule failed: " + ERROR_MESSAGE
+       PRINT "Schedule failed: " + ERROR_MESSAGE
        SEND MAIL "admin@example.com", "Schedule Error", ERROR_DETAILS
    END TRY
    ```
 
-4. **Idempotency**: Make scheduled tasks safe to re-run
+5. **Idempotency**: Make scheduled tasks safe to re-run
    ```basic
-   ' Check if already processed
    last_run = GET BOT MEMORY "last_process_time"
-   IF TIME_DIFF(NOW(), last_run) > 3600 THEN
+   IF DATEDIFF("minute", last_run, NOW()) > 55 THEN
        PROCESS()
        SET BOT MEMORY "last_process_time", NOW()
    END IF
    ```
+
+## Cancel Schedule
+
+Schedules are automatically canceled when `SET SCHEDULE` is removed from the `.bas` file. Simply delete or comment out the line:
+
+```basic
+' SET SCHEDULE "every hour"   ' Commented out = disabled
+```
 
 ## Limitations
 
 - Maximum 100 scheduled tasks per bot
 - Minimum interval: 1 minute
 - Scripts timeout after 5 minutes by default
-- Schedules persist until explicitly canceled or bot restarts
 - Time zone is server's local time
 
 ## Monitoring
 
-Scheduled tasks are logged for monitoring:
+Scheduled tasks are logged automatically:
 - Execution start/end times
 - Success/failure status
-- Error messages
+- Error messages if any
 - Performance metrics
 
 ## Related Keywords
@@ -186,7 +293,9 @@ Scheduled tasks are logged for monitoring:
 Located in `src/basic/keywords/set_schedule.rs`
 
 The implementation:
-- Uses cron parser for expression validation
+- Uses a fast rule-based natural language parser (no LLM required)
+- Falls back to raw cron if input is already in cron format
+- Validates expressions before saving
 - Integrates with system scheduler
 - Persists schedules in database
 - Handles concurrent execution
