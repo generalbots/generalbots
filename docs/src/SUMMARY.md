@@ -57,6 +57,8 @@
     - [start.bas](./chapter-06-gbdialog/template-start.md)
     - [generate-summary.bas](./chapter-06-gbdialog/template-summary.md)
     - [enrollment Tool Example](./chapter-06-gbdialog/template-enrollment.md)
+  - [Consolidated Examples](./chapter-06-gbdialog/examples-consolidated.md)
+  - [Data Sync Tools](./chapter-06-gbdialog/tools-data-sync.md)
   - [Keywords Reference](./chapter-06-gbdialog/keywords.md)
     - [TALK](./chapter-06-gbdialog/keyword-talk.md)
     - [HEAR](./chapter-06-gbdialog/keyword-hear.md)
@@ -196,6 +198,7 @@
   - [Storage and Data](./chapter-11-features/storage.md)
   - [Multi-Channel Support](./chapter-11-features/channels.md)
   - [Drive Monitor](./chapter-11-features/drive-monitor.md)
+  - [Platform Comparison](./chapter-11-features/platform-comparison.md)
 
 # Part XI - Security
 
@@ -208,6 +211,7 @@
   - [Security Policy](./chapter-12-auth/security-policy.md)
   - [Compliance Requirements](./chapter-12-auth/compliance-requirements.md)
   - [Permissions Matrix](./chapter-12-auth/permissions-matrix.md)
+  - [Permissions Compliance](./chapter-12-auth/permissions-compliance.md)
   - [User Context vs System Context](./chapter-12-auth/user-system-context.md)
 
 # Part XII - Community

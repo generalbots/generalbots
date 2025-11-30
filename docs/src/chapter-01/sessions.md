@@ -149,13 +149,12 @@ Each bot session is independent:
 - Unique per session
 
 ### Token Validation
-```rust
-// Every request validates:
+
+Every request validates:
 1. Token exists
 2. Token not expired
 3. Token matches session
 4. Session still active
-```
 
 ### Security Features
 - No session hijacking (tokens unguessable)

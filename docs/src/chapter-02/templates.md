@@ -1,32 +1,89 @@
 # Bot Templates
 
-BotServer includes 21 pre-built bot templates for various use cases. Each template is a complete `.gbai` package ready to deploy.
+BotServer includes pre-built bot templates for various use cases. Each template is a complete `.gbai` package ready to deploy.
 
-## Template Overview
+---
 
-| Template | Purpose | Key Features | Use Case |
-|----------|---------|--------------|----------|
-| **default.gbai** | Minimal starter bot | Basic config only | Simple bots, learning |
-| **template.gbai** | Reference implementation | Complete structure example | Creating new templates |
-| **announcements.gbai** | Company announcements | Multiple KB collections, auth flows | Internal communications |
-| **ai-search.gbai** | AI-powered search | QR generation, PDF samples | Document retrieval |
-| **api-client.gbai** | External API integration | Climate API, REST patterns | Third-party services |
-| **backup.gbai** | Backup automation | Server backup scripts, scheduling | System administration |
-| **bi.gbai** | Business Intelligence | Admin/user roles, data viz | Executive dashboards |
-| **broadcast.gbai** | Mass messaging | Recipient management, scheduling | Marketing campaigns |
-| **crawler.gbai** | Web indexing | Site crawling, content extraction | Search engines |
-| **crm.gbai** | Customer Relations | Sentiment analysis, tracking | Sales & support |
-| **edu.gbai** | Education platform | Course management, enrollment | Online learning |
-| **erp.gbai** | Enterprise Planning | Process automation, integrations | Resource management |
-| **law.gbai** | Legal assistant | Document templates, regulations | Legal departments |
-| **llm-server.gbai** | LLM hosting | Model serving, GPU config | AI infrastructure |
-| **llm-tools.gbai** | LLM utilities | Prompt engineering, testing | AI development |
-| **marketing.gbai** | Marketing automation | Campaign tools, lead generation | Marketing teams |
-| **public-apis.gbai** | Public API access | Weather, news, data sources | Information services |
-| **reminder.gbai** | Task reminders | Scheduling, notifications | Personal assistants |
-| **store.gbai** | E-commerce | Product catalog, orders | Online stores |
-| **talk-to-data.gbai** | Natural language queries | SQL generation, data viz | Data exploration |
-| **whatsapp.gbai** | WhatsApp Business | Meta API, media handling | Mobile messaging |
+## Complete Template List (Flat Reference)
+
+| # | Template | Category | Folder | Key Features |
+|---|----------|----------|--------|--------------|
+| 1 | Default | Core | `default.gbai` | Minimal starter bot |
+| 2 | Template | Core | `template.gbai` | Reference implementation |
+| 3 | Announcements | Communications | `announcements.gbai` | Company news, multiple KB |
+| 4 | AI Search | Search | `ai-search.gbai` | QR codes, document search |
+| 5 | API Client | Integration | `api-client.gbai` | REST API patterns |
+| 6 | Backup | Administration | `backup.gbai` | Server backup scripts |
+| 7 | BI | Analytics | `bi.gbai` | Dashboards, role separation |
+| 8 | Broadcast | Communications | `broadcast.gbai` | Mass messaging |
+| 9 | Crawler | Search | `crawler.gbai` | Web indexing |
+| 10 | CRM | Sales | `crm.gbai` | Customer management |
+| 11 | Education | Education | `edu.gbai` | Course management |
+| 12 | ERP | Operations | `erp.gbai` | Process automation |
+| 13 | Law | Legal | `law.gbai` | Document templates |
+| 14 | LLM Server | AI | `llm-server.gbai` | Model hosting |
+| 15 | LLM Tools | AI | `llm-tools.gbai` | Prompt engineering |
+| 16 | Marketing | Marketing | `marketing.gbai` | Campaign tools |
+| 17 | Public APIs | Integration | `public-apis.gbai` | Weather, news APIs |
+| 18 | Reminder | Productivity | `reminder.gbai` | Task reminders |
+| 19 | Store | E-commerce | `store.gbai` | Product catalog |
+| 20 | Talk to Data | Analytics | `talk-to-data.gbai` | Natural language SQL |
+| 21 | WhatsApp | Messaging | `whatsapp.gbai` | WhatsApp Business |
+| 22 | Office | Productivity | `office.gbai` | Document processing |
+| 23 | Employee Management | HR | `hr/employees.gbai` | Employee CRUD |
+| 24 | IT Helpdesk | IT | `it/helpdesk.gbai` | Ticket management |
+| 25 | Sales Pipeline | CRM | `crm/sales-pipeline.gbai` | Deal tracking |
+| 26 | Contact Directory | CRM | `crm/contacts.gbai` | Contact management |
+
+---
+
+## Templates by Category
+
+### Core Templates
+
+| Template | Folder | Purpose |
+|----------|--------|---------|
+| Default | `default.gbai` | Minimal starter bot for learning |
+| Template | `template.gbai` | Complete example structure |
+
+### HR & People
+
+| Template | Folder | Key Files |
+|----------|--------|-----------|
+| Employee Management | `hr/employees.gbai` | `start.bas`, `add-employee.bas`, `search-employee.bas` |
+| Leave Management | `hr/leave.gbai` | `start.bas`, `request-leave.bas`, `approve-leave.bas` |
+| Recruitment | `hr/recruitment.gbai` | `start.bas`, `post-job.bas`, `add-applicant.bas` |
+
+### IT & Support
+
+| Template | Folder | Key Files |
+|----------|--------|-----------|
+| IT Helpdesk | `it/helpdesk.gbai` | `start.bas`, `create-ticket.bas`, `update-ticket.bas` |
+| Asset Tracking | `it/assets.gbai` | `start.bas`, `add-asset.bas`, `checkout-asset.bas` |
+
+### CRM & Sales
+
+| Template | Folder | Key Files |
+|----------|--------|-----------|
+| CRM | `crm.gbai` | `lead-management.bas`, `opportunity-management.bas` |
+| Sales Pipeline | `crm/sales-pipeline.gbai` | `start.bas`, `create-deal.bas`, `update-stage.bas` |
+| Contact Directory | `crm/contacts.gbai` | `start.bas`, `add-contact.bas`, `search-contact.bas` |
+
+### Finance & Accounting
+
+| Template | Folder | Key Files |
+|----------|--------|-----------|
+| Invoicing | `finance/invoicing.gbai` | `start.bas`, `create-invoice.bas`, `send-reminder.bas` |
+| Expense Tracker | `finance/expenses.gbai` | `start.bas`, `submit-expense.bas`, `approve-expense.bas` |
+
+### Operations
+
+| Template | Folder | Key Files |
+|----------|--------|-----------|
+| ERP | `erp.gbai` | Process automation, integrations |
+| Warehouse | `operations/warehouse.gbai` | `start.bas`, `receive-stock.bas`, `ship-order.bas` |
+
+---
 
 ## Template Structure
 
@@ -35,19 +92,21 @@ All templates follow this standard directory layout:
 ```
 template-name.gbai/
   template-name.gbdialog/    # BASIC dialog scripts
-    start.bas              # Entry point (required)
-    *.bas                  # Tool scripts (auto-discovered)
+    start.bas                # Entry point (required)
+    *.bas                    # Tool scripts (auto-discovered)
+    *-jobs.bas               # Scheduled jobs
   template-name.gbkb/        # Knowledge base collections
-    collection1/           # Documents for USE KB "collection1"
-    collection2/           # Documents for USE KB "collection2"
+    collection1/             # Documents for USE KB "collection1"
   template-name.gbdrive/     # File storage (not KB)
-    uploads/               # User uploaded files
-    exports/               # Generated files
+    uploads/                 # User uploaded files
+    exports/                 # Generated files
   template-name.gbot/        # Configuration
-    config.csv             # Bot parameters
+    config.csv               # Bot parameters
   template-name.gbtheme/     # UI theme (optional)
-    default.css            # Theme CSS
+    default.css              # Theme CSS
 ```
+
+---
 
 ## Quick Start Guide
 
@@ -85,83 +144,137 @@ Place documents in `.gbkb` folders:
 - Use `USE KB "folder-name"` in scripts
 - Documents are automatically indexed
 
-### 5. Create Tools (Optional)
+### 5. Create Tools
 
 Add `.bas` files to `.gbdialog`:
 - Each file becomes a tool
 - Auto-discovered by the system
 - Called automatically by LLM when needed
 
-## Template Details
+---
 
-### Core Templates
+## Required Files for Each Template
 
-#### default.gbai
-- **Files**: Minimal configuration only
-- **Best for**: Learning, simple bots
-- **Customization**: Start from scratch
+### start.bas (Required)
 
-#### template.gbai
-- **Files**: Complete example structure
-- **Best for**: Reference implementation
-- **Customization**: Copy and modify
+```basic
+' Template Name - Start Script
 
-### Business Applications
+' Setup Tools
+ADD TOOL "tool-name-1"
+ADD TOOL "tool-name-2"
 
-#### announcements.gbai
-- **Files**: `auth.bas`, `start.bas`, multiple KB collections
-- **Collections**: auxiliom, news, toolbix
-- **Features**: Authentication, summaries
+' Setup Knowledge Base
+USE KB "template-name.gbkb"
 
-#### bi.gbai
-- **Files**: `bi-admin.bas`, `bi-user.bas`
-- **Features**: Role separation, dashboards
-- **Data**: Report generation
+' Set Context
+SET CONTEXT "context name" AS "You are a [role]. You help with [tasks]."
 
-#### crm.gbai
-- **Files**: `analyze-customer-sentiment.bas`, `check.bas`
-- **Features**: Sentiment analysis
-- **Data**: Customer tracking
+' Setup Suggestions
+CLEAR SUGGESTIONS
+ADD SUGGESTION "action1" AS "Display text 1"
+ADD SUGGESTION "action2" AS "Display text 2"
 
-#### store.gbai
-- **Features**: Product catalog, order processing
-- **Integration**: E-commerce workflows
+' Welcome Message
+BEGIN TALK
+    **Template Title**
+    
+    Welcome message here.
+    
+    **What I can help with:**
+    • Feature 1
+    • Feature 2
+END TALK
 
-### AI & Search
+BEGIN SYSTEM PROMPT
+    Detailed instructions for the AI...
+END SYSTEM PROMPT
+```
 
-#### ai-search.gbai
-- **Files**: `qr.bas`, PDF samples
-- **Features**: QR codes, document search
-- **Data**: Sample PDFs included
+### Tool File Template
 
-#### talk-to-data.gbai
-- **Features**: Natural language to SQL
-- **Integration**: Database connections
-- **Output**: Data visualization
+```basic
+PARAM paramname AS STRING LIKE "example" DESCRIPTION "What this parameter is"
+PARAM optionalparam AS STRING LIKE "default" DESCRIPTION "Optional parameter"
 
-### Communication
+DESCRIPTION "What this tool does. Called when user wants to [action]."
 
-#### broadcast.gbai
-- **Files**: `broadcast.bas`
-- **Features**: Mass messaging
-- **Scheduling**: Message campaigns
+' Business logic
+let result = "processed"
 
-#### whatsapp.gbai
-- **Config**: Meta Challenge parameter
-- **Features**: WhatsApp API integration
-- **Media**: Image/video support
+' Save data (field names = variable names)
+SAVE "table.csv", paramname, optionalparam, result
 
-### Development Tools
+' Store in memory
+SET BOT MEMORY "last_item", result
 
-#### api-client.gbai
-- **Files**: `climate.bas`, `msft-partner-center.bas`
-- **Examples**: REST API patterns
-- **Integration**: External services
+' Response
+TALK "✅ Action completed successfully!"
+```
 
-#### llm-server.gbai
-- **Config**: Model serving parameters
-- **Features**: GPU configuration
-- **Purpose**: Local LLM hosting
+### config.csv Template
+
+```csv
+name,value
+prompt-history,2
+prompt-compact,4
+theme-color1,#1565C0
+theme-color2,#E3F2FD
+theme-logo,https://pragmatismo.com.br/icons/general-bots.svg
+theme-title,Template Name - General Bots
+```
+
+---
+
+## Syntax Rules for Templates
+
+### DO ✅
+
+```basic
+' Variable names (no underscores in names)
+let ticketnumber = "TKT001"
+let useremail = "user@example.com"
+
+' SAVE with field names = variable names
+SAVE "table.csv", ticketnumber, useremail, status
+
+' Keywords with spaces
+SET BOT MEMORY "last_ticket", ticketnumber
+SET CONTEXT "name" AS "description"
+ADD SUGGESTION "key" AS "Display text"
+CLEAR SUGGESTIONS
+USE KB "myknowledge"
+USE TOOL "mytool"
+
+' GET BOT MEMORY as function
+let lastticket = GET BOT MEMORY("last_ticket")
+```
+
+### DON'T ❌
+
+```basic
+' NO: Complex object operations
+SET object.field = value  ' WRONG
+SAVE "table", object.id, object  ' WRONG
+```
+
+---
+
+## Creating Custom Templates
+
+To create your own template:
+
+1. **Copy `template.gbai`** as starting point
+2. **Define clear purpose** - one template, one job
+3. **Structure folders** properly:
+   - `.gbdialog` for scripts
+   - `.gbkb` for knowledge collections
+   - `.gbdrive` for general files
+   - `.gbot` for configuration
+4. **Include examples** - sample data and dialogs
+5. **Test thoroughly** - verify all features
+
+---
 
 ## Best Practices
 
@@ -178,8 +291,7 @@ Add `.bas` files to `.gbdialog`:
 Instead of complex dialog flows, use simple LLM calls:
 
 ```basic
-' Traditional: 100+ lines of intent matching
-' BotServer: Let system AI handle it naturally
+' Let system AI handle conversations naturally
 TALK "How can I assist you?"
 ' System AI understands and responds appropriately
 ```
@@ -204,42 +316,7 @@ Only create `.bas` files for specific actions:
 - Configure appropriate cache settings
 - Monitor resource usage
 
-## Creating Custom Templates
-
-To create your own template:
-
-1. **Copy `template.gbai`** as starting point
-2. **Define clear purpose** - one template, one job
-3. **Structure folders** properly:
-   - `.gbdialog` for scripts
-   - `.gbkb` for knowledge collections
-   - `.gbdrive` for general files
-   - `.gbot` for configuration
-4. **Include examples** - sample data and dialogs
-5. **Test thoroughly** - verify all features
-
-## Migration Philosophy
-
-When migrating from traditional platforms:
-
-### Remove Complexity
-- ❌ Intent detection → ✅ LLM understands naturally
-- ❌ State machines → ✅ LLM maintains context
-- ❌ Routing logic → ✅ LLM handles flow
-- ❌ Entity extraction → ✅ LLM identifies information
-
-### Embrace Simplicity
-- Let LLM handle conversations
-- Create tools only for actions
-- Use knowledge bases for context
-- Trust the system's capabilities
-
-## Template Maintenance
-
-- Templates updated with BotServer releases
-- Check repository for latest versions
-- Review changes before upgrading
-- Test in development first
+---
 
 ## Support Resources
 

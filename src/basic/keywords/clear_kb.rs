@@ -12,24 +12,25 @@ struct CountResult {
     count: i64,
 }
 
-/// Register CLEAR_KB keyword
+/// Register CLEAR KB keyword
 /// Removes one or all Knowledge Bases from the current session's context
 /// Usage:
-///   CLEAR_KB "kbname"  - Remove specific KB
-///   CLEAR_KB           - Remove all KBs
+///   CLEAR KB "kbname"  - Remove specific KB
+///   CLEAR KB           - Remove all KBs
 pub fn register_clear_kb_keyword(
     engine: &mut Engine,
     state: Arc<AppState>,
     session: Arc<UserSession>,
 ) -> Result<(), Box<EvalAltResult>> {
-    // CLEAR_KB with argument - remove specific KB
+    // CLEAR KB with argument - remove specific KB
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
-    engine.register_custom_syntax(&["CLEAR_KB", "$expr$"], true, move |context, inputs| {
+    // Register with spaces: CLEAR KB "kbname"
+    engine.register_custom_syntax(&["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
-            "CLEAR_KB keyword executed - KB: {}, Session: {}",
+            "CLEAR KB keyword executed - KB: {}, Session: {}",
             kb_name, session_clone.id
         );
 
@@ -50,21 +51,22 @@ pub fn register_clear_kb_keyword(
             }
             Ok(Err(e)) => {
                 error!("Failed to clear KB '{}': {}", kb_name, e);
-                Err(format!("CLEAR_KB failed: {}", e).into())
+                Err(format!("CLEAR KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("Thread panic in CLEAR_KB: {:?}", e);
-                Err("CLEAR_KB failed: thread panic".into())
+                error!("Thread panic in CLEAR KB: {:?}", e);
+                Err("CLEAR KB failed: thread panic".into())
             }
         }
     })?;
 
-    // CLEAR_KB without argument - remove all KBs
+    // CLEAR KB without argument - remove all KBs
     let state_clone2 = Arc::clone(&state);
     let session_clone2 = Arc::clone(&session);
-    engine.register_custom_syntax(&["CLEAR_KB"], true, move |_context, _inputs| {
+    // Register with spaces: CLEAR KB (no argument)
+    engine.register_custom_syntax(&["CLEAR", "KB"], true, move |_context, _inputs| {
         info!(
-            "CLEAR_KB (all) keyword executed - Session: {}",
+            "CLEAR KB (all) keyword executed - Session: {}",
             session_clone2.id
         );
 
@@ -86,11 +88,11 @@ pub fn register_clear_kb_keyword(
             }
             Ok(Err(e)) => {
                 error!("Failed to clear all KBs: {}", e);
-                Err(format!("CLEAR_KB failed: {}", e).into())
+                Err(format!("CLEAR KB failed: {}", e).into())
             }
             Err(e) => {
-                error!("Thread panic in CLEAR_KB: {:?}", e);
-                Err("CLEAR_KB failed: thread panic".into())
+                error!("Thread panic in CLEAR KB: {:?}", e);
+                Err("CLEAR KB failed: thread panic".into())
             }
         }
     })?;

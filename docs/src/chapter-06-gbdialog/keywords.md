@@ -9,644 +9,266 @@ This section lists every BASIC keyword implemented in the GeneralBots engine. Ea
 
 The source code for each keyword lives in `src/basic/keywords/`. Only the keywords listed here exist in the system.
 
-## Core Dialog Keywords
+---
 
-- [TALK](./keyword-talk.md) - Send message to user
-- [HEAR](./keyword-hear.md) - Get input from user
-- [WAIT](./keyword-wait.md) - Pause execution
-- [PRINT](./keyword-print.md) - Debug output
+## Complete Keyword List (Flat Reference)
 
-## Variable & Memory
-
-- [SET](./keyword-set.md) - Set variable value
-- [GET](./keyword-get.md) - Get variable value
-- [SET BOT MEMORY](./keyword-set-bot-memory.md) - Persist data
-- [GET BOT MEMORY](./keyword-get-bot-memory.md) - Retrieve persisted data
-
-## AI & Context
-
-- [LLM](./keyword-llm.md) - Query language model
-- [SET CONTEXT](./keyword-set-context.md) - Add context for LLM
-- [SET USER](./keyword-set-user.md) - Set user context
-
-## Knowledge Base
-
-- [USE KB](./keyword-use-kb.md) - Load knowledge base
-- [CLEAR KB](./keyword-clear-kb.md) - Unload knowledge base
-- [USE WEBSITE](./keyword-use-website.md) - Associate website with conversation
-- [FIND](./keyword-find.md) - Search in KB
-
-## Tools & Automation
-
-- [USE TOOL](./keyword-use-tool.md) - Load tool definition
-- [CLEAR TOOLS](./keyword-clear-tools.md) - Remove all tools
-- [CREATE TASK](./keyword-create-task.md) - Create task
-- [CREATE SITE](./keyword-create-site.md) - Generate website
-- [CREATE DRAFT](./keyword-create-draft.md) - Create email draft
-
-## UI & Interaction
-
-- [ADD SUGGESTION](./keyword-add-suggestion.md) - Add clickable button
-- [CLEAR SUGGESTIONS](./keyword-clear-suggestions.md) - Remove buttons
-- [CHANGE THEME](./keyword-change-theme.md) - Switch UI theme
-
-## Data Processing
-
-- [FORMAT](./keyword-format.md) - Format strings
-- [FIRST](./keyword-first.md) - Get first element
-- [LAST](./keyword-last.md) - Get last element
-- [SAVE FROM UNSTRUCTURED](./keyword-save-from-unstructured.md) - Extract structured data
-
-## Flow Control
-
-- [FOR EACH ... NEXT](./keyword-for-each.md) - Loop through items
-- [EXIT FOR](./keyword-exit-for.md) - Exit loop early
-- [ON](./keyword-on.md) - Event handler
-- [SET SCHEDULE](./keyword-set-schedule.md) - Schedule execution
-- [WEBHOOK](./keyword-webhook.md) - Create webhook endpoint
-
-## Communication
-
-- [SEND MAIL](./keyword-send-mail.md) - Send email
-- [ADD MEMBER](./keyword-add-member.md) - Add group member
-
-## Special Functions
-
-- [BOOK](./keyword-book.md) - Book appointment
-- [REMEMBER](./keyword-remember.md) - Store in memory
-- [WEATHER](./keyword-weather.md) - Get weather info
+| Keyword | Category | Description |
+|---------|----------|-------------|
+| `ADD MEMBER` | Communication | Add member to a group |
+| `ADD SUGGESTION` | UI | Add clickable suggestion button |
+| `ADD TOOL` | Tools | Register a tool for the session |
+| `AGGREGATE` | Data | Perform SUM, AVG, COUNT, MIN, MAX operations |
+| `BOOK` | Special | Book an appointment |
+| `CLEAR HEADERS` | HTTP | Clear all HTTP headers |
+| `CLEAR KB` | Knowledge | Unload knowledge base from session |
+| `CLEAR SUGGESTIONS` | UI | Remove all suggestion buttons |
+| `CLEAR TOOLS` | Tools | Remove all registered tools |
+| `COMPRESS` | Files | Create ZIP archive |
+| `COPY` | Files | Copy a file |
+| `CREATE DRAFT` | Communication | Create email draft |
+| `CREATE SITE` | Tools | Generate a website |
+| `CREATE TASK` | Tools | Create a task |
+| `DELETE` | Data | Delete records from table |
+| `DELETE FILE` | Files | Delete a file |
+| `DELETE HTTP` | HTTP | Send HTTP DELETE request |
+| `DOWNLOAD` | Files | Download file from URL |
+| `EXIT FOR` | Control | Exit loop early |
+| `EXTRACT` | Files | Extract ZIP archive |
+| `FILL` | Data | Fill template with data |
+| `FILTER` | Data | Filter records by condition |
+| `FIND` | Data | Search in files or KB |
+| `FIRST` | Data | Get first element |
+| `FOR EACH ... NEXT` | Control | Loop through items |
+| `FORMAT` | Data | Format strings and dates |
+| `GENERATE PDF` | Files | Generate PDF from template |
+| `GET` | Variables | Get variable or API data |
+| `GET BOT MEMORY` | Memory | Retrieve bot-level persisted data |
+| `GRAPHQL` | HTTP | Execute GraphQL query |
+| `GROUP BY` | Data | Group data by field |
+| `HEAR` | Dialog | Get input from user |
+| `IF ... THEN ... ELSE ... END IF` | Control | Conditional logic |
+| `INSERT` | Data | Insert new record |
+| `INSTR` | String | Find position of substring |
+| `IS NUMERIC` | String | Check if value is numeric |
+| `JOIN` | Data | Join two datasets |
+| `LAST` | Data | Get last element |
+| `LIST` | Files | List directory contents |
+| `LLM` | AI | Query language model |
+| `MAP` | Data | Map field names |
+| `MERGE` | Data | Merge data into table |
+| `MERGE PDF` | Files | Merge multiple PDFs |
+| `MOVE` | Files | Move or rename file |
+| `ON` | Events | Event handler |
+| `PATCH` | HTTP | Send HTTP PATCH request |
+| `PIVOT` | Data | Create pivot table |
+| `POST` | HTTP | Send HTTP POST request |
+| `PRINT` | Debug | Debug output to console |
+| `PUT` | HTTP | Send HTTP PUT request |
+| `READ` | Files | Read file content |
+| `REMEMBER` | Memory | Store user-specific memory |
+| `SAVE` | Data | Save data to table (upsert) |
+| `SAVE FROM UNSTRUCTURED` | Data | Extract structured data from text |
+| `SEND MAIL` | Communication | Send email |
+| `SET` | Variables | Set variable value |
+| `SET BOT MEMORY` | Memory | Persist data at bot level |
+| `SET CONTEXT` | AI | Add context for LLM |
+| `SET HEADER` | HTTP | Set HTTP header |
+| `SET SCHEDULE` | Events | Schedule script execution |
+| `SET USER` | Session | Set user context |
+| `SOAP` | HTTP | Execute SOAP API call |
+| `SWITCH ... CASE ... END SWITCH` | Control | Switch statement |
+| `TALK` | Dialog | Send message to user |
+| `UPDATE` | Data | Update existing records |
+| `UPLOAD` | Files | Upload file to storage |
+| `USE KB` | Knowledge | Load knowledge base |
+| `USE TOOL` | Tools | Register tool definition |
+| `USE WEBSITE` | Knowledge | Associate website with session |
+| `WAIT` | Control | Pause execution |
+| `WEATHER` | Special | Get weather information |
+| `WEBHOOK` | Events | Create webhook endpoint |
+| `WHILE ... WEND` | Control | While loop |
+| `WRITE` | Files | Write content to file |
 
 ---
 
-## HTTP & API Operations
+## Keywords by Category
 
-These keywords enable integration with external REST APIs, GraphQL endpoints, and SOAP services.
+### Core Dialog Keywords
 
-### POST
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| TALK | `TALK "message"` | Send message to user |
+| HEAR | `HEAR variable` or `HEAR variable AS TYPE` | Get input from user |
+| WAIT | `WAIT seconds` | Pause execution |
+| PRINT | `PRINT "debug message"` | Debug output to console |
 
-Sends an HTTP POST request with JSON body.
+### Variable & Memory
 
-**Syntax:**
-```basic
-result = POST "url", data
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| SET | `SET variable = value` or `let variable = value` | Set variable value |
+| GET | `result = GET "path"` | Get variable or fetch data |
+| SET BOT MEMORY | `SET BOT MEMORY "key", value` | Persist data at bot level |
+| GET BOT MEMORY | `value = GET BOT MEMORY("key")` | Retrieve persisted data |
+| REMEMBER | `REMEMBER "key", value` | Store user-specific memory |
 
-**Parameters:**
-- `url` - The endpoint URL (string)
-- `data` - The request body (object or map)
+### AI & Context
 
-**Example:**
-```basic
-payload = #{ "name": "John", "email": "john@example.com" }
-response = POST "https://api.example.com/users", payload
-TALK "Created user with ID: " + response.data.id
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| LLM | `result = LLM "prompt"` | Query language model |
+| SET CONTEXT | `SET CONTEXT "name" AS "value"` | Add context for LLM |
+| SET USER | `SET USER userid` | Set user context |
 
-### PUT
+### Knowledge Base
 
-Sends an HTTP PUT request to update a resource.
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| USE KB | `USE KB "kbname"` | Load knowledge base |
+| CLEAR KB | `CLEAR KB` or `CLEAR KB "kbname"` | Unload knowledge base |
+| USE WEBSITE | `USE WEBSITE "url"` | Associate website with session |
+| FIND | `result = FIND "file", "filter"` | Search in files or KB |
 
-**Syntax:**
-```basic
-result = PUT "url", data
-```
+### Tools & Automation
 
-**Example:**
-```basic
-updates = #{ "name": "John Updated" }
-response = PUT "https://api.example.com/users/123", updates
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| ADD TOOL | `ADD TOOL "toolname"` | Register tool for session |
+| USE TOOL | `USE TOOL "toolname"` | Load tool definition |
+| CLEAR TOOLS | `CLEAR TOOLS` | Remove all registered tools |
+| CREATE TASK | `CREATE TASK "title", "description"` | Create a task |
+| CREATE SITE | `CREATE SITE "alias", "template", "prompt"` | Generate a website |
+| CREATE DRAFT | `CREATE DRAFT "to", "subject", "body"` | Create email draft |
 
-### PATCH
+### UI & Interaction
 
-Sends an HTTP PATCH request for partial updates.
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| ADD SUGGESTION | `ADD SUGGESTION "key" AS "display text"` | Add clickable button |
+| CLEAR SUGGESTIONS | `CLEAR SUGGESTIONS` | Remove all buttons |
 
-**Syntax:**
-```basic
-result = PATCH "url", data
-```
+### Data Operations
 
-**Example:**
-```basic
-partial = #{ "status": "active" }
-response = PATCH "https://api.example.com/users/123", partial
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| SAVE | `SAVE "table", var1, var2, var3` | Save data (upsert) |
+| INSERT | `result = INSERT "table", data` | Insert new record |
+| UPDATE | `rows = UPDATE "table", "filter", data` | Update records |
+| DELETE | `rows = DELETE "table", "filter"` | Delete records |
+| MERGE | `result = MERGE "table", data, "key"` | Merge data into table |
+| FILTER | `result = FILTER data, "condition"` | Filter records |
+| AGGREGATE | `result = AGGREGATE "SUM", data, "field"` | Aggregate operations |
+| JOIN | `result = JOIN left, right, "key"` | Join datasets |
+| PIVOT | `result = PIVOT data, "row", "value"` | Create pivot table |
+| GROUP BY | `result = GROUP BY data, "field"` | Group data |
+| MAP | `result = MAP data, "old->new"` | Map field names |
+| FILL | `result = FILL data, template` | Fill template |
+| FIRST | `result = FIRST collection` | Get first element |
+| LAST | `result = LAST collection` | Get last element |
+| FORMAT | `result = FORMAT value AS "pattern"` | Format strings/dates |
 
-### DELETE_HTTP
+### File Operations
 
-Sends an HTTP DELETE request.
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| READ | `content = READ "path"` | Read file content |
+| WRITE | `WRITE "path", content` | Write to file |
+| DELETE FILE | `DELETE FILE "path"` | Delete a file |
+| COPY | `COPY "source", "destination"` | Copy a file |
+| MOVE | `MOVE "source", "destination"` | Move/rename file |
+| LIST | `files = LIST "path/"` | List directory |
+| UPLOAD | `url = UPLOAD file, "path"` | Upload file |
+| DOWNLOAD | `path = DOWNLOAD "url", "local"` | Download file |
+| COMPRESS | `archive = COMPRESS files, "name.zip"` | Create ZIP |
+| EXTRACT | `files = EXTRACT "archive.zip", "dest/"` | Extract ZIP |
+| GENERATE PDF | `result = GENERATE PDF "template", data, "output.pdf"` | Generate PDF |
+| MERGE PDF | `result = MERGE PDF files, "merged.pdf"` | Merge PDFs |
 
-**Syntax:**
-```basic
-result = DELETE_HTTP "url"
-```
+### HTTP & API Operations
 
-**Example:**
-```basic
-response = DELETE_HTTP "https://api.example.com/users/123"
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| POST | `result = POST "url", data` | HTTP POST request |
+| PUT | `result = PUT "url", data` | HTTP PUT request |
+| PATCH | `result = PATCH "url", data` | HTTP PATCH request |
+| DELETE HTTP | `result = DELETE HTTP "url"` | HTTP DELETE request |
+| SET HEADER | `SET HEADER "name", "value"` | Set HTTP header |
+| CLEAR HEADERS | `CLEAR HEADERS` | Clear all headers |
+| GRAPHQL | `result = GRAPHQL "url", "query", vars` | GraphQL query |
+| SOAP | `result = SOAP "wsdl", "operation", params` | SOAP call |
 
-### SET_HEADER
+### Flow Control
 
-Sets an HTTP header for subsequent requests.
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| IF...THEN...ELSE | `IF condition THEN ... ELSE ... END IF` | Conditional |
+| FOR EACH...NEXT | `FOR EACH item IN collection ... NEXT item` | Loop |
+| EXIT FOR | `EXIT FOR` | Exit loop early |
+| WHILE...WEND | `WHILE condition ... WEND` | While loop |
+| SWITCH...CASE | `SWITCH value CASE x ... END SWITCH` | Switch statement |
 
-**Syntax:**
-```basic
-SET_HEADER "header-name", "value"
-```
+### Events & Scheduling
 
-**Example:**
-```basic
-SET_HEADER "Authorization", "Bearer " + token
-SET_HEADER "X-Custom-Header", "custom-value"
-response = GET "https://api.example.com/protected"
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| ON | `ON "event" CALL handler` | Event handler |
+| SET SCHEDULE | `SET SCHEDULE "cron"` | Schedule execution |
+| WEBHOOK | `WEBHOOK "endpoint"` | Create webhook |
 
-### CLEAR_HEADERS
+### Communication
 
-Clears all previously set HTTP headers.
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| SEND MAIL | `SEND MAIL "to", "subject", "body"` | Send email |
+| ADD MEMBER | `ADD MEMBER "email", "group"` | Add to group |
 
-**Syntax:**
-```basic
-CLEAR_HEADERS
-```
+### Special Functions
 
-### GRAPHQL
-
-Executes a GraphQL query.
-
-**Syntax:**
-```basic
-result = GRAPHQL "endpoint", "query", variables
-```
-
-**Example:**
-```basic
-query = "query GetUser($id: ID!) { user(id: $id) { name email } }"
-vars = #{ "id": "123" }
-response = GRAPHQL "https://api.example.com/graphql", query, vars
-TALK "User name: " + response.data.user.name
-```
-
-### SOAP
-
-Executes a SOAP API call.
-
-**Syntax:**
-```basic
-result = SOAP "wsdl_url", "operation", params
-```
-
-**Example:**
-```basic
-params = #{ "customerId": "12345", "amount": 100.00 }
-response = SOAP "https://api.example.com/service.wsdl", "CreateOrder", params
-```
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| BOOK | `BOOK "appointment"` | Book appointment |
+| WEATHER | `weather = WEATHER "location"` | Get weather |
+| INSTR | `pos = INSTR(string, search)` | Find substring |
+| IS NUMERIC | `result = IS NUMERIC(value)` | Check if numeric |
+| SAVE FROM UNSTRUCTURED | `data = SAVE FROM UNSTRUCTURED text, schema` | Extract structured data |
 
 ---
 
-## Database & Data Operations
+## Syntax Rules
 
-These keywords provide comprehensive data manipulation capabilities.
+### DO ✅
 
-### SAVE
-
-Saves data to a table (upsert - inserts if new, updates if exists).
-
-**Syntax:**
 ```basic
-SAVE "table", id, data
+' Variable names (no underscores in names)
+let ticketnumber = "TKT001"
+let useremail = "user@example.com"
+
+' SAVE with field names = variable names
+SAVE "table.csv", ticketnumber, useremail, status
+
+' Keywords with spaces
+SET BOT MEMORY "last_ticket", ticketnumber
+SET CONTEXT "name" AS "description"
+ADD SUGGESTION "key" AS "Display text"
+CLEAR SUGGESTIONS
+USE KB "myknowledge"
+USE TOOL "mytool"
+
+' GET BOT MEMORY as function
+let lastticket = GET BOT MEMORY("last_ticket")
 ```
 
-**Parameters:**
-- `table` - Table name (string)
-- `id` - Record identifier
-- `data` - Data object to save
+### DON'T ❌
 
-**Example:**
 ```basic
-customer = #{ "name": "John", "email": "john@example.com", "status": "active" }
-SAVE "customers", "cust-001", customer
-```
-
-### INSERT
-
-Inserts a new record into a table.
-
-**Syntax:**
-```basic
-result = INSERT "table", data
-```
-
-**Example:**
-```basic
-order = #{ "product": "Widget", "quantity": 5, "price": 29.99 }
-result = INSERT "orders", order
-TALK "Created order: " + result.id
-```
-
-### UPDATE
-
-Updates records matching a filter.
-
-**Syntax:**
-```basic
-rows = UPDATE "table", "filter", data
-```
-
-**Parameters:**
-- `table` - Table name
-- `filter` - Filter condition (e.g., "id=123" or "status=pending")
-- `data` - Fields to update
-
-**Example:**
-```basic
-updates = #{ "status": "completed", "completed_at": NOW() }
-rows = UPDATE "orders", "id=ord-123", updates
-TALK "Updated " + rows + " record(s)"
-```
-
-### DELETE
-
-Deletes records from a table matching the filter.
-
-**Syntax:**
-```basic
-rows = DELETE "table", "filter"
-```
-
-**Example:**
-```basic
-rows = DELETE "orders", "status=cancelled"
-TALK "Deleted " + rows + " cancelled orders"
-```
-
-### MERGE
-
-Merges data into a table using a key field for matching.
-
-**Syntax:**
-```basic
-result = MERGE "table", data, "key_field"
-```
-
-**Example:**
-```basic
-' Import customers from external source
-customers = GET "https://api.external.com/customers"
-result = MERGE "customers", customers, "email"
-TALK "Inserted: " + result.inserted + ", Updated: " + result.updated
-```
-
-### FILL
-
-Transforms data by filling a template with values.
-
-**Syntax:**
-```basic
-result = FILL data, template
-```
-
-**Example:**
-```basic
-data = [#{ "name": "John", "amount": 100 }, #{ "name": "Jane", "amount": 200 }]
-template = #{ "greeting": "Hello {{name}}", "total": "Amount: ${{amount}}" }
-filled = FILL data, template
-```
-
-### MAP
-
-Maps field names from source to destination.
-
-**Syntax:**
-```basic
-result = MAP data, "old_field->new_field, ..."
-```
-
-**Example:**
-```basic
-data = [#{ "firstName": "John", "lastName": "Doe" }]
-mapped = MAP data, "firstName->name, lastName->surname"
-' Result: [#{ "name": "John", "surname": "Doe" }]
-```
-
-### FILTER
-
-Filters records based on a condition.
-
-**Syntax:**
-```basic
-result = FILTER data, "condition"
-```
-
-**Supported operators:** `=`, `!=`, `>`, `<`, `>=`, `<=`, `like`
-
-**Example:**
-```basic
-orders = FIND "orders.xlsx"
-active = FILTER orders, "status=active"
-highValue = FILTER orders, "amount>1000"
-matches = FILTER orders, "name like john"
-```
-
-### AGGREGATE
-
-Performs aggregation operations on data.
-
-**Syntax:**
-```basic
-result = AGGREGATE "operation", data, "field"
-```
-
-**Operations:** `SUM`, `AVG`, `COUNT`, `MIN`, `MAX`
-
-**Example:**
-```basic
-orders = FIND "orders.xlsx"
-total = AGGREGATE "SUM", orders, "amount"
-average = AGGREGATE "AVG", orders, "amount"
-count = AGGREGATE "COUNT", orders, "id"
-TALK "Total: $" + total + ", Average: $" + average + ", Count: " + count
-```
-
-### JOIN
-
-Joins two datasets on a key field (inner join).
-
-**Syntax:**
-```basic
-result = JOIN left_data, right_data, "key_field"
-```
-
-**Example:**
-```basic
-orders = FIND "orders.xlsx"
-customers = FIND "customers.xlsx"
-joined = JOIN orders, customers, "customer_id"
-```
-
-### PIVOT
-
-Creates a pivot table from data.
-
-**Syntax:**
-```basic
-result = PIVOT data, "row_field", "value_field"
-```
-
-**Example:**
-```basic
-sales = FIND "sales.xlsx"
-byMonth = PIVOT sales, "month", "amount"
-' Result: Each unique month with sum of amounts
-```
-
-### GROUP_BY
-
-Groups data by a field.
-
-**Syntax:**
-```basic
-result = GROUP_BY data, "field"
-```
-
-**Example:**
-```basic
-orders = FIND "orders.xlsx"
-byStatus = GROUP_BY orders, "status"
-' Result: Map with keys for each status value
-```
-
----
-
-## File & Document Operations
-
-These keywords handle file operations within the `.gbdrive` storage.
-
-### READ
-
-Reads content from a file.
-
-**Syntax:**
-```basic
-content = READ "path"
-```
-
-**Example:**
-```basic
-config = READ "config/settings.json"
-data = READ "reports/daily.csv"
-```
-
-### WRITE
-
-Writes content to a file.
-
-**Syntax:**
-```basic
-WRITE "path", data
-```
-
-**Example:**
-```basic
-report = #{ "date": TODAY(), "total": 1500 }
-WRITE "reports/summary.json", report
-WRITE "logs/activity.txt", "User logged in at " + NOW()
-```
-
-### DELETE_FILE
-
-Deletes a file from storage.
-
-**Syntax:**
-```basic
-DELETE_FILE "path"
-```
-
-**Example:**
-```basic
-DELETE_FILE "temp/old-report.pdf"
-```
-
-### COPY
-
-Copies a file to a new location.
-
-**Syntax:**
-```basic
-COPY "source", "destination"
-```
-
-**Example:**
-```basic
-COPY "templates/invoice.docx", "customers/john/invoice-001.docx"
-```
-
-### MOVE
-
-Moves or renames a file.
-
-**Syntax:**
-```basic
-MOVE "source", "destination"
-```
-
-**Example:**
-```basic
-MOVE "inbox/new-file.pdf", "processed/file-001.pdf"
-```
-
-### LIST
-
-Lists contents of a directory.
-
-**Syntax:**
-```basic
-files = LIST "path"
-```
-
-**Example:**
-```basic
-reports = LIST "reports/"
-FOR EACH file IN reports
-    TALK "Found: " + file
-NEXT file
-```
-
-### COMPRESS
-
-Creates a ZIP archive from files.
-
-**Syntax:**
-```basic
-archive = COMPRESS files, "archive_name.zip"
-```
-
-**Example:**
-```basic
-files = ["report1.pdf", "report2.pdf", "data.xlsx"]
-archive = COMPRESS files, "monthly-reports.zip"
-```
-
-### EXTRACT
-
-Extracts an archive to a destination folder.
-
-**Syntax:**
-```basic
-files = EXTRACT "archive.zip", "destination/"
-```
-
-**Example:**
-```basic
-extracted = EXTRACT "uploads/documents.zip", "processed/"
-TALK "Extracted " + UBOUND(extracted) + " files"
-```
-
-### UPLOAD
-
-Uploads a file to storage.
-
-**Syntax:**
-```basic
-url = UPLOAD file, "destination_path"
-```
-
-**Example:**
-```basic
-HEAR attachment AS FILE
-url = UPLOAD attachment, "uploads/" + attachment.filename
-TALK "File uploaded to: " + url
-```
-
-### DOWNLOAD
-
-Downloads a file from a URL.
-
-**Syntax:**
-```basic
-path = DOWNLOAD "url", "local_path"
-```
-
-**Example:**
-```basic
-path = DOWNLOAD "https://example.com/report.pdf", "downloads/report.pdf"
-TALK "Downloaded to: " + path
-```
-
-### GENERATE_PDF
-
-Generates a PDF from a template with data.
-
-**Syntax:**
-```basic
-result = GENERATE_PDF "template", data, "output.pdf"
-```
-
-**Example:**
-```basic
-invoice = #{ "customer": "John", "items": items, "total": 299.99 }
-pdf = GENERATE_PDF "templates/invoice.html", invoice, "invoices/inv-001.pdf"
-TALK "PDF generated: " + pdf.url
-```
-
-### MERGE_PDF
-
-Merges multiple PDF files into one.
-
-**Syntax:**
-```basic
-result = MERGE_PDF files, "merged.pdf"
-```
-
-**Example:**
-```basic
-pdfs = ["cover.pdf", "chapter1.pdf", "chapter2.pdf", "appendix.pdf"]
-merged = MERGE_PDF pdfs, "book.pdf"
-```
-
----
-
-## Webhook & Event-Driven Automation
-
-### WEBHOOK
-
-Creates a webhook endpoint that triggers script execution when called.
-
-**Syntax:**
-```basic
-WEBHOOK "endpoint-name"
-```
-
-This registers an endpoint at: `/api/{botname}/webhook/{endpoint-name}`
-
-When the webhook is called, the script containing the WEBHOOK declaration executes. Request parameters are available as variables.
-
-**Example:**
-```basic
-' order-webhook.bas
-WEBHOOK "order-received"
-
-' Access request data
-order_id = params.order_id
-customer = body.customer_name
-amount = body.total
-
-' Process the order
-SAVE "orders", order_id, body
-
-' Send confirmation
-SEND MAIL customer.email, "Order Confirmed", "Your order " + order_id + " is confirmed."
-
-' Return response
-result = #{ "status": "ok", "order_id": order_id }
-```
-
-**Webhook Request:**
-```bash
-curl -X POST https://bot.example.com/api/mybot/webhook/order-received \
-  -H "Content-Type: application/json" \
-  -d '{"customer_name": "John", "total": 99.99}'
+' NO: Complex object operations
+SET object.field = value  ' WRONG
+SAVE "table", object.id, object  ' WRONG
+
+' NO: IF for input validation (use HEAR AS TYPE instead)
+IF value = "" THEN  ' OK for logic, but for input use:
+HEAR value AS STRING  ' Better - validates input type
 ```
 
 ---
