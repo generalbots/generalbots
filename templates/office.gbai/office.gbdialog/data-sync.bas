@@ -14,8 +14,8 @@ TALK "Starting data synchronization..."
 ' ============================================================================
 
 ' Fetch customers from external CRM API
-SET_HEADER "Authorization", "Bearer " + GET_BOT_MEMORY("crm_api_key")
-SET_HEADER "Content-Type", "application/json"
+SET HEADER "Authorization", "Bearer " + GET BOT MEMORY("crm_api_key")
+SET HEADER "Content-Type", "application/json"
 
 external_customers = GET "https://api.crm.example.com/customers"
 
@@ -24,7 +24,7 @@ merge_result = MERGE "customers", external_customers, "email"
 
 TALK "Customer sync complete: " + merge_result.inserted + " new, " + merge_result.updated + " updated"
 
-CLEAR_HEADERS
+CLEAR HEADERS
 
 ' ============================================================================
 ' EXAMPLE 2: Data transformation with MAP and FILL
@@ -161,9 +161,9 @@ analytics_payload = #{
     }
 }
 
-SET_HEADER "X-API-Key", GET_BOT_MEMORY("analytics_api_key")
+SET HEADER "X-API-Key", GET BOT MEMORY("analytics_api_key")
 analytics_response = POST "https://analytics.example.com/events", analytics_payload
-CLEAR_HEADERS
+CLEAR HEADERS
 
 ' ============================================================================
 ' EXAMPLE 9: Cleanup old data

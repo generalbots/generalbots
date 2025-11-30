@@ -1,5 +1,5 @@
 ' API Integration Bot - Demonstrates HTTP & API operations keywords
-' This template shows how to use POST, PUT, PATCH, DELETE_HTTP, GRAPHQL, SOAP, and SET_HEADER
+' This template shows how to use POST, PUT, PATCH, DELETE HTTP, GRAPHQL, SOAP, and SET HEADER
 
 ' ============================================================================
 ' WEBHOOK: External systems can trigger API operations via HTTP POST
@@ -14,10 +14,10 @@ TALK "API Integration Bot initialized..."
 ' ============================================================================
 
 ' Set up authentication headers (reused for subsequent requests)
-api_key = GET_BOT_MEMORY("external_api_key")
-SET_HEADER "Authorization", "Bearer " + api_key
-SET_HEADER "Content-Type", "application/json"
-SET_HEADER "X-Client-ID", "office-bot"
+api_key = GET BOT MEMORY("external_api_key")
+SET HEADER "Authorization", "Bearer " + api_key
+SET HEADER "Content-Type", "application/json"
+SET HEADER "X-Client-ID", "office-bot"
 
 ' GET request (using existing GET keyword)
 users = GET "https://api.example.com/users"
@@ -40,7 +40,7 @@ create_response = POST "https://api.example.com/customers", new_customer
 
 IF create_response.status = 201 THEN
     TALK "Customer created successfully with ID: " + create_response.data.id
-    SET_BOT_MEMORY "last_customer_id", create_response.data.id
+    SET BOT MEMORY "last_customer_id", create_response.data.id
 ELSE
     TALK "Failed to create customer: " + create_response.data.error
 END IF
@@ -50,7 +50,7 @@ END IF
 ' ============================================================================
 
 ' Update entire customer record
-customer_id = GET_BOT_MEMORY("last_customer_id")
+customer_id = GET BOT MEMORY("last_customer_id")
 
 updated_customer = #{
     "name": "John Doe",
@@ -90,7 +90,7 @@ END IF
 
 ' Delete a temporary resource
 temp_resource_id = "temp-12345"
-delete_response = DELETE_HTTP "https://api.example.com/temp-files/" + temp_resource_id
+delete_response = DELETE HTTP "https://api.example.com/temp-files/" + temp_resource_id
 
 IF delete_response.status = 204 OR delete_response.status = 200 THEN
     TALK "Temporary resource deleted"
@@ -101,11 +101,11 @@ END IF
 ' ============================================================================
 
 ' Clear headers and set new ones for different API
-CLEAR_HEADERS
+CLEAR HEADERS
 
 ' Stripe-style API authentication
-SET_HEADER "Authorization", "Basic " + GET_BOT_MEMORY("stripe_api_key")
-SET_HEADER "Content-Type", "application/x-www-form-urlencoded"
+SET HEADER "Authorization", "Basic " + GET BOT MEMORY("stripe_api_key")
+SET HEADER "Content-Type", "application/x-www-form-urlencoded"
 
 ' Create a payment intent
 payment_data = #{
@@ -123,7 +123,7 @@ IF payment_response.status = 200 THEN
     TALK "Payment intent created: " + payment_intent_id
 END IF
 
-CLEAR_HEADERS
+CLEAR HEADERS
 
 ' ============================================================================
 ' EXAMPLE 7: GraphQL API calls
@@ -201,7 +201,7 @@ TALK "Current stock level retrieved from legacy system"
 TALK "Starting order fulfillment workflow..."
 
 ' Step 1: Create order in main system
-SET_HEADER "Authorization", "Bearer " + api_key
+SET HEADER "Authorization", "Bearer " + api_key
 
 order_data = #{
     "customer_id": customer_id,
@@ -251,7 +251,7 @@ POST "https://api.warehouse.example.com/pick-requests", warehouse_notification
 
 TALK "Order fulfillment workflow complete for order: " + order_id
 
-CLEAR_HEADERS
+CLEAR HEADERS
 
 ' ============================================================================
 ' EXAMPLE 10: Error handling and retries
@@ -263,7 +263,7 @@ retry_count = 0
 success = false
 
 WHILE retry_count < max_retries AND success = false
-    SET_HEADER "Authorization", "Bearer " + api_key
+    SET HEADER "Authorization", "Bearer " + api_key
 
     health_check = GET "https://api.example.com/health"
 
@@ -276,7 +276,7 @@ WHILE retry_count < max_retries AND success = false
         WAIT 2
     END IF
 
-    CLEAR_HEADERS
+    CLEAR HEADERS
 WEND
 
 IF success = false THEN

@@ -15,6 +15,7 @@ use self::keywords::book::book_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
 use self::keywords::clear_kb::register_clear_kb_keyword;
 use self::keywords::clear_tools::clear_tools_keyword;
+use self::keywords::core_functions::register_core_functions;
 use self::keywords::create_draft::create_draft_keyword;
 use self::keywords::create_site::create_site_keyword;
 use self::keywords::create_task::create_task_keyword;
@@ -28,10 +29,14 @@ use self::keywords::get::get_keyword;
 use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::http_operations::register_http_operations;
 use self::keywords::last::last_keyword;
+use self::keywords::lead_scoring::register_lead_scoring_keywords;
 use self::keywords::multimodal::register_multimodal_keywords;
+use self::keywords::on_form_submit::on_form_submit_keyword;
 use self::keywords::remember::remember_keyword;
 use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
 use self::keywords::send_mail::send_mail_keyword;
+use self::keywords::send_template::register_send_template_keywords;
+use self::keywords::social_media::register_social_media_keywords;
 use self::keywords::switch_case::preprocess_switch;
 use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
@@ -129,6 +134,34 @@ impl ScriptService {
 
         // Webhook keyword for event-driven automation
         webhook_keyword(&state, user.clone(), &mut engine);
+
+        // ========================================================================
+        // NEW KEYWORDS: Social Media, Marketing, CRM
+        // ========================================================================
+
+        // Social Media: POST TO (Instagram, Facebook, LinkedIn, Twitter)
+        // GET METRICS, scheduled posting
+        register_social_media_keywords(state.clone(), user.clone(), &mut engine);
+
+        // SEND TEMPLATE: Multi-channel templated messaging (email, WhatsApp, SMS)
+        register_send_template_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ON FORM SUBMIT: Webhook-based form handling for landing pages
+        on_form_submit_keyword(&state, user.clone(), &mut engine);
+
+        // Lead Scoring: SCORE LEAD, GET LEAD SCORE, QUALIFY LEAD, AI SCORE LEAD
+        register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ========================================================================
+        // CORE BASIC FUNCTIONS: Math, Date/Time, Validation, Arrays, Error Handling
+        // ========================================================================
+
+        // Math: ABS, ROUND, INT, MAX, MIN, MOD, RANDOM, SGN, SQR, LOG, EXP, SIN, COS, TAN
+        // Date/Time: NOW, TODAY, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, DATEADD, DATEDIFF
+        // Validation: VAL, STR, ISNULL, ISEMPTY, ISDATE, TYPEOF
+        // Arrays: ARRAY, UBOUND, SORT, UNIQUE, CONTAINS, PUSH, POP, REVERSE, SLICE
+        // Error Handling: THROW, ERROR, IS_ERROR, ASSERT
+        register_core_functions(state.clone(), user, &mut engine);
 
         ScriptService { engine }
     }
@@ -255,6 +288,109 @@ impl ScriptService {
                 "MERGE_PDF",
                 // Webhook
                 "WEBHOOK",
+                // Social Media
+                "POST TO",
+                "POST TO INSTAGRAM",
+                "POST TO FACEBOOK",
+                "POST TO LINKEDIN",
+                "POST TO TWITTER",
+                "GET INSTAGRAM METRICS",
+                "GET FACEBOOK METRICS",
+                "GET LINKEDIN METRICS",
+                "GET TWITTER METRICS",
+                "DELETE POST",
+                // Template & Messaging
+                "SEND TEMPLATE",
+                "CREATE TEMPLATE",
+                "GET TEMPLATE",
+                // Form Handling
+                "ON FORM SUBMIT",
+                // Lead Scoring
+                "SCORE LEAD",
+                "GET LEAD SCORE",
+                "QUALIFY LEAD",
+                "UPDATE LEAD SCORE",
+                "AI SCORE LEAD",
+                // Math Functions
+                "ABS",
+                "ROUND",
+                "INT",
+                "FIX",
+                "FLOOR",
+                "CEIL",
+                "MAX",
+                "MIN",
+                "MOD",
+                "RANDOM",
+                "RND",
+                "SGN",
+                "SQR",
+                "SQRT",
+                "LOG",
+                "EXP",
+                "POW",
+                "SIN",
+                "COS",
+                "TAN",
+                "SUM",
+                "AVG",
+                // Date/Time Functions
+                "NOW",
+                "TODAY",
+                "DATE",
+                "TIME",
+                "YEAR",
+                "MONTH",
+                "DAY",
+                "HOUR",
+                "MINUTE",
+                "SECOND",
+                "WEEKDAY",
+                "DATEADD",
+                "DATEDIFF",
+                "FORMAT_DATE",
+                "ISDATE",
+                // Validation Functions
+                "VAL",
+                "STR",
+                "CINT",
+                "CDBL",
+                "CSTR",
+                "ISNULL",
+                "ISEMPTY",
+                "TYPEOF",
+                "ISARRAY",
+                "ISOBJECT",
+                "ISSTRING",
+                "ISNUMBER",
+                "NVL",
+                "IIF",
+                // Array Functions
+                "ARRAY",
+                "UBOUND",
+                "LBOUND",
+                "COUNT",
+                "SORT",
+                "UNIQUE",
+                "CONTAINS",
+                "INDEX_OF",
+                "PUSH",
+                "POP",
+                "SHIFT",
+                "REVERSE",
+                "SLICE",
+                "SPLIT",
+                "CONCAT",
+                "FLATTEN",
+                "RANGE",
+                // Error Handling
+                "THROW",
+                "ERROR",
+                "IS_ERROR",
+                "ASSERT",
+                "LOG_ERROR",
+                "LOG_WARN",
+                "LOG_INFO",
             ];
             let is_basic_command = basic_commands.iter().any(|&cmd| trimmed.starts_with(cmd));
             let is_control_flow = trimmed.starts_with("IF")
@@ -288,3 +424,4 @@ impl ScriptService {
         self.engine.eval_ast(ast)
     }
 }
+
