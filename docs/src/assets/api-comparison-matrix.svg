@@ -1,0 +1,207 @@
+<svg width="1400" height="800" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern Gradients -->
+    <linearGradient id="gbGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cloudGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#64748B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#94A3B8;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="successGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="headerGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#1E1B4B;stop-opacity:0.05" />
+      <stop offset="50%" style="stop-color:#312E81;stop-opacity:0.08" />
+      <stop offset="100%" style="stop-color:#1E1B4B;stop-opacity:0.05" />
+    </linearGradient>
+
+    <linearGradient id="flowLine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.2" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:0.6" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:0.2" />
+    </linearGradient>
+
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="dropShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-color="#000" flood-opacity="0.1"/>
+    </filter>
+
+    <!-- Arrow marker -->
+    <marker id="arrowGreen" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#10B981"/>
+    </marker>
+  </defs>
+
+  <style>
+    .main-text { fill: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #ffffff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+    .accent-text { fill: #6366F1; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+    @media (prefers-color-scheme: dark) {
+      .main-text { fill: #F1F5F9; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background subtle pattern -->
+  <rect width="1400" height="800" fill="#FAFBFC"/>
+  <rect x="0" y="0" width="1400" height="120" fill="url(#headerGradient)"/>
+
+  <!-- Title Section -->
+  <text x="700" y="50" text-anchor="middle" font-size="28" font-weight="600" class="main-text">API Migration Matrix</text>
+  <text x="700" y="80" text-anchor="middle" font-size="16" class="secondary-text">Enterprise Cloud APIs → General Bots Keywords</text>
+
+  <!-- Platform Labels -->
+  <g transform="translate(100, 130)">
+    <!-- Cloud Platform Box -->
+    <rect x="0" y="0" width="180" height="50" rx="8" fill="url(#cloudGradient)" filter="url(#dropShadow)"/>
+    <text x="90" y="32" text-anchor="middle" font-size="16" font-weight="600" class="white-text">Cloud Platform</text>
+  </g>
+
+  <g transform="translate(1120, 130)">
+    <!-- General Bots Box -->
+    <rect x="0" y="0" width="180" height="50" rx="8" fill="url(#gbGradient)" filter="url(#dropShadow)"/>
+    <text x="90" y="32" text-anchor="middle" font-size="16" font-weight="600" class="white-text">General Bots</text>
+  </g>
+
+  <!-- Flow Arrow -->
+  <path d="M300 155 Q700 155 1100 155" stroke="url(#flowLine)" stroke-width="3" fill="none" stroke-dasharray="8,4"/>
+  <text x="700" y="150" text-anchor="middle" font-size="12" font-weight="500" class="accent-text">MIGRATION PATH</text>
+
+  <!-- Comparison Rows -->
+  <g transform="translate(50, 200)">
+    <!-- Row 1: Mail -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Email / Mail</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Messages, Send, Folders</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">SEND MAIL keyword</text>
+      <text x="900" y="44" font-size="11" class="mono-text">SEND MAIL TO email SUBJECT s BODY b</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 2: Calendar -->
+    <g transform="translate(0, 70)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Calendar Events</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Events, Scheduling, Free/Busy</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">BOOK keyword + Calendar API</text>
+      <text x="900" y="44" font-size="11" class="mono-text">BOOK "Meeting" AT datetime</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 3: Drive/Files -->
+    <g transform="translate(0, 140)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Cloud Storage / Files</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Files, Versions, Sharing</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">SeaweedFS + File Keywords</text>
+      <text x="900" y="44" font-size="11" class="mono-text">READ, WRITE, LIST, COPY, MOVE, DELETE</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 4: Tasks -->
+    <g transform="translate(0, 210)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Tasks / Planning</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Tasks, Lists, Assignments</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">CREATE TASK + Projects</text>
+      <text x="900" y="44" font-size="11" class="mono-text">CREATE TASK "title" DUE date IN PROJECT id</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 5: Messaging -->
+    <g transform="translate(0, 280)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Team Messaging</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Chat, Channels, Messages</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">TALK + Multi-Channel</text>
+      <text x="900" y="44" font-size="11" class="mono-text">Web, WhatsApp, Teams, Slack, Telegram</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 6: Users -->
+    <g transform="translate(0, 350)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Users / Directory</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Users, Groups, Permissions</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">Zitadel IAM + Users API</text>
+      <text x="900" y="44" font-size="11" class="mono-text">OIDC/OAuth2 + SCIM provisioning</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#successGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">READY</text>
+    </g>
+
+    <!-- Row 7: Automation -->
+    <g transform="translate(0, 420)">
+      <rect x="0" y="0" width="1300" height="60" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+      <circle cx="30" cy="30" r="8" fill="#10B981"/>
+      <text x="55" y="26" font-size="13" font-weight="600" class="main-text">Workflow Automation</text>
+      <text x="55" y="44" font-size="11" class="mono-text">Flows, Triggers, Connectors</text>
+      <text x="650" y="35" text-anchor="middle" font-size="20" class="accent-text">→</text>
+      <text x="900" y="26" font-size="13" font-weight="600" class="main-text">BASIC Scripts + SET SCHEDULE</text>
+      <text x="900" y="44" font-size="11" class="mono-text">90+ keywords, webhooks, cron, full logic</text>
+      <rect x="1200" y="15" width="70" height="28" rx="14" fill="url(#gbGradient)"/>
+      <text x="1235" y="34" text-anchor="middle" font-size="11" font-weight="600" class="white-text">BETTER</text>
+    </g>
+  </g>
+
+  <!-- Summary Stats -->
+  <g transform="translate(100, 720)">
+    <rect x="0" y="0" width="250" height="60" rx="8" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+    <text x="125" y="28" text-anchor="middle" font-size="24" font-weight="700" class="accent-text">100%</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" class="secondary-text">Feature Parity</text>
+  </g>
+
+  <g transform="translate(400, 720)">
+    <rect x="0" y="0" width="250" height="60" rx="8" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/>
+    <text x="125" y="28" text-anchor="middle" font-size="24" font-weight="700" fill="#10B981">90+</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" class="secondary-text">BASIC Keywords</text>
+  </g>
+
+  <g transform="translate(700, 720)">
+    <rect x="0" y="0" width="250" height="60" rx="8" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+    <text x="125" y="28" text-anchor="middle" font-size="24" font-weight="700" fill="#D97706">$0</text>
+    <text x="125" y="48" text-anchor="middle" font-size="12" class="secondary-text">Per-User Licensing</text>
+  </g>
+
+  <g transform="translate(1000, 720)">
+    <rect x="0" y="0" width="300" height="60" rx="8" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+    <text x="150" y="28" text-anchor="middle" font-size="24" font-weight="700" fill="#16A34A">Self-Hosted</text>
+    <text x="150" y="48" text-anchor="middle" font-size="12" class="secondary-text">Full Data Sovereignty</text>
+  </g>
+</svg>
