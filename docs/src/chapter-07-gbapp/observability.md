@@ -4,38 +4,9 @@ General Bots uses a comprehensive observability stack for monitoring, logging, a
 
 ## Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                         BotServer Application                               │
-│                                                                             │
-│   log::trace!() ──┐                                                         │
-│   log::debug!() ──┼──▶ Log Files (./botserver-stack/logs/)                 │
-│   log::info!()  ──┤                                                         │
-│   log::warn!()  ──┤                                                         │
-│   log::error!() ──┘                                                         │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                                      ▼
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                              Vector Agent                                   │
-│                         (Collects from log files)                           │
-│                                                                             │
-│   ┌─────────────┐     ┌─────────────┐     ┌─────────────┐                  │
-│   │   Sources   │ ──▶ │ Transforms  │ ──▶ │    Sinks    │                  │
-│   │  (Files)    │     │  (Parse)    │     │ (Outputs)   │                  │
-│   └─────────────┘     └─────────────┘     └─────────────┘                  │
-│                                                                             │
-└─────────────────────────────────────────────────────────────────────────────┘
-                                      │
-                    ┌─────────────────┼─────────────────┐
-                    │                 │                 │
-                    ▼                 ▼                 ▼
-             ┌───────────┐     ┌───────────┐     ┌───────────┐
-             │ InfluxDB  │     │  Grafana  │     │  Alerts   │
-             │ (Metrics) │     │(Dashboard)│     │(Webhook)  │
-             └───────────┘     └───────────┘     └───────────┘
-```
+![Observability Flow](../assets/observability-flow.svg)
+
+*Vector Agent collects logs from BotServer without requiring any code changes.*
 
 ## No Code Changes Required
 

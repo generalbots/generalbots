@@ -12,36 +12,11 @@ General Bots uses a modular architecture where each component runs in isolated L
 - **Portability**: Move containers between hosts easily
 
 ## Component Diagram
+## High Availability Architecture
 
-```
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                              Load Balancer (Caddy)                           │
-│                           Rate Limiting │ TLS Termination                    │
-└─────────────────────────────────┬────────────────────────────────────────────┘
-                                  │
-         ┌────────────────────────┼────────────────────────┐
-         │                        │                        │
-         ▼                        ▼                        ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   BotServer 1   │    │   BotServer 2   │    │   BotServer N   │
-│   (LXC/Auto)    │    │   (LXC/Auto)    │    │   (LXC/Auto)    │
-└────────┬────────┘    └────────┬────────┘    └────────┬────────┘
-         │                      │                      │
-         └──────────────────────┼──────────────────────┘
-                                │
-    ┌───────────────────────────┼───────────────────────────┐
-    │                           │                           │
-    ▼                           ▼                           ▼
-┌─────────┐              ┌─────────────┐              ┌──────────┐
-│ Secrets │              │  Data Layer │              │ Services │
-│ (Vault) │              │             │              │          │
-└─────────┘              │ PostgreSQL  │              │ Zitadel  │
-                         │ Redis       │              │ LiveKit  │
-                         │ Qdrant      │              │ Stalwart │
-                         │ InfluxDB    │              │ MinIO    │
-                         │ MinIO       │              │ Forgejo  │
-                         └─────────────┘              └──────────┘
-```
+![Infrastructure Architecture](../assets/infrastructure-architecture.svg)
+
+*Production-ready infrastructure with automatic scaling, load balancing, and multi-tenant isolation.*
 
 ## Encryption at Rest
 
@@ -232,23 +207,15 @@ messaging-retention-hours,24
 ### Option 1: Tenant-Based Sharding (Recommended)
 
 Each tenant/organization gets isolated databases:
+## Multi-Tenant Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         Router                                  │
-│              (tenant_id → database mapping)                     │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│   tenant_001  │     │   tenant_002  │     │   tenant_003  │
-│   PostgreSQL  │     │   PostgreSQL  │     │   PostgreSQL  │
-│   Redis       │     │   Redis       │     │   Redis       │
-│   Qdrant      │     │   Qdrant      │     │   Qdrant      │
-└───────────────┘     └───────────────┘     └───────────────┘
-```
+Each tenant gets isolated resources with dedicated database schemas, cache namespaces, and vector collections. The router maps tenant IDs to their respective data stores automatically.
+
+**Key isolation features:**
+- Database-per-tenant or schema-per-tenant options
+- Namespace isolation in Valkey cache
+- Collection isolation in Qdrant vectors
+- Bucket isolation in SeaweedFS storage
 
 Configuration:
 
@@ -332,21 +299,17 @@ shard-regions,us-east,eu-west,ap-south
 shard-default,us-east
 shard-detection,ip
 ```
+## Geographic Distribution
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    Global Router                             │
-│               (GeoIP → Region mapping)                       │
-└─────────────────────────────┬───────────────────────────────┘
-                              │
-        ┌─────────────────────┼─────────────────────┐
-        │                     │                     │
-        ▼                     ▼                     ▼
-┌───────────────┐     ┌───────────────┐     ┌───────────────┐
-│   US-East     │     │   EU-West     │     │   AP-South    │
-│   Cluster     │     │   Cluster     │     │   Cluster     │
-└───────────────┘     └───────────────┘     └───────────────┘
-```
+Global router uses GeoIP to direct users to the nearest regional cluster:
+
+| Region | Location | Services |
+|--------|----------|----------|
+| US-East | Virginia | Full cluster |
+| EU-West | Frankfurt | Full cluster |
+| AP-South | Singapore | Full cluster |
+
+Each regional cluster runs independently with data replication between regions for disaster recovery.
 
 ## Auto-Scaling with LXC
 
@@ -394,20 +357,19 @@ RestartSec=10
 WantedBy=multi-user.target
 ```
 
-### Container Lifecycle
+## Container Lifecycle
 
-```
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Create  │ ──▶ │Configure │ ──▶ │  Start   │ ──▶ │  Ready   │
-│Container │     │Resources │     │BotServer │     │(In Pool) │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-                                                        │
-                                                        ▼
-┌──────────┐     ┌──────────┐     ┌──────────┐     ┌──────────┐
-│  Delete  │ ◀── │   Stop   │ ◀── │  Drain   │ ◀── │  Active  │
-│Container │     │BotServer │     │  Conns   │     │(Serving) │
-└──────────┘     └──────────┘     └──────────┘     └──────────┘
-```
+**Startup Flow:**
+1. **Create** → LXC container created from template
+2. **Configure** → Resources allocated (CPU, memory, storage)
+3. **Start** → BotServer binary launched
+4. **Ready** → Added to load balancer pool
+
+**Shutdown Flow:**
+1. **Active** → Container serving requests
+2. **Drain** → Stop accepting new connections
+3. **Stop** → Graceful BotServer shutdown
+4. **Delete** → Container removed (or returned to pool)
 
 ## Load Balancing
 
@@ -502,20 +464,17 @@ States:
 ### Database Failover
 
 PostgreSQL with streaming replication:
+## Database Replication
 
-```
-┌──────────────┐         ┌──────────────┐
-│   Primary    │ ──────▶ │   Replica    │
-│  PostgreSQL  │ (sync)  │  PostgreSQL  │
-└──────────────┘         └──────────────┘
-       │                        │
-       └────────┬───────────────┘
-                │
-         ┌──────┴──────┐
-         │   Patroni   │
-         │  (Failover) │
-         └─────────────┘
-```
+PostgreSQL replication is managed by Patroni for automatic failover:
+
+| Component | Role | Description |
+|-----------|------|-------------|
+| Primary | Write leader | Handles all write operations |
+| Replica | Read replica | Synchronous replication from primary |
+| Patroni | Failover manager | Automatic leader election on failure |
+
+Failover happens automatically within seconds, with clients redirected via connection pooler.
 
 ### Graceful Degradation
 

@@ -9,6 +9,8 @@
 //! - POST /files/write - Write file content
 //! - POST /files/delete - Delete file/folder
 //! - POST /files/create-folder - Create new folder
+//! - GET /files/versions - List file versions
+//! - POST /files/restore - Restore file to specific version
 
 #[cfg(feature = "console")]
 use crate::console::file_tree::FileTree;
@@ -147,6 +149,44 @@ pub struct SyncStatus {
     pub bytes_synced: i64,
 }
 
+// ===== File Versioning Structures =====
+
+#[derive(Debug, Deserialize)]
+pub struct VersionsQuery {
+    pub bucket: Option<String>,
+    pub path: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct FileVersion {
+    pub version_id: String,
+    pub modified: String,
+    pub size: i64,
+    pub is_latest: bool,
+    pub etag: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct VersionsResponse {
+    pub path: String,
+    pub versions: Vec<FileVersion>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RestoreRequest {
+    pub bucket: Option<String>,
+    pub path: String,
+    pub version_id: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RestoreResponse {
+    pub success: bool,
+    pub message: String,
+    pub restored_version: String,
+    pub new_version_id: Option<String>,
+}
+
 // ===== API Configuration =====
 
 /// Configure drive API routes
@@ -182,6 +222,9 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/files/sync/status", get(sync_status))
         .route("/files/sync/start", post(start_sync))
         .route("/files/sync/stop", post(stop_sync))
+        // File versioning
+        .route("/files/versions", get(list_versions))
+        .route("/files/restore", post(restore_version))
         // Document processing
         .route("/docs/merge", post(document_processing::merge_documents))
         .route("/docs/convert", post(document_processing::convert_document))
@@ -912,5 +955,124 @@ pub async fn stop_sync(
     Ok(Json(SuccessResponse {
         success: true,
         message: Some("Sync stopped".to_string()),
+    }))
+}
+
+// ===== File Versioning API =====
+
+/// GET /files/versions - List all versions of a file
+///
+/// SeaweedFS/S3 supports object versioning. This endpoint lists all versions
+/// of a specific file, allowing users to restore previous versions.
+///
+/// Query parameters:
+/// - path: The file path to get versions for
+/// - bucket: Optional bucket name (defaults to bot's bucket)
+pub async fn list_versions(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<VersionsQuery>,
+) -> Result<Json<VersionsResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let bucket = params.bucket.unwrap_or_else(|| "default".to_string());
+    let path = params.path;
+
+    // Get S3 client from state
+    let s3_client = state.s3_client.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "S3 storage not configured" })),
+        )
+    })?;
+
+    // List object versions using S3 API
+    let versions_result = s3_client
+        .list_object_versions()
+        .bucket(&bucket)
+        .prefix(&path)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Failed to list versions: {}", e) })),
+            )
+        })?;
+
+    let mut versions: Vec<FileVersion> = Vec::new();
+
+    // Process version list
+    for version in versions_result.versions() {
+        if version.key().unwrap_or_default() == path {
+            versions.push(FileVersion {
+                version_id: version.version_id().unwrap_or("null").to_string(),
+                modified: version
+                    .last_modified()
+                    .map(|t| t.to_string())
+                    .unwrap_or_else(|| chrono::Utc::now().to_rfc3339()),
+                size: version.size().unwrap_or(0),
+                is_latest: version.is_latest().unwrap_or(false),
+                etag: version.e_tag().map(|s| s.to_string()),
+            });
+        }
+    }
+
+    // Sort by modified date, newest first
+    versions.sort_by(|a, b| b.modified.cmp(&a.modified));
+
+    Ok(Json(VersionsResponse {
+        path: path.clone(),
+        versions,
+    }))
+}
+
+/// POST /files/restore - Restore a file to a specific version
+///
+/// Restores a file to a previous version by copying the old version
+/// to become the new current version. The previous versions are preserved.
+///
+/// Request body:
+/// - path: The file path to restore
+/// - version_id: The version ID to restore to
+/// - bucket: Optional bucket name (defaults to bot's bucket)
+pub async fn restore_version(
+    State(state): State<Arc<AppState>>,
+    Json(payload): Json<RestoreRequest>,
+) -> Result<Json<RestoreResponse>, (StatusCode, Json<serde_json::Value>)> {
+    let bucket = payload.bucket.unwrap_or_else(|| "default".to_string());
+    let path = payload.path;
+    let version_id = payload.version_id;
+
+    // Get S3 client from state
+    let s3_client = state.s3_client.as_ref().ok_or_else(|| {
+        (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Json(serde_json::json!({ "error": "S3 storage not configured" })),
+        )
+    })?;
+
+    // Copy the specific version to itself, making it the latest version
+    // S3 copy with version-id copies that version as a new object
+    let copy_source = format!("{}/{}?versionId={}", bucket, path, version_id);
+
+    let copy_result = s3_client
+        .copy_object()
+        .bucket(&bucket)
+        .key(&path)
+        .copy_source(&copy_source)
+        .send()
+        .await
+        .map_err(|e| {
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({ "error": format!("Failed to restore version: {}", e) })),
+            )
+        })?;
+
+    let new_version_id = copy_result.version_id().map(|s| s.to_string());
+
+    Ok(Json(RestoreResponse {
+        success: true,
+        message: format!("Successfully restored {} to version {}", path, version_id),
+        restored_version: version_id,
+        new_version_id,
     }))
 }

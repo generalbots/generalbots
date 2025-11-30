@@ -1,0 +1,255 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; fill: none; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; fill: none; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; fill: none; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; fill: none; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; fill: none; }
+    .neon-gray { stroke: #888888; stroke-width: 2.6; fill: none; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .arrow-color { stroke: #666; fill: #666; }
+
+    /* Dark theme with subtle neon effects */
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .neon-gray {
+        stroke: #AAAAAA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 2px #AAAAAA);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .arrow-color { stroke: #B0B0B0; fill: #B0B0B0; }
+    }
+  </style>
+
+  <defs>
+    <marker id="arrow" markerWidth="13" markerHeight="13" refX="11.7" refY="3.9" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,7.8 L11.7,3.9 z" class="arrow-color"/>
+    </marker>
+    <linearGradient id="flowGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#4A90E2;stop-opacity:0.3" />
+      <stop offset="33%" style="stop-color:#F5A623;stop-opacity:0.3" />
+      <stop offset="66%" style="stop-color:#BD10E0;stop-opacity:0.3" />
+      <stop offset="100%" style="stop-color:#7ED321;stop-opacity:0.3" />
+    </linearGradient>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="45" text-anchor="middle" font-size="32" font-weight="600" class="main-text">Observability Flow</text>
+  <text x="700" y="75" text-anchor="middle" font-size="18" class="secondary-text">Vector Agent collects logs from BotServer without code changes</text>
+
+  <!-- MAIN FLOW DIAGRAM -->
+  <g id="main-flow">
+    <!-- Phase Labels -->
+    <text x="200" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Application</text>
+    <text x="550" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Collection</text>
+    <text x="900" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Processing</text>
+    <text x="1200" y="115" text-anchor="middle" font-size="18" font-weight="500" class="secondary-text">Outputs</text>
+
+    <!-- BotServer Application Box -->
+    <rect x="50" y="140" width="300" height="200" class="neon-blue" rx="6.5"/>
+    <text x="200" y="170" text-anchor="middle" font-size="22" font-weight="500" class="main-text">BotServer Application</text>
+
+    <!-- Log calls inside BotServer -->
+    <text x="80" y="210" font-family="monospace" font-size="14" class="secondary-text">log::trace!()</text>
+    <text x="80" y="235" font-family="monospace" font-size="14" class="secondary-text">log::debug!()</text>
+    <text x="80" y="260" font-family="monospace" font-size="14" class="secondary-text">log::info!()</text>
+    <text x="200" y="210" font-family="monospace" font-size="14" class="secondary-text">log::warn!()</text>
+    <text x="200" y="235" font-family="monospace" font-size="14" class="secondary-text">log::error!()</text>
+
+    <!-- Arrow to log files -->
+    <text x="200" y="290" text-anchor="middle" font-size="14" class="secondary-text">↓ writes to</text>
+    <rect x="80" y="305" width="240" height="30" class="neon-gray" rx="4"/>
+    <text x="200" y="325" text-anchor="middle" font-family="monospace" font-size="12" class="secondary-text">./botserver-stack/logs/</text>
+
+    <!-- Vector Agent Box -->
+    <rect x="400" y="140" width="300" height="200" class="neon-orange" rx="6.5"/>
+    <text x="550" y="170" text-anchor="middle" font-size="22" font-weight="500" class="main-text">Vector Agent</text>
+    <text x="550" y="195" text-anchor="middle" font-size="14" class="secondary-text">(Collects from log files)</text>
+
+    <!-- Vector components -->
+    <rect x="420" y="220" width="80" height="50" class="neon-blue" rx="4"/>
+    <text x="460" y="250" text-anchor="middle" font-size="14" class="main-text">Sources</text>
+
+    <rect x="510" y="220" width="90" height="50" class="neon-purple" rx="4"/>
+    <text x="555" y="250" text-anchor="middle" font-size="14" class="main-text">Transforms</text>
+
+    <rect x="610" y="220" width="70" height="50" class="neon-green" rx="4"/>
+    <text x="645" y="250" text-anchor="middle" font-size="14" class="main-text">Sinks</text>
+
+    <!-- Vector sub-labels -->
+    <text x="460" y="290" text-anchor="middle" font-size="11" class="secondary-text">(Files)</text>
+    <text x="555" y="290" text-anchor="middle" font-size="11" class="secondary-text">(Parse)</text>
+    <text x="645" y="290" text-anchor="middle" font-size="11" class="secondary-text">(Output)</text>
+
+    <!-- Arrows between Vector components -->
+    <line x1="500" y1="245" x2="510" y2="245" class="arrow-color" stroke-width="2" marker-end="url(#arrow)" opacity="0.7"/>
+    <line x1="600" y1="245" x2="610" y2="245" class="arrow-color" stroke-width="2" marker-end="url(#arrow)" opacity="0.7"/>
+
+    <!-- Processing/Routing Box -->
+    <rect x="750" y="140" width="300" height="200" class="neon-purple" rx="6.5"/>
+    <text x="900" y="170" text-anchor="middle" font-size="22" font-weight="500" class="main-text">Processing</text>
+
+    <!-- Filter boxes -->
+    <rect x="770" y="200" width="130" height="40" class="neon-orange" rx="4"/>
+    <text x="835" y="225" text-anchor="middle" font-size="14" class="main-text">Filter Errors</text>
+
+    <rect x="770" y="250" width="130" height="40" class="neon-cyan" rx="4"/>
+    <text x="835" y="275" text-anchor="middle" font-size="14" class="main-text">Filter Warnings</text>
+
+    <rect x="910" y="200" width="130" height="40" class="neon-green" rx="4"/>
+    <text x="975" y="225" text-anchor="middle" font-size="14" class="main-text">Log to Metrics</text>
+
+    <rect x="910" y="250" width="130" height="40" class="neon-blue" rx="4"/>
+    <text x="975" y="275" text-anchor="middle" font-size="14" class="main-text">Enrich Data</text>
+
+    <!-- Output Sinks -->
+    <!-- InfluxDB -->
+    <rect x="1100" y="140" width="150" height="55" class="neon-green" rx="6.5"/>
+    <text x="1175" y="172" text-anchor="middle" font-size="18" font-weight="500" class="main-text">InfluxDB</text>
+    <text x="1175" y="190" text-anchor="middle" font-size="12" class="secondary-text">(Metrics)</text>
+
+    <!-- Grafana -->
+    <rect x="1100" y="210" width="150" height="55" class="neon-purple" rx="6.5"/>
+    <text x="1175" y="242" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Grafana</text>
+    <text x="1175" y="260" text-anchor="middle" font-size="12" class="secondary-text">(Dashboard)</text>
+
+    <!-- Alerts -->
+    <rect x="1100" y="280" width="150" height="55" class="neon-orange" rx="6.5"/>
+    <text x="1175" y="312" text-anchor="middle" font-size="18" font-weight="500" class="main-text">Alerts</text>
+    <text x="1175" y="330" text-anchor="middle" font-size="12" class="secondary-text">(Webhook)</text>
+
+    <!-- Flow Arrows -->
+    <g stroke="#666" stroke-width="2.6" fill="none" opacity="0.7">
+      <!-- BotServer to Vector -->
+      <line x1="350" y1="240" x2="400" y2="240" marker-end="url(#arrow)"/>
+
+      <!-- Vector to Processing -->
+      <line x1="700" y1="240" x2="750" y2="240" marker-end="url(#arrow)"/>
+
+      <!-- Processing to Outputs -->
+      <line x1="1050" y1="167" x2="1100" y2="167" marker-end="url(#arrow)"/>
+      <line x1="1050" y1="237" x2="1100" y2="237" marker-end="url(#arrow)"/>
+      <line x1="1050" y1="307" x2="1100" y2="307" marker-end="url(#arrow)"/>
+    </g>
+  </g>
+
+  <!-- Log Sources Detail -->
+  <g id="log-sources" transform="translate(50, 380)">
+    <rect width="400" height="160" class="neon-gray" rx="6.5"/>
+    <text x="200" y="30" text-anchor="middle" font-size="20" font-weight="500" class="main-text">Log Directory Structure</text>
+    <text x="20" y="60" font-family="monospace" font-size="14" class="secondary-text">logs/system/    → BotServer logs</text>
+    <text x="20" y="85" font-family="monospace" font-size="14" class="secondary-text">logs/drive/     → SeaweedFS logs</text>
+    <text x="20" y="110" font-family="monospace" font-size="14" class="secondary-text">logs/tables/    → PostgreSQL logs</text>
+    <text x="20" y="135" font-family="monospace" font-size="14" class="secondary-text">logs/cache/     → Valkey logs</text>
+    <text x="220" y="60" font-family="monospace" font-size="14" class="secondary-text">logs/vectordb/  → Qdrant</text>
+    <text x="220" y="85" font-family="monospace" font-size="14" class="secondary-text">logs/email/     → Stalwart</text>
+    <text x="220" y="110" font-family="monospace" font-size="14" class="secondary-text">logs/directory/ → Zitadel</text>
+    <text x="220" y="135" font-family="monospace" font-size="14" class="secondary-text">logs/meet/      → LiveKit</text>
+  </g>
+
+  <!-- Vector Config -->
+  <g id="vector-config" transform="translate(500, 380)">
+    <rect width="400" height="160" class="neon-orange" rx="6.5"/>
+    <text x="200" y="30" text-anchor="middle" font-size="20" font-weight="500" class="main-text">Vector Configuration</text>
+    <text x="20" y="60" font-family="monospace" font-size="13" class="secondary-text">[sources.botserver_logs]</text>
+    <text x="20" y="80" font-family="monospace" font-size="13" class="secondary-text">type = "file"</text>
+    <text x="20" y="100" font-family="monospace" font-size="13" class="secondary-text">include = ["logs/system/*.log"]</text>
+    <text x="20" y="125" font-family="monospace" font-size="13" class="secondary-text">[transforms.parse_botserver]</text>
+    <text x="20" y="145" font-family="monospace" font-size="13" class="secondary-text">type = "remap"</text>
+  </g>
+
+  <!-- Key Benefits -->
+  <g id="benefits" transform="translate(950, 380)">
+    <rect width="300" height="160" class="neon-cyan" rx="6.5"/>
+    <text x="150" y="30" text-anchor="middle" font-size="20" font-weight="500" class="main-text">Key Benefits</text>
+    <text x="20" y="60" font-size="16" class="secondary-text">✓ Zero code changes required</text>
+    <text x="20" y="85" font-size="16" class="secondary-text">✓ Works with existing logging</text>
+    <text x="20" y="110" font-size="16" class="secondary-text">✓ Add/remove without recompile</text>
+    <text x="20" y="135" font-size="16" class="secondary-text">✓ Scales independently</text>
+  </g>
+
+  <!-- PROGRESS INDICATOR -->
+  <g id="progress-legend">
+    <rect x="50" y="580" width="1300" height="90" fill="url(#flowGradient)" rx="10" opacity="0.2"/>
+
+    <!-- Stage markers -->
+    <circle cx="200" cy="625" r="13" class="neon-blue"/>
+    <circle cx="550" cy="625" r="13" class="neon-orange"/>
+    <circle cx="900" cy="625" r="13" class="neon-purple"/>
+    <circle cx="1200" cy="625" r="13" class="neon-green"/>
+
+    <!-- Connecting lines -->
+    <line x1="213" y1="625" x2="537" y2="625" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="563" y1="625" x2="887" y2="625" class="arrow-color" stroke-width="2" opacity="0.4"/>
+    <line x1="913" y1="625" x2="1187" y2="625" class="arrow-color" stroke-width="2" opacity="0.4"/>
+
+    <!-- Stage labels -->
+    <text x="200" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Generate</text>
+    <text x="200" y="655" text-anchor="middle" font-size="14" class="secondary-text">log::*!()</text>
+
+    <text x="550" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Collect</text>
+    <text x="550" y="655" text-anchor="middle" font-size="14" class="secondary-text">Vector Agent</text>
+
+    <text x="900" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Process</text>
+    <text x="900" y="655" text-anchor="middle" font-size="14" class="secondary-text">Parse & Route</text>
+
+    <text x="1200" y="600" text-anchor="middle" font-size="16" font-weight="500" class="main-text">Store/Alert</text>
+    <text x="1200" y="655" text-anchor="middle" font-size="14" class="secondary-text">InfluxDB/Grafana</text>
+  </g>
+
+  <!-- Metrics Info -->
+  <g id="metrics-info" transform="translate(50, 710)">
+    <text x="0" y="0" font-size="18" font-weight="500" class="main-text">Automatic Metrics:</text>
+
+    <rect x="0" y="20" width="200" height="35" class="neon-blue" rx="4" opacity="0.5"/>
+    <text x="100" y="43" text-anchor="middle" font-size="14" class="main-text">log_events_total</text>
+
+    <rect x="220" y="20" width="200" height="35" class="neon-orange" rx="4" opacity="0.5"/>
+    <text x="320" y="43" text-anchor="middle" font-size="14" class="main-text">errors_total</text>
+
+    <rect x="440" y="20" width="200" height="35" class="neon-purple" rx="4" opacity="0.5"/>
+    <text x="540" y="43" text-anchor="middle" font-size="14" class="main-text">warnings_total</text>
+
+    <rect x="660" y="20" width="200" height="35" class="neon-green" rx="4" opacity="0.5"/>
+    <text x="760" y="43" text-anchor="middle" font-size="14" class="main-text">llm_latency_seconds</text>
+
+    <rect x="880" y="20" width="200" height="35" class="neon-cyan" rx="4" opacity="0.5"/>
+    <text x="980" y="43" text-anchor="middle" font-size="14" class="main-text">sessions_active</text>
+  </g>
+
+  <!-- Description -->
+  <text x="700" y="810" text-anchor="middle" font-size="21" class="secondary-text">
+    Keep using standard Rust log macros - Vector handles collection, parsing, and routing
+  </text>
+  <text x="700" y="845" text-anchor="middle" font-size="18" class="secondary-text">
+    Install with: ./botserver install observability
+  </text>
+</svg>
