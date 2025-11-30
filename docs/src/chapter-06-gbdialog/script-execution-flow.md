@@ -6,33 +6,9 @@ Understanding how General Bots BASIC scripts are loaded, compiled, and executed 
 
 Scripts in General Bots can be triggered through several entry points:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    SCRIPT ENTRY POINTS                          │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │   start.bas  │  │  SET SCHEDULE│  │   WEBHOOK    │          │
-│  │  (Bot Start) │  │  (Cron Jobs) │  │  (HTTP POST) │          │
-│  └──────┬───────┘  └──────┬───────┘  └──────┬───────┘          │
-│         │                 │                 │                   │
-│         ▼                 ▼                 ▼                   │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │              BASIC COMPILER & RUNTIME                    │   │
-│  │  1. Load config.csv param-* variables                    │   │
-│  │  2. Preprocess (case normalization, syntax transform)    │   │
-│  │  3. Compile to AST                                       │   │
-│  │  4. Execute with injected scope                          │   │
-│  └─────────────────────────────────────────────────────────┘   │
-│         │                 │                 │                   │
-│         ▼                 ▼                 ▼                   │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐          │
-│  │ LLM Tools    │  │  ON Events   │  │  API Calls   │          │
-│  │ (ADD TOOL)   │  │  (Triggers)  │  │  (External)  │          │
-│  └──────────────┘  └──────────────┘  └──────────────┘          │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+![Script Execution Flow](../assets/script-execution-flow.svg)
+
+*BASIC scripts compile to Rhai AST and execute with registered keyword handlers. Scripts in .gbdialog/ are hot-reloaded on change.*
 
 ### 1. Bot Startup (`start.bas`)
 
