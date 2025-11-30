@@ -1650,4 +1650,214 @@
                             <div class="item-card">
                                 <div class="item-header">
                                     <div class="item-icon bg-orange">
-                                        <svg viewBox="0 0 24 24" fill="none"
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <circle cx="12" cy="12" r="10"/>
+                                            <path d="M12 16v-4M12 8h.01"/>
+                                        </svg>
+                                    </div>
+                                    <div class="item-title-section">
+                                        <div class="item-title">Gemini 1.5 Pro</div>
+                                        <div class="item-category">Google</div>
+                                    </div>
+                                </div>
+                                <p class="item-description">Google's most capable model with 1M context window.</p>
+                                <div class="item-footer">
+                                    <div class="item-tags">
+                                        <span class="item-tag">1M context</span>
+                                        <span class="item-tag">Multimodal</span>
+                                    </div>
+                                    <button class="item-action">Select</button>
+                                </div>
+                            </div>
+
+                            <div class="item-card">
+                                <div class="item-header">
+                                    <div class="item-icon bg-cyan">
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                            <path d="M2 17l10 5 10-5"/>
+                                            <path d="M2 12l10 5 10-5"/>
+                                        </svg>
+                                    </div>
+                                    <div class="item-title-section">
+                                        <div class="item-title">Llama 3.1 405B</div>
+                                        <div class="item-category">Meta</div>
+                                    </div>
+                                </div>
+                                <p class="item-description">Open source model with strong performance across tasks.</p>
+                                <div class="item-footer">
+                                    <div class="item-tags">
+                                        <span class="item-tag">128K context</span>
+                                        <span class="item-tag">Open Source</span>
+                                    </div>
+                                    <button class="item-action">Select</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                // Add active class to clicked tab
+                tab.classList.add('active');
+
+                // Hide all tab contents
+                document.querySelectorAll('.tab-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+
+                // Show corresponding tab content
+                const tabId = tab.dataset.tab;
+                const content = document.getElementById(`tab-${tabId}`);
+                if (content) {
+                    content.classList.add('active');
+                }
+            });
+        });
+
+        // Category selection
+        document.querySelectorAll('.category-item').forEach(item => {
+            item.addEventListener('click', () => {
+                document.querySelectorAll('.category-item').forEach(i => i.classList.remove('selected'));
+                item.classList.add('selected');
+                // Trigger HTMX request with category filter
+                const category = item.dataset.category;
+                htmx.ajax('GET', `/api/v1/sources/prompts?category=${category}`, {
+                    target: '#prompts-grid',
+                    swap: 'innerHTML'
+                });
+            });
+        });
+
+        // Search with debounce
+        let searchTimeout;
+        document.getElementById('search-input')?.addEventListener('input', (e) => {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const query = e.target.value;
+                const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'prompts';
+                htmx.ajax('GET', `/api/v1/sources/${activeTab}?search=${encodeURIComponent(query)}`, {
+                    target: `#${activeTab}-grid`,
+                    swap: 'innerHTML'
+                });
+            }, 300);
+        });
+
+        // Filter dropdown
+        document.getElementById('filter-select')?.addEventListener('change', (e) => {
+            const filter = e.target.value;
+            const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'prompts';
+            htmx.ajax('GET', `/api/v1/sources/${activeTab}?sort=${filter}`, {
+                target: `#${activeTab}-grid`,
+                swap: 'innerHTML'
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl/Cmd + K to focus search
+            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+                e.preventDefault();
+                document.getElementById('search-input')?.focus();
+            }
+
+            // Escape to clear search
+            if (e.key === 'Escape') {
+                const searchInput = document.getElementById('search-input');
+                if (searchInput && document.activeElement === searchInput) {
+                    searchInput.value = '';
+                    searchInput.blur();
+                }
+            }
+
+            // Tab navigation with numbers 1-5
+            if (e.key >= '1' && e.key <= '5' && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                const tabs = document.querySelectorAll('.tab');
+                const index = parseInt(e.key) - 1;
+                if (tabs[index]) {
+                    tabs[index].click();
+                }
+            }
+        });
+
+        // Item card actions
+        document.addEventListener('click', (e) => {
+            const actionBtn = e.target.closest('.item-action');
+            if (actionBtn) {
+                const card = actionBtn.closest('.item-card');
+                const title = card?.querySelector('.item-title')?.textContent;
+                const category = card?.querySelector('.item-category')?.textContent;
+
+                // Determine action based on active tab
+                const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+                switch (activeTab) {
+                    case 'prompts':
+                        // Copy prompt to clipboard or use it
+                        console.log('Using prompt:', title);
+                        break;
+                    case 'templates':
+                        // Navigate to template or install it
+                        console.log('Opening template:', title);
+                        break;
+                    case 'mcp':
+                        // Connect to MCP server
+                        console.log('Connecting to MCP server:', title);
+                        break;
+                    case 'tools':
+                        // Enable/disable tool
+                        console.log('Toggling tool:', title);
+                        break;
+                    case 'models':
+                        // Select model
+                        console.log('Selecting model:', title);
+                        break;
+                }
+            }
+        });
+
+        // Initialize HTMX event listeners
+        document.body.addEventListener('htmx:beforeRequest', (e) => {
+            // Show loading state
+            const target = e.detail.target;
+            if (target) {
+                target.classList.add('loading');
+            }
+        });
+
+        document.body.addEventListener('htmx:afterSwap', (e) => {
+            // Remove loading state
+            const target = e.detail.target;
+            if (target) {
+                target.classList.remove('loading');
+            }
+        });
+
+        document.body.addEventListener('htmx:responseError', (e) => {
+            console.error('HTMX request failed:', e.detail.error);
+            // Show error state
+            const target = e.detail.target;
+            if (target) {
+                target.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
+                            <circle cx="12" cy="12" r="10"/>
+                            <line x1="12" y1="8" x2="12" y2="12"/>
+                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+                        </svg>
+                        <h3>Failed to load content</h3>
+                        <p>Please try again later.</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

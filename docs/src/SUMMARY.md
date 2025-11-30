@@ -37,12 +37,14 @@
 # Part IV - User Interface
 
 - [Chapter 04: .gbui Interface Reference](./chapter-04-gbui/README.md)
+  - [Suite User Manual](./chapter-04-gbui/suite-manual.md)
   - [UI Structure](./chapter-04-gbui/ui-structure.md)
   - [default.gbui - Full Desktop](./chapter-04-gbui/default-gbui.md)
   - [single.gbui - Simple Chat](./chapter-04-gbui/single-gbui.md)
   - [Console Mode](./chapter-04-gbui/console-mode.md)
   - [Player - Media Viewer](./chapter-04-gbui/player.md)
   - [Monitoring Dashboard](./chapter-04-gbui/monitoring.md)
+  - [HTMX Architecture](./chapter-04-gbui/htmx-architecture.md)
 
 # Part V - Themes and Styling
 
