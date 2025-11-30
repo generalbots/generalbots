@@ -9,6 +9,7 @@ pub enum TriggerKind {
     TableUpdate = 1,
     TableInsert = 2,
     TableDelete = 3,
+    Webhook = 4,
 }
 impl TriggerKind {
     pub fn _from_i32(value: i32) -> Option<Self> {
@@ -17,6 +18,7 @@ impl TriggerKind {
             1 => Some(Self::TableUpdate),
             2 => Some(Self::TableInsert),
             3 => Some(Self::TableDelete),
+            4 => Some(Self::Webhook),
             _ => None,
         }
     }
