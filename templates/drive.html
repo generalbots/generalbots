@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive - General Bots</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        [data-loading] { display: none; }
+        .htmx-request [data-loading] { display: block; }
+        .htmx-request [data-content] { opacity: 0.5; }
+        .file-item:hover { background-color: var(--hover-bg, #f3f4f6); }
+        .dark .file-item:hover { --hover-bg: #374151; }
+        .selected { background-color: #dbeafe !important; }
+        .dark .selected { background-color: #1e3a5a !important; }
+        .drop-target { border: 2px dashed #3b82f6 !important; background-color: #eff6ff !important; }
+        .context-menu { position: fixed; z-index: 1000; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100 min-h-screen">
+    <!-- Top Navigation -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-4">
+                <a href="/" class="flex items-center gap-2">
+                    <svg class="w-8 h-8 text-blue-600" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14l-5-5 1.41-1.41L12 14.17l4.59-4.58L18 11l-6 6z"/>
+                    </svg>
+                    <span class="text-xl font-semibold">Drive</span>
+                </a>
+
+                <!-- Search -->
+                <div class="relative ml-4">
+                    <input type="search"
+                           name="query"
+                           placeholder="Search files..."
+                           class="w-80 px-4 py-2 pl-10 rounded-lg border border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                           hx-get="/api/files/search"
+                           hx-trigger="input changed delay:300ms"
+                           hx-target="#file-list"
+                           hx-indicator="#search-spinner">
+                    <svg class="w-5 h-5 absolute left-3 top-2.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                    </svg>
+                    <div id="search-spinner" class="htmx-indicator absolute right-3 top-2.5">
+                        <svg class="animate-spin h-5 w-5 text-blue-600" fill="none" viewBox="0 0 24 24">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <!-- View Toggle -->
+                <div class="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+                    <button onclick="setView('grid')" id="view-grid" class="px-3 py-2 bg-blue-600 text-white">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4 4h4v4H4V4zm6 0h4v4h-4V4zm6 0h4v4h-4V4zM4 10h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4zM4 16h4v4H4v-4zm6 0h4v4h-4v-4zm6 0h4v4h-4v-4z"/>
+                        </svg>
+                    </button>
+                    <button onclick="setView('list')" id="view-list" class="px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"/>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- User Menu -->
+                <div class="relative">
+                    <button class="flex items-center gap-2 p-2 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700">
+                        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white font-medium">
+                            {{ user_name | first | upper }}
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="flex h-[calc(100vh-65px)]">
+        <!-- Sidebar -->
+        <aside class="w-64 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 p-4 flex flex-col">
+            <!-- New Button -->
+            <button onclick="showUploadModal()"
+                    class="w-full mb-4 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center gap-2 transition-colors">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New
+            </button>
+
+            <!-- Navigation -->
+            <nav class="flex-1 space-y-1">
+                <a href="#" hx-get="/api/files/list" hx-target="#file-list" hx-vals='{"path": ""}'
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 font-medium">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M10 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2h-8l-2-2z"/>
+                    </svg>
+                    My Drive
+                </a>
+                <a href="#" hx-get="/api/files/shared" hx-target="#file-list"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z"/>
+                    </svg>
+                    Shared with me
+                </a>
+                <a href="#" hx-get="/api/files/recent" hx-target="#file-list"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm.5-13H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    Recent
+                </a>
+                <a href="#" hx-get="/api/files/favorite" hx-target="#file-list"
+                   class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z"/>
+                    </svg>
+                    Starred
+                </a>
+                <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
+                    <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/>
+                    </svg>
+                    Trash
+                </a>
+            </nav>
+
+            <!-- Storage Info -->
+            <div class="mt-auto pt-4 border-t border-gray-200 dark:border-gray-700"
+                 hx-get="/api/files/quota" hx-trigger="load" hx-swap="innerHTML">
+                <div class="text-sm text-gray-500 dark:text-gray-400">
+                    <div class="flex justify-between mb-1">
+                        <span>Storage</span>
+                        <span>Loading...</span>
+                    </div>
+                    <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                        <div class="bg-blue-600 h-2 rounded-full" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <!-- Breadcrumb & Actions -->
+            <div class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-6 py-3 flex items-center justify-between">
+                <div id="breadcrumb" class="flex items-center gap-2 text-sm">
+                    <a href="#" hx-get="/api/files/list" hx-vals='{"path": ""}' hx-target="#file-list"
+                       class="text-gray-600 dark:text-gray-400 hover:text-blue-600">My Drive</a>
+                </div>
+
+                <div class="flex items-center gap-2">
+                    <!-- Sort -->
+                    <select class="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-sm"
+                            hx-get="/api/files/list" hx-target="#file-list" hx-include="[name='path']">
+                        <option value="name">Name</option>
+                        <option value="modified">Modified</option>
+                        <option value="size">Size</option>
+                        <option value="type">Type</option>
+                    </select>
+
+                    <!-- Actions for selected -->
+                    <div id="selection-actions" class="hidden flex items-center gap-2">
+                        <button onclick="downloadSelected()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="Download">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                            </svg>
+                        </button>
+                        <button onclick="shareSelected()" class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg" title="Share">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+                            </svg>
+                        </button>
+                        <button onclick="deleteSelected()" class="p-2 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 rounded-lg" title="Delete">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- File List -->
+            <div class="flex-1 overflow-auto p-6"
+                 id="file-container"
+                 ondrop="handleDrop(event)"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)">
+
+                <!-- Loading indicator -->
+                <div id="loading-indicator" class="hidden flex items-center justify-center h-full">
+                    <svg class="animate-spin h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                </div>
+
+                <!-- File list populated via HTMX -->
+                <div id="file-list" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+                     hx-get="/api/files/list"
+                     hx-trigger="load"
+                     hx-indicator="#loading-indicator">
+                </div>
+            </div>
+        </main>
+
+        <!-- Details Panel (hidden by default) -->
+        <aside id="details-panel" class="hidden w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 overflow-auto">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-semibold">Details</h3>
+                <button onclick="hideDetailsPanel()" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="details-content">
+                <!-- Populated dynamically -->
+            </div>
+        </aside>
+    </div>
+
+    <!-- Upload Modal -->
+    <div id="upload-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Upload Files</h3>
+                <button onclick="hideUploadModal()" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form hx-post="/api/files/upload" hx-encoding="multipart/form-data" hx-target="#file-list" hx-on::after-request="hideUploadModal()">
+                <input type="hidden" name="path" id="upload-path" value="">
+
+                <div class="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl p-8 text-center hover:border-blue-500 transition-colors">
+                    <input type="file" name="file" id="file-input" class="hidden" multiple onchange="updateFileLabel(this)">
+                    <label for="file-input" class="cursor-pointer">
+                        <svg class="w-12 h-12 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        <p class="text-gray-600 dark:text-gray-400">
+                            <span class="text-blue-600 font-medium">Click to upload</span> or drag and drop
+                        </p>
+                        <p id="file-label" class="text-sm text-gray-500 mt-1">Any file up to 100MB</p>
+                    </label>
+                </div>
+
+                <div class="mt-4 flex gap-3">
+                    <button type="button" onclick="hideUploadModal()" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Upload
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div id="folder-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">New Folder</h3>
+                <button onclick="hideFolderModal()" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <form hx-post="/api/files/create-folder" hx-target="#file-list" hx-on::after-request="hideFolderModal()">
+                <input type="hidden" name="path" id="folder-path" value="">
+                <input type="text" name="name" placeholder="Folder name" required
+                       class="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+
+                <div class="mt-4 flex gap-3">
+                    <button type="button" onclick="hideFolderModal()" class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700">
+                        Cancel
+                    </button>
+                    <button type="submit" class="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                        Create
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Versions Modal -->
+    <div id="versions-modal" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-lg w-full mx-4 p-6">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold">Version History</h3>
+                <button onclick="hideVersionsModal()" class="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+            <div id="versions-content" class="max-h-96 overflow-auto">
+                <!-- Populated via HTMX -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div id="context-menu" class="hidden context-menu bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 py-1 min-w-48">
+        <button onclick="openFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+            </svg>
+            Open
+        </button>
+        <button onclick="downloadFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+            </svg>
+            Download
+        </button>
+        <button onclick="shareFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"/>
+            </svg>
+            Share
+        </button>
+        <hr class="my-1 border-gray-200 dark:border-gray-700">
+        <button onclick="showVersions()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Version History
+        </button>
+        <button onclick="renameFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+            </svg>
+            Rename
+        </button>
+        <button onclick="copyFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+            Copy
+        </button>
+        <button onclick="moveFile()" class="w-full px-4 py-2 text-left hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+            </svg>
+            Move
+        </button>
+        <hr class="my-1 border-gray-200 dark:border-gray-700">
+        <button onclick="deleteFile()" class="w-full px-4 py-2 text-left hover:bg-red-50 dark:hover:bg-red-900/30 text-red-600 flex items-center gap-3">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+            </svg>
+            Delete
+        </button>
+    </div>
+
+    <script>
+        let currentPath = '';
+        let selectedFiles = [];
+        let contextTarget = null;
+
+        // View toggle
+        function setView(view) {
+            const fileList = document.getElementById('file-list');
+            const gridBtn = document.getElementById('view-grid');
+            const listBtn = document.getElementById('view-list');
+
+            if (view === 'grid') {
+                fileList.className = 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4';
+                gridBtn.className = 'px-3 py-2 bg-blue-600 text-white';
+                listBtn.className = 'px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700';
+            } else {
+                fileList.className = 'space-y-1';
+                gridBtn.className = 'px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700';
+                listBtn.className = 'px-3 py-2 bg-blue-600 text-white';
+            }
+            localStorage.setItem('driveView', view);
+        }
+
+        // Modals
+        function showUploadModal() {
+            document.getElementById('upload-path').value = currentPath;
+            document.getElementById('upload-modal').classList.remove('hidden');
+        }
+        function hideUploadModal() {
+            document.getElementById('upload-modal').classList.add('hidden');
+        }
+        function showFolderModal() {
+            document.getElementById('folder-path').value = currentPath;
+            document.getElementById('folder-modal').classList.remove('hidden');
+        }
+        function hideFolderModal() {
+            document.getElementById('folder-modal').classList.add('hidden');
+        }
+        function showVersionsModal(path) {
+            document.getElementById('versions-modal').classList.remove('hidden');
+            htmx.ajax('GET', `/api/files/versions?path=${encodeURIComponent(path)}`, '#versions-content');
+        }
+        function hideVersionsModal() {
+            document.getElementById('versions-modal').classList.add('hidden');
+        }
+
+        // File label update
+        function updateFileLabel(input) {
+            const label = document.getElementById('file-label');
+            if (input.files.length > 0) {
+                label.textContent = `${input.files.length} file(s) selected`;
+            }
+        }
+
+        // Context menu
+        function showContextMenu(event, element) {
+            event.preventDefault();
+            contextTarget = element;
+            const menu = document.getElementById('context-menu');
+            menu.style.left = event.pageX + 'px';
+            menu.style.top = event.pageY + 'px';
+            menu.classList.remove('hidden');
+        }
+
+        document.addEventListener('click', () => {
+            document.getElementById('context-menu').classList.add('hidden');
+        });
+
+        // File operations
+        function showVersions() {
+            if (contextTarget) {
+                showVersionsModal(contextTarget.dataset.path);
+            }
+        }
+
+        function restoreVersion(path, versionId) {
+            htmx.ajax('POST', '/api/files/restore', {
+                values: { path: path, version_id: versionId },
+                target: '#file-list'
+            }).then(() => {
+                hideVersionsModal();
+            });
+        }
+
+        // Drag and drop
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.currentTarget.classList.add('drop-target');
+        }
+        function handleDragLeave(event) {
+            event.currentTarget.classList.remove('drop-target');
+        }
+        function handleDrop(event) {
+            event.preventDefault();
+            event.currentTarget.classList.remove('drop-target');
+            const files = event.dataTransfer.files;
+            if (files.length > 0) {
+                const formData = new FormData();
+                formData.append('path', currentPath);
+                for (let file of files) {
+                    formData.append('file', file);
+                }
+                fetch('/api/files/upload', { method: 'POST', body: formData })
+                    .then(() => htmx.trigger('#file-list', 'refresh'));
+            }
+        }
+
+        // Details panel
+        function showDetailsPanel(path) {
+            document.getElementById('details-panel').classList.remove('hidden');
+            htmx.ajax('GET', `/api/files/details?path=${encodeURIComponent(path)}`, '#details-content');
+        }
+        function hideDetailsPanel() {
+            document.getElementById('details-panel').classList.add('hidden');
+        }
+
+        // Selection handling
+        function toggleSelect(element) {
+            element.classList.toggle('selected');
+            const path = element.dataset.path;
+            const idx = selectedFiles.indexOf(path);
+            if (idx > -1) {
+                selectedFiles.splice(idx, 1);
+            } else {
+                selectedFiles.push(path);
+            }
+            document.getElementById('selection-actions').classList.toggle('hidden', selectedFiles.length === 0);
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Delete' && selectedFiles.length > 0) {
+                deleteSelected();
+            }
+            if (e.ctrlKey && e.key === 'a') {
+                e.preventDefault();
+                document.querySelectorAll('.file-item').forEach(el => {
+                    el.classList.add('selected');
+                    selectedFiles.push(el.dataset.path);
+                });
+            }
+        });
+
+        // Load saved view preference
+        document.addEventListener('DOMContentLoaded', () => {
+            const savedView = localStorage.getItem('driveView') || 'grid';
+            setView(savedView);
+        });
+
+        // HTMX events
+        document.body.addEventListener('htmx:afterSwap', (event) => {
+            if (event.detail.target.id === 'file-list') {
+                selectedFiles = [];
+                document.getElementById('selection-actions').classList.add('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
