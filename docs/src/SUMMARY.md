@@ -36,6 +36,7 @@
 # Part IV - User Interface
 
 - [Chapter 04: .gbui Interface Reference](./chapter-04-gbui/README.md)
+  - [UI Structure](./chapter-04-gbui/ui-structure.md)
   - [default.gbui - Full Desktop](./chapter-04-gbui/default-gbui.md)
   - [single.gbui - Simple Chat](./chapter-04-gbui/single-gbui.md)
   - [Console Mode](./chapter-04-gbui/console-mode.md)
@@ -54,6 +55,7 @@
   - [Dialog Basics](./chapter-06-gbdialog/basics.md)
   - [Universal Messaging & Multi-Channel](./chapter-06-gbdialog/universal-messaging.md)
   - [BASIC vs n8n/Zapier/Make](./chapter-06-gbdialog/basic-vs-automation-tools.md)
+  - [Template Variables](./chapter-06-gbdialog/template-variables.md)
   - [Template Examples](./chapter-06-gbdialog/templates.md)
     - [start.bas](./chapter-06-gbdialog/templates/start.md)
     - [enrollment.bas](./chapter-06-gbdialog/templates/enrollment.md)
@@ -99,6 +101,8 @@
     - [KB DOCUMENTS ADDED SINCE](./chapter-06-gbdialog/keyword-kb-documents-added-since.md)
     - [KB LIST COLLECTIONS](./chapter-06-gbdialog/keyword-kb-list-collections.md)
     - [KB STORAGE SIZE](./chapter-06-gbdialog/keyword-kb-storage-size.md)
+  - [Social Media Keywords](./chapter-06-gbdialog/keywords-social-media.md)
+  - [Lead Scoring Keywords](./chapter-06-gbdialog/keywords-lead-scoring.md)
   - [HTTP & API Operations](./chapter-06-gbdialog/keywords-http.md)
     - [POST](./chapter-06-gbdialog/keyword-post.md)
     - [PUT](./chapter-06-gbdialog/keyword-put.md)
@@ -158,6 +162,7 @@
   - [LLM Configuration](./chapter-08-config/llm-config.md)
   - [Context Configuration](./chapter-08-config/context-config.md)
   - [Drive Integration](./chapter-08-config/drive.md)
+  - [Multimodal Configuration](./chapter-08-config/multimodal.md)
   - [Secrets Management](./chapter-08-config/secrets-management.md)
 
 # Part IX - Tools and Integration
@@ -172,7 +177,6 @@
   - [External APIs](./chapter-09-api/external-apis.md)
   - [LLM REST Server](./chapter-09-api/llm-rest-server.md)
   - [NVIDIA GPU Setup for LXC](./chapter-09-api/nvidia-gpu-setup.md)
-
 
 - [Chapter 10: REST API Reference](./chapter-10-api/README.md)
   - [Files API](./chapter-10-api/files-api.md)
@@ -213,7 +217,10 @@
   - [Storage and Data](./chapter-11-features/storage.md)
   - [Multi-Channel Support](./chapter-11-features/channels.md)
   - [Drive Monitor](./chapter-11-features/drive-monitor.md)
-  - [Platform Comparison](./chapter-11-features/platform-comparison.md)
+  - [Platform Capabilities](./chapter-11-features/platform-comparison.md)
+  - [Enterprise Platform Migration](./chapter-11-features/m365-comparison.md)
+  - [Projects](./chapter-11-features/projects.md)
+  - [Multi-Agent Office Suite Design](./chapter-11-features/multi-agent-design.md)
 
 # Part XI - Security
 
@@ -243,10 +250,19 @@
 
 - [Chapter 14: Migration Guide](./chapter-14-migration/README.md)
   - [Migration Overview](./chapter-14-migration/overview.md)
+  - [Platform Comparison Matrix](./chapter-14-migration/comparison-matrix.md)
+  - [Migration Resources](./chapter-14-migration/resources.md)
   - [Common Concepts](./chapter-14-migration/common-concepts.md)
   - [Knowledge Base Migration](./chapter-14-migration/kb-migration.md)
-  - [Google Workspace Integration](./chapter-14-migration/google-workspace.md)
-  - [Microsoft 365 Integration](./chapter-14-migration/microsoft-365.md)
+  - [Cloud Productivity Migration](./chapter-14-migration/google-workspace.md)
+  - [Enterprise Platform Migration](./chapter-14-migration/microsoft-365.md)
+  - [n8n Migration](./chapter-14-migration/n8n.md)
+  - [Notion Migration](./chapter-14-migration/notion.md)
+  - [Perplexity Migration](./chapter-14-migration/perplexity.md)
+  - [Zapier and Make Migration](./chapter-14-migration/zapier-make.md)
+  - [Intercom Migration](./chapter-14-migration/intercom.md)
+  - [Dialogflow Migration](./chapter-14-migration/dialogflow.md)
+  - [Botpress Migration](./chapter-14-migration/botpress.md)
   - [Automation Migration](./chapter-14-migration/automation.md)
   - [Validation and Testing](./chapter-14-migration/validation.md)
 
