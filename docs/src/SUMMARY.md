@@ -22,6 +22,7 @@
   - [.gbtheme UI Theming](./chapter-02/gbtheme.md)
   - [.gbdrive File Storage](./chapter-02/gbdrive.md)
   - [Bot Templates](./chapter-02/templates.md)
+  - [Template: CRM Contacts](./chapter-02/template-crm-contacts.md)
 
 # Part III - Knowledge Base
 
@@ -151,6 +152,7 @@
   - [Architecture Overview](./chapter-07-gbapp/architecture.md)
   - [Building from Source](./chapter-07-gbapp/building.md)
   - [Container Deployment (LXC)](./chapter-07-gbapp/containers.md)
+  - [Docker Deployment](./chapter-07-gbapp/docker-deployment.md)
   - [Scaling and Load Balancing](./chapter-07-gbapp/scaling.md)
   - [Infrastructure Design](./chapter-07-gbapp/infrastructure.md)
   - [Observability](./chapter-07-gbapp/observability.md)

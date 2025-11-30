@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drive - General Bots Suite</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
+    <link rel="stylesheet" href="../css/app.css">
+    <style>
+        :root {
+            --bg-primary: #0f0f0f;
+            --bg-secondary: #1a1a1a;
+            --bg-tertiary: #262626;
+            --bg-hover: #333333;
+            --text-primary: #ffffff;
+            --text-secondary: #a0a0a0;
+            --text-muted: #666666;
+            --accent-blue: #3b82f6;
+            --accent-green: #22c55e;
+            --accent-yellow: #eab308;
+            --accent-red: #ef4444;
+            --accent-purple: #a855f7;
+            --border-color: #333333;
+            --sidebar-width: 240px;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .drive-container {
+            display: grid;
+            grid-template-columns: var(--sidebar-width) 1fr;
+            grid-template-rows: 56px 1fr;
+            height: 100vh;
+        }
+
+        /* Header */
+        .drive-header {
+            grid-column: 1 / -1;
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+        }
+
+        .drive-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .drive-logo svg {
+            width: 28px;
+            height: 28px;
+            color: var(--accent-blue);
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 24px;
+            position: relative;
+        }
+
+        .search-input {
+            width: 100%;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 16px 10px 40px;
+            color: var(--text-primary);
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--accent-blue);
+            background: var(--bg-hover);
+        }
+
+        .search-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .icon-btn:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .icon-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--accent-blue);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* Sidebar */
+        .drive-sidebar {
+            background: var(--bg-secondary);
+            border-right: 1px solid var(--border-color);
+            padding: 16px 12px;
+            overflow-y: auto;
+        }
+
+        .new-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            border-radius: 24px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-bottom: 20px;
+            transition: all 0.2s;
+        }
+
+        .new-btn:hover {
+            background: #2563eb;
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+        }
+
+        .new-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .nav-section {
+            margin-bottom: 24px;
+        }
+
+        .nav-section-title {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding: 0 12px;
+            margin-bottom: 8px;
+        }
+
+        .nav-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            color: var(--text-secondary);
+            text-decoration: none;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .nav-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item.active {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .nav-item svg {
+            width: 20px;
+            height: 20px;
+            flex-shrink: 0;
+        }
+
+        .nav-item-label {
+            flex: 1;
+            font-size: 14px;
+        }
+
+        .nav-item-count {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .storage-info {
+            padding: 16px;
+            background: var(--bg-tertiary);
+            border-radius: 12px;
+            margin-top: auto;
+        }
+
+        .storage-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .storage-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .storage-value {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .storage-bar {
+            height: 6px;
+            background: var(--bg-hover);
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .storage-bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        /* Main Content */
+        .drive-main {
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .drive-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 24px;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-secondary);
+        }
+
+        .breadcrumb {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .breadcrumb-item {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .breadcrumb-item:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .breadcrumb-item.current {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .breadcrumb-separator {
+            color: var(--text-muted);
+        }
+
+        .toolbar-actions {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .view-toggle {
+            display: flex;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            padding: 2px;
+        }
+
+        .view-toggle-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.15s;
+        }
+
+        .view-toggle-btn:hover {
+            color: var(--text-primary);
+        }
+
+        .view-toggle-btn.active {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .view-toggle-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .sort-dropdown {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 8px 12px;
+            color: var(--text-primary);
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* File Grid */
+        .file-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+        }
+
+        .file-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .file-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .file-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 16px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .file-card:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--bg-hover);
+            transform: translateY(-2px);
+        }
+
+        .file-card.selected {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-card-preview {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            overflow: hidden;
+        }
+
+        .file-card-preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-card-preview svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+        }
+
+        .file-card-preview.folder svg {
+            color: var(--accent-yellow);
+        }
+
+        .file-card-preview.document svg {
+            color: var(--accent-blue);
+        }
+
+        .file-card-preview.image svg {
+            color: var(--accent-purple);
+        }
+
+        .file-card-preview.video svg {
+            color: var(--accent-red);
+        }
+
+        .file-card-name {
+            font-size: 14px;
+            font-weight: 500;
+            margin-bottom: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-card-meta {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .file-card-checkbox {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            width: 20px;
+            height: 20px;
+            background: var(--bg-primary);
+            border: 2px solid var(--border-color);
+            border-radius: 4px;
+            opacity: 0;
+            transition: all 0.15s;
+            cursor: pointer;
+        }
+
+        .file-card:hover .file-card-checkbox,
+        .file-card.selected .file-card-checkbox {
+            opacity: 1;
+        }
+
+        .file-card.selected .file-card-checkbox {
+            background: var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        /* List View */
+        .file-row {
+            display: grid;
+            grid-template-columns: 40px 1fr 120px 100px 140px 40px;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .file-row:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .file-row.selected {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .file-row-icon {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .file-row-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .file-row-icon.folder svg {
+            color: var(--accent-yellow);
+        }
+
+        .file-row-name {
+            font-size: 14px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .file-row-size,
+        .file-row-type,
+        .file-row-date {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .file-row-actions {
+            opacity: 0;
+            transition: opacity 0.15s;
+        }
+
+        .file-row:hover .file-row-actions {
+            opacity: 1;
+        }
+
+        /* Upload Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal-overlay.visible {
+            display: flex;
+        }
+
+        .modal {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            overflow: hidden;
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .modal-close {
+            background: transparent;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .upload-zone {
+            border: 2px dashed var(--border-color);
+            border-radius: 12px;
+            padding: 48px 24px;
+            text-align: center;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: var(--accent-blue);
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .upload-zone svg {
+            width: 48px;
+            height: 48px;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .upload-zone-text {
+            font-size: 15px;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        .upload-zone-text strong {
+            color: var(--accent-blue);
+        }
+
+        .upload-zone-hint {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            background: var(--bg-hover);
+        }
+
+        .btn-primary {
+            background: var(--accent-blue);
+            border: none;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+
+        /* Context Menu */
+        .context-menu {
+            position: fixed;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 4px;
+            min-width: 180px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 1000;
+            display: none;
+        }
+
+        .context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .context-menu-item:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .context-menu-item svg {
+            width: 18px;
+            height: 18px;
+            color: var(--text-secondary);
+        }
+
+        .context-menu-item.danger {
+            color: var(--accent-red);
+        }
+
+        .context-menu-separator {
+            height: 1px;
+            background: var(--border-color);
+            margin: 4px 8px;
+        }
+
+        /* Empty State */
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 80px 24px;
+            text-align: center;
+        }
+
+        .empty-state svg {
+            width: 80px;
+            height: 80px;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .empty-state-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .empty-state-text {
+            font-size: 14px;
+            color: var(--text-secondary);
+            max-width: 400px;
+        }
+
+        /* HTMX Indicators */
+        .htmx-indicator {
+            display: none;
+        }
+
+        .htmx-request .htmx-indicator {
+            display: inline-flex;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-color);
+            border-top-color: var(--accent-blue);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .drive-container {
+                grid-template-columns: 1fr;
+            }
+
+            .drive-sidebar {
+                display: none;
+            }
+
+            .search-container {
+                margin: 0 12px;
+            }
+
+            .file-grid {
+                grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body hx-ext="ws" ws-connect="/ws/drive">
+    <div class="drive-container">
+        <!-- Header -->
+        <header class="drive-header">
+            <div class="drive-logo">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                </svg>
+                <span>Drive</span>
+            </div>
+
+            <div class="search-container">
+                <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"/>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                </svg>
+                <input type="text" class="search-input" placeholder="Search in Drive"
+                       hx-get="/api/v1/drive/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#file-list"
+                       hx-indicator="#search-spinner"
+                       name="q">
+                <div class="htmx-indicator" id="search-spinner" style="position: absolute; right: 12px; top: 50%; transform: translateY(-50%);">
+                    <div class="spinner"></div>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <button class="icon-btn" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"/>
+                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                    </svg>
+                </button>
+                <button class="icon-btn" title="Help">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                        <line x1="12" y1="17" x2="12.01" y2="17"/>
+                    </svg>
+                </button>
+                <div class="user-avatar">U</div>
+            </div>
+        </header>
+
+        <!-- Sidebar -->
+        <aside class="drive-sidebar">
+            <button class="new-btn" onclick="showModal('upload-modal')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"/>
+                    <line x1="5" y1="12" x2="19" y2="12"/>
+                </svg>
+                New
+            </button>
+
+            <nav class="nav-section">
+                <a class="nav-item active"
+                   hx-get="/api/v1/drive/list?path=/"
+                   hx-target="#file-list"
+                   hx-push-url="/drive">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        <polyline points="9 22 9 12 15 12 15 22"/>
+                    </svg>
+                    <span class="nav-item-label">My Drive</span>
+                </a>
+                <a class="nav-item"
+                   hx-get="/api/v1/drive/list?filter=shared"
+                   hx-target="#file-list"
+                   hx-push-url="/drive/shared">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                    <span class="nav-item-label">Shared with me</span>
+                </a>
+                <a class="nav-item"
+                   hx-get="/api/v1/drive/list?filter=recent"
+                   hx-target="#file-list"
+                   hx-push-url="/drive/recent">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span class="nav-item-label">Recent</span>
+                </a>
+                <a class="nav-item"
+                   hx-get="/api/v1/drive/list?filter=starred"
+                   hx-target="#file-list"
+                   hx-push-url="/drive/starred">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+                    </svg>
+                    <span class="nav-item-label">Starred</span>
+                </a>
+                <a class="nav-item"
+                   hx-get="/api/v1/drive/list?filter=trash"
+                   hx-target="#file-list"
+                   hx-push-url="/drive/trash">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6"/>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    <span class="nav-item-label">Trash</span>
+                </a>
+            </nav>
+
+            <nav class="nav-section">
+                <div class="nav-section-title">Labels</div>
+                <a class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span class="nav-item-label">Important</span>
+                    <span class="nav-item-count">12</span>
+                </a>
+                <a class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span class="nav-item-label">Work</span>
+                    <span class="nav-item-count">8</span>
+                </a>
+                <a class="nav-item">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                    </svg>
+                    <span class="nav-item-label">Personal</span>
+                    <span class="nav-item-count">24</span>
+                </a>
+            </nav>
+
+            <div class="storage-info">
+                <div class="storage-header">
+                    <span class="storage-label">Storage</span>
+                    <span class="storage-value" id="storage-used"
+                          hx-get="/api/v1/drive/storage"
+                          hx-trigger="load"
+                          hx-swap="innerHTML">
+                        Loading...
+                    </span>
+                </div>
+                <div class="storage-bar">
+                    <div class="storage-bar-fill" id="storage-bar" style="width: 45%;"></div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="drive-main">
+            <div class="drive-toolbar">
+                <div class="breadcrumb" id="breadcrumb">
+                    <div class="breadcrumb-item current"
+                         hx-get="/api/v1/drive/list?path=/"
+                         hx-target="#file-list">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                        </svg>
+                        My Drive
+                    </div>
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="view-toggle">
+                        <button class="view-toggle-btn active" id="grid-view-btn" onclick="setView('grid')" title="Grid view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <rect x="3" y="3" width="7" height="7"/>
+                                <rect x="14" y="3" width="7" height="7"/>
+                                <rect x="14" y="14" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/>
+                            </svg>
+                        </button>
+                        <button class="view-toggle-btn" id="list-view-btn" onclick="setView('list')" title="List view">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="8" y1="6" x2="21" y2="6"/>
+                                <line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <select class="sort-dropdown"
+                            hx-get="/api/v1/drive/list"
+                            hx-target="#file-list"
+                            hx-include="[name='path']"
+                            name="sort">
+                        <option value="name">Name</option>
+                        <option value="modified">Last modified</option>
+                        <option value="size">Size</option>
+                        <option value="type">Type</option>
+                    </select>
+
+                    <button class="icon-btn" title="Refresh"
+                            hx-get="/api/v1/drive/list"
+                            hx-target="#file-list"
+                            hx-include="[name='path']">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="file-content"
+                 ondragover="handleDragOver(event)"
+                 ondragleave="handleDragLeave(event)"
+                 ondrop="handleDrop(event)">
+                <div id="file-list"
+                     hx-get="/api/v1/drive/list?path=/"
+                     hx-trigger="load"
+                     hx-indicator="#loading-spinner">
+                    <div class="htmx-indicator" id="loading-spinner" style="display: flex; justify-content: center; padding: 48px;">
+                        <div class="spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <input type="hidden" name="path" id="current-path" value="/">
+        </main>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal-overlay" id="upload-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">Upload Files</span>
+                <button class="modal-close" onclick="hideModal('upload-modal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="upload-zone" id="upload-zone"
+                     onclick="document.getElementById('file-input').click()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                    </svg>
+                    <div class="upload-zone-text">
+                        <strong>Click to upload</strong> or drag and drop
+                    </div>
+                    <div class="upload-zone-hint">
+                        Maximum file size: 100MB
+                    </div>
+                </div>
+                <input type="file" id="file-input" multiple style="display: none;"
+                       hx-post="/api/v1/drive/upload"
+                       hx-target="#file-list"
+                       hx-encoding="multipart/form-data"
+                       hx-include="[name='path']"
+                       onchange="handleFileSelect(this)">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideModal('upload-modal')">Cancel</button>
+                <button class="btn btn-primary" id="upload-btn" disabled>Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Folder Modal -->
+    <div class="modal-overlay" id="folder-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title">New Folder</span>
+                <button class="modal-close" onclick="hideModal('folder-modal')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="text" class="search-input" id="folder-name" placeholder="Folder name" style="width: 100%;">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideModal('folder-modal')">Cancel</button>
+                <button class="btn btn-primary"
+                        hx-post="/api/v1/drive/folder"
+                        hx-include="#folder-name, [name='path']"
+                        hx-target="#file-list"
+                        onclick="hideModal('folder-modal')">
+                    Create
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" onclick="openFile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                <polyline points="15 3 21 3 21 9"/>
+                <line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+            Open
+        </div>
+        <div class="context-menu-item"
+             hx-get="/api/v1/drive/download"
+             hx-include="#context-path">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="7 10 12 15 17 10"/>
+                <line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Download
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item" onclick="renameFile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            Rename
+        </div>
+        <div class="context-menu-item" onclick="copyFile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+            </svg>
+            Copy
+        </div>
+        <div class="context-menu-item" onclick="moveFile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="5 9 2 12 5 15"/>
+                <polyline points="9 5 12 2 15 5"/>
+                <polyline points="15 19 12 22 9 19"/>
+                <polyline points="19 9 22 12 19 15"/>
+                <line x1="2" y1="12" x2="22" y2="12"/>
+                <line x1="12" y1="2" x2="12" y2="22"/>
+            </svg>
+            Move to
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item"
+             hx-post="/api/v1/drive/star"
+             hx-include="#context-path"
+             hx-target="#file-list">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+            Star
+        </div>
+        <div class="context-menu-item" onclick="shareFile()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"/>
+                <circle cx="6" cy="12" r="3"/>
+                <circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+            </svg>
+            Share
+        </div>
+        <div class="context-menu-separator"></div>
+        <div class="context-menu-item danger"
+             hx-delete="/api/v1/drive/file"
+             hx-include="#context-path"
+             hx-target="#file-list"
+             hx-confirm="Are you sure you want to delete this file?">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+        </div>
+    </div>
+
+    <input type="hidden" id="context-path" name="path" value="">
+
+    <script src="../js/htmx-app.js"></script>
+    <script src="../js/theme-manager.js"></script>
+    <script>
+        // State
+        let currentView = localStorage.getItem('drive-view') || 'grid';
+        let selectedFiles = new Set();
+        let contextTarget = null;
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setView(currentView);
+            initContextMenu();
+            initDragAndDrop();
+        });
+
+        // View toggle
+        function setView(view) {
+            currentView = view;
+            localStorage.setItem('drive-view', view);
+
+            document.getElementById('grid-view-btn').classList.toggle('active', view === 'grid');
+            document.getElementById('list-view-btn').classList.toggle('active', view === 'list');
+
+            const fileList = document.getElementById('file-list');
+            if (fileList) {
+                fileList.setAttribute('data-view', view);
+            }
+        }
+
+        // Modal functions
+        function showModal(id) {
+            document.getElementById(id).classList.add('visible');
+        }
+
+        function hideModal(id) {
+            document.getElementById(id).classList.remove('visible');
+        }
+
+        // Context menu
+        function initContextMenu() {
+            const contextMenu = document.getElementById('context-menu');
+
+            document.addEventListener('contextmenu', (e) => {
+                const fileCard = e.target.closest('.file-card, .file-row');
+                if (fileCard) {
+                    e.preventDefault();
+                    contextTarget = fileCard;
+                    document.getElementById('context-path').value = fileCard.dataset.path;
+
+                    contextMenu.style.left = e.clientX + 'px';
+                    contextMenu.style.top = e.clientY + 'px';
+                    contextMenu.classList.add('visible');
+                }
+            });
+
+            document.addEventListener('click', () => {
+                contextMenu.classList.remove('visible');
+            });
+        }
+
+        // Drag and drop upload
+        function initDragAndDrop() {
+            const uploadZone = document.getElementById('upload-zone');
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, preventDefaults);
+            });
+
+            function preventDefaults(e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, () => {
+                    uploadZone.classList.add('dragover');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                uploadZone.addEventListener(eventName, () => {
+                    uploadZone.classList.remove('dragover');
+                });
+            });
+
+            uploadZone.addEventListener('drop', (e) => {
+                const files = e.dataTransfer.files;
+                handleFiles(files);
+            });
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            e.currentTarget.style.background = 'rgba(59, 130, 246, 0.05)';
+        }
+
+        function handleDragLeave(e) {
+            e.currentTarget.style.background = '';
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            e.currentTarget.style.background = '';
+
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                uploadFiles(files);
+            }
+        }
+
+        function handleFileSelect(input) {
+            if (input.files.length > 0) {
+                uploadFiles(input.files);
+            }
+        }
+
+        function handleFiles(files) {
+            document.getElementById('upload-btn').disabled = files.length === 0;
+        }
+
+        function uploadFiles(files) {
+            const formData = new FormData();
+            formData.append('path', document.getElementById('current-path').value);
+
+            for (let i = 0; i < files.length; i++) {
+                formData.append('files', files[i]);
+            }
+
+            htmx.ajax('POST', '/api/v1/drive/upload', {
+                target: '#file-list',
+                swap: 'innerHTML',
+                values: formData
+            });
+
+            hideModal('upload-modal');
+        }
+
+        // File actions
+        function openFile() {
+            if (contextTarget) {
+                const path = contextTarget.dataset.path;
+                const isDir = contextTarget.dataset.isDir === 'true';
+
+                if (isDir) {
+                    htmx.ajax('GET', '/api/v1/drive/list?path=' + encodeURIComponent(path), '#file-list');
+                    document.getElementById('current-path').value = path;
+                } else {
+                    window.open('/api/v1/drive/view?path=' + encodeURIComponent(path), '_blank');
+                }
+            }
+        }
+
+        function renameFile() {
+            if (contextTarget) {
+                const name = contextTarget.querySelector('.file-card-name, .file-row-name');
+                if (name) {
+                    const currentName = name.textContent;
+                    const newName = prompt('Enter new name:', currentName);
+                    if (newName && newName !== currentName) {
+                        htmx.ajax('POST', '/api/v1/drive/rename', {
+                            target: '#file-list',
+                            values: {
+                                path: contextTarget.dataset.path,
+                                newName: newName
+                            }
+                        });
+                    }
+                }
+            }
+        }
+
+        function copyFile() {
+            if (contextTarget) {
+                localStorage.setItem('clipboard-path', contextTarget.dataset.path);
+                localStorage.setItem('clipboard-action', 'copy');
+                BotServerApp.showNotification('File copied to clipboard', 'info');
+            }
+        }
+
+        function moveFile() {
+            if (contextTarget) {
+                localStorage.setItem('clipboard-path', contextTarget.dataset.path);
+                localStorage.setItem('clipboard-action', 'move');
+                BotServerApp.showNotification('File ready to move. Navigate to destination and paste.', 'info');
+            }
+        }
+
+        function shareFile() {
+            if (contextTarget) {
+                alert('Share functionality coming soon!');
+            }
+        }
+
+        // File selection
+        function toggleSelect(element) {
+            const path = element.dataset.path;
+            if (selectedFiles.has(path)) {
+                selectedFiles.delete(path);
+                element.classList.remove('selected');
+            } else {
+                selectedFiles.add(path);
+                element.classList.add('selected');
+            }
+        }
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey || e.metaKey) {
+                switch (e.key) {
+                    case 'u':
+                        e.preventDefault();
+                        showModal('upload-modal');
+                        break;
+                    case 'n':
+                        e.preventDefault();
+                        showModal('folder-modal');
+                        break;
+                    case 'v':
+                        const clipboardPath = localStorage.getItem('clipboard-path');
+                        const clipboardAction = localStorage.getItem('clipboard-action');
+                        if (clipboardPath) {
+                            e.preventDefault();
+                            const endpoint = clipboardAction === 'copy' ? '/api/v1/drive/copy' : '/api/v1/drive/move';
+                            htmx.ajax('POST', endpoint, {
+                                target: '#file-list',
+                                values: {
+                                    source: clipboardPath,
+                                    destination: document.getElementById('current-path').value
+                                }
+                            });
+                            if (clipboardAction === 'move') {
+                                localStorage.removeItem('clipboard-path');
+                                localStorage.removeItem('clipboard-action');
+                            }
+                        }
+                        break;
+                }
+            }
+        });
+
+        // Update breadcrumb on navigation
+        document.body.addEventListener('htmx:afterSwap', (e) => {
+            if (e.detail.target.id === 'file-list') {
+                const path = document.getElementById('current-path').value;
+                updateBreadcrumb(path);
+            }
+        });
+
+        function updateBreadcrumb(path) {
+            const breadcrumb = document.getElementById('breadcrumb');
+            const parts = path.split('/').filter(Boolean);
+
+            let html = `
+                <div class="breadcrumb-item ${parts.length === 0 ? 'current' : ''}"
+                     hx-get="/api/v1/drive/list?path=/"
+                     hx-target="#file-list"
+                     onclick="document.getElementById('current-path').value = '/'">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                    </svg>
+                    My Drive
+                </div>
+            `;
+
+            let currentPath = '';
+            parts.forEach((part, index) => {
+                currentPath += '/' + part;
+                const isLast = index === parts.length - 1;
+                html += `
+                    <span class="breadcrumb-separator">/</span>
+                    <div class="breadcrumb-item ${isLast ? 'current' : ''}"
+                         hx-get="/api/v1/drive/list?path=${encodeURIComponent(currentPath)}"
+                         hx-target="#file-list"
+                         onclick="document.getElementById('current-path').value = '${currentPath}'">
+                        ${part}
+                    </div>
+                `;
+            });
+
+            breadcrumb.innerHTML = html;
+            htmx.process(breadcrumb);
+        }
+    </script>
+</body>
+</html>
