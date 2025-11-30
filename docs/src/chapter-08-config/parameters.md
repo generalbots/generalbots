@@ -137,6 +137,106 @@ llm-model,mixtral-8x7b-32768
 | `custom-username` | Database user | Not set | String |
 | `custom-password` | Database password | Not set | String |
 
+## Multi-Agent Parameters
+
+### Agent-to-Agent (A2A) Communication
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `a2a-enabled` | Enable agent-to-agent communication | `true` | Boolean |
+| `a2a-timeout` | Default delegation timeout | `30` | Seconds |
+| `a2a-max-hops` | Maximum delegation chain depth | `5` | Number |
+| `a2a-retry-count` | Retry attempts on failure | `3` | Number |
+| `a2a-queue-size` | Maximum pending messages | `100` | Number |
+
+### Bot Reflection
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `reflection-enabled` | Enable bot self-analysis | `true` | Boolean |
+| `reflection-interval` | Messages between reflections | `10` | Number |
+| `reflection-min-messages` | Minimum messages before reflecting | `3` | Number |
+| `reflection-model` | LLM model for reflection | `quality` | String |
+| `reflection-store-insights` | Store insights in database | `true` | Boolean |
+
+## Memory Parameters
+
+### User Memory (Cross-Bot)
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `user-memory-enabled` | Enable user-level memory | `true` | Boolean |
+| `user-memory-max-keys` | Maximum keys per user | `1000` | Number |
+| `user-memory-default-ttl` | Default time-to-live (0=no expiry) | `0` | Seconds |
+
+### Episodic Memory
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `episodic-memory-enabled` | Enable conversation summaries | `true` | Boolean |
+| `episodic-summary-model` | Model for summarization | `fast` | String |
+| `episodic-max-episodes` | Maximum episodes per user | `100` | Number |
+| `episodic-retention-days` | Days to retain episodes | `365` | Number |
+
+## Model Routing Parameters
+
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `model-routing-strategy` | Routing strategy (manual/auto/load-balanced/fallback) | `auto` | String |
+| `model-default` | Default model alias | `fast` | String |
+| `model-fast` | Model for fast/simple tasks | (configured) | Path/String |
+| `model-quality` | Model for quality/complex tasks | (configured) | Path/String |
+| `model-code` | Model for code generation | (configured) | Path/String |
+| `model-fallback-enabled` | Enable automatic fallback | `true` | Boolean |
+| `model-fallback-order` | Order to try on failure | `quality,fast,local` | String |
+
+## Hybrid RAG Search Parameters
+
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `rag-hybrid-enabled` | Enable hybrid dense+sparse search | `true` | Boolean |
+| `rag-dense-weight` | Weight for semantic results | `0.7` | Float (0-1) |
+| `rag-sparse-weight` | Weight for keyword results | `0.3` | Float (0-1) |
+| `rag-reranker-enabled` | Enable LLM reranking | `false` | Boolean |
+| `rag-reranker-model` | Model for reranking | `quality` | String |
+| `rag-reranker-top-n` | Candidates for reranking | `20` | Number |
+| `rag-top-k` | Results to return | `10` | Number |
+| `rag-rrf-k` | RRF smoothing constant | `60` | Number |
+| `rag-cache-enabled` | Enable search result caching | `true` | Boolean |
+| `rag-cache-ttl` | Cache time-to-live | `3600` | Seconds |
+
+### BM25 (Sparse Search) Tuning
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `bm25-k1` | Term saturation parameter | `1.2` | Float |
+| `bm25-b` | Length normalization | `0.75` | Float |
+| `bm25-stemming` | Enable word stemming | `true` | Boolean |
+| `bm25-stopwords` | Filter common words | `true` | Boolean |
+
+## Code Sandbox Parameters
+
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `sandbox-runtime` | Isolation backend (lxc/docker/firecracker/process) | `lxc` | String |
+| `sandbox-timeout` | Maximum execution time | `30` | Seconds |
+| `sandbox-memory-mb` | Memory limit | `512` | MB |
+| `sandbox-cpu-percent` | CPU usage limit | `50` | Percent |
+| `sandbox-network` | Allow network access | `false` | Boolean |
+| `sandbox-python-packages` | Pre-installed Python packages | (none) | Comma-separated |
+| `sandbox-allowed-paths` | Accessible filesystem paths | `/data,/tmp` | Comma-separated |
+
+## SSE Streaming Parameters
+
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `sse-enabled` | Enable Server-Sent Events | `true` | Boolean |
+| `sse-heartbeat` | Heartbeat interval | `30` | Seconds |
+| `sse-max-connections` | Maximum concurrent connections | `1000` | Number |
+
+## OpenAPI Tool Generation Parameters
+
+| Parameter | Description | Default | Type |
+|-----------|-------------|---------|------|
+| `openapi-server` | OpenAPI spec URL for auto tool generation | Not set | URL |
+| `openapi-auth-header` | Authentication header name | `Authorization` | String |
+| `openapi-auth-value` | Authentication header value | Not set | String |
+
 ## Parameter Types
 
 ### Boolean
@@ -221,6 +321,35 @@ llm-server-n-predict,512
 llm-server-mlock,false
 llm-server-no-mmap,false
 llm-cache,false
+```
+
+### For Multi-Agent Systems
+```csv
+a2a-enabled,true
+a2a-timeout,30
+a2a-max-hops,5
+model-routing-strategy,auto
+reflection-enabled,true
+reflection-interval,10
+user-memory-enabled,true
+```
+
+### For Hybrid RAG
+```csv
+rag-hybrid-enabled,true
+rag-dense-weight,0.7
+rag-sparse-weight,0.3
+rag-reranker-enabled,true
+rag-cache-enabled,true
+```
+
+### For Code Execution
+```csv
+sandbox-runtime,lxc
+sandbox-timeout,30
+sandbox-memory-mb,512
+sandbox-network,false
+sandbox-python-packages,numpy,pandas,requests
 ```
 
 ## Validation Rules
