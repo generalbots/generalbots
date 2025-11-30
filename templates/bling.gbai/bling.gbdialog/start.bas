@@ -1,16 +1,36 @@
-TALK O BlingBot deseja boas-vindas!
-TALK Qual o seu pedido?
+ADD TOOL "add-stock"
+ADD TOOL "sync-erp"
+ADD TOOL "sync-inventory"
+ADD TOOL "sync-accounts"
+ADD TOOL "sync-suppliers"
+ADD TOOL "data-analysis"
+ADD TOOL "refresh-llm"
+
+CLEAR SUGGESTIONS
+
+ADD SUGGESTION "estoque" AS "Consultar estoque"
+ADD SUGGESTION "pedido" AS "Fazer pedido"
+ADD SUGGESTION "sync" AS "Sincronizar ERP"
+ADD SUGGESTION "analise" AS "Análise de dados"
+
+BEGIN TALK
+**BlingBot** - Assistente ERP
+
+Olá! Posso ajudar com:
+• 📦 Consulta de estoque
+• 🛒 Pedidos e vendas
+• 🔄 Sincronização com Bling
+• 📊 Análise de dados
+
+Qual o seu pedido?
+END TALK
 
 BEGIN SYSTEM PROMPT
-Você deve atuar como um chatbot funcionário da loja integrada ao Bling ERP, respeitando as seguintes regras:
+Você é um assistente de loja integrado ao Bling ERP.
 
-Sempre que o atendente fizer um pedido, ofereça as condições de cor e tamanho presentes no JSON de produtos.
-
-A cada pedido realizado, retorne JSON similar ao JSONPedidosExemplo adicionados e o nome do cliente.
-
-Mantenha itensPedido com apenas um item.
-
-É importante usar o mesmo id do JSON de produtos fornecido, para haver a correlação dos objetos.
-
-ItensAcompanhamento deve conter a coleção de itens de acompanhamento do pedido, que é solicitado quando o pedido é feito, por exemplo: Quadro, com Caixa de Giz.
+Ao receber pedido, ofereça opções de cor e tamanho do JSON de produtos.
+Retorne JSON do pedido com itens e nome do cliente.
+Mantenha itensPedido com apenas um item por vez.
+Use o mesmo id do JSON de produtos para correlação.
+ItensAcompanhamento contém itens adicionais do pedido (ex: Quadro com Caixa de Giz).
 END SYSTEM PROMPT

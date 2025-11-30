@@ -1,56 +1,41 @@
-PARAM action AS STRING
-PARAM lead_data AS OBJECT
+PARAM action AS STRING LIKE "capture" DESCRIPTION "Action: capture, qualify, convert, follow_up, nurture"
+PARAM lead_data AS OBJECT LIKE "{name: 'John', email: 'john@company.com'}" DESCRIPTION "Lead information object"
+
+DESCRIPTION "Manage leads through the sales pipeline - capture, qualify, convert, follow up, and nurture"
 
 lead_id = GET "session.lead_id"
 user_id = GET "session.user_id"
-current_time = FORMAT NOW() AS "YYYY-MM-DD HH:mm:ss"
 
 IF action = "capture" THEN
-    lead_name = GET "lead_data.name"
-    lead_email = GET "lead_data.email"
-    lead_phone = GET "lead_data.phone"
-    lead_company = GET "lead_data.company"
-    lead_source = GET "lead_data.source"
+    WITH new_lead
+        id = FORMAT(GUID())
+        name = lead_data.name
+        email = lead_data.email
+        phone = lead_data.phone
+        company = lead_data.company
+        source = lead_data.source
+        status = "new"
+        score = 0
+        created_at = NOW()
+        assigned_to = user_id
+    END WITH
 
-    IF lead_email = "" THEN
-        TALK "I need your email to continue."
-        lead_email = HEAR
-    END IF
+    SAVE "leads.csv", new_lead
 
-    IF lead_name = "" THEN
-        TALK "May I have your name?"
-        lead_name = HEAR
-    END IF
+    SET "session.lead_id", new_lead.id
+    SET "session.lead_status", "captured"
+    SET BOT MEMORY "lead_" + new_lead.id, new_lead.name
 
-    new_lead = CREATE OBJECT
-    SET new_lead.id = FORMAT GUID()
-    SET new_lead.name = lead_name
-    SET new_lead.email = lead_email
-    SET new_lead.phone = lead_phone
-    SET new_lead.company = lead_company
-    SET new_lead.source = lead_source
-    SET new_lead.status = "new"
-    SET new_lead.score = 0
-    SET new_lead.created_at = current_time
-    SET new_lead.assigned_to = user_id
-
-    SAVE_FROM_UNSTRUCTURED "leads", FORMAT new_lead AS JSON
-
-    SET "session.lead_id" = new_lead.id
-    SET "session.lead_status" = "captured"
-
-    REMEMBER "lead_" + new_lead.id = new_lead
-
-    TALK "Thank you " + lead_name + "! I've captured your information."
-
+    TALK "Thank you " + new_lead.name + "! I've captured your information."
+    RETURN new_lead.id
 END IF
 
 IF action = "qualify" THEN
-    lead = FIND "leads", "id = '" + lead_id + "'"
+    lead = FIND "leads.csv", "id = '" + lead_id + "'"
 
-    IF lead = NULL THEN
+    IF NOT lead THEN
         TALK "No lead found to qualify."
-        EXIT
+        RETURN NULL
     END IF
 
     score = 0
@@ -58,24 +43,24 @@ IF action = "qualify" THEN
     TALK "I need to ask you a few questions to better assist you."
 
     TALK "What is your company's annual revenue range?"
-    TALK "1. Under $1M"
-    TALK "2. $1M - $10M"
-    TALK "3. $10M - $50M"
-    TALK "4. Over $50M"
-    revenue_answer = HEAR
+    ADD SUGGESTION "1" AS "Under $1M"
+    ADD SUGGESTION "2" AS "$1M - $10M"
+    ADD SUGGESTION "3" AS "$10M - $50M"
+    ADD SUGGESTION "4" AS "Over $50M"
+    HEAR revenue_answer AS INTEGER
 
-    IF revenue_answer = "4" THEN
+    IF revenue_answer = 4 THEN
         score = score + 30
-    ELSE IF revenue_answer = "3" THEN
+    ELSE IF revenue_answer = 3 THEN
         score = score + 20
-    ELSE IF revenue_answer = "2" THEN
+    ELSE IF revenue_answer = 2 THEN
         score = score + 10
     ELSE
         score = score + 5
     END IF
 
     TALK "How many employees does your company have?"
-    employees = HEAR
+    HEAR employees AS INTEGER
 
     IF employees > 500 THEN
         score = score + 25
@@ -88,26 +73,24 @@ IF action = "qualify" THEN
     END IF
 
     TALK "What is your timeline for making a decision?"
-    TALK "1. This month"
-    TALK "2. This quarter"
-    TALK "3. This year"
-    TALK "4. Just researching"
-    timeline = HEAR
+    ADD SUGGESTION "1" AS "This month"
+    ADD SUGGESTION "2" AS "This quarter"
+    ADD SUGGESTION "3" AS "This year"
+    ADD SUGGESTION "4" AS "Just researching"
+    HEAR timeline AS INTEGER
 
-    IF timeline = "1" THEN
+    IF timeline = 1 THEN
         score = score + 30
-    ELSE IF timeline = "2" THEN
+    ELSE IF timeline = 2 THEN
         score = score + 20
-    ELSE IF timeline = "3" THEN
+    ELSE IF timeline = 3 THEN
         score = score + 10
-    ELSE
-        score = score + 0
     END IF
 
     TALK "Do you have budget allocated for this?"
-    has_budget = HEAR
+    HEAR has_budget AS BOOLEAN
 
-    IF has_budget = "yes" OR has_budget = "YES" OR has_budget = "Yes" THEN
+    IF has_budget THEN
         score = score + 25
     ELSE
         score = score + 5
@@ -122,156 +105,151 @@ IF action = "qualify" THEN
         lead_status = "cold"
     END IF
 
-    update_lead = CREATE OBJECT
-    SET update_lead.score = score
-    SET update_lead.status = lead_status
-    SET update_lead.qualified_at = current_time
-    SET update_lead.revenue_range = revenue_answer
-    SET update_lead.employees = employees
-    SET update_lead.timeline = timeline
-    SET update_lead.has_budget = has_budget
+    WITH qualification
+        lead_id = lead_id
+        score = score
+        status = lead_status
+        qualified_at = NOW()
+        revenue_range = revenue_answer
+        employees = employees
+        timeline = timeline
+        has_budget = has_budget
+    END WITH
 
-    SAVE_FROM_UNSTRUCTURED "leads", FORMAT update_lead AS JSON
+    SAVE "lead_qualification.csv", qualification
 
-    REMEMBER "lead_score_" + lead_id = score
-    REMEMBER "lead_status_" + lead_id = lead_status
+    SET BOT MEMORY "lead_score_" + lead_id, score
+    SET BOT MEMORY "lead_status_" + lead_id, lead_status
 
     IF lead_status = "hot" THEN
         TALK "Great! You're a perfect fit for our solution. Let me connect you with a specialist."
-
-        notification = "Hot lead alert: " + lead.name + " from " + lead.company + " - Score: " + score
-        SEND MAIL "sales@company.com", "Hot Lead Alert", notification
-
+        SEND EMAIL "sales@company.com", "Hot Lead Alert", "Hot lead alert: " + lead.name + " from " + lead.company + " - Score: " + score
         CREATE_TASK "Follow up with hot lead " + lead.name, "high", user_id
-
     ELSE IF lead_status = "warm" THEN
         TALK "Thank you! Based on your needs, I'll have someone reach out within 24 hours."
-
         CREATE_TASK "Contact warm lead " + lead.name, "medium", user_id
-
     ELSE
         TALK "Thank you for your time. I'll send you some helpful resources via email."
     END IF
 
+    RETURN score
 END IF
 
 IF action = "convert" THEN
-    lead = FIND "leads", "id = '" + lead_id + "'"
+    lead = FIND "leads.csv", "id = '" + lead_id + "'"
 
-    IF lead = NULL THEN
+    IF NOT lead THEN
         TALK "No lead found to convert."
-        EXIT
+        RETURN NULL
     END IF
 
     IF lead.status = "unqualified" OR lead.status = "cold" THEN
         TALK "This lead needs to be qualified first."
-        EXIT
+        RETURN NULL
     END IF
 
-    account = CREATE OBJECT
-    SET account.id = FORMAT GUID()
-    SET account.name = lead.company
-    SET account.type = "customer"
-    SET account.owner_id = user_id
-    SET account.created_from_lead = lead_id
-    SET account.created_at = current_time
+    WITH account
+        id = FORMAT(GUID())
+        name = lead.company
+        type = "customer"
+        owner_id = user_id
+        created_from_lead = lead_id
+        created_at = NOW()
+    END WITH
 
-    SAVE_FROM_UNSTRUCTURED "accounts", FORMAT account AS JSON
+    SAVE "accounts.csv", account
 
-    contact = CREATE OBJECT
-    SET contact.id = FORMAT GUID()
-    SET contact.account_id = account.id
-    SET contact.name = lead.name
-    SET contact.email = lead.email
-    SET contact.phone = lead.phone
-    SET contact.primary_contact = true
-    SET contact.created_from_lead = lead_id
-    SET contact.created_at = current_time
+    WITH contact
+        id = FORMAT(GUID())
+        account_id = account.id
+        name = lead.name
+        email = lead.email
+        phone = lead.phone
+        primary_contact = true
+        created_from_lead = lead_id
+        created_at = NOW()
+    END WITH
 
-    SAVE_FROM_UNSTRUCTURED "contacts", FORMAT contact AS JSON
+    SAVE "contacts.csv", contact
 
-    opportunity = CREATE OBJECT
-    SET opportunity.id = FORMAT GUID()
-    SET opportunity.name = "Opportunity for " + account.name
-    SET opportunity.account_id = account.id
-    SET opportunity.contact_id = contact.id
-    SET opportunity.stage = "qualification"
-    SET opportunity.probability = 20
-    SET opportunity.owner_id = user_id
-    SET opportunity.lead_source = lead.source
-    SET opportunity.created_at = current_time
+    WITH opportunity
+        id = FORMAT(GUID())
+        name = "Opportunity for " + account.name
+        account_id = account.id
+        contact_id = contact.id
+        stage = "qualification"
+        probability = 20
+        owner_id = user_id
+        lead_source = lead.source
+        created_at = NOW()
+    END WITH
 
-    SAVE_FROM_UNSTRUCTURED "opportunities", FORMAT opportunity AS JSON
+    SAVE "opportunities.csv", opportunity
 
-    update_lead = CREATE OBJECT
-    SET update_lead.status = "converted"
-    SET update_lead.converted_at = current_time
-    SET update_lead.converted_to_account_id = account.id
+    UPDATE "leads.csv" SET status = "converted", converted_at = NOW(), converted_to_account_id = account.id WHERE id = lead_id
 
-    SAVE_FROM_UNSTRUCTURED "leads", FORMAT update_lead AS JSON
+    SET BOT MEMORY "account_" + account.id, account.name
+    SET "session.account_id", account.id
+    SET "session.contact_id", contact.id
+    SET "session.opportunity_id", opportunity.id
 
-    REMEMBER "account_" + account.id = account
-    REMEMBER "contact_" + contact.id = contact
-    REMEMBER "opportunity_" + opportunity.id = opportunity
+    TALK "Lead converted to account: " + account.name
 
-    SET "session.account_id" = account.id
-    SET "session.contact_id" = contact.id
-    SET "session.opportunity_id" = opportunity.id
-
-    TALK "Successfully converted lead to account: " + account.name
-
-    notification = "Lead converted: " + lead.name + " to account " + account.name
-    SEND MAIL user_id, "Lead Conversion", notification
-
+    SEND EMAIL user_id, "Lead Conversion", "Lead converted: " + lead.name + " to account " + account.name
     CREATE_TASK "Initial meeting with " + contact.name, "high", user_id
 
+    RETURN account.id
 END IF
 
 IF action = "follow_up" THEN
-    lead = FIND "leads", "id = '" + lead_id + "'"
+    lead = FIND "leads.csv", "id = '" + lead_id + "'"
 
-    IF lead = NULL THEN
+    IF NOT lead THEN
         TALK "No lead found."
-        EXIT
+        RETURN NULL
     END IF
 
-    last_contact = GET "lead_last_contact_" + lead_id
+    last_contact = GET BOT MEMORY "lead_last_contact_" + lead_id
     days_since = 0
 
-    IF last_contact != "" THEN
-        days_since = DAYS_BETWEEN(last_contact, current_time)
+    IF last_contact THEN
+        days_since = DATEDIFF(last_contact, NOW(), "day")
     END IF
 
-    IF days_since > 7 OR last_contact = "" THEN
+    IF days_since > 7 OR NOT last_contact THEN
         subject = "Following up on your inquiry"
         message = "Hi " + lead.name + ",\n\nI wanted to follow up on your recent inquiry about our services."
 
-        SEND MAIL lead.email, subject, message
+        SEND EMAIL lead.email, subject, message
 
-        activity = CREATE OBJECT
-        SET activity.id = FORMAT GUID()
-        SET activity.type = "email"
-        SET activity.subject = subject
-        SET activity.lead_id = lead_id
-        SET activity.created_at = current_time
+        WITH activity
+            id = FORMAT(GUID())
+            type = "email"
+            subject = subject
+            lead_id = lead_id
+            created_at = NOW()
+        END WITH
 
-        SAVE_FROM_UNSTRUCTURED "activities", FORMAT activity AS JSON
+        SAVE "activities.csv", activity
 
-        REMEMBER "lead_last_contact_" + lead_id = current_time
+        SET BOT MEMORY "lead_last_contact_" + lead_id, NOW()
 
         TALK "Follow-up email sent to " + lead.name
+        RETURN "sent"
     ELSE
         TALK "Lead was contacted " + days_since + " days ago. Too soon for follow-up."
+        RETURN "skipped"
     END IF
-
 END IF
 
 IF action = "nurture" THEN
-    leads = FIND "leads", "status = 'warm' OR status = 'cold'"
+    leads = FIND "leads.csv", "status = 'warm' OR status = 'cold'"
 
-    FOR EACH lead IN leads DO
-        days_old = DAYS_BETWEEN(lead.created_at, current_time)
+    count = 0
+    FOR EACH lead IN leads
+        days_old = DATEDIFF(lead.created_at, NOW(), "day")
 
+        content = NULL
         IF days_old = 3 THEN
             content = "5 Tips to Improve Your Business"
         ELSE IF days_old = 7 THEN
@@ -280,14 +258,18 @@ IF action = "nurture" THEN
             content = "Free Consultation Offer"
         ELSE IF days_old = 30 THEN
             content = "Special Limited Time Offer"
-        ELSE
-            CONTINUE
         END IF
 
-        SEND MAIL lead.email, content, "Nurture content for day " + days_old
+        IF content THEN
+            SEND EMAIL lead.email, content, "Nurture content for day " + days_old
+            SET BOT MEMORY "lead_nurture_" + lead.id + "_day_" + days_old, "sent"
+            count = count + 1
+        END IF
+    NEXT
 
-        REMEMBER "lead_nurture_" + lead.id + "_day_" + days_old = "sent"
-    END FOR
-
-    TALK "Nurture campaign processed"
+    TALK "Nurture campaign processed: " + count + " emails sent"
+    RETURN count
 END IF
+
+TALK "Unknown action: " + action
+RETURN NULL
