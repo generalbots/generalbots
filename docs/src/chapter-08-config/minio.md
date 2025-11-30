@@ -13,13 +13,12 @@ BotServer uses the drive component as its primary storage backend for:
 
 ## Configuration
 
-The drive is configured through environment variables that are automatically generated during bootstrap:
+Storage configuration is **automatically managed** by the Directory service (Zitadel). You do not need to configure storage credentials manually.
 
-- `DRIVE_SERVER` - Drive endpoint URL (default: `http://localhost:9000`)
-- `DRIVE_ACCESSKEY` - Access key for authentication
-- `DRIVE_SECRET` - Secret key for authentication
-
-These credentials are auto-generated with secure random values during the bootstrap process.
+During bootstrap, the Directory service:
+1. Provisions storage credentials
+2. Distributes them securely to BotServer
+3. Handles credential rotation
 
 ## Storage Structure
 
@@ -27,16 +26,7 @@ These credentials are auto-generated with secure random values during the bootst
 
 Each bot gets its own bucket named after the bot package:
 
-```
-announcements.gbai/     # Bucket for announcements bot
-├── announcements.gbdialog/
-│   ├── start.bas
-│   └── auth.bas
-├── announcements.gbkb/
-│   └── documents/
-└── announcements.gbot/
-    └── config.csv
-```
+<img src="../assets/directory-tree.svg" alt="Bot package structure" width="400" />
 
 ### Bucket Naming Convention
 
@@ -74,7 +64,7 @@ During bootstrap, BotServer:
 
 ### 1. Installation
 - Installs the drive binary if not present
-- Configures with generated credentials
+- Receives credentials from Directory service
 - Creates data directories
 - Uploads template files to drive
 
@@ -113,29 +103,21 @@ The built-in console provides a file browser for drive:
 /download/{bot}/{file} # Download specific file
 ```
 
-## AWS SDK Configuration
+## S3-Compatible Client Configuration
 
-BotServer uses the AWS SDK S3 client configured for drive:
+BotServer uses an S3-compatible client configured for the drive:
 
 ```rust
-let config = aws_config::from_env()
+let config = S3Config::builder()
     .endpoint_url(&drive_endpoint)
-    .region("us-east-1")
-    .load()
-    .await;
+    .region("us-east-1")  // Required but arbitrary for S3-compatible
+    .force_path_style(true)
+    .build();
 ```
 
-This is configured with `force_path_style(true)` for compatibility with S3-compatible storage.
+The `force_path_style(true)` setting ensures compatibility with S3-compatible storage providers.
 
 ## Deployment Modes
-
-### Cloud Storage
-
-While the drive typically runs locally alongside BotServer, it can be configured to use:
-- Remote S3-compatible instances
-- AWS S3 (change endpoint URL)
-- Azure Blob Storage (with S3 compatibility)
-- Google Cloud Storage (with S3 compatibility)
 
 ### Local Mode
 
@@ -144,20 +126,35 @@ Default mode where drive runs on the same machine:
 - Data stored in `{{DATA_PATH}}`
 - Logs written to `{{LOGS_PATH}}/drive.log`
 
-### Container Mode
+### Container Mode (LXC)
 
-Drive can run in a container with mapped volumes for persistent storage.
+Drive can run in an LXC container with mapped volumes for persistent storage:
 
-### External Storage
+```bash
+lxc config device add default-drive data disk \
+  source=/opt/gbo/data path=/opt/gbo/data
+```
 
-Configure BotServer to use existing S3-compatible infrastructure by updating the drive configuration.
+### External S3-Compatible Storage
+
+BotServer can use existing S3-compatible infrastructure. The Directory service manages the connection:
+
+**Supported Providers:**
+- MinIO (default local installation)
+- Backblaze B2
+- Wasabi
+- DigitalOcean Spaces
+- Cloudflare R2
+- Any S3-compatible service
+
+To use external storage, configure it through the Directory service admin console.
 
 ## Security
 
-- Access keys are generated with 32 random bytes
-- Secret keys are generated with 64 random bytes
+- Credentials are managed by the Directory service
 - TLS can be enabled for secure communication
 - Bucket policies control access per bot
+- Credential rotation is handled automatically
 
 ## Monitoring
 
@@ -171,7 +168,7 @@ Configure BotServer to use existing S3-compatible infrastructure by updating the
 ### Check Drive Status
 
 The package manager monitors drive status with:
-```
+```bash
 ps -ef | grep drive | grep -v grep
 ```
 
@@ -186,13 +183,19 @@ Drive console available at `http://localhost:9001` for:
 ## Common Issues
 
 1. **Connection Failed**: Check drive is running and ports are accessible
-2. **Access Denied**: Verify credentials in environment variables
+2. **Access Denied**: Verify Directory service has provisioned credentials
 3. **Bucket Not Found**: Ensure bot deployment completed successfully
 4. **Upload Failed**: Check disk space and permissions
 
 ### Debug Logging
 
 Enable trace logging to see drive operations:
+
+```bash
+RUST_LOG=trace ./botserver
+```
+
+This shows:
 - File retrieval details
 - Bucket operations
 - Authentication attempts
@@ -204,3 +207,9 @@ Enable trace logging to see drive operations:
 3. **Access Control**: Use bucket policies to restrict access
 4. **Versioning**: Enable object versioning for critical data
 5. **Lifecycle Policies**: Configure automatic cleanup for old files
+
+## See Also
+
+- [Storage API](../chapter-10-api/storage-api.md) - API reference
+- [Environment Variables](../appendix-env-vars/README.md) - Directory service configuration
+- [LXC Containers](../chapter-07-gbapp/containers.md) - Container deployment

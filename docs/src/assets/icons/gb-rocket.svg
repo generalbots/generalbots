@@ -1,0 +1,31 @@
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- GB-inspired rocket icon - representing launch/deploy -->
+  <defs>
+    <linearGradient id="rocketGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="flameGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#f97316"/>
+      <stop offset="50%" style="stop-color:#fbbf24"/>
+      <stop offset="100%" style="stop-color:#fcd34d"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Rocket body - GB rounded aesthetic -->
+  <path d="M12 2C12 2 8 6 8 12C8 15 9.5 17 12 19C14.5 17 16 15 16 12C16 6 12 2 12 2Z" fill="url(#rocketGradient)" stroke="currentColor" stroke-width="1"/>
+
+  <!-- Window - circular GB style -->
+  <circle cx="12" cy="9" r="2" fill="#fff" stroke="currentColor" stroke-width="0.75"/>
+  <circle cx="12" cy="9" r="1" fill="#1e3a5f" opacity="0.8"/>
+
+  <!-- Left fin -->
+  <path d="M8 14L5 17L7 18L8 16" fill="url(#rocketGradient)" stroke="currentColor" stroke-width="0.75" stroke-linejoin="round"/>
+
+  <!-- Right fin -->
+  <path d="M16 14L19 17L17 18L16 16" fill="url(#rocketGradient)" stroke="currentColor" stroke-width="0.75" stroke-linejoin="round"/>
+
+  <!-- Flame exhaust -->
+  <path d="M10 19C10 19 11 22 12 23C13 22 14 19 14 19C13.5 20 12.5 21 12 21C11.5 21 10.5 20 10 19Z" fill="url(#flameGradient)"/>
+  <path d="M11 19C11 19 11.5 21 12 21.5C12.5 21 13 19 13 19" fill="#fef08a" opacity="0.8"/>
+</svg>

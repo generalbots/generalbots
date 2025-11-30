@@ -1,4 +1,5 @@
 use crate::basic::keywords::set_schedule::execute_set_schedule;
+use crate::basic::keywords::webhook::execute_webhook_registration;
 use crate::shared::models::TriggerKind;
 use crate::shared::state::AppState;
 use diesel::ExpressionMethods;
@@ -304,6 +305,7 @@ impl BasicCompiler {
         let bot_uuid = bot_id;
         let mut result = String::new();
         let mut has_schedule = false;
+        let mut has_webhook = false;
         let script_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -349,7 +351,14 @@ impl BasicCompiler {
                 .replace("USE WEBSITE", "USE_WEBSITE")
                 .replace("GET BOT MEMORY", "GET_BOT_MEMORY")
                 .replace("SET BOT MEMORY", "SET_BOT_MEMORY")
-                .replace("CREATE DRAFT", "CREATE_DRAFT");
+                .replace("CREATE DRAFT", "CREATE_DRAFT")
+                .replace("DELETE FILE", "DELETE_FILE")
+                .replace("DELETE HTTP", "DELETE_HTTP")
+                .replace("SET HEADER", "SET_HEADER")
+                .replace("CLEAR HEADERS", "CLEAR_HEADERS")
+                .replace("GENERATE PDF", "GENERATE_PDF")
+                .replace("MERGE PDF", "MERGE_PDF")
+                .replace("GROUP BY", "GROUP_BY");
             if normalized.starts_with("SET_SCHEDULE") {
                 has_schedule = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
@@ -371,6 +380,34 @@ impl BasicCompiler {
                 }
                 continue;
             }
+            // Handle WEBHOOK preprocessing - register webhook endpoint
+            if normalized.starts_with("WEBHOOK") {
+                has_webhook = true;
+                let parts: Vec<&str> = normalized.split('"').collect();
+                if parts.len() >= 2 {
+                    let endpoint = parts[1];
+                    let mut conn = self
+                        .state
+                        .conn
+                        .get()
+                        .map_err(|e| format!("Failed to get database connection: {}", e))?;
+                    if let Err(e) =
+                        execute_webhook_registration(&mut conn, endpoint, &script_name, bot_id)
+                    {
+                        log::error!("Failed to register WEBHOOK during preprocessing: {}", e);
+                    } else {
+                        log::info!(
+                            "Registered webhook endpoint {} for script {} during preprocessing",
+                            endpoint,
+                            script_name
+                        );
+                    }
+                } else {
+                    log::warn!("Malformed WEBHOOK line ignored: {}", normalized);
+                }
+                continue;
+            }
+
             if normalized.starts_with("USE_WEBSITE") {
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 2 {
