@@ -1,9 +1,35 @@
-PARAM name AS string          LIKE "Abreu Silva"                DESCRIPTION "Required full name of the individual."
-PARAM birthday AS date        LIKE "23/09/2001"                 DESCRIPTION "Required birth date of the individual in DD/MM/YYYY format."
-PARAM email AS string         LIKE "abreu.silva@example.com"    DESCRIPTION "Required email address for contact purposes."
-PARAM personalid AS integer   LIKE "12345678900"                DESCRIPTION "Required Personal ID number of the individual (only numbers)."
-PARAM address AS string       LIKE "Rua das Flores, 123 - SP"   DESCRIPTION "Required full address of the individual."
+PARAM name AS STRING LIKE "Abreu Silva" DESCRIPTION "Full name of the student"
+PARAM birthday AS DATE LIKE "23/09/2001" DESCRIPTION "Birth date in DD/MM/YYYY format"
+PARAM email AS EMAIL LIKE "abreu.silva@example.com" DESCRIPTION "Email address for contact"
+PARAM personalid AS STRING LIKE "12345678900" DESCRIPTION "Personal ID number (only numbers)"
+PARAM address AS STRING LIKE "Rua das Flores, 123 - SP" DESCRIPTION "Full address"
 
-DESCRIPTION  "This is a the enrollment process, called when the user wants to enrol. Once all information is collected, confirm the details and inform them that their enrollment request has been successfully submitted. Provide a polite and professional tone throughout the interaction."
+DESCRIPTION "Process student enrollment with validation and confirmation"
 
-SAVE "enrollments.csv", id, name, birthday, email, personalid, address
+enrollmentid = "ENR-" + FORMAT(NOW(), "YYYYMMDD") + "-" + FORMAT(RANDOM(1000, 9999))
+createdat = FORMAT(NOW(), "YYYY-MM-DD HH:mm:ss")
+
+WITH enrollment
+    id = enrollmentid
+    studentName = name
+    birthDate = birthday
+    emailAddress = email
+    personalId = personalid
+    fullAddress = address
+    createdAt = createdat
+    status = "pending"
+END WITH
+
+SAVE "enrollments.csv", enrollment
+
+SET BOT MEMORY "last_enrollment", enrollmentid
+
+TALK "Enrollment submitted successfully!"
+TALK "Enrollment ID: " + enrollmentid
+TALK "Name: " + name
+TALK "Email: " + email
+TALK "Status: Pending review"
+
+SEND EMAIL email, "Enrollment Confirmation", "Dear " + name + ",\n\nYour enrollment request has been submitted.\n\nEnrollment ID: " + enrollmentid + "\n\nWe will review your application and contact you soon.\n\nBest regards,\nAdmissions Team"
+
+RETURN enrollmentid

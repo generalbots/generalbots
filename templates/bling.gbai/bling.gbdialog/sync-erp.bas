@@ -1,5 +1,4 @@
-REM Geral
-REM SET SCHEDULE "0 30 22 * * *"
+SET SCHEDULE "0 30 22 * * *"
 
 daysToSync = -7
 ontem = DATEADD today, "days", daysToSync
@@ -7,22 +6,19 @@ ontem = FORMAT ontem, "yyyy-MM-dd"
 tomorrow = DATEADD today, "days", 1
 tomorrow = FORMAT tomorrow, "yyyy-MM-dd"
 dateFilter = "&dataAlteracaoInicial=${ontem}&dataAlteracaoFinal=${tomorrow}"
-admin = admin1
 
-SEND EMAIL admin, "Sincronismo: ${ontem} e ${tomorrow} (${daysToSync * -1} dia(s)) iniciado..."
+SEND EMAIL admin, "Sync: ${ontem} to ${tomorrow} started..."
 
-REM Produtos
+' Produtos
 i = 1
-SEND EMAIL admin, "Sincronizando Produtos..."
+SEND EMAIL admin, "Syncing Products..."
 
 DO WHILE i > 0 AND i < pages
-    REM ${dateFilter}
     res = GET host + "/produtos?pagina=${i}&criterio=5&tipo=P&limite=${limit}${dateFilter}"
     WAIT 0.33
     list = res.data
     res = null
 
-    REM Sincroniza itens de Produto
     prd1 = ""
     j = 0
     k = 0
@@ -70,10 +66,8 @@ DO WHILE i > 0 AND i < pages
     MERGE "maria.Produtos" WITH list BY "Id"
     list = items
 
-    REM Calcula ids de produtos
     j = 0
     DO WHILE j < ubound(list)
-        REM Varre todas as variações.
         listV = list[j].variacoes
         IF listV THEN
             k = 0
@@ -94,32 +88,30 @@ DO WHILE i > 0 AND i < pages
                 listV[k].hierarquia = 'f'
                 DELETE "maria.ProdutoImagem", "sku=" + listV[k].sku
 
-                REM Sincroniza images da variação.
                 images = listV[k]?.midia?.imagens?.externas
                 l = 0
                 DO WHILE l < ubound(images)
                     images[l].ordinal = k
                     images[l].sku = listV[k].sku
-                    images[l].id= random()
+                    images[l].id = random()
                     l = l + 1
                 LOOP
                 SAVE "maria.ProdutoImagem", images
-                images=null
+                images = null
                 k = k + 1
             LOOP
 
             MERGE "maria.Produtos" WITH listV BY "Id"
         END IF
-        listV=null
+        listV = null
 
-        REM Sincroniza images do produto raiz.
         DELETE "maria.ProdutoImagem", "sku=" + list[j].sku
         k = 0
         images = list[j].midia?.imagens?.externas
         DO WHILE k < ubound(images)
             images[k].ordinal = k
             images[k].sku = list[j].sku
-            images[k].id= random()
+            images[k].id = random()
             k = k + 1
         LOOP
         SAVE "maria.ProdutoImagem", images
@@ -130,16 +122,16 @@ DO WHILE i > 0 AND i < pages
     IF list?.length < limit THEN
         i = 0
     END IF
-    list=null
-    res=null
-    items=null
+    list = null
+    res = null
+    items = null
 LOOP
 
-SEND EMAIL admin, "Produtos concluído."
+SEND EMAIL admin, "Products completed."
 RESET REPORT
 
-REM Pedidos
-SEND EMAIL admin, "Sincronizando Pedidos..."
+' Pedidos
+SEND EMAIL admin, "Syncing Orders..."
 i = 1
 
 DO WHILE i > 0 AND i < pages
@@ -147,7 +139,6 @@ DO WHILE i > 0 AND i < pages
     list = res.data
     res = null
 
-    REM Sincroniza itens
     j = 0
     fullList = []
 
@@ -156,13 +147,11 @@ DO WHILE i > 0 AND i < pages
         res = GET host + "/pedidos/vendas/${pedido_id}"
         items = res.data.itens
 
-        REM Insere ref. de pedido no item.
         k = 0
         DO WHILE k < ubound(items)
             items[k].pedido_id = pedido_id
             items[k].sku = items[k].codigo
             items[k].numero = list[j].numero
-            REM Obter custo do produto fornecedor do fornecedor marcado como default.
             items[k].custo = items[k].valor / 2
             k = k + 1
         LOOP
@@ -186,19 +175,19 @@ DO WHILE i > 0 AND i < pages
     IF list?.length < limit THEN
         i = 0
     END IF
-    list=null
-    res=null
+    list = null
+    res = null
 LOOP
 
-SEND EMAIL admin, "Pedidos concluído."
+SEND EMAIL admin, "Orders completed."
 
-REM Comuns
-pageVariable="pagina"
-limitVariable="limite"
+' Common entities
+pageVariable = "pagina"
+limitVariable = "limite"
 syncLimit = 100
 
-REM Sincroniza CategoriaReceita
-SEND EMAIL admin, "Sincronizando CategoriaReceita..."
+' CategoriaReceita
+SEND EMAIL admin, "Syncing CategoriaReceita..."
 syncPage = 1
 totalCategoria = 0
 
@@ -230,10 +219,10 @@ DO WHILE syncPage > 0 AND syncPage <= pages
     syncItems = null
 LOOP
 
-SEND EMAIL admin, "CategoriaReceita sincronizada: " + totalCategoria + " registros."
+SEND EMAIL admin, "CategoriaReceita: " + totalCategoria + " records."
 
-REM Sincroniza Formas de Pagamento
-SEND EMAIL admin, "Sincronizando Formas de Pagamento..."
+' FormaDePagamento
+SEND EMAIL admin, "Syncing Payment Methods..."
 syncPage = 1
 totalForma = 0
 
@@ -265,17 +254,16 @@ DO WHILE syncPage > 0 AND syncPage <= pages
     syncItems = null
 LOOP
 
-SEND EMAIL admin, "Formas de Pagamento sincronizadas: " + totalForma + " registros."
+SEND EMAIL admin, "Payment Methods: " + totalForma + " records."
 
-REM Contatos
-SEND EMAIL admin, "Sincronizando Contatos..."
+' Contatos
+SEND EMAIL admin, "Syncing Contacts..."
 i = 1
 
 DO WHILE i > 0 AND i < pages
-    res = GET host + "/contatos?pagina=${i}&limite=${limit}${dateFilter} "
+    res = GET host + "/contatos?pagina=${i}&limite=${limit}${dateFilter}"
     list = res.data
 
-    REM Sincroniza itens
     j = 0
     items = NEW ARRAY
 
@@ -292,22 +280,20 @@ DO WHILE i > 0 AND i < pages
     IF list?.length < limit THEN
         i = 0
     END IF
-    list=null
-    res=null
+    list = null
+    res = null
 LOOP
 
-SEND EMAIL admin, "Contatos concluído."
+SEND EMAIL admin, "Contacts completed."
 
-REM Vendedores
-REM Sincroniza Vendedores.
-SEND EMAIL admin, "Sincronizando Vendedores..."
+' Vendedores
+SEND EMAIL admin, "Syncing Sellers..."
 i = 1
 
 DO WHILE i > 0 AND i < pages
     res = GET host + "/vendedores?pagina=${i}&situacaoContato=T&limite=${limit}${dateFilter}"
     list = res.data
 
-    REM Sincroniza itens
     j = 0
     items = NEW ARRAY
 
@@ -324,10 +310,9 @@ DO WHILE i > 0 AND i < pages
     IF list?.length < limit THEN
         i = 0
     END IF
-    list=null
-    res=null
+    list = null
+    res = null
 LOOP
 
-SEND EMAIL admin, "Vendedores concluído."
-
-SEND EMAIL admin, "Transferência do ERP para BlingBot concluído."
+SEND EMAIL admin, "Sellers completed."
+SEND EMAIL admin, "ERP sync completed."

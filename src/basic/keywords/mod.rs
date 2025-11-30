@@ -23,6 +23,7 @@ pub mod get;
 pub mod hear_talk;
 pub mod http_operations;
 pub mod import_export;
+pub mod kb_statistics;
 pub mod last;
 pub mod lead_scoring;
 pub mod llm_keyword;

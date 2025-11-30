@@ -1,48 +1,23 @@
 PARAM description AS STRING LIKE "My computer won't turn on" DESCRIPTION "Description of the IT issue or problem"
-PARAM category AS STRING LIKE "hardware" DESCRIPTION "Optional: Category - hardware, software, network, email, account, other"
-PARAM priority AS STRING LIKE "medium" DESCRIPTION "Optional: Priority level - critical, high, medium, low"
+PARAM category AS STRING LIKE "hardware" DESCRIPTION "Category: hardware, software, network, email, account, other" OPTIONAL
+PARAM priority AS STRING LIKE "medium" DESCRIPTION "Priority level: critical, high, medium, low" OPTIONAL
 
-DESCRIPTION "Creates a new IT support ticket. Gathers information about the issue and creates the ticket record."
+DESCRIPTION "Create a new IT support ticket with issue details and priority assignment"
 
-' Validate description
-IF description = "" THEN
-    TALK "Please describe the issue you're experiencing."
-    description = HEAR
-END IF
+useremail = GET "session.user_email"
+username = GET "session.user_name"
 
-IF description = "" THEN
-    TALK "I need a description to create a ticket."
-    RETURN
-END IF
-
-' Get user info
-let useremail = GET "session.user_email"
-let username = GET "session.user_name"
-
-IF useremail = "" THEN
-    TALK "What is your email address?"
-    useremail = HEAR
-END IF
-
-IF username = "" THEN
-    TALK "And your name?"
-    username = HEAR
-END IF
-
-' Set defaults
-IF category = "" THEN
+IF NOT category THEN
     category = "other"
 END IF
 
-IF priority = "" THEN
+IF NOT priority THEN
     priority = "medium"
 END IF
 
-' Generate ticket number
-let ticketnumber = "TKT" + FORMAT NOW() AS "YYYYMMDD" + "-" + FORMAT RANDOM(1000, 9999)
+ticketnumber = "TKT" + FORMAT(NOW(), "YYYYMMDD") + "-" + FORMAT(RANDOM(1000, 9999))
 
-' Determine SLA hours based on priority
-let slahours = 48
+slahours = 48
 IF priority = "critical" THEN
     slahours = 4
 ELSE IF priority = "high" THEN
@@ -51,56 +26,47 @@ ELSE IF priority = "low" THEN
     slahours = 72
 END IF
 
-' Save ticket
-let status = "new"
-let createdat = FORMAT NOW() AS "YYYY-MM-DD HH:mm:ss"
-let assignedteam = "general-support"
-
+assignedteam = "general-support"
 IF category = "network" THEN
     assignedteam = "network-team"
 ELSE IF category = "hardware" THEN
     assignedteam = "desktop-support"
 ELSE IF category = "email" THEN
     assignedteam = "messaging-team"
+ELSE IF category = "account" THEN
+    assignedteam = "identity-team"
 END IF
 
-SAVE "tickets.csv", ticketnumber, description, category, priority, status, useremail, username, assignedteam, createdat
+WITH ticket
+    number = ticketnumber
+    desc = description
+    cat = category
+    prio = priority
+    status = "new"
+    userEmail = useremail
+    userName = username
+    team = assignedteam
+    created = NOW()
+END WITH
 
-' Store in bot memory
+SAVE "tickets.csv", ticket
+
 SET BOT MEMORY "last_ticket", ticketnumber
 
-' Send confirmation email
-let subject = "Ticket Created: " + ticketnumber
-let message = "Hello " + username + ",\n\n"
-message = message + "Your support ticket has been created.\n\n"
-message = message + "Ticket Number: " + ticketnumber + "\n"
-message = message + "Category: " + category + "\n"
-message = message + "Priority: " + priority + "\n"
-message = message + "Expected Response: Within " + slahours + " hours\n\n"
-message = message + "Issue:\n" + description + "\n\n"
-message = message + "Best regards,\nIT Helpdesk"
+subject = "Ticket Created: " + ticketnumber
+message = "Hello " + username + ",\n\nYour support ticket has been created.\n\nTicket: " + ticketnumber + "\nCategory: " + category + "\nPriority: " + priority + "\nExpected Response: Within " + slahours + " hours\n\nIssue:\n" + description
 
-SEND MAIL useremail, subject, message
+SEND EMAIL useremail, subject, message
 
-' Notify support team
-let teamsubject = "[" + priority + "] New Ticket: " + ticketnumber
-let teammessage = "New ticket from " + username + " (" + useremail + ")\n\n"
-teammessage = teammessage + "Category: " + category + "\n"
-teammessage = teammessage + "Priority: " + priority + "\n\n"
-teammessage = teammessage + "Description:\n" + description
+teamsubject = "[" + priority + "] New Ticket: " + ticketnumber
+teammessage = "New ticket from " + username + " (" + useremail + ")\n\nCategory: " + category + "\nPriority: " + priority + "\n\nDescription:\n" + description
 
-SEND MAIL assignedteam + "@company.com", teamsubject, teammessage
+SEND EMAIL assignedteam + "@company.com", teamsubject, teammessage
 
-' Respond to user
-TALK "✅ **Ticket Created Successfully!**"
-TALK ""
-TALK "**Ticket Number:** " + ticketnumber
-TALK "**Category:** " + category
-TALK "**Priority:** " + priority
-TALK "**Assigned Team:** " + assignedteam
-TALK ""
-TALK "**Expected Response:** Within " + slahours + " hours"
-TALK ""
-TALK "📧 A confirmation email has been sent to " + useremail
-TALK ""
-TALK "You can check your ticket status anytime by saying **check ticket " + ticketnumber + "**"
+TALK "Ticket created: " + ticketnumber
+TALK "Category: " + category
+TALK "Priority: " + priority
+TALK "Assigned Team: " + assignedteam
+TALK "Expected Response: Within " + slahours + " hours"
+
+RETURN ticketnumber

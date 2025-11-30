@@ -1,9 +1,8 @@
-PARAM subject as string
-DESCRIPTION "Chamado quando alguém quer mudar o assunto da conversa."
+PARAM subject AS STRING LIKE "circular" DESCRIPTION "Subject to switch conversation to: circular, comunicado, or geral"
 
-kbname = LLM "Devolva uma única palavra circular, comunicado ou geral de acordo com a seguinte frase:" + subject
+DESCRIPTION "Switch conversation subject when user wants to change topic"
 
+kbname = LLM "Return single word: circular, comunicado or geral based on: " + subject
 ADD_KB kbname
 
-
-TALK "You have chosen to change the subject to " + subject + "."
+TALK "Subject changed to " + subject

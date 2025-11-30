@@ -2,7 +2,7 @@
 ' LGPD Art. 18, GDPR Art. 17, HIPAA (where applicable)
 ' This dialog handles user requests to delete their personal data
 
-TALK "🔒 **Data Deletion Request**"
+TALK "Data Deletion Request"
 TALK "I can help you exercise your right to have your personal data deleted."
 TALK "This is also known as the 'Right to be Forgotten' under LGPD and GDPR."
 
@@ -13,7 +13,7 @@ HEAR email AS EMAIL WITH "Please enter your registered email address:"
 ' Verify email exists in system
 user = FIND "users.csv" WHERE email = email
 IF user IS NULL THEN
-    TALK "⚠️ I couldn't find an account with that email address."
+    TALK "I couldn't find an account with that email address."
     TALK "Please check the email and try again, or contact support@company.com"
     EXIT
 END IF
@@ -37,35 +37,35 @@ HEAR entered_code AS INTEGER WITH "I've sent a verification code to your email. 
 
 stored_code = GET BOT MEMORY "verification_" + email
 IF entered_code <> stored_code THEN
-    TALK "❌ Invalid verification code. Please try again."
+    TALK "Invalid verification code. Please try again."
     EXIT
 END IF
 
-TALK "✅ Identity verified."
+TALK "Identity verified."
 TALK ""
-TALK "**What data would you like to delete?**"
+TALK "What data would you like to delete?"
 TALK ""
-TALK "1️⃣ All my personal data (complete account deletion)"
-TALK "2️⃣ Conversation history only"
-TALK "3️⃣ Files and documents only"
-TALK "4️⃣ Activity logs and analytics"
-TALK "5️⃣ Specific data categories (I'll choose)"
-TALK "6️⃣ Cancel this request"
+TALK "1. All my personal data (complete account deletion)"
+TALK "2. Conversation history only"
+TALK "3. Files and documents only"
+TALK "4. Activity logs and analytics"
+TALK "5. Specific data categories (I'll choose)"
+TALK "6. Cancel this request"
 
 HEAR deletion_choice AS INTEGER WITH "Please enter your choice (1-6):"
 
 SELECT CASE deletion_choice
     CASE 1
         deletion_type = "complete"
-        TALK "⚠️ **Complete Account Deletion**"
+        TALK "Complete Account Deletion"
         TALK "This will permanently delete:"
-        TALK "• Your user profile and account"
-        TALK "• All conversation history"
-        TALK "• All uploaded files and documents"
-        TALK "• All activity logs"
-        TALK "• All preferences and settings"
+        TALK "- Your user profile and account"
+        TALK "- All conversation history"
+        TALK "- All uploaded files and documents"
+        TALK "- All activity logs"
+        TALK "- All preferences and settings"
         TALK ""
-        TALK "**This action cannot be undone.**"
+        TALK "This action cannot be undone."
 
     CASE 2
         deletion_type = "conversations"
@@ -95,12 +95,12 @@ END SELECT
 
 ' Explain data retention exceptions
 TALK ""
-TALK "📋 **Legal Notice:**"
+TALK "Legal Notice:"
 TALK "Some data may be retained for legal compliance purposes:"
-TALK "• Financial records (tax requirements)"
-TALK "• Legal dispute documentation"
-TALK "• Fraud prevention records"
-TALK "• Regulatory compliance data"
+TALK "- Financial records (tax requirements)"
+TALK "- Legal dispute documentation"
+TALK "- Fraud prevention records"
+TALK "- Regulatory compliance data"
 TALK ""
 TALK "Retained data will be minimized and protected according to law."
 
@@ -169,13 +169,13 @@ Dear User,
 
 Your data deletion request has been received and processed.
 
-**Request Details:**
+Request Details:
 - Request ID: " + request_id + "
 - Request Date: " + FORMAT(request_date, "YYYY-MM-DD HH:mm") + "
 - Deletion Type: " + deletion_type + "
 - Status: Completed
 
-**What happens next:**
+What happens next:
 " + IF(deletion_type = "complete", "
 - Your account will be fully deleted within 30 days
 - You will receive a final confirmation email
@@ -185,7 +185,7 @@ Your data deletion request has been received and processed.
 - Some backups may take up to 30 days to purge
 ") + "
 
-**Your Rights:**
+Your Rights:
 - You can request a copy of any retained data
 - You can file a complaint with your data protection authority
 - Contact us at privacy@company.com for questions
@@ -202,10 +202,10 @@ Request Reference: " + request_id + "
 "
 
 TALK ""
-TALK "✅ **Request Completed**"
+TALK "Request Completed"
 TALK ""
 TALK "Your deletion request has been processed."
-TALK "Request ID: **" + request_id + "**"
+TALK "Request ID: " + request_id
 TALK ""
 TALK "A confirmation email has been sent to " + email
 TALK ""

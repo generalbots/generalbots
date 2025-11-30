@@ -1,18 +1,42 @@
-list = DIR "default.gbdrive"
+PARAM folder AS STRING LIKE "default.gbdrive" DESCRIPTION "Folder to backup files from" OPTIONAL
+PARAM days_old AS INTEGER LIKE 3 DESCRIPTION "Archive files older than this many days" OPTIONAL
+
+DESCRIPTION "Backup and archive expired files to server storage"
+
+IF NOT folder THEN
+    folder = "default.gbdrive"
+END IF
+
+IF NOT days_old THEN
+    days_old = 3
+END IF
+
+list = DIR folder
+archived = 0
 
 FOR EACH item IN list
-    TALK "Checking: " + item.name
-    oldDays = DATEDIFF date, item.modified, "day"
+    oldDays = DATEDIFF today, item.modified, "day"
 
-    IF oldDays > 3 THEN
-        TALK "The file ${item.name} will be archived as it is expired."
+    IF oldDays > days_old THEN
         blob = UPLOAD item
-        TALK "Upload to server completed."
 
-        SAVE "log.xlsx", "archived", today, now, item.path, item.name, item.size, item.modified, blob.md5
+        WITH logEntry
+            action = "archived"
+            date = today
+            time = now
+            path = item.path
+            name = item.name
+            size = item.size
+            modified = item.modified
+            md5 = blob.md5
+        END WITH
+
+        SAVE "log.xlsx", logEntry
         DELETE item
-        TALK "File removed from storage."
-    ELSE
-        TALK "The file ${item.name} does not need to be archived."
+        archived = archived + 1
     END IF
 NEXT
+
+TALK "Backup complete. " + archived + " files archived."
+
+RETURN archived

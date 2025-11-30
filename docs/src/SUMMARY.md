@@ -92,6 +92,13 @@
     - [SWITCH](./chapter-06-gbdialog/keyword-switch.md)
     - [WEBHOOK](./chapter-06-gbdialog/keyword-webhook.md)
     - [TABLE](./chapter-06-gbdialog/keyword-table.md)
+  - [KB Statistics Keywords](./chapter-06-gbdialog/keywords-kb-statistics.md)
+    - [KB STATISTICS](./chapter-06-gbdialog/keyword-kb-statistics.md)
+    - [KB COLLECTION STATS](./chapter-06-gbdialog/keyword-kb-collection-stats.md)
+    - [KB DOCUMENTS COUNT](./chapter-06-gbdialog/keyword-kb-documents-count.md)
+    - [KB DOCUMENTS ADDED SINCE](./chapter-06-gbdialog/keyword-kb-documents-added-since.md)
+    - [KB LIST COLLECTIONS](./chapter-06-gbdialog/keyword-kb-list-collections.md)
+    - [KB STORAGE SIZE](./chapter-06-gbdialog/keyword-kb-storage-size.md)
   - [HTTP & API Operations](./chapter-06-gbdialog/keywords-http.md)
     - [POST](./chapter-06-gbdialog/keyword-post.md)
     - [PUT](./chapter-06-gbdialog/keyword-put.md)
@@ -133,6 +140,9 @@
   - [Architecture Overview](./chapter-07-gbapp/architecture.md)
   - [Building from Source](./chapter-07-gbapp/building.md)
   - [Container Deployment (LXC)](./chapter-07-gbapp/containers.md)
+  - [Scaling and Load Balancing](./chapter-07-gbapp/scaling.md)
+  - [Infrastructure Design](./chapter-07-gbapp/infrastructure.md)
+  - [Observability](./chapter-07-gbapp/observability.md)
   - [Philosophy](./chapter-07-gbapp/philosophy.md)
   - [Example gbapp](./chapter-07-gbapp/example-gbapp.md)
   - [Module Structure](./chapter-07-gbapp/crates.md)
@@ -148,6 +158,7 @@
   - [LLM Configuration](./chapter-08-config/llm-config.md)
   - [Context Configuration](./chapter-08-config/context-config.md)
   - [Drive Integration](./chapter-08-config/drive.md)
+  - [Secrets Management](./chapter-08-config/secrets-management.md)
 
 # Part IX - Tools and Integration
 

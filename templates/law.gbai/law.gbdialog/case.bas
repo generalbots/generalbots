@@ -1,14 +1,13 @@
-TALK "What is the case number?"
-HEAR cod
+PARAM cod AS STRING LIKE "12345" DESCRIPTION "Case number to load and query"
+
+DESCRIPTION "Load a legal case document by case number for Q&A and analysis"
+
 text = GET "case-" + cod + ".pdf"
 
-IF text THEN 
-
-    text = "Based on this document, answer the person's questions:\n\n" + text
-    SET CONTEXT text 
+IF text THEN
+    SET CONTEXT "Based on this document, answer the person's questions:\n\n" + text
     SET ANSWER MODE "document"
-    TALK "Case ${cod} loaded. You can ask me anything about the case or request a summary in any way you need."
-
+    TALK "Case ${cod} loaded. Ask me anything about the case or request a summary."
 ELSE
-    TALK "The case was not found, please try again."
+    TALK "Case not found. Please check the case number."
 END IF

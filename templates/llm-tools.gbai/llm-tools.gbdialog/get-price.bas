@@ -1,9 +1,11 @@
-PARAM product AS string LIKE fax DESCRIPTION "Required name of the item you want to inquire about."
-DESCRIPTION "Whenever someone ask for a price, call this tool and return the price of the specified product name."
+PARAM product AS STRING LIKE "fax" DESCRIPTION "Name of the product to get price for"
 
-price = -1
+DESCRIPTION "Get the price of a product by name from the product catalog"
+
 productRecord = FIND "products.csv", "name = ${product}"
-IF (productRecord) THEN
-    price = productRecord.price
+
+IF productRecord THEN
+    RETURN productRecord.price
+ELSE
+    RETURN -1
 END IF
-RETURN price

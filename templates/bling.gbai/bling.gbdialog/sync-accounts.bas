@@ -1,19 +1,11 @@
-REM Executa a cada dois dias, 23h.
 SET SCHEDULE "0 0 0 */2 * *"
 
-REM Variables from config.csv: admin1, admin2, host, limit, pages
-REM Using admin1 for notifications
-admin = admin1
-
-REM Pagination settings for Bling API
 pageVariable = "pagina"
 limitVariable = "limite"
 syncLimit = 100
 
-REM ============================================
-REM Sync Contas a Receber (Accounts Receivable)
-REM ============================================
-SEND EMAIL admin, "Sincronizando Contas a Receber..."
+' Contas a Receber
+SEND EMAIL admin, "Syncing Accounts Receivable..."
 
 page = 1
 totalReceber = 0
@@ -46,12 +38,10 @@ DO WHILE page > 0 AND page <= pages
     items = null
 LOOP
 
-SEND EMAIL admin, "Contas a Receber sincronizadas: " + totalReceber + " registros."
+SEND EMAIL admin, "Accounts Receivable: " + totalReceber + " records."
 
-REM ============================================
-REM Sync Contas a Pagar (Accounts Payable)
-REM ============================================
-SEND EMAIL admin, "Sincronizando Contas a Pagar..."
+' Contas a Pagar
+SEND EMAIL admin, "Syncing Accounts Payable..."
 
 page = 1
 totalPagar = 0
@@ -84,9 +74,5 @@ DO WHILE page > 0 AND page <= pages
     items = null
 LOOP
 
-SEND EMAIL admin, "Contas a Pagar sincronizadas: " + totalPagar + " registros."
-
-REM ============================================
-REM Summary
-REM ============================================
-SEND EMAIL admin, "Transferência do ERP (Contas) para BlingBot concluído. Total: " + (totalReceber + totalPagar) + " registros."
+SEND EMAIL admin, "Accounts Payable: " + totalPagar + " records."
+SEND EMAIL admin, "Accounts sync completed. Total: " + (totalReceber + totalPagar) + " records."
