@@ -1,0 +1,539 @@
+# General Bots Kubernetes Deployment Configuration
+# This file contains the core deployment resources for running General Bots
+# in a Kubernetes cluster.
+#
+# Usage:
+#   kubectl apply -f deployment.yaml
+#
+# Prerequisites:
+#   - Kubernetes cluster 1.24+
+#   - kubectl configured
+#   - Secrets created (see secrets.yaml)
+#   - PersistentVolumeClaim for data (optional)
+
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: namespace
+
+---
+# ConfigMap for non-sensitive configuration
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: botserver-config
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: config
+data:
+  # Server configuration
+  SERVER_HOST: "0.0.0.0"
+  SERVER_PORT: "8080"
+
+  # LLM configuration
+  LLM_SERVER_HOST: "0.0.0.0"
+  LLM_SERVER_PORT: "8081"
+  LLM_SERVER_CTX_SIZE: "4096"
+  LLM_SERVER_N_PREDICT: "1024"
+  LLM_SERVER_PARALLEL: "6"
+  LLM_SERVER_CONT_BATCHING: "true"
+  LLM_CACHE: "true"
+  LLM_CACHE_TTL: "3600"
+
+  # Embedding configuration
+  EMBEDDING_PORT: "8082"
+
+  # Multi-agent configuration
+  A2A_ENABLED: "true"
+  A2A_TIMEOUT: "30"
+  A2A_MAX_HOPS: "5"
+
+  # Memory configuration
+  USER_MEMORY_ENABLED: "true"
+  USER_MEMORY_MAX_KEYS: "1000"
+  EPISODIC_MEMORY_ENABLED: "true"
+
+  # Hybrid RAG configuration
+  RAG_HYBRID_ENABLED: "true"
+  RAG_DENSE_WEIGHT: "0.7"
+  RAG_SPARSE_WEIGHT: "0.3"
+
+  # Observability
+  OBSERVABILITY_ENABLED: "true"
+  OBSERVABILITY_METRICS_INTERVAL: "60"
+
+  # Sandbox configuration
+  SANDBOX_RUNTIME: "process"  # Use 'lxc' or 'docker' if available
+  SANDBOX_TIMEOUT: "30"
+  SANDBOX_MEMORY_MB: "512"
+
+---
+# Main botserver Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: botserver
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: botserver
+    app.kubernetes.io/version: "6.1.1"
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: botserver
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: botserver
+        app.kubernetes.io/name: generalbots
+        app.kubernetes.io/component: botserver
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+        prometheus.io/path: "/metrics"
+    spec:
+      serviceAccountName: botserver
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Init container to wait for dependencies
+      initContainers:
+        - name: wait-for-postgres
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z postgres-service 5432; do echo waiting for postgres; sleep 2; done']
+        - name: wait-for-qdrant
+          image: busybox:1.35
+          command: ['sh', '-c', 'until nc -z qdrant-service 6333; do echo waiting for qdrant; sleep 2; done']
+
+      containers:
+        - name: botserver
+          image: generalbots/botserver:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+
+          envFrom:
+            - configMapRef:
+                name: botserver-config
+
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: botserver-secrets
+                  key: database-url
+            - name: QDRANT_URL
+              valueFrom:
+                secretKeyRef:
+                  name: botserver-secrets
+                  key: qdrant-url
+            - name: LLM_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: botserver-secrets
+                  key: llm-api-key
+                  optional: true
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+
+          resources:
+            requests:
+              memory: "512Mi"
+              cpu: "250m"
+            limits:
+              memory: "2Gi"
+              cpu: "2000m"
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 30
+
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: models
+              mountPath: /models
+              readOnly: true
+            - name: gbai-packages
+              mountPath: /packages
+
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: botserver-data
+        - name: models
+          persistentVolumeClaim:
+            claimName: llm-models
+        - name: gbai-packages
+          persistentVolumeClaim:
+            claimName: gbai-packages
+
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - botserver
+                topologyKey: kubernetes.io/hostname
+
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app: botserver
+
+---
+# LLM Server Deployment (for local model inference)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llm-server
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: llm-server
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: llm-server
+  template:
+    metadata:
+      labels:
+        app: llm-server
+        app.kubernetes.io/name: generalbots
+        app.kubernetes.io/component: llm-server
+    spec:
+      containers:
+        - name: llm-server
+          image: generalbots/llm-server:latest
+          imagePullPolicy: Always
+          ports:
+            - name: http
+              containerPort: 8081
+              protocol: TCP
+
+          env:
+            - name: MODEL_PATH
+              value: "/models/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf"
+            - name: CTX_SIZE
+              value: "4096"
+            - name: N_PREDICT
+              value: "1024"
+            - name: PARALLEL
+              value: "6"
+            - name: CONT_BATCHING
+              value: "true"
+            - name: GPU_LAYERS
+              value: "35"  # Adjust based on available GPU memory
+
+          resources:
+            requests:
+              memory: "8Gi"
+              cpu: "2000m"
+              # Uncomment for GPU support
+              # nvidia.com/gpu: 1
+            limits:
+              memory: "24Gi"
+              cpu: "8000m"
+              # nvidia.com/gpu: 1
+
+          volumeMounts:
+            - name: models
+              mountPath: /models
+              readOnly: true
+
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 5
+
+      volumes:
+        - name: models
+          persistentVolumeClaim:
+            claimName: llm-models
+
+      # Schedule on nodes with GPU
+      # nodeSelector:
+      #   nvidia.com/gpu.present: "true"
+
+      tolerations:
+        - key: "nvidia.com/gpu"
+          operator: "Exists"
+          effect: "NoSchedule"
+
+---
+# Service for botserver
+apiVersion: v1
+kind: Service
+metadata:
+  name: botserver-service
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: service
+spec:
+  type: ClusterIP
+  selector:
+    app: botserver
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8080
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: 9090
+      protocol: TCP
+
+---
+# Service for LLM server
+apiVersion: v1
+kind: Service
+metadata:
+  name: llm-server-service
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: llm-service
+spec:
+  type: ClusterIP
+  selector:
+    app: llm-server
+  ports:
+    - name: http
+      port: 8081
+      targetPort: 8081
+      protocol: TCP
+
+---
+# Headless service for StatefulSet-like DNS (if needed)
+apiVersion: v1
+kind: Service
+metadata:
+  name: botserver-headless
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: headless-service
+spec:
+  clusterIP: None
+  selector:
+    app: botserver
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: botserver-ingress
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: ingress
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "300"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "300"
+    nginx.ingress.kubernetes.io/websocket-services: "botserver-service"
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+spec:
+  tls:
+    - hosts:
+        - bot.example.com
+      secretName: botserver-tls
+  rules:
+    - host: bot.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: botserver-service
+                port:
+                  number: 80
+
+---
+# ServiceAccount
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: botserver
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: serviceaccount
+
+---
+# Role for botserver
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: botserver-role
+  namespace: generalbots
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: botserver-rolebinding
+  namespace: generalbots
+subjects:
+  - kind: ServiceAccount
+    name: botserver
+    namespace: generalbots
+roleRef:
+  kind: Role
+  name: botserver-role
+  apiGroup: rbac.authorization.k8s.io
+
+---
+# PodDisruptionBudget for high availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: botserver-pdb
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: pdb
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: botserver
+
+---
+# PersistentVolumeClaim for botserver data
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: botserver-data
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 50Gi
+
+---
+# PersistentVolumeClaim for LLM models
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: llm-models
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadOnlyMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 100Gi
+
+---
+# PersistentVolumeClaim for .gbai packages
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: gbai-packages
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: storage
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: standard
+  resources:
+    requests:
+      storage: 20Gi

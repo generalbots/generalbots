@@ -68,6 +68,12 @@
     - [SET CONTEXT](./chapter-06-gbdialog/keyword-set-context.md)
     - [GET BOT MEMORY](./chapter-06-gbdialog/keyword-get-bot-memory.md)
     - [SET BOT MEMORY](./chapter-06-gbdialog/keyword-set-bot-memory.md)
+    - [GET USER MEMORY](./chapter-06-gbdialog/keyword-get-user-memory.md)
+    - [SET USER MEMORY](./chapter-06-gbdialog/keyword-set-user-memory.md)
+    - [USE MODEL](./chapter-06-gbdialog/keyword-use-model.md)
+    - [DELEGATE TO BOT](./chapter-06-gbdialog/keyword-delegate-to-bot.md)
+    - [BOT REFLECTION](./chapter-06-gbdialog/keyword-bot-reflection.md)
+    - [RUN PYTHON / JAVASCRIPT / BASH](./chapter-06-gbdialog/keyword-run-code.md)
     - [USE KB](./chapter-06-gbdialog/keyword-use-kb.md)
     - [CLEAR KB](./chapter-06-gbdialog/keyword-clear-kb.md)
     - [USE WEBSITE](./chapter-06-gbdialog/keyword-use-website.md)
@@ -101,6 +107,7 @@
     - [KB DOCUMENTS ADDED SINCE](./chapter-06-gbdialog/keyword-kb-documents-added-since.md)
     - [KB LIST COLLECTIONS](./chapter-06-gbdialog/keyword-kb-list-collections.md)
     - [KB STORAGE SIZE](./chapter-06-gbdialog/keyword-kb-storage-size.md)
+  - [Multi-Agent Keywords](./chapter-06-gbdialog/keywords-multi-agent.md)
   - [Social Media Keywords](./chapter-06-gbdialog/keywords-social-media.md)
   - [Lead Scoring Keywords](./chapter-06-gbdialog/keywords-lead-scoring.md)
   - [HTTP & API Operations](./chapter-06-gbdialog/keywords-http.md)
@@ -221,6 +228,10 @@
   - [Enterprise Platform Migration](./chapter-11-features/m365-comparison.md)
   - [Projects](./chapter-11-features/projects.md)
   - [Multi-Agent Office Suite Design](./chapter-11-features/multi-agent-design.md)
+  - [What's New: Multi-Agent Features](./chapter-11-features/whats-new.md)
+  - [Multi-Agent Orchestration](./chapter-11-features/multi-agent-orchestration.md)
+  - [Memory Management](./chapter-11-features/memory-management.md)
+  - [Hybrid RAG Search](./chapter-11-features/hybrid-search.md)
 
 # Part XI - Security
 

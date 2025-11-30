@@ -52,11 +52,14 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 
 | Keyword | Category | Description |
 |---------|----------|-------------|
+| `ADD BOT` | Multi-Agent | Add a bot to the current session with triggers |
 | `ADD MEMBER` | Communication | Add member to a group |
 | `ADD SUGGESTION` | UI | Add clickable suggestion button |
 | `ADD TOOL` | Tools | Register a tool for the session |
 | `AGGREGATE` | Data | Perform SUM, AVG, COUNT, MIN, MAX operations |
 | `BOOK` | Special | Book an appointment |
+| `BOT REFLECTION` | Multi-Agent | Enable agent self-analysis and improvement |
+| `BROADCAST TO BOTS` | Multi-Agent | Send message to all bots in session |
 | `CLEAR HEADERS` | HTTP | Clear all HTTP headers |
 | `CLEAR KB` | Knowledge | Unload knowledge base from session |
 | `CLEAR SUGGESTIONS` | UI | Remove all suggestion buttons |
@@ -66,6 +69,7 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | `CREATE DRAFT` | Communication | Create email draft |
 | `CREATE SITE` | Tools | Generate a website |
 | `CREATE TASK` | Tools | Create a task |
+| `DELEGATE TO BOT` | Multi-Agent | Send task to another bot |
 | `DELETE` | Data | Delete records from table |
 | `DELETE FILE` | Files | Delete a file |
 | `DELETE HTTP` | HTTP | Send HTTP DELETE request |
@@ -81,6 +85,7 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | `GENERATE PDF` | Files | Generate PDF from template |
 | `GET` | Variables | Get variable or API data |
 | `GET BOT MEMORY` | Memory | Retrieve bot-level persisted data |
+| `GET USER MEMORY` | Memory | Retrieve user-level persisted data (cross-bot) |
 | `GRAPHQL` | HTTP | Execute GraphQL query |
 | `GROUP BY` | Data | Group data by field |
 | `HEAR` | Dialog | Get input from user |
@@ -104,6 +109,9 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | `PUT` | HTTP | Send HTTP PUT request |
 | `READ` | Files | Read file content |
 | `REMEMBER` | Memory | Store user-specific memory |
+| `RUN BASH` | Code Execution | Execute Bash script in sandbox |
+| `RUN JAVASCRIPT` | Code Execution | Execute JavaScript in sandbox |
+| `RUN PYTHON` | Code Execution | Execute Python code in sandbox |
 | `SAVE` | Data | Save data to table (upsert) |
 | `SAVE FROM UNSTRUCTURED` | Data | Extract structured data from text |
 | `SEND MAIL` | Communication | Send email |
@@ -113,11 +121,16 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | `SET HEADER` | HTTP | Set HTTP header |
 | `SET SCHEDULE` | Events | Schedule script execution |
 | `SET USER` | Session | Set user context |
+| `SET USER FACT` | Memory | Store a fact about the user |
+| `SET USER MEMORY` | Memory | Persist data at user level (cross-bot) |
 | `SOAP` | HTTP | Execute SOAP API call |
 | `SWITCH ... CASE ... END SWITCH` | Control | Switch statement |
 | `SYNCHRONIZE` | Data | Sync API data to table (planned) |
 | `TALK` | Dialog | Send message to user |
+| `TRANSFER CONVERSATION` | Multi-Agent | Hand off conversation to another bot |
 | `UPDATE` | Data | Update existing records |
+| `USE MODEL` | AI | Switch LLM model for subsequent operations |
+| `USER FACTS` | Memory | Get all stored user facts |
 | `UPLOAD` | Files | Upload file to storage |
 | `USE KB` | Knowledge | Load knowledge base |
 | `USE TOOL` | Tools | Register tool definition |
@@ -149,6 +162,10 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | GET | `result = GET "path"` | Get variable or fetch data |
 | SET BOT MEMORY | `SET BOT MEMORY "key", value` | Persist data at bot level |
 | GET BOT MEMORY | `value = GET BOT MEMORY("key")` | Retrieve persisted data |
+| SET USER MEMORY | `SET USER MEMORY "key", value` | Persist data at user level (cross-bot) |
+| GET USER MEMORY | `value = GET USER MEMORY("key")` | Retrieve user-level data |
+| SET USER FACT | `SET USER FACT "key", value` | Store fact about user |
+| USER FACTS | `facts = USER FACTS()` | Get all user facts |
 | REMEMBER | `REMEMBER "key", value` | Store user-specific memory |
 
 ### AI & Context
@@ -158,6 +175,27 @@ See [Script Execution Flow](./script-execution-flow.md) for complete details.
 | LLM | `result = LLM "prompt"` | Query language model |
 | SET CONTEXT | `SET CONTEXT "name" AS "value"` | Add context for LLM |
 | SET USER | `SET USER userid` | Set user context |
+| USE MODEL | `USE MODEL "modelname"` | Switch LLM model (fast/quality/code/auto) |
+
+### Multi-Agent Orchestration
+
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| ADD BOT | `ADD BOT "name" TRIGGER ON "keywords"` | Add bot with triggers |
+| DELEGATE TO BOT | `result = DELEGATE "message" TO BOT "name"` | Send task to bot |
+| BROADCAST TO BOTS | `BROADCAST "message" TO BOTS` | Message all bots |
+| TRANSFER CONVERSATION | `TRANSFER CONVERSATION TO "botname"` | Hand off to bot |
+| BOT REFLECTION | `BOT REFLECTION true` | Enable self-analysis |
+| BOT REFLECTION INSIGHTS | `insights = BOT REFLECTION INSIGHTS()` | Get analysis results |
+
+### Code Execution (Sandboxed)
+
+| Keyword | Syntax | Description |
+|---------|--------|-------------|
+| RUN PYTHON | `result = RUN PYTHON "code"` | Execute Python in sandbox |
+| RUN JAVASCRIPT | `result = RUN JAVASCRIPT "code"` | Execute JS in sandbox |
+| RUN BASH | `result = RUN BASH "code"` | Execute Bash in sandbox |
+| RUN ... WITH FILE | `result = RUN PYTHON WITH FILE "script.py"` | Run script file |
 
 ### Knowledge Base
 

@@ -1,0 +1,331 @@
+# General Bots Kubernetes HorizontalPodAutoscaler Configuration
+# This file contains autoscaling configurations for General Bots components.
+#
+# Usage:
+#   kubectl apply -f hpa.yaml
+#
+# Prerequisites:
+#   - Metrics Server installed in cluster
+#   - deployment.yaml already applied
+
+---
+# HPA for botserver - scales based on CPU and memory
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: botserver-hpa
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: botserver
+  minReplicas: 3
+  maxReplicas: 20
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Scale based on memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+    # Scale based on requests per second (requires custom metrics)
+    # Uncomment if using Prometheus Adapter
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: http_requests_per_second
+    #     target:
+    #       type: AverageValue
+    #       averageValue: 100
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300  # 5 minutes cooldown before scaling down
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Min  # Use the most conservative policy
+
+    scaleUp:
+      stabilizationWindowSeconds: 60  # 1 minute before scaling up
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 4
+          periodSeconds: 30
+      selectPolicy: Max  # Scale up aggressively when needed
+
+---
+# HPA for LLM server - scales based on CPU (inference is CPU/GPU bound)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: llm-server-hpa
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-server
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 60  # Lower threshold for LLM - inference is expensive
+
+    # Scale based on memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 75
+
+    # Scale based on inference queue length (requires custom metrics)
+    # Uncomment if using Prometheus Adapter
+    # - type: Pods
+    #   pods:
+    #     metric:
+    #       name: llm_inference_queue_length
+    #     target:
+    #       type: AverageValue
+    #       averageValue: 5
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 600  # 10 minutes - LLM pods are expensive to recreate
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 120
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 120  # 2 minutes
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 60
+      selectPolicy: Max
+
+---
+# HPA for embedding server (if deployed separately)
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: embedding-server-hpa
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: embedding-server
+  minReplicas: 2
+  maxReplicas: 8
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Pods
+          value: 1
+          periodSeconds: 60
+      selectPolicy: Min
+
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Pods
+          value: 2
+          periodSeconds: 30
+      selectPolicy: Max
+
+---
+# Vertical Pod Autoscaler for botserver (optional - requires VPA installed)
+# Automatically adjusts resource requests/limits
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: botserver-vpa
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: botserver
+  updatePolicy:
+    updateMode: "Auto"  # Options: Off, Initial, Recreate, Auto
+  resourcePolicy:
+    containerPolicies:
+      - containerName: botserver
+        minAllowed:
+          cpu: 250m
+          memory: 512Mi
+        maxAllowed:
+          cpu: 4000m
+          memory: 8Gi
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsAndLimits
+
+---
+# Vertical Pod Autoscaler for LLM server
+apiVersion: autoscaling.k8s.io/v1
+kind: VerticalPodAutoscaler
+metadata:
+  name: llm-server-vpa
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: vpa
+spec:
+  targetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: llm-server
+  updatePolicy:
+    updateMode: "Off"  # Manual for LLM - too disruptive to auto-update
+  resourcePolicy:
+    containerPolicies:
+      - containerName: llm-server
+        minAllowed:
+          cpu: 2000m
+          memory: 8Gi
+        maxAllowed:
+          cpu: 16000m
+          memory: 64Gi
+        controlledResources: ["cpu", "memory"]
+        controlledValues: RequestsOnly  # Only adjust requests, not limits
+
+---
+# Custom metrics for HPA (requires Prometheus + Prometheus Adapter)
+# This ServiceMonitor tells Prometheus to scrape botserver metrics
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: botserver-metrics
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: botserver
+  endpoints:
+    - port: metrics
+      interval: 30s
+      path: /metrics
+  namespaceSelector:
+    matchNames:
+      - generalbots
+
+---
+# PrometheusRule for alerting on scaling events
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: botserver-scaling-alerts
+  namespace: generalbots
+  labels:
+    app.kubernetes.io/name: generalbots
+    app.kubernetes.io/component: alerts
+spec:
+  groups:
+    - name: botserver-scaling
+      rules:
+        # Alert when approaching max replicas
+        - alert: BotserverNearMaxReplicas
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="botserver-hpa"}
+            / kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="botserver-hpa"}
+            > 0.8
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Botserver near maximum replicas"
+            description: "Botserver HPA is at {{ $value | humanizePercentage }} of max replicas"
+
+        # Alert when at max replicas
+        - alert: BotserverAtMaxReplicas
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="botserver-hpa"}
+            == kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="botserver-hpa"}
+          for: 10m
+          labels:
+            severity: critical
+          annotations:
+            summary: "Botserver at maximum replicas"
+            description: "Botserver HPA has been at max replicas for 10 minutes - consider increasing max"
+
+        # Alert on rapid scaling
+        - alert: BotserverRapidScaling
+          expr: |
+            increase(kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="botserver-hpa"}[10m])
+            > 5
+          for: 1m
+          labels:
+            severity: warning
+          annotations:
+            summary: "Botserver scaling rapidly"
+            description: "Botserver has scaled by {{ $value }} replicas in 10 minutes"
+
+        # Alert on LLM server max replicas
+        - alert: LLMServerAtMaxReplicas
+          expr: |
+            kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="llm-server-hpa"}
+            == kube_horizontalpodautoscaler_spec_max_replicas{horizontalpodautoscaler="llm-server-hpa"}
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: "LLM Server at maximum replicas"
+            description: "LLM Server HPA is at max - inference capacity may be constrained"
