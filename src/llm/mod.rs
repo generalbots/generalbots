@@ -9,6 +9,7 @@ pub mod cache;
 pub mod compact_prompt;
 pub mod llm_models;
 pub mod local;
+pub mod observability;
 #[async_trait]
 pub trait LLMProvider: Send + Sync {
     async fn generate(

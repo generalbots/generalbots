@@ -23,6 +23,7 @@ use crate::shared::state::AppState;
 pub mod auth;
 pub mod auth_handlers;
 pub mod chat_handlers;
+pub mod stream_handlers;
 
 // Module stubs - to be implemented with full HTMX
 pub mod drive {
@@ -464,6 +465,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .route("/api/auth/check", get(auth_handlers::check_session))
         // API endpoints
         .merge(chat_handlers::routes())
+        .merge(stream_handlers::routes())
         .merge(drive::routes())
         .merge(mail::routes())
         .merge(meet::routes())
