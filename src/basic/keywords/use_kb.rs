@@ -30,10 +30,10 @@ pub struct ActiveKbResult {
     pub qdrant_collection: String,
 }
 
-/// Register USE_KB keyword
+/// Register USE KB keyword
 /// Adds a Knowledge Base to the current session's context
-/// Usage: USE_KB "kbname"
-/// Example: USE_KB "circular" or USE_KB kbname (where kbname is a variable)
+/// Usage: USE KB "kbname"
+/// Example: USE KB "circular" or USE KB kbname (where kbname is a variable)
 pub fn register_use_kb_keyword(
     engine: &mut Engine,
     state: Arc<AppState>,
@@ -42,11 +42,12 @@ pub fn register_use_kb_keyword(
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
 
-    engine.register_custom_syntax(&["USE_KB", "$expr$"], true, move |context, inputs| {
+    // Register with spaces: USE KB "kbname"
+    engine.register_custom_syntax(&["USE", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
-            "USE_KB keyword executed - KB: {}, Session: {}",
+            "USE KB keyword executed - KB: {}, Session: {}",
             kb_name, session_clone.id
         );
 

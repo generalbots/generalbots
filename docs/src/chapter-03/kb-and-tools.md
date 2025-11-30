@@ -191,8 +191,8 @@ Configuration:
 
 ### File Processing Pipeline
 
-```rust
-// src/basic/keywords/use_kb.rs
+**File Processing Steps (use_kb):**
+
 1. Scan directory for files
 2. Extract text based on file type
 3. Clean and normalize text
@@ -200,12 +200,11 @@ Configuration:
 5. Generate embeddings via OpenAI
 6. Store in vector database with metadata
 7. Update session context
-```
 
 ### Tool Execution Engine
 
-```rust
-// src/basic/keywords/use_tool.rs
+**Tool Execution Steps (use_tool):**
+
 1. Parse tool definition (JSON schema)
 2. Register with LLM context
 3. Listen for tool invocation
@@ -213,7 +212,6 @@ Configuration:
 5. Execute tool (HTTP/function call)
 6. Return results to LLM
 7. Log execution for audit
-```
 
 ---
 

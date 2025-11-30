@@ -8,12 +8,13 @@ use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
+    // Register with spaces: USE TOOL "toolname"
     engine
-        .register_custom_syntax(&["USE_TOOL", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(&["USE", "TOOL", "$expr$"], false, move |context, inputs| {
             let tool_path = context.eval_expression_tree(&inputs[0])?;
             let tool_path_str = tool_path.to_string().trim_matches('"').to_string();
             trace!(
-                "USE_TOOL command executed: {} for session: {}",
+                "USE TOOL command executed: {} for session: {}",
                 tool_path_str,
                 user_clone.id
             );
@@ -64,12 +65,12 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 ))),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "USE_TOOL timed out".into(),
+                        "USE TOOL timed out".into(),
                         rhai::Position::NONE,
                     )))
                 }
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("USE_TOOL failed: {}", e).into(),
+                    format!("USE TOOL failed: {}", e).into(),
                     rhai::Position::NONE,
                 ))),
             }

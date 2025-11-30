@@ -336,30 +336,15 @@ impl BasicCompiler {
             {
                 continue;
             }
+            // Keywords now use spaces directly in Rhai registration
+            // Only normalize keywords that still need it for special preprocessing
             let normalized = trimmed
-                .replace("SET SCHEDULE", "SET_SCHEDULE")
-                .replace("USE TOOL", "USE_TOOL")
-                .replace("CLEAR TOOLS", "CLEAR_TOOLS")
-                .replace("CREATE SITE", "CREATE_SITE")
                 .replace("FOR EACH", "FOR_EACH")
                 .replace("EXIT FOR", "EXIT_FOR")
-                .replace("SET USER", "SET_USER")
-                .replace("SET CONTEXT", "SET_CONTEXT")
-                .replace("CLEAR SUGGESTIONS", "CLEAR_SUGGESTIONS")
-                .replace("ADD SUGGESTION", "ADD_SUGGESTION")
-                .replace("USE KB", "USE_KB")
-                .replace("USE WEBSITE", "USE_WEBSITE")
-                .replace("GET BOT MEMORY", "GET_BOT_MEMORY")
-                .replace("SET BOT MEMORY", "SET_BOT_MEMORY")
-                .replace("CREATE DRAFT", "CREATE_DRAFT")
-                .replace("DELETE FILE", "DELETE_FILE")
-                .replace("DELETE HTTP", "DELETE_HTTP")
-                .replace("SET HEADER", "SET_HEADER")
-                .replace("CLEAR HEADERS", "CLEAR_HEADERS")
                 .replace("GENERATE PDF", "GENERATE_PDF")
                 .replace("MERGE PDF", "MERGE_PDF")
                 .replace("GROUP BY", "GROUP_BY");
-            if normalized.starts_with("SET_SCHEDULE") {
+            if normalized.starts_with("SET SCHEDULE") || trimmed.starts_with("SET SCHEDULE") {
                 has_schedule = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 3 {
@@ -371,12 +356,12 @@ impl BasicCompiler {
                         .map_err(|e| format!("Failed to get database connection: {e}"))?;
                     if let Err(e) = execute_set_schedule(&mut conn, cron, &script_name, bot_id) {
                         log::error!(
-                            "Failed to schedule SET_SCHEDULE during preprocessing: {}",
+                            "Failed to schedule SET SCHEDULE during preprocessing: {}",
                             e
                         );
                     }
                 } else {
-                    log::warn!("Malformed SET_SCHEDULE line ignored: {}", normalized);
+                    log::warn!("Malformed SET SCHEDULE line ignored: {}", trimmed);
                 }
                 continue;
             }
@@ -408,7 +393,7 @@ impl BasicCompiler {
                 continue;
             }
 
-            if normalized.starts_with("USE_WEBSITE") {
+            if trimmed.starts_with("USE WEBSITE") {
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 2 {
                     let url = parts[1];

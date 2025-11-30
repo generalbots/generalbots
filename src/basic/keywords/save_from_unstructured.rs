@@ -16,16 +16,17 @@ pub fn save_from_unstructured_keyword(
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
+    // Register with spaces: SAVE FROM UNSTRUCTURED "table", text
     engine
         .register_custom_syntax(
-            &["SAVE_FROM_UNSTRUCTURED", "$expr$", ",", "$expr$"],
+            &["SAVE", "FROM", "UNSTRUCTURED", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let table_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let text = context.eval_expression_tree(&inputs[1])?.to_string();
 
                 trace!(
-                    "SAVE_FROM_UNSTRUCTURED: table={}, text_len={} for user={}",
+                    "SAVE FROM UNSTRUCTURED: table={}, text_len={} for user={}",
                     table_name,
                     text.len(),
                     user_clone.user_id
@@ -59,24 +60,24 @@ pub fn save_from_unstructured_keyword(
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SAVE_FROM_UNSTRUCTURED result from thread");
+                        error!("Failed to send SAVE FROM UNSTRUCTURED result from thread");
                     }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(record_id)) => Ok(Dynamic::from(record_id)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SAVE_FROM_UNSTRUCTURED failed: {}", e).into(),
+                        format!("SAVE FROM UNSTRUCTURED failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "SAVE_FROM_UNSTRUCTURED timed out".into(),
+                            "SAVE FROM UNSTRUCTURED timed out".into(),
                             rhai::Position::NONE,
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SAVE_FROM_UNSTRUCTURED thread failed: {}", e).into(),
+                        format!("SAVE FROM UNSTRUCTURED thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
