@@ -1,0 +1,234 @@
+<svg width="1200" height="500" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Modern Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8B5CF6;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#06B6D4;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0EA5E9;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#10B981;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#34D399;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F59E0B;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FBBF24;stop-opacity:1" />
+    </linearGradient>
+
+    <linearGradient id="flowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#6366F1;stop-opacity:0.2" />
+      <stop offset="50%" style="stop-color:#8B5CF6;stop-opacity:0.5" />
+      <stop offset="100%" style="stop-color:#A855F7;stop-opacity:0.2" />
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="cardShadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-color="#6366F1" flood-opacity="0.15"/>
+    </filter>
+
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+      <feMerge>
+        <feMergeNode in="coloredBlur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <!-- Arrow markers -->
+    <marker id="arrowPurple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#8B5CF6"/>
+    </marker>
+
+    <!-- Dot pattern -->
+    <pattern id="dots" patternUnits="userSpaceOnUse" width="20" height="20">
+      <circle cx="10" cy="10" r="1" fill="#6366F1" opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <style>
+    .title-text { fill: #1E1B4B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .main-text { fill: #334155; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .secondary-text { fill: #64748B; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .white-text { fill: #FFFFFF; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    .mono-text { fill: #475569; font-family: 'SF Mono', 'Fira Code', Consolas, monospace; }
+
+    @media (prefers-color-scheme: dark) {
+      .title-text { fill: #F1F5F9; }
+      .main-text { fill: #E2E8F0; }
+      .secondary-text { fill: #94A3B8; }
+      .mono-text { fill: #CBD5E1; }
+    }
+  </style>
+
+  <!-- Background -->
+  <rect width="1200" height="500" fill="#FAFBFC"/>
+  <rect width="1200" height="500" fill="url(#dots)"/>
+
+  <!-- Title -->
+  <text x="600" y="40" text-anchor="middle" font-size="22" font-weight="600" class="title-text">General Bots Architecture</text>
+  <text x="600" y="65" text-anchor="middle" font-size="13" class="secondary-text">Single binary • Zero dependencies • Production ready</text>
+
+  <!-- Input Layer -->
+  <g transform="translate(50, 100)">
+    <text x="80" y="0" text-anchor="middle" font-size="12" font-weight="600" class="secondary-text">CHANNELS</text>
+
+    <!-- Web -->
+    <rect x="0" y="20" width="160" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="45" r="15" fill="url(#cyanGrad)"/>
+    <text x="28" y="50" text-anchor="middle" font-size="12" font-weight="700" class="white-text">W</text>
+    <text x="100" y="42" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Web Chat</text>
+    <text x="100" y="56" text-anchor="middle" font-size="10" class="mono-text">WebSocket</text>
+
+    <!-- WhatsApp -->
+    <rect x="0" y="80" width="160" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="105" r="15" fill="url(#greenGrad)"/>
+    <text x="28" y="110" text-anchor="middle" font-size="12" font-weight="700" class="white-text">WA</text>
+    <text x="100" y="102" text-anchor="middle" font-size="12" font-weight="500" class="main-text">WhatsApp</text>
+    <text x="100" y="116" text-anchor="middle" font-size="10" class="mono-text">Business API</text>
+
+    <!-- Teams -->
+    <rect x="0" y="140" width="160" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="165" r="15" fill="url(#primaryGrad)"/>
+    <text x="28" y="170" text-anchor="middle" font-size="12" font-weight="700" class="white-text">T</text>
+    <text x="100" y="162" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Teams</text>
+    <text x="100" y="176" text-anchor="middle" font-size="10" class="mono-text">Bot Framework</text>
+
+    <!-- Voice -->
+    <rect x="0" y="200" width="160" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="225" r="15" fill="url(#orangeGrad)"/>
+    <text x="28" y="230" text-anchor="middle" font-size="12" font-weight="700" class="white-text">V</text>
+    <text x="100" y="222" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Voice</text>
+    <text x="100" y="236" text-anchor="middle" font-size="10" class="mono-text">LiveKit</text>
+  </g>
+
+  <!-- Flow Arrows to Core -->
+  <g stroke="url(#flowGrad)" stroke-width="2" fill="none">
+    <path d="M220 145 Q280 145 340 200" marker-end="url(#arrowPurple)"/>
+    <path d="M220 180 Q270 180 340 210" marker-end="url(#arrowPurple)"/>
+    <path d="M220 240 Q270 240 340 230" marker-end="url(#arrowPurple)"/>
+    <path d="M220 320 Q280 320 340 260" marker-end="url(#arrowPurple)"/>
+  </g>
+
+  <!-- Core Processing -->
+  <g transform="translate(350, 100)">
+    <text x="225" y="0" text-anchor="middle" font-size="12" font-weight="600" class="secondary-text">CORE RUNTIME</text>
+
+    <!-- Main processing box -->
+    <rect x="0" y="20" width="450" height="260" rx="12" fill="#FFFFFF" stroke="#C7D2FE" stroke-width="2" filter="url(#cardShadow)"/>
+    <rect x="0" y="20" width="450" height="40" rx="12" fill="url(#primaryGrad)"/>
+    <rect x="0" y="48" width="450" height="12" fill="url(#primaryGrad)"/>
+    <text x="225" y="47" text-anchor="middle" font-size="14" font-weight="600" class="white-text">BotServer (Rust)</text>
+
+    <!-- Session Manager -->
+    <rect x="20" y="75" width="200" height="45" rx="6" fill="#EEF2FF" stroke="#C7D2FE" stroke-width="1"/>
+    <text x="120" y="95" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Session Manager</text>
+    <text x="120" y="110" text-anchor="middle" font-size="9" class="mono-text">Tokio Async Runtime</text>
+
+    <!-- BASIC Interpreter -->
+    <rect x="230" y="75" width="200" height="45" rx="6" fill="#FEF3C7" stroke="#FCD34D" stroke-width="1"/>
+    <text x="330" y="95" text-anchor="middle" font-size="11" font-weight="600" class="main-text">BASIC Interpreter</text>
+    <text x="330" y="110" text-anchor="middle" font-size="9" class="mono-text">90+ Keywords</text>
+
+    <!-- LLM Integration -->
+    <rect x="20" y="130" width="200" height="45" rx="6" fill="#F5F3FF" stroke="#DDD6FE" stroke-width="1"/>
+    <text x="120" y="150" text-anchor="middle" font-size="11" font-weight="600" class="main-text">LLM Integration</text>
+    <text x="120" y="165" text-anchor="middle" font-size="9" class="mono-text">OpenAI, Anthropic, Local</text>
+
+    <!-- Package Manager -->
+    <rect x="230" y="130" width="200" height="45" rx="6" fill="#ECFDF5" stroke="#A7F3D0" stroke-width="1"/>
+    <text x="330" y="150" text-anchor="middle" font-size="11" font-weight="600" class="main-text">Package Manager</text>
+    <text x="330" y="165" text-anchor="middle" font-size="9" class="mono-text">.gbai, .gbkb, .gbdialog</text>
+
+    <!-- RAG Engine -->
+    <rect x="20" y="185" width="130" height="40" rx="6" fill="#F0FDF4" stroke="#86EFAC" stroke-width="1"/>
+    <text x="85" y="202" text-anchor="middle" font-size="10" font-weight="600" class="main-text">RAG Engine</text>
+    <text x="85" y="216" text-anchor="middle" font-size="8" class="mono-text">Qdrant Vectors</text>
+
+    <!-- Tool Executor -->
+    <rect x="160" y="185" width="130" height="40" rx="6" fill="#FFF7ED" stroke="#FDBA74" stroke-width="1"/>
+    <text x="225" y="202" text-anchor="middle" font-size="10" font-weight="600" class="main-text">Tool Executor</text>
+    <text x="225" y="216" text-anchor="middle" font-size="8" class="mono-text">Function Calling</text>
+
+    <!-- API Server -->
+    <rect x="300" y="185" width="130" height="40" rx="6" fill="#EFF6FF" stroke="#93C5FD" stroke-width="1"/>
+    <text x="365" y="202" text-anchor="middle" font-size="10" font-weight="600" class="main-text">REST API</text>
+    <text x="365" y="216" text-anchor="middle" font-size="8" class="mono-text">Axum Server</text>
+
+    <!-- Data services bar -->
+    <rect x="20" y="235" width="410" height="35" rx="6" fill="#F8FAFC" stroke="#E2E8F0" stroke-width="1"/>
+    <text x="60" y="257" text-anchor="middle" font-size="9" class="mono-text">PostgreSQL</text>
+    <text x="140" y="257" text-anchor="middle" font-size="9" class="mono-text">SeaweedFS</text>
+    <text x="220" y="257" text-anchor="middle" font-size="9" class="mono-text">Valkey</text>
+    <text x="300" y="257" text-anchor="middle" font-size="9" class="mono-text">Zitadel</text>
+    <text x="380" y="257" text-anchor="middle" font-size="9" class="mono-text">Stalwart</text>
+  </g>
+
+  <!-- Flow Arrows to Output -->
+  <g stroke="url(#flowGrad)" stroke-width="2" fill="none">
+    <path d="M810 200 Q870 200 920 150" marker-end="url(#arrowPurple)"/>
+    <path d="M810 230 Q870 230 920 230" marker-end="url(#arrowPurple)"/>
+    <path d="M810 260 Q870 260 920 310" marker-end="url(#arrowPurple)"/>
+  </g>
+
+  <!-- Output Layer -->
+  <g transform="translate(930, 100)">
+    <text x="110" y="0" text-anchor="middle" font-size="12" font-weight="600" class="secondary-text">OUTPUT</text>
+
+    <!-- Responses -->
+    <rect x="0" y="30" width="220" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="55" r="15" fill="url(#primaryGrad)"/>
+    <text x="28" y="60" text-anchor="middle" font-size="10" font-weight="700" class="white-text">💬</text>
+    <text x="130" y="52" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Conversations</text>
+    <text x="130" y="66" text-anchor="middle" font-size="10" class="mono-text">Text, Voice, Rich Media</text>
+
+    <!-- Actions -->
+    <rect x="0" y="95" width="220" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="120" r="15" fill="url(#greenGrad)"/>
+    <text x="28" y="125" text-anchor="middle" font-size="10" font-weight="700" class="white-text">⚡</text>
+    <text x="130" y="117" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Automations</text>
+    <text x="130" y="131" text-anchor="middle" font-size="10" class="mono-text">Webhooks, Schedules</text>
+
+    <!-- Data -->
+    <rect x="0" y="160" width="220" height="50" rx="8" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+    <circle cx="30" cy="185" r="15" fill="url(#cyanGrad)"/>
+    <text x="28" y="190" text-anchor="middle" font-size="10" font-weight="700" class="white-text">📊</text>
+    <text x="130" y="182" text-anchor="middle" font-size="12" font-weight="500" class="main-text">Data & Files</text>
+    <text x="130" y="196" text-anchor="middle" font-size="10" class="mono-text">Drive, Mail, Calendar</text>
+  </g>
+
+  <!-- Bottom stats bar -->
+  <g transform="translate(100, 420)">
+    <rect x="0" y="0" width="1000" height="60" rx="10" fill="#FFFFFF" stroke="#E2E8F0" stroke-width="1" filter="url(#cardShadow)"/>
+
+    <g transform="translate(50, 15)">
+      <rect x="0" y="0" width="150" height="30" rx="6" fill="#EEF2FF"/>
+      <text x="75" y="20" text-anchor="middle" font-size="12" font-weight="600" class="main-text">Single Binary</text>
+    </g>
+
+    <g transform="translate(230, 15)">
+      <rect x="0" y="0" width="150" height="30" rx="6" fill="#ECFDF5"/>
+      <text x="75" y="20" text-anchor="middle" font-size="12" font-weight="600" class="main-text">Self-Hosted</text>
+    </g>
+
+    <g transform="translate(410, 15)">
+      <rect x="0" y="0" width="150" height="30" rx="6" fill="#FEF3C7"/>
+      <text x="75" y="20" text-anchor="middle" font-size="12" font-weight="600" class="main-text">Open Source</text>
+    </g>
+
+    <g transform="translate(590, 15)">
+      <rect x="0" y="0" width="150" height="30" rx="6" fill="#F0FDF4"/>
+      <text x="75" y="20" text-anchor="middle" font-size="12" font-weight="600" class="main-text">AI-First</text>
+    </g>
+
+    <g transform="translate(770, 15)">
+      <rect x="0" y="0" width="150" height="30" rx="6" fill="#F5F3FF"/>
+      <text x="75" y="20" text-anchor="middle" font-size="12" font-weight="600" class="main-text">No Forms</text>
+    </g>
+  </g>
+</svg>
