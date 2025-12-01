@@ -1,0 +1,608 @@
+{% extends "base.html" %}
+
+{% block title %}Tasks - General Bots{% endblock %}
+
+{% block content %}
+<div class="tasks-container" id="tasks-app">
+    <!-- Header -->
+    <div class="tasks-header">
+        <div class="header-content">
+            <h1 class="tasks-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                </svg>
+                Tasks
+            </h1>
+            <div class="header-stats" id="task-stats"
+                 hx-get="/api/tasks/stats"
+                 hx-trigger="load, taskUpdated from:body"
+                 hx-swap="innerHTML">
+                <span class="stat-item">
+                    <span class="stat-value">{{ total_count }}</span>
+                    <span class="stat-label">Total</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-value">{{ active_count }}</span>
+                    <span class="stat-label">Active</span>
+                </span>
+                <span class="stat-item">
+                    <span class="stat-value">{{ completed_count }}</span>
+                    <span class="stat-label">Completed</span>
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Task Form -->
+    <div class="add-task-section">
+        <form class="add-task-form"
+              hx-post="/api/tasks"
+              hx-target="#task-list"
+              hx-swap="afterbegin"
+              hx-on::after-request="this.reset(); htmx.trigger('body', 'taskUpdated')">
+            <input type="text"
+                   name="text"
+                   class="task-input"
+                   placeholder="What needs to be done?"
+                   required
+                   autofocus>
+            <select name="category" class="task-category-select">
+                <option value="">No Category</option>
+                <option value="work">💼 Work</option>
+                <option value="personal">🏠 Personal</option>
+                <option value="shopping">🛒 Shopping</option>
+                <option value="health">❤️ Health</option>
+            </select>
+            <input type="date"
+                   name="dueDate"
+                   class="task-date-input"
+                   placeholder="Due date">
+            <select name="priority" class="task-priority-select">
+                <option value="">Priority</option>
+                <option value="high">🔴 High</option>
+                <option value="medium">🟡 Medium</option>
+                <option value="low">🟢 Low</option>
+            </select>
+            <button type="submit" class="add-task-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+                Add Task
+            </button>
+        </form>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="filter-tabs">
+        <button class="filter-tab active"
+                hx-get="/api/tasks?filter=all"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <span class="tab-icon">📋</span>
+            <span>All</span>
+            <span class="tab-count" id="count-all">{{ total_count }}</span>
+        </button>
+        <button class="filter-tab"
+                hx-get="/api/tasks?filter=active"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <span class="tab-icon">⏳</span>
+            <span>Active</span>
+            <span class="tab-count" id="count-active">{{ active_count }}</span>
+        </button>
+        <button class="filter-tab"
+                hx-get="/api/tasks?filter=completed"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <span class="tab-icon">✓</span>
+            <span>Completed</span>
+            <span class="tab-count" id="count-completed">{{ completed_count }}</span>
+        </button>
+        <button class="filter-tab priority-tab"
+                hx-get="/api/tasks?filter=priority"
+                hx-target="#task-list"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <span class="tab-icon">⚡</span>
+            <span>Priority</span>
+        </button>
+    </div>
+
+    <!-- Task List -->
+    <div class="task-list-container">
+        <div id="task-list" class="task-list"
+             hx-get="/api/tasks?filter=all"
+             hx-trigger="load"
+             hx-swap="innerHTML">
+            <div class="task-loading">
+                <div class="spinner"></div>
+                <span>Loading tasks...</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bulk Actions (shown when tasks selected) -->
+    <div class="bulk-actions" id="bulk-actions" style="display: none;">
+        <span class="selected-count">0 selected</span>
+        <button class="bulk-btn"
+                hx-post="/api/tasks/bulk/complete"
+                hx-include="[name='selected-tasks']"
+                hx-target="#task-list">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+            Complete
+        </button>
+        <button class="bulk-btn danger"
+                hx-delete="/api/tasks/bulk"
+                hx-include="[name='selected-tasks']"
+                hx-target="#task-list"
+                hx-confirm="Delete selected tasks?">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Delete
+        </button>
+    </div>
+</div>
+
+<style>
+.tasks-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 2rem;
+}
+
+.tasks-header {
+    margin-bottom: 2rem;
+}
+
+.header-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.tasks-title {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text);
+}
+
+.header-stats {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--primary);
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+}
+
+.add-task-section {
+    margin-bottom: 1.5rem;
+}
+
+.add-task-form {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.task-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.task-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.task-input::placeholder {
+    color: var(--text-secondary);
+}
+
+.task-category-select,
+.task-date-input,
+.task-priority-select {
+    padding: 0.75rem;
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.task-date-input {
+    width: 140px;
+}
+
+.add-task-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9375rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.add-task-btn:hover {
+    background: var(--primary-hover);
+}
+
+.filter-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.5rem;
+    overflow-x: auto;
+}
+
+.filter-tab {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1rem;
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+
+.filter-tab:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+}
+
+.filter-tab.active {
+    background: var(--primary);
+    color: white;
+}
+
+.tab-count {
+    padding: 0.125rem 0.5rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+    font-size: 0.75rem;
+}
+
+.filter-tab:not(.active) .tab-count {
+    background: var(--surface);
+}
+
+.task-list-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.task-list {
+    min-height: 200px;
+}
+
+.task-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+    gap: 1rem;
+}
+
+.task-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.2s;
+}
+
+.task-item:last-child {
+    border-bottom: none;
+}
+
+.task-item:hover {
+    background: var(--surface-hover);
+}
+
+.task-item.completed {
+    opacity: 0.6;
+}
+
+.task-item.completed .task-text {
+    text-decoration: line-through;
+    color: var(--text-secondary);
+}
+
+.task-checkbox {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    cursor: pointer;
+    appearance: none;
+    background: transparent;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.task-checkbox:checked {
+    background: var(--success);
+    border-color: var(--success);
+}
+
+.task-checkbox:checked::after {
+    content: '✓';
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.task-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-text {
+    font-size: 0.9375rem;
+    margin-bottom: 0.25rem;
+}
+
+.task-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.task-category {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-due {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.task-due.overdue {
+    color: var(--error);
+}
+
+.task-due.today {
+    color: var(--warning);
+}
+
+.task-priority {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.task-priority.high { background: var(--error); }
+.task-priority.medium { background: var(--warning); }
+.task-priority.low { background: var(--success); }
+
+.task-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.task-item:hover .task-actions {
+    opacity: 1;
+}
+
+.task-action-btn {
+    padding: 0.375rem;
+    background: transparent;
+    border: none;
+    color: var(--text-secondary);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+}
+
+.task-action-btn:hover {
+    background: var(--bg);
+    color: var(--text);
+}
+
+.task-action-btn.delete:hover {
+    color: var(--error);
+}
+
+.bulk-actions {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.selected-count {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.bulk-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    cursor: pointer;
+}
+
+.bulk-btn.danger {
+    background: var(--error);
+}
+
+.empty-tasks {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 4rem 2rem;
+    text-align: center;
+}
+
+.empty-tasks svg {
+    width: 64px;
+    height: 64px;
+    color: var(--text-secondary);
+    opacity: 0.5;
+    margin-bottom: 1rem;
+}
+
+.empty-tasks h3 {
+    font-size: 1.125rem;
+    margin-bottom: 0.5rem;
+}
+
+.empty-tasks p {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.spinner {
+    width: 24px;
+    height: 24px;
+    border: 2px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+    .tasks-container {
+        padding: 1rem;
+    }
+
+    .add-task-form {
+        flex-direction: column;
+    }
+
+    .task-input {
+        width: 100%;
+    }
+
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .filter-tabs {
+        flex-wrap: nowrap;
+    }
+}
+</style>
+
+<script>
+function setActiveTab(btn) {
+    document.querySelectorAll('.filter-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    btn.classList.add('active');
+}
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+    // Focus input on 'n' key
+    if (e.key === 'n' && !e.ctrlKey && !e.metaKey) {
+        const activeElement = document.activeElement;
+        if (activeElement.tagName !== 'INPUT' && activeElement.tagName !== 'TEXTAREA' && activeElement.tagName !== 'SELECT') {
+            e.preventDefault();
+            document.querySelector('.task-input').focus();
+        }
+    }
+});
+
+// Task item interactions
+document.addEventListener('click', (e) => {
+    const checkbox = e.target.closest('.task-checkbox');
+    if (checkbox) {
+        const taskItem = checkbox.closest('.task-item');
+        if (taskItem) {
+            taskItem.classList.toggle('completed', checkbox.checked);
+        }
+    }
+});
+
+// Update stats after task changes
+document.body.addEventListener('htmx:afterSwap', (e) => {
+    if (e.detail.target.id === 'task-list') {
+        htmx.trigger('body', 'taskUpdated');
+    }
+});
+</script>
+{% endblock %}

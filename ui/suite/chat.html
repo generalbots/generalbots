@@ -1,0 +1,607 @@
+{% extends "suite/base.html" %} {% block title %}Chat - General Bots Suite{%
+endblock %} {% block content %}
+<div class="chat-container">
+    <!-- Sidebar with sessions -->
+    <aside class="chat-sidebar">
+        <div class="sidebar-header">
+            <h2>Conversations</h2>
+            <button
+                class="btn-icon"
+                hx-post="/api/chat/sessions/new"
+                hx-target="#session-list"
+                hx-swap="afterbegin"
+                title="New conversation"
+            >
+                <svg
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <line x1="12" y1="5" x2="12" y2="19"></line>
+                    <line x1="5" y1="12" x2="19" y2="12"></line>
+                </svg>
+            </button>
+        </div>
+
+        <div
+            class="session-list"
+            id="session-list"
+            hx-get="/api/chat/sessions"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Sessions loaded via HTMX -->
+        </div>
+
+        <div class="sidebar-footer">
+            <div
+                class="context-selector"
+                id="context-selector"
+                hx-get="/api/chat/contexts"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <!-- Contexts loaded via HTMX -->
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main chat area -->
+    <main class="chat-main" id="chat-app" hx-ext="ws" ws-connect="/ws/chat">
+        <div id="connection-status" class="connection-status"></div>
+
+        <!-- Messages container -->
+        <div class="messages-container" id="messages-container">
+            <div
+                class="messages"
+                id="messages"
+                hx-get="/api/chat/sessions/{{ session_id }}/messages"
+                hx-trigger="load"
+                hx-swap="innerHTML"
+            >
+                <!-- Messages loaded via HTMX -->
+            </div>
+        </div>
+
+        <!-- Suggestions -->
+        <div
+            class="suggestions-container"
+            id="suggestions"
+            hx-get="/api/chat/suggestions"
+            hx-trigger="load"
+            hx-swap="innerHTML"
+        >
+            <!-- Suggestions loaded via HTMX -->
+        </div>
+
+        <!-- Input area -->
+        <footer class="chat-footer">
+            <form
+                class="chat-input-form"
+                hx-post="/api/chat/sessions/{{ session_id }}/message"
+                hx-target="#messages"
+                hx-swap="beforeend scroll:#messages-container:bottom"
+                hx-on::after-request="this.reset(); this.querySelector('textarea').focus();"
+            >
+                <div class="input-wrapper">
+                    <textarea
+                        name="content"
+                        id="message-input"
+                        placeholder="Type a message..."
+                        rows="1"
+                        autofocus
+                        required
+                        onkeydown="if(event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); this.form.requestSubmit(); }"
+                    ></textarea>
+
+                    <div class="input-actions">
+                        <button
+                            type="button"
+                            class="btn-icon"
+                            id="voice-btn"
+                            hx-post="/api/chat/voice/start"
+                            hx-swap="none"
+                            title="Voice input"
+                        >
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"
+                                ></path>
+                                <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+                                <line x1="12" y1="19" x2="12" y2="23"></line>
+                                <line x1="8" y1="23" x2="16" y2="23"></line>
+                            </svg>
+                        </button>
+
+                        <button
+                            type="button"
+                            class="btn-icon"
+                            id="attach-btn"
+                            title="Attach file"
+                        >
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <path
+                                    d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"
+                                ></path>
+                            </svg>
+                        </button>
+
+                        <button
+                            type="submit"
+                            class="btn-primary btn-send"
+                            id="send-btn"
+                            title="Send message"
+                        >
+                            <svg
+                                width="20"
+                                height="20"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2"
+                            >
+                                <line x1="22" y1="2" x2="11" y2="13"></line>
+                                <polygon
+                                    points="22 2 15 22 11 13 2 9 22 2"
+                                ></polygon>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </footer>
+
+        <!-- Scroll to bottom button -->
+        <button
+            class="scroll-to-bottom"
+            id="scroll-to-bottom"
+            onclick="document.getElementById('messages-container').scrollTo({top: document.getElementById('messages-container').scrollHeight, behavior: 'smooth'})"
+        >
+            <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+            >
+                <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+        </button>
+    </main>
+</div>
+
+<style>
+    .chat-container {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        height: calc(100vh - 56px);
+        overflow: hidden;
+    }
+
+    /* Sidebar */
+    .chat-sidebar {
+        background: var(--surface);
+        border-right: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    .sidebar-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sidebar-header h2 {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .session-list {
+        flex: 1;
+        overflow-y: auto;
+        padding: 8px;
+    }
+
+    .session-item {
+        padding: 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background 0.15s;
+        margin-bottom: 4px;
+    }
+
+    .session-item:hover {
+        background: var(--surface-hover);
+    }
+
+    .session-item.active {
+        background: var(--primary-light);
+        border-left: 3px solid var(--primary);
+    }
+
+    .session-name {
+        font-weight: 500;
+        font-size: 14px;
+        margin-bottom: 4px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .session-time {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .sidebar-footer {
+        padding: 12px;
+        border-top: 1px solid var(--border);
+    }
+
+    /* Main chat area */
+    .chat-main {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        position: relative;
+        background: var(--bg);
+    }
+
+    .connection-status {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        z-index: 10;
+    }
+
+    .connection-status.connected {
+        background: var(--success);
+    }
+
+    .connection-status.disconnected {
+        background: var(--error);
+    }
+
+    .connection-status.connecting {
+        background: var(--warning);
+        animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.5;
+        }
+    }
+
+    /* Messages */
+    .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 16px;
+        scroll-behavior: smooth;
+    }
+
+    .messages {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .message {
+        display: flex;
+        gap: 12px;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .message.user {
+        flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: var(--primary);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-size: 14px;
+        flex-shrink: 0;
+    }
+
+    .message.user .message-avatar {
+        background: var(--surface);
+    }
+
+    .message-content {
+        max-width: 70%;
+        padding: 12px 16px;
+        border-radius: 16px;
+        background: var(--surface);
+    }
+
+    .message.user .message-content {
+        background: var(--primary);
+        color: white;
+    }
+
+    .message-text {
+        font-size: 14px;
+        line-height: 1.5;
+    }
+
+    .message-time {
+        font-size: 11px;
+        color: var(--text-secondary);
+        margin-top: 4px;
+    }
+
+    .message.user .message-time {
+        color: rgba(255, 255, 255, 0.7);
+    }
+
+    /* Suggestions */
+    .suggestions-container {
+        padding: 8px 16px;
+        max-width: 800px;
+        margin: 0 auto;
+        width: 100%;
+    }
+
+    .suggestions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .suggestion {
+        padding: 8px 16px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        font-size: 13px;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .suggestion:hover {
+        background: var(--surface-hover);
+        border-color: var(--primary);
+    }
+
+    /* Chat footer */
+    .chat-footer {
+        padding: 16px;
+        background: var(--bg);
+        border-top: 1px solid var(--border);
+    }
+
+    .chat-input-form {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .input-wrapper {
+        display: flex;
+        align-items: flex-end;
+        gap: 8px;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 24px;
+        padding: 8px 8px 8px 16px;
+        transition: border-color 0.15s;
+    }
+
+    .input-wrapper:focus-within {
+        border-color: var(--primary);
+    }
+
+    .input-wrapper textarea {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-size: 14px;
+        line-height: 1.5;
+        resize: none;
+        max-height: 150px;
+        padding: 8px 0;
+    }
+
+    .input-wrapper textarea::placeholder {
+        color: var(--text-secondary);
+    }
+
+    .input-actions {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    .btn-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border: none;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .btn-icon:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+    }
+
+    .btn-send {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-send:hover {
+        background: var(--primary-hover);
+        color: white;
+    }
+
+    /* Scroll to bottom */
+    .scroll-to-bottom {
+        position: absolute;
+        bottom: 100px;
+        right: 24px;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--surface);
+        border: 1px solid var(--border);
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.15s;
+    }
+
+    .scroll-to-bottom:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+    }
+
+    .scroll-to-bottom.visible {
+        display: flex;
+    }
+
+    /* Context selector */
+    .context-selector select {
+        width: 100%;
+        padding: 10px 12px;
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 13px;
+        cursor: pointer;
+    }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+        .chat-container {
+            grid-template-columns: 1fr;
+        }
+
+        .chat-sidebar {
+            display: none;
+        }
+
+        .chat-sidebar.open {
+            display: flex;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            bottom: 0;
+            width: 280px;
+            z-index: 100;
+        }
+
+        .message-content {
+            max-width: 85%;
+        }
+    }
+</style>
+
+<script>
+    // Auto-resize textarea
+    const textarea = document.getElementById("message-input");
+    if (textarea) {
+        textarea.addEventListener("input", function () {
+            this.style.height = "auto";
+            this.style.height = Math.min(this.scrollHeight, 150) + "px";
+        });
+    }
+
+    // Scroll to bottom visibility
+    const messagesContainer = document.getElementById("messages-container");
+    const scrollBtn = document.getElementById("scroll-to-bottom");
+
+    if (messagesContainer && scrollBtn) {
+        messagesContainer.addEventListener("scroll", function () {
+            const isNearBottom =
+                this.scrollHeight - this.scrollTop - this.clientHeight < 100;
+            scrollBtn.classList.toggle("visible", !isNearBottom);
+        });
+    }
+
+    // WebSocket connection status
+    document.body.addEventListener("htmx:wsConnecting", function () {
+        document.getElementById("connection-status").className =
+            "connection-status connecting";
+    });
+
+    document.body.addEventListener("htmx:wsOpen", function () {
+        document.getElementById("connection-status").className =
+            "connection-status connected";
+    });
+
+    document.body.addEventListener("htmx:wsClose", function () {
+        document.getElementById("connection-status").className =
+            "connection-status disconnected";
+    });
+
+    // Auto-scroll on new messages
+    document.body.addEventListener("htmx:afterSwap", function (evt) {
+        if (evt.detail.target.id === "messages") {
+            messagesContainer.scrollTo({
+                top: messagesContainer.scrollHeight,
+                behavior: "smooth",
+            });
+        }
+    });
+</script>
+{% endblock %}

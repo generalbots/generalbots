@@ -3,20 +3,33 @@
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts, Query, State},
-    headers::{authorization::Bearer, Authorization, Cookie},
-    http::{header, request::Parts, Request, StatusCode},
+    http::{header, request::Parts, HeaderMap, Request, StatusCode},
     middleware::Next,
     response::{IntoResponse, Redirect, Response},
-    Json, RequestPartsExt, TypedHeader,
+    Json,
 };
 use chrono::{Duration, Utc};
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-use tower_cookies::{Cookies, Key};
+use tower_cookies::Cookies;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
+
+/// Extract bearer token from Authorization header
+fn extract_bearer_token(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(header::AUTHORIZATION)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|auth| {
+            if auth.to_lowercase().starts_with("bearer ") {
+                Some(auth[7..].to_string())
+            } else {
+                None
+            }
+        })
+}
 
 /// JWT Claims structure
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -45,6 +58,16 @@ pub struct UserSession {
     pub created_at: i64,
 }
 
+/// Cookie key for signing (simple wrapper)
+#[derive(Clone)]
+pub struct CookieKey(Vec<u8>);
+
+impl CookieKey {
+    pub fn from(bytes: &[u8]) -> Self {
+        Self(bytes.to_vec())
+    }
+}
+
 /// Authentication configuration
 #[derive(Clone)]
 pub struct AuthConfig {
@@ -54,16 +77,18 @@ pub struct AuthConfig {
     pub zitadel_url: String,
     pub zitadel_client_id: String,
     pub zitadel_client_secret: String,
-    pub cookie_key: Key,
+    pub cookie_key: CookieKey,
 }
 
 impl AuthConfig {
     pub fn from_env() -> Self {
         // Use Zitadel directory service for all configuration
         // No environment variables should be read directly
+        use base64::Engine;
         let jwt_secret = {
             // Generate a secure random secret - should come from directory service
-            let secret = base64::encode(uuid::Uuid::new_v4().as_bytes());
+            let secret =
+                base64::engine::general_purpose::STANDARD.encode(uuid::Uuid::new_v4().as_bytes());
             tracing::info!("Using generated JWT secret");
             secret
         };
@@ -81,7 +106,7 @@ impl AuthConfig {
             zitadel_url: crate::core::urls::InternalUrls::DIRECTORY_BASE.to_string(),
             zitadel_client_id: "botserver-web".to_string(),
             zitadel_client_secret: String::new(), // Retrieved from directory service
-            cookie_key: Key::from(cookie_secret.as_bytes()),
+            cookie_key: CookieKey::from(cookie_secret.as_bytes()),
         }
     }
 
@@ -108,18 +133,13 @@ where
 {
     type Rejection = (StatusCode, &'static str);
 
-    async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let app_state = AppState::from_ref(state);
-        let auth_config = app_state
-            .extensions
-            .get::<AuthConfig>()
-            .ok_or((StatusCode::INTERNAL_SERVER_ERROR, "Auth not configured"))?;
+    async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self, Self::Rejection> {
+        // Get auth config from environment for now (simplified)
+        let auth_config = AuthConfig::from_env();
 
         // Try to get token from Authorization header first
-        let token = if let Ok(TypedHeader(Authorization(bearer))) =
-            parts.extract::<TypedHeader<Authorization<Bearer>>>().await
-        {
-            bearer.token().to_string()
+        let token = if let Some(bearer_token) = extract_bearer_token(&parts.headers) {
+            bearer_token
         } else if let Ok(cookies) = parts.extract::<Cookies>().await {
             // Fall back to cookie
             cookies
