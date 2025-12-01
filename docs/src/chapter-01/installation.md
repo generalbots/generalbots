@@ -33,7 +33,7 @@ BotServer handles all dependencies automatically:
 The bootstrap process automatically downloads everything to `botserver-stack/`:
 - PostgreSQL database  
 - Drive (S3-compatible object storage)  
-- Valkey cache
+- Cache component
 - LLM server and models
 - All required dependencies
 
@@ -335,7 +335,7 @@ Default ports used:
 | Drive Console | 9001 | N/A |
 | LLM Server | 8081 | config.csv: `llm-server-port` |
 | Embedding Server | 8082 | config.csv: `embedding-url` |
-| Valkey Cache | 6379 | Internal |
+| Cache | 6379 | Internal |
 
 ### Memory Issues
 

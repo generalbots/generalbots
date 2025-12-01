@@ -173,8 +173,14 @@ fn add_bot_with_trigger_keyword(state: Arc<AppState>, user: UserSession, engine:
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                 let result = rt.block_on(async {
-                    add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name_clone, trigger)
-                        .await
+                    add_bot_to_session(
+                        &state_for_task,
+                        session_id,
+                        bot_id,
+                        &bot_name_clone,
+                        trigger,
+                    )
+                    .await
                 });
                 let _ = tx.send(result);
             });
@@ -238,8 +244,14 @@ fn add_bot_with_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                 let result = rt.block_on(async {
-                    add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name_clone, trigger)
-                        .await
+                    add_bot_to_session(
+                        &state_for_task,
+                        session_id,
+                        bot_id,
+                        &bot_name_clone,
+                        trigger,
+                    )
+                    .await
                 });
                 let _ = tx.send(result);
             });
@@ -297,8 +309,14 @@ fn add_bot_with_schedule_keyword(state: Arc<AppState>, user: UserSession, engine
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                 let result = rt.block_on(async {
-                    add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name_clone, trigger)
-                        .await
+                    add_bot_to_session(
+                        &state_for_task,
+                        session_id,
+                        bot_id,
+                        &bot_name_clone,
+                        trigger,
+                    )
+                    .await
                 });
                 let _ = tx.send(result);
             });
@@ -323,44 +341,44 @@ fn remove_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engi
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    engine.register_custom_syntax(&["REMOVE", "BOT", "$expr$"], false, move |context, inputs| {
-        let bot_name = context
-            .eval_expression_tree(&inputs[0])?
-            .to_string()
-            .trim_matches('"')
-            .to_string();
+    engine.register_custom_syntax(
+        &["REMOVE", "BOT", "$expr$"],
+        false,
+        move |context, inputs| {
+            let bot_name = context
+                .eval_expression_tree(&inputs[0])?
+                .to_string()
+                .trim_matches('"')
+                .to_string();
 
-        trace!(
-            "REMOVE BOT '{}' from session: {}",
-            bot_name,
-            user_clone.id
-        );
+            trace!("REMOVE BOT '{}' from session: {}", bot_name, user_clone.id);
 
-        let state_for_task = Arc::clone(&state_clone);
-        let session_id = user_clone.id;
+            let state_for_task = Arc::clone(&state_clone);
+            let session_id = user_clone.id;
 
-        let (tx, rx) = std::sync::mpsc::channel();
+            let (tx, rx) = std::sync::mpsc::channel();
 
-        std::thread::spawn(move || {
-            let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-            let result = rt.block_on(async {
-                remove_bot_from_session(&state_for_task, session_id, &bot_name).await
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let result = rt.block_on(async {
+                    remove_bot_from_session(&state_for_task, session_id, &bot_name).await
+                });
+                let _ = tx.send(result);
             });
-            let _ = tx.send(result);
-        });
 
-        match rx.recv_timeout(std::time::Duration::from_secs(30)) {
-            Ok(Ok(msg)) => Ok(Dynamic::from(msg)),
-            Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                e.into(),
-                rhai::Position::NONE,
-            ))),
-            Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                "REMOVE BOT timed out".into(),
-                rhai::Position::NONE,
-            ))),
-        }
-    });
+            match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+                Ok(Ok(msg)) => Ok(Dynamic::from(msg)),
+                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    e.into(),
+                    rhai::Position::NONE,
+                ))),
+                Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    "REMOVE BOT timed out".into(),
+                    rhai::Position::NONE,
+                ))),
+            }
+        },
+    );
 }
 
 /// LIST BOTS
@@ -378,8 +396,7 @@ fn list_bots_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
 
         std::thread::spawn(move || {
             let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-            let result =
-                rt.block_on(async { get_session_bots(&state_for_task, session_id).await });
+            let result = rt.block_on(async { get_session_bots(&state_for_task, session_id).await });
             let _ = tx.send(result);
         });
 
@@ -392,7 +409,10 @@ fn list_bots_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                         let mut map = rhai::Map::new();
                         map.insert("name".into(), Dynamic::from(b.bot_name));
                         map.insert("priority".into(), Dynamic::from(b.priority));
-                        map.insert("trigger_type".into(), Dynamic::from(b.trigger.trigger_type.to_string()));
+                        map.insert(
+                            "trigger_type".into(),
+                            Dynamic::from(b.trigger.trigger_type.to_string()),
+                        );
                         map.insert("is_active".into(), Dynamic::from(b.is_active));
                         Dynamic::from(map)
                     })
@@ -480,11 +500,7 @@ fn delegate_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 .trim_matches('"')
                 .to_string();
 
-            trace!(
-                "DELEGATE TO '{}' for session: {}",
-                bot_name,
-                user_clone.id
-            );
+            trace!("DELEGATE TO '{}' for session: {}", bot_name, user_clone.id);
 
             let state_for_task = Arc::clone(&state_clone);
             let session_id = user_clone.id;
@@ -538,7 +554,7 @@ async fn add_bot_to_session(
     .unwrap_or(false);
 
     // If bot doesn't exist, try to find it in templates or create a placeholder
-    let bot_id = if bot_exists {
+    let bot_id: String = if bot_exists {
         diesel::sql_query("SELECT id FROM bots WHERE name = $1 AND is_active = true")
             .bind::<diesel::sql_types::Text, _>(bot_name)
             .get_result::<UuidResult>(&mut *conn)
@@ -559,12 +575,12 @@ async fn add_bot_to_session(
         .execute(&mut *conn)
         .map_err(|e| format!("Failed to create bot: {}", e))?;
 
-        new_bot_id
+        new_bot_id.to_string()
     };
 
     // Serialize trigger to JSON
-    let trigger_json =
-        serde_json::to_string(&trigger).map_err(|e| format!("Failed to serialize trigger: {}", e))?;
+    let trigger_json = serde_json::to_string(&trigger)
+        .map_err(|e| format!("Failed to serialize trigger: {}", e))?;
 
     // Add bot to session
     let association_id = Uuid::new_v4();
@@ -690,13 +706,11 @@ async fn delegate_to_bot(
     }
 
     // Mark delegation in session
-    diesel::sql_query(
-        "UPDATE sessions SET delegated_to = $1, delegated_at = NOW() WHERE id = $2",
-    )
-    .bind::<diesel::sql_types::Text, _>(bot_name)
-    .bind::<diesel::sql_types::Text, _>(session_id.to_string())
-    .execute(&mut *conn)
-    .map_err(|e| format!("Failed to delegate: {}", e))?;
+    diesel::sql_query("UPDATE sessions SET delegated_to = $1, delegated_at = NOW() WHERE id = $2")
+        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .bind::<diesel::sql_types::Text, _>(session_id.to_string())
+        .execute(&mut *conn)
+        .map_err(|e| format!("Failed to delegate: {}", e))?;
 
     Ok(format!("Conversation delegated to '{}'", bot_name))
 }

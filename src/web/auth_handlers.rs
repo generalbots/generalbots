@@ -145,7 +145,7 @@ pub async fn login_submit(
     Response::builder()
         .status(StatusCode::OK)
         .header("HX-Redirect", "/")
-        .body("Login successful".to_string())
+        .body(axum::body::Body::from("Login successful"))
         .unwrap()
 }
 

@@ -150,7 +150,7 @@ General Bots is a **monolithic Rust application** (single crate) with the follow
 - **Language**: Rust 2021 edition
 - **Web**: Axum + Tower + Tokio
 - **Database**: Diesel ORM + PostgreSQL
-- **Cache**: Valkey (Redis-compatible)
+- **Cache**: Redis-compatible cache component
 - **Storage**: AWS SDK S3 (drive component)
 - **Vector DB**: Qdrant (optional)
 - **Scripting**: Rhai engine

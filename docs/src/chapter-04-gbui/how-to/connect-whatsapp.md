@@ -725,16 +725,19 @@ Keep quality high by:
 | WhatsApp Cloud API Docs | https://developers.facebook.com/docs/whatsapp |
 | API Status | https://metastatus.com |
 
-### Environment Variables
+### Configuration via config.csv
 
-If configuring via environment variables:
+Configure WhatsApp in your bot's `config.csv`:
 
+```csv
+name,value
+whatsapp-phone-number-id,123456789012345
+whatsapp-access-token,EAAGm0PX4ZCp...
+whatsapp-verify-token,my_bot_verify_123
+whatsapp-business-account-id,987654321098765
 ```
-WHATSAPP_PHONE_NUMBER_ID=123456789012345
-WHATSAPP_ACCESS_TOKEN=EAAGm0PX4ZCp...
-WHATSAPP_VERIFY_TOKEN=my_bot_verify_123
-WHATSAPP_BUSINESS_ACCOUNT_ID=987654321098765
-```
+
+**Note**: Do not use environment variables for WhatsApp configuration. All settings belong in `config.csv`.
 
 ---
 

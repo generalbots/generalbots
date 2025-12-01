@@ -70,7 +70,7 @@ Your General Bots deployment is a **living system** of interconnected components
 | **MinIO** | File storage, manages documents | Storage used, object count |
 | **BotModels** | LLM server, generates AI responses | Tokens/hour, model latency |
 | **Vault** | Secrets manager, stores API keys | Sealed status, policy count |
-| **Redis** | Cache layer, speeds up responses | Hit rate, memory usage |
+| **Cache** | Cache layer, speeds up responses | Hit rate, memory usage |
 | **InfluxDB** | Metrics database, stores analytics | Points/sec, retention |
 
 ---
@@ -213,7 +213,7 @@ The dashboard shows the health of all components:
 │  ● MinIO           Running    v2024.01    45.2 GB stored               │
 │  ● BotModels       Running    v2.1.0      gpt-4o active                │
 │  ● Vault           Sealed     v1.15.0     156 secrets                  │
-│  ● Redis           Running    v7.2.4      94.2% hit rate               │
+│  ● Cache           Running    v7.2.4      94.2% hit rate               │
 │  ● InfluxDB        Running    v2.7.3      2,450 pts/sec                │
 │                                                                         │
 │  Legend: ● Running  ● Warning  ● Stopped                               │

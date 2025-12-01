@@ -1,6 +1,6 @@
 # Caching
 
-BotServer includes automatic caching to improve response times and reduce redundant processing, including semantic caching for LLM responses using Valkey (a Redis-compatible in-memory database).
+BotServer includes automatic caching to improve response times and reduce redundant processing, including semantic caching for LLM responses using an in-memory cache component.
 
 ## Features
 
@@ -66,11 +66,11 @@ prompt-compact,4    # Compact conversation after N exchanges
 - **prompt-history**: Keeps the last 2 exchanges in the conversation context
 - **prompt-compact**: After 4 exchanges, older messages are summarized or removed to save tokens
 
-## Cache Storage with Valkey
+## Cache Storage
 
 ### Architecture
 
-<img src="./assets/caching-architecture.svg" alt="Caching Architecture Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
+The caching system uses a multi-level approach for optimal performance.
 
 ### Cache Key Structure
 
@@ -78,9 +78,9 @@ The cache uses a multi-level key structure:
 - **Exact match**: Hash of the exact prompt
 - **Semantic match**: Embedding vector stored with semantic index
 
-### Valkey Integration
+### Cache Component Features
 
-Valkey provides:
+The cache component provides:
 - **Fast in-memory storage**: Sub-millisecond response times
 - **Automatic expiration**: TTL-based cache invalidation
 - **Distributed caching**: Share cache across multiple bot instances
@@ -116,7 +116,7 @@ USE TOOL "weather-api"
 
 ## Cache Management
 
-The cache operates automatically based on your configuration settings. Cache entries are managed through TTL expiration and Valkey's memory policies.
+The cache operates automatically based on your configuration settings. Cache entries are managed through TTL expiration and memory policies.
 
 ## Best Practices
 
@@ -148,9 +148,9 @@ Disable caching for:
 
 ### Memory Management
 
-Valkey automatically manages memory through:
+The cache component automatically manages memory through:
 - **Eviction policies**: LRU (Least Recently Used) by default
-- **Max memory limits**: Configure in Valkey settings
+- **Max memory limits**: Configurable memory settings
 - **Key expiration**: Automatic cleanup of expired entries
 
 ## Performance Impact
@@ -169,40 +169,14 @@ Typical performance improvements with caching enabled:
 ### Cache Not Working
 
 Check:
-1. Valkey is running: `ps aux | grep valkey`
+1. Cache service is running
 2. Cache enabled in config: `llm-cache,true`
 3. TTL not expired
 4. Similarity threshold not too high
 
 ### Clear Cache
 
-To clear the cache manually:
-
-```bash
-# Connect to Valkey
-valkey-cli
-
-# Clear all bot cache
-FLUSHDB
-
-# Clear specific bot cache
-DEL bot:cache:*
-```
-
-### Clear Cache
-
-To clear the cache manually:
-
-```bash
-# Connect to Valkey
-valkey-cli
-
-# Clear all bot cache
-FLUSHDB
-
-# Clear specific bot cache
-DEL bot:cache:*
-```
+Cache is managed automatically. To clear cache manually, restart the cache component or use the admin API endpoint `/api/admin/cache/clear`.
 
 ## Summary
 
@@ -210,6 +184,6 @@ The semantic caching system in BotServer provides intelligent response caching t
 - Reduces response latency by 10-100x
 - Cuts API costs by 90%+
 - Maintains response quality through semantic matching
-- Scales automatically with Valkey
+- Scales automatically with the cache component
 
 Configure caching based on your bot's needs, monitor performance metrics, and tune parameters for optimal results.

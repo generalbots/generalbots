@@ -74,15 +74,17 @@ impl UserProvisioningService {
 
     async fn create_database_user(&self, account: &UserAccount) -> Result<String> {
         use crate::shared::models::schema::users;
+        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
         use diesel::prelude::*;
         use uuid::Uuid;
 
         let user_id = Uuid::new_v4().to_string();
-        let password_hash = argon2::hash_encoded(
-            Uuid::new_v4().to_string().as_bytes(),
-            &rand::random::<[u8; 32]>(),
-            &argon2::Config::default(),
-        )?;
+        let salt = SaltString::generate(&mut rand::rngs::OsRng);
+        let argon2 = Argon2::default();
+        let password_hash = argon2
+            .hash_password(Uuid::new_v4().to_string().as_bytes(), &salt)
+            .map_err(|e| anyhow::anyhow!("Password hashing failed: {}", e))?
+            .to_string();
 
         diesel::insert_into(users::table)
             .values((
@@ -172,8 +174,8 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    async fn setup_oauth_config(&self, user_id: &str, account: &UserAccount) -> Result<()> {
-        use crate::shared::models::schema::bot_config;
+    async fn setup_oauth_config(&self, _user_id: &str, account: &UserAccount) -> Result<()> {
+        use crate::shared::models::schema::bot_configuration;
         use diesel::prelude::*;
 
         // Store OAuth configuration for services
@@ -185,15 +187,19 @@ impl UserProvisioningService {
         ];
 
         for (key, value) in services {
-            diesel::insert_into(bot_config::table)
+            diesel::insert_into(bot_configuration::table)
                 .values((
-                    bot_config::bot_id.eq("default"),
-                    bot_config::key.eq(key),
-                    bot_config::value.eq(value),
+                    bot_configuration::bot_id.eq(uuid::Uuid::nil()),
+                    bot_configuration::config_key.eq(key),
+                    bot_configuration::config_value.eq(value),
+                    bot_configuration::is_encrypted.eq(false),
+                    bot_configuration::config_type.eq("string"),
+                    bot_configuration::created_at.eq(chrono::Utc::now()),
+                    bot_configuration::updated_at.eq(chrono::Utc::now()),
                 ))
-                .on_conflict((bot_config::bot_id, bot_config::key))
+                .on_conflict((bot_configuration::bot_id, bot_configuration::config_key))
                 .do_update()
-                .set(bot_config::value.eq(value))
+                .set(bot_configuration::config_value.eq(value))
                 .execute(&*self.db_conn)?;
         }
 

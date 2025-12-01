@@ -220,7 +220,7 @@ The default bot is ready. Ask it anything. Modify `templates/default.gbai/` to c
 
 - **Language**: Written in Rust for performance and safety
 - **Database**: PostgreSQL with Diesel ORM
-- **Cache**: Valkey (Redis-compatible) for sessions
+- **Cache**: Redis-compatible cache for sessions
 - **Storage**: S3-compatible object store (MinIO)
 - **Vectors**: Qdrant for semantic search
 - **Security**: Vault for secrets, Argon2 passwords, AES encryption

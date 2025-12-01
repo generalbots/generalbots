@@ -606,25 +606,26 @@ async fn send_play_to_client(
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
 
     // Send via web adapter
-    let web_adapter = Arc::clone(&state.web_adapter);
+    let bot_response = crate::shared::models::BotResponse {
+        bot_id: String::new(),
+        user_id: String::new(),
+        session_id: session_id.to_string(),
+        channel: "web".to_string(),
+        content: message_str,
+        message_type: crate::shared::message_types::MessageType::BOT_RESPONSE,
+        stream_token: None,
+        is_complete: true,
+        suggestions: Vec::new(),
+        context_name: None,
+        context_length: 0,
+        context_max_length: 0,
+    };
 
-    if let Some(sender) = web_adapter
-        .sessions
-        .lock()
+    state
+        .web_adapter
+        .send_message_to_session(&session_id.to_string(), bot_response)
         .await
-        .get(&session_id.to_string())
-    {
-        sender
-            .send(axum::extract::ws::Message::Text(message_str))
-            .await
-            .map_err(|e| format!("Failed to send to client: {}", e))?;
-    } else {
-        // Store for later delivery
-        trace!(
-            "No WebSocket connection for session {}, message queued",
-            session_id
-        );
-    }
+        .map_err(|e| format!("Failed to send to client: {}", e))?;
 
     Ok(())
 }
@@ -643,19 +644,27 @@ async fn send_player_command(
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
 
-    let web_adapter = Arc::clone(&state.web_adapter);
-
-    if let Some(sender) = web_adapter
-        .sessions
-        .lock()
-        .await
-        .get(&session_id.to_string())
-    {
-        sender
-            .send(axum::extract::ws::Message::Text(message_str))
-            .await
-            .map_err(|e| format!("Failed to send command: {}", e))?;
-    }
+    // Use web adapter to send message
+    let _ = state
+        .web_adapter
+        .send_message_to_session(
+            &session_id.to_string(),
+            crate::shared::models::BotResponse {
+                bot_id: String::new(),
+                user_id: String::new(),
+                session_id: session_id.to_string(),
+                channel: "web".to_string(),
+                content: message_str,
+                message_type: crate::shared::message_types::MessageType::BOT_RESPONSE,
+                stream_token: None,
+                is_complete: true,
+                suggestions: Vec::new(),
+                context_name: None,
+                context_length: 0,
+                context_max_length: 0,
+            },
+        )
+        .await;
 
     Ok(())
 }
