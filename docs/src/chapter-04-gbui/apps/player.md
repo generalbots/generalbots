@@ -2,7 +2,7 @@
 
 > **Integrated viewing for documents, audio, video, and presentations**
 
-<img src="../../assets/suite/player-flow.svg" alt="Player Flow" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/player-screen.svg" alt="Player Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 
