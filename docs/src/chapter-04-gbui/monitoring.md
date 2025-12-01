@@ -11,7 +11,7 @@ Your General Bots deployment is a living ecosystem of interconnected components.
 This animated diagram shows:
 - **BotServer** (center) - The core that orchestrates all interactions
 - **Data Layer** (left) - PostgreSQL, Qdrant, and MinIO for storage
-- **Services** (right) - BotModels, Vault, Redis for AI and security
+- **Services** (right) - BotModels, Vault, Cache for AI and security
 - **Analytics** (bottom) - InfluxDB for metrics collection
 - **Connection flows** - Animated data packets showing real-time communication
 
@@ -127,7 +127,7 @@ Each component in the system has specific health indicators:
 | **MinIO** | Storage usage, object count | > 80% storage used |
 | **BotModels** | Token usage, response latency | > 2s response time |
 | **Vault** | Seal status, policy count | Unsealed without auth |
-| **Redis** | Hit rate, memory usage | < 80% hit rate |
+| **Cache** | Hit rate, memory usage | < 80% hit rate |
 | **InfluxDB** | Write rate, retention | Write failures |
 
 ## Console Mode
@@ -149,16 +149,18 @@ Services: 4/5 running
 
 ## Alerts Configuration
 
-Configure alerts in `config.csv`:
+Configure alert thresholds in `config.csv`. Example values:
 
 ```csv
-key,value
+name,value
 alert-cpu-threshold,80
 alert-memory-threshold,85
 alert-disk-threshold,90
 alert-response-time-ms,5000
 alert-email,admin@example.com
 ```
+
+**Note**: These are example configuration values. Adjust thresholds based on your infrastructure and requirements.
 
 ## Bot-Specific Metrics
 

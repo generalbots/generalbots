@@ -13,6 +13,7 @@ pub struct AppConfig {
     pub server: ServerConfig,
     pub email: EmailConfig,
     pub site_path: String,
+    pub data_dir: String,
 }
 #[derive(Clone, Debug)]
 pub struct DriveConfig {
@@ -24,6 +25,7 @@ pub struct DriveConfig {
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
+    pub base_url: String,
 }
 #[derive(Clone, Debug)]
 pub struct EmailConfig {
@@ -109,12 +111,14 @@ impl AppConfig {
             server: ServerConfig {
                 host: get_str("SERVER_HOST", "127.0.0.1"),
                 port: get_u16("SERVER_PORT", 8080),
+                base_url: get_str("SERVER_BASE_URL", "http://localhost:8080"),
             },
             site_path: {
                 ConfigManager::new(pool.clone())
                     .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?
                     .to_string()
             },
+            data_dir: get_str("DATA_DIR", "./botserver-stack/data"),
         })
     }
     pub fn from_env() -> Result<Self, anyhow::Error> {
@@ -138,6 +142,7 @@ impl AppConfig {
             server: ServerConfig {
                 host: "127.0.0.1".to_string(),
                 port: 8080,
+                base_url: "http://localhost:8080".to_string(),
             },
             site_path: {
                 let pool = create_conn()?;
@@ -147,6 +152,7 @@ impl AppConfig {
                     Some("./botserver-stack/sites"),
                 )?
             },
+            data_dir: "./botserver-stack/data".to_string(),
         })
     }
 }

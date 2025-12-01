@@ -814,8 +814,10 @@ fn validate_language(input: &str) -> ValidationResult {
         ("tr", "turkish", "turco"),
     ];
 
-    for (code, variants @ ..) in &languages {
-        if lower == *code || variants.iter().any(|v| lower == *v) {
+    for entry in &languages {
+        let code = entry[0];
+        let variants = &entry[1..];
+        if lower == code || variants.iter().any(|v| lower == *v) {
             return ValidationResult::valid_with_metadata(
                 code.to_string(),
                 serde_json::json!({ "code": code, "input": input }),
@@ -1304,7 +1306,10 @@ pub async fn process_hear_input(
     match validation_type {
         InputType::Image | InputType::QrCode => {
             if let Some(atts) = &attachments {
-                if let Some(img) = atts.iter().find(|a| a.content_type.starts_with("image/")) {
+                if let Some(img) = atts
+                    .iter()
+                    .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("image/"))
+                {
                     if validation_type == InputType::QrCode {
                         // Call botmodels to read QR code
                         return process_qrcode(state, &img.url).await;
@@ -1319,7 +1324,10 @@ pub async fn process_hear_input(
         }
         InputType::Audio => {
             if let Some(atts) = &attachments {
-                if let Some(audio) = atts.iter().find(|a| a.content_type.starts_with("audio/")) {
+                if let Some(audio) = atts
+                    .iter()
+                    .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("audio/"))
+                {
                     // Call botmodels for speech-to-text
                     return process_audio_to_text(state, &audio.url).await;
                 }
@@ -1328,7 +1336,10 @@ pub async fn process_hear_input(
         }
         InputType::Video => {
             if let Some(atts) = &attachments {
-                if let Some(video) = atts.iter().find(|a| a.content_type.starts_with("video/")) {
+                if let Some(video) = atts
+                    .iter()
+                    .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("video/"))
+                {
                     // Call botmodels for video description
                     return process_video_description(state, &video.url).await;
                 }
@@ -1375,10 +1386,8 @@ async fn process_qrcode(
     image_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
     // Call botmodels vision service
-    let botmodels_url = state
-        .config
-        .get("botmodels-url")
-        .unwrap_or_else(|| "http://localhost:8001".to_string());
+    let botmodels_url =
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
 
     let client = reqwest::Client::new();
 
@@ -1425,13 +1434,11 @@ async fn process_qrcode(
 
 /// Process audio to text using botmodels
 async fn process_audio_to_text(
-    state: &AppState,
+    _state: &AppState,
     audio_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
-    let botmodels_url = state
-        .config
-        .get("botmodels-url")
-        .unwrap_or_else(|| "http://localhost:8001".to_string());
+    let botmodels_url =
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
 
     let client = reqwest::Client::new();
 
@@ -1479,13 +1486,11 @@ async fn process_audio_to_text(
 
 /// Process video description using botmodels
 async fn process_video_description(
-    state: &AppState,
+    _state: &AppState,
     video_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
-    let botmodels_url = state
-        .config
-        .get("botmodels-url")
-        .unwrap_or_else(|| "http://localhost:8001".to_string());
+    let botmodels_url =
+        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
 
     let client = reqwest::Client::new();
 

@@ -7,3 +7,8 @@ syntax = [{ name = "html", ext = ["html"] }]
 
 # Escape HTML by default for security
 escape = "html"
+
+# Custom filters module path
+[custom]
+# Register custom filters from the web::filters module
+filters = "crate::web::filters"

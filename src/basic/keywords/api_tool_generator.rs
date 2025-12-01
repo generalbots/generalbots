@@ -142,6 +142,9 @@ impl ApiToolGenerator {
         let api_configs = self.get_api_configs().await?;
         let mut result = SyncResult::default();
 
+        // Clone api_configs for use in cleanup after the loop
+        let api_configs_for_cleanup = api_configs.clone();
+
         for (api_name, spec_url) in api_configs {
             info!("Processing API: {} from {}", api_name, spec_url);
 
@@ -159,7 +162,7 @@ impl ApiToolGenerator {
         }
 
         // Clean up removed APIs
-        let removed = self.cleanup_removed_apis(&api_configs).await?;
+        let removed = self.cleanup_removed_apis(&api_configs_for_cleanup).await?;
         result.tools_removed = removed;
 
         Ok(result)

@@ -75,7 +75,7 @@ pub struct ScanSummary {
 }
 
 /// Individual issue in response
-#[derive(Debug, Serialize)]
+#[derive(Debug, Clone, Serialize)]
 pub struct IssueResponse {
     pub id: String,
     pub severity: String,

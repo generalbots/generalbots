@@ -24,7 +24,7 @@ You'll see:
 📦 Installing Drive...
    ✓ Object storage ready
    ✓ Buckets created
-📦 Installing Valkey...
+📦 Installing Cache...
    ✓ Cache server running
 🤖 Creating bots from templates...
    ✓ default.gbai → Default bot
@@ -53,7 +53,7 @@ The **automatic bootstrap** process:
 1. ✅ Detected your OS (Linux/macOS/Windows)
 2. ✅ Downloaded PostgreSQL database to botserver-stack/
 3. ✅ Downloaded drive (S3-compatible storage) to botserver-stack/
-4. ✅ Downloaded Valkey cache to botserver-stack/
+4. ✅ Downloaded cache component to botserver-stack/
 5. ✅ Generated secure credentials → `.env` (from blank environment)
 6. ✅ Created database schema
 7. ✅ Deployed default bots to object storage
@@ -281,7 +281,7 @@ rm .env
 ```bash
 ./botserver status tables    # PostgreSQL
 ./botserver status drive     # Drive storage
-./botserver status cache     # Valkey cache
+./botserver status cache     # Cache component
 ```
 
 ---

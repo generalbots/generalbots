@@ -184,11 +184,11 @@ where
 }
 
 /// Authentication middleware
-pub async fn auth_middleware<B>(
+pub async fn auth_middleware(
     State(state): State<AppState>,
     cookies: Cookies,
-    request: Request<B>,
-    next: Next<B>,
+    request: Request<axum::body::Body>,
+    next: Next,
 ) -> Response {
     let path = request.uri().path();
 
@@ -382,11 +382,4 @@ pub fn create_auth_cookie(token: &str, expires_in_hours: i64) -> Cookie<'static>
         .same_site(tower_cookies::cookie::SameSite::Lax)
         .max_age(time::Duration::hours(expires_in_hours))
         .finish()
-}
-
-/// FromRef implementation for middleware
-impl FromRef<AppState> for AppState {
-    fn from_ref(state: &AppState) -> Self {
-        state.clone()
-    }
 }

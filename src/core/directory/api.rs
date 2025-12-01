@@ -185,16 +185,28 @@ pub async fn get_user_handler(
         }
     };
 
-    let user_result: Result<(String, String, String, bool), _> = users::table
-        .filter(users::id.eq(&id))
+    let user_uuid = match uuid::Uuid::parse_str(&id) {
+        Ok(u) => u,
+        Err(_) => {
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(serde_json::json!({
+                    "error": "Invalid user ID format"
+                })),
+            );
+        }
+    };
+
+    let user_result: Result<(uuid::Uuid, String, String, bool), _> = users::table
+        .filter(users::id.eq(&user_uuid))
         .select((users::id, users::username, users::email, users::is_admin))
-        .first(&conn);
+        .first(&mut conn);
 
     match user_result {
-        Ok((id, username, email, is_admin)) => (
+        Ok((user_id, username, email, is_admin)) => (
             StatusCode::OK,
             Json(serde_json::json!({
-                "id": id,
+                "id": user_id.to_string(),
                 "username": username,
                 "email": email,
                 "is_admin": is_admin
@@ -226,17 +238,17 @@ pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl Into
         }
     };
 
-    let users_result: Result<Vec<(String, String, String, bool)>, _> = users::table
+    let users_result: Result<Vec<(uuid::Uuid, String, String, bool)>, _> = users::table
         .select((users::id, users::username, users::email, users::is_admin))
-        .load(&conn);
+        .load(&mut conn);
 
     match users_result {
         Ok(users_list) => {
             let users_json: Vec<_> = users_list
                 .into_iter()
-                .map(|(id, username, email, is_admin)| {
+                .map(|(user_id, username, email, is_admin)| {
                     serde_json::json!({
-                        "id": id,
+                        "id": user_id.to_string(),
                         "username": username,
                         "email": email,
                         "is_admin": is_admin
