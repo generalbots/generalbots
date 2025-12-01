@@ -477,7 +477,7 @@ fn export_excel(
     file_path: &str,
     data: Dynamic,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    use xlsxwriter::Workbook;
+    use rust_xlsxwriter::Workbook;
 
     let array = to_array(data);
     if array.is_empty() {
@@ -486,12 +486,12 @@ fn export_excel(
 
     let headers = get_headers_from_array(&array);
 
-    let workbook = Workbook::new(file_path)?;
-    let mut sheet = workbook.add_worksheet(Some("Data"))?;
+    let mut workbook = Workbook::new();
+    let sheet = workbook.add_worksheet();
 
     // Write headers
     for (col, header) in headers.iter().enumerate() {
-        sheet.write_string(0, col as u16, header, None)?;
+        sheet.write_string(0, col as u16, header)?;
     }
 
     // Write data rows
@@ -499,11 +499,11 @@ fn export_excel(
         let map = dynamic_to_map(item);
         for (col, header) in headers.iter().enumerate() {
             let value = map.get(header).map(|v| v.to_string()).unwrap_or_default();
-            sheet.write_string((row_idx + 1) as u32, col as u16, &value, None)?;
+            sheet.write_string((row_idx + 1) as u32, col as u16, &value)?;
         }
     }
 
-    workbook.close()?;
+    workbook.save(file_path)?;
 
     trace!("Exported data to Excel: {}", file_path);
     Ok(file_path.to_string())

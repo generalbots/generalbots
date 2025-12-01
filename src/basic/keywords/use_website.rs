@@ -14,74 +14,78 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     let user_clone = user.clone();
 
     engine
-        .register_custom_syntax(&["USE_WEBSITE", "$expr$"], false, move |context, inputs| {
-            let url = context.eval_expression_tree(&inputs[0])?;
-            let url_str = url.to_string().trim_matches('"').to_string();
+        .register_custom_syntax(
+            &["USE", "WEBSITE", "$expr$"],
+            false,
+            move |context, inputs| {
+                let url = context.eval_expression_tree(&inputs[0])?;
+                let url_str = url.to_string().trim_matches('"').to_string();
 
-            trace!(
-                "USE_WEBSITE command executed: {} for session: {}",
-                url_str,
-                user_clone.id
-            );
+                trace!(
+                    "USE WEBSITE command executed: {} for session: {}",
+                    url_str,
+                    user_clone.id
+                );
 
-            // Validate URL
-            let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
-            if !is_valid {
-                return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    "Invalid URL format. Must start with http:// or https://".into(),
-                    rhai::Position::NONE,
-                )));
-            }
-
-            let state_for_task = Arc::clone(&state_clone);
-            let user_for_task = user_clone.clone();
-            let url_for_task = url_str.clone();
-            let (tx, rx) = std::sync::mpsc::channel();
-
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build();
-
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        associate_website_with_session(
-                            &state_for_task,
-                            &user_for_task,
-                            &url_for_task,
-                        )
-                        .await
-                    });
-                    tx.send(result).err()
-                } else {
-                    tx.send(Err("Failed to build tokio runtime".to_string()))
-                        .err()
-                };
-
-                if send_err.is_some() {
-                    error!("Failed to send result from thread");
-                }
-            });
-
-            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-                Ok(Ok(message)) => Ok(Dynamic::from(message)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    e.into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "USE_WEBSITE timed out".into(),
+                // Validate URL
+                let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
+                if !is_valid {
+                    return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "Invalid URL format. Must start with http:// or https://".into(),
                         rhai::Position::NONE,
-                    )))
+                    )));
                 }
-                Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("USE_WEBSITE failed: {}", e).into(),
-                    rhai::Position::NONE,
-                ))),
-            }
-        })
+
+                let state_for_task = Arc::clone(&state_clone);
+                let user_for_task = user_clone.clone();
+                let url_for_task = url_str.clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            associate_website_with_session(
+                                &state_for_task,
+                                &user_for_task,
+                                &url_for_task,
+                            )
+                            .await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".to_string()))
+                            .err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send result from thread");
+                    }
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                    Ok(Ok(message)) => Ok(Dynamic::from(message)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        e.into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "USE WEBSITE timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("USE WEBSITE failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            },
+        )
         .unwrap();
 }
 
@@ -272,9 +276,9 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let user_clone = user.clone();
 
     engine
-        .register_custom_syntax(&["CLEAR_WEBSITES"], true, move |_context, _inputs| {
+        .register_custom_syntax(&["CLEAR", "WEBSITES"], true, move |_context, _inputs| {
             info!(
-                "CLEAR_WEBSITES keyword executed for session: {}",
+                "CLEAR WEBSITES keyword executed for session: {}",
                 user_clone.id
             );
 

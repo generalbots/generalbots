@@ -37,14 +37,14 @@
 //! ```
 
 use chrono::{DateTime, Duration, Utc};
-use rhai::{Dynamic, Engine, EvalAltResult, Map, Array};
+use rhai::{Array, Dynamic, Engine, EvalAltResult, Map};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{debug, error, info, warn};
 use uuid::Uuid;
 
-use crate::state::AppState;
+use crate::shared::state::AppState;
 
 /// Episode summary structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -260,7 +260,14 @@ impl EpisodicMemoryManager {
     pub fn generate_summary_prompt(&self, messages: &[ConversationMessage]) -> String {
         let formatted_messages = messages
             .iter()
-            .map(|m| format!("[{}] {}: {}", m.timestamp.format("%H:%M"), m.role, m.content))
+            .map(|m| {
+                format!(
+                    "[{}] {}: {}",
+                    m.timestamp.format("%H:%M"),
+                    m.role,
+                    m.content
+                )
+            })
             .collect::<Vec<_>>()
             .join("\n");
 
@@ -301,8 +308,8 @@ Respond with valid JSON only:
         // Try to extract JSON from response
         let json_str = extract_json(response)?;
 
-        let parsed: serde_json::Value = serde_json::from_str(&json_str)
-            .map_err(|e| format!("Failed to parse JSON: {}", e))?;
+        let parsed: serde_json::Value =
+            serde_json::from_str(&json_str).map_err(|e| format!("Failed to parse JSON: {}", e))?;
 
         let summary = parsed["summary"]
             .as_str()
@@ -449,25 +456,34 @@ impl Episode {
         map.insert("session_id".into(), self.session_id.to_string().into());
         map.insert("summary".into(), self.summary.clone().into());
 
-        let topics: Array = self.key_topics
+        let topics: Array = self
+            .key_topics
             .iter()
             .map(|t| Dynamic::from(t.clone()))
             .collect();
         map.insert("key_topics".into(), topics.into());
 
-        let decisions: Array = self.decisions
+        let decisions: Array = self
+            .decisions
             .iter()
             .map(|d| Dynamic::from(d.clone()))
             .collect();
         map.insert("decisions".into(), decisions.into());
 
-        let action_items: Array = self.action_items
+        let action_items: Array = self
+            .action_items
             .iter()
             .map(|a| {
                 let mut item_map = Map::new();
                 item_map.insert("description".into(), a.description.clone().into());
-                item_map.insert("assignee".into(), a.assignee.clone().unwrap_or_default().into());
-                item_map.insert("priority".into(), format!("{:?}", a.priority).to_lowercase().into());
+                item_map.insert(
+                    "assignee".into(),
+                    a.assignee.clone().unwrap_or_default().into(),
+                );
+                item_map.insert(
+                    "priority".into(),
+                    format!("{:?}", a.priority).to_lowercase().into(),
+                );
                 item_map.insert("completed".into(), a.completed.into());
                 Dynamic::from(item_map)
             })
@@ -476,15 +492,27 @@ impl Episode {
 
         let mut sentiment_map = Map::new();
         sentiment_map.insert("score".into(), self.sentiment.score.into());
-        sentiment_map.insert("label".into(), format!("{:?}", self.sentiment.label).to_lowercase().into());
+        sentiment_map.insert(
+            "label".into(),
+            format!("{:?}", self.sentiment.label).to_lowercase().into(),
+        );
         sentiment_map.insert("confidence".into(), self.sentiment.confidence.into());
         map.insert("sentiment".into(), sentiment_map.into());
 
-        map.insert("resolution".into(), format!("{:?}", self.resolution).to_lowercase().into());
+        map.insert(
+            "resolution".into(),
+            format!("{:?}", self.resolution).to_lowercase().into(),
+        );
         map.insert("message_count".into(), (self.message_count as i64).into());
         map.insert("created_at".into(), self.created_at.to_rfc3339().into());
-        map.insert("conversation_start".into(), self.conversation_start.to_rfc3339().into());
-        map.insert("conversation_end".into(), self.conversation_end.to_rfc3339().into());
+        map.insert(
+            "conversation_start".into(),
+            self.conversation_start.to_rfc3339().into(),
+        );
+        map.insert(
+            "conversation_end".into(),
+            self.conversation_end.to_rfc3339().into(),
+        );
 
         Dynamic::from(map)
     }
@@ -675,14 +703,12 @@ mod tests {
     #[test]
     fn test_generate_summary_prompt() {
         let manager = EpisodicMemoryManager::new(EpisodicMemoryConfig::default());
-        let messages = vec![
-            ConversationMessage {
-                id: Uuid::new_v4(),
-                role: "user".to_string(),
-                content: "Hello".to_string(),
-                timestamp: Utc::now(),
-            },
-        ];
+        let messages = vec![ConversationMessage {
+            id: Uuid::new_v4(),
+            role: "user".to_string(),
+            content: "Hello".to_string(),
+            timestamp: Utc::now(),
+        }];
 
         let prompt = manager.generate_summary_prompt(&messages);
         assert!(prompt.contains("CONVERSATION:"));
@@ -701,14 +727,12 @@ mod tests {
             "resolution": "resolved"
         }"#;
 
-        let messages = vec![
-            ConversationMessage {
-                id: Uuid::new_v4(),
-                role: "user".to_string(),
-                content: "What's my balance?".to_string(),
-                timestamp: Utc::now(),
-            },
-        ];
+        let messages = vec![ConversationMessage {
+            id: Uuid::new_v4(),
+            role: "user".to_string(),
+            content: "What's my balance?".to_string(),
+            timestamp: Utc::now(),
+        }];
 
         let episode = manager.parse_summary_response(
             response,

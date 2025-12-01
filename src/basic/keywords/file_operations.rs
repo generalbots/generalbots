@@ -254,57 +254,61 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
         )
         .unwrap();
 
-    // DELETE_FILE (underscore - backwards compatibility)
+    // DELETE FILE (spaces - primary syntax)
     engine
-        .register_custom_syntax(&["DELETE_FILE", "$expr$"], false, move |context, inputs| {
-            let path = context.eval_expression_tree(&inputs[0])?.to_string();
+        .register_custom_syntax(
+            &["DELETE", "FILE", "$expr$"],
+            false,
+            move |context, inputs| {
+                let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("DELETE_FILE: {}", path);
+                trace!("DELETE FILE: {}", path);
 
-            let state_for_task = Arc::clone(&state_clone2);
-            let user_for_task = user_clone2.clone();
-            let path_clone = path.clone();
+                let state_for_task = Arc::clone(&state_clone2);
+                let user_for_task = user_clone2.clone();
+                let path_clone = path.clone();
 
-            let (tx, rx) = std::sync::mpsc::channel();
+                let (tx, rx) = std::sync::mpsc::channel();
 
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
 
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        execute_delete_file(&state_for_task, &user_for_task, &path_clone).await
-                    });
-                    tx.send(result).err()
-                } else {
-                    tx.send(Err("Failed to build tokio runtime".into())).err()
-                };
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            execute_delete_file(&state_for_task, &user_for_task, &path_clone).await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".into())).err()
+                    };
 
-                if send_err.is_some() {
-                    error!("Failed to send DELETE_FILE result from thread");
-                }
-            });
+                    if send_err.is_some() {
+                        error!("Failed to send DELETE FILE result from thread");
+                    }
+                });
 
-            match rx.recv_timeout(std::time::Duration::from_secs(30)) {
-                Ok(Ok(_)) => Ok(Dynamic::UNIT),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("DELETE_FILE failed: {}", e).into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "DELETE_FILE timed out".into(),
+                match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+                    Ok(Ok(_)) => Ok(Dynamic::UNIT),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE FILE failed: {}", e).into(),
                         rhai::Position::NONE,
-                    )))
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "DELETE FILE timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE FILE thread failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
                 }
-                Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("DELETE_FILE thread failed: {}", e).into(),
-                    rhai::Position::NONE,
-                ))),
-            }
-        })
+            },
+        )
         .unwrap();
 }
 

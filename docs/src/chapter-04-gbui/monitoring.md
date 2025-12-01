@@ -2,6 +2,19 @@
 
 The Monitoring Dashboard provides real-time visibility into your General Bots deployment, displaying system health, active sessions, and resource utilization in a clean tree-based interface.
 
+## Live System Architecture
+
+Your General Bots deployment is a living ecosystem of interconnected components. The diagram below shows how all services work together in real-time:
+
+![Live Monitoring Organism](../assets/suite/live-monitoring-organism.svg)
+
+This animated diagram shows:
+- **BotServer** (center) - The core that orchestrates all interactions
+- **Data Layer** (left) - PostgreSQL, Qdrant, and MinIO for storage
+- **Services** (right) - BotModels, Vault, Redis for AI and security
+- **Analytics** (bottom) - InfluxDB for metrics collection
+- **Connection flows** - Animated data packets showing real-time communication
+
 ## Overview
 
 Access the Monitoring tab from the Suite interface to view:
@@ -103,6 +116,20 @@ GET /api/monitoring/status
 }
 ```
 
+## Understanding Component Health
+
+Each component in the system has specific health indicators:
+
+| Component | Health Check | Warning Signs |
+|-----------|--------------|---------------|
+| **PostgreSQL** | Connection count, query rate | > 80 connections, slow queries |
+| **Qdrant** | Vector count, search latency | > 50ms search time |
+| **MinIO** | Storage usage, object count | > 80% storage used |
+| **BotModels** | Token usage, response latency | > 2s response time |
+| **Vault** | Seal status, policy count | Unsealed without auth |
+| **Redis** | Hit rate, memory usage | < 80% hit rate |
+| **InfluxDB** | Write rate, retention | Write failures |
+
 ## Console Mode
 
 In console mode, monitoring displays as text output:
@@ -193,8 +220,17 @@ Compatible with:
 - Datadog
 - New Relic
 
+## Monitoring Best Practices
+
+1. **Check the live diagram regularly** - The animated SVG shows real-time data flow
+2. **Set up alerts early** - Don't wait for problems to configure notifications
+3. **Monitor trends, not just values** - A slow increase in CPU is as important as a spike
+4. **Keep historical data** - Use InfluxDB retention policies to maintain useful history
+5. **Correlate metrics** - High response time + high CPU usually means scaling needed
+
 ## See Also
 
+- [How-To: Monitor Your Bot](./how-to/monitor-sessions.md) - Step-by-step monitoring tutorial
 - [Console Mode](./console-mode.md) - Command-line interface
 - [Settings](../chapter-08-config/README.md) - Configuration options
 - [Monitoring API](../chapter-10-api/monitoring-api.md) - Full API reference
