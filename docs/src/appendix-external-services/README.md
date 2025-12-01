@@ -15,12 +15,12 @@ Infrastructure services (database, storage, cache) are automatically managed by 
 | LLM Providers | OpenAI, Groq, Anthropic, Azure OpenAI | `config.csv` |
 | Weather | OpenWeatherMap | `config.csv` |
 | Messaging Channels | WhatsApp, Teams, Instagram, Telegram | `config.csv` |
-| Storage | S3-Compatible (MinIO, etc.) | Directory service (automatic) |
-| Directory | Zitadel | `DIRECTORY_*` environment variables |
-| Email | Stalwart / IMAP/SMTP | Directory service (automatic) |
+| Storage | S3-Compatible (MinIO, etc.) | Vault (automatic) |
+| Directory | Zitadel | `VAULT_*` environment variables |
+| Email | Stalwart / IMAP/SMTP | Vault (automatic) |
 | Calendar | CalDAV servers | `config.csv` |
-| Database | PostgreSQL | Directory service (automatic) |
-| Cache | Valkey | Directory service (automatic) |
+| Database | PostgreSQL | Vault (automatic) |
+| Cache | Redis-compatible | Vault (automatic) |
 
 ## Quick Reference
 
@@ -70,7 +70,7 @@ The following services are automatically configured by the Directory service (Zi
 |---------|----------------|
 | PostgreSQL | Connection credentials, database creation |
 | S3-Compatible Storage | Access keys, bucket policies |
-| Valkey Cache | Connection credentials |
+| Cache | Connection credentials |
 | Stalwart Email | User accounts, SMTP/IMAP access |
 
 You do **not** need to configure these services manually. The Directory service handles credential provisioning and rotation.

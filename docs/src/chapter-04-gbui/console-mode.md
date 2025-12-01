@@ -23,7 +23,7 @@ The console displays real-time information about your running BotServer instance
 ║                                                            ║
 ║ Components:                                                ║
 ║   PostgreSQL: ✓ Connected                                  ║
-║   Valkey:     ✓ Connected                                  ║
+║   Cache:      ✓ Connected                                  ║
 ║   Storage:    ✓ Connected                                  ║
 ║   Vectors:    ✓ Connected                                  ║
 ║                                                            ║
@@ -96,7 +96,7 @@ In production, console mode can help with:
 Console mode provides basic monitoring only. For detailed analytics:
 - Check PostgreSQL directly for session data
 - Use system logs for detailed error information
-- Monitor Valkey for cache statistics
+- Monitor cache for statistics
 - Review application logs for debugging
 
 ## Terminal Requirements

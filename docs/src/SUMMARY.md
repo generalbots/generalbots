@@ -22,7 +22,6 @@
   - [.gbtheme UI Theming](./chapter-02/gbtheme.md)
   - [.gbdrive File Storage](./chapter-02/gbdrive.md)
   - [Bot Templates](./chapter-02/templates.md)
-  - [Template: CRM Contacts](./chapter-02/template-crm-contacts.md)
   - [Template Samples & Conversations](./chapter-02/template-samples.md)
 
 # Part III - Knowledge Base

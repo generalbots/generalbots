@@ -21,6 +21,9 @@ use crate::shared::state::AppState;
 #[template(path = "suite/chat.html")]
 pub struct ChatTemplate {
     pub session_id: String,
+    pub user_initial: String,
+    pub user_name: String,
+    pub user_email: String,
 }
 
 /// Session list template

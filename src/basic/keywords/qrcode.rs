@@ -244,20 +244,23 @@ fn execute_qr_code_generation(
     let image = code.render::<Luma<u8>>().min_dimensions(size, size).build();
 
     // Determine output path
+    let data_dir = state
+        .config
+        .as_ref()
+        .map(|c| c.data_dir.as_str())
+        .unwrap_or("./botserver-stack/data");
+
     let final_path = match output_path {
         Some(path) => {
             if Path::new(path).is_absolute() {
                 path.to_string()
             } else {
-                format!(
-                    "{}/bots/{}/gbdrive/{}",
-                    state.config.data_dir, user.bot_id, path
-                )
+                format!("{}/bots/{}/gbdrive/{}", data_dir, user.bot_id, path)
             }
         }
         None => {
             let filename = format!("qrcode_{}.png", Uuid::new_v4());
-            let base_path = format!("{}/bots/{}/gbdrive", state.config.data_dir, user.bot_id);
+            let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
             // Ensure directory exists
             std::fs::create_dir_all(&base_path)?;

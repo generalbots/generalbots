@@ -147,11 +147,11 @@ impl DynamicDnsService {
             }
         });
 
-        for (hostname, ip) in removed {
-            if let Some(ip_entries) = by_ip.get_mut(&ip) {
-                ip_entries.retain(|h| h != &hostname);
+        for (hostname, ip) in &removed {
+            if let Some(ip_entries) = by_ip.get_mut(ip) {
+                ip_entries.retain(|h| h != hostname);
                 if ip_entries.is_empty() {
-                    by_ip.remove(&ip);
+                    by_ip.remove(ip);
                 }
             }
         }

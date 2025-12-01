@@ -20,7 +20,7 @@ Think of it like a phone call that can pause and resume anytime.
 2. Browser gets a session token (UUID)
 3. Token stored in localStorage
 4. Session created in PostgreSQL
-5. Cached in Valkey for speed
+5. Cached for speed
 
 ### API Access
 ```bash
@@ -71,7 +71,7 @@ session_state:
   context: current knowledge/tools
 ```
 
-### In Valkey Cache (Fast Access)
+### In Cache (Fast Access)
 ```
 session:uuid:messages     # Recent messages
 session:uuid:variables    # Current state

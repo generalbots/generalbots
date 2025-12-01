@@ -515,6 +515,7 @@ pub async fn create_table_on_external_db(
     }
 }
 
+#[cfg(feature = "dynamic-db")]
 async fn create_table_mysql(
     connection_string: &str,
     sql: &str,
@@ -532,6 +533,15 @@ async fn create_table_mysql(
     Ok(())
 }
 
+#[cfg(not(feature = "dynamic-db"))]
+async fn create_table_mysql(
+    _connection_string: &str,
+    _sql: &str,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    Err("MySQL support requires the 'dynamic-db' feature".into())
+}
+
+#[cfg(feature = "dynamic-db")]
 async fn create_table_postgres(
     connection_string: &str,
     sql: &str,
@@ -547,6 +557,14 @@ async fn create_table_postgres(
     pool.execute(sql).await?;
     info!("PostgreSQL table created successfully");
     Ok(())
+}
+
+#[cfg(not(feature = "dynamic-db"))]
+async fn create_table_postgres(
+    _connection_string: &str,
+    _sql: &str,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    Err("PostgreSQL dynamic table support requires the 'dynamic-db' feature".into())
 }
 
 /// Process TABLE definitions during .bas file compilation

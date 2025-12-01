@@ -28,7 +28,7 @@ pub use mutual_tls::{
         configure_directory_mtls, configure_forgejo_mtls, configure_livekit_mtls,
         configure_postgres_mtls, configure_qdrant_mtls,
     },
-    MtlsCertificateManager, MtlsConfig, MtlsConnectionPool, ServiceIdentity,
+    MtlsConfig, MtlsError, MtlsManager,
 };
 pub use tls::{create_https_server, ServiceTlsConfig, TlsConfig, TlsManager, TlsRegistry};
 
@@ -79,8 +79,7 @@ impl Default for SecurityConfig {
 pub struct SecurityManager {
     config: SecurityConfig,
     ca_manager: CaManager,
-    mtls_manager: Option<MtlsCertificateManager>,
-    connection_pool: Option<MtlsConnectionPool>,
+    mtls_manager: Option<MtlsManager>,
 }
 
 impl SecurityManager {
@@ -88,26 +87,19 @@ impl SecurityManager {
     pub fn new(config: SecurityConfig) -> Result<Self> {
         let ca_manager = CaManager::new(config.ca_config.clone())?;
 
-        let (mtls_manager, connection_pool) = if config.mtls_enabled {
-            let manager = MtlsCertificateManager::new(
-                &config.ca_config.ca_cert_path,
-                &config.ca_config.ca_key_path,
-            )?;
-            let manager = Arc::new(manager);
-            let pool = MtlsConnectionPool::new(manager.clone());
-            (
-                Some(Arc::try_unwrap(manager).unwrap_or_else(|arc| (*arc).clone())),
-                Some(pool),
-            )
+        let mtls_manager = if config.mtls_enabled {
+            // Create mTLS config from CA certificates
+            let ca_cert = std::fs::read_to_string(&config.ca_config.ca_cert_path).ok();
+            let mtls_config = MtlsConfig::new(ca_cert, None, None);
+            Some(MtlsManager::new(mtls_config))
         } else {
-            (None, None)
+            None
         };
 
         Ok(Self {
             config,
             ca_manager,
             mtls_manager,
-            connection_pool,
         })
     }
 
@@ -149,17 +141,20 @@ impl SecurityManager {
 
             let base_path = PathBuf::from("./botserver-stack/conf/system");
 
-            // Register all services with mTLS
-            manager.register_service(configure_qdrant_mtls(&base_path))?;
-            manager.register_service(configure_postgres_mtls(&base_path))?;
-            manager.register_service(configure_forgejo_mtls(&base_path))?;
-            manager.register_service(configure_livekit_mtls(&base_path))?;
-            manager.register_service(configure_directory_mtls(&base_path))?;
+            // Configure mTLS for each service
+            let ca_path = base_path.join("ca/ca.crt");
+            let cert_path = base_path.join("certs/api.crt");
+            let key_path = base_path.join("certs/api.key");
 
-            // Register API service
-            let api_config = MtlsConfig::new(ServiceIdentity::Api, &base_path)
-                .with_allowed_clients(vec![ServiceIdentity::Directory, ServiceIdentity::Caddy]);
-            manager.register_service(api_config)?;
+            // Validate configurations for each service
+            let _ = configure_qdrant_mtls(Some(&ca_path), Some(&cert_path), Some(&key_path));
+            let _ = configure_postgres_mtls(Some(&ca_path), Some(&cert_path), Some(&key_path));
+            let _ = configure_forgejo_mtls(Some(&ca_path), Some(&cert_path), Some(&key_path));
+            let _ = configure_livekit_mtls(Some(&ca_path), Some(&cert_path), Some(&key_path));
+            let _ = configure_directory_mtls(Some(&ca_path), Some(&cert_path), Some(&key_path));
+
+            // Validate the manager configuration
+            manager.validate()?;
 
             info!("mTLS initialized for all services");
         }
@@ -245,13 +240,8 @@ impl SecurityManager {
     }
 
     /// Get mTLS manager
-    pub fn mtls_manager(&self) -> Option<&MtlsCertificateManager> {
+    pub fn mtls_manager(&self) -> Option<&MtlsManager> {
         self.mtls_manager.as_ref()
-    }
-
-    /// Get mTLS connection pool
-    pub fn connection_pool(&self) -> Option<&MtlsConnectionPool> {
-        self.connection_pool.as_ref()
     }
 }
 

@@ -235,10 +235,10 @@ These services are deployed locally as part of the General Bots stack. All are m
 
 | Service | Default Port | Purpose | Management |
 |---------|-------------|---------|------------|
-| PostgreSQL | 5432 | Primary database | Directory service |
-| Qdrant | 6333 | Vector storage for KB | Directory service |
-| Valkey | 6379 | Caching | Directory service |
-| Stalwart | 25, 993 | Email server (optional) | Directory service |
+| PostgreSQL | 5432 | Primary database | Vault |
+| Qdrant | 6333 | Vector storage for KB | Vault |
+| Cache | 6379 | Caching | Vault |
+| Stalwart | 25, 993 | Email server (optional) | Vault |
 | BotModels | 5000 | AI model inference | config.csv |
 
 ---

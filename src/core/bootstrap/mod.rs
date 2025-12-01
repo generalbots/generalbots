@@ -712,12 +712,25 @@ meet    IN      A       127.0.0.1
 
         let ca_cert = if ca_cert_path.exists() && ca_key_path.exists() {
             info!("Using existing CA certificate");
-            // Load existing CA
-            let cert_pem = fs::read_to_string(&ca_cert_path)?;
+            // Load existing CA key and regenerate params
             let key_pem = fs::read_to_string(&ca_key_path)?;
             let key_pair = rcgen::KeyPair::from_pem(&key_pem)?;
-            let params = CertificateParams::from_ca_cert_pem(&cert_pem, key_pair)?;
-            Certificate::from_params(params)?
+
+            // Recreate CA params with the loaded key
+            let mut ca_params = CertificateParams::default();
+            ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+            ca_params.key_pair = Some(key_pair);
+
+            let mut dn = DistinguishedName::new();
+            dn.push(DnType::CountryName, "BR");
+            dn.push(DnType::OrganizationName, "BotServer");
+            dn.push(DnType::CommonName, "BotServer CA");
+            ca_params.distinguished_name = dn;
+
+            ca_params.not_before = time::OffsetDateTime::now_utc();
+            ca_params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(3650);
+
+            Certificate::from_params(ca_params)?
         } else {
             info!("Generating new CA certificate");
             // Generate new CA

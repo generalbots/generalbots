@@ -8,7 +8,7 @@ use reqwest::{Certificate, Client, ClientBuilder, Identity};
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
+use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tracing::{debug, info, warn};
 
@@ -340,35 +340,32 @@ impl TlsIntegration {
     }
 }
 
-/// Global TLS integration instance
-static mut TLS_INTEGRATION: Option<Arc<TlsIntegration>> = None;
-static TLS_INIT: std::sync::Once = std::sync::Once::new();
+/// Global TLS integration instance using OnceLock for safe initialization
+static TLS_INTEGRATION: OnceLock<Arc<TlsIntegration>> = OnceLock::new();
 
 /// Initialize global TLS integration
 pub fn init_tls_integration(tls_enabled: bool, cert_dir: Option<PathBuf>) -> Result<()> {
-    unsafe {
-        TLS_INIT.call_once(|| {
-            let mut integration = TlsIntegration::new(tls_enabled);
+    let _ = TLS_INTEGRATION.get_or_init(|| {
+        let mut integration = TlsIntegration::new(tls_enabled);
 
-            if tls_enabled {
-                if let Some(dir) = cert_dir {
-                    if let Err(e) = integration.load_all_certs_from_dir(&dir) {
-                        warn!("Failed to load some certificates: {}", e);
-                    }
+        if tls_enabled {
+            if let Some(dir) = cert_dir {
+                if let Err(e) = integration.load_all_certs_from_dir(&dir) {
+                    warn!("Failed to load some certificates: {}", e);
                 }
             }
+        }
 
-            TLS_INTEGRATION = Some(Arc::new(integration));
-            info!("TLS integration initialized (TLS: {})", tls_enabled);
-        });
-    }
+        info!("TLS integration initialized (TLS: {})", tls_enabled);
+        Arc::new(integration)
+    });
 
     Ok(())
 }
 
 /// Get the global TLS integration instance
 pub fn get_tls_integration() -> Option<Arc<TlsIntegration>> {
-    unsafe { TLS_INTEGRATION.clone() }
+    TLS_INTEGRATION.get().cloned()
 }
 
 /// Convert a URL to HTTPS using global TLS settings

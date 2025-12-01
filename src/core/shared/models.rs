@@ -64,6 +64,21 @@ pub struct Suggestion {
     pub text: String,
     pub context: String,
 }
+
+/// Attachment for media files in messages
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Attachment {
+    /// Type of attachment (image, audio, video, file, etc.)
+    pub attachment_type: String,
+    /// URL or path to the attachment
+    pub url: String,
+    /// MIME type of the attachment
+    pub mime_type: Option<String>,
+    /// File name if available
+    pub filename: Option<String>,
+    /// File size in bytes
+    pub size: Option<u64>,
+}
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotResponse {
     pub bot_id: String,
@@ -180,6 +195,7 @@ pub mod schema {
             email -> Text,
             password_hash -> Text,
             is_active -> Bool,
+            is_admin -> Bool,
             created_at -> Timestamptz,
             updated_at -> Timestamptz,
         }

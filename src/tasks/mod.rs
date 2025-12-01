@@ -4,7 +4,7 @@ use crate::core::urls::ApiUrls;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::Json,
+    response::{IntoResponse, Json},
     routing::{delete, get, post, put},
     Router,
 };
@@ -1308,9 +1308,13 @@ pub async fn handle_task_list_htmx(
     let filter_clone = filter.clone();
 
     let tasks = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let mut query = String::from("SELECT id, title, completed, priority, category, due_date FROM tasks WHERE 1=1");
+        let mut query = String::from(
+            "SELECT id, title, completed, priority, category, due_date FROM tasks WHERE 1=1",
+        );
 
         match filter_clone.as_str() {
             "active" => query.push_str(" AND completed = false"),
@@ -1335,7 +1339,6 @@ pub async fn handle_task_list_htmx(
     let mut html = String::new();
 
     for task in tasks {
-
         let completed_class = if task.completed { "completed" } else { "" };
         let priority_class = if task.priority { "active" } else { "" };
         let checked = if task.completed { "checked" } else { "" };
@@ -1385,7 +1388,10 @@ pub async fn handle_task_list_htmx(
                 String::new()
             },
             if let Some(due) = &task.due_date {
-                format!(r#"<span class="task-due-date">📅 {}</span>"#, due.format("%Y-%m-%d"))
+                format!(
+                    r#"<span class="task-due-date">📅 {}</span>"#,
+                    due.format("%Y-%m-%d")
+                )
             } else {
                 String::new()
             },
@@ -1425,27 +1431,32 @@ pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskS
     let conn = state.conn.clone();
 
     let stats = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks")
             .get_result::<CountResult>(&mut db_conn)
             .map(|r| r.count)
             .unwrap_or(0);
 
-        let active: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = false")
-            .get_result::<CountResult>(&mut db_conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let active: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = false")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
 
-        let completed: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = true")
-            .get_result::<CountResult>(&mut db_conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let completed: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = true")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
 
-        let priority: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority = true")
-            .get_result::<CountResult>(&mut db_conn)
-            .map(|r| r.count)
-            .unwrap_or(0);
+        let priority: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority = true")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
 
         Ok::<_, String>(TaskStats {
             total: total as usize,
@@ -1474,7 +1485,9 @@ pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl 
     let conn = state.conn.clone();
 
     tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         diesel::sql_query("DELETE FROM tasks WHERE completed = true")
             .execute(&mut db_conn)
@@ -1504,12 +1517,14 @@ pub async fn handle_task_patch(
     log::info!("Updating task {} with {:?}", id, update);
 
     let conn = state.conn.clone();
-    let task_id = id.parse::<Uuid>().map_err(|e| {
-        (StatusCode::BAD_REQUEST, format!("Invalid task ID: {}", e))
-    })?;
+    let task_id = id
+        .parse::<Uuid>()
+        .map_err(|e| (StatusCode::BAD_REQUEST, format!("Invalid task ID: {}", e)))?;
 
     tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
         if let Some(completed) = update.completed {
             diesel::sql_query("UPDATE tasks SET completed = $1 WHERE id = $2")
@@ -1538,7 +1553,12 @@ pub async fn handle_task_patch(
         Ok::<_, String>(())
     })
     .await
-    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, format!("Task join error: {}", e)))?
+    .map_err(|e| {
+        (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            format!("Task join error: {}", e),
+        )
+    })?
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e))?;
 
     Ok(Json(ApiResponse {

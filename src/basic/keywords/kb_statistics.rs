@@ -58,20 +58,18 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return Dynamic::UNIT;
         }
 
-        let result = rt.unwrap().block_on(async {
-            get_kb_statistics(&state, &user).await
-        });
+        let result = rt
+            .unwrap()
+            .block_on(async { get_kb_statistics(&state, &user).await });
 
         match result {
-            Ok(stats) => {
-                match serde_json::to_value(&stats) {
-                    Ok(json) => Dynamic::from(json.to_string()),
-                    Err(e) => {
-                        error!("Failed to serialize KB statistics: {}", e);
-                        Dynamic::UNIT
-                    }
+            Ok(stats) => match serde_json::to_value(&stats) {
+                Ok(json) => Dynamic::from(json.to_string()),
+                Err(e) => {
+                    error!("Failed to serialize KB statistics: {}", e);
+                    Dynamic::UNIT
                 }
-            }
+            },
             Err(e) => {
                 error!("Failed to get KB statistics: {}", e);
                 Dynamic::UNIT
@@ -83,44 +81,45 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    engine.register_fn("KB COLLECTION STATS", move |collection_name: &str| -> Dynamic {
-        let state = Arc::clone(&state_clone2);
-        let user = user_clone2.clone();
+    engine.register_fn(
+        "KB COLLECTION STATS",
+        move |collection_name: &str| -> Dynamic {
+            let state = Arc::clone(&state_clone2);
+            let user = user_clone2.clone();
 
-        trace!(
-            "KB COLLECTION STATS called for collection '{}' bot {} by user {}",
-            collection_name,
-            user.bot_id,
-            user.user_id
-        );
+            trace!(
+                "KB COLLECTION STATS called for collection '{}' bot {} by user {}",
+                collection_name,
+                user.bot_id,
+                user.user_id
+            );
 
-        let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
-            error!("KB COLLECTION STATS: No tokio runtime available");
-            return Dynamic::UNIT;
-        }
+            let rt = tokio::runtime::Handle::try_current();
+            if rt.is_err() {
+                error!("KB COLLECTION STATS: No tokio runtime available");
+                return Dynamic::UNIT;
+            }
 
-        let collection = collection_name.to_string();
-        let result = rt.unwrap().block_on(async {
-            get_collection_statistics(&state, &collection).await
-        });
+            let collection = collection_name.to_string();
+            let result = rt
+                .unwrap()
+                .block_on(async { get_collection_statistics(&state, &collection).await });
 
-        match result {
-            Ok(stats) => {
-                match serde_json::to_value(&stats) {
+            match result {
+                Ok(stats) => match serde_json::to_value(&stats) {
                     Ok(json) => Dynamic::from(json.to_string()),
                     Err(e) => {
                         error!("Failed to serialize collection statistics: {}", e);
                         Dynamic::UNIT
                     }
+                },
+                Err(e) => {
+                    error!("Failed to get collection statistics: {}", e);
+                    Dynamic::UNIT
                 }
             }
-            Err(e) => {
-                error!("Failed to get collection statistics: {}", e);
-                Dynamic::UNIT
-            }
-        }
-    });
+        },
+    );
 
     // KB DOCUMENTS COUNT - Get total document count for bot
     let state_clone3 = Arc::clone(&state);
@@ -142,9 +141,9 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return 0;
         }
 
-        let result = rt.unwrap().block_on(async {
-            get_documents_count(&state, &user).await
-        });
+        let result = rt
+            .unwrap()
+            .block_on(async { get_documents_count(&state, &user).await });
 
         result.unwrap_or(0)
     });
@@ -170,9 +169,9 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return 0;
         }
 
-        let result = rt.unwrap().block_on(async {
-            get_documents_added_since(&state, &user, days).await
-        });
+        let result = rt
+            .unwrap()
+            .block_on(async { get_documents_added_since(&state, &user, days).await });
 
         result.unwrap_or(0)
     });
@@ -197,16 +196,13 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return Dynamic::UNIT;
         }
 
-        let result = rt.unwrap().block_on(async {
-            list_collections(&state, &user).await
-        });
+        let result = rt
+            .unwrap()
+            .block_on(async { list_collections(&state, &user).await });
 
         match result {
             Ok(collections) => {
-                let arr: Vec<Dynamic> = collections
-                    .into_iter()
-                    .map(Dynamic::from)
-                    .collect();
+                let arr: Vec<Dynamic> = collections.into_iter().map(Dynamic::from).collect();
                 Dynamic::from(arr)
             }
             Err(e) => {
@@ -236,9 +232,9 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return 0.0;
         }
 
-        let result = rt.unwrap().block_on(async {
-            get_storage_size(&state, &user).await
-        });
+        let result = rt
+            .unwrap()
+            .block_on(async { get_storage_size(&state, &user).await });
 
         result.unwrap_or(0.0)
     });
@@ -249,7 +245,8 @@ async fn get_kb_statistics(
     state: &AppState,
     user: &UserSession,
 ) -> Result<KBStatistics, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url = state.qdrant_url.clone().unwrap_or_else(|| "https://localhost:6334".to_string());
+    let qdrant_url =
+        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;
@@ -286,8 +283,11 @@ async fn get_kb_statistics(
     }
 
     // Get documents added in last week and month from database
-    let documents_added_last_week = get_documents_added_since(state, user, 7).await.unwrap_or(0) as u64;
-    let documents_added_last_month = get_documents_added_since(state, user, 30).await.unwrap_or(0) as u64;
+    let documents_added_last_week =
+        get_documents_added_since(state, user, 7).await.unwrap_or(0) as u64;
+    let documents_added_last_month = get_documents_added_since(state, user, 30)
+        .await
+        .unwrap_or(0) as u64;
 
     Ok(KBStatistics {
         total_collections: collection_names.len() as u64,
@@ -306,7 +306,8 @@ async fn get_collection_statistics(
     state: &AppState,
     collection_name: &str,
 ) -> Result<CollectionStats, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url = state.qdrant_url.clone().unwrap_or_else(|| "https://localhost:6334".to_string());
+    let qdrant_url =
+        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;
@@ -349,11 +350,10 @@ async fn get_documents_count(
     let mut conn = state.conn.get()?;
     let bot_id = user.bot_id.to_string();
 
-    let result: CountResult = sql_query(
-        "SELECT COUNT(*) as count FROM kb_documents WHERE bot_id = $1"
-    )
-    .bind::<diesel::sql_types::Text, _>(&bot_id)
-    .get_result(&mut *conn)?;
+    let result: CountResult =
+        sql_query("SELECT COUNT(*) as count FROM kb_documents WHERE bot_id = $1")
+            .bind::<diesel::sql_types::Text, _>(&bot_id)
+            .get_result(&mut *conn)?;
 
     Ok(result.count)
 }
@@ -366,7 +366,7 @@ async fn get_documents_added_since(
 ) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
     use diesel::prelude::*;
     use diesel::sql_query;
-    use diesel::sql_types::{BigInt, Text, Integer};
+    use diesel::sql_types::{BigInt, Integer, Text};
 
     #[derive(QueryableByName)]
     struct CountResult {
@@ -380,7 +380,7 @@ async fn get_documents_added_since(
     let result: CountResult = sql_query(
         "SELECT COUNT(*) as count FROM kb_documents
          WHERE bot_id = $1
-         AND created_at >= NOW() - INTERVAL '1 day' * $2"
+         AND created_at >= NOW() - INTERVAL '1 day' * $2",
     )
     .bind::<Text, _>(&bot_id)
     .bind::<Integer, _>(days as i32)
@@ -394,7 +394,8 @@ async fn list_collections(
     state: &AppState,
     user: &UserSession,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url = state.qdrant_url.clone().unwrap_or_else(|| "https://localhost:6334".to_string());
+    let qdrant_url =
+        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;

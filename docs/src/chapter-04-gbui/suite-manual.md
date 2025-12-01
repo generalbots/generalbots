@@ -2,13 +2,13 @@
 
 > **The Complete Productivity Workspace**
 > 
-> *Like Microsoft Office, but with AI built-in*
+> *AI-native productivity suite for modern teams*
 
 ---
 
 ## Welcome to General Bots Suite
 
-General Bots Suite is your all-in-one workspace that combines communication, productivity, and AI assistance. Think of it like having Word, Outlook, Teams, and an AI assistant all in one place - but simpler and more powerful.
+General Bots Suite is your all-in-one workspace that combines communication, productivity, and AI assistance. All your productivity tools in one place - simple and powerful.
 
 **What makes it special:**
 - Everything works together seamlessly
@@ -1122,14 +1122,6 @@ You: Help me with tasks
 | **Template** | Pre-built bot configuration |
 
 ---
-
-## Appendix C: Version History
-
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | March 2024 | Initial release with Chat, Drive, Tasks, Mail |
-| 1.1 | April 2024 | Added Meet, Paper, Research |
-| 1.2 | May 2024 | Added Designer, Sources, Compliance |
 
 ---
 

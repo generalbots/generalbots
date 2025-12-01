@@ -24,6 +24,7 @@ pub mod auth;
 pub mod auth_handlers;
 pub mod chat_handlers;
 pub mod compliance_handlers;
+pub mod filters;
 pub mod stream_handlers;
 
 // Module stubs - to be implemented with full HTMX

@@ -235,7 +235,12 @@ fn resolve_file_path(
     }
 
     // Resolve relative to bot's gbdrive folder
-    let base_path = format!("{}/bots/{}/gbdrive", state.config.data_dir, user.bot_id);
+    let data_dir = state
+        .config
+        .as_ref()
+        .map(|c| c.data_dir.as_str())
+        .unwrap_or("./botserver-stack/data");
+    let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
     let full_path = format!("{}/{}", base_path, file_path);
 
@@ -243,10 +248,7 @@ fn resolve_file_path(
         Ok(full_path)
     } else {
         // Try without gbdrive prefix
-        let alt_path = format!(
-            "{}/bots/{}/{}",
-            state.config.data_dir, user.bot_id, file_path
-        );
+        let alt_path = format!("{}/bots/{}/{}", data_dir, user.bot_id, file_path);
         if Path::new(&alt_path).exists() {
             Ok(alt_path)
         } else {
@@ -266,7 +268,12 @@ fn resolve_export_path(
     }
 
     // Resolve relative to bot's gbdrive folder
-    let base_path = format!("{}/bots/{}/gbdrive", state.config.data_dir, user.bot_id);
+    let data_dir = state
+        .config
+        .as_ref()
+        .map(|c| c.data_dir.as_str())
+        .unwrap_or("./botserver-stack/data");
+    let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
     // Ensure directory exists
     std::fs::create_dir_all(&base_path)?;
