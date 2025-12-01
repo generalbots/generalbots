@@ -1,0 +1,214 @@
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    /* Light theme defaults */
+    .neon-blue { stroke: #4A90E2; stroke-width: 2.6; }
+    .neon-orange { stroke: #F5A623; stroke-width: 2.6; }
+    .neon-purple { stroke: #BD10E0; stroke-width: 2.6; }
+    .neon-green { stroke: #7ED321; stroke-width: 2.6; }
+    .neon-cyan { stroke: #50E3C2; stroke-width: 2.6; }
+    .neon-red { stroke: #E74C3C; stroke-width: 2.6; }
+    .neon-pink { stroke: #FF6B9D; stroke-width: 2.6; }
+    .neon-yellow { stroke: #F1C40F; stroke-width: 2.6; }
+    .main-text { fill: #1a1a1a; }
+    .secondary-text { fill: #666; }
+    .icon-fill { fill: #666; }
+    .card-bg { fill: #ffffff; }
+    .launcher-bg { fill: #f8f9fa; }
+
+    @media (prefers-color-scheme: dark) {
+      .neon-blue {
+        stroke: #00D4FF;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00D4FF) drop-shadow(0 0 8px #00A0FF);
+      }
+      .neon-orange {
+        stroke: #FF9500;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF9500) drop-shadow(0 0 8px #FF7700);
+      }
+      .neon-purple {
+        stroke: #E040FB;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #E040FB) drop-shadow(0 0 8px #D500F9);
+      }
+      .neon-green {
+        stroke: #00FF88;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00FF88) drop-shadow(0 0 8px #00E676);
+      }
+      .neon-cyan {
+        stroke: #00E5EA;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #00E5EA) drop-shadow(0 0 8px #00BCD4);
+      }
+      .neon-red {
+        stroke: #FF6B6B;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF6B6B) drop-shadow(0 0 8px #FF5252);
+      }
+      .neon-pink {
+        stroke: #FF6B9D;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FF6B9D) drop-shadow(0 0 8px #FF4081);
+      }
+      .neon-yellow {
+        stroke: #FFD93D;
+        stroke-width: 2.8;
+        filter: drop-shadow(0 0 4px #FFD93D) drop-shadow(0 0 8px #FFC107);
+      }
+      .main-text { fill: #FFFFFF; }
+      .secondary-text { fill: #B0B0B0; }
+      .icon-fill { fill: #B0B0B0; }
+      .card-bg { fill: #1e1e1e; }
+      .launcher-bg { fill: #121212; }
+    }
+  </style>
+
+  <defs>
+    <filter id="card-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.1"/>
+    </filter>
+  </defs>
+
+  <!-- Title -->
+  <text x="700" y="50" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="600" class="main-text">General Bots Suite</text>
+  <text x="700" y="85" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" class="secondary-text">Your AI-Powered Productivity Workspace</text>
+
+  <!-- App Launcher Grid - 3x3 layout -->
+  <g id="app-grid" transform="translate(250, 130)">
+
+    <!-- Row 1 -->
+    <!-- Chat -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-blue"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-blue"/>
+      <path d="M115 55 L145 55 C150 55 155 60 155 65 L155 80 C155 85 150 90 145 90 L125 90 L115 100 L115 90 L115 65 C115 60 120 55 125 55" fill="none" class="neon-blue" stroke-width="2.5"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Chat</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">AI Assistant</text>
+    </g>
+
+    <!-- Drive -->
+    <g transform="translate(300, 0)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-orange"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-orange"/>
+      <path d="M110 55 L150 55 L150 50 L155 50 L155 90 L105 90 L105 60 L110 55 Z" fill="none" class="neon-orange" stroke-width="2.5"/>
+      <line x1="105" y1="70" x2="155" y2="70" class="neon-orange" stroke-width="2"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Drive</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">File Storage</text>
+    </g>
+
+    <!-- Tasks -->
+    <g transform="translate(600, 0)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-green"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-green"/>
+      <path d="M115 60 L125 70 L145 50" fill="none" class="neon-green" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <line x1="115" y1="80" x2="145" y2="80" class="neon-green" stroke-width="2.5"/>
+      <line x1="115" y1="90" x2="140" y2="90" class="neon-green" stroke-width="2.5"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Tasks</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">To-Do Lists</text>
+    </g>
+
+    <!-- Row 2 -->
+    <!-- Mail -->
+    <g transform="translate(0, 220)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-red"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-red"/>
+      <rect x="105" y="55" width="50" height="35" rx="3" fill="none" class="neon-red" stroke-width="2.5"/>
+      <polyline points="105,58 130,75 155,58" fill="none" class="neon-red" stroke-width="2.5"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Mail</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Email Client</text>
+    </g>
+
+    <!-- Calendar -->
+    <g transform="translate(300, 220)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-purple"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-purple"/>
+      <rect x="108" y="50" width="44" height="40" rx="4" fill="none" class="neon-purple" stroke-width="2.5"/>
+      <line x1="108" y1="62" x2="152" y2="62" class="neon-purple" stroke-width="2"/>
+      <line x1="118" y1="45" x2="118" y2="55" class="neon-purple" stroke-width="2.5"/>
+      <line x1="142" y1="45" x2="142" y2="55" class="neon-purple" stroke-width="2.5"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Calendar</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Scheduling</text>
+    </g>
+
+    <!-- Meet -->
+    <g transform="translate(600, 220)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-cyan"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-cyan"/>
+      <rect x="108" y="52" width="35" height="28" rx="4" fill="none" class="neon-cyan" stroke-width="2.5"/>
+      <polygon points="143,58 155,52 155,88 143,82" fill="none" class="neon-cyan" stroke-width="2.5"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Meet</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Video Calls</text>
+    </g>
+
+    <!-- Row 3 -->
+    <!-- Paper -->
+    <g transform="translate(0, 440)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-yellow"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-yellow"/>
+      <rect x="112" y="48" width="36" height="44" rx="2" fill="none" class="neon-yellow" stroke-width="2.5"/>
+      <line x1="118" y1="60" x2="142" y2="60" class="neon-yellow" stroke-width="2"/>
+      <line x1="118" y1="70" x2="142" y2="70" class="neon-yellow" stroke-width="2"/>
+      <line x1="118" y1="80" x2="135" y2="80" class="neon-yellow" stroke-width="2"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Paper</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">AI Writing</text>
+    </g>
+
+    <!-- Research -->
+    <g transform="translate(300, 440)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-pink"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-pink"/>
+      <circle cx="125" cy="65" r="18" fill="none" class="neon-pink" stroke-width="2.5"/>
+      <line x1="138" y1="78" x2="150" y2="90" class="neon-pink" stroke-width="3" stroke-linecap="round"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Research</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">AI Search</text>
+    </g>
+
+    <!-- Analytics -->
+    <g transform="translate(600, 440)">
+      <rect x="0" y="0" width="260" height="180" rx="16" class="card-bg" filter="url(#card-shadow)" stroke="none"/>
+      <rect x="0" y="0" width="260" height="180" rx="16" fill="none" class="neon-blue"/>
+      <circle cx="130" cy="70" r="35" fill="none" class="neon-blue"/>
+      <rect x="110" y="75" width="10" height="15" fill="none" class="neon-blue" stroke-width="2"/>
+      <rect x="125" y="60" width="10" height="30" fill="none" class="neon-blue" stroke-width="2"/>
+      <rect x="140" y="50" width="10" height="40" fill="none" class="neon-blue" stroke-width="2"/>
+      <text x="130" y="135" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="600" class="main-text">Analytics</text>
+      <text x="130" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" class="secondary-text">Reports</text>
+    </g>
+
+  </g>
+
+  <!-- Bottom section - Additional Tools -->
+  <g transform="translate(0, 780)">
+    <text x="700" y="30" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" class="secondary-text">Additional Tools</text>
+
+    <g transform="translate(350, 50)">
+      <rect x="0" y="0" width="140" height="50" rx="8" fill="none" class="neon-purple"/>
+      <text x="70" y="32" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Designer</text>
+    </g>
+
+    <g transform="translate(520, 50)">
+      <rect x="0" y="0" width="140" height="50" rx="8" fill="none" class="neon-orange"/>
+      <text x="70" y="32" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Sources</text>
+    </g>
+
+    <g transform="translate(690, 50)">
+      <rect x="0" y="0" width="140" height="50" rx="8" fill="none" class="neon-green"/>
+      <text x="70" y="32" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Compliance</text>
+    </g>
+
+    <g transform="translate(860, 50)">
+      <rect x="0" y="0" width="140" height="50" rx="8" fill="none" class="neon-cyan"/>
+      <text x="70" y="32" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="500" class="main-text">Settings</text>
+    </g>
+  </g>
+
+</svg>
