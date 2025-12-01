@@ -13,9 +13,9 @@
                     cy="12"
                     r="10"
                     stroke="currentColor"
-                    stroke-width="1.5"
+                    stroke-width="1.</h2>5"
                     fill="none"
-                    opacity="0.3</h2>"
+                    opacity="0.3"
                 />
                 <circle
                     cx="12"
@@ -62,16 +62,1092 @@
             </svg>
             Monitoring Dashboard
         </h2>
-        <span
-            class="last-updated"
-            hx-get="/api/monitoring/timestamp"
-            hx-trigger="load, every 5s"
-            hx-swap="innerHTML"
-            >--</span
-        >
+        <div class="header-actions">
+            <button class="view-toggle" id="view-toggle" title="Toggle View">
+                <svg
+                    width="18"
+                    height="18"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                >
+                    <rect x="3" y="3" width="7" height="7" />
+                    <rect x="14" y="3" width="7" height="7" />
+                    <rect x="3" y="14" width="7" height="7" />
+                    <rect x="14" y="14" width="7" height="7" />
+                </svg>
+            </button>
+            <span
+                class="last-updated"
+                hx-get="/api/monitoring/timestamp"
+                hx-trigger="load, every 5s"
+                hx-swap="innerHTML"
+                >--</span
+            >
+        </div>
     </header>
 
-    <div class="monitoring-grid">
+    <!-- Live System Visualization -->
+    <div class="live-visualization" id="live-view">
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 1200 650"
+            class="live-svg"
+        >
+            <defs>
+                <!-- Gradients -->
+                <linearGradient
+                    id="bgGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop
+                        offset="0%"
+                        style="stop-color: var(--bg-dark, #0f172a)"
+                    />
+                    <stop
+                        offset="50%"
+                        style="stop-color: var(--bg-surface, #1e293b)"
+                    />
+                    <stop
+                        offset="100%"
+                        style="stop-color: var(--bg-dark, #0f172a)"
+                    />
+                </linearGradient>
+
+                <linearGradient
+                    id="coreGlow"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #3b82f6" />
+                    <stop offset="50%" style="stop-color: #6366f1" />
+                    <stop offset="100%" style="stop-color: #8b5cf6" />
+                </linearGradient>
+
+                <linearGradient
+                    id="greenGlow"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #10b981" />
+                    <stop offset="100%" style="stop-color: #22c55e" />
+                </linearGradient>
+
+                <linearGradient
+                    id="dbGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #3b82f6" />
+                    <stop offset="100%" style="stop-color: #1d4ed8" />
+                </linearGradient>
+
+                <linearGradient
+                    id="vectorGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #8b5cf6" />
+                    <stop offset="100%" style="stop-color: #6d28d9" />
+                </linearGradient>
+
+                <linearGradient
+                    id="storageGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #f59e0b" />
+                    <stop offset="100%" style="stop-color: #d97706" />
+                </linearGradient>
+
+                <linearGradient
+                    id="aiGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #ec4899" />
+                    <stop offset="100%" style="stop-color: #db2777" />
+                </linearGradient>
+
+                <linearGradient
+                    id="cacheGradient"
+                    x1="0%"
+                    y1="0%"
+                    x2="100%"
+                    y2="100%"
+                >
+                    <stop offset="0%" style="stop-color: #06b6d4" />
+                    <stop offset="100%" style="stop-color: #0891b2" />
+                </linearGradient>
+
+                <!-- Glow filter -->
+                <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+                    <feMerge>
+                        <feMergeNode in="coloredBlur" />
+                        <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                </filter>
+            </defs>
+
+            <!-- Background -->
+            <rect width="100%" height="100%" fill="url(#bgGradient)" />
+
+            <!-- Subtle grid -->
+            <g opacity="0.06" stroke="#64748b" stroke-width="0.5">
+                <line x1="0" y1="162" x2="1200" y2="162" />
+                <line x1="0" y1="325" x2="1200" y2="325" />
+                <line x1="0" y1="487" x2="1200" y2="487" />
+                <line x1="300" y1="0" x2="300" y2="650" />
+                <line x1="600" y1="0" x2="600" y2="650" />
+                <line x1="900" y1="0" x2="900" y2="650" />
+            </g>
+
+            <!-- ==================== CENTRAL CORE: BotServer ==================== -->
+            <g transform="translate(600, 325)" class="core-node">
+                <!-- Outer rotating ring -->
+                <circle
+                    r="85"
+                    fill="none"
+                    stroke="url(#coreGlow)"
+                    stroke-width="2"
+                    stroke-dasharray="10 5"
+                    opacity="0.4"
+                    class="rotate-slow"
+                />
+
+                <!-- Middle pulsing ring -->
+                <circle
+                    r="65"
+                    fill="none"
+                    stroke="url(#coreGlow)"
+                    stroke-width="3"
+                    opacity="0.6"
+                    class="pulse-ring"
+                />
+
+                <!-- Core background -->
+                <circle
+                    r="50"
+                    fill="#1e293b"
+                    stroke="url(#coreGlow)"
+                    stroke-width="3"
+                    filter="url(#glow)"
+                />
+
+                <!-- Bot icon -->
+                <g fill="#f8fafc">
+                    <rect
+                        x="-22"
+                        y="-18"
+                        width="44"
+                        height="32"
+                        rx="7"
+                        fill="url(#coreGlow)"
+                        opacity="0.9"
+                    />
+                    <circle cx="-9" cy="-4" r="4.5" fill="#f8fafc" />
+                    <circle cx="9" cy="-4" r="4.5" fill="#f8fafc" />
+                    <path
+                        d="M-10 9 Q0 16 10 9"
+                        stroke="#f8fafc"
+                        stroke-width="2.5"
+                        fill="none"
+                    />
+                    <rect
+                        x="-2.5"
+                        y="-32"
+                        width="5"
+                        height="11"
+                        rx="2.5"
+                        fill="url(#coreGlow)"
+                    />
+                    <circle
+                        cx="0"
+                        cy="-35"
+                        r="4.5"
+                        fill="url(#coreGlow)"
+                        class="antenna-pulse"
+                    />
+                </g>
+
+                <text
+                    y="72"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="13"
+                    font-weight="600"
+                >
+                    BotServer
+                </text>
+                <text
+                    y="88"
+                    text-anchor="middle"
+                    fill="#10b981"
+                    font-family="system-ui"
+                    font-size="10"
+                    class="status-text"
+                >
+                    ● Running
+                </text>
+            </g>
+
+            <!-- ==================== LEFT: Data Layer ==================== -->
+
+            <!-- PostgreSQL -->
+            <g
+                transform="translate(150, 185)"
+                class="service-node"
+                data-service="postgresql"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#dbGradient)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g transform="translate(-14, -16)">
+                    <ellipse
+                        cx="14"
+                        cy="0"
+                        rx="16"
+                        ry="5.5"
+                        fill="url(#dbGradient)"
+                    />
+                    <path
+                        d="M-2 0 L-2 18 Q14 27 30 18 L30 0"
+                        fill="url(#dbGradient)"
+                        opacity="0.8"
+                    />
+                    <ellipse
+                        cx="14"
+                        cy="18"
+                        rx="16"
+                        ry="5.5"
+                        fill="url(#dbGradient)"
+                    />
+                    <line
+                        x1="-2"
+                        y1="6"
+                        x2="30"
+                        y2="6"
+                        stroke="#1e40af"
+                        stroke-width="1"
+                    />
+                    <line
+                        x1="-2"
+                        y1="12"
+                        x2="30"
+                        y2="12"
+                        stroke="#1e40af"
+                        stroke-width="1"
+                    />
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    PostgreSQL
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="postgresql"
+                />
+            </g>
+
+            <!-- Qdrant -->
+            <g
+                transform="translate(150, 325)"
+                class="service-node"
+                data-service="qdrant"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#vectorGradient)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g fill="url(#vectorGradient)">
+                    <polygon points="0,-20 17,10 -17,10" opacity="0.9" />
+                    <polygon points="0,-11 11,6 -11,6" fill="#1e293b" />
+                    <circle cx="0" cy="-20" r="3.5" />
+                    <circle cx="17" cy="10" r="3.5" />
+                    <circle cx="-17" cy="10" r="3.5" />
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    Qdrant
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="qdrant"
+                />
+            </g>
+
+            <!-- MinIO -->
+            <g
+                transform="translate(150, 465)"
+                class="service-node"
+                data-service="drive"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#storageGradient)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g fill="url(#storageGradient)">
+                    <rect x="-20" y="-16" width="40" height="32" rx="4" />
+                    <rect
+                        x="-16"
+                        y="-12"
+                        width="32"
+                        height="24"
+                        rx="2"
+                        fill="#1e293b"
+                    />
+                    <rect
+                        x="-12"
+                        y="-8"
+                        width="24"
+                        height="7"
+                        rx="1"
+                        fill="#fcd34d"
+                        opacity="0.4"
+                    />
+                    <rect
+                        x="-12"
+                        y="2"
+                        width="24"
+                        height="7"
+                        rx="1"
+                        fill="#fcd34d"
+                        opacity="0.4"
+                    />
+                    <circle cx="8" cy="-4.5" r="1.8" fill="#fbbf24" />
+                    <circle cx="8" cy="5.5" r="1.8" fill="#fbbf24" />
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    MinIO
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="drive"
+                />
+            </g>
+
+            <!-- ==================== RIGHT: Services ==================== -->
+
+            <!-- BotModels -->
+            <g
+                transform="translate(1050, 185)"
+                class="service-node"
+                data-service="botmodels"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#aiGradient)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g>
+                    <circle
+                        cx="0"
+                        cy="-7"
+                        r="12"
+                        fill="none"
+                        stroke="url(#aiGradient)"
+                        stroke-width="2"
+                    />
+                    <circle
+                        cx="0"
+                        cy="-7"
+                        r="5"
+                        fill="url(#aiGradient)"
+                        class="ai-pulse"
+                    />
+                    <path
+                        d="M-16 10 L0 -2 L16 10"
+                        stroke="url(#aiGradient)"
+                        stroke-width="2"
+                        fill="none"
+                    />
+                    <path
+                        d="M-10 16 L0 7 L10 16"
+                        stroke="url(#aiGradient)"
+                        stroke-width="2"
+                        fill="none"
+                    />
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    BotModels
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="botmodels"
+                />
+            </g>
+
+            <!-- Cache -->
+            <g
+                transform="translate(1050, 325)"
+                class="service-node"
+                data-service="cache"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#cacheGradient)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g fill="url(#cacheGradient)">
+                    <rect x="-18" y="-16" width="36" height="32" rx="3" />
+                    <rect
+                        x="-14"
+                        y="-12"
+                        width="28"
+                        height="24"
+                        rx="2"
+                        fill="#1e293b"
+                    />
+                    <text
+                        x="0"
+                        y="5"
+                        text-anchor="middle"
+                        font-family="system-ui"
+                        font-size="16"
+                        fill="#22d3ee"
+                    >
+                        ⚡
+                    </text>
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    Cache
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="cache"
+                />
+            </g>
+
+            <!-- Vault -->
+            <g
+                transform="translate(1050, 465)"
+                class="service-node"
+                data-service="vault"
+            >
+                <circle
+                    r="42"
+                    fill="#1e293b"
+                    stroke="url(#greenGlow)"
+                    stroke-width="2"
+                    filter="url(#glow)"
+                />
+                <g fill="url(#greenGlow)">
+                    <rect x="-16" y="-9" width="32" height="25" rx="4" />
+                    <rect
+                        x="-12"
+                        y="-5"
+                        width="24"
+                        height="17"
+                        rx="2"
+                        fill="#1e293b"
+                    />
+                    <circle cx="0" cy="3.5" r="5" fill="url(#greenGlow)" />
+                    <rect
+                        x="-1.5"
+                        y="3.5"
+                        width="3"
+                        height="7"
+                        fill="url(#greenGlow)"
+                    />
+                    <path
+                        d="M-9 -16 L0 -23 L9 -16"
+                        stroke="url(#greenGlow)"
+                        stroke-width="2.5"
+                        fill="none"
+                    />
+                </g>
+                <text
+                    y="58"
+                    text-anchor="middle"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="11"
+                    font-weight="500"
+                >
+                    Vault
+                </text>
+                <circle
+                    cx="32"
+                    cy="-32"
+                    r="5"
+                    class="status-dot running"
+                    data-status="vault"
+                />
+            </g>
+
+            <!-- ==================== ANIMATED CONNECTION LINES ==================== -->
+
+            <!-- Left connections -->
+            <g class="connection-lines" stroke-width="2" fill="none">
+                <path
+                    d="M192 185 Q400 185 510 300"
+                    stroke="#3b82f6"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#60a5fa" class="data-packet">
+                    <animateMotion
+                        dur="3s"
+                        repeatCount="indefinite"
+                        path="M192 185 Q400 185 510 300"
+                    />
+                </circle>
+
+                <path
+                    d="M192 325 L510 325"
+                    stroke="#8b5cf6"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#a78bfa" class="data-packet">
+                    <animateMotion
+                        dur="2.5s"
+                        repeatCount="indefinite"
+                        path="M192 325 L510 325"
+                    />
+                </circle>
+
+                <path
+                    d="M192 465 Q400 465 510 350"
+                    stroke="#f59e0b"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#fcd34d" class="data-packet">
+                    <animateMotion
+                        dur="3.5s"
+                        repeatCount="indefinite"
+                        path="M192 465 Q400 465 510 350"
+                    />
+                </circle>
+            </g>
+
+            <!-- Right connections -->
+            <g class="connection-lines" stroke-width="2" fill="none">
+                <path
+                    d="M690 300 Q800 185 1008 185"
+                    stroke="#ec4899"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#f472b6" class="data-packet">
+                    <animateMotion
+                        dur="2s"
+                        repeatCount="indefinite"
+                        path="M690 300 Q800 185 1008 185"
+                    />
+                </circle>
+
+                <path
+                    d="M690 325 L1008 325"
+                    stroke="#06b6d4"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#22d3ee" class="data-packet">
+                    <animateMotion
+                        dur="1.5s"
+                        repeatCount="indefinite"
+                        path="M690 325 L1008 325"
+                    />
+                </circle>
+
+                <path
+                    d="M690 350 Q800 465 1008 465"
+                    stroke="#10b981"
+                    opacity="0.25"
+                    class="connection-path"
+                />
+                <circle r="3.5" fill="#34d399" class="data-packet">
+                    <animateMotion
+                        dur="4s"
+                        repeatCount="indefinite"
+                        path="M690 350 Q800 465 1008 465"
+                    />
+                </circle>
+            </g>
+
+            <!-- ==================== METRICS PANELS ==================== -->
+
+            <!-- Sessions -->
+            <g transform="translate(330, 50)">
+                <rect
+                    x="0"
+                    y="0"
+                    width="150"
+                    height="75"
+                    rx="10"
+                    fill="#1e293b"
+                    stroke="#334155"
+                    stroke-width="1"
+                />
+                <text
+                    x="12"
+                    y="22"
+                    fill="#64748b"
+                    font-family="system-ui"
+                    font-size="9"
+                    font-weight="500"
+                >
+                    ACTIVE SESSIONS
+                </text>
+                <text
+                    x="12"
+                    y="52"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="28"
+                    font-weight="700"
+                    hx-get="/api/monitoring/metric/sessions"
+                    hx-trigger="load, every 5s"
+                    hx-swap="innerHTML"
+                >
+                    --
+                </text>
+                <text
+                    x="138"
+                    y="62"
+                    fill="#10b981"
+                    font-family="system-ui"
+                    font-size="10"
+                    text-anchor="end"
+                    hx-get="/api/monitoring/trend/sessions"
+                    hx-trigger="load, every 5s"
+                    hx-swap="innerHTML"
+                >
+                    ↑ 0%
+                </text>
+            </g>
+
+            <!-- Messages -->
+            <g transform="translate(500, 50)">
+                <rect
+                    x="0"
+                    y="0"
+                    width="150"
+                    height="75"
+                    rx="10"
+                    fill="#1e293b"
+                    stroke="#334155"
+                    stroke-width="1"
+                />
+                <text
+                    x="12"
+                    y="22"
+                    fill="#64748b"
+                    font-family="system-ui"
+                    font-size="9"
+                    font-weight="500"
+                >
+                    MESSAGES TODAY
+                </text>
+                <text
+                    x="12"
+                    y="52"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="28"
+                    font-weight="700"
+                    hx-get="/api/monitoring/metric/messages"
+                    hx-trigger="load, every 10s"
+                    hx-swap="innerHTML"
+                >
+                    --
+                </text>
+                <text
+                    x="138"
+                    y="62"
+                    fill="#94a3b8"
+                    font-family="system-ui"
+                    font-size="10"
+                    text-anchor="end"
+                    hx-get="/api/monitoring/rate/messages"
+                    hx-trigger="load, every 10s"
+                    hx-swap="innerHTML"
+                >
+                    0/hr
+                </text>
+            </g>
+
+            <!-- Response Time -->
+            <g transform="translate(670, 50)">
+                <rect
+                    x="0"
+                    y="0"
+                    width="150"
+                    height="75"
+                    rx="10"
+                    fill="#1e293b"
+                    stroke="#334155"
+                    stroke-width="1"
+                />
+                <text
+                    x="12"
+                    y="22"
+                    fill="#64748b"
+                    font-family="system-ui"
+                    font-size="9"
+                    font-weight="500"
+                >
+                    AVG RESPONSE
+                </text>
+                <text
+                    x="12"
+                    y="52"
+                    fill="#f8fafc"
+                    font-family="system-ui"
+                    font-size="28"
+                    font-weight="700"
+                    hx-get="/api/monitoring/metric/response_time"
+                    hx-trigger="load, every 10s"
+                    hx-swap="innerHTML"
+                >
+                    --
+                </text>
+                <text
+                    x="138"
+                    y="62"
+                    fill="#94a3b8"
+                    font-family="system-ui"
+                    font-size="10"
+                    text-anchor="end"
+                >
+                    ms
+                </text>
+            </g>
+
+            <!-- ==================== RESOURCE BARS ==================== -->
+
+            <g
+                transform="translate(330, 545)"
+                hx-get="/api/monitoring/resources/bars"
+                hx-trigger="load, every 15s"
+                hx-swap="innerHTML"
+            >
+                <!-- CPU -->
+                <g transform="translate(0, 0)">
+                    <text
+                        x="0"
+                        y="11"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                        font-weight="500"
+                    >
+                        CPU
+                    </text>
+                    <rect
+                        x="35"
+                        y="2"
+                        width="90"
+                        height="12"
+                        rx="4"
+                        fill="#334155"
+                    />
+                    <rect
+                        x="35"
+                        y="2"
+                        width="58"
+                        height="12"
+                        rx="4"
+                        fill="url(#coreGlow)"
+                        class="resource-fill"
+                    />
+                    <text
+                        x="132"
+                        y="12"
+                        fill="#f8fafc"
+                        font-family="system-ui"
+                        font-size="10"
+                        font-weight="500"
+                    >
+                        65%
+                    </text>
+                </g>
+
+                <!-- Memory -->
+                <g transform="translate(160, 0)">
+                    <text
+                        x="0"
+                        y="11"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                        font-weight="500"
+                    >
+                        MEM
+                    </text>
+                    <rect
+                        x="35"
+                        y="2"
+                        width="90"
+                        height="12"
+                        rx="4"
+                        fill="#334155"
+                    />
+                    <rect
+                        x="35"
+                        y="2"
+                        width="65"
+                        height="12"
+                        rx="4"
+                        fill="url(#greenGlow)"
+                        class="resource-fill"
+                    />
+                    <text
+                        x="132"
+                        y="12"
+                        fill="#f8fafc"
+                        font-family="system-ui"
+                        font-size="10"
+                        font-weight="500"
+                    >
+                        72%
+                    </text>
+                </g>
+
+                <!-- GPU -->
+                <g transform="translate(320, 0)">
+                    <text
+                        x="0"
+                        y="11"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                        font-weight="500"
+                    >
+                        GPU
+                    </text>
+                    <rect
+                        x="35"
+                        y="2"
+                        width="90"
+                        height="12"
+                        rx="4"
+                        fill="#334155"
+                    />
+                    <rect
+                        x="35"
+                        y="2"
+                        width="40"
+                        height="12"
+                        rx="4"
+                        fill="url(#vectorGradient)"
+                        class="resource-fill"
+                    />
+                    <text
+                        x="132"
+                        y="12"
+                        fill="#f8fafc"
+                        font-family="system-ui"
+                        font-size="10"
+                        font-weight="500"
+                    >
+                        45%
+                    </text>
+                </g>
+
+                <!-- Disk -->
+                <g transform="translate(480, 0)">
+                    <text
+                        x="0"
+                        y="11"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                        font-weight="500"
+                    >
+                        DISK
+                    </text>
+                    <rect
+                        x="35"
+                        y="2"
+                        width="90"
+                        height="12"
+                        rx="4"
+                        fill="#334155"
+                    />
+                    <rect
+                        x="35"
+                        y="2"
+                        width="25"
+                        height="12"
+                        rx="4"
+                        fill="url(#storageGradient)"
+                        class="resource-fill"
+                    />
+                    <text
+                        x="132"
+                        y="12"
+                        fill="#f8fafc"
+                        font-family="system-ui"
+                        font-size="10"
+                        font-weight="500"
+                    >
+                        28%
+                    </text>
+                </g>
+            </g>
+
+            <!-- ==================== ACTIVITY TICKER ==================== -->
+
+            <g transform="translate(330, 590)">
+                <rect
+                    x="0"
+                    y="0"
+                    width="490"
+                    height="36"
+                    rx="8"
+                    fill="#1e293b"
+                    stroke="#334155"
+                    stroke-width="1"
+                />
+                <circle
+                    cx="16"
+                    cy="18"
+                    r="4"
+                    fill="#10b981"
+                    class="pulse-dot"
+                />
+                <text
+                    x="30"
+                    y="22"
+                    fill="#94a3b8"
+                    font-family="system-ui"
+                    font-size="11"
+                    hx-get="/api/monitoring/activity/latest"
+                    hx-trigger="load, every 5s"
+                    hx-swap="innerHTML"
+                >
+                    System monitoring active...
+                </text>
+            </g>
+
+            <!-- ==================== LEGEND ==================== -->
+
+            <g transform="translate(50, 600)">
+                <g transform="translate(0, 0)">
+                    <circle r="4" fill="#10b981" />
+                    <text
+                        x="10"
+                        y="4"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                    >
+                        Running
+                    </text>
+                </g>
+                <g transform="translate(70, 0)">
+                    <circle r="4" fill="#f59e0b" />
+                    <text
+                        x="10"
+                        y="4"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                    >
+                        Warning
+                    </text>
+                </g>
+                <g transform="translate(140, 0)">
+                    <circle r="4" fill="#ef4444" />
+                    <text
+                        x="10"
+                        y="4"
+                        fill="#94a3b8"
+                        font-family="system-ui"
+                        font-size="9"
+                    >
+                        Stopped
+                    </text>
+                </g>
+            </g>
+        </svg>
+    </div>
+
+    <!-- Grid View (hidden by default) -->
+    <div class="monitoring-grid" id="grid-view" style="display: none">
         <!-- Sessions Panel -->
         <div
             class="monitor-panel"
@@ -289,20 +1365,31 @@
         </div>
     </div>
 
+    <!-- Hidden service status updater -->
+    <div
+        id="service-status-container"
+        style="display: none"
+        hx-get="/api/monitoring/services/status"
+        hx-trigger="load, every 30s"
+        hx-swap="innerHTML"
+    ></div>
+
     <style>
         .monitoring-container {
             padding: 1.5rem;
-            max-width: 1400px;
+            max-width: 100%;
             margin: 0 auto;
+            background: var(--bg-dark, #0f172a);
+            min-height: 100vh;
         }
 
         .monitoring-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             padding-bottom: 1rem;
-            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            border-bottom: 1px solid var(--border-color, #334155);
         }
 
         .monitoring-header h2 {
@@ -311,7 +1398,7 @@
             gap: 0.75rem;
             font-size: 1.5rem;
             font-weight: 600;
-            color: var(--text-primary, #1f2937);
+            color: var(--text-primary, #f8fafc);
             margin: 0;
         }
 
@@ -319,11 +1406,164 @@
             color: var(--primary-color, #3b82f6);
         }
 
-        .last-updated {
-            font-size: 0.875rem;
-            color: var(--text-secondary, #6b7280);
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
         }
 
+        .view-toggle {
+            background: var(--bg-surface, #1e293b);
+            border: 1px solid var(--border-color, #334155);
+            border-radius: 8px;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-secondary, #94a3b8);
+            transition: all 0.2s;
+        }
+
+        .view-toggle:hover {
+            border-color: var(--primary-color, #3b82f6);
+            color: var(--primary-color, #3b82f6);
+        }
+
+        .last-updated {
+            font-size: 0.875rem;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        /* Live Visualization */
+        .live-visualization {
+            width: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: auto;
+        }
+
+        .live-svg {
+            width: 100%;
+            height: auto;
+            max-height: calc(100vh - 120px);
+            min-width: 900px;
+        }
+
+        /* Animations */
+        @keyframes rotate-slow {
+            from {
+                transform: rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        @keyframes pulse-ring {
+            0%,
+            100% {
+                r: 63;
+                opacity: 0.6;
+            }
+            50% {
+                r: 67;
+                opacity: 0.8;
+            }
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+        }
+
+        @keyframes ai-pulse {
+            0%,
+            100% {
+                r: 4;
+            }
+            50% {
+                r: 6;
+            }
+        }
+
+        @keyframes antenna-pulse {
+            0%,
+            100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .rotate-slow {
+            animation: rotate-slow 30s linear infinite;
+            transform-origin: center;
+        }
+
+        .pulse-ring {
+            animation: pulse-ring 3s ease-in-out infinite;
+        }
+
+        .pulse-dot {
+            animation: pulse-dot 1.5s ease-in-out infinite;
+        }
+
+        .ai-pulse {
+            animation: ai-pulse 1.5s ease-in-out infinite;
+        }
+
+        .antenna-pulse {
+            animation: antenna-pulse 1.5s ease-in-out infinite;
+        }
+
+        /* Status dots */
+        .status-dot {
+            transition: fill 0.3s ease;
+        }
+
+        .status-dot.running {
+            fill: #10b981;
+            animation: pulse-dot 2s ease-in-out infinite;
+        }
+
+        .status-dot.warning {
+            fill: #f59e0b;
+            animation: pulse-dot 1s ease-in-out infinite;
+        }
+
+        .status-dot.stopped {
+            fill: #ef4444;
+            animation: none;
+        }
+
+        /* Data packets */
+        .data-packet {
+            filter: url(#glow);
+        }
+
+        /* Service nodes */
+        .service-node {
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .service-node:hover {
+            transform: scale(1.05);
+        }
+
+        /* Resource bars */
+        .resource-fill {
+            transition: width 0.5s ease-out;
+        }
+
+        /* Grid View Styles */
         .monitoring-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
@@ -331,11 +1571,11 @@
         }
 
         .monitor-panel {
-            background: var(--card-bg, #ffffff);
-            border: 1px solid var(--border-color, #e5e7eb);
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border-color, #334155);
             border-radius: 0.75rem;
             padding: 1.25rem;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
         }
 
         .panel-header {
@@ -344,10 +1584,10 @@
             gap: 0.5rem;
             font-weight: 600;
             font-size: 1rem;
-            color: var(--text-primary, #1f2937);
+            color: var(--text-primary, #f8fafc);
             margin-bottom: 1rem;
             padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border-color, #e5e7eb);
+            border-bottom: 1px solid var(--border-color, #334155);
         }
 
         .panel-icon {
@@ -367,11 +1607,9 @@
             align-items: center;
             gap: 0.5rem;
             padding: 0.5rem 0;
-            position: relative;
         }
 
-        .tree-branch,
-        .tree-branch-last {
+        .tree-branch {
             width: 1.25rem;
             height: 1.25rem;
             position: relative;
@@ -389,8 +1627,7 @@
             opacity: 0.4;
         }
 
-        .tree-branch::after,
-        .tree-branch-last::after {
+        .tree-branch::after {
             content: "";
             position: absolute;
             left: 0.5rem;
@@ -401,97 +1638,14 @@
             opacity: 0.6;
         }
 
-        .tree-branch-last::before {
-            content: "";
-            position: absolute;
-            left: 0.5rem;
-            top: 0;
-            width: 1px;
-            height: 50%;
-            background: var(--primary-color, #3b82f6);
-            opacity: 0.4;
-        }
-
         .tree-label {
-            color: var(--text-secondary, #6b7280);
+            color: var(--text-secondary, #94a3b8);
             flex: 1;
         }
 
         .tree-value {
             font-weight: 600;
-            color: var(--text-primary, #1f2937);
-        }
-
-        .tree-status {
-            font-size: 0.75rem;
-            color: var(--text-secondary, #6b7280);
-        }
-
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            flex-shrink: 0;
-        }
-
-        .status-indicator.running {
-            background: #10b981;
-            box-shadow: 0 0 4px #10b981;
-        }
-
-        .status-indicator.warning {
-            background: #f59e0b;
-            box-shadow: 0 0 4px #f59e0b;
-        }
-
-        .status-indicator.stopped {
-            background: #ef4444;
-        }
-
-        .resource-node {
-            flex-wrap: wrap;
-        }
-
-        .progress-bar {
-            flex: 1;
-            height: 8px;
-            background: var(--border-color, #e5e7eb);
-            border-radius: 4px;
-            overflow: hidden;
-            min-width: 100px;
-            max-width: 150px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background: linear-gradient(90deg, #3b82f6, #60a5fa);
-            border-radius: 4px;
-            transition: width 0.5s ease;
-        }
-
-        .progress-fill.gpu {
-            background: linear-gradient(90deg, #8b5cf6, #a78bfa);
-        }
-
-        .progress-fill.disk {
-            background: linear-gradient(90deg, #10b981, #34d399);
-        }
-
-        .progress-fill.warning {
-            background: linear-gradient(90deg, #f59e0b, #fbbf24);
-        }
-
-        .progress-fill.critical {
-            background: linear-gradient(90deg, #ef4444, #f87171);
-        }
-
-        @media (prefers-color-scheme: dark) {
-            .monitoring-container {
-                --text-primary: #f9fafb;
-                --text-secondary: #9ca3af;
-                --card-bg: #1f2937;
-                --border-color: #374151;
-            }
+            color: var(--text-primary, #f8fafc);
         }
 
         @media (max-width: 768px) {
@@ -504,6 +1658,65 @@
                 align-items: flex-start;
                 gap: 0.5rem;
             }
+
+            .live-svg {
+                min-width: 600px;
+            }
         }
     </style>
+
+    <script>
+        // View toggle functionality
+        document
+            .getElementById("view-toggle")
+            .addEventListener("click", function () {
+                const liveView = document.getElementById("live-view");
+                const gridView = document.getElementById("grid-view");
+
+                if (liveView.style.display === "none") {
+                    liveView.style.display = "flex";
+                    gridView.style.display = "none";
+                } else {
+                    liveView.style.display = "none";
+                    gridView.style.display = "grid";
+                }
+            });
+
+        // Update service status dots
+        document.body.addEventListener("htmx:afterSwap", function (event) {
+            if (event.detail.target.id === "service-status-container") {
+                try {
+                    const data = JSON.parse(event.detail.target.textContent);
+                    Object.entries(data).forEach(([service, status]) => {
+                        const dot = document.querySelector(
+                            `[data-status="${service}"]`,
+                        );
+                        if (dot) {
+                            dot.classList.remove(
+                                "running",
+                                "warning",
+                                "stopped",
+                            );
+                            dot.classList.add(status);
+                        }
+                    });
+                } catch (e) {
+                    // Silent fail for non-JSON responses
+                }
+            }
+        });
+
+        // Keyboard shortcut: R to refresh, V to toggle view
+        document.addEventListener("keydown", function (e) {
+            if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA")
+                return;
+
+            if (e.key === "r" && !e.ctrlKey && !e.metaKey) {
+                htmx.trigger(document.body, "htmx:load");
+            }
+            if (e.key === "v" && !e.ctrlKey && !e.metaKey) {
+                document.getElementById("view-toggle").click();
+            }
+        });
+    </script>
 </div>
