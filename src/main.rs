@@ -649,6 +649,7 @@ async fn main() -> std::io::Result<()> {
         voice_adapter: voice_adapter.clone(),
         kb_manager: Some(kb_manager.clone()),
         task_engine: task_engine,
+        extensions: botserver::core::shared::state::Extensions::new(),
     });
 
     // Initialize TaskScheduler with the AppState

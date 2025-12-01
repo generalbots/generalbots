@@ -49,7 +49,7 @@ pub mod drive {
     }
 
     #[derive(Template)]
-    #[template(path = "drive.html")]
+    #[template(path = "suite/drive.html")]
     struct DriveTemplate {
         user_name: String,
         user_email: String,
@@ -158,7 +158,7 @@ pub mod mail {
     }
 
     #[derive(Template)]
-    #[template(path = "mail.html")]
+    #[template(path = "suite/mail.html")]
     struct MailTemplate {
         user_name: String,
         user_email: String,
@@ -277,7 +277,7 @@ pub mod meet {
     }
 
     #[derive(Template)]
-    #[template(path = "meet.html")]
+    #[template(path = "suite/meet.html")]
     struct MeetTemplate {
         user_name: String,
         user_email: String,
@@ -370,7 +370,7 @@ pub mod tasks {
     }
 
     #[derive(Template)]
-    #[template(path = "tasks.html")]
+    #[template(path = "suite/tasks.html")]
     struct TasksTemplate {
         user_name: String,
         user_email: String,
@@ -387,7 +387,7 @@ pub struct BaseContext {
 
 /// Home page template
 #[derive(Template)]
-#[template(path = "home.html")]
+#[template(path = "suite/home.html")]
 struct HomeTemplate {
     base: BaseContext,
     apps: Vec<AppCard>,
@@ -404,7 +404,7 @@ struct AppCard {
 
 /// Apps menu template
 #[derive(Template)]
-#[template(path = "partials/apps_menu.html")]
+#[template(path = "suite/partials/apps_menu.html")]
 struct AppsMenuTemplate {
     apps: Vec<AppMenuItem>,
 }
@@ -420,7 +420,7 @@ struct AppMenuItem {
 
 /// User menu template
 #[derive(Template)]
-#[template(path = "partials/user_menu.html")]
+#[template(path = "suite/partials/user_menu.html")]
 struct UserMenuTemplate {
     user_name: String,
     user_email: String,
@@ -704,7 +704,7 @@ pub struct HtmxResponse {
 
 /// Notification for HTMX
 #[derive(Serialize, Template)]
-#[template(path = "partials/notification.html")]
+#[template(path = "suite/partials/notification.html")]
 pub struct NotificationTemplate {
     pub message: String,
     pub severity: String, // info, success, warning, error
@@ -712,7 +712,7 @@ pub struct NotificationTemplate {
 
 /// Message template for chat/notifications
 #[derive(Serialize, Template)]
-#[template(path = "partials/message.html")]
+#[template(path = "suite/partials/message.html")]
 pub struct MessageTemplate {
     pub id: String,
     pub sender: String,

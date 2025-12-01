@@ -45,6 +45,19 @@
   - [Player - Media Viewer](./chapter-04-gbui/player.md)
   - [Monitoring Dashboard](./chapter-04-gbui/monitoring.md)
   - [HTMX Architecture](./chapter-04-gbui/htmx-architecture.md)
+  - [Suite Applications](./chapter-04-gbui/apps/README.md)
+    - [Chat - AI Assistant](./chapter-04-gbui/apps/chat.md)
+    - [Drive - File Management](./chapter-04-gbui/apps/drive.md)
+    - [Tasks - To-Do Lists](./chapter-04-gbui/apps/tasks.md)
+    - [Mail - Email Client](./chapter-04-gbui/apps/mail.md)
+    - [Calendar - Scheduling](./chapter-04-gbui/apps/calendar.md)
+    - [Meet - Video Calls](./chapter-04-gbui/apps/meet.md)
+    - [Paper - AI Writing](./chapter-04-gbui/apps/paper.md)
+    - [Research - AI Search](./chapter-04-gbui/apps/research.md)
+    - [Analytics - Dashboards](./chapter-04-gbui/apps/analytics.md)
+    - [Designer - Visual Builder](./chapter-04-gbui/apps/designer.md)
+    - [Sources - Prompts & Templates](./chapter-04-gbui/apps/sources.md)
+    - [Compliance - Security Scanner](./chapter-04-gbui/apps/compliance.md)
 
 # Part V - Themes and Styling
 

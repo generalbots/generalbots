@@ -20,7 +20,7 @@ use super::auth::{
 
 /// Login page template
 #[derive(Template)]
-#[template(path = "auth/login.html")]
+#[template(path = "suite/auth/login.html")]
 pub struct LoginTemplate {
     pub error_message: Option<String>,
     pub redirect_url: Option<String>,

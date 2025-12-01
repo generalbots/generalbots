@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>General Bots Suite</title>
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <link rel="stylesheet" href="/css/app.css">
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --primary-hover: #2563eb;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --border: #334155;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+        }
+
+        .home-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .home-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .home-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, var(--primary), #8b5cf6);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+
+        .home-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 0.75rem;
+            background: linear-gradient(135deg, var(--text), var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .home-subtitle {
+            color: var(--text-secondary);
+            font-size: 1.125rem;
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        .apps-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 3rem;
+        }
+
+        .app-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+            display: block;
+        }
+
+        .app-card:hover {
+            transform: translateY(-4px);
+            border-color: var(--primary);
+            box-shadow: 0 8px 32px rgba(59, 130, 246, 0.15);
+        }
+
+        .app-icon {
+            width: 56px;
+            height: 56px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .app-icon.chat { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .app-icon.drive { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .app-icon.tasks { background: linear-gradient(135deg, #22c55e, #16a34a); }
+        .app-icon.mail { background: linear-gradient(135deg, #ef4444, #dc2626); }
+        .app-icon.calendar { background: linear-gradient(135deg, #a855f7, #7c3aed); }
+        .app-icon.meet { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+        .app-icon.paper { background: linear-gradient(135deg, #eab308, #ca8a04); }
+        .app-icon.research { background: linear-gradient(135deg, #ec4899, #db2777); }
+        .app-icon.analytics { background: linear-gradient(135deg, #6366f1, #4f46e5); }
+
+        .app-name {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .app-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            line-height: 1.5;
+        }
+
+        .section-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            margin-bottom: 3rem;
+        }
+
+        .quick-action-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.25rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            text-decoration: none;
+        }
+
+        .quick-action-btn:hover {
+            border-color: var(--primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        .recent-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.5rem;
+        }
+
+        .recent-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .recent-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .recent-item:hover {
+            background: var(--bg);
+        }
+
+        .recent-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--bg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .recent-info {
+            flex: 1;
+        }
+
+        .recent-name {
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+
+        .recent-meta {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .recent-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        @media (max-width: 768px) {
+            .home-container {
+                padding: 1rem;
+            }
+
+            .home-title {
+                font-size: 1.75rem;
+            }
+
+            .apps-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="home-container">
+        <header class="home-header">
+            <div class="home-logo">🤖</div>
+            <h1 class="home-title">General Bots Suite</h1>
+            <p class="home-subtitle">Your AI-powered productivity workspace. Chat, collaborate, and create.</p>
+        </header>
+
+        <section>
+            <h2 class="section-title">Quick Actions</h2>
+            <div class="quick-actions">
+                <a href="#chat" class="quick-action-btn" hx-get="/chat/chat.html"</section> hx-target="#main-content" hx-push-url="true">
+                    💬 Start Chat
+                </a>
+                <a href="#drive" class="quick-action-btn" hx-get="/drive/index.html" hx-target="#main-content" hx-push-url="true">
+                    📁 Upload Files
+                </a>
+                <a href="#tasks" class="quick-action-btn" hx-get="/tasks/tasks.html" hx-target="#main-content" hx-push-url="true">
+                    ✓ New Task
+                </a>
+                <a href="#mail" class="quick-action-btn" hx-get="/mail/mail.html" hx-target="#main-content" hx-push-url="true">
+                    ✉️ Compose Email
+                </a>
+                <a href="#meet" class="quick-action-btn" hx-get="/meet/meet.html" hx-target="#main-content" hx-push-url="true">
+                    🎥 Start Meeting
+                </a>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">Applications</h2>
+            <div class="apps-grid">
+                <a href="#chat" class="app-card" hx-get="/chat/chat.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon chat">💬</div>
+                    <div class="app-name">Chat</div>
+                    <div class="app-description">AI-powered conversations. Ask questions, get help, and automate tasks.</div>
+                </a>
+
+                <a href="#drive" class="app-card" hx-get="/drive/index.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon drive">📁</div>
+                    <div class="app-name">Drive</div>
+                    <div class="app-description">Cloud storage for all your files. Upload, organize, and share.</div>
+                </a>
+
+                <a href="#tasks" class="app-card" hx-get="/tasks/tasks.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon tasks">✓</div>
+                    <div class="app-name">Tasks</div>
+                    <div class="app-description">Stay organized with to-do lists, priorities, and due dates.</div>
+                </a>
+
+                <a href="#mail" class="app-card" hx-get="/mail/mail.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon mail">✉️</div>
+                    <div class="app-name">Mail</div>
+                    <div class="app-description">Email client with AI-assisted writing and smart organization.</div>
+                </a>
+
+                <a href="#calendar" class="app-card" hx-get="/calendar/calendar.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon calendar">📅</div>
+                    <div class="app-name">Calendar</div>
+                    <div class="app-description">Schedule meetings, events, and manage your time effectively.</div>
+                </a>
+
+                <a href="#meet" class="app-card" hx-get="/meet/meet.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon meet">🎥</div>
+                    <div class="app-name">Meet</div>
+                    <div class="app-description">Video conferencing with screen sharing and live transcription.</div>
+                </a>
+
+                <a href="#paper" class="app-card" hx-get="/paper/paper.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon paper">📝</div>
+                    <div class="app-name">Paper</div>
+                    <div class="app-description">Write documents with AI assistance. Notes, reports, and more.</div>
+                </a>
+
+                <a href="#research" class="app-card" hx-get="/research/research.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon research">🔍</div>
+                    <div class="app-name">Research</div>
+                    <div class="app-description">AI-powered search and discovery across all your sources.</div>
+                </a>
+
+                <a href="#analytics" class="app-card" hx-get="/analytics/analytics.html" hx-target="#main-content" hx-push-url="true">
+                    <div class="app-icon analytics">📊</div>
+                    <div class="app-name">Analytics</div>
+                    <div class="app-description">Dashboards and reports to track usage and insights.</div>
+                </a>
+            </div>
+        </section>
+
+        <section class="recent-section">
+            <h2 class="section-title">Recent Activity</h2>
+            <div class="recent-list"
+                 hx-get="/api/activity/recent"
+                 hx-trigger="load"
+                 hx-swap="innerHTML">
+                {% for item in recent_items %}
+                <div class="recent-item" hx-get="{{ item.url }}" hx-target="#main-content">
+                    <div class="recent-icon">{{ item.icon }}</div>
+                    <div class="recent-info">
+                        <div class="recent-name">{{ item.name }}</div>
+                        <div class="recent-meta">{{ item.app }} • {{ item.description }}</div>
+                    </div>
+                    <div class="recent-time">{{ item.time }}</div>
+                </div>
+                {% endfor %}
+                {% if recent_items.is_empty() %}
+                <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                    <div style="font-size: 2rem; margin-bottom: 0.5rem;">🚀</div>
+                    <p>No recent activity yet. Start exploring!</p>
+                </div>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            if (e.altKey && !e.ctrlKey && !e.shiftKey) {
+                const shortcuts = {
+                    '1': '#chat',
+                    '2': '#drive',
+                    '3': '#tasks',
+                    '4': '#mail',
+                    '5': '#calendar',
+                    '6': '#meet'
+                };
+                if (shortcuts[e.key]) {
+                    e.preventDefault();
+                    const link = document.querySelector(`a[href="${shortcuts[e.key]}"]`);
+                    if (link) link.click();
+                }
+            }
+        });
+    </script>
+</body>
+</html>

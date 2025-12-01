@@ -18,35 +18,35 @@ use crate::shared::state::AppState;
 
 /// Chat page template
 #[derive(Template)]
-#[template(path = "chat.html")]
+#[template(path = "suite/chat.html")]
 pub struct ChatTemplate {
     pub session_id: String,
 }
 
 /// Session list template
 #[derive(Template)]
-#[template(path = "partials/sessions.html")]
+#[template(path = "suite/partials/sessions.html")]
 struct SessionsTemplate {
     sessions: Vec<SessionItem>,
 }
 
 /// Message list template
 #[derive(Template)]
-#[template(path = "partials/messages.html")]
+#[template(path = "suite/partials/messages.html")]
 struct MessagesTemplate {
     messages: Vec<Message>,
 }
 
 /// Suggestions template
 #[derive(Template)]
-#[template(path = "partials/suggestions.html")]
+#[template(path = "suite/partials/suggestions.html")]
 struct SuggestionsTemplate {
     suggestions: Vec<String>,
 }
 
 /// Context selector template
 #[derive(Template)]
-#[template(path = "partials/contexts.html")]
+#[template(path = "suite/partials/contexts.html")]
 struct ContextsTemplate {
     contexts: Vec<Context>,
     current_context: Option<String>,
@@ -94,15 +94,13 @@ impl ChatState {
     pub fn new() -> Self {
         let (tx, _) = broadcast::channel(1000);
         Self {
-            sessions: Arc::new(RwLock::new(vec![
-                SessionItem {
-                    id: Uuid::new_v4().to_string(),
-                    name: "Default Session".to_string(),
-                    last_message: "Welcome to General Bots".to_string(),
-                    timestamp: chrono::Utc::now().to_rfc3339(),
-                    active: true,
-                },
-            ])),
+            sessions: Arc::new(RwLock::new(vec![SessionItem {
+                id: Uuid::new_v4().to_string(),
+                name: "Default Session".to_string(),
+                last_message: "Welcome to General Bots".to_string(),
+                timestamp: chrono::Utc::now().to_rfc3339(),
+                active: true,
+            }])),
             messages: Arc::new(RwLock::new(vec![])),
             contexts: Arc::new(RwLock::new(vec![
                 Context {
@@ -212,7 +210,9 @@ async fn send_message(
     }
 
     // Broadcast via WebSocket
-    let _ = chat_state.broadcast.send(WsMessage::Message(user_message.clone()));
+    let _ = chat_state
+        .broadcast
+        .send(WsMessage::Message(user_message.clone()));
 
     // Simulate bot response (this would call actual LLM service)
     let bot_message = Message {
@@ -231,7 +231,9 @@ async fn send_message(
     }
 
     // Broadcast bot message
-    let _ = chat_state.broadcast.send(WsMessage::Message(bot_message.clone()));
+    let _ = chat_state
+        .broadcast
+        .send(WsMessage::Message(bot_message.clone()));
 
     // Return rendered messages
     MessagesTemplate {
@@ -279,13 +281,13 @@ async fn create_session(
 
     // Return single session HTML
     format!(
-        r#"<div class="session-item active"
+        r##"<div class="session-item active"
              hx-post="/api/chat/sessions/{}"
              hx-target="#messages"
              hx-swap="innerHTML">
             <div class="session-name">{}</div>
             <div class="session-time">{}</div>
-        </div>"#,
+        </div>"##,
         new_session.id, new_session.name, new_session.timestamp
     )
 }
@@ -312,11 +314,7 @@ async fn switch_session(
     });
 
     // Return messages for this session
-    get_messages(
-        Query(GetMessagesParams { session_id: id }),
-        State(state),
-    )
-    .await
+    get_messages(Query(GetMessagesParams { session_id: id }), State(state)).await
 }
 
 /// Get suggestions
@@ -388,7 +386,11 @@ pub async fn websocket_handler(
     ws.on_upgrade(move |socket| handle_chat_socket(socket, state, claims))
 }
 
-async fn handle_chat_socket(socket: axum::extract::ws::WebSocket, state: AppState, claims: crate::web::auth::Claims) {
+async fn handle_chat_socket(
+    socket: axum::extract::ws::WebSocket,
+    state: AppState,
+    claims: crate::web::auth::Claims,
+) {
     let (mut sender, mut receiver) = socket.split();
     let chat_state = state.extensions.get::<ChatState>().unwrap();
     let mut rx = chat_state.broadcast.subscribe();

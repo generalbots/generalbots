@@ -14,9 +14,72 @@ use crate::tasks::{TaskEngine, TaskScheduler};
 use aws_sdk_s3::Client as S3Client;
 #[cfg(feature = "redis-cache")]
 use redis::Client as RedisClient;
+use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::mpsc;
+
+/// Type-erased extension storage for AppState
+#[derive(Default)]
+pub struct Extensions {
+    map: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+}
+
+impl Extensions {
+    pub fn new() -> Self {
+        Self {
+            map: HashMap::new(),
+        }
+    }
+
+    /// Insert a value into the extensions
+    pub fn insert<T: Send + Sync + 'static>(&mut self, value: T) {
+        self.map.insert(TypeId::of::<T>(), Box::new(value));
+    }
+
+    /// Get a reference to a value from the extensions
+    pub fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        self.map
+            .get(&TypeId::of::<T>())
+            .and_then(|boxed| boxed.downcast_ref::<T>())
+    }
+
+    /// Get a mutable reference to a value from the extensions
+    pub fn get_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        self.map
+            .get_mut(&TypeId::of::<T>())
+            .and_then(|boxed| boxed.downcast_mut::<T>())
+    }
+
+    /// Check if a value of type T exists
+    pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
+        self.map.contains_key(&TypeId::of::<T>())
+    }
+
+    /// Remove a value from the extensions
+    pub fn remove<T: Send + Sync + 'static>(&mut self) -> Option<T> {
+        self.map
+            .remove(&TypeId::of::<T>())
+            .and_then(|boxed| boxed.downcast::<T>().ok())
+            .map(|boxed| *boxed)
+    }
+}
+
+impl Clone for Extensions {
+    fn clone(&self) -> Self {
+        // Extensions cannot be cloned deeply, so we create an empty one
+        // This is a limitation - extensions should be Arc-wrapped if sharing is needed
+        Self::new()
+    }
+}
+
+impl std::fmt::Debug for Extensions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("Extensions")
+            .field("count", &self.map.len())
+            .finish()
+    }
+}
 
 pub struct AppState {
     #[cfg(feature = "drive")]
@@ -41,6 +104,8 @@ pub struct AppState {
     pub voice_adapter: Arc<VoiceAdapter>,
     pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
     pub task_engine: Arc<TaskEngine>,
+    /// Type-erased extension storage for web handlers and other components
+    pub extensions: Extensions,
 }
 impl Clone for AppState {
     fn clone(&self) -> Self {
@@ -67,6 +132,7 @@ impl Clone for AppState {
             web_adapter: Arc::clone(&self.web_adapter),
             voice_adapter: Arc::clone(&self.voice_adapter),
             task_engine: Arc::clone(&self.task_engine),
+            extensions: self.extensions.clone(),
         }
     }
 }
@@ -103,6 +169,7 @@ impl std::fmt::Debug for AppState {
             .field("response_channels", &"Arc<Mutex<HashMap>>")
             .field("web_adapter", &self.web_adapter)
             .field("voice_adapter", &self.voice_adapter)
+            .field("extensions", &self.extensions)
             .finish()
     }
 }
