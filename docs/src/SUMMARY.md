@@ -23,6 +23,7 @@
   - [.gbdrive File Storage](./chapter-02/gbdrive.md)
   - [Bot Templates](./chapter-02/templates.md)
   - [Template: CRM Contacts](./chapter-02/template-crm-contacts.md)
+  - [Template Samples & Conversations](./chapter-02/template-samples.md)
 
 # Part III - Knowledge Base
 
@@ -58,6 +59,7 @@
     - [Designer - Visual Builder](./chapter-04-gbui/apps/designer.md)
     - [Sources - Prompts & Templates](./chapter-04-gbui/apps/sources.md)
     - [Compliance - Security Scanner](./chapter-04-gbui/apps/compliance.md)
+    - [Compliance API Reference](./chapter-04-gbui/apps/compliance-api.md)
   - [How-To Tutorials](./chapter-04-gbui/how-to/README.md)
     - [Create Your First Bot](./chapter-04-gbui/how-to/create-first-bot.md)
     - [Write Your First Dialog](./chapter-04-gbui/how-to/write-first-dialog.md)
