@@ -16,7 +16,7 @@ The Compliance API allows you to programmatically manage data subject requests, 
 
 All API requests require authentication using a Bearer token:
 
-```
+```/dev/null/auth-header.txt
 Authorization: Bearer your-api-key
 ```
 
@@ -30,7 +30,7 @@ Get your API key from **Settings** → **API Keys** → **Create New Key** with 
 
 #### List All Requests
 
-```
+```/dev/null/api-request.txt
 GET /api/compliance/dsr
 ```
 
@@ -47,13 +47,13 @@ GET /api/compliance/dsr
 
 **Example Request:**
 
-```
+```/dev/null/dsr-list-request.txt
 GET /api/compliance/dsr?status=pending&limit=10
 ```
 
 **Example Response:**
 
-```
+```/dev/null/dsr-list-response.json
 {
   "total": 7,
   "limit": 10,
@@ -87,13 +87,13 @@ GET /api/compliance/dsr?status=pending&limit=10
 
 #### Get Single Request
 
-```
+```/dev/null/dsr-get-request.txt
 GET /api/compliance/dsr/{id}
 ```
 
 **Example Response:**
 
-```
+```/dev/null/dsr-get-response.json
 {
   "id": "DSR-2025-0142",
   "type": "access",
@@ -131,7 +131,7 @@ GET /api/compliance/dsr/{id}
 
 #### Create Request
 
-```
+```/dev/null/dsr-create-request.txt
 POST /api/compliance/dsr
 ```
 
@@ -147,7 +147,7 @@ POST /api/compliance/dsr
 
 **Example Request:**
 
-```
+```/dev/null/dsr-create-body.json
 POST /api/compliance/dsr
 Content-Type: application/json
 
@@ -160,7 +160,7 @@ Content-Type: application/json
 
 **Example Response:**
 
-```
+```/dev/null/dsr-create-response.json
 {
   "id": "DSR-2025-0143",
   "type": "access",
@@ -176,7 +176,7 @@ Content-Type: application/json
 
 #### Update Request Status
 
-```
+```/dev/null/dsr-update-request.txt
 PATCH /api/compliance/dsr/{id}
 ```
 
@@ -191,7 +191,7 @@ PATCH /api/compliance/dsr/{id}
 
 **Example Request:**
 
-```
+```/dev/null/dsr-update-body.json
 PATCH /api/compliance/dsr/DSR-2025-0142
 Content-Type: application/json
 
@@ -205,7 +205,7 @@ Content-Type: application/json
 
 #### Complete Request (with data package)
 
-```
+```/dev/null/dsr-complete-request.txt
 POST /api/compliance/dsr/{id}/complete
 ```
 
@@ -219,7 +219,7 @@ POST /api/compliance/dsr/{id}/complete
 
 **Example Request:**
 
-```
+```/dev/null/dsr-complete-body.json
 POST /api/compliance/dsr/DSR-2025-0142/complete
 Content-Type: application/json
 
@@ -236,13 +236,13 @@ Content-Type: application/json
 
 #### Get User Consent
 
-```
+```/dev/null/consent-get-request.txt
 GET /api/compliance/consent/{userId}
 ```
 
 **Example Response:**
 
-```
+```/dev/null/consent-get-response.json
 {
   "userId": "usr_abc123",
   "email": "john.doe@email.com",
@@ -275,7 +275,7 @@ GET /api/compliance/consent/{userId}
 
 #### Record Consent
 
-```
+```/dev/null/consent-record-request.txt
 POST /api/compliance/consent
 ```
 
@@ -293,7 +293,7 @@ POST /api/compliance/consent
 
 **Example Request:**
 
-```
+```/dev/null/consent-record-body.json
 POST /api/compliance/consent
 Content-Type: application/json
 
@@ -309,7 +309,7 @@ Content-Type: application/json
 
 **Example Response:**
 
-```
+```/dev/null/consent-record-response.json
 {
   "success": true,
   "consentId": "con_xyz789",
@@ -324,19 +324,19 @@ Content-Type: application/json
 
 #### Withdraw Consent
 
-```
+```/dev/null/consent-withdraw-request.txt
 DELETE /api/compliance/consent/{userId}/{type}
 ```
 
 **Example Request:**
 
-```
+```/dev/null/consent-withdraw-example.txt
 DELETE /api/compliance/consent/usr_abc123/marketing
 ```
 
 **Example Response:**
 
-```
+```/dev/null/consent-withdraw-response.json
 {
   "success": true,
   "userId": "usr_abc123",
@@ -350,13 +350,13 @@ DELETE /api/compliance/consent/usr_abc123/marketing
 
 #### List Consent Types
 
-```
+```/dev/null/consent-types-request.txt
 GET /api/compliance/consent-types
 ```
 
 **Example Response:**
 
-```
+```/dev/null/consent-types-response.json
 {
   "consentTypes": [
     {
@@ -388,7 +388,7 @@ GET /api/compliance/consent-types
 
 #### Start a Scan
 
-```
+```/dev/null/scan-start-request.txt
 POST /api/compliance/scan
 ```
 
@@ -402,7 +402,7 @@ POST /api/compliance/scan
 
 **Example Request:**
 
-```
+```/dev/null/scan-start-body.json
 POST /api/compliance/scan
 Content-Type: application/json
 
@@ -414,7 +414,7 @@ Content-Type: application/json
 
 **Example Response:**
 
-```
+```/dev/null/scan-start-response.json
 {
   "scanId": "scan_20250515_001",
   "status": "running",
@@ -428,13 +428,13 @@ Content-Type: application/json
 
 #### Get Scan Status
 
-```
+```/dev/null/scan-status-request.txt
 GET /api/compliance/scan/{scanId}
 ```
 
 **Example Response (In Progress):**
 
-```
+```/dev/null/scan-status-progress.json
 {
   "scanId": "scan_20250515_001",
   "status": "running",
@@ -446,7 +446,7 @@ GET /api/compliance/scan/{scanId}
 
 **Example Response (Complete):**
 
-```
+```/dev/null/scan-status-complete.json
 {
   "scanId": "scan_20250515_001",
   "status": "completed",
@@ -483,7 +483,7 @@ GET /api/compliance/scan/{scanId}
 
 #### Get Latest Scan Results
 
-```
+```/dev/null/scan-latest-request.txt
 GET /api/compliance/scan/latest
 ```
 
@@ -495,7 +495,7 @@ Returns the most recent completed scan results.
 
 #### Generate Compliance Report
 
-```
+```/dev/null/report-generate-request.txt
 POST /api/compliance/report
 ```
 
@@ -511,7 +511,7 @@ POST /api/compliance/report
 
 **Example Request:**
 
-```
+```/dev/null/report-generate-body.json
 POST /api/compliance/report
 Content-Type: application/json
 
@@ -524,7 +524,7 @@ Content-Type: application/json
 
 **Example Response:**
 
-```
+```/dev/null/report-generate-response.json
 {
   "reportId": "rpt_20250515_001",
   "generatedAt": "2025-05-15T15:00:00Z",
@@ -553,7 +553,7 @@ Content-Type: application/json
 
 #### Download Report
 
-```
+```/dev/null/report-download-request.txt
 GET /api/compliance/report/{reportId}/download
 ```
 
@@ -565,7 +565,7 @@ Returns the report file in the requested format.
 
 #### Delete User Data
 
-```
+```/dev/null/data-delete-request.txt
 DELETE /api/compliance/user/{userId}/data
 ```
 
@@ -578,13 +578,13 @@ DELETE /api/compliance/user/{userId}/data
 
 **Example Request:**
 
-```
+```/dev/null/data-delete-example.txt
 DELETE /api/compliance/user/usr_abc123/data?scope=all&confirm=true
 ```
 
 **Example Response:**
 
-```
+```/dev/null/data-delete-response.json
 {
   "success": true,
   "userId": "usr_abc123",
@@ -608,7 +608,7 @@ DELETE /api/compliance/user/usr_abc123/data?scope=all&confirm=true
 
 All errors follow this format:
 
-```
+```/dev/null/error-response.json
 {
   "error": {
     "code": "ERROR_CODE",
@@ -641,7 +641,7 @@ All errors follow this format:
 
 Rate limit headers are included in responses:
 
-```
+```/dev/null/rate-limit-headers.txt
 X-RateLimit-Limit: 100
 X-RateLimit-Remaining: 95
 X-RateLimit-Reset: 1621234567
@@ -666,7 +666,7 @@ Configure webhooks to receive real-time notifications.
 
 **Webhook Payload Example:**
 
-```
+```/dev/null/webhook-payload.json
 POST https://your-server.com/webhook
 Content-Type: application/json
 X-Signature: sha256=...

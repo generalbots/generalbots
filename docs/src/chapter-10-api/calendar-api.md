@@ -10,35 +10,25 @@ This API is planned for future development but is not currently available in Bot
 
 ## Planned Features
 
-The Calendar API will enable:
-- Event creation and management
-- Meeting scheduling
-- Availability checking
-- Recurring events
-- Calendar synchronization
-- Reminders and notifications
+The Calendar API will enable event creation and management, meeting scheduling, availability checking, recurring events, calendar synchronization, and reminders with notifications.
 
 ## Planned Endpoints
 
 ### Event Management
-- `POST /api/v1/calendar/events` - Create event
-- `GET /api/v1/calendar/events` - List events
-- `GET /api/v1/calendar/events/{event_id}` - Get event details
-- `PATCH /api/v1/calendar/events/{event_id}` - Update event
-- `DELETE /api/v1/calendar/events/{event_id}` - Delete event
+
+Event management endpoints handle the lifecycle of calendar events. Create events with `POST /api/v1/calendar/events`, list events with `GET /api/v1/calendar/events`, retrieve specific event details with `GET /api/v1/calendar/events/{event_id}`, update events with `PATCH /api/v1/calendar/events/{event_id}`, and delete events with `DELETE /api/v1/calendar/events/{event_id}`.
 
 ### Scheduling
-- `POST /api/v1/calendar/schedule` - Find available time slots
-- `POST /api/v1/calendar/meeting` - Schedule meeting
-- `GET /api/v1/calendar/availability` - Check availability
+
+Scheduling endpoints help coordinate meetings. Find available time slots with `POST /api/v1/calendar/schedule`, schedule meetings with `POST /api/v1/calendar/meeting`, and check availability with `GET /api/v1/calendar/availability`.
 
 ### Recurring Events
-- `POST /api/v1/calendar/events/recurring` - Create recurring event
-- `PATCH /api/v1/calendar/events/{event_id}/recurrence` - Update recurrence
+
+Recurring event endpoints manage events that repeat on a schedule. Create recurring events with `POST /api/v1/calendar/events/recurring` and update recurrence patterns with `PATCH /api/v1/calendar/events/{event_id}/recurrence`.
 
 ### Reminders
-- `POST /api/v1/calendar/events/{event_id}/reminders` - Add reminder
-- `GET /api/v1/calendar/reminders` - List upcoming reminders
+
+Reminder endpoints manage notifications for upcoming events. Add reminders with `POST /api/v1/calendar/events/{event_id}/reminders` and list upcoming reminders with `GET /api/v1/calendar/reminders`.
 
 ## Planned Integration with BASIC
 
@@ -63,6 +53,7 @@ SEND INVITES meeting_id
 ## Planned Data Models
 
 ### Event
+
 ```json
 {
   "event_id": "evt_123",
@@ -86,6 +77,7 @@ SEND INVITES meeting_id
 ```
 
 ### Availability
+
 ```json
 {
   "user_id": "user123",
@@ -101,80 +93,60 @@ SEND INVITES meeting_id
 ## Planned Features Detail
 
 ### Event Types
-- **Single Events**: One-time occurrences
-- **Recurring Events**: Daily, weekly, monthly patterns
-- **All-day Events**: Full day events without specific times
-- **Multi-day Events**: Events spanning multiple days
+
+The API will support several event types. Single events are one-time occurrences. Recurring events follow daily, weekly, or monthly patterns. All-day events span the full day without specific start and end times. Multi-day events extend across multiple consecutive days.
 
 ### Notification Methods
-- In-app notifications
-- Email reminders
-- SMS alerts (when configured)
-- Bot messages
+
+Notifications can be delivered through in-app notifications, email reminders, SMS alerts when configured, and bot messages through the chat interface.
 
 ### Calendar Views
-- Day view
-- Week view
-- Month view
-- Agenda view
+
+The API will support multiple calendar views including day view for detailed hourly scheduling, week view for weekly planning, month view for long-term visibility, and agenda view for a list-based perspective.
 
 ### Time Zone Support
-- User-specific time zones
-- Automatic DST handling
-- Cross-timezone meeting coordination
+
+Time zone handling will include user-specific time zones, automatic daylight saving time adjustments, and cross-timezone meeting coordination to ensure events display correctly for all participants.
 
 ### Integration Points
-- External calendar systems (Google, Outlook)
-- Video conferencing platforms
-- Task management system
-- Notification system
+
+The calendar system will integrate with external calendar systems like Google Calendar and Outlook, video conferencing platforms, the task management system, and the notification system for reminders.
 
 ## Implementation Considerations
 
-When implemented, the Calendar API will:
-
-1. **Use PostgreSQL** for event storage
-2. **Support iCal format** for import/export
-3. **Handle time zones** properly
-4. **Provide conflict detection** for scheduling
-5. **Include RBAC** for event management
-6. **Support delegation** for assistants
-7. **Enable calendar sharing** between users
+When implemented, the Calendar API will use PostgreSQL for event storage, support iCal format for import and export, handle time zones properly across all operations, provide conflict detection for scheduling, include role-based access control for event management, support delegation for assistants, and enable calendar sharing between users.
 
 ## Alternative Solutions
 
-Until the Calendar API is implemented, consider:
+Until the Calendar API is implemented, consider these alternatives.
 
-1. **External Calendar Services**
-   - Integrate with Google Calendar API
-   - Use Microsoft Graph API for Outlook
-   - Connect to CalDAV servers
+### External Calendar Services
 
-2. **Simple Scheduling in BASIC**
-   ```basic
-   ' Store appointments in bot memory
-   appointment = "Meeting with client at 2 PM"
-   SET BOT MEMORY "appointment_" + date, appointment
-   
-   ' Retrieve appointments
-   today_appointment = GET BOT MEMORY "appointment_" + TODAY()
-   IF today_appointment <> "" THEN
-       TALK "Today's appointment: " + today_appointment
-   END IF
-   ```
+You can integrate with external providers such as Google Calendar API, Microsoft Graph API for Outlook, or CalDAV servers for standards-based calendar access.
 
-3. **Task-based Scheduling**
-   - Use the Tasks API with due dates
-   - Create tasks for time-sensitive items
-   - Set reminders via scheduled BASIC scripts
+### Simple Scheduling in BASIC
+
+For basic appointment tracking, you can store appointments in bot memory:
+
+```basic
+' Store appointments in bot memory
+appointment = "Meeting with client at 2 PM"
+SET BOT MEMORY "appointment_" + date, appointment
+
+' Retrieve appointments
+today_appointment = GET BOT MEMORY "appointment_" + TODAY()
+IF today_appointment <> "" THEN
+    TALK "Today's appointment: " + today_appointment
+END IF
+```
+
+### Task-based Scheduling
+
+An alternative approach uses the Tasks API with due dates, creates tasks for time-sensitive items, and sets reminders via scheduled BASIC scripts.
 
 ## Future Integration
 
-The Calendar API will integrate with:
-- [Tasks API](./tasks-api.md) - Link tasks to calendar events
-- [Notifications API](./notifications-api.md) - Event reminders
-- [User API](./user-security.md) - User availability
-- Meeting API (future) - Video conferencing
+The Calendar API will integrate with the [Tasks API](./tasks-api.md) to link tasks to calendar events, the [Notifications API](./notifications-api.md) for event reminders, the [User API](./user-security.md) for user availability, and the Meeting API for video conferencing.
 
 ## Workaround Example
 

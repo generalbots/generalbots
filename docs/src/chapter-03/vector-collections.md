@@ -1,220 +1,85 @@
 # Vector Collections
 
-A **vector collection** is automatically generated from each folder in `.gbkb`. Each folder becomes a searchable collection that the LLM can use during conversations.
+This chapter explains how BotServer organizes knowledge into vector collections, the searchable units that power semantic retrieval. Understanding how collections work helps you structure documents effectively and optimize the knowledge your bots can access.
 
-## How Collections Work
+<img src="../assets/chapter-03/storage-breakdown.svg" alt="Storage Breakdown" style="max-height: 400px; width: 100%; object-fit: contain;">
 
-Each `.gbkb` folder is automatically:
-1. Scanned for documents (PDF, DOCX, TXT, HTML, MD)
-2. Text extracted from all files
-3. Split into chunks for processing
-4. Converted to vector embeddings using BGE model (replaceable)
-5. Made available for semantic search
+## From Folders to Collections
 
-## Folder Structure
+Vector collections emerge automatically from the folder structure within your .gbkb directory. Each folder you create becomes a distinct collection, indexed separately and activated independently. This direct mapping between physical organization and logical collections makes knowledge management intuitive—organize files into folders by topic, and those folders become the collections you reference in your scripts.
 
-```
-botname.gbkb/
-├── policies/        # Becomes "policies" collection
-├── procedures/      # Becomes "procedures" collection
-└── faqs/           # Becomes "faqs" collection
-```
+When BotServer encounters a .gbkb folder, it scans for documents in supported formats including PDF, DOCX, TXT, HTML, and Markdown. Each file's content is extracted, split into manageable chunks, converted to vector embeddings, and stored in the vector database. The folder name becomes the collection identifier you use with the USE KB keyword.
 
-## Using Collections
+This automatic process means no manual indexing configuration is required. Add files to a folder, and they become searchable. Remove files, and they disappear from search results. The system tracks file changes through hash comparisons, triggering reindexing only when content actually changes.
 
-Simply activate a collection with `USE KB`:
+## The Indexing Pipeline
 
-```basic
-USE KB "policies"
-' The LLM now has access to all documents in the policies folder
-' No need to explicitly search - happens automatically during responses
-```
+Understanding the indexing pipeline helps diagnose issues and optimize performance. When a folder is processed, the system first detects which files are new or modified since the last indexing run. This incremental approach avoids reprocessing unchanged content.
 
-## Multiple Collections
+For each file requiring processing, text extraction pulls readable content from the document regardless of its format. PDF extraction handles complex layouts, DOCX processing unwraps the underlying XML, and plain text formats are read directly. The extracted text preserves paragraph structure and meaningful breaks.
 
-Load multiple collections for comprehensive knowledge:
+The chunking phase splits long documents into smaller pieces suitable for embedding and retrieval. Each chunk contains approximately 500 tokens with overlap between adjacent chunks to preserve context across boundaries. This sizing balances granularity—enabling precise matches—against coherence—keeping related information together.
 
-```basic
-USE KB "policies"
-USE KB "procedures" 
-USE KB "faqs"
-' All three collections are now active
-' LLM searches across all when generating responses
-```
+Embedding generation converts each text chunk into a numerical vector representation. BotServer uses the BGE embedding model by default, producing 384-dimensional vectors that capture semantic meaning. These embeddings enable the similarity comparisons that power semantic search.
 
-## Automatic Document Indexing
+Finally, the vectors and their associated metadata are stored in the vector database, organized by collection. Each entry includes the embedding vector, the original text chunk, the source file path, and position information enabling reconstruction of context.
 
-Documents are indexed automatically when:
-- Files are added to `.gbkb` folders
-- `USE KB` is called for the first time
-- The system detects new or modified files
+## Working with Collections
 
-### Indexing Flow
+Activating a collection for use in conversations requires only the USE KB statement with the collection name matching the folder. Once activated, the collection becomes part of the knowledge available when answering questions.
 
-```
-     .gbkb/policies/
-           │
-           ├── vacation.pdf
-           ├── handbook.docx
-           └── rules.txt
-                │
-                ▼
-    ┌─────────────────────┐
-    │   File Detection    │
-    │  • New files found  │
-    │  • Hash comparison  │
-    └──────────┬──────────┘
-               │
-               ▼
-    ┌─────────────────────┐
-    │   Text Extraction   │
-    │  • PDF → Text       │
-    │  • DOCX → Text      │
-    │  • HTML → Text      │
-    └──────────┬──────────┘
-               │
-               ▼
-    ┌─────────────────────┐
-    │     Chunking        │
-    │  • Split by size    │
-    │  • Overlap windows  │
-    │  • ~500 tokens each │
-    └──────────┬──────────┘
-               │
-               ▼
-    ┌─────────────────────┐
-    │  Generate Embeddings│
-    │  • BGE Model        │
-    │  • 384 dimensions   │
-    │  • Batch processing │
-    └──────────┬──────────┘
-               │
-               ▼
-    ┌─────────────────────┐
-    │  Store in Vector DB │
-    │  • Vector storage   │
-    │  • Metadata tags    │
-    │  • Collection index │
-    └──────────┬──────────┘
-               │
-               ▼
-    ┌─────────────────────┐
-    │    Ready to Use     │
-    │  USE KB "policies"  │
-    └─────────────────────┘
-```
+Multiple collections can be active simultaneously, and the system searches across all of them when looking for relevant content. This capability allows bots to draw on diverse knowledge sources. A comprehensive assistant might activate employee policies, product documentation, and procedural guides, answering questions that span any combination of these areas.
+
+The CLEAR KB keyword deactivates collections, either removing all active collections at once or targeting specific ones by name. Clearing collections frees memory and focuses search results on remaining active knowledge. Scripts that handle diverse topics might activate and clear collections as the conversation shifts between subject areas.
+
+Collections operate at the session level, meaning activation persists until the session ends or the collection is explicitly cleared. Users can ask follow-up questions that build on retrieved knowledge without requiring reactivation between each query.
 
 ## Website Indexing
 
-To keep web content updated, schedule regular crawls:
+Beyond static documents, collections can include content crawled from websites. The USE WEBSITE keyword registers a URL for crawling, with the retrieved content becoming searchable alongside document-based collections.
 
-```basic
-' In update-content.bas
-SET SCHEDULE "0 3 * * *"  ' Run daily at 3 AM
-USE WEBSITE "https://example.com/docs"
-' Website is registered for crawling and will be available in conversations
-```
+For content that changes over time, scheduled crawling keeps the collection current. A script with SET SCHEDULE can periodically re-crawl websites, ensuring that the bot's knowledge reflects recent updates. This approach works well for documentation sites, knowledge bases, or any web content relevant to your bot's domain.
 
-## How Search Works
+Website content goes through the same indexing pipeline as documents—text extraction, chunking, embedding, and storage. The resulting collection is indistinguishable in use from document-based collections.
 
-When `USE KB` is active:
-1. User asks a question
-2. System automatically searches relevant collections
-3. Finds semantically similar content
-4. Injects relevant chunks into LLM context
-5. LLM generates response using the knowledge
+## How Search Utilizes Collections
 
-**Important**: Search happens automatically - you don't need to call any search function. Just activate the KB with `USE KB` and ask questions naturally.
+When a user asks a question and collections are active, the search process finds relevant content automatically. The system embeds the query using the same model that indexed the documents, ensuring that queries and content exist in the same semantic space.
 
-### Search Pipeline
+Vector similarity search identifies chunks whose embeddings are closest to the query embedding. The system retrieves the top matches from each active collection, then combines and ranks them by relevance. This process typically completes in milliseconds even for large collections.
 
-```
-"What's the vacation policy?"
-            │
-            ▼
-    ┌────────────────┐
-    │  Query Embed   │
-    │  BGE Model     │
-    └───────┬────────┘
-            │ [0.2, -0.5, 0.8, ...]
-            ▼
-    ┌────────────────┐
-    │  Vector Search │
-    │   Vector DB    │
-    │  Cosine Sim    │
-    └───────┬────────┘
-            │
-            ├─► Match 1: "Vacation days: 15 annually" (0.92)
-            ├─► Match 2: "PTO policy applies to..." (0.87)
-            └─► Match 3: "Time off requests via..." (0.83)
-                        │
-                        ▼
-            ┌──────────────────────┐
-            │   Context Building   │
-            │  • Top 5 matches     │
-            │  • 2000 tokens max   │
-            │  • Relevance sorted │
-            └──────────┬───────────┘
-                       │
-                       ▼
-            ┌──────────────────────┐
-            │      LLM Call        │
-            │  Context + Question  │
-            │  "Based on docs..."  │
-            └──────────┬───────────┘
-                       │
-                       ▼
-                 "You get 15 vacation days per year..."
-```
+The most relevant chunks become part of the context provided to the language model when generating a response. The model sees both the user's question and the retrieved information, enabling it to produce answers grounded in your organization's actual documentation.
 
-## Embeddings Configuration
+This entire process happens transparently. Developers don't write search queries or handle result sets. Users don't know that retrieval is occurring. The system simply provides knowledgeable responses informed by the activated collections.
 
-The system uses BGE embeddings by default:
+## Embedding Configuration
 
-```csv
-embedding-url,http://localhost:8082
-embedding-model,../../../../data/llm/bge-small-en-v1.5-f32.gguf
-```
+The embedding model determines how meaning is captured in vectors and significantly influences search quality. BotServer uses a locally-running BGE model by default, configured through the embedding URL and model path settings in config.csv.
 
-You can replace BGE with any compatible embedding model by changing the model path in config.csv.
+The default model provides good general-purpose performance for English content. Organizations with specialized vocabulary or multilingual requirements might benefit from alternative models. The embedding infrastructure supports any compatible model, allowing customization for specific domains.
 
-## Collection Management
+Changing embedding models requires reindexing existing collections since embeddings from different models aren't comparable. Plan model changes carefully, accounting for the reprocessing time required for large document collections.
 
-- `USE KB "name"` - Activates a collection for the session
-- `CLEAR KB` - Removes all active collections
-- `CLEAR KB "name"` - Removes a specific collection
+## Collection Management Practices
 
-## Best Practices
+Effective collection organization follows the principle of coherent groupings. Each folder should contain documents about a related topic area, enabling targeted activation. Overly broad collections that mix unrelated content produce noisier search results than focused collections containing cohesive material.
 
-1. **Organize by topic** - One folder per subject area
-2. **Name clearly** - Use descriptive folder names
-3. **Update regularly** - Schedule website crawls if using web content
-4. **Keep files current** - System auto-indexes changes
-5. **Don't overload** - Use only necessary collections per session
+Clear naming conventions help scripts remain readable and maintainable. Collection names should indicate their content clearly enough that someone reading a script understands what knowledge is being activated without examining the folder contents.
 
-## Example: Customer Support Bot
+Regular content maintenance keeps collections valuable. Remove outdated documents that might produce incorrect answers. Update files when information changes. Schedule website re-crawls frequently enough that cached content doesn't become stale.
 
-```
-support.gbkb/
-├── products/        # Product documentation
-├── policies/        # Company policies
-├── troubleshooting/ # Common issues and solutions
-└── contact/         # Contact information
-```
+Monitoring collection usage helps identify optimization opportunities. If certain collections are rarely activated, consider whether they should exist separately or merge into related collections. If search results frequently miss relevant content, examine whether documents are organized in ways that match how users think about topics.
 
-In your dialog:
-```basic
-' Activate all support knowledge
-USE KB "products"
-USE KB "troubleshooting"
-' Bot can now answer product questions and solve issues
-```
+## Performance Considerations
 
-## Performance Notes
+Collection size affects both memory usage and search performance. Larger collections require more storage for their embeddings and take longer to search, though the impact is usually modest given vector database optimizations. Very large collections might benefit from subdivision into more focused subcollections.
 
-- Collections are cached for fast access
-- Only active collections consume memory
-- Embeddings are generated once and reused
-- Changes trigger automatic re-indexing
+Active collection count influences context-building overhead. Each active collection contributes potential results that must be ranked and filtered. Activating only relevant collections for each conversation keeps search focused and efficient.
 
-No manual configuration needed - just organize your documents in folders and use `USE KB` to activate them!
+Embedding generation represents the primary indexing cost. Initial indexing of large document sets takes time proportional to total content size. Incremental updates process only changed files, making ongoing maintenance much faster than initial setup.
+
+Caching at multiple levels improves performance for common patterns. Frequently accessed chunks remain in memory. Repeated queries benefit from result caching. The system automatically manages these caches without requiring configuration.
+
+## Summary
+
+Vector collections bridge the gap between static documents and dynamic conversation knowledge. The automatic indexing pipeline transforms folder contents into searchable collections without requiring manual configuration. Simple activation through USE KB makes knowledge available, while the underlying vector search finds relevant content based on meaning rather than keywords. Thoughtful organization of documents into focused collections maximizes the value of this powerful capability.

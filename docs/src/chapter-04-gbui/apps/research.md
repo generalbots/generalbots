@@ -2,7 +2,7 @@
 
 > **Your intelligent research assistant**
 
-![Research Flow](../../assets/suite/research-flow.svg)
+<img src="../../assets/suite/research-flow.svg" alt="Research Flow Diagram" style="max-width: 100%; height: auto;">
 
 ---
 
@@ -12,118 +12,26 @@ Research is the AI-powered search and discovery app in General Bots Suite. Find 
 
 ---
 
-## Interface Layout
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Research                                      [History] [Settings] [×] │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  🔍 Ask anything...                                       [→]   │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  Search in:  [● All] [○ Web] [○ Documents] [○ Database]                │
-│                                                                         │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  📋 ANSWER                                                      │   │
-│  │  ─────────                                                       │   │
-│  │                                                                 │   │
-│  │  Renewable energy sources include solar, wind, hydroelectric,   │   │
-│  │  geothermal, and biomass. Solar energy has seen the fastest     │   │
-│  │  growth, with global capacity increasing 25% annually. Wind     │   │
-│  │  power is the second largest source of renewable electricity.   │   │
-│  │                                                                 │   │
-│  │  Key Statistics (2024):                                         │   │
-│  │  • Solar: 1,200 GW global capacity                              │   │
-│  │  • Wind: 900 GW global capacity                                 │   │
-│  │  • Hydro: 1,400 GW global capacity                              │   │
-│  │                                                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │  📚 SOURCES (5)                                    [Show More]  │   │
-│  │  ─────────────                                                   │   │
-│  │  1. Energy Report 2024.pdf - Company KB           [📄 View]     │   │
-│  │  2. IEA World Energy Outlook - iea.org            [🔗 Open]     │   │
-│  │  3. Renewable Growth Statistics - energy.gov      [🔗 Open]     │   │
-│  │  4. Internal Policy Document.docx - Company KB    [📄 View]     │   │
-│  │  5. Climate Action Report - unfccc.int            [🔗 Open]     │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  [📋 Copy Answer] [📄 Export] [💬 Ask Follow-up] [🔄 New Search]        │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Features
 
 ### Basic Search
 
 Just type your question in natural language:
 
-**Examples of questions you can ask:**
+**Example Questions:**
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                           EXAMPLE QUERIES                               │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  📊 Business Questions                                                  │
-│  • "What are our sales numbers for Q1 2025?"                           │
-│  • "Who are our top 10 customers by revenue?"                          │
-│  • "What's our refund policy?"                                         │
-│                                                                         │
-│  📚 Knowledge Questions                                                 │
-│  • "How does photosynthesis work?"                                     │
-│  • "What are the main causes of climate change?"                       │
-│  • "Explain blockchain technology"                                     │
-│                                                                         │
-│  🔍 Research Questions                                                  │
-│  • "Compare React vs Vue for web development"                          │
-│  • "What are the latest trends in AI?"                                 │
-│  • "Find studies about remote work productivity"                       │
-│                                                                         │
-│  📋 Document Questions                                                  │
-│  • "What does our employee handbook say about PTO?"                    │
-│  • "Find the budget approval process"                                  │
-│  • "What were the action items from last month's meeting?"             │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Category | Examples |
+|----------|----------|
+| **📊 Business** | "What are our sales numbers for Q1 2025?" |
+| **📚 Knowledge** | "How does photosynthesis work?" |
+| **🔍 Research** | "Compare React vs Vue for web development" |
+| **📋 Documents** | "What does our employee handbook say about PTO?" |
 
 ---
 
 ### Search Sources
 
 Choose where to search:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Search in:                                                             │
-│                                                                         │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐      │
-│  │     ● All        │  │     ○ Web        │  │   ○ Documents    │      │
-│  │  ───────────     │  │  ───────────     │  │  ───────────     │      │
-│  │  Search all      │  │  Search the      │  │  Search your     │      │
-│  │  available       │  │  internet for    │  │  knowledge       │      │
-│  │  sources         │  │  public info     │  │  base files      │      │
-│  └──────────────────┘  └──────────────────┘  └──────────────────┘      │
-│                                                                         │
-│  ┌──────────────────┐  ┌──────────────────┐                            │
-│  │   ○ Database     │  │   ○ Custom       │                            │
-│  │  ───────────     │  │  ───────────     │                            │
-│  │  Query your      │  │  Select          │                            │
-│  │  structured      │  │  specific        │                            │
-│  │  data            │  │  sources         │                            │
-│  └──────────────────┘  └──────────────────┘                            │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
 
 | Source | What It Searches | Best For |
 |--------|------------------|----------|
@@ -139,28 +47,29 @@ Choose where to search:
 
 Research doesn't just find links—it reads, understands, and summarizes:
 
-```
-You: What is our vacation policy?
-
-Research: 📋 ANSWER
-          ─────────
-          
-          According to your Employee Handbook (2024), the vacation 
-          policy is as follows:
-          
-          Full-Time Employees:
-          • 0-2 years: 15 days per year
-          • 2-5 years: 20 days per year
-          • 5+ years: 25 days per year
-          
-          Key Points:
-          • Vacation must be requested 2 weeks in advance
-          • Up to 5 days can be carried over to next year
-          • Unused days over the limit are forfeited
-          • Manager approval required for requests over 5 consecutive days
-          
-          📚 SOURCE: Employee_Handbook_2024.pdf, Page 23-24
-```
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>What is our vacation policy?</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📋 <strong>Answer:</strong></p>
+      <p>According to your Employee Handbook (2024), the vacation policy is:</p>
+      <p><strong>Full-Time Employees:</strong></p>
+      <p>• 0-2 years: 15 days per year</p>
+      <p>• 2-5 years: 20 days per year</p>
+      <p>• 5+ years: 25 days per year</p>
+      <p><strong>Key Points:</strong></p>
+      <p>• Vacation must be requested 2 weeks in advance</p>
+      <p>• Up to 5 days can be carried over to next year</p>
+      <p>📚 Source: Employee_Handbook_2024.pdf, Page 23-24</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -168,31 +77,38 @@ Research: 📋 ANSWER
 
 Continue your research with follow-up questions:
 
-```
-You: What are the main benefits of solar energy?
-
-Research: [Shows answer about solar energy benefits...]
-
-You: How does it compare to wind energy?
-
-Research: 📋 COMPARING SOLAR VS WIND ENERGY
-          ──────────────────────────────────
-          
-          Based on your previous question, here's a comparison:
-          
-          ┌────────────────┬─────────────────┬─────────────────┐
-          │ Factor         │ Solar           │ Wind            │
-          ├────────────────┼─────────────────┼─────────────────┤
-          │ Installation   │ Rooftops, land  │ Open areas      │
-          │ Consistency    │ Daylight hours  │ Variable        │
-          │ Maintenance    │ Lower           │ Moderate        │
-          │ Cost/kWh       │ $0.03-0.06      │ $0.02-0.05      │
-          │ Lifespan       │ 25-30 years     │ 20-25 years     │
-          └────────────────┴─────────────────┴─────────────────┘
-          
-          Both are excellent renewable options. Solar is better for
-          individual buildings, while wind is more efficient at scale.
-```
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>What are the main benefits of solar energy?</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>Solar energy offers several key benefits: renewable and sustainable, reduces electricity bills, low maintenance costs, and decreases carbon footprint...</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>How does it compare to wind energy?</p>
+      <div class="wa-time">10:31</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📋 <strong>Comparing Solar vs Wind Energy:</strong></p>
+      <p>Based on your previous question, here's a comparison:</p>
+      <p>• <strong>Installation:</strong> Solar on rooftops/land, Wind in open areas</p>
+      <p>• <strong>Consistency:</strong> Solar during daylight, Wind is variable</p>
+      <p>• <strong>Maintenance:</strong> Solar is lower, Wind is moderate</p>
+      <p>• <strong>Cost/kWh:</strong> Solar $0.03-0.06, Wind $0.02-0.05</p>
+      <p>Both are excellent renewable options. Solar is better for individual buildings, while wind is more efficient at scale.</p>
+      <div class="wa-time">10:31</div>
+    </div>
+  </div>
+</div>
 
 ---
 
@@ -200,29 +116,16 @@ Research: 📋 COMPARING SOLAR VS WIND ENERGY
 
 Every answer includes citations so you can verify:
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  📚 SOURCES                                                             │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Internal Documents:                                                    │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ 📄 Employee_Handbook_2024.pdf                                   │   │
-│  │    Location: Company KB / HR / Policies                         │   │
-│  │    Relevant pages: 23-24                                        │   │
-│  │    [View Document] [Copy Citation]                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  Web Sources:                                                           │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ 🔗 Department of Energy - Renewable Energy Basics               │   │
-│  │    URL: energy.gov/renewable-energy                             │   │
-│  │    Retrieved: May 15, 2025                                      │   │
-│  │    [Open Link] [Copy Citation]                                  │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Source Type | Information Provided |
+|-------------|---------------------|
+| **Internal Documents** | File name, location, relevant pages |
+| **Web Sources** | URL, retrieval date, site name |
+| **Database** | Table name, query used |
+
+**Actions available:**
+- **View Document** - Open the source file
+- **Open Link** - Navigate to web source
+- **Copy Citation** - Copy formatted citation
 
 ---
 
@@ -234,43 +137,16 @@ Access your previous searches:
 2. Browse or search past queries
 3. Click to revisit any search
 
-```
-┌─────────────────────────────────────────┐
-│  Research History               [×]     │
-├─────────────────────────────────────────┤
-│  🔍 Search history...                   │
-├─────────────────────────────────────────┤
-│                                         │
-│  TODAY                                  │
-│  ─────                                  │
-│  • "vacation policy"           2:30 PM  │
-│  • "Q1 sales report"          11:15 AM  │
-│  • "competitor analysis"       9:45 AM  │
-│                                         │
-│  YESTERDAY                              │
-│  ─────────                              │
-│  • "renewable energy trends"   4:20 PM  │
-│  • "project timeline"          2:00 PM  │
-│                                         │
-│  LAST WEEK                              │
-│  ─────────                              │
-│  • "budget approval process"            │
-│  • "customer feedback summary"          │
-│  • "marketing strategy 2025"            │
-│                                         │
-│  [Clear History]                        │
-│                                         │
-└─────────────────────────────────────────┘
-```
+History is organized by:
+- **Today** - Recent searches
+- **Yesterday** - Previous day
+- **Last Week** - Older searches
 
 ---
 
 ### Export Results
 
 Save your research for later use:
-
-1. Click **📄 Export**
-2. Choose format:
 
 | Format | Best For |
 |--------|----------|
@@ -279,31 +155,11 @@ Save your research for later use:
 | **Word** | Reports, editing |
 | **Copy to Paper** | Continue writing |
 
-```
-┌─────────────────────────────────────────┐
-│  Export Research                  [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  Include:                               │
-│  ☑ Answer                               │
-│  ☑ Sources with citations               │
-│  ☐ Search query                         │
-│  ☐ Timestamp                            │
-│                                         │
-│  Format:                                │
-│  ┌─────────┐  ┌─────────┐              │
-│  │   PDF   │  │  Word   │              │
-│  └─────────┘  └─────────┘              │
-│  ┌─────────┐  ┌─────────┐              │
-│  │Markdown │  │  Paper  │              │
-│  └─────────┘  └─────────┘              │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │          Export                 │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-└─────────────────────────────────────────┘
-```
+**Export Options:**
+- Include answer
+- Include sources with citations
+- Include search query
+- Include timestamp
 
 ---
 
@@ -324,20 +180,9 @@ Use operators for more precise searches:
 
 **Examples:**
 
-```
-"quarterly report" AND sales date:2025
-```
-Finds documents with exact phrase "quarterly report" AND the word "sales" from 2025
+`"quarterly report" AND sales date:2025` - Finds documents with exact phrase "quarterly report" AND the word "sales" from 2025
 
-```
-project proposal NOT draft type:pdf
-```
-Finds PDF files about project proposals, excluding drafts
-
-```
-budget in:documents site:finance
-```
-Searches documents in the finance folder for budget information
+`project proposal NOT draft type:pdf` - Finds PDF files about project proposals, excluding drafts
 
 ---
 
@@ -472,7 +317,7 @@ Use Research in your bot dialogs:
 
 ### Basic Search
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/research-basic.basic
 HEAR question AS TEXT "What would you like to know?"
 
 result = SEARCH question
@@ -487,7 +332,7 @@ NEXT
 
 ### Search Specific Sources
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/research-sources.basic
 ' Search only documents
 result = SEARCH "vacation policy" IN "documents"
 
@@ -500,7 +345,7 @@ result = SEARCH "product specs" IN "products.gbkb"
 
 ### Research with Follow-up
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/research-followup.basic
 TALK "What would you like to research?"
 HEAR topic AS TEXT
 
@@ -520,7 +365,7 @@ TALK "Research complete!"
 
 ### Export Research
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/research-export.basic
 HEAR query AS TEXT "What should I research?"
 
 result = SEARCH query
@@ -539,7 +384,7 @@ TALK "Research saved to Paper"
 
 ### Automated Research Report
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/research-report.basic
 topics = ["market trends", "competitor analysis", "customer feedback"]
 
 report = ""

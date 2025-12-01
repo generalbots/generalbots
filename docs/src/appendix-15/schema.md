@@ -4,11 +4,7 @@ General Bots uses PostgreSQL as its primary database with Diesel ORM for type-sa
 
 ## Core Architecture
 
-The database schema follows these design principles:
-- **UUID Primary Keys**: All tables use UUIDs for globally unique identifiers
-- **Timestamps**: Created/updated timestamps for audit trails
-- **Foreign Key Relationships**: Referential integrity between related entities
-- **JSON Fields**: Flexible storage for dynamic configuration and metadata
+The database schema follows several key design principles. All tables use UUID primary keys for globally unique identifiers that work across distributed systems. Created and updated timestamps provide audit trails for tracking data changes. Foreign key relationships maintain referential integrity between related entities. JSON fields offer flexible storage for dynamic configuration and metadata that doesn't fit rigid schema definitions.
 
 ## Database Schema Diagram
 
@@ -23,176 +19,108 @@ The database schema follows these design principles:
 
 ## Schema Categories
 
-### 1. Organization & Bot Management
-- **organizations**: Multi-tenant organization support
-- **bots**: Bot instances and configurations
-- **bot_configuration**: Bot-specific settings and parameters
-- **bot_memories**: Persistent key-value storage for bots
+### Organization & Bot Management
 
-### 2. User & Authentication
-- **users**: User accounts with secure password storage
-- **user_sessions**: Active user sessions with tokens
-- **user_login_tokens**: Authentication tokens for login
-- **user_preferences**: User-specific settings
+The `organizations` table provides multi-tenant organization support, isolating data between different customers or deployments. The `bots` table stores bot instances and their configurations. The `bot_configuration` table contains bot-specific settings and parameters. The `bot_memories` table provides persistent key-value storage for bots to maintain state across sessions.
 
-### 3. Conversation & Messaging
-- **message_history**: Complete conversation history
-- **clicks**: User interaction tracking
-- **system_automations**: Scheduled tasks and automation rules
+### User & Authentication
 
-### 4. Knowledge Base
-- **kb_collections**: Knowledge base collection definitions
-- **kb_documents**: Documents stored in collections
-- **user_kb_associations**: User access to knowledge bases
-- **session_tool_associations**: Tools available in sessions
+The `users` table stores user accounts with secure password storage using Argon2 hashing. The `user_sessions` table tracks active user sessions with authentication tokens. The `user_login_tokens` table manages authentication tokens for login flows. The `user_preferences` table contains user-specific settings and customizations.
 
-### 5. Tools & Integration
-- **basic_tools**: BASIC script tool definitions
-- **user_email_accounts**: Email integration accounts
-- **email_drafts**: Draft emails
-- **email_folders**: Email folder organization
+### Conversation & Messaging
+
+The `message_history` table maintains complete conversation history between users and bots. The `clicks` table tracks user interaction events for analytics. The `system_automations` table stores scheduled tasks and automation rules that run without user intervention.
+
+### Knowledge Base
+
+The `kb_collections` table defines knowledge base collection containers. The `kb_documents` table stores documents within those collections. The `user_kb_associations` table manages user access permissions to knowledge bases. The `session_tool_associations` table tracks which tools are available within specific sessions.
+
+### Tools & Integration
+
+The `basic_tools` table stores BASIC script tool definitions compiled from `.bas` files. The `user_email_accounts` table manages email integration accounts for users. The `email_drafts` table stores draft emails being composed. The `email_folders` table organizes email folder structures.
 
 ## Table Relationships
 
-### Session Management Flow
 ### Session Flow
 
 <img src="./assets/session-flow.svg" alt="Session Flow Diagram" style="max-height: 400px; width: 100%; object-fit: contain;">
 
-### Knowledge Base Access Pattern
 ### Knowledge Base Access
 
 <img src="./assets/kb-access.svg" alt="Knowledge Base Access" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 ### Primary Relationships
 
-1. **Bot Hierarchy**
-   - organizations (1) → (N) bots
-   - bots (1) → (N) bot_configuration
-   - bots (1) → (N) bot_memories
+The bot hierarchy establishes that organizations contain multiple bots in a one-to-many relationship. Each bot has multiple configuration entries and memories associated with it.
 
-2. **User Sessions**
-   - users (1) → (N) user_sessions
-   - user_sessions (1) → (N) message_history
-   - bots (1) → (N) user_sessions
+User sessions connect users to bots through the session table. Users can have multiple sessions, and each session maintains its own message history. Bots also connect to sessions, enabling the many-to-many relationship between users and bots.
 
-3. **Knowledge Management**
-   - bots (1) → (N) kb_collections
-   - kb_collections (1) → (N) kb_documents
-   - user_sessions (1) → (N) user_kb_associations
+Knowledge management links bots to knowledge base collections, with each collection containing multiple documents. Sessions associate with knowledge bases through the user_kb_associations table.
 
-4. **Tool Associations**
-   - bots (1) → (N) basic_tools
-   - user_sessions (1) → (N) session_tool_associations
+Tool associations connect bots to their defined tools, and sessions link to available tools through the session_tool_associations junction table.
 
 ## Data Types
 
-### Common Field Types
-- **UUID**: Primary keys and foreign key references
-- **Text**: Variable-length string data
-- **Varchar**: Fixed-length strings for codes and identifiers
-- **Timestamptz**: Timestamps with timezone
-- **Jsonb**: JSON data for flexible schemas
-- **Boolean**: Binary flags and settings
-- **Integer**: Counters and numeric values
+The schema uses several PostgreSQL data types throughout. UUID fields serve as primary keys and foreign key references for globally unique identification. Text fields store variable-length string data without length constraints. Varchar fields hold fixed-length strings for codes and identifiers. Timestamptz fields store timestamps with timezone information for accurate time tracking across regions. Jsonb fields provide JSON storage with indexing capabilities for flexible schemas. Boolean fields represent binary flags and settings. Integer fields store counters and numeric values.
 
 ## Indexing Strategy
 
-### Primary Indexes
-- All primary keys (id fields)
-- Foreign key relationships
-- Timestamp fields for time-based queries
-- Session tokens for authentication
+Primary indexes exist on all id fields serving as primary keys. Foreign key relationships receive indexes for efficient joins. Timestamp fields are indexed to support time-based queries. Session tokens have indexes for fast authentication lookups.
 
-### Composite Indexes
-- (bot_id, user_id) for session lookup
-- (collection_id, document_id) for knowledge retrieval
-- (user_id, created_at) for history queries
+Composite indexes optimize common query patterns. The combination of bot_id and user_id enables efficient session lookup. Collection_id with document_id accelerates knowledge retrieval. User_id paired with created_at supports history queries ordered by time.
 
 ## Migration Management
 
-Database migrations are managed through Diesel's migration system:
-- Migrations stored in `migrations/` directory
-- Each migration has up.sql and down.sql
-- Version tracking in `__diesel_schema_migrations` table
-- Automatic migration on bootstrap
+Database migrations are managed through Diesel's migration system. Migrations reside in the `migrations/` directory with each migration containing both up.sql and down.sql files for applying and reverting changes. Version tracking occurs in the `__diesel_schema_migrations` table. The bootstrap process automatically applies pending migrations on startup.
 
 ## Performance Considerations
 
 ### Connection Pooling
-- Default pool size: 10 connections
-- Configurable via environment variables
-- Automatic connection recycling
+
+The default connection pool maintains 10 connections to balance resource usage with concurrency. Pool size is configurable via environment variables for different deployment scales. Automatic connection recycling prevents stale connections from causing issues.
 
 ### Query Optimization
-- Prepared statements for repeated queries
-- Batch operations for bulk inserts
-- Lazy loading for related entities
-- Pagination for large result sets
+
+Prepared statements cache query plans for repeated queries, improving performance. Batch operations handle bulk inserts efficiently rather than individual row insertions. Lazy loading defers loading of related entities until needed. Pagination limits result sets to manageable sizes for large tables.
 
 ### Data Retention
-- Message history retention configurable
-- Automatic cleanup of expired sessions
-- Archival strategy for old conversations
+
+Message history retention is configurable to balance storage costs with historical needs. Automatic cleanup removes expired sessions to free resources. An archival strategy moves old conversations to cold storage while maintaining accessibility.
 
 ## Security Features
 
 ### Data Protection
-- Argon2 hashing for passwords
-- AES-GCM encryption for sensitive fields
-- Secure random tokens for sessions
-- SQL injection prevention via Diesel
+
+Password hashing uses the Argon2 algorithm for strong protection against brute-force attacks. AES-GCM encryption protects sensitive fields at rest. Secure random token generation creates unpredictable session identifiers. Diesel's parameterized queries prevent SQL injection attacks.
 
 ### Access Control
-- Row-level security via application logic
-- User isolation by session
-- Bot isolation by organization
-- Audit logging for sensitive operations
+
+Row-level security is implemented through application logic that filters queries by user context. User isolation ensures sessions only access their own data. Bot isolation separates data by organization to prevent cross-tenant access. Audit logging records sensitive operations for compliance and security review.
 
 ## Backup Strategy
 
 ### Backup Types
-- Full database dumps
-- Incremental WAL archiving
-- Point-in-time recovery support
-- Cross-region replication (optional)
+
+Full database dumps capture complete point-in-time snapshots. Incremental WAL archiving provides continuous backup with minimal storage overhead. Point-in-time recovery support enables restoration to any moment within the retention window. Cross-region replication offers disaster recovery capabilities for critical deployments.
 
 ### Restore Procedures
-- Automated restore testing
-- Version compatibility checks
-- Data integrity validation
-- Zero-downtime migration support
+
+Automated restore testing validates backup integrity on a regular schedule. Version compatibility checks ensure backups restore correctly to the current schema. Data integrity validation confirms restored data matches expected checksums. Zero-downtime migration support enables schema changes without service interruption.
 
 ## Monitoring
 
 ### Key Metrics
-- Connection pool usage
-- Query execution time
-- Table sizes and growth
-- Index effectiveness
-- Lock contention
+
+Connection pool usage indicates whether the pool size needs adjustment. Query execution time reveals slow queries requiring optimization. Table sizes and growth rates inform capacity planning. Index effectiveness metrics show whether indexes are being utilized. Lock contention monitoring identifies concurrency bottlenecks.
 
 ### Health Checks
-- Database connectivity
-- Migration status
-- Replication lag (if applicable)
-- Storage usage
+
+Database connectivity verification ensures the connection pool can reach PostgreSQL. Migration status checks confirm all migrations have been applied. Replication lag monitoring applies to deployments with read replicas. Storage usage tracking prevents disk space exhaustion.
 
 ## Best Practices
 
-1. **Always use migrations** for schema changes
-2. **Never modify production data** directly
-3. **Test migrations** in development first
-4. **Monitor performance** metrics regularly
-5. **Plan capacity** based on growth projections
-6. **Document changes** in migration files
-7. **Use transactions** for data consistency
-8. **Implement retry logic** for transient failures
+Always use migrations for schema changes rather than manual DDL to maintain consistency across environments. Never modify production data directly through SQL clients to avoid bypassing application logic. Test migrations in development first to catch issues before they affect production. Monitor performance metrics regularly to identify degradation early. Plan capacity based on growth projections to avoid emergency scaling. Document changes in migration files with comments explaining the purpose of each change. Use transactions for data consistency when multiple tables must be updated together. Implement retry logic for transient failures like connection timeouts or deadlocks.
 
 ## Future Considerations
 
-- Partitioning for large tables (message_history)
-- Read replicas for scaling
-- Time-series optimization for metrics
-- Full-text search indexes
-- Graph relationships for advanced queries
+Partitioning for large tables like message_history would improve query performance and enable efficient data archival. Read replicas could scale read-heavy workloads across multiple database instances. Time-series optimization for metrics data would support analytics features. Full-text search indexes would enable natural language queries against stored content. Graph relationships could support advanced queries for interconnected data like conversation flows.

@@ -1,141 +1,84 @@
 # Document Indexing
 
-Document indexing in BotServer is automatic. When documents are added to `.gbkb` folders, they are processed and made searchable without any manual configuration.
+Documents in `.gbkb` folders are indexed automatically. No manual configuration required.
 
-## Automatic Indexing
+## Automatic Triggers
 
-The system automatically indexes documents when:
-- Files are added to any `.gbkb` folder
-- `USE KB` is called for a collection
-- Files are modified or updated
-- `USE WEBSITE` registers websites for crawling (preprocessing) and associates them with sessions (runtime)
+Indexing occurs when:
+- Files added to `.gbkb` folders
+- Files modified or updated
+- `USE KB` called for a collection
+- `USE WEBSITE` registers URLs for crawling
 
-## How Indexing Works
+## Processing Pipeline
 
-1. **Document Detection** - System scans `.gbkb` folders for files
-2. **Text Extraction** - Content extracted from PDF, DOCX, HTML, MD, TXT
-3. **Chunking** - Text split into manageable segments
-4. **Embedding Generation** - Chunks converted to vectors using BGE model
-5. **Storage** - Vectors stored for semantic search
+```
+Document → Extract Text → Chunk → Embed → Store in Qdrant
+```
+
+| Stage | Description |
+|-------|-------------|
+| **Extract** | Pull text from PDF, DOCX, HTML, MD, TXT, CSV |
+| **Chunk** | Split into ~500 token segments with 50 token overlap |
+| **Embed** | Generate vectors using BGE model |
+| **Store** | Save to Qdrant with metadata |
 
 ## Supported File Types
 
-- **PDF** - Full text extraction
-- **DOCX** - Microsoft Word documents
-- **TXT** - Plain text files
-- **HTML** - Web pages (text only)
-- **MD** - Markdown documents
-- **CSV** - Structured data
+| Format | Notes |
+|--------|-------|
+| PDF | Full text extraction, OCR for scanned docs |
+| DOCX | Microsoft Word documents |
+| TXT/MD | Plain text and Markdown |
+| HTML | Web pages (text only) |
+| CSV/JSON | Structured data |
 
 ## Website Indexing
 
-To keep web content fresh, schedule regular crawls:
+Schedule regular crawls for web content:
 
 ```basic
-' In update-docs.bas
-SET SCHEDULE "0 2 * * *"  ' Run daily at 2 AM
-
+SET SCHEDULE "0 2 * * *"  ' Daily at 2 AM
 USE WEBSITE "https://docs.example.com"
-' Website is registered for crawling during preprocessing
-' At runtime, it associates the crawled content with the session
 ```
 
-### Scheduling Options
+### Schedule Examples
 
-```basic
-SET SCHEDULE "0 * * * *"     ' Every hour
-SET SCHEDULE "*/30 * * * *"  ' Every 30 minutes
-SET SCHEDULE "0 0 * * 0"     ' Weekly on Sunday
-SET SCHEDULE "0 0 1 * *"     ' Monthly on the 1st
-```
-
-## Real-Time Updates
-
-Documents are re-indexed automatically when:
-- File content changes
-- New files appear in folders
-- Files are deleted (removed from index)
-
-## Using Indexed Content
-
-Once indexed, content is automatically available:
-
-```basic
-USE KB "documentation"
-' All documents in the documentation folder are now searchable
-' The LLM will use this knowledge when answering questions
-```
-
-You don't need to explicitly search - the system does it automatically when generating responses.
+| Pattern | Frequency |
+|---------|-----------|
+| `"0 * * * *"` | Hourly |
+| `"*/30 * * * *"` | Every 30 minutes |
+| `"0 0 * * 0"` | Weekly (Sunday) |
+| `"0 0 1 * *"` | Monthly (1st) |
 
 ## Configuration
 
-Indexing uses settings from `config.csv`:
+In `config.csv`:
 
 ```csv
+name,value
 embedding-url,http://localhost:8082
 embedding-model,../../../../data/llm/bge-small-en-v1.5-f32.gguf
 ```
 
-The BGE embedding model can be replaced with any compatible model.
+## Using Indexed Content
 
-## Performance Optimization
-
-The system optimizes indexing by:
-- Processing only changed files
-- Caching embeddings
-- Parallel processing when possible
-- Incremental updates
-
-## Example: Knowledge Base Maintenance
-
-Structure your knowledge base:
-```
-company.gbkb/
-├── products/
-│   ├── manual-v1.pdf
-│   └── specs.docx
-├── policies/
-│   ├── hr-policy.pdf
-│   └── it-policy.md
-└── news/
-    └── updates.html
-```
-
-Schedule regular web updates:
 ```basic
-' In maintenance.bas
-SET SCHEDULE "0 1 * * *"
-
-' Register websites for crawling
-USE WEBSITE "https://company.com/news"
-USE WEBSITE "https://company.com/products"
-' Websites are crawled by background service
+USE KB "documentation"
+' All documents now searchable
+' LLM uses this knowledge automatically
 ```
-
-## Best Practices
-
-1. **Organize documents** by topic in separate folders
-2. **Schedule updates** for web content
-3. **Keep files updated** - system handles re-indexing
-4. **Monitor folder sizes** - very large collections may impact performance
-5. **Use clear naming** - helps with organization
 
 ## Troubleshooting
 
-### Documents Not Appearing
-- Check file is in a `.gbkb` folder
-- Verify file type is supported
-- Ensure `USE KB` was called for that collection
+| Issue | Solution |
+|-------|----------|
+| Documents not found | Check file is in `.gbkb` folder, verify `USE KB` called |
+| Slow indexing | Large PDFs take time; consider splitting documents |
+| Outdated content | Set up scheduled crawls for web content |
 
-### Slow Indexing
-- Large PDFs may take time to process
-- Consider splitting very large documents
-- Check available system resources
+## See Also
 
-### Outdated Content
-- Set up scheduled crawls for web content
-- Ensure files are being updated
-- Check that re-indexing is triggered
-
-Remember: Indexing is automatic - just add documents to folders and use `USE KB` to activate them!
+- [Knowledge Base System](./README.md) - Architecture overview
+- [Semantic Search](./semantic-search.md) - How search works
+- [Vector Collections](./vector-collections.md) - Collection management

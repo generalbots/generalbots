@@ -4,73 +4,51 @@ BotServer is a single Rust crate (not a workspace) with multiple modules. The ap
 
 ## Main Entry Points
 
-- **`src/main.rs`** - Application entry point, starts the Axum web server and initializes all components
-- **`src/lib.rs`** - Public library interface, exports all major modules
+The primary entry point is `src/main.rs`, which starts the Axum web server and initializes all components. The public library interface in `src/lib.rs` exports all major modules for external use.
 
 ## Core Modules
 
 The following modules are exported in `src/lib.rs` and comprise the core functionality:
 
 ### User & Bot Management
-- **`auth`** - User authentication, password hashing (Argon2), session token management
-- **`bot`** - Bot lifecycle, configuration, and management
-- **`session`** - User session handling and state management
+
+The `auth` module handles user authentication, password hashing using Argon2, and session token management. The `bot` module manages bot lifecycle, configuration, and runtime operations. The `session` module provides user session handling and state management across conversations.
 
 ### Conversation & Scripting
-- **`basic`** - BASIC-like scripting language interpreter for `.gbdialog` files
-- **`context`** - Conversation context and memory management
-- **`channels`** - Multi-channel support (web, voice, messaging platforms)
+
+The `basic` module implements the BASIC-like scripting language interpreter for `.gbdialog` files. The `context` module manages conversation context and memory throughout user interactions. The `channels` module provides multi-channel support for web, voice, and various messaging platforms.
 
 ### Knowledge & AI
-- **`llm`** - LLM provider integration (OpenAI, local models)
-- **`llm_models`** - Model-specific implementations and configurations
-- **`nvidia`** - NVIDIA GPU acceleration support
+
+The `llm` module provides LLM provider integration for OpenAI and local models. The `llm_models` module contains model-specific implementations and configurations. The `nvidia` module offers NVIDIA GPU acceleration support for local inference.
 
 ### Infrastructure
-- **`bootstrap`** - System initialization and auto-bootstrap process
-- **`package_manager`** - Component installation and lifecycle management
-- **`config`** - Application configuration and environment management
-- **`shared`** - Shared utilities, database models, and common types
-- **`web_server`** - Axum-based HTTP server and API endpoints
+
+The `bootstrap` module handles system initialization and the auto-bootstrap process. The `package_manager` module manages component installation and lifecycle. The `config` module provides application configuration and environment management. The `shared` module contains shared utilities, database models, and common types used throughout the codebase. The `web_server` module implements the Axum-based HTTP server and API endpoints.
 
 ### Features & Integration
-- **`automation`** - Scheduled tasks and event-driven triggers
-- **`drive_monitor`** - File system monitoring and change detection
-- **`email`** - Email integration (IMAP/SMTP) - conditional feature
-- **`file`** - File handling and processing
-- **`meet`** - Video meeting integration (LiveKit)
+
+The `automation` module provides scheduled tasks and event-driven triggers. The `drive_monitor` module handles file system monitoring and change detection. The `email` module provides email integration via IMAP and SMTP as a conditional feature. The `file` module handles file processing and operations. The `meet` module integrates video meeting functionality through LiveKit.
 
 ### Testing & Development
-- **`tests`** - Test utilities and test suites
+
+The `tests` module contains test utilities and test suites for validating functionality across the codebase.
 
 ## Internal Modules
 
-The following directories exist in `src/` but are either internal implementations or not fully integrated:
+Several directories exist in `src/` that are either internal implementations or not fully integrated into the public API.
 
-- **`api/`** - Contains `api/drive` subdirectory with drive-related API code
-- **`drive/`** - Drive (S3-compatible) integration and vector database (`vectordb.rs`)
-- **`ui/`** - UI-related modules (`drive.rs`, `stream.rs`, `sync.rs`, `local-sync.rs`)
-- **`ui_tree/`** - UI tree structure (used in main.rs but not exported in lib.rs)
-- **`prompt_manager/`** - Prompt library storage (not a Rust module, contains `prompts.csv`)
-- **`riot_compiler/`** - Riot.js component compiler (exists but unused)
-- **`web_automation/`** - Empty directory (placeholder for future functionality)
+The `api/` directory contains the `api/drive` subdirectory with drive-related API code. The `drive/` directory provides drive (S3-compatible) integration and vector database functionality through `vectordb.rs`. The `ui/` directory contains UI-related modules including `drive.rs`, `stream.rs`, `sync.rs`, and `local-sync.rs`. The `ui_tree/` directory provides UI tree structure functionality used in main.rs but not exported in lib.rs. The `prompt_manager/` directory stores the prompt library and is not a Rust module but contains `prompts.csv`. The `riot_compiler/` directory contains a Riot.js component compiler that exists but is currently unused. The `web_automation/` directory is an empty placeholder for future functionality.
 
 ## Dependency Management
 
-All dependencies are managed through a single `Cargo.toml` at the project root. Key dependencies include:
+All dependencies are managed through a single `Cargo.toml` at the project root.
 
-- **Web Framework**: `axum`, `tower`, `tower-http`
-- **Async Runtime**: `tokio`
-- **Database**: `diesel` (PostgreSQL), `redis` (cache component client)
-- **AI/ML**: `qdrant-client` (vector DB, optional feature)
-- **Storage**: `aws-sdk-s3` (drive/S3 compatible)
-- **Scripting**: `rhai` (BASIC-like language runtime)
-- **Security**: `argon2` (password hashing), `aes-gcm` (encryption)
-- **Desktop**: `tauri` (optional desktop feature)
+The web framework layer uses `axum`, `tower`, and `tower-http` for HTTP handling. The async runtime is `tokio` for concurrent operations. Database access uses `diesel` for PostgreSQL and `redis` for cache component connectivity. AI and ML functionality relies on `qdrant-client` for vector database operations as an optional feature. Storage operations use `aws-sdk-s3` for drive and S3-compatible storage backends. Scripting uses `rhai` as the BASIC-like language runtime. Security features include `argon2` for password hashing and `aes-gcm` for encryption. Desktop support uses `tauri` as an optional feature.
 
 ## Feature Flags
 
-The crate supports optional features:
+The crate supports optional features for customizing builds:
 
 ```toml
 [features]
@@ -82,7 +60,7 @@ desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 
 ## Building
 
-To build the project:
+To build the project with different configurations:
 
 ```bash
 # Standard build
@@ -100,12 +78,4 @@ cargo build --release --all-features
 
 ## Module Organization Pattern
 
-Most modules follow this structure:
-
-```
-src/module_name/
-├── mod.rs              # Main module implementation
-└── module_name.test.rs # Module-specific tests
-```
-
-Some modules have additional submodules or specialized files (e.g., `drive/vectordb.rs`, `ui/drive.rs`).
+Most modules follow a consistent structure with a `mod.rs` file containing the main module implementation and a `module_name.test.rs` file for module-specific tests. Some modules have additional submodules or specialized files such as `drive/vectordb.rs` and `ui/drive.rs` for feature-specific functionality.

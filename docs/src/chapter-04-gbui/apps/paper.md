@@ -2,51 +2,13 @@
 
 > **Your intelligent document editor**
 
-![Paper Flow](../../assets/suite/paper-flow.svg)
+<img src="../../assets/suite/paper-flow.svg" alt="Paper Flow Diagram" style="max-width: 100%; height: auto;">
 
 ---
 
 ## Overview
 
 Paper is the AI-powered writing app in General Bots Suite. Create documents, reports, letters, and more with help from your AI assistant. Paper understands context, suggests improvements, and helps you write faster and better.
-
----
-
-## Interface Layout
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Paper                              [Share] [Export ▼] [⚙️]       [×]   │
-├──────────────┬──────────────────────────────────────────────────────────┤
-│              │  ┌─────────────────────────────────────────────────────┐ │
-│  DOCUMENTS   │  │ B  I  U  S  │ H1 H2 H3 │ • ≡ ☐ │ 🔗 📷 📊 │ ✨ AI │ │
-│  ───────────  │  └─────────────────────────────────────────────────────┘ │
-│              │                                                          │
-│  📄 Untitled │  ┌─────────────────────────────────────────────────────┐ │
-│  📄 Report   │  │                                                     │ │
-│  📄 Notes    │  │  Quarterly Report                                   │ │
-│  📄 Letter   │  │  ═══════════════════                                │ │
-│              │  │                                                     │ │
-│  ───────────  │  │  Executive Summary                                  │ │
-│  📁 Projects │  │  ──────────────────                                  │ │
-│    📄 Plan   │  │  This quarter showed significant growth across      │ │
-│    📄 Budget │  │  all business units. Revenue increased by 15%       │ │
-│              │  │  compared to the previous quarter, driven by        │ │
-│  ───────────  │  │  strong performance in the enterprise segment.     │ │
-│              │  │                                                     │ │
-│  [+ New Doc] │  │  Key Highlights                                     │ │
-│              │  │  ──────────────                                      │ │
-│              │  │  • Revenue: $2.4M (+15%)                            │ │
-│              │  │  • New customers: 47                                │ │
-│              │  │  • Customer retention: 94%                          │ │
-│              │  │                                                     │ │
-│              │  │  |                                                  │ │
-│              │  │                                                     │ │
-│              │  └─────────────────────────────────────────────────────┘ │
-├──────────────┴──────────────────────────────────────────────────────────┤
-│  Words: 156  │  Characters: 892  │  Reading time: 1 min  │  Saved ✓    │
-└─────────────────────────────────────────────────────────────────────────┘
-```
 
 ---
 
@@ -66,66 +28,45 @@ Paper is the AI-powered writing app in General Bots Suite. Create documents, rep
 2. Select **From Template**
 3. Choose a template:
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Choose a Template                                        [×]   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │             │  │   ═══════   │  │    ┌───┐    │             │
-│  │    Blank    │  │   Report    │  │    │   │    │             │
-│  │             │  │   ───────   │  │    Letter   │             │
-│  │             │  │   • • •     │  │    └───┘    │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-│                                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │   Meeting   │  │   ☐ ☐ ☐    │  │     📧      │             │
-│  │    Notes    │  │  Checklist  │  │    Email    │             │
-│  │   ───────   │  │   ☐ ☐ ☐    │  │   Template  │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-│                                                                 │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐             │
-│  │   Project   │  │   Resume    │  │   Invoice   │             │
-│  │  Proposal   │  │    / CV     │  │             │             │
-│  │             │  │             │  │             │             │
-│  └─────────────┘  └─────────────┘  └─────────────┘             │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
+| Template | Best For |
+|----------|----------|
+| **Blank** | Starting from scratch |
+| **Report** | Business reports with sections |
+| **Letter** | Formal correspondence |
+| **Meeting Notes** | Agenda and action items |
+| **Checklist** | Task tracking |
+| **Email Template** | Reusable email formats |
+| **Project Proposal** | Pitches and proposals |
+| **Resume/CV** | Job applications |
+| **Invoice** | Billing documents |
 
 **Method 3: Ask the Bot**
 
-```
-You: Create a new document for meeting notes
-Bot: ✅ Created new document: "Meeting Notes"
-     
-     I've set up a template with:
-     • Date and attendees section
-     • Agenda
-     • Discussion points
-     • Action items
-     
-     [Open Document]
-```
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Create a new document for meeting notes</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>✅ Created new document: "Meeting Notes"</p>
+      <p>I've set up a template with:</p>
+      <p>• Date and attendees section</p>
+      <p>• Agenda</p>
+      <p>• Discussion points</p>
+      <p>• Action items</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
 ---
 
 ### Formatting Text
 
 Use the toolbar or keyboard shortcuts to format your text:
-
-```
-┌───────────────────────────────────────────────────────────────────────┐
-│  B   I   U   S   │  H1  H2  H3  │  •  ≡  ☐  │  🔗  📷  📊  │  ✨ AI  │
-│  ▲   ▲   ▲   ▲      ▲   ▲   ▲      ▲  ▲  ▲      ▲   ▲   ▲       ▲    │
-│  │   │   │   │      │   │   │      │  │  │      │   │   │       │    │
-│  │   │   │   │      │   │   │      │  │  │      │   │   │       │    │
-│Bold │   │Strike    │   │   │    Bullet│ │    Link│   │       AI │    │
-│   Italic │         │ Heading │      │Checklist │Image│      Help │    │
-│       Underline    │   2     │   Numbered  │       Table            │
-│                   Heading 1 Heading 3     List                       │
-└───────────────────────────────────────────────────────────────────────┘
-```
 
 | Format | Toolbar | Shortcut |
 |--------|---------|----------|
@@ -147,90 +88,88 @@ Use the toolbar or keyboard shortcuts to format your text:
 
 Paper's AI assistant helps you write better and faster. Click the **✨ AI** button or type `/` to access AI features.
 
-**Generate Content**
+**Generate Content:**
 
-```
-You: /write an introduction about renewable energy
-Bot: Here's a draft introduction:
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>/write an introduction about renewable energy</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>Here's a draft introduction:</p>
+      <p>"Renewable energy has emerged as one of the most significant solutions to our global climate challenges. As fossil fuel reserves dwindle and environmental concerns grow, solar, wind, and hydroelectric power offer sustainable alternatives that can power our future while protecting our planet."</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
-     "Renewable energy has emerged as one of the most 
-     significant solutions to our global climate challenges.
-     As fossil fuel reserves dwindle and environmental 
-     concerns grow, solar, wind, and hydroelectric power
-     offer sustainable alternatives that can power our
-     future while protecting our planet."
-     
-     [Insert] [Regenerate] [Edit]
-```
+**Improve Writing Options:**
 
-**Improve Writing**
+| Option | What It Does |
+|--------|--------------|
+| **📝 Improve writing** | General quality enhancement |
+| **✂️ Make it shorter** | Condense without losing meaning |
+| **📖 Make it longer** | Expand with more detail |
+| **🎯 Make it clearer** | Simplify complex language |
+| **💼 Make it professional** | Formal business tone |
+| **😊 Make it friendly** | Casual, approachable tone |
+| **🔧 Fix grammar** | Correct errors |
+| **🌐 Translate** | Convert to another language |
 
-1. Select text you want to improve
-2. Click **✨ AI** → **Improve**
-3. Choose an option:
+**Summarize:**
 
-```
-┌─────────────────────────────────────┐
-│  ✨ AI Assistant                    │
-├─────────────────────────────────────┤
-│                                     │
-│  What would you like to do?         │
-│                                     │
-│  [📝 Improve writing      ]         │
-│  [✂️  Make it shorter     ]         │
-│  [📖 Make it longer       ]         │
-│  [🎯 Make it clearer      ]         │
-│  [💼 Make it professional ]         │
-│  [😊 Make it friendly     ]         │
-│  [🔧 Fix grammar          ]         │
-│  [🌐 Translate            ]         │
-│                                     │
-└─────────────────────────────────────┘
-```
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>/summarize this document</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📋 <strong>Document Summary:</strong></p>
+      <p>This quarterly report covers company performance from January to March 2025. Key points:</p>
+      <p>• Revenue grew 15% to $2.4M</p>
+      <p>• 47 new customers acquired</p>
+      <p>• 94% customer retention rate</p>
+      <p>• Enterprise segment drove growth</p>
+      <p>The report recommends expanding the sales team and investing in product development.</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
-**Summarize**
+**Generate Ideas:**
 
-```
-You: /summarize this document
-Bot: 📋 Document Summary:
-     
-     This quarterly report covers company performance
-     from January to March 2025. Key points:
-     
-     • Revenue grew 15% to $2.4M
-     • 47 new customers acquired
-     • 94% customer retention rate
-     • Enterprise segment drove growth
-     
-     The report recommends expanding the sales team
-     and investing in product development.
-```
-
-**Generate Ideas**
-
-```
-You: /brainstorm topics for a blog post about productivity
-Bot: 💡 Here are 10 blog post ideas:
-     
-     1. "5 Morning Habits of Highly Productive People"
-     2. "The Pomodoro Technique: A Complete Guide"
-     3. "How to Eliminate Distractions While Working"
-     4. "Time Blocking: Schedule Your Way to Success"
-     5. "The 2-Minute Rule: Small Tasks, Big Impact"
-     6. "Digital Minimalism for Better Focus"
-     7. "Why Multitasking is Killing Your Productivity"
-     8. "Building a Productive Workspace at Home"
-     9. "The Science of Taking Breaks"
-     10. "Productivity Apps That Actually Work"
-     
-     Would you like me to expand on any of these?
-```
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>/brainstorm topics for a blog post about productivity</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>💡 Here are 10 blog post ideas:</p>
+      <p>1. "5 Morning Habits of Highly Productive People"</p>
+      <p>2. "The Pomodoro Technique: A Complete Guide"</p>
+      <p>3. "How to Eliminate Distractions While Working"</p>
+      <p>4. "Time Blocking: Schedule Your Way to Success"</p>
+      <p>5. "The 2-Minute Rule: Small Tasks, Big Impact"</p>
+      <p>Would you like me to expand on any of these?</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
 ---
 
 ### Document Organization
 
-**Folders**
+**Folders:**
 
 Organize your documents into folders:
 
@@ -239,27 +178,7 @@ Organize your documents into folders:
 3. Name your folder
 4. Drag documents into it
 
-```
-┌──────────────────────┐
-│  DOCUMENTS           │
-│  ───────────          │
-│  📄 Quick Notes      │
-│  📄 Ideas            │
-│                      │
-│  📁 Work             │
-│     📄 Report Q1     │
-│     📄 Report Q2     │
-│     📄 Presentation  │
-│                      │
-│  📁 Personal         │
-│     📄 Goals 2025    │
-│     📄 Journal       │
-│                      │
-│  📁 Archive          │
-└──────────────────────┘
-```
-
-**Search Documents**
+**Search Documents:**
 
 Find documents quickly:
 
@@ -267,71 +186,18 @@ Find documents quickly:
 2. Type document name or content
 3. Press Enter to open
 
-```
-┌─────────────────────────────────────────┐
-│  🔍 Search documents...                 │
-├─────────────────────────────────────────┤
-│                                         │
-│  Recent:                                │
-│  📄 Quarterly Report           2h ago   │
-│  📄 Meeting Notes - May 15     1d ago   │
-│  📄 Project Proposal           3d ago   │
-│                                         │
-│  All documents matching "report":       │
-│  📄 Quarterly Report                    │
-│  📄 Annual Report 2024                  │
-│  📄 Expense Report Template             │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
 ---
 
 ### Collaboration
 
-**Share a Document**
+**Share a Document:**
 
 1. Click **Share** button
 2. Enter email addresses
 3. Set permissions
 4. Click **Send**
 
-```
-┌─────────────────────────────────────────┐
-│  Share Document                   [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  Share with:                            │
-│  ┌─────────────────────────────────┐    │
-│  │ sarah@company.com               │    │
-│  └─────────────────────────────────┘    │
-│  [+ Add more people]                    │
-│                                         │
-│  Permission: [Can edit        ▼]        │
-│              ┌────────────────┐         │
-│              │ Can edit       │         │
-│              │ Can comment    │         │
-│              │ Can view       │         │
-│              └────────────────┘         │
-│                                         │
-│  ☐ Notify people via email              │
-│                                         │
-│  ───────────────────────────────        │
-│                                         │
-│  Or share via link:                     │
-│  ┌─────────────────────────────────┐    │
-│  │ https://paper.bot/doc/abc123   │    │
-│  └─────────────────────────────────┘    │
-│  [Copy Link]                            │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │            Share                │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Permissions Explained**
+**Permissions Explained:**
 
 | Permission | Can View | Can Comment | Can Edit |
 |------------|----------|-------------|----------|
@@ -356,34 +222,10 @@ Export your documents to different formats:
 | **Plain Text (.txt)** | Simple text without formatting |
 | **HTML** | Web publishing |
 
-```
-┌─────────────────────────────────────────┐
-│  Export Document                  [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  Export as:                             │
-│                                         │
-│  ┌────────────┐  ┌────────────┐         │
-│  │    PDF     │  │    Word    │         │
-│  │   📄       │  │    📝      │         │
-│  └────────────┘  └────────────┘         │
-│                                         │
-│  ┌────────────┐  ┌────────────┐         │
-│  │  Markdown  │  │    Text    │         │
-│  │    #       │  │    Aa      │         │
-│  └────────────┘  └────────────┘         │
-│                                         │
-│  Options:                               │
-│  ☑ Include headers and footers          │
-│  ☐ Include comments                     │
-│  ☑ Include page numbers                 │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │           Export                │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-└─────────────────────────────────────────┘
-```
+**Export Options:**
+- Include headers and footers
+- Include comments
+- Include page numbers
 
 ---
 
@@ -395,30 +237,6 @@ Paper automatically saves versions of your document:
 2. See all saved versions
 3. Click to preview
 4. Restore if needed
-
-```
-┌─────────────────────────────────────────┐
-│  Version History                  [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  ● Current version                      │
-│    Today, 3:45 PM                       │
-│                                         │
-│  ○ Today, 2:30 PM                       │
-│    Added executive summary              │
-│                                         │
-│  ○ Today, 11:15 AM                      │
-│    Initial draft                        │
-│                                         │
-│  ○ Yesterday, 4:00 PM                   │
-│    Created document                     │
-│                                         │
-│  ─────────────────────────────────      │
-│                                         │
-│  [Preview]  [Restore This Version]      │
-│                                         │
-└─────────────────────────────────────────┘
-```
 
 ---
 
@@ -598,7 +416,7 @@ Control Paper from your bot dialogs:
 
 ### Create a Document
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/paper-create.basic
 doc = CREATE DOCUMENT "Project Notes"
 doc.content = "Meeting notes from " + TODAY
 
@@ -608,7 +426,7 @@ TALK "Document created: " + doc.id
 
 ### Generate Content with AI
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/paper-generate.basic
 HEAR topic AS TEXT "What should I write about?"
 
 content = GENERATE TEXT "Write a brief introduction about " + topic
@@ -624,7 +442,7 @@ TALK LEFT(content, 200) + "..."
 
 ### Export a Document
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/paper-export.basic
 HEAR docName AS TEXT "Which document should I export?"
 
 doc = FIND DOCUMENT docName
@@ -640,7 +458,7 @@ END IF
 
 ### Search Documents
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/paper-search.basic
 HEAR query AS TEXT "What are you looking for?"
 
 results = SEARCH DOCUMENTS query
@@ -657,7 +475,7 @@ END IF
 
 ### Summarize a Document
 
-```basic
+```botserver/docs/src/chapter-04-gbui/apps/paper-summarize.basic
 HEAR docName AS TEXT "Which document should I summarize?"
 
 doc = FIND DOCUMENT docName

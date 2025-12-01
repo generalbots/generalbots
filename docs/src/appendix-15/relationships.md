@@ -21,10 +21,7 @@ organizations
         system_automations (1:N)
 ```
 
-**Key Relationships:**
-- Each organization can have multiple bots
-- Each bot has its own configuration, memories, knowledge bases, tools, and automations
-- Cascade delete: Deleting an organization removes all associated bots and their data
+Each organization can have multiple bots, and each bot has its own configuration, memories, knowledge bases, tools, and automations. Cascade delete behavior means that deleting an organization removes all associated bots and their data.
 
 ### User and Session Management
 
@@ -43,10 +40,7 @@ users
             folder_messages (1:N)
 ```
 
-**Key Relationships:**
-- Users can have multiple active sessions across different bots
-- Each session maintains its own message history and associations
-- Sessions link to both users and bots (many-to-many through sessions)
+Users can have multiple active sessions across different bots. Each session maintains its own message history and associations. Sessions link to both users and bots, forming a many-to-many relationship through the sessions table.
 
 ### Bot-User Interaction
 
@@ -63,48 +57,31 @@ bots ←→ user_sessions ←→ users
         basic_tools
 ```
 
-**Key Relationships:**
-- Users interact with bots through sessions
-- Sessions dynamically associate with knowledge bases and tools
-- Message history preserves the conversation context
+Users interact with bots through sessions. Sessions dynamically associate with knowledge bases and tools as needed. Message history preserves the conversation context for continuity across interactions.
 
 ## Foreign Key Constraints
 
 ### Strong Relationships (CASCADE DELETE)
 
-These relationships enforce referential integrity with cascade deletion:
+These relationships enforce referential integrity with cascade deletion.
 
-1. **organizations → bots**
-   - Deleting an organization removes all its bots
-   - `bots.org_id` references `organizations.org_id`
+The organizations to bots relationship means deleting an organization removes all its bots, with `bots.org_id` referencing `organizations.org_id`.
 
-2. **bots → bot_configuration**
-   - Deleting a bot removes all its configuration
-   - `bot_configuration.bot_id` references `bots.id`
+The bots to bot_configuration relationship means deleting a bot removes all its configuration, with `bot_configuration.bot_id` referencing `bots.id`.
 
-3. **bots → bot_memories**
-   - Deleting a bot removes all its memories
-   - `bot_memories.bot_id` references `bots.id`
+The bots to bot_memories relationship means deleting a bot removes all its memories, with `bot_memories.bot_id` referencing `bots.id`.
 
-4. **user_sessions → message_history**
-   - Ending a session removes its message history
-   - `message_history.session_id` references `user_sessions.id`
+The user_sessions to message_history relationship means ending a session removes its message history, with `message_history.session_id` referencing `user_sessions.id`.
 
 ### Weak Relationships (SET NULL/RESTRICT)
 
-These relationships maintain data integrity without cascade deletion:
+These relationships maintain data integrity without cascade deletion.
 
-1. **users → user_sessions**
-   - Deleting a user sets session.user_id to NULL (anonymous)
-   - Preserves conversation history for audit
+The users to user_sessions relationship sets `session.user_id` to NULL when a user is deleted, preserving conversation history for audit purposes while making the session anonymous.
 
-2. **kb_collections → kb_documents**
-   - Deleting a collection restricts if documents exist
-   - Requires explicit document deletion first
+The kb_collections to kb_documents relationship restricts deletion if documents exist, requiring explicit document deletion first to prevent accidental data loss.
 
-3. **user_email_accounts → email_drafts**
-   - Deleting an email account preserves drafts
-   - Allows draft recovery or reassignment
+The user_email_accounts to email_drafts relationship preserves drafts when an email account is deleted, allowing draft recovery or reassignment to other accounts.
 
 ## Many-to-Many Relationships
 
@@ -114,9 +91,7 @@ These relationships maintain data integrity without cascade deletion:
 user_sessions ←→ user_kb_associations ←→ kb_collections
 ```
 
-- Junction table: `user_kb_associations`
-- Allows dynamic KB activation per session
-- Multiple KBs can be active simultaneously
+The `user_kb_associations` junction table allows dynamic KB activation per session. Multiple knowledge bases can be active simultaneously, enabling conversations that draw from several information sources.
 
 ### Sessions ↔ Tools
 
@@ -124,136 +99,82 @@ user_sessions ←→ user_kb_associations ←→ kb_collections
 user_sessions ←→ session_tool_associations ←→ basic_tools
 ```
 
-- Junction table: `session_tool_associations`
-- Tools are loaded per session as needed
-- Supports dynamic tool discovery
+The `session_tool_associations` junction table enables tools to be loaded per session as needed. This supports dynamic tool discovery where available capabilities vary based on context.
 
 ## Relationship Cardinality
 
-### One-to-One (1:1)
-- users : user_preferences
-- Each user has exactly one preferences record
+One-to-one relationships exist between users and user_preferences, where each user has exactly one preferences record.
 
-### One-to-Many (1:N)
-- organizations : bots
-- bots : bot_configuration
-- bots : kb_collections
-- kb_collections : kb_documents
-- users : user_sessions
-- user_sessions : message_history
-- user_email_accounts : email_drafts
+One-to-many relationships include organizations to bots, bots to bot_configuration, bots to kb_collections, kb_collections to kb_documents, users to user_sessions, user_sessions to message_history, and user_email_accounts to email_drafts.
 
-### Many-to-Many (M:N)
-- user_sessions : kb_collections (through user_kb_associations)
-- user_sessions : basic_tools (through session_tool_associations)
-- users : bots (through user_sessions)
+Many-to-many relationships exist between user_sessions and kb_collections through user_kb_associations, between user_sessions and basic_tools through session_tool_associations, and between users and bots through user_sessions.
 
 ## Referential Integrity Rules
 
 ### Insert Order
-1. organizations → bots → bot_configuration
-2. users → user_sessions → message_history
-3. kb_collections → kb_documents
-4. basic_tools → session_tool_associations
+
+When inserting data, follow this sequence: organizations first, then bots, then bot_configuration. For user data, insert users first, then user_sessions, then message_history. Knowledge base data requires kb_collections before kb_documents. Tools require basic_tools before session_tool_associations.
 
 ### Delete Order (reverse of insert)
-1. message_history → user_sessions → users
-2. session_tool_associations → basic_tools
-3. kb_documents → kb_collections
-4. bot_configuration → bots → organizations
+
+When deleting data, reverse the insert order: message_history first, then user_sessions, then users. For tools, delete session_tool_associations before basic_tools. For knowledge bases, delete kb_documents before kb_collections. For organizational data, delete bot_configuration, then bots, then organizations.
 
 ## Orphan Prevention
 
 ### Automatic Cleanup
-- Sessions expire based on `expires_at` timestamp
-- Orphaned associations cleaned by background jobs
-- Temporary data has TTL settings
+
+Sessions expire based on the `expires_at` timestamp. Orphaned associations are cleaned by background jobs that run periodically. Temporary data has TTL settings that trigger automatic removal.
 
 ### Manual Cleanup Required
-- Unused kb_documents
-- Old message_history (based on retention policy)
-- Expired user_login_tokens
+
+Some data requires manual cleanup. Unused kb_documents should be periodically reviewed and removed. Old message_history should be cleared based on retention policy. Expired user_login_tokens should be purged.
 
 ## Performance Implications
 
 ### Hot Paths
-These relationships are frequently traversed and should be optimized:
 
-1. **user_sessions → message_history**
-   - Index: (session_id, created_at DESC)
-   - Used for conversation display
+These relationships are frequently traversed and should be optimized.
 
-2. **bots → bot_memories**
-   - Index: (bot_id, key)
-   - Used by GET BOT MEMORY/SET BOT MEMORY
+The user_sessions to message_history path benefits from an index on `(session_id, created_at DESC)` and is used for conversation display.
 
-3. **kb_collections → kb_documents**
-   - Index: (collection_id, indexed)
-   - Used for semantic search
+The bots to bot_memories path benefits from an index on `(bot_id, key)` and is used by GET BOT MEMORY and SET BOT MEMORY operations.
+
+The kb_collections to kb_documents path benefits from an index on `(collection_id, indexed)` and is used for semantic search.
 
 ### Join Optimization
-Common join patterns that benefit from composite indexes:
 
-1. **User Session Context**
-   ```sql
-   user_sessions 
-   JOIN users ON user_sessions.user_id = users.id
-   JOIN bots ON user_sessions.bot_id = bots.id
-   ```
+Common join patterns benefit from composite indexes.
 
-2. **Knowledge Base Loading**
-   ```sql
-   user_kb_associations
-   JOIN kb_collections ON user_kb_associations.collection_id = kb_collections.id
-   JOIN kb_documents ON kb_collections.id = kb_documents.collection_id
-   ```
+User session context queries join user_sessions with users on `user_sessions.user_id = users.id` and with bots on `user_sessions.bot_id = bots.id`.
 
-3. **Tool Discovery**
-   ```sql
-   session_tool_associations
-   JOIN basic_tools ON session_tool_associations.tool_id = basic_tools.id
-   WHERE session_id = ? AND basic_tools.bot_id = ?
-   ```
+Knowledge base loading joins user_kb_associations with kb_collections on `user_kb_associations.collection_id = kb_collections.id` and kb_documents on `kb_collections.id = kb_documents.collection_id`.
+
+Tool discovery joins session_tool_associations with basic_tools on `session_tool_associations.tool_id = basic_tools.id` filtered by session_id and bot_id.
 
 ## Data Consistency Patterns
 
 ### Transaction Boundaries
-Operations that must be atomic:
 
-1. **Session Creation**
-   - Insert user_session
-   - Initialize default associations
-   - Create initial message
+Certain operations must be atomic.
 
-2. **Tool Registration**
-   - Insert basic_tool
-   - Update bot_configuration
-   - Refresh active sessions
+Session creation requires inserting the user_session record, initializing default associations, and creating the initial message all within a single transaction.
 
-3. **Document Upload**
-   - Insert kb_document
-   - Trigger indexing job
-   - Update collection metadata
+Tool registration requires inserting the basic_tool record, updating bot_configuration, and refreshing active sessions together.
+
+Document upload requires inserting the kb_document record, triggering the indexing job, and updating collection metadata atomically.
 
 ### Eventual Consistency
-Operations that can be eventually consistent:
 
-1. **Vector Embeddings**
-   - Document upload completes
-   - Async indexing creates embeddings
-   - Search available after processing
+Some operations can be eventually consistent.
 
-2. **Email Sync**
-   - Account configuration saved
-   - Background sync fetches emails
-   - Folders and counts update async
+Vector embeddings allow document upload to complete first, with asynchronous indexing creating embeddings afterward. Search becomes available after processing completes.
+
+Email synchronization saves account configuration immediately, then background sync fetches emails asynchronously. Folders and counts update as sync progresses.
 
 ## Best Practices
 
-1. **Always use foreign keys** for data integrity
-2. **Index foreign key columns** for join performance
-3. **Use transactions** for related updates
-4. **Implement soft deletes** for audit trails
-5. **Monitor constraint violations** in logs
-6. **Plan cascade paths** carefully
-7. **Document relationship changes** in migrations
+Always use foreign keys for data integrity to catch relationship violations at the database level. Index foreign key columns for join performance to avoid full table scans on relationship traversals. Use transactions for related updates to maintain consistency across multiple tables.
+
+Implement soft deletes for audit trails where regulations require historical data retention. Monitor constraint violations in logs to catch application bugs early. Plan cascade paths carefully to avoid unintended data deletion.
+
+Document relationship changes in migrations so the team understands schema evolution over time.
