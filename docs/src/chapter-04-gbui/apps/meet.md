@@ -12,391 +12,42 @@ Meet is the video conferencing app in General Bots Suite. Host video calls, shar
 
 ---
 
-## Interface Layout
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Meet                                          [🎤 Mute] [📹 Video] [×] │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                                                                 │   │
-│  │                                                                 │   │
-│  │                         ┌───────────┐                           │   │
-│  │                         │           │                           │   │
-│  │                         │    📹     │                           │   │
-│  │                         │   You     │                           │   │
-│  │                         │           │                           │   │
-│  │                         └───────────┘                           │   │
-│  │                                                                 │   │
-│  │               Waiting for others to join...                     │   │
-│  │                                                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-├───────────────────────────┬─────────────────────────────────────────────┤
-│  PARTICIPANTS (1)         │                                             │
-│  ─────────────────        │  ┌─────────────────────────────────────┐   │
-│  ● You (Host)             │  │ Chat                                │   │
-│                           │  ├─────────────────────────────────────┤   │
-│                           │  │                                     │   │
-│                           │  │ Meeting started at 10:00 AM         │   │
-│                           │  │                                     │   │
-│  ─────────────────        │  ├─────────────────────────────────────┤   │
-│  [Invite People]          │  │ Type a message...            [Send] │   │
-│                           │  └─────────────────────────────────────┘   │
-├───────────────────────────┴─────────────────────────────────────────────┤
-│  [🎤] [📹] [🖥️ Share] [✋ Raise Hand] [💬 Chat] [⚙️] [📕 End Call]       │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Features
 
-### Starting a Meeting
+### Meeting Controls
 
-**Method 1: Instant Meeting**
+| Control | Description |
+|---------|-------------|
+| 🎤 Mute | Toggle microphone |
+| 📹 Video | Toggle camera |
+| 🖥️ Share | Share screen |
+| ✋ Raise Hand | Get attention |
+| 💬 Chat | In-meeting chat |
+| 👥 Participants | View attendees |
+| ⚙️ Settings | Audio/video settings |
+| 📞 Leave | End call |
 
-1. Open the **Meet** app from the apps menu
-2. Click **Start Meeting**
-3. Your meeting room is ready instantly
-4. Share the link with participants
+### Meeting Features
 
-```
-┌─────────────────────────────────────────┐
-│  Start a Meeting                  [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │     🎥 Start Instant Meeting    │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ─────────── or ───────────             │
-│                                         │
-│  Meeting Link:                          │
-│  ┌─────────────────────────────────┐    │
-│  │ https://meet.bot/abc-defg-hij   │    │
-│  └─────────────────────────────────┘    │
-│  [Copy Link] [Share via Email]          │
-│                                         │
-│  ─────────── or ───────────             │
-│                                         │
-│  Join with Code:                        │
-│  ┌─────────────────────────────────┐    │
-│  │ Enter meeting code...           │    │
-│  └─────────────────────────────────┘    │
-│  [Join Meeting]                         │
-│                                         │
-└─────────────────────────────────────────┘
-```
+| Feature | Description |
+|---------|-------------|
+| **Screen Sharing** | Share your entire screen or specific window |
+| **Recording** | Record meetings for later review |
+| **Chat** | Send messages during the meeting |
+| **Reactions** | Quick emoji reactions |
+| **Raise Hand** | Queue to speak |
+| **Breakout Rooms** | Split into smaller groups |
+| **AI Notes** | Automatic meeting notes |
+| **Transcription** | Live captions |
 
-**Method 2: From Calendar**
+### Layouts
 
-1. Click on a meeting event in Calendar
-2. Click the **Join Meeting** button
-3. You're connected automatically
-
-**Method 3: Ask the Bot**
-
-```
-You: Start a video call
-Bot: ✅ Meeting room created!
-     
-     🔗 Link: https://meet.bot/abc-defg-hij
-     
-     [Join Now] [Copy Link] [Send Invites]
-```
-
----
-
-### Joining a Meeting
-
-**From a Link**
-
-1. Click the meeting link you received
-2. Allow camera and microphone access
-3. Preview your video
-4. Click **Join Now**
-
-**From a Code**
-
-1. Open the Meet app
-2. Enter the meeting code (e.g., `abc-defg-hij`)
-3. Click **Join Meeting**
-
-```
-┌─────────────────────────────────────────┐
-│  Ready to Join?                   [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│        ┌─────────────────────┐          │
-│        │                     │          │
-│        │        📹           │          │
-│        │    Your Preview     │          │
-│        │                     │          │
-│        └─────────────────────┘          │
-│                                         │
-│        [🎤 On]     [📹 On]              │
-│                                         │
-│  Your Name:                             │
-│  ┌─────────────────────────────────┐    │
-│  │ John Smith                      │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-│  ┌─────────────────────────────────┐    │
-│  │         Join Now                │    │
-│  └─────────────────────────────────┘    │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
----
-
-### During the Meeting
-
-#### Video Grid
-
-When multiple people join, the video grid adjusts automatically:
-
-**2 Participants**
-```
-┌──────────────────┬──────────────────┐
-│                  │                  │
-│       You        │      Sarah       │
-│                  │                  │
-└──────────────────┴──────────────────┘
-```
-
-**4 Participants**
-```
-┌──────────────────┬──────────────────┐
-│       You        │      Sarah       │
-├──────────────────┼──────────────────┤
-│       John       │      Mike        │
-└──────────────────┴──────────────────┘
-```
-
-**Speaker View** - Active speaker is shown large:
-```
-┌─────────────────────────────────────────┐
-│                                         │
-│              Active Speaker             │
-│                 (Sarah)                 │
-│                                         │
-├─────────┬─────────┬─────────┬──────────┤
-│   You   │  John   │  Mike   │  Lisa    │
-└─────────┴─────────┴─────────┴──────────┘
-```
-
----
-
-#### Meeting Controls
-
-| Button | Action | Shortcut |
-|--------|--------|----------|
-| 🎤 | Mute/Unmute microphone | `M` |
-| 📹 | Turn camera on/off | `V` |
-| 🖥️ | Share your screen | `S` |
-| ✋ | Raise your hand | `H` |
-| 💬 | Open/close chat | `C` |
-| 👥 | Show participants | `P` |
-| ⚙️ | Settings | `,` |
-| 📕 | Leave/End meeting | `Ctrl+E` |
-
----
-
-### Screen Sharing
-
-Share your screen, a window, or a browser tab:
-
-1. Click the **🖥️ Share** button
-2. Choose what to share:
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  Share Your Screen                                        [×]   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐ │
-│  │                 │  │                 │  │                 │ │
-│  │   Entire        │  │   Window        │  │   Browser       │ │
-│  │   Screen        │  │                 │  │   Tab           │ │
-│  │                 │  │                 │  │                 │ │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘ │
-│                                                                 │
-│  ☑ Share computer audio                                        │
-│                                                                 │
-│  [Cancel]                                         [Share]       │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-3. Select the screen, window, or tab
-4. Click **Share**
-5. Click **Stop Sharing** when done
-
-💡 **Tip:** Share a specific window to keep other content private.
-
----
-
-### In-Meeting Chat
-
-Send messages to all participants without interrupting the speaker:
-
-```
-┌─────────────────────────────────────┐
-│  Meeting Chat                 [×]   │
-├─────────────────────────────────────┤
-│                                     │
-│  Sarah (10:05 AM)                   │
-│  Can everyone see my screen?        │
-│                                     │
-│  John (10:05 AM)                    │
-│  Yes, looks good!                   │
-│                                     │
-│  You (10:06 AM)                     │
-│  Perfect, let's continue.           │
-│                                     │
-├─────────────────────────────────────┤
-│  ┌───────────────────────┐ [Send]   │
-│  │ Type a message...     │          │
-│  └───────────────────────┘          │
-└─────────────────────────────────────┘
-```
-
-**Chat Features:**
-- Send messages to everyone
-- Share links and files
-- Use emoji reactions
-- Chat history is saved
-
----
-
-### AI Meeting Assistant ✨
-
-Let the AI help during your meetings:
-
-**Live Transcription**
-
-```
-┌─────────────────────────────────────────┐
-│  📝 Live Transcript                     │
-├─────────────────────────────────────────┤
-│                                         │
-│  Sarah (10:05:23)                       │
-│  "Let's review the Q2 numbers first"    │
-│                                         │
-│  John (10:05:45)                        │
-│  "Revenue is up 15% from last quarter"  │
-│                                         │
-│  Sarah (10:06:12)                       │
-│  "Great progress on the new product"    │
-│                                         │
-│  ─── Transcribing... ───                │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
-**Meeting Notes**
-
-After the meeting, the AI generates:
-- Summary of key points
-- Action items with assignees
-- Decisions made
-- Follow-up tasks
-
-```
-You: Summarize today's meeting
-Bot: 📋 Meeting Summary - Project Review
-     Duration: 45 minutes
-     Participants: You, Sarah, John, Mike
-     
-     📌 Key Points:
-     • Q2 revenue up 15%
-     • New product launch on track for June
-     • Marketing budget approved
-     
-     ✅ Action Items:
-     • Sarah: Finalize launch materials by May 20
-     • John: Schedule customer interviews
-     • You: Review pricing proposal
-     
-     📅 Next Meeting: May 22 at 10 AM
-```
-
----
-
-### Raise Hand
-
-Get the speaker's attention without interrupting:
-
-1. Click **✋ Raise Hand**
-2. Your hand icon appears next to your name
-3. Host sees a notification
-4. Click again to lower your hand
-
-```
-┌───────────────────────────┐
-│  PARTICIPANTS (4)         │
-│  ─────────────────        │
-│  ● Sarah (Host)           │
-│  ● You ✋                  │  ◄── Hand raised
-│  ● John                   │
-│  ● Mike                   │
-└───────────────────────────┘
-```
-
----
-
-### Meeting Settings
-
-```
-┌─────────────────────────────────────────┐
-│  Meeting Settings                 [×]   │
-├─────────────────────────────────────────┤
-│                                         │
-│  AUDIO                                  │
-│  ─────                                  │
-│  Microphone: [Built-in Mic        ▼]    │
-│  Speaker:    [Built-in Speakers   ▼]    │
-│  [🔊 Test Audio]                        │
-│                                         │
-│  VIDEO                                  │
-│  ─────                                  │
-│  Camera:     [Built-in Camera     ▼]    │
-│  [Mirror my video]  ☑                   │
-│  [HD video]         ☐                   │
-│                                         │
-│  PREFERENCES                            │
-│  ──────────                             │
-│  [Mute on join]            ☑            │
-│  [Camera off on join]      ☐            │
-│  [Enable AI transcription] ☑            │
-│  [Background blur]         ☐            │
-│                                         │
-│  ┌─────────────┐  ┌─────────────┐       │
-│  │    Save     │  │   Cancel    │       │
-│  └─────────────┘  └─────────────┘       │
-│                                         │
-└─────────────────────────────────────────┘
-```
-
----
-
-### Virtual Backgrounds
-
-Change your background during the meeting:
-
-1. Click **⚙️ Settings** → **Background**
-2. Choose an option:
-
-| Option | Description |
-|--------|-------------|
-| None | Show your real background |
-| Blur | Blur your background |
-| Office | Virtual office background |
-| Nature | Nature scene background |
-| Custom | Upload your own image |
+| Layout | Best For |
+|--------|----------|
+| **Gallery** | Group discussions |
+| **Speaker** | Presentations |
+| **Sidebar** | Screen sharing |
+| **Spotlight** | Featured speaker |
 
 ---
 
@@ -404,190 +55,262 @@ Change your background during the meeting:
 
 | Shortcut | Action |
 |----------|--------|
-| `M` | Mute/Unmute microphone |
-| `V` | Turn camera on/off |
-| `S` | Start/stop screen share |
+| `M` | Toggle mute |
+| `V` | Toggle video |
+| `S` | Share screen |
 | `H` | Raise/lower hand |
-| `C` | Open/close chat |
-| `P` | Show/hide participants |
-| `F` | Toggle fullscreen |
-| `Space` | Push to talk (while muted) |
-| `Ctrl+D` | Leave meeting |
-| `Ctrl+E` | End meeting (host only) |
+| `C` | Toggle chat |
+| `P` | Toggle participants |
+| `R` | Start/stop recording |
+| `Space` | Push to talk (when muted) |
+| `Escape` | Exit fullscreen |
 
 ---
 
-## Tips & Tricks
+## Meetings via Chat
 
-### Before the Meeting
+### Starting a Meeting
 
-💡 **Test your audio and video** before important meetings
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Start a video call</p>
+      <div class="wa-time">10:00</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>🎥 Meeting room ready!</p>
+      <p>📍 Room: Team Huddle</p>
+      <p>🔗 Link: https://meet.gb/abc-123</p>
+      <p>Click to join or share the link with others.</p>
+      <p>[🚀 Join Now]</p>
+      <div class="wa-time">10:00</div>
+    </div>
+  </div>
+</div>
 
-💡 **Use a headset** to avoid echo and improve audio quality
+### Inviting Participants
 
-💡 **Check your lighting** - face a window or light source
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Invite Sarah and John to the meeting</p>
+      <div class="wa-time">10:01</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>✅ Invitations sent!</p>
+      <p>📧 Sarah - invited</p>
+      <p>📧 John - invited</p>
+      <p>They'll receive a link to join.</p>
+      <div class="wa-time">10:01</div>
+    </div>
+  </div>
+</div>
 
-💡 **Close unnecessary apps** to improve performance
+### Scheduling a Meeting
 
-### During the Meeting
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Schedule a video call with the team for tomorrow at 3pm</p>
+      <div class="wa-time">14:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>✅ Meeting scheduled!</p>
+      <p>🎥 Team Video Call</p>
+      <p>📅 Tomorrow at 3:00 PM</p>
+      <p>👥 Invitations sent to team members</p>
+      <p>🔗 Link: https://meet.gb/xyz-789</p>
+      <p>Added to your calendar with reminder.</p>
+      <div class="wa-time">14:30</div>
+    </div>
+  </div>
+</div>
 
-💡 **Mute when not speaking** to reduce background noise
+### Getting Meeting Notes
 
-💡 **Use the chat** for links and details without interrupting
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>What were the key points from today's meeting?</p>
+      <div class="wa-time">16:00</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📝 Meeting Summary - Team Sync</p>
+      <p>Duration: 45 minutes</p>
+      <p>Participants: 5</p>
+      <p>---</p>
+      <p>📌 Key Points:</p>
+      <p>• Project deadline moved to next Friday</p>
+      <p>• Budget approved for new tools</p>
+      <p>• Sarah will lead the client presentation</p>
+      <p>---</p>
+      <p>✅ Action Items:</p>
+      <p>• John: Update project timeline</p>
+      <p>• You: Review proposal by Wednesday</p>
+      <div class="wa-time">16:00</div>
+    </div>
+  </div>
+</div>
 
-💡 **Pin important speakers** by clicking their video tile
+### Recording Access
 
-💡 **Use reactions** (👍 👏 ❤️) for quick feedback
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Show me the recording from yesterday's meeting</p>
+      <div class="wa-time">09:00</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>🎬 Meeting Recording</p>
+      <p>📅 Yesterday - Project Review</p>
+      <p>⏱️ Duration: 1:15:32</p>
+      <p>📁 Saved to: My Drive/Recordings</p>
+      <p>[▶️ Play] [⬇️ Download] [🔗 Share]</p>
+      <div class="wa-time">09:00</div>
+    </div>
+  </div>
+</div>
 
-### For Hosts
+---
 
-💡 **Start recording early** so you don't forget
+## API Endpoints
 
-💡 **Admit participants** from the waiting room promptly
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/meet/rooms` | GET | List meeting rooms |
+| `/api/meet/rooms` | POST | Create room |
+| `/api/meet/rooms/:id` | GET | Get room details |
+| `/api/meet/rooms/:id/join` | POST | Join meeting |
+| `/api/meet/rooms/:id/leave` | POST | Leave meeting |
+| `/api/meet/rooms/:id/invite` | POST | Invite participants |
+| `/api/meet/recordings` | GET | List recordings |
+| `/api/meet/recordings/:id` | GET | Get recording |
 
-💡 **Mute disruptive participants** if needed
+### Create Room Request
 
-💡 **Share meeting notes** after the call
+```json
+{
+    "name": "Team Sync",
+    "scheduled": "2025-05-16T15:00:00Z",
+    "duration": 60,
+    "participants": ["sarah@company.com", "john@company.com"],
+    "settings": {
+        "recording": true,
+        "transcription": true,
+        "waitingRoom": false
+    }
+}
+```
+
+### Room Response
+
+```json
+{
+    "id": "room-abc123",
+    "name": "Team Sync",
+    "url": "https://meet.gb/abc-123",
+    "host": "you@company.com",
+    "scheduled": "2025-05-16T15:00:00Z",
+    "status": "scheduled",
+    "participants": [
+        {
+            "email": "sarah@company.com",
+            "status": "invited"
+        }
+    ],
+    "settings": {
+        "recording": true,
+        "transcription": true
+    }
+}
+```
+
+---
+
+## Configuration
+
+Configure Meet in `config.csv`:
+
+```csv
+key,value
+meet-provider,livekit
+meet-server-url,wss://localhost:7880
+meet-recording-enabled,true
+meet-transcription-enabled,true
+meet-max-participants,50
+```
+
+---
+
+## Requirements
+
+### Browser Support
+
+- Chrome 90+
+- Firefox 88+
+- Safari 14+
+- Edge 90+
+
+### Hardware
+
+- Webcam (optional)
+- Microphone
+- Speakers or headphones
+- Stable internet connection
+
+### Permissions
+
+Allow browser access to:
+- Camera
+- Microphone
+- Screen sharing (when needed)
 
 ---
 
 ## Troubleshooting
 
-### No video showing
+### No Audio/Video
 
-**Possible causes:**
-1. Camera is blocked by another app
-2. Browser doesn't have camera permission
-3. Camera is turned off in settings
+1. Check browser permissions
+2. Verify correct device selected in settings
+3. Try refreshing the page
+4. Check if another app is using the camera
 
-**Solution:**
-1. Close other apps using the camera
-2. Click the 🔒 icon in browser address bar → Allow Camera
-3. Check that the camera is selected in Settings
-4. Try refreshing the page
+### Poor Quality
 
----
+1. Check internet connection speed
+2. Close other bandwidth-heavy applications
+3. Try disabling HD video
+4. Move closer to your router
 
-### No one can hear me
+### Can't Join Meeting
 
-**Possible causes:**
-1. Microphone is muted
-2. Wrong microphone selected
-3. Browser doesn't have microphone permission
+1. Verify the meeting link is correct
+2. Check if meeting has started
+3. Ensure you're not blocked by waiting room
+4. Try a different browser
 
-**Solution:**
-1. Click the 🎤 button to unmute
-2. Go to Settings → Audio → Select correct microphone
-3. Click 🔒 in browser → Allow Microphone
-4. Test with "Test Audio" button in settings
+### Recording Not Working
 
----
-
-### Can't hear others
-
-**Possible causes:**
-1. Speaker volume is too low
-2. Wrong speaker device selected
-3. System volume is muted
-
-**Solution:**
-1. Check system volume (not muted)
-2. Go to Settings → Audio → Select correct speaker
-3. Click "Test Audio" to verify
-4. Try using headphones
-
----
-
-### Screen share not working
-
-**Possible causes:**
-1. Browser doesn't have screen share permission
-2. System privacy settings block screen recording
-3. Another app is already sharing
-
-**Solution:**
-1. Allow screen share in browser permissions
-2. On Mac: System Preferences → Security → Screen Recording → Allow browser
-3. On Windows: Check privacy settings
-4. Close any other screen sharing software
-
----
-
-### Poor video quality
-
-**Possible causes:**
-1. Slow internet connection
-2. Too many participants with video on
-3. Computer is overloaded
-
-**Solution:**
-1. Close other apps and browser tabs
-2. Turn off HD video in settings
-3. Ask some participants to turn off video
-4. Move closer to your WiFi router
-
----
-
-## BASIC Integration
-
-Control Meet from your bot dialogs:
-
-### Create a Meeting
-
-```basic
-meeting = CREATE MEETING "Project Discussion"
-
-TALK "Meeting created!"
-TALK "Link: " + meeting.link
-TALK "Code: " + meeting.code
-```
-
-### Schedule a Meeting
-
-```basic
-meeting = NEW OBJECT
-meeting.title = "Weekly Standup"
-meeting.date = "2025-05-20"
-meeting.time = "10:00"
-meeting.duration = 30
-meeting.attendees = ["sarah@company.com", "john@company.com"]
-
-result = SCHEDULE MEETING meeting
-SEND INVITATION result
-```
-
-### Get Meeting Transcript
-
-```basic
-transcript = GET MEETING TRANSCRIPT meetingId
-
-TALK "Meeting Summary:"
-TALK transcript.summary
-
-TALK "Action Items:"
-FOR EACH item IN transcript.actionItems
-    TALK "- " + item.task + " (" + item.assignee + ")"
-NEXT
-```
-
-### Join a Meeting Programmatically
-
-```basic
-HEAR code AS TEXT "Enter the meeting code"
-
-IF LEN(code) > 0 THEN
-    JOIN MEETING code
-    TALK "Joining meeting..."
-ELSE
-    TALK "No code provided"
-END IF
-```
+1. Verify recording is enabled for the room
+2. Check storage quota
+3. Ensure you have host permissions
 
 ---
 
 ## See Also
 
+- [Suite Manual](../suite-manual.md) - Complete user guide
 - [Calendar App](./calendar.md) - Schedule meetings
-- [Chat App](./chat.md) - Continue conversations after meetings
-- [Mail App](./mail.md) - Send meeting invitations
-- [How To: Create Your First Bot](../how-to/create-first-bot.md)
+- [Chat App](./chat.md) - Quick calls from chat
+- [Calls API](../../chapter-10-api/calls-api.md) - API reference

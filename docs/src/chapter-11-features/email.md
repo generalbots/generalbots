@@ -4,13 +4,7 @@ BotServer provides email integration capabilities through IMAP/SMTP protocols, a
 
 ## Overview
 
-Email integration in BotServer enables:
-- Reading emails via IMAP
-- Sending emails via SMTP
-- Email account management
-- Draft creation and management
-- Folder organization
-- Email-based automation
+Email integration in BotServer enables reading emails via IMAP, sending emails via SMTP, email account management, draft creation and management, folder organization, and email-based automation workflows.
 
 ## Configuration
 
@@ -40,39 +34,21 @@ cargo build --features email
 
 ## Email Module Structure
 
-Located in `src/email/`:
-- `mod.rs` - Email service implementation
-- Account management
-- Message handling
-- IMAP/SMTP clients
+The email module is located in `src/email/` and contains `mod.rs` with the email service implementation, account management functionality, message handling logic, and IMAP/SMTP client implementations.
 
 ## Database Schema
 
 ### User Email Accounts
 
-Stores email account configurations:
-- `user_email_accounts` table
-- Encrypted password storage
-- Multiple accounts per user
-- IMAP/SMTP server details
+The `user_email_accounts` table stores email account configurations with encrypted password storage. Users can configure multiple accounts, each with its own IMAP and SMTP server details.
 
 ### Email Drafts
 
-Draft management:
-- `email_drafts` table
-- To/CC/BCC addresses
-- Subject and body
-- Attachment metadata
-- Auto-save support
+The `email_drafts` table provides draft management including To, CC, and BCC addresses, subject and body content, attachment metadata, and auto-save support for work in progress.
 
 ### Email Folders
 
-Folder organization:
-- `email_folders` table
-- IMAP folder mapping
-- Message counts
-- Unread tracking
-- Hierarchical structure
+The `email_folders` table handles folder organization with IMAP folder mapping, message counts, unread tracking, and hierarchical structure support for nested folders.
 
 ## BASIC Keywords for Email
 
@@ -113,39 +89,21 @@ FOR EACH email IN new_emails {
 
 ### Reading Emails
 
-The system can:
-- Connect to IMAP servers
-- Fetch message headers
-- Download full messages
-- Search by criteria
-- Mark as read/unread
-- Move between folders
+The system can connect to IMAP servers, fetch message headers, download full messages, search by various criteria, mark messages as read or unread, and move messages between folders.
 
 ### Sending Emails
 
-SMTP operations include:
-- Authentication
-- Plain text emails
-- HTML emails
-- Attachments (planned)
-- Reply/forward
-- Bulk sending (with limits)
+SMTP operations include authentication with the mail server, sending plain text and HTML emails, reply and forward functionality, and bulk sending with configurable limits. Attachment support is planned for a future release.
 
 ## Security
 
 ### Password Storage
 
-- Passwords encrypted using AES-GCM
-- Never stored in plaintext
-- Decrypted only when needed
-- Memory cleared after use
+Email passwords are encrypted using AES-GCM and never stored in plaintext. Passwords are decrypted only when needed for authentication and memory is cleared after use to prevent credential leakage.
 
 ### Connection Security
 
-- TLS/SSL required
-- Certificate validation
-- Secure authentication methods
-- No plaintext transmission
+All email connections require TLS/SSL encryption with proper certificate validation. Secure authentication methods are enforced, and plaintext transmission is never permitted.
 
 ## Use Cases
 
@@ -194,65 +152,39 @@ FOR EACH email IN task_emails {
 
 ### With Calendar
 
-- Meeting invitations
-- Event reminders
-- Schedule updates
+Email integrates with the calendar system for meeting invitations, event reminders, and schedule updates sent via email notifications.
 
 ### With Tasks
 
-- Task creation from emails
-- Status updates via email
-- Deadline reminders
+Task integration enables task creation from emails, status updates delivered via email, and deadline reminders sent to responsible parties.
 
 ### With Knowledge Base
 
-- Email archival
-- Searchable email history
-- Context for conversations
+Knowledge base integration supports email archival for compliance, searchable email history, and providing email context for bot conversations.
 
 ## Limitations
 
 ### Current Limitations
 
-- No attachment handling yet
-- Basic HTML email support
-- No email templates
-- Limited filtering options
-- No OAuth2 support (requires app passwords)
+The current implementation does not support attachment handling, provides only basic HTML email support, lacks email templates, has limited filtering options, and does not support OAuth2 authentication, requiring app-specific passwords instead.
 
 ### Rate Limiting
 
-- Provider-specific limits apply
-- Implement delays between sends
-- Monitor for throttling
-- Use batch operations wisely
+Provider-specific rate limits apply to all email operations. Implement delays between sends to avoid throttling, monitor for rate limit errors, and use batch operations wisely to stay within provider limits.
 
 ## Email Provider Setup
 
 ### Gmail Configuration
 
-1. Enable 2-factor authentication
-2. Generate app-specific password
-3. Enable IMAP access
-4. Use these settings:
-   - IMAP: imap.gmail.com:993
-   - SMTP: smtp.gmail.com:587
+To configure Gmail, first enable 2-factor authentication on your Google account. Then generate an app-specific password for BotServer to use. Enable IMAP access in Gmail settings. Use `imap.gmail.com` on port 993 for IMAP and `smtp.gmail.com` on port 587 for SMTP.
 
 ### Outlook/Office 365
 
-1. Enable IMAP in settings
-2. Use app password if 2FA enabled
-3. Settings:
-   - IMAP: outlook.office365.com:993
-   - SMTP: smtp.office365.com:587
+For Outlook or Office 365, enable IMAP in your account settings. If 2FA is enabled, generate an app password. Use `outlook.office365.com` on port 993 for IMAP and `smtp.office365.com` on port 587 for SMTP.
 
 ### Custom Email Servers
 
-Configure with appropriate:
-- Server addresses
-- Port numbers
-- Security settings (TLS/SSL)
-- Authentication method
+For custom email servers, configure the appropriate server addresses, port numbers, security settings including TLS or SSL requirements, and the authentication method supported by your server.
 
 ## Error Handling
 
@@ -271,39 +203,22 @@ END IF
 
 ### Common Issues
 
-- Authentication failures
-- Network timeouts
-- Server unavailable
-- Quota exceeded
-- Invalid addresses
+Common email issues include authentication failures from incorrect credentials, network timeouts when servers are slow to respond, server unavailable errors during outages, quota exceeded errors when hitting send limits, and invalid address errors for malformed recipients.
 
 ## Best Practices
 
-1. **Use App Passwords**: Never use primary account passwords
-2. **Rate Limit**: Respect provider limits
-3. **Error Recovery**: Implement retry logic
-4. **Validate Addresses**: Check format before sending
-5. **Monitor Usage**: Track sent/received counts
-6. **Secure Storage**: Encrypt sensitive data
-7. **Audit Trail**: Log email operations
+Use app-specific passwords rather than primary account passwords to limit security exposure. Respect provider rate limits by implementing appropriate delays between operations. Implement retry logic for transient failures to ensure delivery. Validate email addresses before sending to catch format errors early. Monitor usage by tracking sent and received counts. Encrypt sensitive data in storage and transit. Maintain an audit trail by logging all email operations.
 
 ## Monitoring
 
 ### Metrics to Track
 
-- Emails sent/received
-- Failed operations
-- Connection failures
-- Processing time
-- Queue size
+Key metrics include emails sent and received, failed operations and their causes, connection failures, processing time for email operations, and queue size when batching sends.
 
 ### Health Checks
 
-- IMAP connectivity
-- SMTP availability
-- Account validity
-- Folder synchronization
+Regular health checks should verify IMAP connectivity, SMTP availability, account validity and credential freshness, and folder synchronization status.
 
 ## Summary
 
-Email integration in BotServer enables powerful email-based automation and communication. Through IMAP/SMTP protocols and BASIC script integration, bots can manage email workflows, automate responses, and integrate email with other bot features.
+Email integration in BotServer enables powerful email-based automation and communication. Through IMAP/SMTP protocols and BASIC script integration, bots can manage email workflows, automate responses, and integrate email with other bot features for comprehensive communication automation.

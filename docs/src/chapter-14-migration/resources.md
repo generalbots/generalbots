@@ -8,29 +8,17 @@ General Bots provides comprehensive tools and resources for organizations transi
 
 ### Data Import Utilities
 
-General Bots includes import tools for common enterprise data formats:
+General Bots includes import tools for common enterprise data formats.
 
-**Email Migration**
-- IMAP sync for mailbox migration
-- PST file import support
-- Calendar (ICS) import
-- Contact (VCF/CardDAV) import
+For email migration, the toolkit supports IMAP sync for mailbox migration, PST file import, calendar import via ICS format, and contact import through VCF and CardDAV.
 
-**File Migration**
-- Bulk file upload via S3 API
-- Folder structure preservation
-- Metadata retention
-- Version history import where available
+File migration capabilities include bulk file upload via the S3 API, folder structure preservation, metadata retention, and version history import where the source system provides it.
 
-**User Migration**
-- SCIM provisioning support
-- LDAP directory sync
-- CSV user import
-- Bulk credential generation
+User migration supports SCIM provisioning, LDAP directory sync, CSV user import, and bulk credential generation.
 
 ### BASIC Migration Scripts
 
-Template scripts for common migration tasks:
+Template scripts simplify common migration tasks. The file migration script connects to external storage and transfers files:
 
 ```basic
 ' migrate-files.bas
@@ -51,6 +39,8 @@ NEXT file
 TALK "Migration complete: " + LEN(files) + " files"
 ```
 
+The user migration script imports users from a CSV export:
+
 ```basic
 ' migrate-users.bas
 PARAM csv_path AS string
@@ -67,7 +57,7 @@ NEXT row
 
 ### REST API Mapping
 
-General Bots REST APIs follow familiar patterns:
+General Bots REST APIs follow familiar patterns that map to common operations:
 
 | Common Operation | General Bots Endpoint |
 |-----------------|----------------------|
@@ -82,14 +72,9 @@ General Bots REST APIs follow familiar patterns:
 
 ### Identity Federation
 
-Support SSO during migration with identity federation:
+Support SSO during migration with identity federation. This enables OIDC provider integration, SAML support via Zitadel, hybrid authentication during transition periods, and gradual user migration without disrupting access.
 
-- OIDC provider integration
-- SAML support via Zitadel
-- Hybrid authentication during transition
-- Gradual user migration
-
-Configure in `config.csv`:
+Configure federation in `config.csv`:
 
 ```csv
 key,value
@@ -100,35 +85,15 @@ oidc-client-secret,your-secret
 
 ## Industry Templates
 
-Pre-built configurations for common industries:
+Pre-built configurations address common industry requirements.
 
-### Healthcare
+Healthcare templates provide HIPAA-compliant configuration, patient communication templates, appointment scheduling workflows, and secure document handling.
 
-- HIPAA-compliant configuration
-- Patient communication templates
-- Appointment scheduling workflows
-- Secure document handling
+Financial services templates include SOC 2 aligned settings, secure data handling, audit logging enabled by default, and compliance reporting.
 
-### Financial Services
+Education templates offer student enrollment flows, course management, parent communication channels, and assignment tracking.
 
-- SOC 2 aligned settings
-- Secure data handling
-- Audit logging enabled
-- Compliance reporting
-
-### Education
-
-- Student enrollment flows
-- Course management
-- Parent communication channels
-- Assignment tracking
-
-### Professional Services
-
-- Client onboarding templates
-- Project management workflows
-- Time tracking integration
-- Invoice generation
+Professional services templates cover client onboarding, project management workflows, time tracking integration, and invoice generation.
 
 ## Deployment Guides
 
@@ -143,16 +108,11 @@ Pre-built configurations for common industries:
 
 ### High Availability
 
-For production deployments:
-
-- PostgreSQL replication
-- Load-balanced botserver instances
-- Distributed SeaweedFS storage
-- Redis/Valkey clustering
+For production deployments requiring high availability, configure PostgreSQL replication for database resilience, load-balanced botserver instances for horizontal scaling, distributed SeaweedFS storage for file redundancy, and Redis/Valkey clustering for cache availability.
 
 ### Backup Strategy
 
-Automated backup configuration:
+Configure automated backups to protect your data:
 
 ```basic
 SET SCHEDULE "every day at 2am"
@@ -171,24 +131,15 @@ SEND MAIL TO "ops@company.com" SUBJECT "Backup Complete" BODY result
 
 ### Administrator Training
 
-- Initial setup and configuration
-- User management
-- Security settings
-- Monitoring and maintenance
+Administrator training covers initial setup and configuration, user management, security settings, and monitoring and maintenance procedures.
 
 ### Developer Training
 
-- BASIC scripting fundamentals
-- API integration patterns
-- Custom keyword development
-- Package creation
+Developer training includes BASIC scripting fundamentals, API integration patterns, custom keyword development, and package creation.
 
 ### End User Training
 
-- Chat interface usage
-- File management
-- Calendar and tasks
-- Mobile access
+End user training addresses chat interface usage, file management, calendar and tasks, and mobile access.
 
 ## ROI Calculator
 
@@ -202,32 +153,21 @@ Estimate savings with self-hosted deployment:
 | LLM API costs | Included | $600-6,000 |
 | **Total Annual** | **$51,000-96,000** | **$3,000-12,000** |
 
-Typical savings: 75-95% reduction in annual costs.
+Typical savings range from 75-95% reduction in annual costs.
 
 ## Support Resources
 
 ### Documentation
 
-- Complete keyword reference
-- API documentation
-- Configuration guides
-- Troubleshooting guides
+Documentation resources include the complete keyword reference, API documentation, configuration guides, and troubleshooting guides.
 
 ### Community
 
-- GitHub discussions
-- Issue tracking
-- Feature requests
-- Community contributions
+Community support is available through GitHub discussions, issue tracking, feature requests, and community contributions.
 
 ### Professional Services
 
-For enterprise deployments:
-
-- Migration planning
-- Custom development
-- Training programs
-- Support contracts
+For enterprise deployments requiring additional support, professional services include migration planning, custom development, training programs, and support contracts.
 
 Contact: partners@pragmatismo.com.br
 
@@ -235,56 +175,28 @@ Contact: partners@pragmatismo.com.br
 
 ### Pre-Migration
 
-- [ ] Inventory current services and usage
-- [ ] Identify data to migrate
-- [ ] Plan user communication
-- [ ] Set up test environment
-- [ ] Configure identity federation
+Before beginning migration, inventory current services and usage, identify data to migrate, plan user communication, set up a test environment, and configure identity federation if needed.
 
 ### Migration
 
-- [ ] Deploy General Bots infrastructure
-- [ ] Import users and groups
-- [ ] Migrate files and documents
-- [ ] Transfer email (if applicable)
-- [ ] Set up integrations
+During migration, deploy General Bots infrastructure, import users and groups, migrate files and documents, transfer email if applicable, and set up integrations.
 
 ### Post-Migration
 
-- [ ] Verify data integrity
-- [ ] Test all workflows
-- [ ] Train users
-- [ ] Update DNS/routing
-- [ ] Decommission old services
-- [ ] Monitor and optimize
+After migration, verify data integrity, test all workflows, train users, update DNS and routing, decommission old services, and monitor and optimize the new environment.
 
 ## Case Study Template
 
-Document your migration for internal reference:
+Document your migration for internal reference using this structure.
 
-**Organization Profile**
-- Size and industry
-- Previous platform
-- Key requirements
+The organization profile section captures size and industry, previous platform, and key requirements.
 
-**Migration Scope**
-- Services migrated
-- Data volume
-- Timeline
+The migration scope section documents services migrated, data volume, and timeline.
 
-**Results**
-- Cost savings achieved
-- Performance improvements
-- User feedback
+The results section records cost savings achieved, performance improvements, and user feedback.
 
-**Lessons Learned**
-- Challenges encountered
-- Solutions implemented
-- Recommendations
+The lessons learned section captures challenges encountered, solutions implemented, and recommendations for future migrations.
 
 ## See Also
 
-- [Migration Overview](./overview.md) - Getting started with migration
-- [Validation and Testing](./validation.md) - Verify migration success
-- [Enterprise Platform Migration](../chapter-11-features/m365-comparison.md) - Feature mapping
-- [Quick Start](../chapter-01/quick-start.md) - Initial deployment
+Review the [Migration Overview](./overview.md) for getting started with migration concepts. See [Validation and Testing](./validation.md) to verify migration success. The [Enterprise Platform Migration](../chapter-11-features/m365-comparison.md) guide provides detailed feature mapping. Start with the [Quick Start](../chapter-01/quick-start.md) guide for initial deployment.

@@ -48,9 +48,14 @@ User logs in → OAuth token issued → User asks bot to send email
 ' This runs in User Context when triggered by user interaction
 ' The email is sent from the logged-in user's account
 
-recipient = HEAR "Who should I email?"
-subject = HEAR "What's the subject?"
-body = HEAR "What's the message?"
+TALK "Who should I email?"
+recipient = HEAR
+
+TALK "What's the subject?"
+subject = HEAR
+
+TALK "What's the message?"
+body = HEAR
 
 SEND MAIL recipient, subject, body
 TALK "Email sent from your account to " + recipient

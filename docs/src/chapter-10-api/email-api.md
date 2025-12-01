@@ -289,9 +289,15 @@ Use email in your BASIC scripts:
 SEND MAIL "recipient@example.com", "Subject", "Body"
 
 ' With variables
-recipient = HEAR "Who should I email?"
-subject = HEAR "What's the subject?"
-body = HEAR "What's the message?"
+TALK "Who should I email?"
+recipient = HEAR
+
+TALK "What's the subject?"
+subject = HEAR
+
+TALK "What's the message?"
+body = HEAR
+
 SEND MAIL recipient, subject, body
 TALK "Email sent!"
 ```

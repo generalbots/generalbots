@@ -38,15 +38,9 @@ WITH result = NEW OBJECT
 END WITH
 ```
 
-This creates a working API endpoint in seconds—no separate deployment, no infrastructure configuration.
+This creates a working API endpoint in seconds without separate deployment or infrastructure configuration.
 
-**What you can build:**
-- Custom webhooks and APIs
-- Automated workflows with BASIC scripts
-- Integrations with any external system
-- Multi-channel chatbots
-- Document processing pipelines
-- Scheduled automation tasks
+You can build custom webhooks and APIs, automated workflows with BASIC scripts, integrations with any external system, multi-channel chatbots, document processing pipelines, and scheduled automation tasks.
 
 ### Knowledge Base & RAG
 
@@ -70,13 +64,7 @@ INSERT "conversations", #{
 }
 ```
 
-**Features:**
-- Multiple vector collections
-- Custom embedding models
-- Semantic search
-- Context compaction
-- Semantic caching
-- Full document indexing
+The knowledge base system supports multiple vector collections, custom embedding models, semantic search, context compaction, semantic caching, and full document indexing.
 
 ### Multi-Channel Deployment
 
@@ -90,15 +78,7 @@ response = LLM question
 TALK response
 ```
 
-**Supported channels:**
-- Web chat
-- WhatsApp Business
-- Teams
-- Slack
-- Telegram
-- SMS
-- Email
-- Voice (LiveKit)
+Supported channels include web chat, WhatsApp Business, Teams, Slack, Telegram, SMS, email, and voice through LiveKit.
 
 ### Database & Integration
 
@@ -116,7 +96,7 @@ POST "https://api.crm.com/leads", lead_data
 result = GRAPHQL "https://api.github.com/graphql", query, vars
 ```
 
-No connector marketplace, no per-integration fees—connect to anything with HTTP.
+There is no connector marketplace and no per-integration fees. You can connect to anything with HTTP.
 
 ### AI Capabilities
 
@@ -132,7 +112,7 @@ Native AI integration without additional licensing:
 | Text-to-speech | `AUDIO` keyword |
 | Vision/OCR | `SEE` keyword |
 
-Use any LLM provider (OpenAI, Anthropic, local models) or run entirely offline with local inference.
+Use any LLM provider including OpenAI, Anthropic, or local models. You can run entirely offline with local inference.
 
 ## Automation Power
 
@@ -151,40 +131,27 @@ summary = LLM "Sales: $" + sales + ", Orders: " + count
 SEND MAIL TO "team@company.com" SUBJECT "Daily Report" BODY summary
 ```
 
-**Automation features:**
-- Scheduled tasks (cron syntax)
-- Event-driven webhooks
-- Database triggers
-- Conditional logic
-- Loops and iterations
-- Error handling
-- Multi-step workflows
+Automation features include scheduled tasks using cron syntax, event-driven webhooks, database triggers, conditional logic, loops and iterations, error handling, and multi-step workflows.
 
 ## When General Bots Excels
 
-General Bots is the right choice when you need:
+General Bots is the right choice when you need custom chatbots for customer service, internal support, or specialized domains where you control the knowledge base and conversation flow.
 
-**Custom chatbots** for customer service, internal support, or specialized domains where you control the knowledge base and conversation flow.
+Workflow automation that goes beyond simple triggers benefits from the full programming logic with database access, API calls, and AI integration that General Bots provides.
 
-**Workflow automation** that goes beyond simple triggers—full programming logic with database access, API calls, and AI integration.
+Multi-channel deployment where the same bot serves users on web, mobile messaging, and enterprise platforms is straightforward with General Bots.
 
-**Multi-channel deployment** where the same bot serves users on web, mobile messaging, and enterprise platforms.
+Data sovereignty requirements are met through self-hosted deployment that keeps all data on your infrastructure.
 
-**Data sovereignty** with self-hosted deployment keeping all data on your infrastructure.
+Cost control is achieved without per-user licensing that scales with your organization.
 
-**Cost control** without per-user licensing that scales with your organization.
-
-**Integration flexibility** connecting to any system without marketplace limitations.
+Integration flexibility allows connecting to any system without marketplace limitations.
 
 ## Deployment Options
 
 ### Self-Hosted
 
-Run General Bots on your own infrastructure:
-- Single binary deployment
-- Container support (LXC, Docker)
-- Scales horizontally
-- Full observability
+Run General Bots on your own infrastructure with single binary deployment, container support through LXC and Docker, horizontal scaling, and full observability.
 
 ### Quick Start
 
@@ -196,14 +163,7 @@ Access at `http://localhost:8080` and start building.
 
 ## Summary
 
-General Bots combines:
-
-- **Self-hosting** for complete data control
-- **BASIC scripting** for powerful automation
-- **Multi-channel** for broad reach
-- **Native AI** without extra licensing
-- **Open source** for transparency and customization
-- **No per-user fees** for predictable costs
+General Bots combines self-hosting for complete data control, BASIC scripting for powerful automation, multi-channel support for broad reach, native AI without extra licensing, open source for transparency and customization, and no per-user fees for predictable costs.
 
 For organizations that need more than a simple chatbot—those requiring custom integrations, complex workflows, and full control over their AI deployment—General Bots provides the foundation to build exactly what you need.
 

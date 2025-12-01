@@ -32,7 +32,7 @@ Intercom is a customer messaging platform with live chat, chatbots, and help des
 | Expert | $139 | Full platform |
 | Fin AI | $0.99/resolution | AI answers |
 
-**10 support agents:** $990-1,390/month + AI costs
+For a team of 10 support agents, Intercom costs between $990-1,390 per month plus AI costs.
 
 ### General Bots
 
@@ -42,7 +42,7 @@ Intercom is a customer messaging platform with live chat, chatbots, and help des
 | Infrastructure | $50-200/month |
 | LLM API (optional) | Usage-based |
 
-**10 agents:** ~$100-300/month total
+The same 10-agent team would spend approximately $100-300 per month total with General Bots.
 
 ## Feature Mapping
 
@@ -71,14 +71,11 @@ Intercom is a customer messaging platform with live chat, chatbots, and help des
 
 ### Step 1: Export Intercom Data
 
-1. Go to Settings → Data Management
-2. Export conversations, contacts, and articles
-3. Download Help Center articles
-4. Export custom attributes and tags
+Begin by exporting your data from Intercom. Navigate to Settings, then Data Management, and export conversations, contacts, and articles. Download your Help Center articles separately and export any custom attributes and tags you've configured.
 
 ### Step 2: Migrate Knowledge Base
 
-Convert Help Center articles to General Bots knowledge base:
+Convert your Help Center articles to a General Bots knowledge base structure:
 
 ```
 my-bot.gbkb/
@@ -166,7 +163,7 @@ END SUB
 
 ### Messenger Widget
 
-General Bots provides embeddable chat widgets:
+General Bots provides embeddable chat widgets that you can add to your website:
 
 ```html
 <!-- Embed in your website -->
@@ -182,9 +179,7 @@ General Bots provides embeddable chat widgets:
 
 ### Qualification Bot
 
-**Intercom:** Qualification workflow
-
-**General Bots:**
+Where Intercom uses a qualification workflow, General Bots achieves the same result through BASIC scripts:
 
 ```basic
 ' lead-qualification.bas
@@ -250,9 +245,7 @@ INSERT "leads", lead_data
 
 ### Proactive Messages
 
-**Intercom:** Outbound messages
-
-**General Bots:**
+Intercom's outbound messages translate to scheduled BASIC scripts in General Bots:
 
 ```basic
 ' proactive-engagement.bas
@@ -270,9 +263,7 @@ NEXT session
 
 ### Resolution Bot (AI Answers)
 
-**Intercom Fin:** $0.99 per resolution
-
-**General Bots:**
+While Intercom's Fin charges $0.99 per resolution, General Bots provides the same capability at no additional cost:
 
 ```basic
 ' ai-resolution.bas
@@ -310,9 +301,7 @@ END IF
 
 ### Customer Segments
 
-**Intercom:** User segments
-
-**General Bots:**
+Intercom's user segments become database queries and scheduled scripts in General Bots:
 
 ```basic
 ' segment-customers.bas
@@ -359,13 +348,12 @@ NEXT customer
 ## Multi-Channel Support
 
 ### Intercom Channels
-- Web Messenger
-- Mobile SDK
-- Email
-- SMS (add-on)
+
+Intercom supports Web Messenger, Mobile SDK, Email, and SMS as an add-on.
 
 ### General Bots Channels
-All channels use the same BASIC scripts:
+
+All channels use the same BASIC scripts, making development and maintenance simpler:
 
 ```basic
 ' Same bot works everywhere
@@ -384,15 +372,7 @@ ELSEIF channel = "email" THEN
 END IF
 ```
 
-Supported channels:
-- Web chat
-- WhatsApp Business
-- Teams
-- Slack
-- Telegram
-- SMS
-- Email
-- Voice (LiveKit)
+General Bots supports web chat, WhatsApp Business, Teams, Slack, Telegram, SMS, Email, and voice through LiveKit.
 
 ## Reporting and Analytics
 
@@ -425,43 +405,19 @@ SEND MAIL TO "support-lead@company.com" SUBJECT "Daily Support Metrics - " + tod
 
 ### Pre-Migration
 
-- [ ] Export all Intercom data (conversations, contacts, articles)
-- [ ] Document custom bot workflows
-- [ ] List all integrations
-- [ ] Note custom attributes and tags
-- [ ] Set up General Bots environment
+Before beginning the migration, export all Intercom data including conversations, contacts, and articles. Document your custom bot workflows so you can recreate them in BASIC. List all integrations that connect to Intercom. Note any custom attributes and tags you use. Set up your General Bots environment with the necessary infrastructure.
 
 ### Migration
 
-- [ ] Convert Help Center to .gbkb structure
-- [ ] Create support bot scripts
-- [ ] Implement human handoff flow
-- [ ] Set up notification channels
-- [ ] Configure chat widget
-- [ ] Import customer data
+During the migration phase, convert your Help Center content to the .gbkb structure. Create support bot scripts that replicate your Intercom workflows. Implement the human handoff flow for seamless escalation. Set up notification channels for your support team. Configure the chat widget for your website. Import customer data from your Intercom export.
 
 ### Post-Migration
 
-- [ ] Test all conversation flows
-- [ ] Verify knowledge base accuracy
-- [ ] Train support team
-- [ ] Run parallel support briefly
-- [ ] Redirect widget embed code
-- [ ] Cancel Intercom subscription
+After migration, test all conversation flows to ensure they work correctly. Verify knowledge base accuracy by asking common questions. Train your support team on the new interface. Run parallel support briefly by keeping both systems active. Once validated, redirect the widget embed code to General Bots and cancel your Intercom subscription.
 
 ## What You Gain
 
-**No Per-Seat Pricing:** Add unlimited agents without cost increase.
-
-**Native AI:** Use any LLM without per-resolution fees.
-
-**Full Customization:** Modify every aspect of the support experience.
-
-**Data Ownership:** All conversations stay on your infrastructure.
-
-**Automation Power:** Go beyond simple workflows with full BASIC scripting.
-
-**Multi-Channel Native:** Same bot works across all channels without add-ons.
+Migrating to General Bots provides several significant advantages. There is no per-seat pricing, so you can add unlimited agents without increasing costs. Native AI comes without per-resolution fees since you can use any LLM provider. Full customization is possible because you have complete source access to modify any aspect of the system. Data ownership means all conversations stay on your infrastructure. Automation power lets you go beyond simple workflows with full BASIC scripting. Multi-channel support is native, meaning the same bot works across all channels without add-ons.
 
 ## See Also
 

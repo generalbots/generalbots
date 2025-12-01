@@ -4,13 +4,7 @@ General Bots supports development with any text editor or IDE. Choose the one th
 
 ## Zed Editor (Best for Rust Development)
 
-Zed is a high-performance, collaborative code editor that excels at Rust development and is recommended for working with General Bots core.
-
-### Why Zed?
-- Native Rust support with excellent syntax highlighting
-- Fast performance and minimal resource usage
-- Built-in collaboration features
-- Modern, clean interface
+Zed is a high-performance, collaborative code editor that excels at Rust development and is recommended for working with General Bots core. The editor provides native Rust support with excellent syntax highlighting, delivers fast performance with minimal resource usage, includes built-in collaboration features, and offers a modern, clean interface.
 
 ### Installation
 
@@ -21,32 +15,15 @@ curl https://zed.dev/install.sh | sh
 
 ## Other Popular IDEs
 
-You can use any IDE or text editor you prefer:
-
-### Visual Studio Code
-- Extensive extension marketplace
-- Good BASIC syntax highlighting with custom extensions
-- Integrated terminal for running General Bots
-- Git integration
-
-### IntelliJ IDEA / RustRover
-- Excellent Rust support
-- Powerful refactoring tools
-- Database tools for PostgreSQL integration
-
-### Neovim
-- Lightweight and fast
-- Highly customizable
-- Terminal-based workflow
-
-### Sublime Text
-- Fast and responsive
-- Multiple cursors and powerful search
-- Customizable syntax highlighting
+You can use any IDE or text editor you prefer. Visual Studio Code offers an extensive extension marketplace, good BASIC syntax highlighting with custom extensions, an integrated terminal for running General Bots, and Git integration. IntelliJ IDEA and RustRover provide excellent Rust support, powerful refactoring tools, and database tools for PostgreSQL integration. Neovim appeals to developers who prefer a lightweight, fast, highly customizable, terminal-based workflow. Sublime Text is known for being fast and responsive, with multiple cursors, powerful search capabilities, and customizable syntax highlighting.
 
 ## BASIC Script Support
 
-For editing `.bas` files (General Bots dialog scripts):
+For editing `.bas` files (General Bots dialog scripts), you can configure your editor with custom key bindings and project settings.
+
+#### Key Bindings Configuration
+
+```json
 {
   "bindings": {
     "cmd-shift-b": "botserver:run-script",
@@ -59,6 +36,7 @@ For editing `.bas` files (General Bots dialog scripts):
 #### Project Settings
 
 Create `.zed/settings.json` in your bot project:
+
 ```json
 {
   "file_types": {
@@ -74,13 +52,15 @@ Create `.zed/settings.json` in your bot project:
 
 ### Installation
 
-Using vim-plug:
+The Vim plugin can be installed using vim-plug by adding the following to your configuration:
+
 ```vim
 " ~/.vimrc or ~/.config/nvim/init.vim
 Plug 'botserver/vim-botserver'
 ```
 
-Using lazy.nvim:
+For Neovim users preferring lazy.nvim, use this Lua configuration:
+
 ```lua
 -- ~/.config/nvim/lua/plugins/botserver.lua
 return {
@@ -96,7 +76,8 @@ return {
 
 ### Features
 
-#### Syntax Files
+The plugin includes syntax files for BASIC highlighting:
+
 ```vim
 " ~/.vim/syntax/basic.vim
 syn keyword basicKeyword TALK HEAR SET GET LLM
@@ -106,15 +87,13 @@ syn match basicComment "^REM.*$"
 syn match basicComment "'.*$"
 ```
 
-#### Commands
-- `:BotDeploy` - Deploy current bot
-- `:BotRun` - Run current script
-- `:BotLogs` - View server logs
-- `:BotConnect` - Connect to server
+The plugin provides several commands for interacting with BotServer. Use `:BotDeploy` to deploy the current bot, `:BotRun` to run the current script, `:BotLogs` to view server logs, and `:BotConnect` to connect to the server.
 
 ## Emacs Mode
 
 ### Installation
+
+Add the BotServer mode to your Emacs configuration:
 
 ```elisp
 ;; ~/.emacs.d/init.el
@@ -125,7 +104,8 @@ syn match basicComment "'.*$"
 
 ### Features
 
-#### Major Mode
+The major mode definition provides BASIC script editing support:
+
 ```elisp
 (define-derived-mode botserver-mode prog-mode "BotServer"
   "Major mode for editing BotServer BASIC scripts."
@@ -134,49 +114,37 @@ syn match basicComment "'.*$"
   (setq-local indent-line-function 'botserver-indent-line))
 ```
 
-#### Key Bindings
-- `C-c C-c` - Run current script
-- `C-c C-d` - Deploy bot
-- `C-c C-l` - View logs
+The mode includes convenient key bindings: `C-c C-c` runs the current script, `C-c C-d` deploys the bot, and `C-c C-l` displays the logs.
 
 ## Sublime Text Package
 
 ### Installation
 
-```bash
-# Via Package Control
-# Cmd+Shift+P -> Package Control: Install Package -> BotServer
+The package can be installed via Package Control by opening the command palette with `Cmd+Shift+P`, selecting "Package Control: Install Package", and searching for "BotServer". For manual installation, clone the repository directly:
 
-# Manual installation
+```bash
 cd ~/Library/Application\ Support/Sublime\ Text/Packages
 git clone https://github.com/botserver/sublime-botserver BotServer
 ```
 
-### Features
-
-- BASIC syntax highlighting
-- Build system for running scripts
-- Snippets for common patterns
-- Project templates
+The package provides BASIC syntax highlighting, a build system for running scripts, snippets for common patterns, and project templates.
 
 ## TextMate Bundle
 
 ### Installation
+
+Clone the bundle to your TextMate bundles directory:
 
 ```bash
 cd ~/Library/Application\ Support/TextMate/Bundles
 git clone https://github.com/botserver/botserver.tmbundle
 ```
 
-### Features
-
-- Language grammar for BASIC
-- Commands for deployment
-- Tab triggers for snippets
+The bundle includes a language grammar for BASIC, commands for deployment, and tab triggers for snippets.
 
 ## Language Server Protocol (LSP)
 
-BotServer includes an LSP server that works with any LSP-compatible editor:
+BotServer includes an LSP server that works with any LSP-compatible editor. This enables a consistent development experience across different editors and platforms.
 
 ### Starting the LSP Server
 
@@ -184,18 +152,12 @@ BotServer includes an LSP server that works with any LSP-compatible editor:
 botserver --lsp --stdio
 ```
 
-### Capabilities
-
-- Completion
-- Hover documentation
-- Go to definition
-- Find references
-- Diagnostics
-- Code actions
+The LSP server provides completion suggestions, hover documentation, go to definition, find references, diagnostics for error detection, and code actions for quick fixes.
 
 ### Configuration Example
 
-For any LSP client:
+For any LSP client, use this configuration:
+
 ```json
 {
   "command": ["botserver", "--lsp", "--stdio"],
@@ -211,14 +173,16 @@ For any LSP client:
 
 ### Snippets
 
-#### Tool Definition
+All editor integrations include useful snippets to speed up development. The tool definition snippet creates parameter blocks:
+
 ```basic
 PARAM ${name} AS ${type} LIKE "${example}" DESCRIPTION "${description}"
 DESCRIPTION "${tool_description}"
 ${body}
 ```
 
-#### Dialog Flow
+The dialog flow snippet sets up conversation structures:
+
 ```basic
 TALK "${greeting}"
 HEAR response
@@ -227,7 +191,8 @@ IF response = "${expected}" THEN
 END IF
 ```
 
-#### Knowledge Base Usage
+The knowledge base snippet configures KB access:
+
 ```basic
 USE KB "${collection}"
 # System AI now has access to the KB
@@ -250,7 +215,8 @@ CLEAR KB
 
 ### Breakpoints
 
-Set breakpoints in BASIC scripts:
+Set breakpoints in BASIC scripts by adding a comment marker:
+
 ```basic
 TALK "Before breakpoint"
 ' BREAKPOINT
@@ -259,7 +225,8 @@ TALK "After breakpoint"
 
 ### Watch Variables
 
-Monitor variable values during execution:
+Monitor variable values during execution by adding watch comments:
+
 ```basic
 ' WATCH: user_name
 ' WATCH: greeting
@@ -269,33 +236,16 @@ greeting = "Hello " + user_name
 
 ### Step Execution
 
-Control flow with debug commands:
-- Step Over: Execute current line
-- Step Into: Enter function calls
-- Step Out: Exit current function
-- Continue: Resume execution
+The debugger supports several execution control modes. Step Over executes the current line and moves to the next. Step Into enters function calls to debug their internals. Step Out exits the current function and returns to the caller. Continue resumes normal execution until the next breakpoint.
 
 ## Best Practices
 
-1. **Use Format on Save**: Keep code consistently formatted
-2. **Enable Linting**: Catch errors early
-3. **Configure Shortcuts**: Speed up common tasks
-4. **Use Snippets**: Reduce repetitive typing
-5. **Keep Extensions Updated**: Get latest features and fixes
+Effective IDE configuration significantly improves development productivity. Enable format on save to keep code consistently formatted across your project. Configure linting to catch errors early in the development cycle. Set up keyboard shortcuts for common tasks like deployment and script execution to speed up your workflow. Create and use snippets to reduce repetitive typing when writing common patterns. Finally, keep your extensions updated to benefit from the latest features and bug fixes.
 
 ## Troubleshooting
 
-### LSP Not Starting
-- Check botserver binary is in PATH
-- Verify server is running on expected port
-- Review LSP logs in editor
+When the LSP server fails to start, verify that the botserver binary is in your PATH, confirm the server is running on the expected port, and review the LSP logs in your editor's output panel.
 
-### Syntax Highlighting Missing
-- Ensure file extensions are properly associated
-- Restart editor after installing extension
-- Check language mode is set correctly
+If syntax highlighting is missing, ensure file extensions are properly associated with the BASIC language mode, restart your editor after installing the extension, and check that the language mode is correctly set for open files.
 
-### Commands Not Working
-- Verify server connection settings
-- Check API credentials if required
-- Review editor console for errors
+When commands are not working, verify your server connection settings are correct, check API credentials if authentication is required, and review the editor console for error messages that might indicate the cause.

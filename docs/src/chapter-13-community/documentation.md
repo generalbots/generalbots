@@ -4,41 +4,23 @@ Good documentation is essential for maintaining and growing BotServer. This guid
 
 ## Overview
 
-BotServer documentation includes:
-- Code documentation (inline comments and doc comments)
-- API documentation
-- User guides
-- BASIC language reference
-- Architecture documentation
-- README files
+BotServer documentation includes code documentation through inline comments and doc comments, API documentation, user guides, the BASIC language reference, architecture documentation, and README files throughout the repository.
 
 ## Documentation Structure
 
 ### Repository Documentation
 
-```
-botserver/
-├── README.md              # Project overview
-├── CHANGELOG.md          # Version history
-├── docs/                 # mdBook documentation
-│   └── src/             # Documentation source
-└── templates/*/README.md # Template documentation
-```
+The repository follows a structured documentation layout. The root contains `README.md` for the project overview and `CHANGELOG.md` for version history. The `docs/` directory contains mdBook documentation with source files in `docs/src/`. Each template directory also includes its own README file explaining that specific template.
 
 ### mdBook Documentation
 
-The main documentation in `docs/src/`:
-- User guides
-- Developer guides
-- API references
-- Architecture documentation
-- BASIC language reference
+The main documentation lives in `docs/src/` and covers user guides, developer guides, API references, architecture documentation, and the BASIC language reference.
 
 ## Code Documentation
 
 ### Rust Doc Comments
 
-Use triple slashes for public items:
+Use triple slashes for public items to generate documentation that integrates with Rust's documentation system:
 
 ```rust
 /// Creates a new user session for the specified bot.
@@ -62,7 +44,7 @@ pub fn create_session(user_id: Uuid, bot_id: Uuid) -> Result<Session> {
 
 ### Module Documentation
 
-Document modules with `//!` at the top:
+Document modules with `//!` at the top of the file to provide context for the entire module:
 
 ```rust
 //! # Session Management Module
@@ -84,7 +66,7 @@ Document modules with `//!` at the top:
 
 ### Inline Comments
 
-Use inline comments for complex logic:
+Use inline comments for complex logic where the code's purpose isn't immediately obvious:
 
 ```rust
 // Calculate the exponential backoff delay
@@ -102,7 +84,7 @@ if attempt > MAX_RETRIES {
 
 ### Endpoint Documentation
 
-Document REST endpoints clearly:
+Document REST endpoints clearly with the HTTP method, path, purpose, request format, response format, and possible error codes:
 
 ```markdown
 ## Create User
@@ -134,7 +116,7 @@ Creates a new user account.
 
 ### WebSocket Documentation
 
-Document WebSocket protocols:
+Document WebSocket protocols with connection details, message formats for both directions, and any special handling requirements:
 
 ```markdown
 ## WebSocket Protocol
@@ -168,7 +150,7 @@ Server → Client:
 
 ### Keyword Documentation
 
-Document BASIC keywords with examples:
+Document BASIC keywords with syntax, parameters, and working examples:
 
 ```markdown
 ## TALK Keyword
@@ -194,7 +176,7 @@ TALK greeting
 
 ### Script Examples
 
-Provide complete working examples:
+Provide complete working examples that demonstrate real-world usage patterns:
 
 ```basic
 # greeting.bas
@@ -216,113 +198,54 @@ SET_BOT_MEMORY "user_name", name
 
 ### Structure
 
-Use clear hierarchy:
-```markdown
-# Main Title
-Brief introduction paragraph.
-
-## Section
-Section content.
-
-### Subsection
-Detailed information.
-
-#### Detail Point
-Specific details.
-```
+Use clear hierarchy with headings that progress logically from broad concepts to specific details. Start with a main title using a single hash, then use second-level headings for major sections, third-level for subsections, and so on.
 
 ### Code Blocks
 
-Always specify language:
-````markdown
-```rust
-let x = 42;
-```
-
-```bash
-cargo build --release
-```
-
-```basic
-TALK "Hello"
-```
-````
+Always specify the language for syntax highlighting in code blocks. Use `rust` for Rust code, `bash` for shell commands, `basic` for BASIC scripts, `json` for JSON data, and `toml` for configuration files.
 
 ### Tables
 
-Use tables for structured data:
-```markdown
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| user_id | UUID | User identifier |
-| bot_id | UUID | Bot identifier |
-```
+Use tables for structured data where comparison or quick reference is useful, such as parameter lists, feature comparisons, or API endpoints.
 
 ### Links
 
-Use relative links for internal docs:
-```markdown
-See [Authentication](../chapter-11/README.md) for details.
-```
+Use relative links for internal documentation to ensure links work regardless of where the documentation is hosted. For example, link to authentication documentation as `../chapter-11/README.md` rather than using absolute URLs.
 
 ## Writing Style
 
 ### Be Clear and Concise
 
-Good:
-> "BotServer uses PostgreSQL for structured data storage."
-
-Bad:
-> "The system employs a sophisticated relational database management system, specifically PostgreSQL, for the purpose of persisting structured information."
+Write directly and avoid unnecessary words. Instead of "The system employs a sophisticated relational database management system, specifically PostgreSQL, for the purpose of persisting structured information," simply write "BotServer uses PostgreSQL for structured data storage."
 
 ### Use Active Voice
 
-Good:
-> "The function returns an error if validation fails."
-
-Bad:
-> "An error is returned by the function if validation is failed."
+Prefer active voice over passive voice for clarity. Write "The function returns an error if validation fails" rather than "An error is returned by the function if validation is failed."
 
 ### Provide Context
 
-Good:
-> "Sessions expire after 24 hours to balance security with user convenience."
-
-Bad:
-> "Sessions expire after 24 hours."
+Explain not just what something does, but why it matters. Instead of only stating "Sessions expire after 24 hours," add the reasoning: "Sessions expire after 24 hours to balance security with user convenience."
 
 ## Documentation Process
 
 ### When to Document
 
-- **Before coding**: Document the design and API
-- **While coding**: Add inline comments for complex logic
-- **After coding**: Update with learnings and examples
-- **During review**: Ensure documentation is complete
+Document before coding to clarify design and API structure. Add inline comments while coding to explain complex logic. After coding, update documentation with any learnings and add examples. During code review, ensure documentation is complete and accurate.
 
 ### Documentation Checklist
 
-Before submitting PR:
-- [ ] All public functions have doc comments
-- [ ] Complex logic has inline comments
-- [ ] README updated if needed
-- [ ] Examples provided for new features
-- [ ] API documentation updated
-- [ ] Breaking changes noted
-- [ ] CHANGELOG updated
+Before submitting a pull request, verify that all public functions have doc comments, complex logic has inline comments explaining the reasoning, README files are updated if the PR affects them, examples are provided for new features, API documentation reflects any changes, breaking changes are noted prominently, and the CHANGELOG is updated.
 
 ## Tools
 
 ### Documentation Generation
 
-Generate Rust docs:
-```bash
-cargo doc --open
-```
+Generate Rust documentation with `cargo doc --open`, which builds and opens the documentation in your browser.
 
 ### Documentation Serving
 
-Serve mdBook locally:
+Serve mdBook documentation locally during development:
+
 ```bash
 cd docs
 mdbook serve
@@ -330,12 +253,10 @@ mdbook serve
 
 ### Spell Checking
 
-Use spell checker:
-```bash
-# Install
-cargo install cargo-spellcheck
+Install and use cargo-spellcheck to catch spelling errors:
 
-# Run
+```bash
+cargo install cargo-spellcheck
 cargo spellcheck check
 ```
 
@@ -343,65 +264,25 @@ cargo spellcheck check
 
 ### Missing Context
 
-Bad:
-```rust
-// Increment counter
-counter += 1;
-```
-
-Good:
-```rust
-// Increment retry counter to track failed attempts
-// This is used for exponential backoff calculation
-counter += 1;
-```
+Avoid comments that merely restate the code. Instead of commenting "Increment counter" above `counter += 1`, explain why: "Increment retry counter to track failed attempts. This is used for exponential backoff calculation."
 
 ### Outdated Documentation
 
-Always update docs when code changes:
-- Parameter changes
-- Behavior modifications
-- New error conditions
-- Deprecated features
+Always update documentation when code changes. This includes parameter changes, behavior modifications, new error conditions, and deprecated features. Outdated documentation is often worse than no documentation.
 
 ### Unclear Examples
 
-Bad:
-```basic
-let x = GET "file"
-let y = LLM x
-TALK y
-```
-
-Good:
-```basic
-# Load company policy document
-let policy = GET "policies/vacation.pdf"
-
-# Set policy as context for system AI
-SET CONTEXT "policy_document", policy
-
-# System AI can now answer questions about the policy
-TALK "I've loaded the vacation policy. What would you like to know?"
-```
+Examples should be complete and demonstrate realistic usage. Instead of terse, unclear examples with generic variable names, provide full examples with meaningful names, comments explaining each step, and realistic use cases.
 
 ## Contributing Documentation
 
 ### Where to Contribute
 
-- Fix typos and errors anywhere
-- Add examples to existing docs
-- Clarify unclear sections
-- Document undocumented features
-- Translate documentation
+Documentation contributions are welcome in many forms. Fix typos and errors anywhere you find them. Add examples to existing documentation. Clarify unclear sections. Document undocumented features. Translate documentation to other languages.
 
 ### Documentation PRs
 
-Documentation-only PRs are welcome:
-- Can be merged quickly
-- Don't require extensive testing
-- Help new users
-- Improve project quality
+Documentation-only pull requests are welcome and valuable. They can be merged quickly, don't require extensive testing, help new users get started, and improve overall project quality.
 
 ## Summary
 

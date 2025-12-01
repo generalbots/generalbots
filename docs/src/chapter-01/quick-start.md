@@ -46,7 +46,7 @@ Start chatting with your bot!
 
 ### Bootstrap Flow
 
-<img src="./assets/quick-start-bootstrap.svg" alt="Bootstrap Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/chapter-01/quick-start-bootstrap.svg" alt="Bootstrap Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 The **automatic bootstrap** process:
 
@@ -79,7 +79,7 @@ DRIVE_SECRET=my-secret-key
 
 ### How Tools Work
 
-<img src="./assets/tool-execution-flow.svg" alt="Tool Execution Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
+<img src="../assets/chapter-01/tool-execution-flow.svg" alt="Tool Execution Flow" style="max-height: 400px; width: 100%; object-fit: contain;">
 
 Tools are just `.bas` files. Create `enrollment.bas`:
 

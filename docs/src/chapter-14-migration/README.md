@@ -1,164 +1,85 @@
-# Chapter 14: Migration Concepts
+# Chapter 14: Migration Guide
 
-This chapter explores the conceptual framework for migrating from cloud-based enterprise services to self-hosted alternatives. We examine the philosophical and architectural differences between centralized cloud platforms and distributed, component-based systems.
+Migrate from cloud services to self-hosted General Bots with complete data sovereignty.
 
-## Understanding Migration Paradigms
+## Why Migrate?
 
-### The Centralization Model
+| Cloud Services | General Bots |
+|----------------|--------------|
+| Data on vendor servers | Data on YOUR servers |
+| $40-60/user/month | ~$7/user/month |
+| Vendor-controlled AI | Transparent, traceable logic |
+| Black box processing | Extensible via BASIC |
+| Subscription forever | One-time deployment |
 
-Modern enterprise platforms operate on a centralization principle where all services flow through a single vendor's ecosystem. This creates:
+## Core Principles
 
-- **Unified Control Points**: Single authentication, single data store, single processing pipeline
-- **Vendor-Managed Complexity**: The provider handles all infrastructure decisions
-- **Abstraction Layers**: Users interact with simplified interfaces hiding underlying complexity
-- **Subscription Economics**: Ongoing revenue model with usage-based scaling
+### Component Architecture
 
-### The Decentralization Alternative
+Install only what you need:
 
-Self-hosted solutions represent a return to distributed computing principles:
+```bash
+./botserver package install mail      # Email
+./botserver package install drive     # Storage
+./botserver package install directory # Users
+./botserver package install meet      # Video
+```
 
-- **Service Isolation**: Each function operates as an independent component
-- **Explicit Architecture**: Clear understanding of data flow and processing
-- **Ownership Model**: Complete control over infrastructure and data
-- **Capital Investment**: One-time deployment with predictable operational costs
+### Standard Protocols
 
-## Migration Philosophy
+- **Storage**: S3 API (MinIO)
+- **Email**: SMTP/IMAP/JMAP
+- **Auth**: OIDC/SAML/LDAP
+- **Video**: WebRTC
 
-### Data Sovereignty
+### Knowledge Base Integration
 
-The fundamental question in any migration is data ownership. Cloud services create a custodial relationship where:
+```basic
+USE KB "company_docs"
+USE WEBSITE "https://sharepoint.company.com/docs"
+' Documents now searchable via natural language
+```
 
-- Data physically resides on vendor infrastructure
-- Processing occurs in vendor-controlled environments
-- Access depends on continued vendor relationship
-- Portability requires vendor cooperation
+## Migration Timeline
 
-Self-hosting inverts this relationship, establishing true ownership through physical and logical control.
+| Phase | Duration | Activities |
+|-------|----------|------------|
+| **Assessment** | Week 1-2 | Inventory services, identify dependencies |
+| **Infrastructure** | Week 2-3 | Deploy BotServer, configure auth/storage |
+| **Data Migration** | Week 3-6 | Users, email, files, documents |
+| **Process Migration** | Week 6-8 | Convert workflows to .gbdialog |
+| **Validation** | Week 8-10 | Testing, training, documentation |
+| **Cutover** | Week 10-12 | User migration, decommission old |
 
-### Component Architecture vs Monolithic Services
+## Migration Paths
 
-Enterprise clouds present as unified platforms but internally consist of hundreds of microservices. The difference lies in exposure:
+| Source | Guide |
+|--------|-------|
+| Microsoft 365 | [M365 Migration](./microsoft-365.md) |
+| Google Workspace | [Google Migration](./google-workspace.md) |
+| Dialogflow | [Dialogflow Migration](./dialogflow.md) |
+| Botpress | [Botpress Migration](./botpress.md) |
+| n8n / Zapier / Make | [Automation Migration](./zapier-make.md) |
+| Notion | [Notion Migration](./notion.md) |
 
-- **Cloud Platforms**: Hide complexity behind unified APIs
-- **Component Systems**: Expose individual services as installable modules
-- **Integration Points**: Cloud uses proprietary protocols; components use standards
+## Prerequisites Checklist
 
-### The Automation Spectrum
-
-Cloud platforms offer automation through:
-- AI-driven suggestions
-- Pre-built workflows
-- Natural language interfaces
-- Black-box processing
-
-Component systems provide automation via:
-- Scriptable interfaces
-- Transparent logic flows
-- Deterministic behaviors
-- Auditable processes
-
-## Conceptual Migration Framework
-
-### Assessment Phase
-
-Understanding current usage patterns involves:
-
-- **Service Inventory**: What cloud features are actually used
-- **Data Classification**: Types and volumes of information
-- **Workflow Analysis**: How services interconnect
-- **Dependency Mapping**: Critical integration points
-
-### Architecture Translation
-
-Converting cloud services to components requires:
-
-- **Service Decomposition**: Breaking monolithic features into discrete functions
-- **Protocol Mapping**: Translating proprietary APIs to standard protocols
-- **State Management**: Handling distributed data consistency
-- **Security Boundaries**: Redefining trust zones
-
-### Knowledge Transformation
-
-Enterprise search and AI features translate to:
-
-- **Vector Databases**: Semantic search replacing keyword matching
-- **Local Language Models**: On-premise AI instead of cloud APIs
-- **Structured Knowledge**: Explicit schemas rather than implicit understanding
-- **Retrieval Systems**: Direct access patterns vs mediated queries
-
-## Migration Patterns
-
-### Lift and Shift
-
-The simplest migration moves data without transformation:
-- Direct file copying
-- Database exports and imports
-- Configuration replication
-- Minimal service disruption
-
-### Progressive Migration
-
-Gradual transition maintains dual operations:
-- Parallel running of old and new systems
-- Phased user migration
-- Incremental data synchronization
-- Rollback capabilities
-
-### Transformation Migration
-
-Reimagining workflows for new architecture:
-- Process redesign for component model
-- Workflow optimization
-- Legacy feature elimination
-- New capability introduction
-
-## Post-Migration Considerations
-
-### Operational Changes
-
-Self-hosting shifts responsibilities:
-
-- **Maintenance**: From vendor to organization
-- **Updates**: From automatic to managed
-- **Scaling**: From elastic to planned
-- **Support**: From vendor to internal/community
-
-### Cost Models
-
-Financial implications include:
-
-- **Capital vs Operating**: Hardware investment vs subscription fees
-- **Expertise Requirements**: Internal capabilities vs vendor services
-- **Risk Distribution**: Concentrated vs distributed failure points
-- **Innovation Pace**: Vendor-driven vs self-determined
-
-### Compliance and Governance
-
-Regulatory considerations:
-
-- **Data Residency**: Guaranteed geographic location
-- **Audit Trails**: Complete system visibility
-- **Access Controls**: Granular permission management
-- **Retention Policies**: Direct enforcement capability
+- [ ] Executive sponsorship
+- [ ] Infrastructure provisioned
+- [ ] Backup strategy defined
+- [ ] Rollback plan documented
+- [ ] User communication ready
 
 ## Success Metrics
 
-### Technical Indicators
+- **Performance**: Response times, availability
+- **Adoption**: User login frequency
+- **Cost**: TCO reduction (target: 80%+)
+- **Security**: Compliance achievement
 
-- Service availability and reliability
-- Performance benchmarks
-- Integration completeness
-- Feature parity achievement
+## See Also
 
-### Business Indicators
-
-- Cost reduction targets
-- Productivity maintenance
-- User satisfaction scores
-- Risk mitigation effectiveness
-
-## Conclusion
-
-Migration from cloud to self-hosted systems represents more than technical change—it's a philosophical shift in how organizations relate to their digital infrastructure. Success requires understanding not just the technical mechanisms but the underlying principles that differentiate centralized cloud services from distributed component architectures.
-
-The journey from managed services to self-sovereignty demands careful planning, clear understanding of trade-offs, and commitment to operational excellence. While challenging, it offers organizations complete control over their digital destiny.
+- [Common Concepts](./common-concepts.md) - Shared migration patterns
+- [Comparison Matrix](./comparison-matrix.md) - Feature mapping
+- [KB Migration](./kb-migration.md) - Document conversion
+- [Validation](./validation.md) - Testing procedures

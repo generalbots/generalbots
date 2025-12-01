@@ -1,122 +1,99 @@
 # Semantic Search
 
-Semantic search in BotServer happens automatically when you use `USE KB`. The system searches for relevant information based on meaning, not just keywords, and makes it available to the system AI during conversations.
+Semantic search finds relevant content by meaning, not just keywords. When a user asks "How many days off do I get?", the system matches documents about "vacation policy" or "PTO allowance" even though the words differ.
 
-## Search Pipeline
+<img src="../assets/chapter-03/search-pipeline.svg" alt="Search Pipeline" style="max-height: 400px; width: 100%; object-fit: contain;">
 
-<img src="./assets/search-pipeline.svg" alt="Semantic Search Pipeline" style="max-height: 500px; width: 100%; object-fit: contain;">
+## How It Works
 
-## How It Works Automatically
+1. **Query embedding** - Convert question to vector using same model as documents
+2. **Similarity search** - Find document chunks with closest embeddings (cosine distance)
+3. **Result selection** - Take top-k results above relevance threshold
+4. **Context injection** - Add retrieved text to LLM prompt
 
-1. **User asks a question** - Natural language input
-2. **Query converted to vector** - Using the embedding model
-3. **Search active collections** - Finds semantically similar content
-4. **Inject into context** - Relevant chunks provided to system AI
-5. **Generate response** - System AI answers using the knowledge
+## Automatic Integration
 
-## Activating Semantic Search
-
-Simply use `USE KB` to enable search for a collection:
+Semantic search requires no explicit coding. Just activate knowledge bases:
 
 ```basic
 USE KB "policies"
-USE KB "procedures"
-' Both collections are now searchable
-' No explicit search commands needed
+USE KB "products"
+
+' Now all user questions automatically search both collections
+TALK "How can I help you?"
 ```
 
-When users ask questions, the system automatically searches these collections and provides relevant context to the system AI.
+The system handles query embedding, vector search, ranking, and context assembly transparently.
 
-## How Meaning-Based Search Works
+## Search Pipeline Details
 
-Unlike keyword search, semantic search understands meaning:
-
-- "How many days off do I get?" matches "vacation policy"
-- "What's the return policy?" matches "refund procedures"
-- "I'm feeling sick" matches "medical leave guidelines"
-
-The system uses vector embeddings to find conceptually similar content, even when exact words don't match.
-
-## Configuration
-
-Search behavior is controlled by `config.csv`:
-
-```csv
-prompt-history,2     # How many previous messages to include
-prompt-compact,4     # Compact context after N exchanges
-```
-
-These settings manage how much context the system AI receives, not the search itself.
+| Stage | Operation | Default |
+|-------|-----------|---------|
+| Embedding | Convert query to vector | BGE model |
+| Search | Vector similarity lookup | Qdrant |
+| Distance | Cosine similarity | 0.0-1.0 |
+| Top-k | Results returned | 5 |
+| Threshold | Minimum relevance | 0.7 |
 
 ## Multiple Collections
 
-When multiple collections are active, the system searches all of them:
+When multiple KBs are active, the system searches all and combines best results:
 
 ```basic
-USE KB "products"
-USE KB "support"
-USE KB "warranty"
+USE KB "hr-docs"      ' Active
+USE KB "it-docs"      ' Active
+USE KB "finance"      ' Active
 
-' User: "My laptop won't turn on"
-' System searches all three collections for relevant info
+' Query searches all three, returns best matches regardless of source
 ```
 
-## Search Quality
-
-The quality of semantic search depends on:
-- **Document organization** - Well-structured folders help
-- **Embedding model** - BGE model works well, can be replaced
-- **Content quality** - Clear, descriptive documents work best
-
-## Real Example
-
-```basic
-' In start.bas
-USE KB "company-handbook"
-
-' User types: "What's the dress code?"
-' System automatically:
-' 1. Searches company-handbook for dress code info
-' 2. Finds relevant sections about attire
-' 3. Injects them into LLM context
-' 4. LLM generates natural response with the information
-```
+Use `CLEAR KB` to deactivate collections when switching topics.
 
 ## Performance
 
-- Search happens in milliseconds
-- No configuration needed
-- Cached for repeated queries
-- Only active collections are searched
+- **Cold search**: 100-200ms (first query)
+- **Warm search**: 20-50ms (cached embeddings)
+- **Indexing**: One-time cost per document
 
-## Best Practices
+Optimizations:
+- Embedding cache for repeated queries
+- HNSW index for fast vector search
+- Only active collections consume resources
 
-1. **Activate only needed collections** - Don't overload context
-2. **Organize content well** - One topic per folder
-3. **Use descriptive text** - Helps with matching
-4. **Keep documents updated** - Fresh content = better answers
+## Optimizing Quality
 
-## Common Misconceptions
+**Document factors:**
+- Clear, descriptive text produces better matches
+- Use vocabulary similar to how users ask questions
+- Avoid jargon-heavy content when possible
 
-❌ **Wrong**: You need to call a search function
-✅ **Right**: Search happens automatically with `USE KB`
-
-❌ **Wrong**: You need to configure search parameters
-✅ **Right**: It works out of the box
-
-❌ **Wrong**: You need special commands to query
-✅ **Right**: Users just ask questions naturally
+**Collection factors:**
+- Focused collections (one topic) beat catch-all collections
+- Fewer active collections = less noise in results
+- Split large document sets by domain area
 
 ## Troubleshooting
 
-### Not finding relevant content?
-- Check the collection is activated with `USE KB`
-- Verify documents are in the right folder
-- Ensure content is descriptive
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| No results | Collection not active | Call `USE KB "name"` |
+| Wrong results | Too many collections | Clear irrelevant KBs |
+| Missing matches | Document not indexed | Check file is in `.gbkb` folder |
+| Poor relevance | Content mismatch | Review document quality |
 
-### Too much irrelevant content?
-- Use fewer collections simultaneously
-- Organize documents into more specific folders
-- Clear unused collections with `CLEAR KB`
+## Configuration
 
-Remember: The beauty of semantic search in BotServer is its simplicity - just `USE KB` and let the system handle the rest!
+Semantic search uses sensible defaults. Two settings affect context:
+
+```csv
+name,value
+prompt-history,2      # Previous exchanges to include
+prompt-compact,4      # When to compress older context
+```
+
+## See Also
+
+- [Hybrid Search](../chapter-11-features/hybrid-search.md) - Combining semantic + keyword search
+- [Document Indexing](./indexing.md) - How documents are processed
+- [Vector Collections](./vector-collections.md) - Technical vector DB details
+- [USE KB](../chapter-06-gbdialog/keyword-use-kb.md) - Keyword reference

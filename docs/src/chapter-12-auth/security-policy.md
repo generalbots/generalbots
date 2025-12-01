@@ -2,993 +2,439 @@
 
 ## Overview
 
-This comprehensive security policy establishes the framework for protecting General Bots systems, data, and operations. It covers information security, access control, data protection, incident response, and ongoing maintenance procedures.
+This comprehensive security policy establishes the framework for protecting General Bots systems, data, and operations. It covers information security, access control, data protection, incident response, and ongoing maintenance procedures. All personnel, contractors, and third parties with access to General Bots systems must understand and comply with this policy.
+
 
 ## 1. Information Security Policy
 
 ### 1.1 Purpose and Scope
 
-This Information Security Policy applies to all users, systems, and data within the General Bots infrastructure. It establishes the standards for protecting confidential information, maintaining system integrity, and ensuring business continuity.
+This Information Security Policy applies to all users, systems, and data within the General Bots infrastructure. It establishes the standards for protecting confidential information, maintaining system integrity, and ensuring business continuity across all operations.
 
 ### 1.2 Information Classification
 
-We classify information into categories to ensure proper protection and resource allocation:
-
-- **Unclassified**: Information that can be made public without implications for the company (e.g., marketing materials, public documentation)
-- **Employee Confidential**: Personal employee data including medical records, salary information, performance reviews, and contact details
-- **Company Confidential**: Business-critical information such as contracts, source code, business plans, passwords for critical IT systems, client contact records, financial accounts, and strategic plans
-- **Client Confidential**: Client personally identifiable information (PII), passwords to client systems, client business plans, new product information, and market-sensitive information
+We classify information into categories to ensure proper protection and appropriate resource allocation. Unclassified information can be made public without implications for the company, including marketing materials and public documentation. Employee Confidential information encompasses personal employee data such as medical records, salary information, performance reviews, and contact details. Company Confidential information includes business-critical assets such as contracts, source code, business plans, passwords for critical IT systems, client contact records, financial accounts, and strategic plans. Client Confidential information covers client personally identifiable information, passwords to client systems, client business plans, new product information, and market-sensitive information.
 
 ### 1.3 Security Objectives
 
-Our security framework aims to:
-
-- Request your free IT security evaluation
-• Reduce the risk of IT problems
-• Plan for problems and deal with them when they happen
-• Keep working if something does go wrong
-• Protect company, client and employee data
-• Keep valuable company information, such as plans and designs, secret
-• Meet our legal obligations under the General Data Protection Regulation and other laws
-• Meet our professional obligations towards our clients and customers
-
-This IT security policy helps us achieve these objectives.
+Our security framework aims to reduce the risk of IT problems through proactive measures and continuous monitoring. We plan for problems and establish procedures to deal with them effectively when they occur. Our systems are designed to keep working even when something goes wrong through redundancy and failover capabilities. We protect company, client, and employee data through encryption, access controls, and monitoring. We keep valuable company information such as plans and designs confidential through strict access controls. We meet our legal obligations under the General Data Protection Regulation and other applicable laws. We fulfill our professional obligations towards our clients and customers through transparent practices and reliable service.
 
 ### 1.4 Roles and Responsibilities
 
-• **Rodrigo Rodriguez** is the director with overall responsibility for IT security strategy
-• **Pragmatismo Data Center** is the IT partner organisation we use to help with our planning and support
-• **Pragmatismo Data Center** is the data protection officer to advise on data protection laws and best practices
-• **All employees** are responsible for following security policies and reporting security incidents
-• **System administrators** are responsible for implementing and maintaining security controls
-• **Department heads** are responsible for ensuring their teams comply with security policies
+Rodrigo Rodriguez serves as the director with overall responsibility for IT security strategy and policy approval. Pragmatismo Data Center functions as the IT partner organization we use to help with planning and technical support. The Data Protection Officer advises on data protection laws and best practices, reporting directly to senior management. All employees are responsible for following security policies and reporting security incidents promptly. System administrators are responsible for implementing and maintaining security controls according to this policy. Department heads are responsible for ensuring their teams comply with security policies and complete required training.
 
 ### 1.5 Review Process
 
-We will review this policy yearly, with the next review scheduled for [Date].
-In the meantime, if you have any questions, suggestions or feedback, please contact security@pragmatismo.com.br
+We review this policy annually, with the next review scheduled for the date indicated in the document control section. Questions, suggestions, or feedback should be directed to security@pragmatismo.com.br for consideration during the review process or for immediate clarification.
+
 
 ## 2. Access Control Policy
 
 ### 2.1 Access Management Principles
 
-- **Least Privilege**: Users receive only the minimum access rights necessary to perform their job functions
-- **Need-to-Know**: Access to confidential information is restricted to those who require it for their duties
-- **Separation of Duties**: Critical functions are divided among multiple people to prevent fraud and error
-- **Regular Reviews**: Access rights are reviewed quarterly to ensure they remain appropriate
+Our access management follows four core principles. The Least Privilege principle ensures users receive only the minimum access rights necessary to perform their job functions. The Need-to-Know principle restricts access to confidential information to those who require it for their specific duties. Separation of Duties divides critical functions among multiple people to prevent fraud and error. Regular Reviews conducted quarterly ensure access rights remain appropriate as roles and responsibilities evolve.
 
 ### 2.2 User Account Management
 
-**Account Creation**:
-- New accounts are created only upon approval from the user's manager
-- Default accounts are disabled immediately after system installation
-- Each user has a unique account; shared accounts are prohibited
+Account creation follows a controlled process where new accounts are created only upon approval from the user's manager. Default accounts are disabled immediately after system installation to prevent unauthorized access. Each user has a unique account because shared accounts are strictly prohibited to maintain accountability.
 
-**Account Modification**:
-- Access changes require manager approval
-- Privilege escalation requires security team approval
-- All changes are logged and reviewed monthly
+Account modification requires manager approval for any access changes. Privilege escalation requires security team approval in addition to manager approval. All changes are logged and reviewed monthly to detect anomalies.
 
-**Account Termination**:
-- Accounts are disabled within 2 hours of employment termination
-- Access is revoked immediately for terminated employees
-- Contractor accounts expire automatically at contract end
-- All company devices and access credentials must be returned
+Account termination procedures ensure accounts are disabled within 2 hours of employment termination. Access is revoked immediately for terminated employees without exception. Contractor accounts expire automatically at contract end. All company devices and access credentials must be returned before departure.
 
 ### 2.3 Access Review Procedures
 
-**Monthly Reviews**:
-- Review privileged account usage
-- Check for inactive accounts (>30 days)
-- Verify administrative access justification
+Monthly reviews examine privileged account usage patterns, check for inactive accounts that have been dormant for more than 30 days, and verify that administrative access justifications remain valid.
 
-**Quarterly Reviews**:
-- Department heads review all team member access
-- Remove unnecessary permissions
-- Document review results and actions taken
+Quarterly reviews require department heads to review all team member access, remove unnecessary permissions, and document review results along with any actions taken.
 
-**Annual Reviews**:
-- Comprehensive review of all user accounts
-- Validate role-based access assignments
-- Audit system administrator privileges
+Annual reviews conduct a comprehensive examination of all user accounts, validate role-based access assignments against current organizational structure, and audit system administrator privileges for appropriateness.
+
 
 ## 3. Password Policy
 
 ### 3.1 Password Requirements
 
-**Complexity**:
-- Minimum 12 characters for standard users
-- Minimum 16 characters for administrative accounts
-- Must include: uppercase, lowercase, numbers, and special characters
-- Cannot contain username or common dictionary words
+Password complexity requirements mandate a minimum of 12 characters for standard users and 16 characters for administrative accounts. Passwords must include uppercase letters, lowercase letters, numbers, and special characters. Passwords cannot contain the username or common dictionary words.
 
-**Lifetime**:
-- Standard accounts: 90-day rotation
-- Administrative accounts: 60-day rotation
-- Service accounts: 180-day rotation with documented exceptions
+Password lifetime requirements specify 90-day rotation for standard accounts, 60-day rotation for administrative accounts, and 180-day rotation for service accounts with documented exceptions approved by the security team.
 
-**History**:
-- System remembers last 12 passwords
-- Cannot reuse previous passwords
+Password history settings ensure the system remembers the last 12 passwords, and users cannot reuse any of these previous passwords when setting a new one.
 
 ### 3.2 Password Storage and Transmission
 
-- All passwords are hashed using Argon2id algorithm
-- Passwords are never stored in plaintext
-- Passwords are never transmitted via email or unencrypted channels
-- Password managers are recommended for secure storage
+All passwords are hashed using the Argon2id algorithm, which provides strong resistance against both CPU and GPU-based attacks. Passwords are never stored in plaintext under any circumstances. Passwords are never transmitted via email or unencrypted channels. Password managers are recommended for secure storage of credentials.
 
-### 3.3 Multi-Factor Authentication (MFA)
+### 3.3 Multi-Factor Authentication
 
-**Required For**:
-- All administrative accounts
-- Remote access connections
-- Access to confidential data
-- Financial system access
+Multi-factor authentication is required for all administrative accounts, remote access connections, access to confidential data, and financial system access.
 
-**MFA Methods**:
-- Time-based One-Time Passwords (TOTP) - Preferred
-- Hardware tokens (YubiKey, etc.)
-- SMS codes - Only as backup method
-- Biometric authentication where available
+Acceptable MFA methods include Time-based One-Time Passwords (TOTP) as the preferred method, hardware tokens such as YubiKey, SMS codes only as a backup method due to SIM-swapping risks, and biometric authentication where available and appropriate.
+
 
 ## 4. Data Protection Policy
 
 ### 4.1 Data Encryption
 
-**Encryption at Rest**:
-- Database: AES-256-GCM encryption for sensitive fields
-- File storage: AES-256-GCM for all uploaded files
-- Backups: Encrypted before transmission and storage
-- Mobile devices: Full-disk encryption required
+Encryption at rest protects stored data across all systems. Databases use AES-256-GCM encryption for sensitive fields. File storage applies AES-256-GCM encryption to all uploaded files. Backups are encrypted before transmission and storage. Mobile devices require full-disk encryption.
 
-**Encryption in Transit**:
-- TLS 1.3 for all external communications
-- mTLS for service-to-service communication
-- VPN required for remote access
-- Certificate pinning for critical services
+Encryption in transit protects data during transmission. All external communications use TLS 1.3. Service-to-service communication uses mutual TLS (mTLS). Remote access requires VPN connections. Certificate pinning applies to critical services to prevent man-in-the-middle attacks.
 
 ### 4.2 Data Retention and Disposal
 
-**Retention Periods**:
-- User data: Retained as long as account is active + 30 days
-- Audit logs: 7 years
-- Backups: 90 days for full backups, 30 days for incremental
-- Email: 2 years unless legal hold applies
+Retention periods define how long different data types are kept. User data is retained as long as the account is active plus 30 days after closure. Audit logs are retained for 7 years to meet compliance requirements. Full backups are retained for 90 days while incremental backups are retained for 30 days. Email is retained for 2 years unless a legal hold applies.
 
-**Secure Disposal**:
-- Digital data: Secure deletion with overwrite
-- Physical media: Shredding or degaussing
-- Certificates of destruction maintained for 3 years
+Secure disposal ensures data cannot be recovered after deletion. Digital data undergoes secure deletion with multiple overwrites. Physical media is destroyed through shredding or degaussing. Certificates of destruction are maintained for 3 years as proof of proper disposal.
 
 ### 4.3 Data Privacy and GDPR Compliance
 
-We will only classify information which is necessary for the completion of our duties. We will also limit
-access to personal data to only those that need it for processing. We classify information into different
-categories so that we can ensure that it is protected properly and that we allocate security resources
-appropriately:
-• Unclassified. This is information that can be made public without any implications for the company,
-such as information that is already in the public domain.
-• Employee confidential. This includes information such as medical records, pay and so on.
-• Company confidential. Such as contracts, source code, business plans, passwords for critical IT
-systems, client contact records, accounts etc.
-• Client confidential. This includes personally identifiable information such as name or address,
-passwords to client systems, client business plans, new product information, market sensitive
-information etc.
+We classify and process only information necessary for the completion of our duties. We limit access to personal data to only those who need it for processing. Our classification system ensures information is protected properly and that we allocate security resources appropriately based on sensitivity levels.
 
+User rights under GDPR are fully supported. Users have the right to access their personal data upon request. Users have the right to correction of inaccurate data. Users have the right to deletion, also known as the right to be forgotten. Users have the right to data portability in machine-readable formats. Users have the right to restrict processing of their data.
 
-**User Rights**:
-- Right to access personal data
-- Right to correction of inaccurate data
-- Right to deletion (right to be forgotten)
-- Right to data portability
-- Right to restrict processing
+Data breach notification follows strict timelines. Breach assessment must be completed within 24 hours of discovery. Notification to authorities occurs within 72 hours if required by regulation. User notification happens without undue delay when their data is affected. All breaches are documented regardless of whether notification is required.
 
-**Data Breach Notification**:
-- Breach assessment within 24 hours
-- Notification to authorities within 72 hours if required
-- User notification without undue delay
-- Documentation of all breaches
 
 ## 5. Incident Response Plan
 
 ### 5.1 Incident Classification
 
-**Severity Levels**:
+Incidents are classified into four severity levels to guide response priorities and resource allocation.
 
-**Critical (P1)**:
-- Active data breach with confirmed data exfiltration
-- Ransomware infection affecting production systems
-- Complete system outage affecting all users
-- Compromise of administrative credentials
+Critical incidents (P1) include active data breaches with confirmed data exfiltration, ransomware infections affecting production systems, complete system outages affecting all users, and compromise of administrative credentials. These require immediate response with all available resources.
 
-**High (P2)**:
-- Suspected data breach under investigation
-- Malware infection on non-critical systems
-- Unauthorized access attempt detected
-- Partial system outage affecting critical services
+High priority incidents (P2) include suspected data breaches under investigation, malware infections on non-critical systems, unauthorized access attempts that were detected, and partial system outages affecting critical services.
 
-**Medium (P3)**:
-- Failed security controls requiring attention
-- Policy violations without immediate risk
-- Minor system vulnerabilities discovered
-- Isolated user account compromise
+Medium priority incidents (P3) include failed security controls requiring attention, policy violations without immediate risk, minor system vulnerabilities discovered, and isolated user account compromises.
 
-**Low (P4)**:
-- Security alerts requiring investigation
-- Policy clarification needed
-- Security awareness issues
-- Minor configuration issues
+Low priority incidents (P4) include security alerts requiring investigation, policy clarification needs, security awareness issues, and minor configuration issues.
 
 ### 5.2 Incident Response Procedures
 
-**Detection and Reporting** (0-15 minutes):
-1. Security incident detected via monitoring or reported by user
-2. Initial assessment to determine severity
-3. Incident logged in tracking system
-4. Security team notified immediately for P1/P2, within 1 hour for P3/P4
+Detection and reporting occurs within the first 0-15 minutes. Security incidents are detected via monitoring systems or reported by users. Initial assessment determines severity level. The incident is logged in the tracking system. The security team is notified immediately for P1 and P2 incidents, or within 1 hour for P3 and P4 incidents.
 
-**Containment** (15 minutes - 2 hours):
-1. Isolate affected systems from network
-2. Disable compromised accounts
-3. Preserve evidence for investigation
-4. Implement temporary security controls
-5. Notify management and stakeholders
+Containment occurs from 15 minutes to 2 hours after detection. Affected systems are isolated from the network. Compromised accounts are disabled. Evidence is preserved for investigation. Temporary security controls are implemented. Management and stakeholders are notified.
 
-**Investigation** (2-24 hours):
-1. Gather logs and forensic evidence
-2. Analyze attack vectors and scope
-3. Identify root cause
-4. Document findings
-5. Determine if external authorities need notification
+Investigation occurs from 2 to 24 hours after containment. Logs and forensic evidence are gathered. Attack vectors and scope are analyzed. Root cause is identified. Findings are documented. A determination is made whether external authorities need notification.
 
-**Eradication** (1-3 days):
-1. Remove malware and unauthorized access
-2. Patch vulnerabilities
-3. Reset compromised credentials
-4. Apply additional security controls
-5. Verify systems are clean
+Eradication typically takes 1-3 days. Malware and unauthorized access are removed. Vulnerabilities are patched. Compromised credentials are reset. Additional security controls are applied. Systems are verified to be clean.
 
-**Recovery** (1-5 days):
-1. Restore systems from clean backups if needed
-2. Gradually return systems to production
-3. Enhanced monitoring for re-infection
-4. Validate system functionality
-5. User communication and support
+Recovery typically takes 1-5 days. Systems are restored from clean backups if needed. Systems gradually return to production. Enhanced monitoring watches for re-infection. System functionality is validated. User communication and support is provided.
 
-**Post-Incident Review** (Within 1 week):
-1. Document complete incident timeline
-2. Analyze response effectiveness
-3. Identify lessons learned
-4. Update security controls
-5. Improve detection capabilities
-6. Update incident response procedures
+Post-incident review occurs within 1 week. The complete incident timeline is documented. Response effectiveness is analyzed. Lessons learned are identified. Security controls are updated. Detection capabilities are improved. Incident response procedures are updated based on findings.
 
 ### 5.3 Contact Information
 
-**Internal Contacts**:
-- Security Team: security@pragmatismo.com.br
-- IT Support: support@pragmatismo.com.br
-- Management: Rodrigo Rodriguez
+Internal contacts for security matters include the Security Team at security@pragmatismo.com.br, IT Support at support@pragmatismo.com.br, and Management through Rodrigo Rodriguez.
 
-**External Contacts**:
-- Law Enforcement: [Local authorities]
-- Legal Counsel: [Legal firm contact]
-- Data Protection Authority: [DPA contact]
-- Cyber Insurance: [Insurance provider]
+External contacts should be maintained in a separate secure document and include local law enforcement authorities, legal counsel, the relevant Data Protection Authority, and the cyber insurance provider.
 
 ### 5.4 Communication Plan
 
-**Internal Communication**:
-- Immediate: Security team and management
-- Within 2 hours: Affected department heads
-- Within 4 hours: All staff if widespread impact
-- Daily updates: During active incidents
+Internal communication follows escalation timelines. The security team and management are notified immediately. Affected department heads are notified within 2 hours. All staff are notified within 4 hours if the impact is widespread. Daily updates continue during active incidents.
 
-**External Communication**:
-- Customers: Within 24 hours if their data affected
-- Partners: Within 12 hours if systems shared
-- Authorities: Within 72 hours per GDPR requirements
-- Public/Media: Only through designated spokesperson
+External communication follows regulatory requirements. Customers are notified within 24 hours if their data is affected. Partners are notified within 12 hours if systems are shared. Authorities are notified within 72 hours per GDPR requirements. Public and media communication occurs only through the designated spokesperson.
+
 
 ## 6. Backup and Recovery Procedures
 
 ### 6.1 Backup Schedule
 
-**Full Backups**:
-- Weekly on Sundays at 2:00 AM
-- All databases, file storage, and configurations
-- Retention: 12 weeks
-- Stored in geographically separate location
+Full backups run weekly on Sundays at 2:00 AM and include all databases, file storage, and configurations. Full backups are retained for 12 weeks and stored in a geographically separate location.
 
-**Incremental Backups**:
-- Daily at 2:00 AM
-- Changed files and database transactions only
-- Retention: 30 days
-- Stored locally and replicated off-site
+Incremental backups run daily at 2:00 AM and include only changed files and database transactions since the last backup. Incremental backups are retained for 30 days and stored both locally and replicated off-site.
 
-**Continuous Backups**:
-- Database transaction logs every 15 minutes
-- Critical configuration changes immediately
-- Retention: 7 days
-- Enables point-in-time recovery
+Continuous backups capture database transaction logs every 15 minutes and critical configuration changes immediately. These are retained for 7 days and enable point-in-time recovery to any moment within that window.
 
 ### 6.2 Backup Verification
 
-**Automated Testing**:
-- Daily: Backup completion verification
-- Weekly: Sample file restoration test
-- Monthly: Full database restoration test to isolated environment
+Automated testing runs continuously. Daily tests verify backup completion. Weekly tests restore sample files. Monthly tests perform full database restoration to an isolated environment.
 
-**Manual Testing**:
-- Quarterly: Full disaster recovery drill
-- Bi-annually: Complete system restoration to alternate site
-- Annually: Business continuity exercise with stakeholders
+Manual testing occurs on a scheduled basis. Quarterly tests conduct full disaster recovery drills. Bi-annual tests perform complete system restoration to an alternate site. Annual tests execute a full business continuity exercise with stakeholders.
 
 ### 6.3 Recovery Procedures
 
-**Recovery Time Objective (RTO)**:
-- Critical systems: 4 hours
-- Important systems: 24 hours
-- Non-critical systems: 72 hours
+Recovery Time Objectives (RTO) define maximum acceptable downtime. Critical systems must recover within 4 hours. Important systems must recover within 24 hours. Non-critical systems must recover within 72 hours.
 
-**Recovery Point Objective (RPO)**:
-- Critical data: 15 minutes
-- Important data: 24 hours
-- Non-critical data: 1 week
+Recovery Point Objectives (RPO) define maximum acceptable data loss. Critical data has an RPO of 15 minutes. Important data has an RPO of 24 hours. Non-critical data has an RPO of 1 week.
 
-**Recovery Steps**:
-1. Assess damage and determine recovery scope
-2. Verify backup integrity before restoration
-3. Restore to isolated environment first
-4. Validate data integrity and completeness
-5. Test system functionality
-6. Switch users to recovered systems
-7. Monitor for issues
-8. Document recovery process and timing
+Recovery steps follow a systematic process. First, assess damage and determine recovery scope. Second, verify backup integrity before beginning restoration. Third, restore to an isolated environment first for validation. Fourth, validate data integrity and completeness. Fifth, test system functionality thoroughly. Sixth, switch users to recovered systems. Seventh, monitor for issues during the transition period. Eighth, document the recovery process and timing for future reference.
+
 
 ## 7. Change Management Procedures
 
 ### 7.1 Change Categories
 
-**Standard Changes**:
-- Pre-approved routine changes
-- Security patches (within 48 hours of release)
-- User account modifications
-- No approval needed beyond manager sign-off
+Standard changes are pre-approved routine modifications. These include security patches applied within 48 hours of release and user account modifications. Standard changes require only manager sign-off without additional approval.
 
-**Normal Changes**:
-- Non-emergency changes requiring testing
-- Software updates and new features
-- Infrastructure modifications
-- Requires Change Advisory Board approval
+Normal changes are non-emergency modifications requiring testing. These include software updates, new features, and infrastructure modifications. Normal changes require Change Advisory Board approval before implementation.
 
-**Emergency Changes**:
-- Critical security patches
-- System outage fixes
-- Active threat mitigation
-- Expedited approval from Security Director
+Emergency changes address critical security issues or outages. These include critical security patches, system outage fixes, and active threat mitigation. Emergency changes receive expedited approval from the Security Director.
 
 ### 7.2 Change Request Process
 
-1. **Submission**: Complete change request form with details
-2. **Risk Assessment**: Evaluate potential security impact
-3. **Approval**: Get appropriate approvals based on change type
-4. **Testing**: Test in non-production environment
-5. **Scheduling**: Schedule during maintenance window
-6. **Implementation**: Execute change with rollback plan ready
-7. **Verification**: Confirm change successful
-8. **Documentation**: Update configuration documentation
+The change process follows eight steps. Submission requires completing the change request form with full details. Risk assessment evaluates potential security impact. Approval is obtained based on change type requirements. Testing validates the change in a non-production environment. Scheduling places the change during an appropriate maintenance window. Implementation executes the change with a rollback plan ready. Verification confirms the change was successful. Documentation updates configuration records to reflect the change.
 
 ### 7.3 Change Testing Requirements
 
-**Test Cases**:
-- Functionality validation
-- Security control verification
-- Performance impact assessment
-- User acceptance testing
-- Rollback procedure verification
+Test cases must cover functionality validation, security control verification, performance impact assessment, user acceptance testing, and rollback procedure verification.
 
-**Test Environments**:
-- Development: Individual developer testing
-- Staging: Integration and security testing
-- Pre-production: User acceptance testing
-- Production: Phased rollout with monitoring
+Test environments progress through stages. Development supports individual developer testing. Staging handles integration and security testing. Pre-production hosts user acceptance testing. Production uses phased rollout with enhanced monitoring.
+
 
 ## 8. Security Incident Procedures
 
 ### 8.1 Reporting Security Incidents
 
-**How to Report**:
-- Email: security@pragmatismo.com.br
-- Phone: [Security hotline]
-- Web form: [Internal incident reporting portal]
-- In-person: Contact IT department
+Incidents can be reported through several channels. Email reports go to security@pragmatismo.com.br. Phone reports use the security hotline. Web reports use the internal incident reporting portal. In-person reports can be made directly to the IT department.
 
-**What to Report**:
-- Suspicious emails or phishing attempts
-- Lost or stolen devices
-- Unauthorized access or unusual system behavior
-- Malware alerts
-- Data leaks or exposures
-- Policy violations
-- Security concerns or vulnerabilities
+Reportable events include suspicious emails or phishing attempts, lost or stolen devices, unauthorized access or unusual system behavior, malware alerts, data leaks or exposures, policy violations, and any security concerns or vulnerabilities discovered.
 
-**When to Report**:
-- Immediately for critical incidents
-- Within 1 hour for high-priority incidents
-- Same business day for medium/low priority
+Timing requirements specify immediate reporting for critical incidents, reporting within 1 hour for high-priority incidents, and same business day reporting for medium and low priority incidents.
 
 ### 8.2 Employee Response to Incidents
 
-**Do**:
-- Report immediately to security team
-- Preserve evidence (don't delete suspicious emails)
-- Disconnect device from network if compromised
-- Document what happened
-- Follow instructions from security team
+When an incident occurs, employees should report immediately to the security team, preserve evidence by not deleting suspicious emails, disconnect their device from the network if it may be compromised, document what happened while details are fresh, and follow instructions from the security team.
 
-**Don't**:
-- Try to fix the problem yourself
-- Delete or modify potential evidence
-- Discuss incident on social media
-- Blame others
-- Ignore suspicious activity
+Employees should avoid trying to fix the problem themselves, deleting or modifying potential evidence, discussing the incident on social media, blaming others, or ignoring suspicious activity hoping it will resolve itself.
+
 
 ## 9. Data Breach Response Procedures
 
-### 9.1 Immediate Response (0-24 hours)
+### 9.1 Immediate Response
 
-1. **Containment**: Stop ongoing breach
-2. **Assessment**: Determine scope and data affected
-3. **Notification**: Alert security team and management
-4. **Evidence**: Preserve logs and forensic data
-5. **Documentation**: Begin incident timeline
+Within the first 24 hours, the response team must contain the breach to stop ongoing data exposure, assess the situation to determine scope and data affected, notify the security team and management, preserve logs and forensic data as evidence, and begin documenting the incident timeline.
 
-### 9.2 Investigation Phase (1-3 days)
+### 9.2 Investigation Phase
 
-1. **Forensics**: Detailed analysis of breach
-2. **Scope Determination**: Identify all affected systems and data
-3. **Root Cause**: Determine how breach occurred
-4. **Impact Analysis**: Assess damage and risks
-5. **Legal Review**: Consult with legal team on obligations
+During the 1-3 day investigation phase, forensic specialists conduct detailed analysis of the breach. The scope determination identifies all affected systems and data. Root cause analysis determines how the breach occurred. Impact analysis assesses damage and ongoing risks. Legal review consults with the legal team on notification obligations.
 
 ### 9.3 Notification Requirements
 
-**Internal Notification**:
-- Management: Immediate
-- Legal: Within 2 hours
-- PR/Communications: Within 4 hours
-- Affected departments: Within 8 hours
+Internal notification follows escalation timelines. Management is notified immediately. Legal is notified within 2 hours. PR and Communications are notified within 4 hours. Affected departments are notified within 8 hours.
 
-**External Notification**:
-- Data Protection Authorities: Within 72 hours (GDPR requirement)
-- Affected individuals: Without undue delay
-- Business partners: Within 24 hours if their data affected
-- Law enforcement: As required by jurisdiction
+External notification follows regulatory requirements. Data Protection Authorities must be notified within 72 hours per GDPR requirements. Affected individuals must be notified without undue delay. Business partners must be notified within 24 hours if their data is affected. Law enforcement is notified as required by jurisdiction.
 
 ### 9.4 Remediation and Prevention
 
-1. Apply security patches and fixes
-2. Reset compromised credentials
-3. Enhance monitoring and detection
-4. Update security controls
-5. Provide additional security training
-6. Review and update policies
-7. Implement lessons learned
+Following a breach, the organization applies security patches and fixes to close vulnerabilities. Compromised credentials are reset across all affected systems. Monitoring and detection capabilities are enhanced to catch similar attacks. Security controls are updated based on lessons learned. Additional security training is provided to affected teams. Policies are reviewed and updated to address gaps. All lessons learned are implemented to prevent recurrence.
+
 
 ## 10. Regular Maintenance Tasks
 
 ### 10.1 Weekly Tasks
 
-**Security Updates**:
-- Review and apply critical security patches
-- Update antivirus/antimalware signatures
-- Review security alerts and events
-- Check backup completion status
-- Monitor system resource usage
+Security updates are reviewed and critical security patches are applied. Antivirus and antimalware signatures are updated. Security alerts and events are reviewed. Backup completion status is checked. System resource usage is monitored for anomalies.
 
-**Automated Processes**:
-- Vulnerability scans run automatically
-- Log analysis and correlation
-- Backup integrity checks
-- Certificate expiration monitoring
+Automated processes run continuously including vulnerability scans, log analysis and correlation, backup integrity checks, and certificate expiration monitoring.
 
 ### 10.2 Monthly Tasks
 
-**Access Reviews**:
-- Review new user accounts created
-- Audit privileged account usage
-- Check for inactive accounts (>30 days)
-- Review failed login attempts
-- Validate group membership
+Access reviews examine new user accounts created during the month, audit privileged account usage, check for inactive accounts dormant for more than 30 days, review failed login attempts for patterns, and validate group memberships remain appropriate.
 
-**System Maintenance**:
-- Apply non-critical patches
-- Review system performance metrics
-- Update system documentation
-- Test disaster recovery procedures
-- Review incident reports
+System maintenance applies non-critical patches, reviews system performance metrics, updates system documentation, tests disaster recovery procedures, and reviews incident reports from the month.
 
 ### 10.3 Quarterly Tasks
 
-**Compliance Audits**:
-- Review security policy compliance
-- Audit access controls and permissions
-- Verify encryption implementations
-- Check backup and recovery processes
-- Validate security configurations
+Compliance audits review security policy compliance, audit access controls and permissions, verify encryption implementations, check backup and recovery processes, and validate security configurations against baselines.
 
-**Security Assessments**:
-- Internal vulnerability assessments
-- Phishing simulation exercises
-- Security awareness training
-- Review third-party security
-- Update risk assessments
+Security assessments conduct internal vulnerability assessments, run phishing simulation exercises, deliver security awareness training, review third-party security posture, and update risk assessments.
 
 ### 10.4 Annual Tasks
 
-**Penetration Testing**:
-- External penetration test by certified firm
-- Internal network penetration test
-- Application security testing
-- Social engineering assessment
-- Remediation of findings within 90 days
+Penetration testing engages a certified firm for external penetration testing, conducts internal network penetration testing, performs application security testing, executes social engineering assessments, and remediates all findings within 90 days.
 
-**Disaster Recovery Testing**:
-- Full disaster recovery drill
-- Alternate site failover test
-- Business continuity exercise
-- Update recovery procedures
-- Document lessons learned
+Disaster recovery testing conducts a full disaster recovery drill, tests alternate site failover, executes a business continuity exercise, updates recovery procedures based on results, and documents lessons learned.
 
-**Policy and Documentation**:
-- Annual policy review and updates
-- Security training for all staff
-- Update security documentation
-- Review vendor security agreements
-- Strategic security planning
+Policy and documentation work includes annual policy review and updates, security training for all staff, updating security documentation, reviewing vendor security agreements, and strategic security planning for the coming year.
 
 ### 10.5 Bi-Annual Tasks
 
-**Disaster Recovery Testing**:
-- Complete system restoration to alternate site
-- Database recovery to point-in-time
-- Application functionality verification
-- Network failover testing
-- Communication system testing
+Disaster recovery testing at the semi-annual level includes complete system restoration to an alternate site, database recovery to a specific point-in-time, application functionality verification, network failover testing, and communication system testing.
 
-**Business Continuity**:
-- Test emergency communication procedures
-- Verify contact information current
-- Review and update business continuity plan
-- Test backup data center capabilities
-- Validate recovery time objectives
+Business continuity testing includes testing emergency communication procedures, verifying contact information is current, reviewing and updating the business continuity plan, testing backup data center capabilities, and validating recovery time objectives are achievable.
+
 
 ## 11. Employees Joining and Leaving
 
-We will provide training to new staff and support for existing staff to implement this policy. This includes:
-• An initial introduction to IT security, covering the risks, basic security measures, company policies
-and where to get help
-• Each employee will complete the National Archives ‘Responsible for Information’ training course
-(approximately 75 minutes)
-• Training on how to use company systems and security software properly
-• On request, a security health check on their computer, tablet or phone
-• Access to necessary systems and resources based on job role
-• Assignment of appropriate security tools (VPN, password manager, MFA device)
+We provide comprehensive training to new staff and ongoing support for existing staff to implement this policy. Initial training covers an introduction to IT security including risks, basic security measures, company policies, and where to get help. Each employee completes appropriate security awareness training. Training covers how to use company systems and security software properly. Staff can request a security health check on their computer, tablet, or phone. Access to systems and resources is granted based on job role requirements. Appropriate security tools are assigned including VPN access, password manager, and MFA devices.
 
-**Onboarding Security Checklist**:
-- [ ] Background check completed (where applicable)
-- [ ] Security policy acknowledgment signed
-- [ ] Security training completed
-- [ ] NDA and confidentiality agreements signed
-- [ ] User account created with appropriate permissions
-- [ ] MFA configured for all accounts
-- [ ] Company devices issued and configured
-- [ ] VPN access configured if needed
-- [ ] Password manager account created
-- [ ] Emergency contact information collected
+The onboarding security checklist ensures all steps are completed. Background checks are completed where applicable. The security policy acknowledgment is signed. Security training is completed. NDA and confidentiality agreements are signed. User accounts are created with appropriate permissions. MFA is configured for all accounts. Company devices are issued and configured. VPN access is configured if needed. A password manager account is created. Emergency contact information is collected.
 
-When people leave a project or leave the company, we will promptly revoke their access privileges to all systems.
+When people leave a project or the company, we promptly revoke their access privileges to all systems.
 
-**Offboarding Security Checklist**:
-- [ ] Disable all user accounts within 2 hours
-- [ ] Revoke VPN and remote access
-- [ ] Remove from all groups and distribution lists
-- [ ] Collect company devices (laptop, phone, tokens)
-- [ ] Collect access cards and keys
-- [ ] Reset any shared account passwords they knew
-- [ ] Remove from third-party systems (GitHub, AWS, etc.)
-- [ ] Transfer ownership of documents and files
-- [ ] Exit interview covering security obligations
-- [ ] Documentation of access revocation completed
+The offboarding security checklist ensures thorough access removal. All user accounts are disabled within 2 hours of departure. VPN and remote access are revoked. The former employee is removed from all groups and distribution lists. Company devices including laptops, phones, and tokens are collected. Access cards and keys are collected. Any shared account passwords the person knew are reset. The person is removed from third-party systems such as GitHub and AWS. Ownership of documents and files is transferred. An exit interview covers ongoing security obligations. Documentation confirms all access revocation is completed.
+
 
 ## 12. Data Protection Officer Responsibilities
 
-The company will ensure the data protection officer is given all appropriate resources to carry out their
-tasks and maintain their expert knowledge.
-The Data Protection Officer reports directly to the highest level of management and must not carry out any other tasks that could result in a conflict of interest.
+The company ensures the Data Protection Officer is given all appropriate resources to carry out their tasks and maintain their expert knowledge. The DPO reports directly to the highest level of management and must not carry out any other tasks that could result in a conflict of interest.
 
-**DPO Duties**:
-- Monitor compliance with GDPR and other privacy regulations
-- Advise on data protection impact assessments
-- Cooperate with supervisory authorities
-- Act as contact point for data subjects
-- Maintain records of processing activities
-- Provide data protection training
-- Conduct privacy audits
-- Review privacy policies and procedures
+The DPO's duties include monitoring compliance with GDPR and other privacy regulations, advising on data protection impact assessments, cooperating with supervisory authorities, acting as the contact point for data subjects exercising their rights, maintaining records of processing activities, providing data protection training to staff, conducting privacy audits, and reviewing privacy policies and procedures for adequacy.
+
 
 ## 13. Technical Documentation Requirements
 
 ### 13.1 Network Architecture Documentation
 
-**Required Documentation**:
-- Network topology diagrams (logical and physical)
-- IP address allocation schemes
-- Firewall rules and security zones
-- VPN configurations
-- DMZ architecture
-- Network device inventory
-- VLAN configurations
-- Routing protocols and tables
+Required network documentation includes network topology diagrams showing both logical and physical layouts, IP address allocation schemes, firewall rules and security zone definitions, VPN configurations, DMZ architecture, network device inventory, VLAN configurations, and routing protocols and tables.
 
-**Update Frequency**: Within 48 hours of any network change
+This documentation must be updated within 48 hours of any network change to remain accurate.
 
 ### 13.2 System Configuration Documentation
 
-**Required Elements**:
-- Server inventory with roles and specifications
-- Operating system versions and patch levels
-- Installed software and versions
-- Service configurations
-- Database schemas and configurations
-- Application architecture diagrams
-- API documentation
-- Integration points and dependencies
+Required system documentation includes server inventory with roles and specifications, operating system versions and patch levels, installed software and versions, service configurations, database schemas and configurations, application architecture diagrams, API documentation, and integration points and dependencies.
 
-**Update Frequency**: Within 24 hours of configuration changes
+This documentation must be updated within 24 hours of configuration changes.
 
 ### 13.3 Security Controls Documentation
 
-**Control Documentation**:
-- Access control lists (ACLs)
-- Security group configurations
-- Intrusion detection/prevention rules
-- Data loss prevention policies
-- Endpoint protection configurations
-- Email security settings
-- Web filtering rules
-- Security monitoring dashboards
+Security control documentation covers access control lists, security group configurations, intrusion detection and prevention rules, data loss prevention policies, endpoint protection configurations, email security settings, web filtering rules, and security monitoring dashboards.
 
-**Review Frequency**: Monthly with quarterly comprehensive review
+This documentation is reviewed monthly with a comprehensive review conducted quarterly.
 
 ### 13.4 Encryption Standards Documentation
 
-**Required Documentation**:
-- Encryption algorithms in use (AES-256-GCM, TLS 1.3)
-- Key management procedures
-- Certificate inventory and renewal schedule
-- Data classification and encryption requirements
-- Encryption at rest implementations
-- Encryption in transit configurations
-- Cryptographic library versions
+Encryption documentation specifies encryption algorithms in use such as AES-256-GCM and TLS 1.3, key management procedures, certificate inventory and renewal schedule, data classification and encryption requirements, encryption at rest implementations, encryption in transit configurations, and cryptographic library versions.
 
-**Update Frequency**: Immediate upon any encryption-related change
+This documentation must be updated immediately upon any encryption-related change.
 
 ### 13.5 Logging and Monitoring Documentation
 
-**Logging Requirements**:
-- Log sources and types collected
-- Log retention periods
-- Log storage locations and capacity
-- Log analysis tools and procedures
-- Alert thresholds and escalation
-- Monitoring dashboards and reports
-- SIEM configuration and rules
+Logging documentation covers log sources and types collected, log retention periods, log storage locations and capacity, log analysis tools and procedures, alert thresholds and escalation paths, monitoring dashboards and reports, and SIEM configuration and rules.
 
-**Review Frequency**: Quarterly with annual comprehensive audit
+This documentation is reviewed quarterly with an annual comprehensive audit.
+
 
 ## 14. Compliance Records Management
 
 ### 14.1 Risk Assessment Reports
 
-**Risk Assessment Frequency**:
-- Annual: Comprehensive organizational risk assessment
-- Quarterly: Targeted assessments for new systems/services
-- Ad-hoc: After significant incidents or changes
+Risk assessments are conducted annually for comprehensive organizational assessment, quarterly for targeted assessments of new systems and services, and ad-hoc after significant incidents or changes.
 
-**Report Contents**:
-- Identified assets and their value
-- Threat identification and analysis
-- Vulnerability assessment
-- Risk likelihood and impact ratings
-- Risk treatment plans
-- Residual risk acceptance
-- Review and approval signatures
+Risk assessment reports contain identified assets and their value to the organization, threat identification and analysis, vulnerability assessment, risk likelihood and impact ratings, risk treatment plans, residual risk acceptance decisions, and review and approval signatures.
 
-**Retention**: 7 years
+Risk assessment records are retained for 7 years.
 
 ### 14.2 Audit Logs
 
-**Log Types**:
-- Authentication and authorization events
-- Administrative actions
-- Data access (read/write/delete)
-- Configuration changes
-- Security events and alerts
-- System errors and failures
-- Network traffic logs
+Log types collected include authentication and authorization events, administrative actions, data access operations including reads, writes, and deletes, configuration changes, security events and alerts, system errors and failures, and network traffic logs.
 
-**Retention Periods**:
-- Security logs: 7 years
-- System logs: 1 year
-- Application logs: 90 days
-- Network logs: 30 days
+Retention periods vary by log type. Security logs are retained for 7 years. System logs are retained for 1 year. Application logs are retained for 90 days. Network logs are retained for 30 days.
 
-**Protection Requirements**:
-- Read-only after creation
-- Encrypted in transit and at rest
-- Backed up daily
-- Monitored for tampering
+Log protection requirements specify that logs are read-only after creation, encrypted in transit and at rest, backed up daily, and monitored for tampering.
 
 ### 14.3 Training Records
 
-**Training Requirements**:
-- New hire security orientation (within first week)
-- Annual security awareness training (all staff)
-- Role-specific security training (as applicable)
-- Phishing simulation exercises (quarterly)
-- Incident response training (security team, annually)
+Training requirements include new hire security orientation within the first week of employment, annual security awareness training for all staff, role-specific security training as applicable to job function, phishing simulation exercises quarterly, and incident response training for the security team annually.
 
-**Documentation Required**:
-- Training completion dates
-- Training content and version
-- Assessment scores if applicable
-- Certificates of completion
-- Refresher training schedule
+Training documentation includes training completion dates, training content and version delivered, assessment scores if applicable, certificates of completion, and refresher training schedules.
 
-**Retention**: Duration of employment + 3 years
+Training records are retained for the duration of employment plus 3 years.
 
 ### 14.4 Incident Reports
 
-**Report Requirements**:
-- Incident detection date and time
-- Incident classification and severity
-- Systems and data affected
-- Timeline of events
-- Response actions taken
-- Root cause analysis
-- Lessons learned
-- Corrective actions implemented
+Incident reports must include the detection date and time, incident classification and severity, systems and data affected, timeline of events, response actions taken, root cause analysis, lessons learned, and corrective actions implemented.
 
-**Distribution**:
-- Internal: Management, security team, affected departments
-- External: As required by regulations and contracts
+Reports are distributed internally to management, the security team, and affected departments. External distribution follows regulatory and contractual requirements.
 
-**Retention**: 7 years
+Incident reports are retained for 7 years.
 
 ### 14.5 Access Review Records
 
-**Review Documentation**:
-- Date of review
-- Reviewer name and title
-- List of accounts reviewed
-- Access changes made
-- Justification for access granted
-- Exceptions and approvals
-- Follow-up actions required
+Review documentation includes the date of review, reviewer name and title, list of accounts reviewed, access changes made, justification for access granted, exceptions and approvals, and follow-up actions required.
 
-**Review Schedule**:
-- Standard users: Quarterly
-- Privileged users: Monthly
-- Service accounts: Bi-annually
+Review schedules specify quarterly reviews for standard users, monthly reviews for privileged users, and bi-annual reviews for service accounts.
 
-**Retention**: 3 years
+Access review records are retained for 3 years.
+
 
 ## 15. Compliance Framework
 
 ### 15.1 Applicable Regulations
 
-**GDPR (General Data Protection Regulation)**:
-- Data protection impact assessments
-- Privacy by design and by default
-- User consent management
-- Data subject rights fulfillment
-- Breach notification procedures
+GDPR compliance requires data protection impact assessments for high-risk processing, privacy by design and by default in all systems, user consent management, data subject rights fulfillment, and breach notification procedures.
 
-**SOC 2 (Service Organization Control)**:
-- Security controls documentation
-- Availability monitoring
-- Confidentiality protection
-- Privacy practices
-- Annual audit compliance
+SOC 2 compliance requires security controls documentation, availability monitoring, confidentiality protection measures, privacy practices documentation, and annual audit compliance verification.
 
-**ISO 27001 (Information Security Management)**:
-- Information security management system (ISMS)
-- Risk assessment and treatment
-- Security controls implementation
-- Continuous improvement process
-- Regular internal audits
+ISO 27001 compliance requires an information security management system, risk assessment and treatment processes, security controls implementation, continuous improvement processes, and regular internal audits.
 
 ### 15.2 Compliance Monitoring
 
-**Automated Monitoring**:
-- Security control effectiveness
-- Policy compliance scanning
-- Configuration drift detection
-- Vulnerability management
-- Patch compliance tracking
+Automated monitoring tracks security control effectiveness, policy compliance through scanning, configuration drift detection, vulnerability management status, and patch compliance levels.
 
-**Manual Reviews**:
-- Quarterly compliance assessments
-- Annual third-party audits
-- Internal audit program
-- Management review meetings
-- Regulatory requirement updates
+Manual reviews include quarterly compliance assessments, annual third-party audits, internal audit programs, management review meetings, and regulatory requirement updates.
+
 
 ## 16. Third-Party Security
 
 ### 16.1 Vendor Security Assessment
 
-**Pre-Contract**:
-- Security questionnaire completion
-- Security certification review (SOC 2, ISO 27001)
-- Data processing agreement
-- Security requirements in contract
-- Incident notification requirements
+Pre-contract assessment requires security questionnaire completion, security certification review for SOC 2 and ISO 27001, data processing agreement execution, security requirements in the contract, and incident notification requirements.
 
-**Ongoing Monitoring**:
-- Annual security re-assessment
-- Review of security incidents
-- Audit report review
-- Performance against SLAs
-- Security scorecard maintenance
+Ongoing monitoring includes annual security re-assessment, review of security incidents involving the vendor, audit report review, performance measurement against SLAs, and security scorecard maintenance.
 
 ### 16.2 Data Sharing with Third Parties
 
-**Requirements**:
-- Data processing agreement in place
-- Minimum necessary data shared
-- Encryption for data in transit
-- Access controls and monitoring
-- Right to audit vendor security
+Data sharing requirements include having a data processing agreement in place, sharing only the minimum necessary data, encryption for all data in transit, access controls and monitoring, and the right to audit vendor security practices.
 
-**Approval Process**:
-- Security team review required
-- Legal review of agreements
-- Privacy impact assessment
-- Management approval for sensitive data
-- Documentation in vendor register
-
+The approval process requires security team review, legal review of agreements, privacy impact assessment, management approval for sensitive data sharing, and documentation in the vendor register.
 
 
 ## 17. Vulnerability Management
 
 ### 17.1 Vulnerability Identification
 
-**Sources**:
-- Automated vulnerability scanning (weekly)
-- Penetration testing (annual)
-- Security research and advisories
-- Bug bounty program
-- Internal security testing
-- Third-party security assessments
+Vulnerabilities are identified through multiple sources including automated vulnerability scanning conducted weekly, annual penetration testing by external firms, security research and advisories from vendors and researchers, bug bounty program submissions, internal security testing, and third-party security assessments.
 
 ### 17.2 Vulnerability Remediation
 
-**Severity Levels and Response Times**:
-- **Critical**: Remediate within 24 hours
-- **High**: Remediate within 7 days
-- **Medium**: Remediate within 30 days
-- **Low**: Remediate within 90 days or accept risk
+Response times are based on severity. Critical vulnerabilities must be remediated within 24 hours. High severity vulnerabilities must be remediated within 7 days. Medium severity vulnerabilities must be remediated within 30 days. Low severity vulnerabilities must be remediated within 90 days or formally accepted as risk.
 
-**Remediation Process**:
-1. Vulnerability confirmed and documented
-2. Impact and exploitability assessed
-3. Remediation plan developed
-4. Patch/fix tested in non-production
-5. Change management process followed
-6. Fix deployed to production
-7. Verification testing completed
-8. Documentation updated
+The remediation process follows a structured approach. First, the vulnerability is confirmed and documented. Second, impact and exploitability are assessed. Third, a remediation plan is developed. Fourth, the patch or fix is tested in non-production. Fifth, the change management process is followed. Sixth, the fix is deployed to production. Seventh, verification testing confirms the fix is effective. Eighth, documentation is updated.
 
 ### 17.3 Reporting a Vulnerability
 
-**External Researchers**:
-- Email: security@pragmatismo.com.br
-- PGP Key: Available on website
-- Response time: Initial response within 48 hours
-- Bug bounty: Rewards for qualifying vulnerabilities
+External security researchers can report vulnerabilities by email to security@pragmatismo.com.br. A PGP key is available on the website for encrypted communication. Initial response is provided within 48 hours. A bug bounty program provides rewards for qualifying vulnerabilities.
 
-**Internal Staff**:
-- Report via internal security portal
-- Email security team for critical issues
-- Include: Description, affected systems, reproduction steps
-- Response time: Within 24 hours
+Internal staff should report vulnerabilities via the internal security portal or email the security team directly for critical issues. Reports should include a description of the vulnerability, affected systems, and steps to reproduce the issue. Response is provided within 24 hours.
 
-You can expect to get an update on a reported vulnerability in a day or two.
 
 ## 18. Security Metrics and KPIs
 
 ### 18.1 Key Performance Indicators
 
-**Security Metrics**:
-- Mean time to detect (MTTD) incidents: Target <15 minutes
-- Mean time to respond (MTTR) to incidents: Target <4 hours
-- Percentage of systems with latest patches: Target >95%
-- Failed login attempts per day: Baseline <100
-- Security training completion rate: Target 100%
-- Vulnerabilities remediated within SLA: Target >90%
-- Backup success rate: Target 100%
-- Access review completion: Target 100% on schedule
+Security metrics track operational effectiveness. Mean time to detect (MTTD) incidents has a target of less than 15 minutes. Mean time to respond (MTTR) to incidents has a target of less than 4 hours. Percentage of systems with latest patches has a target of greater than 95%. Failed login attempts per day are baselined at less than 100. Security training completion rate has a target of 100%. Vulnerabilities remediated within SLA has a target of greater than 90%. Backup success rate has a target of 100%. Access review completion has a target of 100% on schedule.
 
-**Reporting**:
-- Weekly: Security incidents and critical metrics
-- Monthly: Comprehensive security dashboard
-- Quarterly: Metrics trends and analysis
-- Annually: Security posture assessment
+Reporting occurs at multiple intervals. Weekly reports cover security incidents and critical metrics. Monthly reports provide a comprehensive security dashboard. Quarterly reports analyze metrics trends. Annual reports assess overall security posture.
+
 
 ## 19. Policy Enforcement
 
 ### 19.1 Policy Violations
 
-**Types of Violations**:
-- Unauthorized access attempts
-- Password sharing
-- Installation of unauthorized software
-- Data exfiltration or leakage
-- Policy non-compliance
-- Failure to report incidents
+Types of violations include unauthorized access attempts, password sharing, installation of unauthorized software, data exfiltration or leakage, policy non-compliance, and failure to report incidents.
 
-**Consequences**:
-- First offense: Warning and retraining
-- Second offense: Written warning and management review
-- Third offense: Suspension or termination
-- Severe violations: Immediate termination and legal action
+Consequences follow progressive discipline. First offense results in a warning and mandatory retraining. Second offense results in a written warning and management review. Third offense results in suspension or termination. Severe violations result in immediate termination and potential legal action.
 
 ### 19.2 Exception Process
 
-**Exception Request**:
-- Written justification required
-- Risk assessment completed
-- Compensating controls identified
-- Time-limited approval (max 90 days)
-- Management and security team approval
-- Regular review of active exceptions
+Exception requests require written justification, a completed risk assessment, identification of compensating controls, time-limited approval with a maximum of 90 days, approval from both management and the security team, and regular review while the exception remains active.
+
 
 ## 20. Document Control
 
-**Document Information**:
-- Document Owner: Rodrigo Rodriguez, Security Director
-- Last Updated: [Date]
-- Next Review: [Date + 1 year]
-- Version: 2.0
-- Status: Approved
+This document is owned by Rodrigo Rodriguez, Security Director. The last update date and next review date are indicated in the document header. The current version is 2.0 with approved status.
 
-**Change History**:
-- Version 1.0: Initial policy creation
-- Version 2.0: Comprehensive expansion with detailed procedures
+The change history shows Version 1.0 as the initial policy creation and Version 2.0 as the comprehensive expansion with detailed procedures.
 
-**Distribution**:
-- All employees (via internal portal)
-- Available to clients upon request
-- Published on company website (summary)
+Distribution includes all employees via the internal portal, availability to clients upon request, and a summary published on the company website.
 
-**Approval**:
-- Approved by: [Name, Title]
-- Approval Date: [Date]
-- Next Review Date: [Date + 1 year]
+Approval authority, approval date, and next review date are recorded in the document management system.
+
 
 ## Contact Information
 
-**Security Team**:
-- Email: security@pragmatismo.com.br
-- Emergency Hotline: [Phone Number]
-- Security Portal: [Internal URL]
+The Security Team can be reached by email at security@pragmatismo.com.br, by phone at the emergency hotline maintained in internal systems, or through the internal security portal.
 
-**Reporting**:
-- Security Incidents: security@pragmatismo.com.br
-- Privacy Concerns: privacy@pragmatismo.com.br
-- Compliance Questions: compliance@pragmatismo.com.br
-- General IT Support: support@pragmatismo.com.br
+Specific inquiries should be directed to appropriate addresses. Security incidents go to security@pragmatismo.com.br. Privacy concerns go to privacy@pragmatismo.com.br. Compliance questions go to compliance@pragmatismo.com.br. General IT support requests go to support@pragmatismo.com.br.

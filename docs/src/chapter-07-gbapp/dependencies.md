@@ -1,6 +1,6 @@
 # Adding Dependencies
 
-BotServer is a single-crate Rust application, so all dependencies are managed through the root `Cargo.toml` file. This guide covers how to add, update, and manage dependencies.
+BotServer is a single-crate Rust application, so all dependencies are managed through the root `Cargo.toml` file. This guide covers how to add, update, and manage dependencies effectively.
 
 ## Adding a Dependency
 
@@ -21,7 +21,7 @@ cargo build
 
 ### Dependency with Features
 
-Many crates offer optional features. Enable them like this:
+Many crates offer optional features that you can enable selectively. The syntax uses curly braces to specify both the version and the features array:
 
 ```toml
 [dependencies]
@@ -31,7 +31,7 @@ serde = { version = "1.0", features = ["derive"] }
 
 ### Version-Specific Dependencies
 
-Use specific version constraints:
+Cargo supports several version constraint formats to control which versions are acceptable. An exact version uses the equals sign prefix, while minimum versions use the greater-than-or-equal operator. The caret symbol indicates compatible versions according to semantic versioning, and wildcards allow any version within a major release:
 
 ```toml
 [dependencies]
@@ -50,21 +50,21 @@ uuid = "1.*"
 
 ### Git Dependencies
 
-Add dependencies directly from Git repositories:
+You can add dependencies directly from Git repositories when you need unreleased features or custom forks. Specify the repository URL along with an optional branch name:
 
 ```toml
 [dependencies]
 rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time" }
 ```
 
-Or use a specific commit:
+For reproducible builds, pin to a specific commit using the `rev` field:
 
 ```toml
 [dependencies]
 my-crate = { git = "https://github.com/user/repo", rev = "abc123" }
 ```
 
-Or a tag:
+You can also reference a tagged release:
 
 ```toml
 [dependencies]
@@ -73,7 +73,7 @@ my-crate = { git = "https://github.com/user/repo", tag = "v1.0.0" }
 
 ### Optional Dependencies
 
-For features that aren't always needed:
+Some dependencies aren't always needed and can be marked as optional. These won't be compiled unless explicitly enabled through feature flags:
 
 ```toml
 [dependencies]
@@ -91,7 +91,7 @@ email = ["imap"]
 
 ### Platform-Specific Dependencies
 
-Add dependencies only for specific platforms:
+Certain dependencies are only needed on specific operating systems. Cargo's target configuration syntax lets you conditionally include dependencies based on the compilation target:
 
 ```toml
 [target.'cfg(unix)'.dependencies]
@@ -106,84 +106,63 @@ core-foundation = "0.9"
 
 ## Existing Dependencies
 
-BotServer currently uses these major dependencies:
+BotServer relies on a comprehensive set of dependencies organized by functionality.
 
 ### Web Framework
-- `axum` - HTTP web framework
-- `tower` - Middleware and service abstraction
-- `tower-http` - HTTP-specific middleware (CORS, static files, tracing)
-- `hyper` - Low-level HTTP implementation
+
+The HTTP layer is built on `axum` as the primary web framework, with `tower` providing middleware and service abstractions. The `tower-http` crate adds HTTP-specific middleware for CORS, static file serving, and tracing. At the lowest level, `hyper` handles the HTTP protocol implementation.
 
 ### Async Runtime
-- `tokio` - Async runtime with full feature set
-- `tokio-stream` - Stream utilities
-- `async-trait` - Async traits
-- `async-stream` - Async stream macros
-- `async-lock` - Async locking primitives
+
+Asynchronous execution is powered by `tokio` with its full feature set enabled. Supporting crates include `tokio-stream` for stream utilities, `async-trait` for async trait definitions, `async-stream` for async stream macros, and `async-lock` for asynchronous locking primitives.
 
 ### Database
-- `diesel` - ORM for PostgreSQL
-- `diesel_migrations` - Database migration management
-- `r2d2` - Connection pooling
-- `redis` - Cache client (Valkey/Redis-compatible)
+
+Database operations use `diesel` as the ORM for PostgreSQL, with `diesel_migrations` handling schema migrations. Connection pooling is managed by `r2d2`, and the `redis` crate provides cache client functionality compatible with both Valkey and Redis.
 
 ### Storage
-- `aws-config` - AWS SDK configuration
-- `aws-sdk-s3` - S3-compatible storage (drive component)
-- `qdrant-client` - Vector database (optional)
+
+Cloud storage integration relies on the AWS SDK, with `aws-config` for configuration and `aws-sdk-s3` for S3-compatible storage operations through the drive component. The optional `qdrant-client` crate enables vector database functionality.
 
 ### Security
-- `argon2` - Password hashing
-- `aes-gcm` - Encryption
-- `hmac` - HMAC authentication
-- `sha2` - SHA-256 hashing
+
+Cryptographic operations use several specialized crates. Password hashing is handled by `argon2`, encryption by `aes-gcm`, HMAC authentication by `hmac`, and SHA-256 hashing by `sha2`.
 
 ### Scripting
-- `rhai` - BASIC interpreter engine
+
+The BASIC interpreter is powered by `rhai`, which provides a safe and fast embedded scripting engine.
 
 ### Data Formats
-- `serde` - Serialization/deserialization
-- `serde_json` - JSON support
-- `csv` - CSV parsing
-- `base64` - Base64 encoding
+
+Serialization and deserialization use `serde` as the core framework, with `serde_json` for JSON support. Additional format support comes from `csv` for CSV parsing and `base64` for Base64 encoding.
 
 ### Document Processing
-- `pdf-extract` - PDF text extraction
-- `mailparse` - Email parsing
-- `zip` - ZIP archive handling
+
+Document handling includes `pdf-extract` for PDF text extraction, `mailparse` for email parsing, and `zip` for ZIP archive handling.
 
 ### Communication
-- `reqwest` - HTTP client
-- `lettre` - SMTP email sending
-- `imap` - IMAP email reading (optional)
-- `livekit` - Video conferencing
+
+Network communication uses `reqwest` as the HTTP client. Email functionality is split between `lettre` for SMTP sending and the optional `imap` crate for reading emails. Video conferencing is provided by the `livekit` crate.
 
 ### Desktop (Optional)
-- `tauri` - Desktop application framework
-- `tauri-plugin-dialog` - Native file dialogs
-- `tauri-plugin-opener` - Open files/URLs
+
+Desktop application builds use `tauri` as the framework, along with `tauri-plugin-dialog` for native file dialogs and `tauri-plugin-opener` for opening files and URLs.
 
 ### Utilities
-- `anyhow` - Error handling
-- `log` - Logging facade
-- `env_logger` - Environment-based logging
-- `tracing` - Structured logging
-- `chrono` - Date/time handling
-- `uuid` - UUID generation
-- `regex` - Regular expressions
-- `rand` - Random number generation
+
+Common utilities include `anyhow` for error handling, `log` and `env_logger` for logging, `tracing` for structured logging, `chrono` for date and time handling, `uuid` for UUID generation, `regex` for regular expressions, and `rand` for random number generation.
 
 ### Testing
-- `mockito` - HTTP mocking
-- `tempfile` - Temporary file handling
+
+Test support comes from `mockito` for HTTP mocking and `tempfile` for temporary file handling.
 
 ## Adding a New Dependency: Example
 
-Let's walk through adding a new dependency for JSON Web Tokens (JWT):
+This walkthrough demonstrates adding JSON Web Token (JWT) support to the project.
 
 ### 1. Choose a Crate
 
-Search on [crates.io](https://crates.io):
+Search on [crates.io](https://crates.io) to find suitable crates:
 
 ```bash
 cargo search jsonwebtoken
@@ -245,56 +224,54 @@ pub fn create_jwt(user_id: &str) -> Result<String, jsonwebtoken::errors::Error> 
 
 ## Managing Dependencies
 
-### Update All Dependencies
+### Updating Dependencies
 
-```bash
-cargo update
-```
+To update all dependencies to their latest compatible versions, run `cargo update`. For updating a specific dependency, use `cargo update -p serde` with the package name.
 
-### Update Specific Dependency
+### Checking for Outdated Dependencies
 
-```bash
-cargo update -p serde
-```
-
-### Check for Outdated Dependencies
-
-Install and use `cargo-outdated`:
+The `cargo-outdated` tool helps identify dependencies that have newer versions available:
 
 ```bash
 cargo install cargo-outdated
 cargo outdated
 ```
 
-### Upgrade to Latest Compatible Versions
+### Upgrading to Latest Compatible Versions
 
-Install and use `cargo-edit`:
+The `cargo-edit` tool provides convenient commands for managing dependencies:
 
 ```bash
 cargo install cargo-edit
 cargo upgrade
 ```
 
-### Audit for Security Vulnerabilities
+### Auditing for Security Vulnerabilities
+
+Regular security audits are essential for production applications:
 
 ```bash
 cargo install cargo-audit
 cargo audit
 ```
 
-### Check Dependency Tree
+### Viewing the Dependency Tree
+
+Understanding your dependency graph helps identify bloat and conflicts:
 
 ```bash
 cargo tree
 ```
 
-View dependencies for specific package:
+To view dependencies for a specific package:
 
 ```bash
 cargo tree -p diesel
 ```
 
-### Find Duplicate Dependencies
+### Finding Duplicate Dependencies
+
+Different versions of the same crate increase binary size and compile time:
 
 ```bash
 cargo tree --duplicates
@@ -302,7 +279,7 @@ cargo tree --duplicates
 
 ## Feature Management
 
-BotServer uses feature flags to enable optional functionality.
+BotServer uses feature flags to enable optional functionality, allowing users to compile only what they need.
 
 ### Current Features
 
@@ -316,21 +293,21 @@ desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener"]
 
 ### Adding a New Feature
 
-1. Add optional dependency:
+Start by adding the dependency as optional:
 
 ```toml
 [dependencies]
 elasticsearch = { version = "8.5", optional = true }
 ```
 
-2. Create feature:
+Then create a feature that enables it:
 
 ```toml
 [features]
 search = ["elasticsearch"]
 ```
 
-3. Use conditional compilation:
+Use conditional compilation in your code to only include the functionality when the feature is enabled:
 
 ```rust
 #[cfg(feature = "search")]
@@ -343,7 +320,7 @@ pub mod search {
 }
 ```
 
-4. Build with feature:
+Build with the feature enabled:
 
 ```bash
 cargo build --features search
@@ -351,7 +328,7 @@ cargo build --features search
 
 ## Build Dependencies
 
-For build-time dependencies (used in `build.rs`):
+Dependencies needed only at build time (used in `build.rs`) go in a separate section:
 
 ```toml
 [build-dependencies]
@@ -360,7 +337,7 @@ tauri-build = { version = "2", features = [] }
 
 ## Development Dependencies
 
-For dependencies only needed during testing:
+Dependencies needed only during testing should be placed in the dev-dependencies section. These are not included in release builds:
 
 ```toml
 [dev-dependencies]
@@ -368,64 +345,38 @@ mockito = "1.7.0"
 tempfile = "3"
 ```
 
-These are not included in release builds.
-
 ## Dependency Best Practices
 
-### 1. Version Pinning
+### Version Pinning
 
-Use specific versions for production:
+For production builds, prefer specific versions over ranges to ensure reproducible builds. While `serde = "1.0.193"` guarantees a specific version, `serde = "1"` could pull in any 1.x release, potentially introducing unexpected changes.
 
-```toml
-# Good - specific version
-serde = "1.0.193"
+### Minimize Dependencies
 
-# Risky - any 1.x version
-serde = "1"
-```
+Every dependency you add increases build time, binary size, and maintenance burden while introducing potential security risks. Only add dependencies that provide significant value and aren't easily implemented inline.
 
-### 2. Minimize Dependencies
+### Check License Compatibility
 
-Only add dependencies you actually need. Each dependency:
-- Increases build time
-- Increases binary size
-- Adds maintenance burden
-- Introduces security risk
-
-### 3. Check License Compatibility
-
-Ensure dependency licenses are compatible with AGPL-3.0:
+All dependencies must have licenses compatible with AGPL-3.0. The `cargo-license` tool helps audit your dependency licenses:
 
 ```bash
 cargo install cargo-license
 cargo license
 ```
 
-### 4. Prefer Maintained Crates
+### Prefer Maintained Crates
 
-Check crate activity:
-- Recent releases
-- Active GitHub repository
-- Responsive maintainers
-- Good documentation
+When choosing between crates that provide similar functionality, evaluate them based on recent release activity, GitHub repository engagement, maintainer responsiveness, and documentation quality.
 
-### 5. Review Security Advisories
+### Review Security Advisories
 
-Regularly audit dependencies:
+Make dependency auditing part of your regular development workflow. Running `cargo audit` regularly helps catch known vulnerabilities before they become problems.
 
-```bash
-cargo audit
-```
+### Use Features to Reduce Size
 
-### 6. Use Features to Reduce Size
-
-Don't enable unnecessary features:
+Many crates include features you don't need. Instead of enabling everything with `tokio = "1.41"`, specify only the features you actually use:
 
 ```toml
-# Bad - includes everything
-tokio = "1.41"
-
-# Good - only what you need
 tokio = { version = "1.41", features = ["rt-multi-thread", "net", "sync"] }
 ```
 
@@ -433,58 +384,32 @@ tokio = { version = "1.41", features = ["rt-multi-thread", "net", "sync"] }
 
 ### Conflicting Versions
 
-If multiple crates need different versions of the same dependency:
-
-```
-error: failed to select a version for `serde`
-```
-
-Solution: Update dependencies or use `cargo tree` to identify conflicts.
+When multiple crates require different versions of the same dependency, Cargo will fail to resolve the dependency graph. Use `cargo tree` to identify which crates are causing the conflict, then update dependencies or look for alternative crates.
 
 ### Missing System Libraries
 
-If a dependency requires system libraries:
-
-```
-error: linking with `cc` failed
-```
-
-Solution: Install required system packages (see [Building from Source](./building.md)).
+Some crates require system libraries to be installed. If you see linker errors mentioning `cc`, check the crate's documentation for required system packages and refer to the Building from Source guide.
 
 ### Feature Not Found
 
-If you reference a non-existent feature:
-
-```
-error: feature `invalid-feature` is not found
-```
-
-Solution: Check feature names in `Cargo.toml`.
+Referencing a non-existent feature will cause a build error. Double-check feature names in the crate's `Cargo.toml` on crates.io or in its repository.
 
 ## Removing Dependencies
 
-### 1. Remove from Cargo.toml
-
-Delete the dependency line.
-
-### 2. Remove Imports
-
-Find and remove all `use` statements:
+To remove a dependency, first delete it from `Cargo.toml`. Then find and remove all import statements using grep or ripgrep:
 
 ```bash
 rg "use dependency_name" src/
 ```
 
-### 3. Clean Build
+After removing the imports, clean and rebuild:
 
 ```bash
 cargo clean
 cargo build
 ```
 
-### 4. Verify
-
-Check the dependency is gone:
+Verify the dependency is completely removed:
 
 ```bash
 cargo tree | grep dependency_name
@@ -494,6 +419,8 @@ cargo tree | grep dependency_name
 
 ### Using a Custom Registry
 
+For private crates or custom registries, configure the registry in your `Cargo.toml`:
+
 ```toml
 [dependencies]
 my-crate = { version = "1.0", registry = "my-registry" }
@@ -502,15 +429,11 @@ my-crate = { version = "1.0", registry = "my-registry" }
 index = "https://my-registry.example.com/index"
 ```
 
-### Private Crates
-
-For private company crates, use Git dependencies or a private registry like Artifactory or CloudSmith.
+For private company crates, consider Git dependencies or a private registry like Artifactory or CloudSmith.
 
 ## Dependency Documentation
 
-After adding a dependency, document its usage:
-
-1. Add comment in `Cargo.toml`:
+Good documentation makes dependencies easier to maintain. Add comments in `Cargo.toml` explaining why each dependency exists:
 
 ```toml
 [dependencies]
@@ -518,7 +441,7 @@ After adding a dependency, document its usage:
 jsonwebtoken = "9.2"
 ```
 
-2. Document in code:
+Document usage in your code with doc comments that explain the dependency's role:
 
 ```rust
 /// Creates a JWT token for user authentication.
@@ -532,6 +455,4 @@ pub fn create_jwt(user_id: &str) -> Result<String, Error> {
 
 ## Next Steps
 
-- Review [Module Structure](./crates.md) to understand where to use new dependencies
-- Check [Service Layer](./services.md) to see how dependencies integrate
-- Read [Creating Custom Keywords](./custom-keywords.md) to extend BASIC with new functionality
+Review the [Module Structure](./crates.md) documentation to understand where to use new dependencies within the codebase. The [Service Layer](./services.md) guide shows how dependencies integrate into the application architecture. For extending BASIC with new functionality that leverages dependencies, see [Creating Custom Keywords](./custom-keywords.md).

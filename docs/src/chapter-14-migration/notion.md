@@ -39,15 +39,9 @@ Notion is a collaborative workspace combining notes, databases, and project mana
 
 ### Step 1: Export Notion Content
 
-1. Go to Settings & Members → Settings
-2. Scroll to Export content
-3. Choose Export format: Markdown & CSV
-4. Download the ZIP file
+Navigate to Settings & Members, then Settings, and scroll to Export content. Choose the Markdown & CSV export format and download the ZIP file.
 
-The export includes:
-- Pages as Markdown files
-- Databases as CSV files
-- Attachments in folders
+The export includes pages as Markdown files, databases as CSV files, and attachments in folders.
 
 ### Step 2: Prepare Knowledge Base
 
@@ -130,11 +124,8 @@ NEXT task
 
 ### Document Summarization
 
-**Notion AI:**
-- Highlight text → "Summarize"
-- Limited to Notion content
+Notion AI allows highlighting text and selecting "Summarize" but is limited to Notion content. General Bots provides broader capability:
 
-**General Bots:**
 ```basic
 USE KB "documents"
 summary = LLM "Summarize the key points from our Q3 report"
@@ -143,11 +134,8 @@ TALK summary
 
 ### Content Generation
 
-**Notion AI:**
-- Type `/ai` → Generate content
-- Basic prompting
+Where Notion AI uses the `/ai` command for basic prompting, General Bots offers full control:
 
-**General Bots:**
 ```basic
 SET CONTEXT "You are a technical writer. Write clear, concise documentation."
 
@@ -161,11 +149,8 @@ TALK "Documentation created!"
 
 ### Q&A on Documents
 
-**Notion AI:**
-- Ask questions about page content
-- Single page context
+Notion AI asks questions about single page content. General Bots searches across your entire knowledge base:
 
-**General Bots:**
 ```basic
 ' Load entire knowledge base
 USE KB "all-docs"
@@ -183,14 +168,12 @@ TALK answer
 
 ### Notion Automations (Limited)
 
-Notion has basic automations for:
-- Status changes
-- Due date reminders
-- Slack notifications
+Notion has basic automations for status changes, due date reminders, and Slack notifications.
 
 ### General Bots Equivalent
 
-**Status change automation:**
+Status change automation:
+
 ```basic
 ON "table:projects:update"
     IF params.old_status <> params.new_status THEN
@@ -201,7 +184,8 @@ ON "table:projects:update"
 END ON
 ```
 
-**Due date reminders:**
+Due date reminders:
+
 ```basic
 SET SCHEDULE "every day at 9am"
 
@@ -212,7 +196,8 @@ FOR EACH task IN upcoming
 NEXT task
 ```
 
-**Slack notifications:**
+Slack notifications:
+
 ```basic
 ON "table:tasks:insert"
     POST "https://hooks.slack.com/services/xxx", #{
@@ -246,12 +231,8 @@ END ON
 
 ### Formula Migration
 
-**Notion formula:**
-```
-prop("Price") * prop("Quantity")
-```
+Notion formulas like `prop("Price") * prop("Quantity")` translate to BASIC calculations:
 
-**General Bots:**
 ```basic
 ' Calculate on insert/update
 total = price * quantity
@@ -263,9 +244,8 @@ SELECT "*, price * quantity as total FROM orders"
 
 ### Relation Migration
 
-**Notion relations** link databases together.
+Notion relations link databases together. General Bots uses foreign keys:
 
-**General Bots:**
 ```basic
 ' Create related tables
 CREATE TABLE "projects" (id, name, status)
@@ -282,9 +262,10 @@ result = JOIN "projects", "tasks", "projects.id = tasks.project_id"
 
 ### Notion Templates
 
-Notion templates are pre-filled pages. Convert to General Bots templates:
+Notion templates are pre-filled pages. Convert to General Bots templates as BASIC scripts.
 
-**Meeting notes template → BASIC script:**
+Meeting notes template:
+
 ```basic
 ' meeting-notes.bas
 PARAM meeting_title AS string
@@ -342,12 +323,15 @@ TALK "Project '" + project_name + "' created with 5 starter tasks"
 ## What You Gain
 
 ### Self-Hosting
+
 Your data stays on your infrastructure. No concerns about Notion's data practices or service availability.
 
 ### Native AI Without Extra Cost
+
 Notion charges $10/user/month for AI features. General Bots includes AI at no additional cost—use any LLM provider.
 
 ### Full Automation
+
 Go beyond Notion's limited automations with complete BASIC scripting:
 
 ```basic
@@ -364,6 +348,7 @@ SEND MAIL TO "team@company.com" SUBJECT "Weekly Project Summary" BODY report
 ```
 
 ### Multi-Channel Access
+
 Access your knowledge base through any channel:
 
 ```basic
@@ -377,6 +362,7 @@ TALK answer
 ```
 
 ### Custom APIs
+
 Create APIs instantly—something not possible in Notion:
 
 ```basic
@@ -396,36 +382,23 @@ END WITH
 
 ### Pre-Migration
 
-- [ ] Export all Notion content (Markdown & CSV)
-- [ ] Inventory databases and their properties
-- [ ] Document active integrations
-- [ ] Identify critical templates
-- [ ] Set up General Bots environment
+Before starting, export all Notion content in Markdown & CSV format. Inventory your databases and their properties. Document active integrations. Identify critical templates that need recreation. Set up your General Bots environment.
 
 ### Migration
 
-- [ ] Organize Markdown files into .gbkb structure
-- [ ] Import database CSVs to tables
-- [ ] Convert formulas to BASIC calculations
-- [ ] Recreate task boards as projects
-- [ ] Migrate templates to BASIC scripts
-- [ ] Set up automations
+During the migration, organize Markdown files into the .gbkb structure. Import database CSVs to tables. Convert formulas to BASIC calculations. Recreate task boards as projects. Migrate templates to BASIC scripts. Set up automations to replace Notion workflows.
 
 ### Post-Migration
 
-- [ ] Verify all content is searchable
-- [ ] Test database queries
-- [ ] Confirm automations work
-- [ ] Train team on new interface
-- [ ] Redirect any Notion integrations
+After migration, verify all content is searchable in the knowledge base. Test database queries. Confirm automations work correctly. Train your team on the new interface. Redirect any Notion integrations to General Bots.
 
 ## Best Practices
 
-**Organize knowledge base thoughtfully.** Group related documents in collections for better RAG results.
+Organize your knowledge base thoughtfully by grouping related documents in collections for better RAG results.
 
-**Simplify database structures.** Notion encourages complex relations; General Bots works best with cleaner schemas.
+Simplify database structures because Notion encourages complex relations while General Bots works best with cleaner schemas.
 
-**Leverage AI for migration.** Use General Bots' LLM to help transform and summarize Notion content:
+Leverage AI for migration by using General Bots' LLM to help transform and summarize Notion content:
 
 ```basic
 content = READ "notion-export/long-document.md"
@@ -433,7 +406,7 @@ summary = LLM "Create a concise summary of this document: " + content
 WRITE "/summaries/document-summary.md", summary
 ```
 
-**Keep templates as scripts.** BASIC templates are more powerful than Notion's static templates.
+Keep templates as scripts since BASIC templates are more powerful than Notion's static templates.
 
 ## See Also
 

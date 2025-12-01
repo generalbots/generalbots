@@ -4,12 +4,7 @@ This chapter covers the complete infrastructure design for General Bots, includi
 
 ## Architecture Overview
 
-General Bots uses a modular architecture where each component runs in isolated LXC containers. This provides:
-
-- **Isolation**: Each service has its own filesystem and process space
-- **Scalability**: Add more containers to handle increased load
-- **Security**: Compromised components cannot affect others
-- **Portability**: Move containers between hosts easily
+General Bots uses a modular architecture where each component runs in isolated LXC containers. This provides isolation where each service has its own filesystem and process space, scalability through adding more containers to handle increased load, security since compromised components cannot affect others, and portability allowing containers to move between hosts easily.
 
 ## Component Diagram
 ## High Availability Architecture
@@ -49,7 +44,7 @@ SET value_encrypted = pgp_sym_encrypt(value, current_setting('app.encryption_key
 
 ### File Storage Encryption
 
-MinIO server-side encryption:
+MinIO server-side encryption is enabled using SSE-S3 for automatic encryption or SSE-C for customer-managed keys:
 
 ```bash
 # Enable SSE-S3 encryption
@@ -70,7 +65,7 @@ drive-encryption-key,vault:gbo/encryption/drive_key
 
 ### Redis Encryption
 
-Redis with TLS and encrypted RDB:
+Redis with TLS and encrypted RDB provides secure caching:
 
 ```conf
 # redis.conf
@@ -86,7 +81,7 @@ rdb-save-incremental-fsync yes
 
 ### Vector Database Encryption
 
-Qdrant with encrypted storage:
+Qdrant with encrypted storage uses TLS for transport and filesystem-level encryption for data at rest:
 
 ```yaml
 # qdrant/config.yaml
@@ -112,32 +107,11 @@ mkfs.ext4 /dev/mapper/gbo-data
 mount /dev/mapper/gbo-data /opt/gbo/data
 ```
 
-## Media Processing: LiveKit vs GStreamer
+## Media Processing: LiveKit
 
-### Do You Need GStreamer with LiveKit?
+LiveKit handles all media processing needs for General Bots. WebRTC is native to LiveKit. Recording is built-in via the Egress service. Transcoding uses the Egress service. Streaming and AI integration are built into LiveKit.
 
-**Short answer: No.** LiveKit handles most media processing needs.
-
-| Feature | LiveKit | GStreamer | Need Both? |
-|---------|---------|-----------|------------|
-| WebRTC | Native | Plugin | No |
-| Recording | Built-in | External | No |
-| Transcoding | Egress service | Full control | Rarely |
-| Streaming | Native | Full control | Rarely |
-| Custom filters | Limited | Extensive | Sometimes |
-| AI integration | Built-in | Manual | No |
-
-**Use GStreamer only if you need:**
-- Custom video/audio filters
-- Unusual codec support
-- Complex media pipelines
-- Broadcast streaming (RTMP/HLS)
-
-LiveKit's Egress service handles:
-- Room recording
-- Participant recording
-- Livestreaming to YouTube/Twitch
-- Track composition
+LiveKit's Egress service handles room recording, participant recording, livestreaming to YouTube and Twitch, and track composition.
 
 ### LiveKit Configuration
 
@@ -151,36 +125,9 @@ meet-recording-enabled,true
 meet-transcription-enabled,true
 ```
 
-## Message Queues: Kafka vs RabbitMQ
+## Messaging: Redis
 
-### Do You Need Kafka or RabbitMQ?
-
-**For most deployments: No.** Redis PubSub handles messaging needs.
-
-| Scale | Recommendation |
-|-------|----------------|
-| < 1,000 concurrent users | Redis PubSub |
-| 1,000 - 10,000 users | Redis Streams |
-| 10,000 - 100,000 users | RabbitMQ |
-| > 100,000 users | Kafka |
-
-### When to Add Message Queues
-
-**Add RabbitMQ when you need:**
-- Message persistence/durability
-- Complex routing patterns
-- Multiple consumer groups
-- Dead letter queues
-
-**Add Kafka when you need:**
-- Event sourcing
-- Stream processing
-- Multi-datacenter replication
-- High throughput (millions/sec)
-
-### Current Redis-Based Messaging
-
-General Bots uses Redis for:
+General Bots uses Redis for all messaging needs including session state, PubSub for real-time communication, and Streams for persistence:
 
 ```rust
 // Session state
@@ -206,16 +153,13 @@ messaging-retention-hours,24
 
 ### Option 1: Tenant-Based Sharding (Recommended)
 
-Each tenant/organization gets isolated databases:
+Each tenant or organization gets isolated databases.
+
 ## Multi-Tenant Architecture
 
 Each tenant gets isolated resources with dedicated database schemas, cache namespaces, and vector collections. The router maps tenant IDs to their respective data stores automatically.
 
-**Key isolation features:**
-- Database-per-tenant or schema-per-tenant options
-- Namespace isolation in Valkey cache
-- Collection isolation in Qdrant vectors
-- Bucket isolation in SeaweedFS storage
+Key isolation features include database-per-tenant or schema-per-tenant options, namespace isolation in Valkey cache, collection isolation in Qdrant vectors, and bucket isolation in SeaweedFS storage.
 
 Configuration:
 
@@ -226,26 +170,11 @@ shard-auto-provision,true
 shard-isolation-level,database
 ```
 
-**Advantages:**
-- Complete data isolation (compliance friendly)
-- Easy backup/restore per tenant
-- Simple to understand
-- No cross-tenant queries
-
-**Disadvantages:**
-- More resources per tenant
-- Complex tenant migration
-- Connection pool overhead
+Advantages include complete data isolation which is compliance friendly, easy backup and restore per tenant, simplicity, and no cross-tenant queries. Disadvantages include more resources per tenant, complex tenant migration, and connection pool overhead.
 
 ### Option 2: Hash-Based Sharding
 
-Distribute by user/session ID hash:
-
-```
-user_id = 12345
-shard = hash(12345) % num_shards = 2
-→ Route to shard-2
-```
+Distribute by user or session ID hash. For example, a user_id of 12345 produces a hash that modulo num_shards equals 2, routing to shard-2.
 
 Configuration:
 
@@ -257,19 +186,11 @@ shard-key,user_id
 shard-algorithm,consistent-hash
 ```
 
-**Advantages:**
-- Even distribution
-- Predictable routing
-- Good for high-volume single-tenant
-
-**Disadvantages:**
-- Resharding is complex
-- Cross-shard queries difficult
-- No tenant isolation
+Advantages include even distribution, predictable routing, and good performance for high-volume single-tenant deployments. Disadvantages include complex resharding, difficult cross-shard queries, and no tenant isolation.
 
 ### Option 3: Time-Based Sharding
 
-For time-series data (logs, analytics):
+For time-series data like logs and analytics:
 
 ```csv
 # config.csv
@@ -279,14 +200,7 @@ shard-retention-months,12
 shard-auto-archive,true
 ```
 
-Automatically creates partitions:
-
-```
-messages_2024_01
-messages_2024_02
-messages_2024_03
-...
-```
+This automatically creates partitions named messages_2024_01, messages_2024_02, messages_2024_03, and so on.
 
 ### Option 4: Geographic Sharding
 
@@ -299,17 +213,10 @@ shard-regions,us-east,eu-west,ap-south
 shard-default,us-east
 shard-detection,ip
 ```
+
 ## Geographic Distribution
 
-Global router uses GeoIP to direct users to the nearest regional cluster:
-
-| Region | Location | Services |
-|--------|----------|----------|
-| US-East | Virginia | Full cluster |
-| EU-West | Frankfurt | Full cluster |
-| AP-South | Singapore | Full cluster |
-
-Each regional cluster runs independently with data replication between regions for disaster recovery.
+The global router uses GeoIP to direct users to the nearest regional cluster. US-East in Virginia runs a full cluster, EU-West in Frankfurt runs a full cluster, and AP-South in Singapore runs a full cluster. Each regional cluster runs independently with data replication between regions for disaster recovery.
 
 ## Auto-Scaling with LXC
 
@@ -359,17 +266,9 @@ WantedBy=multi-user.target
 
 ## Container Lifecycle
 
-**Startup Flow:**
-1. **Create** → LXC container created from template
-2. **Configure** → Resources allocated (CPU, memory, storage)
-3. **Start** → BotServer binary launched
-4. **Ready** → Added to load balancer pool
+The startup flow begins with creating the LXC container from a template, then configuring resources for CPU, memory, and storage, then starting the BotServer binary, and finally marking the container as ready and adding it to the load balancer pool.
 
-**Shutdown Flow:**
-1. **Active** → Container serving requests
-2. **Drain** → Stop accepting new connections
-3. **Stop** → Graceful BotServer shutdown
-4. **Delete** → Container removed (or returned to pool)
+The shutdown flow begins with an active container serving requests, then draining to stop accepting new connections, then stopping with a graceful BotServer shutdown, and finally deleting or returning the container to the pool.
 
 ## Load Balancing
 
@@ -456,25 +355,17 @@ circuit-breaker-timeout,30
 circuit-breaker-half-open-requests,3
 ```
 
-States:
-- **Closed**: Normal operation, counting failures
-- **Open**: Failing fast, returning errors immediately
-- **Half-Open**: Testing with limited requests
+The circuit breaker has three states. Closed represents normal operation while counting failures. Open means failing fast and returning errors immediately. Half-Open tests with limited requests before deciding to close or reopen.
 
 ### Database Failover
 
-PostgreSQL with streaming replication:
+PostgreSQL with streaming replication provides high availability.
+
 ## Database Replication
 
-PostgreSQL replication is managed by Patroni for automatic failover:
+PostgreSQL replication is managed by Patroni for automatic failover. The Primary serves as the write leader handling all write operations. The Replica provides synchronous replication from the primary for read scaling. Patroni acts as the failover manager performing automatic leader election on failure.
 
-| Component | Role | Description |
-|-----------|------|-------------|
-| Primary | Write leader | Handles all write operations |
-| Replica | Read replica | Synchronous replication from primary |
-| Patroni | Failover manager | Automatic leader election on failure |
-
-Failover happens automatically within seconds, with clients redirected via connection pooler.
+Failover happens automatically within seconds, with clients redirected via the connection pooler.
 
 ### Graceful Degradation
 
@@ -495,43 +386,11 @@ fallback-vectordb-mode,keyword-search
 
 ### Architecture
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                         .env (minimal)                          │
-│         VAULT_ADDR=https://localhost:8200                       │
-│         VAULT_TOKEN=hvs.xxxxxxxxxxxxx                           │
-└─────────────────────────────┬───────────────────────────────────┘
-                              │
-                              ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                         Vault Server                            │
-│                                                                 │
-│  gbo/drive        → accesskey, secret                           │
-│  gbo/tables       → username, password                          │
-│  gbo/cache        → password                                    │
-│  gbo/directory    → client_id, client_secret                    │
-│  gbo/email        → username, password                          │
-│  gbo/llm          → openai_key, anthropic_key, groq_key         │
-│  gbo/encryption   → master_key, data_key                        │
-│  gbo/meet         → api_key, api_secret                         │
-│  gbo/alm          → admin_password, runner_token                │
-└─────────────────────────────────────────────────────────────────┘
-```
+The minimal `.env` file contains only Vault connection details. All other secrets are stored in Vault and fetched at runtime. The Vault server stores secrets organized by path including gbo/drive for access keys, gbo/tables for database credentials, gbo/cache for passwords, gbo/directory for client credentials, gbo/email for mail credentials, gbo/llm for provider API keys, gbo/encryption for master and data keys, and gbo/meet for API credentials.
 
 ### Zitadel vs Vault
 
-| Purpose | Zitadel | Vault |
-|---------|---------|-------|
-| User authentication | Yes | No |
-| Service credentials | No | Yes |
-| API keys | No | Yes |
-| Encryption keys | No | Yes |
-| OAuth/OIDC | Yes | No |
-| MFA | Yes | No |
-
-**Use both:**
-- Zitadel: User identity, SSO, MFA
-- Vault: Service secrets, encryption keys
+Zitadel handles user authentication, OAuth/OIDC, and MFA. Vault handles service credentials, API keys, and encryption keys. Use both together where Zitadel manages user identity and SSO while Vault manages service secrets and encryption keys.
 
 ### Minimal .env with Vault
 
@@ -563,20 +422,7 @@ observability-bucket,metrics
 
 ### Option 2: Vector + InfluxDB (Recommended)
 
-Vector as log/metric aggregator:
-
-```
-┌─────────────┐     ┌─────────────┐     ┌─────────────┐
-│  BotServer  │ ──▶ │   Vector    │ ──▶ │  InfluxDB   │
-│    Logs     │     │  (Pipeline) │     │  (Metrics)  │
-└─────────────┘     └──────┬──────┘     └─────────────┘
-                           │
-                           ▼
-                    ┌─────────────┐
-                    │   Grafana   │
-                    │ (Dashboard) │
-                    └─────────────┘
-```
+Vector serves as a log and metric aggregator. BotServer logs flow to Vector which pipelines them to InfluxDB for metrics storage and Grafana for dashboards.
 
 Vector configuration:
 
@@ -603,11 +449,7 @@ bucket = "metrics"
 
 ### Replacing log.* Calls with Vector
 
-Instead of replacing all log calls, configure Vector to:
-
-1. Collect logs from files
-2. Parse and enrich
-3. Route to appropriate sinks
+Instead of replacing all log calls, configure Vector to collect logs from files, parse and enrich them, and route to appropriate sinks:
 
 ```toml
 # Route errors to alerts
@@ -622,33 +464,13 @@ inputs = ["filter_errors"]
 uri = "http://alertmanager:9093/api/v1/alerts"
 ```
 
-## Full-Text Search: Tantivy vs Qdrant
+## Search: Qdrant
 
-### Comparison
-
-| Feature | Tantivy | Qdrant |
-|---------|---------|--------|
-| Type | Full-text search | Vector search |
-| Query | Keywords, boolean | Semantic similarity |
-| Results | Exact matches | Similar meanings |
-| Speed | Very fast | Fast |
-| Use case | Known keywords | Natural language |
-
-### Do You Need Tantivy?
-
-**Usually no.** Qdrant handles both:
-- Vector similarity search (semantic)
-- Payload filtering (keyword-like)
-
-Use Tantivy only if you need:
-- BM25 ranking
-- Complex boolean queries
-- Phrase matching
-- Faceted search
+Qdrant handles all search needs in General Bots, providing both vector similarity search for semantic queries and payload filtering for keyword-like queries.
 
 ### Hybrid Search with Qdrant
 
-Qdrant supports hybrid search:
+Qdrant supports hybrid search combining vector similarity with keyword filters:
 
 ```rust
 // Combine vector similarity + keyword filter
@@ -669,19 +491,9 @@ let search_request = SearchPoints {
 };
 ```
 
-## Workflow Scheduling: Temporal
+## Workflow Scheduling: SET SCHEDULE
 
-### When to Use Temporal
-
-Temporal is useful for:
-- Long-running workflows (hours/days)
-- Retry logic with exponential backoff
-- Workflow versioning
-- Distributed transactions
-
-### Current Alternative: SET SCHEDULE
-
-For simple scheduling, General Bots uses:
+General Bots uses the SET SCHEDULE keyword for all scheduling needs:
 
 ```basic
 REM Run every day at 9 AM
@@ -690,39 +502,6 @@ SET SCHEDULE "daily-report" TO "0 9 * * *"
     result = GET "/api/reports/daily"
     SEND MAIL "admin@example.com", "Daily Report", result
 END SCHEDULE
-```
-
-### Adding Temporal
-
-If you need complex workflows:
-
-```csv
-# config.csv
-workflow-provider,temporal
-workflow-server,localhost:7233
-workflow-namespace,botserver
-```
-
-Example workflow:
-
-```basic
-REM Temporal workflow
-START WORKFLOW "onboarding"
-    STEP "welcome"
-        SEND MAIL user_email, "Welcome!", "Welcome to our service"
-        WAIT 1, "day"
-    
-    STEP "followup"
-        IF NOT user_completed_profile THEN
-            SEND MAIL user_email, "Complete Profile", "..."
-            WAIT 3, "days"
-        END IF
-    
-    STEP "activation"
-        IF user_completed_profile THEN
-            CALL activate_user(user_id)
-        END IF
-END WORKFLOW
 ```
 
 ## MFA with Zitadel
@@ -741,14 +520,7 @@ auth-mfa-grace-period-days,7
 
 ### Zitadel MFA Settings
 
-In Zitadel console:
-1. Go to Settings → Login Behavior
-2. Enable "Multi-Factor Authentication"
-3. Select allowed methods:
-   - TOTP (authenticator apps)
-   - SMS
-   - Email
-   - WebAuthn/FIDO2
+In the Zitadel console, navigate to Settings then Login Behavior. Enable Multi-Factor Authentication and select allowed methods including TOTP for authenticator apps, SMS, Email, and WebAuthn/FIDO2.
 
 ### WhatsApp MFA Channel
 
@@ -759,35 +531,12 @@ auth-mfa-whatsapp-provider,twilio
 auth-mfa-whatsapp-template,mfa_code
 ```
 
-Flow:
-1. User logs in with password
-2. Zitadel triggers MFA
-3. Code sent via WhatsApp
-4. User enters code
-5. Session established
+The flow proceeds as follows: the user logs in with password, Zitadel triggers MFA, a code is sent via WhatsApp, the user enters the code, and the session is established.
 
 ## Summary: What You Need
 
-| Component | Required | Recommended | Optional |
-|-----------|----------|-------------|----------|
-| PostgreSQL | Yes | - | - |
-| Redis | Yes | - | - |
-| Qdrant | Yes | - | - |
-| MinIO | Yes | - | - |
-| Zitadel | Yes | - | - |
-| Vault | - | Yes | - |
-| InfluxDB | - | Yes | - |
-| LiveKit | - | Yes | - |
-| Vector | - | - | Yes |
-| Kafka | - | - | Yes |
-| RabbitMQ | - | - | Yes |
-| Temporal | - | - | Yes |
-| GStreamer | - | - | Yes |
-| Tantivy | - | - | Yes |
+PostgreSQL, Redis, Qdrant, MinIO, and Zitadel are required components. Vault, InfluxDB, and LiveKit are recommended for production deployments. Vector is optional for log aggregation.
 
 ## Next Steps
 
-- [Scaling and Load Balancing](./scaling.md) - Detailed scaling guide
-- [Container Deployment](./containers.md) - LXC setup
-- [Security Features](../chapter-12-auth/security-features.md) - Security deep dive
-- [LLM Providers](../appendix-external-services/llm-providers.md) - Model selection
+The Scaling and Load Balancing chapter provides a detailed scaling guide. The Container Deployment chapter covers LXC setup. The Security Features chapter offers a security deep dive. The LLM Providers appendix helps with model selection.

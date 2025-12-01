@@ -4,11 +4,7 @@ The `GET` keyword in BotServer provides file retrieval capabilities from both lo
 
 ## Overview
 
-The `GET` keyword is a fundamental BASIC command that retrieves file contents as strings. It supports:
-- Local file system access (with safety checks)
-- Drive (S3-compatible) bucket retrieval
-- URL fetching (HTTP/HTTPS)
-- Integration with knowledge base documents
+The `GET` keyword is a fundamental BASIC command that retrieves file contents as strings. It supports local file system access with safety checks, drive (S3-compatible) bucket retrieval, URL fetching via HTTP and HTTPS, and integration with knowledge base documents.
 
 ## Basic Usage
 
@@ -27,15 +23,11 @@ let webpage = GET "https://example.com/data.json"
 
 ### File Path Resolution
 
-The GET keyword determines the source based on the path format:
-
-1. **URL Detection**: Paths starting with `http://` or `https://`
-2. **Drive Storage**: All other paths (retrieved from bot's bucket)
-3. **Safety Validation**: Paths are checked for directory traversal attempts
+The GET keyword determines the source based on the path format. URL detection occurs for paths starting with `http://` or `https://`, which triggers HTTP fetching. All other paths are retrieved from drive storage in the bot's dedicated bucket. Safety validation checks all paths for directory traversal attempts before processing.
 
 ### Drive (S3-compatible) Integration
 
-When retrieving from drive storage:
+When retrieving from drive storage, the system connects to drive using configured credentials and retrieves files from the bot's dedicated bucket. File contents are returned as strings, with binary files converted to text automatically.
 
 ```basic
 # Retrieves from: {bot-name}.gbai bucket
@@ -45,47 +37,28 @@ let doc = GET "knowledge/document.txt"
 let report = GET "reports/2024/quarterly.pdf"
 ```
 
-The implementation:
-1. Connects to drive using configured credentials
-2. Retrieves from the bot's dedicated bucket
-3. Returns file contents as string
-4. Handles binary files by converting to text
-
 ### URL Fetching
 
-For external resources:
+For external resources, the GET keyword supports both HTTP and HTTPS protocols with automatic redirect following. A 30-second timeout protects against hanging requests, and comprehensive error handling manages failed requests gracefully.
 
 ```basic
 let api_data = GET "https://api.example.com/data"
 let webpage = GET "http://example.com/page.html"
 ```
 
-URL fetching includes:
-- HTTP/HTTPS support
-- Automatic redirect following
-- Timeout protection (30 seconds)
-- Error handling for failed requests
-
 ## Safety Features
 
 ### Path Validation
 
-The `is_safe_path` function prevents directory traversal:
-- Blocks paths containing `..`
-- Prevents absolute paths
-- Validates character sets
-- Ensures sandbox isolation
+The `is_safe_path` function prevents directory traversal attacks by blocking paths containing `..` sequences and rejecting absolute paths. Character sets are validated to ensure only safe characters appear in paths, and sandbox isolation ensures scripts cannot escape their designated storage areas.
 
 ### Access Control
 
-- Files limited to bot's own bucket
-- Cannot access other bots' data
-- System directories protected
-- Credentials never exposed
+Files are limited to the bot's own bucket, preventing access to other bots' data. System directories receive protection from all access attempts, and credentials are never exposed through the GET interface regardless of the path requested.
 
 ## Error Handling
 
-GET operations handle various error conditions:
+GET operations handle various error conditions gracefully. When a file is not found, the operation returns an empty string rather than throwing an error. Access denied conditions return an error message, network timeouts return a timeout error, and invalid paths return a security error.
 
 ```basic
 let content = GET "missing-file.txt"
@@ -95,12 +68,6 @@ if (content == "") {
     TALK "File not found or empty"
 }
 ```
-
-Common errors:
-- File not found: Returns empty string
-- Access denied: Returns error message
-- Network timeout: Returns timeout error
-- Invalid path: Returns security error
 
 ## Use Cases
 
@@ -138,21 +105,15 @@ let filled = REPLACE(template, "{{name}}", customer_name)
 
 ### Caching
 
-- GET results are not cached by default
-- Frequent reads should use BOT_MEMORY for caching
-- Large files impact memory usage
+GET results are not cached by default, so frequent reads should use BOT_MEMORY for caching to improve performance. Large files impact memory usage significantly since the entire file is loaded into memory at once.
 
 ### Timeouts
 
-- URL fetches: 30-second timeout
-- Drive operations: Network-dependent
-- Local files: Immediate (if accessible)
+URL fetches enforce a 30-second timeout to prevent indefinite hanging. Drive operations depend on network conditions and may vary in response time. Local files are accessed immediately when accessible.
 
 ### File Size Limits
 
-- No hard limit enforced
-- Large files consume memory
-- Binary files converted to text (may be large)
+No hard limit is enforced on file sizes, but large files consume substantial memory. Binary files converted to text may result in particularly large string representations.
 
 ## Integration with Tools
 
@@ -181,20 +142,11 @@ FOR EACH file IN files {
 
 ## Best Practices
 
-1. **Check for Empty Results**: Always verify GET returned content
-2. **Use Relative Paths**: Avoid hardcoding absolute paths
-3. **Handle Binary Files Carefully**: Text conversion may be lossy
-4. **Cache Frequently Used Files**: Store in BOT_MEMORY
-5. **Validate External URLs**: Ensure HTTPS for sensitive data
-6. **Log Access Failures**: Track missing or inaccessible files
+Always check for empty results to verify GET returned content successfully. Use relative paths rather than hardcoding absolute paths to maintain portability. Handle binary files carefully since text conversion may be lossy for non-text content. Cache frequently used files in BOT_MEMORY to avoid repeated retrieval operations. Validate external URLs and ensure HTTPS is used for sensitive data transfers. Log access failures to track missing or inaccessible files for debugging purposes.
 
 ## Limitations
 
-- Cannot write files (read-only operation)
-- Binary files converted to text (may corrupt data)
-- No streaming support (entire file loaded to memory)
-- Path traversal blocked for security
-- Cannot access system directories
+The GET keyword is a read-only operation and cannot write files. Binary files are converted to text which may corrupt data that isn't text-based. No streaming support exists, meaning the entire file loads into memory at once. Path traversal is blocked for security, and system directories cannot be accessed under any circumstances.
 
 ## Examples
 
@@ -229,11 +181,7 @@ TALK "I've loaded the sales data. What analysis would you like me to perform?"
 
 ## Security Considerations
 
-- Never GET files with user-controlled paths directly
-- Validate and sanitize path inputs
-- Use allowlists for acceptable file paths
-- Log all file access attempts
-- Monitor for unusual access patterns
+Never GET files with user-controlled paths directly without validation. Always validate and sanitize path inputs before passing them to GET. Use allowlists for acceptable file paths when possible. Log all file access attempts for security auditing, and monitor for unusual access patterns that might indicate attempted exploitation.
 
 ## Summary
 

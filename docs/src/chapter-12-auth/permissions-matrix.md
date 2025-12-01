@@ -1,272 +1,93 @@
 # Permissions Matrix
 
-This chapter documents the permission system in General Bots, detailing which APIs require authentication, the context they operate under, and how to configure access control.
+This chapter documents the permission system in General Bots, explaining how role-based access control governs what users can do within the platform. Understanding this permission model is essential for administrators configuring access policies and developers building applications that respect security boundaries.
 
-## Overview
+## Understanding the Permission Model
 
-General Bots uses a role-based access control (RBAC) system managed through Zitadel (directory service). Permissions are organized into:
+General Bots implements a role-based access control (RBAC) system that integrates with Zitadel, the platform's Directory Service. The permission architecture consists of three interconnected layers that work together to determine what any given user can do.
 
-- **Realms**: Top-level permission boundaries (typically per organization)
-- **Groups**: Collections of users with shared permissions
-- **Permissions**: Specific actions that can be granted to groups
+At the highest level, realms establish permission boundaries that typically correspond to organizations. Within each realm, groups collect users who share common access needs. Permissions represent specific actions that can be granted to groups, and users inherit the combined permissions of all groups to which they belong.
 
-## User Context vs System Context
+This layered approach provides flexibility while maintaining manageability. Rather than assigning permissions directly to individual users, administrators create groups with appropriate permission sets and then add users to those groups. When a user's responsibilities change, their access can be adjusted simply by modifying their group memberships.
 
-APIs operate in one of two contexts:
+## User Context and System Context
 
-| Context | Description | Authentication |
-|---------|-------------|----------------|
-| **User Context** | Operations performed on behalf of a logged-in user | User's OAuth token |
-| **System Context** | Operations performed by the bot or system | Service account token |
+APIs in General Bots operate in one of two security contexts, each with distinct characteristics and use cases.
 
-### User Context Operations
+User context operations execute on behalf of an authenticated user, using their OAuth token for authorization. When an API operates in user context, it sees and modifies only resources that belong to or are shared with that user. Reading files, sending messages, accessing calendars, managing tasks, and viewing email all occur in user context. The principle of least privilege applies naturally here—users can only access what they own or what has been explicitly shared with them.
 
-These operations use the authenticated user's identity:
+System context operations execute on behalf of the bot or system itself, using a service account token. These operations have broader access because they serve cross-cutting concerns that don't belong to any individual user. Bot-initiated messages, scheduled task execution, system monitoring, cross-user analytics, and backup operations all require system context to function properly.
 
-- Reading user's own files
-- Sending messages as the user
-- Accessing user's calendar
-- Managing user's tasks
-- Viewing user's email
+The distinction between contexts ensures that normal user operations remain appropriately scoped while still allowing the system to perform necessary administrative functions.
 
-### System Context Operations
+## File Operations
 
-These operations use a service account:
+The drive system provides file storage and management capabilities with granular permission controls. Listing files through the API shows different results depending on context—in user context, only the user's files appear, while system context reveals all files within the bot's storage. Similarly, file uploads target the user's folder in user context but can write to any location in the bot's storage when operating in system context.
 
-- Bot-initiated messages
-- Scheduled tasks execution
-- System monitoring
-- Cross-user analytics
-- Backup operations
+File deletion and sharing follow the same pattern. Users can delete and share their own files, while system context permits these operations on any file. The corresponding permissions are `files:read` for viewing and downloading, `files:write` for uploading and modifying, `files:delete` for removal, and `files:share` for granting access to others.
 
-## API Permission Matrix
+## Communication Capabilities
 
-### File APIs
+Email functionality provides access to messaging through the organization's mail system. Reading inbox contents and drafts requires the `email:read` permission and operates strictly in user context—there's no meaningful system context for reading another user's email. Sending messages requires `email:send` and can operate in either context, with user context messages appearing to come from the user and system context messages appearing to come from the bot.
 
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/drive/list` | GET | User's files | All bot files | `files:read` |
-| `/api/drive/upload` | POST | User's folder | Bot storage | `files:write` |
-| `/api/drive/delete` | DELETE | User's files | Any file | `files:delete` |
-| `/api/drive/share` | POST | Own files | Any file | `files:share` |
+Meeting integration enables video conferencing coordination. Viewing room information uses `meet:read`, with user context showing only visible rooms and system context revealing all rooms. Creating meetings requires `meet:create`, where user context establishes the creator as organizer while system context creates bot-organized meetings. Joining requires `meet:join` and inviting others requires `meet:invite`, with system context allowing invitations to any meeting regardless of ownership.
 
-### Email APIs
+Calendar operations manage scheduling and appointments. Reading events with `calendar:read` shows user events in user context or bot calendar events in system context. Creating events requires `calendar:write` and targets the appropriate calendar based on context. Booking appointments with `calendar:book` makes the user an attendee in user context or establishes the bot as organizer in system context.
 
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/email/inbox` | GET | User's inbox | N/A | `email:read` |
-| `/api/email/send` | POST | As user | As bot | `email:send` |
-| `/api/email/drafts` | GET | User's drafts | N/A | `email:read` |
+Task management follows similar patterns. The `tasks:read` permission shows user tasks in user context or all tasks in system context. Creating and modifying tasks with `tasks:write` assigns tasks appropriately based on context. Completing tasks with `tasks:complete` allows users to mark their own tasks complete or, in system context, to complete any task.
 
-### Meet APIs
+## Administrative Functions
 
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/meet/rooms` | GET | Visible rooms | All rooms | `meet:read` |
-| `/api/meet/create` | POST | As organizer | As bot | `meet:create` |
-| `/api/meet/join` | POST | As participant | As bot participant | `meet:join` |
-| `/api/meet/invite` | POST | Own meetings | Any meeting | `meet:invite` |
+Administrative endpoints provide system management capabilities reserved for privileged users. Managing users requires `admin:users`, managing bot configurations requires `admin:bots`, modifying system configuration requires `admin:config`, and accessing monitoring data requires `admin:monitor`. All administrative operations execute in system context and require explicit administrative privileges.
 
-### Calendar APIs
-
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/calendar/events` | GET | User's events | Bot calendar | `calendar:read` |
-| `/api/calendar/create` | POST | User's calendar | Bot calendar | `calendar:write` |
-| `/api/calendar/book` | POST | As attendee | As organizer | `calendar:book` |
-
-### Tasks APIs
-
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/tasks` | GET | User's tasks | All tasks | `tasks:read` |
-| `/api/tasks` | POST | Assigned to user | Any assignment | `tasks:write` |
-| `/api/tasks/complete` | POST | Own tasks | Any task | `tasks:complete` |
-
-### Admin APIs
-
-| Endpoint | Method | User Context | System Context | Required Permission |
-|----------|--------|--------------|----------------|---------------------|
-| `/api/admin/users` | GET | N/A | Full access | `admin:users` |
-| `/api/admin/bots` | GET | N/A | Full access | `admin:bots` |
-| `/api/admin/config` | PUT | N/A | Full access | `admin:config` |
-| `/api/monitoring/status` | GET | N/A | Full access | `admin:monitor` |
+These elevated permissions should be granted sparingly, typically only to IT staff responsible for system operation. The audit system tracks all administrative actions to maintain accountability.
 
 ## Permission Definitions
 
-### Core Permissions
+The permission system defines specific capabilities organized by functional area. Core permissions govern fundamental platform features: `chat:read` allows viewing conversation history, `chat:write` enables sending messages, and the file permissions control document management as described above.
 
-| Permission | Description |
-|------------|-------------|
-| `chat:read` | View conversation history |
-| `chat:write` | Send messages |
-| `files:read` | View and download files |
-| `files:write` | Upload and modify files |
-| `files:delete` | Delete files |
-| `files:share` | Share files with others |
+Communication permissions extend to the various messaging channels: email read and send capabilities, meeting room operations, and calendar management. Productivity permissions cover task management operations.
 
-### Communication Permissions
+Administrative permissions form a separate category with broader impact: `admin:users` for user management, `admin:groups` for group administration, `admin:bots` for bot configuration, `admin:config` for system settings, `admin:monitor` for accessing operational metrics, and `admin:backup` for data protection operations.
 
-| Permission | Description |
-|------------|-------------|
-| `email:read` | Read email messages |
-| `email:send` | Send email messages |
-| `meet:read` | View meeting information |
-| `meet:create` | Create new meetings |
-| `meet:join` | Join meetings |
-| `meet:invite` | Invite others to meetings |
+## Default Group Configuration
 
-### Productivity Permissions
+General Bots creates several default groups during initialization, each designed for common organizational roles.
 
-| Permission | Description |
-|------------|-------------|
-| `calendar:read` | View calendar events |
-| `calendar:write` | Create/modify events |
-| `calendar:book` | Book appointments |
-| `tasks:read` | View tasks |
-| `tasks:write` | Create/modify tasks |
-| `tasks:complete` | Mark tasks complete |
+The Administrators group receives all permissions, including the complete set of administrative capabilities. Members of this group can perform any operation in the system. This group should contain only trusted IT personnel responsible for platform operation.
 
-### Administrative Permissions
+The Managers group provides access to productivity features plus basic monitoring capabilities. Managers can fully utilize chat, files including sharing, email, meetings, calendar, and tasks. They can also view monitoring data to understand system usage but cannot modify system configuration or manage users.
 
-| Permission | Description |
-|------------|-------------|
-| `admin:users` | Manage users |
-| `admin:groups` | Manage groups |
-| `admin:bots` | Manage bot configurations |
-| `admin:config` | Modify system configuration |
-| `admin:monitor` | Access monitoring data |
-| `admin:backup` | Perform backup operations |
+The Users group establishes standard access for regular employees. Users can participate in chat, work with files without sharing capabilities, read and send email, view and join meetings, manage their calendars, and handle their tasks. This permission set enables full participation in daily work without administrative capabilities.
 
-## Default Groups
+The Guests group provides minimal access for anonymous or temporary users. Guests can only participate in chat, without access to any other system features. This restricted access suits scenarios where external parties need limited interaction with bots.
 
-General Bots creates these default groups:
+## Permission Configuration
 
-### Administrators
+Configuring permissions involves coordinating settings between Zitadel and the General Bots configuration.
 
-```
-Permissions:
-  - admin:*
-  - All other permissions
-```
+In Zitadel, administrators access the admin console and navigate to Organization settings, then to Roles. Here they create roles that correspond to the permissions defined in General Bots. These roles are then assigned to groups, and users are added to appropriate groups based on their organizational responsibilities.
 
-Full system access for system administrators.
+The config.csv file for each bot can map Zitadel roles to General Bots permissions. The permission mapping entries define which local permissions correspond to each Zitadel role. The default anonymous permission setting establishes what capabilities unauthenticated users receive.
 
-### Managers
+## Anonymous Access Considerations
 
-```
-Permissions:
-  - chat:read, chat:write
-  - files:read, files:write, files:share
-  - email:read, email:send
-  - meet:*, calendar:*, tasks:*
-  - admin:monitor
-```
+The chat interface supports anonymous users who haven't authenticated, though with significant restrictions. Anonymous users can chat with the default bot only, using a session that exists solely on the server. They cannot access conversation history, the drive, email, tasks, meetings, or any settings. Essentially, anonymous access provides a preview of bot capabilities without exposing organizational resources.
 
-Access to productivity features and basic monitoring.
+Organizations can customize the default anonymous permissions if they want to provide different capabilities to unauthenticated users, though most deployments restrict anonymous access to basic chat functionality.
 
-### Users
+## Permission Checking in Scripts
 
-```
-Permissions:
-  - chat:read, chat:write
-  - files:read, files:write
-  - email:read, email:send
-  - meet:read, meet:join
-  - calendar:read, calendar:write
-  - tasks:read, tasks:write, tasks:complete
-```
+BASIC scripts can query user roles to implement conditional logic based on permissions. By retrieving the role from the session, scripts can present different options or perform different actions depending on the user's access level.
 
-Standard user access to all productivity features.
+For example, a script might offer administrative functions only to users with the admin role, provide reporting features to managers, and present standard assistance to regular users. This capability allows bots to adapt their behavior to each user's organizational context.
 
-### Guests
+## Audit Trail
 
-```
-Permissions:
-  - chat:read, chat:write
-```
+All permission checks are logged, creating a comprehensive audit trail of access attempts. Administrators can query these logs through the admin API to review permission-related events. Each log entry captures the timestamp, user identifier, attempted action, accessed resource, result indicating whether access was allowed or denied, and when denied, the reason for denial.
 
-Chat-only access for anonymous or guest users.
+This audit capability supports security reviews, compliance requirements, and troubleshooting access issues. Organizations with regulatory obligations can demonstrate that appropriate access controls are in place and functioning correctly.
 
-## Configuring Permissions
+## Related Documentation
 
-### In Zitadel
-
-1. Access Zitadel admin console
-2. Navigate to **Organization** → **Roles**
-3. Create roles matching permission names
-4. Assign roles to groups
-5. Add users to groups
-
-### In config.csv
-
-Map Zitadel roles to General Bots permissions:
-
-```csv
-key,value
-permission-mapping-admin,admin:*
-permission-mapping-manager,chat:*|files:*|email:*|meet:*|calendar:*|tasks:*
-permission-mapping-user,chat:*|files:read|files:write
-permission-default-anonymous,chat:read|chat:write
-```
-
-## Anonymous Access
-
-The chat interface supports anonymous users:
-
-| Feature | Anonymous Access | Notes |
-|---------|-----------------|-------|
-| Chat (default bot) | Yes | Session-based |
-| Chat history | No | Requires login |
-| Drive access | No | Requires login |
-| Mail access | No | Requires login |
-| Tasks | No | Requires login |
-| Meet | No | Requires login |
-| Settings | No | Requires login |
-
-Anonymous users:
-- Can chat with the default bot only
-- Session stored on server
-- No persistent history
-- Cannot access other tabs
-
-## Checking Permissions in BASIC
-
-Use role-based logic in your scripts:
-
-```basic
-' Get user role from session
-role = GET role
-
-' Check role and respond accordingly
-IF role = "admin" THEN
-    TALK "Welcome, administrator. You have full access."
-ELSE IF role = "manager" THEN
-    TALK "Welcome, manager. You can view reports."
-ELSE
-    TALK "Welcome! How can I help you today?"
-END IF
-```
-
-## Audit Logging
-
-All permission checks are logged. Access audit logs through the admin API:
-
-```
-GET /api/admin/audit?filter=permission
-```
-
-Log entries include:
-- Timestamp
-- User ID
-- Action attempted
-- Resource accessed
-- Result (allowed/denied)
-- Reason for denial (if applicable)
-
-## See Also
-
-- [User Authentication](./user-auth.md) - Login and session management
-- [User Context vs System Context](./user-system-context.md) - Detailed context explanation
-- [Security Policy](./security-policy.md) - Security guidelines
-- [API Endpoints](./api-endpoints.md) - Full API reference
+For deeper understanding of the authentication and authorization system, the User Authentication chapter explains the login and session management processes. The User Context vs System Context chapter provides detailed exploration of how context affects API behavior. The Security Policy chapter establishes guidelines for secure platform operation. The API Endpoints chapter documents the full API surface including permission requirements for each endpoint.

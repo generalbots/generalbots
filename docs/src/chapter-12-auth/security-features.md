@@ -1,465 +1,157 @@
-# 🔒 General Bots Security Features Guide
+# General Bots Security Features Guide
 
 ## Overview
 
-This document provides a comprehensive overview of all security features and configurations available in General Bots, designed for security experts and enterprise deployments.
+This document provides a comprehensive overview of all security features and configurations available in General Bots, designed for security experts and enterprise deployments. Understanding these features enables organizations to deploy General Bots with confidence in regulated environments.
 
-## 📋 Table of Contents
-
-- [Feature Flags](#feature-flags)
-- [Authentication & Authorization](#authentication--authorization)
-- [Encryption & Cryptography](#encryption--cryptography)
-- [Network Security](#network-security)
-- [Data Protection](#data-protection)
-- [Audit & Compliance](#audit--compliance)
-- [Security Configuration](#security-configuration)
-- [Best Practices](#best-practices)
 
 ## Feature Flags
 
 ### Core Security Features
 
-Configure in `Cargo.toml` or via build flags:
-
-```bash
-# Basic build with desktop UI
-cargo build --features desktop
-
-# Full security-enabled build
-cargo build --features "desktop,vectordb,email"
-
-# Server-only build (no desktop UI)
-cargo build --no-default-features --features "vectordb,email"
-```
+Security features are configured through Cargo.toml or via build flags at compile time. A basic build with desktop UI uses `cargo build --features desktop`. A full security-enabled build uses `cargo build --features "desktop,vectordb,email"`. A server-only build without desktop UI uses `cargo build --no-default-features --features "vectordb,email"`.
 
 ### Available Features
 
-| Feature | Purpose | Security Impact | Default |
-|---------|---------|-----------------|---------|
-| `desktop` | Tauri desktop UI | Sandboxed runtime, controlled system access | ✅ |
-| `vectordb` | Qdrant integration | AI-powered threat detection, semantic search | ❌ |
-| `email` | IMAP/SMTP support | Requires secure credential storage | ❌ |
+The desktop feature provides the Tauri desktop UI with a sandboxed runtime and controlled system access, and is enabled by default. The vectordb feature enables Qdrant integration for AI-powered threat detection and semantic search, and must be explicitly enabled. The email feature provides IMAP and SMTP support, which requires secure credential storage, and must also be explicitly enabled.
 
-### Security Features
+### Enterprise Security Features
 
-Enterprise-ready security features:
+Enterprise-ready security features include built-in encryption for data at rest via the aes-gcm library, comprehensive audit logging capabilities, role-based access control implemented through the Directory Service, multi-factor authentication available via the Directory Service, and SAML/OIDC single sign-on support also through the Directory Service.
 
-| Feature | Description | Implementation Status |
-|---------|-------------|----------------------|
-| `encryption` | Enhanced encryption for data at rest | Built-in via aes-gcm |
-| `audit` | Comprehensive audit logging | Available |
-| `rbac` | Role-based access control | ✅ Implemented via Directory Service |
-| `mfa` | Multi-factor authentication | ✅ Available via Directory Service |
-| `sso` | SAML/OIDC SSO support | ✅ Available via Directory Service |
 
-## Authentication & Authorization
+## Authentication and Authorization
 
 ### Directory Service Integration
 
-General Bots uses the Directory Service (currently Zitadel, but can be migrated to Keycloak or other OIDC providers) as the primary identity provider:
-
-Features:
-- OAuth2/OIDC authentication
-- JWT token validation
-- User/group management
-- Permission management
-- Session handling
+General Bots uses the Directory Service as the primary identity provider. Currently this is Zitadel, though it can be migrated to Keycloak or other OIDC providers. The integration provides OAuth2 and OIDC authentication, JWT token validation, user and group management, permission management, and session handling.
 
 ### Password Security
 
-- **Algorithm**: Argon2id (memory-hard, GPU-resistant)
-- **Configuration**: 
-  - Memory: 19456 KB
-  - Iterations: 2
-  - Parallelism: 1
-  - Salt: Random 32-byte
+Password hashing uses the Argon2id algorithm, which is memory-hard and GPU-resistant. The configuration uses 19456 KB of memory, 2 iterations, parallelism of 1, and a random 32-byte salt. This configuration provides strong protection against both online and offline attacks while maintaining reasonable authentication performance.
 
 ### Token Management
 
-- **Access Tokens**: JWT with RS256 signing
-- **Refresh Tokens**: Secure random 256-bit
-- **Session Tokens**: UUID v4 with cache storage
-- **Token Rotation**: Automatic refresh on expiry
+Access tokens use JWT format with RS256 signing for verifiable authentication. Refresh tokens consist of secure random 256-bit values for session renewal. Session tokens use UUID v4 format with cache storage for fast validation. Token rotation happens automatically when tokens approach expiry, ensuring continuous secure access without user interruption.
 
-## Encryption & Cryptography
 
-### Dependencies
+## Encryption and Cryptography
 
-| Library | Version | Purpose | Algorithm |
-|---------|---------|---------|-----------|
-| `aes-gcm` | 0.10 | Authenticated encryption | AES-256-GCM |
-| `argon2` | 0.5 | Password hashing | Argon2id |
-| `sha2` | 0.10.9 | Cryptographic hashing | SHA-256 |
-| `hmac` | 0.12.1 | Message authentication | HMAC-SHA256 |
-| `rand` | 0.9.2 | Cryptographic RNG | ChaCha20 |
+### Cryptographic Libraries
+
+The platform uses well-vetted cryptographic libraries for all security operations. The aes-gcm library version 0.10 provides authenticated encryption using AES-256-GCM. The argon2 library version 0.5 handles password hashing with Argon2id. The sha2 library version 0.10.9 provides cryptographic hashing with SHA-256. The hmac library version 0.12.1 enables message authentication using HMAC-SHA256. The rand library version 0.9.2 provides cryptographic random number generation using ChaCha20.
 
 ### Data Encryption
 
-**Encryption at rest:**
-- Database: Column-level encryption for sensitive fields
-- File storage: AES-256-GCM for uploaded files
-- Configuration: Encrypted secrets with master key
+Encryption at rest protects stored data throughout the system. Database encryption applies column-level encryption to sensitive fields. File storage encryption uses AES-256-GCM for all uploaded files. Configuration encryption protects secrets using a master key.
 
-**Encryption in transit:**
-- TLS 1.3 for all external communications
-- mTLS for service-to-service communication
-- Certificate pinning for critical services
+Encryption in transit protects data during transmission. All external communications use TLS 1.3 for strong protection. Service-to-service communication uses mutual TLS (mTLS) for bidirectional authentication. Certificate pinning applies to critical services to prevent man-in-the-middle attacks.
+
 
 ## Network Security
 
 ### API Security
 
-1. **Rate Limiting** (via Caddy)
-   - Per-IP: 100 requests/minute
-   - Per-user: 1000 requests/hour
-   - Configured in Caddyfile
+Rate limiting through Caddy protects against abuse. Per-IP limits default to 100 requests per minute. Per-user limits default to 1000 requests per hour. These limits are configured in the Caddyfile and can be adjusted for specific deployment requirements.
 
-2. **CORS Configuration** (via Caddy)
-   ```
-   # Strict CORS policy in Caddyfile
-   - Origins: Whitelist only
-   - Credentials: true for authenticated requests
-   - Methods: Explicitly allowed
-   ```
+CORS configuration through Caddy controls cross-origin requests. Origins use a strict whitelist approach. Credentials are enabled for authenticated requests. HTTP methods are explicitly allowed rather than using wildcards.
 
-3. **Input Validation**
-   - Schema validation for all inputs
-   - SQL injection prevention via PostgreSQL prepared statements
-   - XSS protection with output encoding
-   - Path traversal prevention
+Input validation protects against injection attacks. Schema validation applies to all inputs before processing. SQL injection prevention uses PostgreSQL prepared statements exclusively. XSS protection applies output encoding to all user-generated content. Path traversal prevention validates all file paths against allowed directories.
 
 ### WebSocket Security
 
-- Authentication required for connection
-- Message size limits (default: 10MB)
-- Heartbeat/ping-pong for connection validation
-- Automatic disconnection on suspicious activity
+WebSocket connections require authentication before establishment. Message size limits default to 10MB to prevent resource exhaustion. Heartbeat and ping-pong mechanisms validate connection health. Suspicious activity triggers automatic disconnection to protect the system.
+
 
 ## Data Protection
 
 ### Database Security
 
-```sql
--- PostgreSQL security features used:
-- Row-level security (RLS)
-- Column encryption for PII
-- Audit logging
-- Connection pooling
-- Prepared statements only
-- SSL/TLS connections enforced
-```
+PostgreSQL security features provide comprehensive database protection. Row-level security (RLS) restricts access to specific rows based on user context. Column encryption protects personally identifiable information. Audit logging records all database access. Connection pooling limits resource consumption. Prepared statements prevent SQL injection. SSL/TLS connections are enforced for all database communication.
 
-### File Storage Security (Drive)
+### File Storage Security
 
-- **Drive Configuration**:
-  - Bucket encryption: AES-256
-  - Access: Policy-based access control
-  - Versioning: Enabled
-  - Immutable objects support
-  - TLS encryption in transit
+Drive configuration provides secure object storage. Bucket encryption uses AES-256 for all stored objects. Policy-based access control restricts file access. Versioning enables recovery from accidental changes. Immutable objects support prevents tampering. TLS encryption protects data in transit.
 
-- **Local Storage**:
-  - Directory permissions: 700
-  - File permissions: 600
-  - Temporary files: Secure deletion
+Local storage follows security best practices. Directory permissions are set to 700 for restricted access. File permissions are set to 600 for owner-only access. Temporary files undergo secure deletion to prevent data leakage.
 
-### Memory Security
 ### Memory Protection
 
-Memory protection measures:
-- Zeroization of sensitive data
-- No logging of secrets
-- Secure random generation
-- Protected memory pages for crypto keys
+Memory protection measures prevent sensitive data exposure. Zeroization clears sensitive data from memory after use. Logging configurations exclude secrets from log output. Secure random generation uses cryptographic sources. Protected memory pages safeguard cryptographic keys during operation.
 
-## Audit & Compliance
 
-### Logging Configuration
+## Audit and Compliance
+
 ### Log Security
 
-Structured logging configuration:
-- Level: INFO (production), DEBUG (development)
-- Format: JSON for machine parsing
-- Rotation: Daily with 30-day retention
-- Sensitive data: Redacted
+Structured logging configuration ensures comprehensive audit trails. Log level uses INFO in production and DEBUG in development. Format uses JSON for machine parsing and analysis. Rotation occurs daily with 30-day retention by default. Sensitive data is automatically redacted from log output.
 
 ### Audit Events
 
-Events automatically logged:
-
-- Authentication attempts
-- Authorization failures
-- Data access (read/write)
-- Configuration changes
-- Admin actions
-- API calls
-- Security violations
+The system automatically logs security-relevant events including authentication attempts both successful and failed, authorization failures when users attempt unauthorized actions, data access operations for both reads and writes, configuration changes by administrators, administrative actions across the system, API calls with relevant parameters, and security violations when detected.
 
 ### Compliance Support
 
-- **GDPR**: Data deletion, export capabilities
-- **SOC2**: Audit trails, access controls
-- **HIPAA**: Encryption, access logging (with configuration)
-- **PCI DSS**: No credit card storage, tokenization support
+GDPR compliance features include data deletion capabilities and data export for portability. SOC2 compliance is supported through comprehensive audit trails and access controls. HIPAA compliance can be achieved with encryption and access logging configuration. PCI DSS requirements are addressed through no credit card storage and tokenization support for payment processing.
+
 
 ## Security Configuration
 
 ### Environment Variables
 
-```bash
-# Required security settings
-BOTSERVER_JWT_SECRET="[256-bit hex string]"
-BOTSERVER_ENCRYPTION_KEY="[256-bit hex string]"
-DATABASE_ENCRYPTION_KEY="[256-bit hex string]"
+Required security settings include BOTSERVER_JWT_SECRET as a 256-bit hex string for token signing, BOTSERVER_ENCRYPTION_KEY as a 256-bit hex string for data encryption, and DATABASE_ENCRYPTION_KEY as a 256-bit hex string for database field encryption.
 
-# Zitadel (Directory) configuration
-ZITADEL_DOMAIN="https://your-instance.zitadel.cloud"
-ZITADEL_CLIENT_ID="your-client-id"
-ZITADEL_CLIENT_SECRET="your-client-secret"
+Directory service configuration requires ZITADEL_DOMAIN pointing to your Zitadel instance, ZITADEL_CLIENT_ID with your application client ID, and ZITADEL_CLIENT_SECRET with your application secret.
 
-# Drive configuration
-MINIO_ENDPOINT="http://localhost:9000"
-MINIO_ACCESS_KEY="minioadmin"
-MINIO_SECRET_KEY="minioadmin"
-MINIO_USE_SSL=true
+Drive configuration requires MINIO_ENDPOINT for the storage server address, MINIO_ACCESS_KEY and MINIO_SECRET_KEY for authentication, and MINIO_USE_SSL set to true for encrypted connections.
 
-# Vector Database configuration
-# Configure in your .env file
+Cache configuration requires CACHE_URL pointing to the Redis-compatible server and CACHE_PASSWORD for authentication.
 
+Optional security enhancements include BOTSERVER_ENABLE_AUDIT to enable comprehensive audit logging, BOTSERVER_REQUIRE_MFA to enforce multi-factor authentication, BOTSERVER_SESSION_TIMEOUT to set session duration in seconds, BOTSERVER_MAX_LOGIN_ATTEMPTS to limit failed login attempts, and BOTSERVER_LOCKOUT_DURATION to set account lockout time in seconds.
 
-# Cache configuration
-CACHE_URL="redis://localhost:6379"
-CACHE_PASSWORD="your-password"
-
-# Optional security enhancements
-BOTSERVER_ENABLE_AUDIT=true
-BOTSERVER_REQUIRE_MFA=false
-BOTSERVER_SESSION_TIMEOUT=3600
-BOTSERVER_MAX_LOGIN_ATTEMPTS=5
-BOTSERVER_LOCKOUT_DURATION=900
-
-# Network security (Caddy handles TLS automatically)
-BOTSERVER_ALLOWED_ORIGINS="https://app.example.com"
-BOTSERVER_RATE_LIMIT_PER_IP=100
-BOTSERVER_RATE_LIMIT_PER_USER=1000
-BOTSERVER_MAX_UPLOAD_SIZE=104857600  # 100MB
-```
+Network security settings include BOTSERVER_ALLOWED_ORIGINS for CORS whitelist, BOTSERVER_RATE_LIMIT_PER_IP for per-IP request limits, BOTSERVER_RATE_LIMIT_PER_USER for per-user request limits, and BOTSERVER_MAX_UPLOAD_SIZE for maximum file upload size in bytes.
 
 ### Database Configuration
 
-```sql
--- PostgreSQL security settings
--- Add to postgresql.conf:
-ssl = on
-ssl_cert_file = 'server.crt'
-ssl_key_file = 'server.key'
-ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL'
-ssl_prefer_server_ciphers = on
-ssl_ecdh_curve = 'prime256v1'
-
--- Connection string:
-DATABASE_URL="postgres://user:pass@localhost/db?sslmode=require"
-```
+PostgreSQL security settings should be added to postgresql.conf to enable SSL with ssl set to on, specify certificate files with ssl_cert_file and ssl_key_file, configure strong ciphers with ssl_ciphers, enable server cipher preference with ssl_prefer_server_ciphers, and set the ECDH curve with ssl_ecdh_curve. The database connection string should include sslmode=require to enforce encrypted connections.
 
 ### Caddy Configuration
 
-```
-# Caddyfile for secure reverse proxy
-{
-    # Global options
-    admin off
-    auto_https on
-}
+Caddy provides secure reverse proxy functionality with automatic HTTPS. Global options should disable the admin interface and enable automatic HTTPS. TLS configuration should enforce TLS 1.3 only with strong cipher suites. Security headers should include Strict-Transport-Security, X-Frame-Options, X-Content-Type-Options, X-XSS-Protection, Referrer-Policy, and Content-Security-Policy. Rate limiting should be configured per remote host. The reverse proxy should forward appropriate headers including X-Real-IP, X-Forwarded-For, and X-Forwarded-Proto. Access logging should output to files in JSON format for analysis.
 
-app.example.com {
-    # TLS 1.3 only
-    tls {
-        protocols tls1.3
-        ciphers TLS_AES_256_GCM_SHA384 TLS_CHACHA20_POLY1305_SHA256
-    }
-    
-    # Security headers
-    header {
-        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
-        X-Frame-Options "SAMEORIGIN"
-        X-Content-Type-Options "nosniff"
-        X-XSS-Protection "1; mode=block"
-        Referrer-Policy "strict-origin-when-cross-origin"
-        Content-Security-Policy "default-src 'self'"
-    }
-    
-    # Rate limiting
-    rate_limit {
-        zone static {
-            key {remote_host}
-            events 100
-            window 1m
-        }
-    }
-    
-    # Reverse proxy to BotServer
-    reverse_proxy localhost:3000 {
-        header_up X-Real-IP {remote_host}
-        header_up X-Forwarded-For {remote_host}
-        header_up X-Forwarded-Proto {scheme}
-    }
-    
-    # Access logging
-    log {
-        output file /var/log/caddy/access.log
-        format json
-    }
-}
-```
 
 ## Best Practices
 
-### Development
+### Development Practices
 
-1. **Dependency Management**
-   ```bash
-   # Regular security updates
-   cargo audit
-   cargo update
-   
-   # Check for known vulnerabilities
-   cargo audit --deny warnings
-   ```
+Dependency management requires regular security updates. Run cargo audit to check for known vulnerabilities. Run cargo update to apply security patches. Use cargo audit --deny warnings in CI to prevent vulnerable dependencies.
 
-2. **Code Quality**
-   ```rust
-   // Enforced via Cargo.toml lints:
-   - No unsafe code
-   - No unwrap() in production
-   - No panic!() macros
-   - Complete error handling
-   ```
+Code quality is enforced through Cargo.toml lints. Unsafe code is prohibited in application code. Unwrap calls are forbidden in production code paths. Panic macros are not allowed. Complete error handling is required for all fallible operations.
 
-3. **Testing**
-   ```bash
-   # Security testing suite
-   cargo test --features security_tests
-   
-   # Fuzzing for input validation
-   cargo fuzz run api_fuzzer
-   ```
+Security testing validates protection mechanisms. Run the security test suite with cargo test --features security_tests. Fuzzing for input validation uses cargo fuzz run api_fuzzer to find edge cases.
 
-### Deployment
+### Deployment Practices
 
-1. **Container Security**
-   ```bash
-   # LXC security configuration
-   lxc config set botserver-prod security.privileged=false
-   lxc config set botserver-prod security.idmap.isolated=true
-   lxc config set botserver-prod security.nesting=false
-   
-   # Run as non-root user
-   lxc exec botserver-prod -- useradd -m botuser
-   lxc exec botserver-prod -- su - botuser
-   ```
+Container security for LXC deployments requires disabling privileged mode with security.privileged set to false, enabling isolated ID mapping with security.idmap.isolated set to true, and disabling nesting with security.nesting set to false. Applications should run as non-root users within containers.
 
-2. **LXD/LXC Container Security**
-   ```yaml
-   # Container security profile
-   config:
-     security.nesting: "false"
-     security.privileged: "false"
-     limits.cpu: "4"
-     limits.memory: "8GB"
-   devices:
-     root:
-       path: /
-       pool: default
-       type: disk
-   ```
+Container security profiles should specify resource limits including CPU and memory caps. Root device configuration should use appropriate storage pools. Security settings should prevent privilege escalation.
 
-3. **Network Policies**
-   ```
-   # Firewall rules (UFW/iptables)
-   - Ingress: Only from Caddy proxy
-   - Egress: PostgreSQL, Drive, Qdrant, Cache
-   - Block: All other traffic
-   - Internal: Component isolation
-   ```
+Network policies should restrict traffic appropriately. Ingress should only be allowed from the Caddy proxy. Egress should be limited to PostgreSQL, Drive, Qdrant, and Cache. All other traffic should be blocked. Internal communication between components should use isolated networks.
 
-### Monitoring
+### Monitoring Practices
 
-1. **Security Metrics**
-   - Failed authentication rate
-   - Unusual API patterns
-   - Resource usage anomalies
-   - Geographic access patterns
+Security metrics to track include failed authentication rate, unusual API access patterns, resource usage anomalies, and geographic access patterns for detecting account compromise.
 
-2. **Alerting Thresholds**
-   - 5+ failed logins: Warning
-   - 10+ failed logins: Lock account
-   - Unusual geographic access: Alert
-   - Privilege escalation: Critical alert
+Alerting thresholds should trigger warnings at 5 or more failed logins, lock accounts at 10 or more failed logins, alert on unusual geographic access patterns, and issue critical alerts for any privilege escalation attempts.
 
-3. **Incident Response**
-   - Automatic session termination
-   - Account lockout procedures
-   - Audit log preservation
-   - Forensic data collection
+Incident response capabilities include automatic session termination when threats are detected, account lockout for repeated failures, and comprehensive logging for forensic analysis.
+
 
 ## Security Checklist
 
-### Pre-Production
+Before deploying General Bots in production, verify that all environment variables are set with strong random values, TLS is properly configured with valid certificates, database connections use SSL, file storage uses encryption, audit logging is enabled, rate limiting is configured appropriately, security headers are set in the reverse proxy, monitoring and alerting are configured, backup and recovery procedures are tested, and incident response procedures are documented.
 
-- [ ] All secrets in environment variables
-- [ ] Database encryption enabled (PostgreSQL)
-- [ ] Drive encryption enabled
-- [ ] Caddy TLS configured (automatic with Let's Encrypt)
-- [ ] Rate limiting enabled (Caddy)
-- [ ] CORS properly configured (Caddy)
-- [ ] Audit logging enabled
-- [ ] Backup encryption verified
-- [ ] Security headers configured (Caddy)
-- [ ] Input validation complete
-- [ ] Error messages sanitized
-- [ ] Zitadel MFA configured
-- [ ] Qdrant authentication enabled
-- [ ] Valkey password protection enabled
 
-### Production
+## See Also
 
-- [ ] MFA enabled for all admin accounts (Zitadel)
-- [ ] Regular security updates scheduled (all components)
-- [ ] Monitoring alerts configured
-- [ ] Incident response plan documented
-- [ ] Regular security audits scheduled
-- [ ] Penetration testing completed
-- [ ] Compliance requirements met
-- [ ] Disaster recovery tested (PostgreSQL, Drive backups)
-- [ ] Access reviews scheduled (Zitadel)
-- [ ] Security training completed
-- [ ] Stalwart email security configured (DKIM, SPF, DMARC)
-- [ ] LiveKit secure signaling enabled
-
-## Contact
-
-For security issues or questions:
-- Security Email: security@pragmatismo.com.br
-- Bug Bounty: See SECURITY.md
-- Emergency: Use PGP-encrypted email
-
-## Component Security Documentation
-
-### Core Components
-- [Caddy Security](https://caddyserver.com/docs/security) - Reverse proxy and TLS
-- [PostgreSQL Security](https://www.postgresql.org/docs/current/security.html) - Database
-- [Zitadel Security](https://zitadel.com/docs/guides/manage/security) - Identity and access
-- [Drive Security](https://min.io/docs/minio/linux/operations/security.html) - S3-compatible object storage
-- [Qdrant Security](https://qdrant.tech/documentation/guides/security/) - Vector database
-- [Valkey Security](https://valkey.io/topics/security/) - Cache
-
-### Communication Components
-- [Stalwart Security](https://stalw.art/docs/security/) - Email server
-- [LiveKit Security](https://docs.livekit.io/realtime/server/security/) - Video conferencing
-
-## References
-## Resources
-
-- [OWASP Top 10](https://owasp.org/Top10/)
-- [CIS Controls](https://www.cisecurity.org/controls/)
-- [NIST Cybersecurity Framework](https://www.nist.gov/cyberframework)
+The Security Policy chapter provides organizational security policies and procedures. The Password Security chapter details password requirements and implementation. The User Authentication chapter covers authentication flows and configuration. The Compliance Requirements chapter addresses regulatory compliance in detail.

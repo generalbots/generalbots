@@ -1,200 +1,64 @@
-# Chapter 05: gbtheme CSS Theming
+# Chapter 05: Themes and Styling
 
-The `.gbtheme` package provides CSS-based styling for your bot's user interface. Themes control colors, fonts, layouts, and visual effects across all .gbui templates.
+Customize your bot's appearance with `.gbtheme` packages.
+
+## Overview
+
+Themes control colors, fonts, logos, and overall visual presentation of your bot interface.
 
 ## Quick Start
 
-To theme your bot, create a `.gbtheme` folder in your bot package and add a CSS file:
+```csv
+# In config.csv
+name,value
+theme-color1,#0d2b55
+theme-color2,#fff9c2
+theme-title,My Bot
+theme-logo,https://example.com/logo.svg
+```
+
+## Theme Structure
 
 ```
 mybot.gbai/
 └── mybot.gbtheme/
-    └── default.css      # Your theme file
+    └── style.css
 ```
 
-The theme loads automatically when the bot starts.
+## Configuration Options
 
-## How Themes Work
+| Setting | Description | Example |
+|---------|-------------|---------|
+| `theme-color1` | Primary color | `#0d2b55` |
+| `theme-color2` | Secondary color | `#fff9c2` |
+| `theme-title` | Bot name in header | `My Assistant` |
+| `theme-logo` | Logo URL | `https://...` |
 
-Themes are standard CSS files that override the default styles. The system loads them in this order:
+## CSS Customization
 
-1. System default styles
-2. Your theme CSS file
-3. Any inline style overrides
+Create `style.css` in your `.gbtheme` folder:
 
-## Available Theme Files
+```css
+:root {
+  --primary: #0d2b55;
+  --secondary: #fff9c2;
+}
 
-You can create multiple theme files for different purposes:
+.chat-header {
+  background: var(--primary);
+}
 
-- `default.css` - Main theme (loaded automatically)
-- `dark.css` - Dark mode variant
-- `print.css` - Print-friendly styles
-- Custom theme names for special occasions
-
-## Theme Elements to Style
-
-### Core Components
-- `.chat-container` - Main chat window
-- `.message` - All messages
-- `.message-user` - User messages
-- `.message-bot` - Bot responses
-- `.chat-input` - Input field
-- `.send-button` - Send button
-
-### UI Elements
-- `.sidebar` - Side navigation
-- `.header` - Top bar
-- `.footer` - Bottom bar
-- `.card` - Content cards
-- `.button` - All buttons
-- `.dialog` - Modal dialogs
-
-### States and Interactions
-- `.typing-indicator` - Typing animation
-- `.loading` - Loading states
-- `.error` - Error messages
-- `.success` - Success messages
-- `:hover` - Hover effects
-- `:focus` - Focus states
-
-## Switching Themes
-
-Use the `CHANGE THEME` command in your BASIC scripts:
-
-```basic
-' Switch to dark theme
-CHANGE THEME "dark"
-
-' Back to default
-CHANGE THEME "default"
+.user-message {
+  background: var(--secondary);
+}
 ```
 
-## Theme Best Practices
+## Chapter Contents
 
-1. **Start Simple**: Begin with colors and fonts, add complexity gradually
-2. **Test Responsiveness**: Ensure your theme works on mobile devices
-3. **Maintain Readability**: Keep sufficient contrast between text and backgrounds
-4. **Use CSS Variables**: Define colors once, reuse throughout
-5. **Test Dark Mode**: Many users prefer dark interfaces
-
-## Pre-built Themes
-
-General Bots includes example themes you can use as starting points:
-
-- **default** - Clean, modern interface
-- **3dbevel** - Retro Windows 95 style
-- **minimal** - Simplified, distraction-free
-- **corporate** - Professional business look
-- **playful** - Colorful, fun design
-
-## File Structure
-
-Keep your theme files organized:
-
-```
-mybot.gbtheme/
-├── default.css         # Main theme
-├── dark.css           # Dark variant
-├── mobile.css         # Mobile-specific styles
-└── assets/            # Images, fonts
-    ├── logo.png
-    └── fonts/
-```
-
-## Loading Order
-
-Themes are applied in a specific order to ensure proper cascading:
-
-1. Base system styles (always loaded)
-2. Theme file specified in config or `default.css`
-3. Media queries for responsive design
-4. User preference overrides (if any)
-
-## Dynamic Theme Changes
-
-Themes can be changed at runtime without restarting:
-
-```basic
-' Change theme based on time of day
-hour = HOUR(NOW())
-IF hour >= 18 OR hour < 6 THEN
-  CHANGE THEME "dark"
-ELSE
-  CHANGE THEME "default"
-END IF
-```
-
-## Troubleshooting
-
-### Theme Not Loading
-- Check file is named correctly (e.g., `default.css`)
-- Verify `.gbtheme` folder is in the right location
-- Restart the bot after adding new theme files
-
-### Styles Not Applying
-- Check CSS syntax is valid
-- Use browser developer tools to inspect elements
-- Verify selectors match the HTML structure
-- Clear browser cache if changes aren't visible
-
-### Performance Issues
-- Minimize complex animations
-- Optimize image sizes
-- Avoid too many web fonts
-- Use CSS transforms instead of position changes
-
-## Beyond Themes: Full UI Customization
-
-While themes provide CSS styling, you have more powerful options for UI customization:
-
-### Extend the Default UI
-
-You can modify the `.gbui` package to create custom HTML structures:
-- Copy and modify the default UI templates
-- Add your own components and layouts
-- Create entirely new interaction patterns
-- The bot will use your custom UI automatically
-
-### Build Your Own UI Framework
-
-General Bots is designed as a foundation for your projects:
-- Fork the repository and customize everything
-- Create industry-specific interfaces
-- Develop unique bot experiences
-- Use it as a base for commercial products
-
-### Join the Community
-
-**We actively encourage contributions!**
-- Submit UI improvements via pull requests
-- Share creative themes with others
-- Develop new UI paradigms
-- Help improve documentation
-
-The UI layer is completely independent - you're free to reimagine how users interact with bots. The core engine provides the intelligence, you provide the experience.
-
-### Getting Started
-1. Fork the [General Bots repository](https://github.com/GeneralBots/botserver)
-2. Study the default.gbui structure
-3. Experiment with your own designs
-4. Share your innovations with the community
-
-Remember: It's just HTML/CSS/JS talking to the bot via WebSocket. You have complete creative freedom!
-
-## Summary
-
-The `.gbtheme` system keeps styling simple and separate from bot logic. Just drop a CSS file in the `.gbtheme` folder and your bot gets a new look. Focus on the essentials - colors, fonts, and spacing - and let the default styles handle the rest.
-
-For deeper customization, extend the `.gbui` package or build your own UI framework. General Bots is meant to be a starting point for your creativity!
+- [Theme Structure](./structure.md) - File organization
+- [CSS Customization](./css.md) - Styling reference
 
 ## See Also
 
-- [Chapter 4: .gbui Interface](../chapter-04-gbui/README.md) - User interface templates
-- [Chapter 2: Packages](../chapter-02/README.md) - Package structure
-- [Chapter 6: BASIC Dialogs](../chapter-06-gbdialog/README.md) - Using CHANGE THEME command
-- [Chapter 8: Configuration](../chapter-08-config/README.md) - Theme configuration options
----
-
-<div align="center">
-  <img src="https://pragmatismo.com.br/icons/general-bots-text.svg" alt="General Bots" width="200">
-</div>
+- [UI Reference](../chapter-04-gbui/README.md) - Interface options
+- [.gbot Configuration](../chapter-08-config/README.md) - All settings

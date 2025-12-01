@@ -20,131 +20,86 @@ Microsoft 365 (formerly Office 365) includes multiple services that need to be m
 
 ### 1. Email Migration (Exchange Online)
 
-**Prerequisites:**
-- IMAP access enabled in Exchange Online
-- Target mail server configured
-- User credentials or app passwords
+Before beginning the email migration, ensure IMAP access is enabled in Exchange Online, your target mail server is configured, and you have user credentials or app passwords available.
 
-**Process:**
-- Use imapsync for mailbox migration
-- Migrate in batches to avoid throttling
-- Preserve folder structure and flags
+The migration process uses imapsync for mailbox migration. Migrate in batches to avoid throttling from Microsoft's servers, and preserve folder structure and flags during transfer.
 
-**Considerations:**
-- Exchange uses proprietary features (categories, etc.) that may not transfer
-- Calendar and contacts need separate migration (CalDAV/CardDAV)
-- Shared mailboxes require special handling
+Keep in mind that Exchange uses proprietary features such as categories that may not transfer cleanly. Calendar and contacts require separate migration using CalDAV and CardDAV protocols. Shared mailboxes require special handling and may need to be migrated individually.
 
 ### 2. File Migration (OneDrive/SharePoint)
 
-**Prerequisites:**
-- OneDrive sync client or API access
-- Sufficient storage on target
-- Network bandwidth for transfer
+Prerequisites include having the OneDrive sync client or API access configured, sufficient storage on the target system, and adequate network bandwidth for the transfer.
 
-**Process:**
-- Use rclone with OneDrive backend
-- Maintain folder structure
-- Preserve timestamps where possible
+Use rclone with the OneDrive backend for the migration process. Maintain folder structure during transfer and preserve timestamps where possible.
 
-**Considerations:**
-- SharePoint metadata won't transfer automatically
-- Version history is typically lost
-- Permissions need to be recreated
+Be aware that SharePoint metadata won't transfer automatically and may need manual recreation. Version history is typically lost during migration. Permissions need to be recreated on the target system.
 
 ### 3. User Migration (Azure AD)
 
-**Prerequisites:**
-- Azure AD Connect or API access
-- Target identity provider ready
+Prepare for user migration by setting up Azure AD Connect or API access, and ensure your target identity provider is ready to receive users.
 
-**Process:**
-- Export users via PowerShell or Graph API
-- Transform to target format (LDIF, JSON)
-- Import to new identity provider
+Export users via PowerShell or Graph API, transform the data to the target format such as LDIF or JSON, then import to your new identity provider.
 
-**Considerations:**
-- Passwords cannot be exported
-- MFA settings need reconfiguration
-- Group memberships need mapping
+Important considerations include that passwords cannot be exported from Azure AD, so users will need to reset their passwords. MFA settings require reconfiguration on the new system. Group memberships need mapping to equivalent structures in the target system.
 
 ## Common Challenges
 
 ### API Throttling
-Microsoft throttles API calls:
-- Plan for slow, steady migration
-- Use batch operations where possible
-- Consider running migrations off-peak
+
+Microsoft throttles API calls to protect their infrastructure. Plan for a slow, steady migration rather than attempting bulk transfers. Use batch operations where possible and consider running migrations during off-peak hours.
 
 ### Data Volume
-Large organizations may have:
-- Terabytes of OneDrive/SharePoint data
-- Years of email history
-- Thousands of users
+
+Large organizations may have accumulated terabytes of OneDrive and SharePoint data, years of email history, and thousands of users. Factor this into your timeline and resource planning.
 
 ### Feature Parity
-Some M365 features have no direct equivalent:
-- Power Automate workflows
-- SharePoint lists and forms
-- Teams channel history
+
+Some M365 features have no direct equivalent in self-hosted solutions. Power Automate workflows will need to be recreated using different automation tools. SharePoint lists and forms require alternative solutions. Teams channel history may be difficult to preserve in its original format.
 
 ## Tools and Utilities
 
 ### PowerShell for Export
-- Azure AD PowerShell module for user export
-- Exchange Online PowerShell for mailbox info
-- SharePoint Online PowerShell for site inventory
+
+The Azure AD PowerShell module handles user export operations. Exchange Online PowerShell provides mailbox information. SharePoint Online PowerShell helps with site inventory and metadata export.
 
 ### Graph API
-- Programmatic access to most M365 services
-- Useful for custom migration scripts
-- Requires app registration and permissions
+
+The Graph API provides programmatic access to most M365 services and is useful for custom migration scripts. Using it requires app registration and appropriate permissions in your Azure tenant.
 
 ### Third-Party Tools
-- BitTitan MigrationWiz (commercial)
-- Sharegate (commercial)
-- Various open-source scripts on GitHub
+
+Commercial options include BitTitan MigrationWiz and Sharegate, which provide guided migration experiences. Various open-source scripts are available on GitHub for more customized approaches.
 
 ## Post-Migration
 
 ### DNS Changes
-- Update MX records for email
-- Update autodiscover records
-- Consider keeping hybrid setup temporarily
+
+Update MX records to point to your new email server. Update autodiscover records for email client configuration. Consider keeping a hybrid setup temporarily to catch any missed emails during the transition.
 
 ### User Communication
-- Provide new login credentials
-- Document changed procedures
-- Offer training on new tools
+
+Provide new login credentials to all users. Document any changed procedures and differences from the M365 experience. Offer training sessions on the new tools to ensure smooth adoption.
 
 ### Validation
-- Verify email delivery
-- Test file access
-- Confirm authentication works
+
+Verify email delivery works correctly in both directions. Test file access to ensure permissions transferred properly. Confirm authentication works for all migrated users.
 
 ## Cost Considerations
 
 ### Subscription Overlap
-- May need to maintain M365 during migration
-- Consider read-only licenses for archive access
+
+You may need to maintain M365 subscriptions during the migration period. Consider read-only licenses for archive access if you need to retain access to historical data.
 
 ### Data Transfer Costs
-- Egress charges from Microsoft
-- Bandwidth costs for large transfers
+
+Factor in egress charges from Microsoft when transferring large amounts of data. Account for bandwidth costs if transferring over the internet rather than dedicated connections.
 
 ## Timeline Estimates
 
-- Small org (<50 users): 1-2 weeks
-- Medium org (50-500 users): 1-2 months  
-- Large org (500+ users): 2-6 months
+Small organizations with fewer than 50 users typically complete migration in 1-2 weeks. Medium organizations with 50-500 users usually require 1-2 months. Large organizations with more than 500 users should plan for 2-6 months.
 
-Factors affecting timeline:
-- Data volume
-- Network speed
-- Complexity of setup
-- User training needs
+Factors affecting timeline include data volume, network speed, complexity of the existing setup, and user training needs.
 
 ## Next Steps
 
-- [Common Concepts](./common-concepts.md) - General migration principles
-- [Validation](./validation.md) - Testing procedures
+Review the [Common Concepts](./common-concepts.md) guide for general migration principles. See [Validation](./validation.md) for detailed testing procedures to verify your migration succeeded.

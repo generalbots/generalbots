@@ -1,6 +1,10 @@
 # Player - Media Viewer
 
-The Player component provides integrated viewing capabilities for documents, audio, video, and presentations directly within the General Bots Suite interface.
+> **Integrated viewing for documents, audio, video, and presentations**
+
+<img src="../../assets/suite/player-flow.svg" alt="Player Flow" style="max-width: 100%; height: auto;">
+
+---
 
 ## Overview
 
@@ -12,17 +16,36 @@ Player enables users to view and interact with various file types without leavin
 - **Video**: MP4, WEBM, OGV
 - **Images**: PNG, JPG, GIF, SVG, WEBP
 
+---
+
 ## Accessing Player
 
 ### From Chat
 
 When a bot shares a file, click the preview to open in Player:
 
-```basic
-' Bot script example
-SEND FILE "presentation.pptx"
-TALK "Here's the quarterly report. Click to view."
-```
+<div class="wa-chat">
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📎 quarterly-report.pptx</p>
+      <p>Here's the quarterly report. Click to view.</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>*clicks to open*</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📊 Opening presentation viewer...</p>
+      <p>Use ← → to navigate slides</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+</div>
 
 ### From Drive
 
@@ -36,9 +59,7 @@ Access files directly:
 /player/{bot_id}/{file_path}
 ```
 
-## Player Interface
-
-The player displays files in a clean, focused view with navigation controls at the bottom. Controls adapt based on the file type being viewed.
+---
 
 ## Controls by File Type
 
@@ -84,6 +105,8 @@ The player displays files in a clean, focused view with navigation controls at t
 | Notes | Speaker notes (if available) |
 | Download | Download original |
 
+---
+
 ## Keyboard Shortcuts
 
 | Key | Action |
@@ -97,44 +120,37 @@ The player displays files in a clean, focused view with navigation controls at t
 | `+` / `-` | Zoom in / out |
 | `Home` / `End` | Go to start / end |
 
+---
+
 ## BASIC Integration
 
 ### Share Files with Player Preview
 
-```basic
-' Send a video with player preview
-video_path = "training/welcome-video.mp4"
-SEND FILE video_path
-TALK "Watch this 2-minute introduction video."
+<div class="wa-chat">
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>🎬 training/welcome-video.mp4</p>
+      <p>Watch this 2-minute introduction video.</p>
+      <div class="wa-time">14:20</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📊 reports/q4-results.pptx</p>
+      <p>Here are the quarterly results. Use arrow keys to navigate.</p>
+      <div class="wa-time">14:21</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>🎵 audio/podcast-episode-42.mp3</p>
+      <p>Listen to the latest episode.</p>
+      <div class="wa-time">14:22</div>
+    </div>
+  </div>
+</div>
 
-' Send presentation
-SEND FILE "reports/q4-results.pptx"
-TALK "Here are the quarterly results. Use arrow keys to navigate."
-
-' Send audio
-SEND FILE "audio/podcast-episode-42.mp3"
-TALK "Listen to the latest episode."
-```
-
-### Conditional File Viewing
-
-```basic
-file_type = GET file_extension
-SWITCH file_type
-  CASE "mp4", "webm"
-    TALK "Playing video..."
-    SEND FILE video_path
-  CASE "mp3", "wav"
-    TALK "Playing audio..."
-    SEND FILE audio_path
-  CASE "pptx", "pdf"
-    TALK "Opening document..."
-    SEND FILE doc_path
-  DEFAULT
-    TALK "Downloading file..."
-    SEND FILE file_path
-END SWITCH
-```
+---
 
 ## Supported Formats
 
@@ -184,6 +200,8 @@ END SWITCH
 | SVG | `.svg` | Vector graphics |
 | WebP | `.webp` | Modern format |
 
+---
+
 ## Configuration
 
 Configure Player behavior in `config.csv`:
@@ -197,6 +215,8 @@ player-preload,metadata
 player-allow-download,true
 player-max-file-size-mb,100
 ```
+
+---
 
 ## API Access
 
@@ -220,6 +240,8 @@ Supports HTTP Range requests for seeking.
 GET /api/drive/{bot_id}/thumbnail/{file_path}
 ```
 
+---
+
 ## Security
 
 - Files are served through authenticated endpoints
@@ -242,7 +264,10 @@ Player is fully responsive:
 - Swipe for slides
 - Native fullscreen support
 
+---
+
 ## See Also
 
-- [Drive Integration](../chapter-08-config/drive.md) - File storage
-- [Storage API](../chapter-10-api/storage-api.md) - File management API
+- [Drive App](./drive.md) - File management
+- [Drive Integration](../../chapter-08-config/drive.md) - File storage configuration
+- [Storage API](../../chapter-10-api/storage-api.md) - File management API
