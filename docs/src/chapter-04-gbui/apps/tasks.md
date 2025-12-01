@@ -2,7 +2,7 @@
 
 > **Track what needs to be done**
 
-<img src="../../assets/suite/tasks-flow.svg" alt="Tasks Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/tasks-screen.svg" alt="Tasks Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

@@ -1,0 +1,179 @@
+<svg width="900" height="550" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .panel-bg { fill: #fafafa; }
+    .header-bg { fill: #e8e8e8; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ddd; stroke-width: 1; }
+    .button { fill: #4A90E2; }
+    .button-text { fill: #fff; font-family: Arial, sans-serif; }
+    .input-field { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .toolbar-bg { fill: #f0f0f0; }
+    .toolbar-btn { fill: #fff; stroke: #ccc; stroke-width: 1; }
+    .toolbar-btn-active { fill: #e0e0e0; stroke: #999; stroke-width: 1; }
+    .ai-btn { fill: #BD10E0; }
+    .ai-text { fill: #fff; font-family: Arial, sans-serif; }
+    .sidebar-item { fill: none; }
+    .sidebar-active { fill: #e8f4fd; }
+    .cursor { stroke: #4A90E2; stroke-width: 2; }
+    .doc-content { fill: #fff; stroke: #ddd; stroke-width: 1; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .panel-bg { fill: #222; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .toolbar-bg { fill: #333; }
+      .toolbar-btn { fill: #2a2a2a; stroke: #444; }
+      .toolbar-btn-active { fill: #444; stroke: #555; }
+      .sidebar-active { fill: #2a3a4a; }
+      .doc-content { fill: #2a2a2a; stroke: #444; }
+      .button { fill: #00D4FF; }
+      .ai-btn { fill: #E040FB; }
+      .cursor { stroke: #00D4FF; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Paper - AI Writing Interface</text>
+
+  <!-- Main Frame -->
+  <rect x="30" y="50" width="840" height="470" rx="8" class="frame bg"/>
+
+  <!-- Left Sidebar - Document List -->
+  <rect x="30" y="50" width="140" height="470" rx="8" class="panel-bg"/>
+  <line x1="170" y1="50" x2="170" y2="520" class="divider"/>
+
+  <!-- Sidebar Header -->
+  <text x="50" y="78" font-size="14" font-weight="500" class="main-text">📄 Notes</text>
+  <line x1="40" y1="90" x2="160" y2="90" class="divider"/>
+
+  <!-- Document List -->
+  <g transform="translate(40, 100)">
+    <!-- Active Document -->
+    <rect x="-5" y="0" width="125" height="30" rx="4" class="sidebar-active"/>
+    <text x="0" y="20" font-size="13" class="main-text">Meeting Notes</text>
+
+    <text x="0" y="50" font-size="13" class="secondary-text">Project Plan</text>
+    <text x="0" y="80" font-size="13" class="secondary-text">Ideas</text>
+
+    <line x1="-5" y1="100" x2="115" y2="100" class="divider"/>
+
+    <text x="0" y="125" font-size="12" font-weight="500" class="secondary-text">Quick Start</text>
+    <text x="0" y="150" font-size="12" class="secondary-text">📄 Blank</text>
+    <text x="0" y="175" font-size="12" class="secondary-text">📋 Meeting</text>
+    <text x="0" y="200" font-size="12" class="secondary-text">✓ To-Do</text>
+    <text x="0" y="225" font-size="12" class="secondary-text">🔬 Research</text>
+  </g>
+
+  <!-- Main Editor Area -->
+  <rect x="170" y="50" width="700" height="470" class="bg"/>
+
+  <!-- Toolbar -->
+  <rect x="170" y="50" width="700" height="45" class="toolbar-bg"/>
+  <line x1="170" y1="95" x2="870" y2="95" class="divider"/>
+
+  <!-- Formatting Buttons -->
+  <g transform="translate(185, 58)">
+    <!-- Bold -->
+    <rect x="0" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="15" y="20" text-anchor="middle" font-size="14" font-weight="bold" class="icon-text">B</text>
+
+    <!-- Italic -->
+    <rect x="35" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="50" y="20" text-anchor="middle" font-size="14" font-style="italic" class="icon-text">I</text>
+
+    <!-- Underline -->
+    <rect x="70" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="85" y="20" text-anchor="middle" font-size="14" class="icon-text" text-decoration="underline">U</text>
+
+    <!-- Separator -->
+    <line x1="110" y1="5" x2="110" y2="25" class="divider"/>
+
+    <!-- H1 -->
+    <rect x="120" y="0" width="30" height="28" rx="4" class="toolbar-btn-active"/>
+    <text x="135" y="20" text-anchor="middle" font-size="12" font-weight="bold" class="icon-text">H1</text>
+
+    <!-- H2 -->
+    <rect x="155" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="170" y="20" text-anchor="middle" font-size="12" class="icon-text">H2</text>
+
+    <!-- Separator -->
+    <line x1="195" y1="5" x2="195" y2="25" class="divider"/>
+
+    <!-- Bullet List -->
+    <rect x="205" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="220" y="20" text-anchor="middle" font-size="14" class="icon-text">•</text>
+
+    <!-- Horizontal Rule -->
+    <rect x="240" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="255" y="20" text-anchor="middle" font-size="14" class="icon-text">―</text>
+
+    <!-- Link -->
+    <rect x="275" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="290" y="20" text-anchor="middle" font-size="14" class="icon-text">🔗</text>
+
+    <!-- Image -->
+    <rect x="310" y="0" width="30" height="28" rx="4" class="toolbar-btn"/>
+    <text x="325" y="20" text-anchor="middle" font-size="14" class="icon-text">📷</text>
+
+    <!-- AI Button -->
+    <rect x="360" y="0" width="70" height="28" rx="4" class="ai-btn"/>
+    <text x="395" y="19" text-anchor="middle" font-size="12" class="ai-text">AI ✨</text>
+  </g>
+
+  <!-- Document Content Area -->
+  <rect x="190" y="110" width="660" height="395" rx="4" class="doc-content"/>
+
+  <!-- Document Content -->
+  <g transform="translate(210, 135)">
+    <!-- Title -->
+    <text x="0" y="0" font-size="24" font-weight="bold" class="main-text">Project Proposal</text>
+    <line x1="0" y1="10" x2="200" y2="10" stroke="#4A90E2" stroke-width="3"/>
+
+    <!-- Section -->
+    <text x="0" y="55" font-size="18" font-weight="600" class="main-text">Introduction</text>
+    <line x1="0" y1="65" x2="100" y2="65" class="divider"/>
+
+    <!-- Body text -->
+    <text x="0" y="95" font-size="14" class="main-text">This document outlines our proposal for</text>
+    <text x="0" y="118" font-size="14" class="main-text">the upcoming project. We aim to deliver</text>
+    <text x="0" y="141" font-size="14" class="main-text">a comprehensive solution that addresses</text>
+    <text x="0" y="164" font-size="14" class="main-text">all stakeholder requirements.</text>
+
+    <!-- Cursor -->
+    <line x1="248" y1="150" x2="248" y2="170" class="cursor"/>
+
+    <!-- More content preview -->
+    <text x="0" y="210" font-size="18" font-weight="600" class="secondary-text">Key Objectives</text>
+    <text x="0" y="240" font-size="14" class="secondary-text">• Improve efficiency by 30%</text>
+    <text x="0" y="263" font-size="14" class="secondary-text">• Reduce costs through automation</text>
+    <text x="0" y="286" font-size="14" class="secondary-text">• Enhance user experience</text>
+  </g>
+
+  <!-- Word Count / Status Bar -->
+  <g transform="translate(190, 490)">
+    <text x="0" y="0" font-size="11" class="secondary-text">Words: 156</text>
+    <text x="100" y="0" font-size="11" class="secondary-text">Characters: 892</text>
+    <text x="250" y="0" font-size="11" class="secondary-text">Reading time: 1 min</text>
+    <text x="480" y="0" font-size="11" class="secondary-text">✓ Auto-saved 2 min ago</text>
+  </g>
+
+  <!-- Legend -->
+  <g transform="translate(30, 535)">
+    <rect x="0" y="-10" width="20" height="14" rx="3" class="ai-btn"/>
+    <text x="28" y="0" font-size="11" class="secondary-text">AI Assist</text>
+
+    <text x="100" y="0" font-size="11" class="secondary-text">Shortcuts: Ctrl+B = Bold | Ctrl+I = Italic | Ctrl+S = Save | Ctrl+/ = AI</text>
+
+    <text x="550" y="0" font-size="11" class="secondary-text">Markdown supported</text>
+  </g>
+</svg>

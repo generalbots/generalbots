@@ -2,7 +2,7 @@
 
 > **Your bot configuration hub**
 
-<img src="../../assets/suite/sources-flow.svg" alt="Sources Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/sources-screen.svg" alt="Sources Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

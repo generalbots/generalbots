@@ -1,0 +1,182 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#60a5fa"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="8" flood-opacity="0.1"/>
+    </filter>
+    <filter id="shadowSm" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="4" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .header-bg { fill: rgba(255,255,255,0.8); }
+    .main-text { fill: #1e293b; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .white-text { fill: #ffffff; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+    .card-bg { fill: #f8fafc; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .user-bubble { fill: #3b82f6; }
+    .bot-bubble { fill: #f8fafc; stroke: #e2e8f0; stroke-width: 1; }
+    .input-bg { fill: #f1f5f9; }
+    .suggestion { fill: #eff6ff; stroke: #3b82f6; stroke-width: 1; }
+    .online-dot { fill: #22c55e; }
+    .typing-dot { fill: #94a3b8; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .header-bg { fill: rgba(15,23,42,0.8); }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .card-bg { fill: #1e293b; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #1e293b; }
+      .user-bubble { fill: #3b82f6; }
+      .bot-bubble { fill: #1e293b; stroke: #334155; }
+      .input-bg { fill: #1e293b; }
+      .suggestion { fill: #1e3a5f; stroke: #3b82f6; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Chat - AI Assistant</text>
+
+  <!-- Background -->
+  <rect x="30" y="40" width="840" height="530" rx="12" class="bg" filter="url(#shadow)"/>
+
+  <!-- Floating Header (Glass morphism) -->
+  <rect x="50" y="55" width="800" height="56" rx="12" class="header-bg" filter="url(#shadowSm)"/>
+  <rect x="50" y="55" width="800" height="56" rx="12" class="border"/>
+
+  <!-- Logo -->
+  <rect x="70" y="70" width="28" height="28" rx="8" fill="url(#accentGrad)"/>
+  <text x="84" y="89" text-anchor="middle" font-size="14" class="white-text">GB</text>
+  <text x="110" y="90" font-size="15" font-weight="600" class="main-text">General Bots</text>
+
+  <!-- Header Right: Theme, Apps Grid, Avatar -->
+  <g transform="translate(650, 68)">
+    <!-- Theme dropdown -->
+    <rect x="0" y="0" width="70" height="32" rx="8" class="icon-btn"/>
+    <text x="15" y="21" font-size="12">☀️</text>
+    <text x="32" y="22" font-size="12" class="secondary-text">Light</text>
+
+    <!-- Apps grid button -->
+    <rect x="80" y="0" width="40" height="32" rx="8" class="icon-btn"/>
+    <g transform="translate(91, 8)">
+      <circle cx="4" cy="4" r="2.5" fill="#64748b"/>
+      <circle cx="13" cy="4" r="2.5" fill="#64748b"/>
+      <circle cx="4" cy="13" r="2.5" fill="#64748b"/>
+      <circle cx="13" cy="13" r="2.5" fill="#64748b"/>
+    </g>
+
+    <!-- User avatar -->
+    <circle cx="155" cy="16" r="16" fill="url(#accentGrad)"/>
+    <text x="155" y="21" text-anchor="middle" font-size="11" font-weight="500" class="white-text">JD</text>
+  </g>
+
+  <!-- Chat Layout Container -->
+  <rect x="50" y="125" width="800" height="430" rx="0" class="bg"/>
+
+  <!-- Connection Status -->
+  <g transform="translate(60, 135)">
+    <circle cx="5" cy="5" r="4" class="online-dot"/>
+  </g>
+
+  <!-- Messages Area -->
+  <g transform="translate(80, 160)">
+    <!-- Bot Welcome Message -->
+    <g transform="translate(0, 0)">
+      <rect x="0" y="0" width="420" height="70" rx="16" class="bot-bubble"/>
+      <text x="20" y="25" font-size="12" font-weight="500" class="accent-text">AI Assistant</text>
+      <text x="20" y="48" font-size="14" class="main-text">Hello! I'm your AI assistant. How can I help</text>
+      <text x="20" y="65" font-size="14" class="main-text">you today?</text>
+    </g>
+
+    <!-- User Message -->
+    <g transform="translate(280, 90)">
+      <rect x="0" y="0" width="420" height="50" rx="16" class="user-bubble"/>
+      <text x="20" y="32" font-size="14" class="white-text">What meetings do I have scheduled for today?</text>
+    </g>
+
+    <!-- Bot Response with structured data -->
+    <g transform="translate(0, 160)">
+      <rect x="0" y="0" width="480" height="120" rx="16" class="bot-bubble"/>
+      <text x="20" y="25" font-size="12" font-weight="500" class="accent-text">AI Assistant</text>
+      <text x="20" y="50" font-size="14" class="main-text">You have 3 meetings scheduled for today:</text>
+      <text x="20" y="72" font-size="13" class="secondary-text">📅 10:00 AM - Team Standup (30 min)</text>
+      <text x="20" y="92" font-size="13" class="secondary-text">📅 2:00 PM - Client Call with Acme Corp (1 hr)</text>
+      <text x="20" y="112" font-size="13" class="secondary-text">📅 4:30 PM - 1:1 with Manager (30 min)</text>
+    </g>
+
+    <!-- Typing Indicator -->
+    <g transform="translate(0, 300)">
+      <rect x="0" y="0" width="80" height="40" rx="16" class="bot-bubble"/>
+      <circle cx="25" cy="20" r="5" class="typing-dot">
+        <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="42" cy="20" r="5" class="typing-dot">
+        <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" begin="0.2s" repeatCount="indefinite"/>
+      </circle>
+      <circle cx="59" cy="20" r="5" class="typing-dot">
+        <animate attributeName="opacity" values="0.4;1;0.4" dur="1.2s" begin="0.4s" repeatCount="indefinite"/>
+      </circle>
+    </g>
+  </g>
+
+  <!-- Suggestions Container -->
+  <g transform="translate(80, 460)">
+    <rect x="0" y="0" width="130" height="36" rx="18" class="suggestion"/>
+    <text x="65" y="23" text-anchor="middle" font-size="12" class="accent-text">📧 Check my email</text>
+
+    <rect x="145" y="0" width="125" height="36" rx="18" class="suggestion"/>
+    <text x="207" y="23" text-anchor="middle" font-size="12" class="accent-text">✓ Show my tasks</text>
+
+    <rect x="285" y="0" width="140" height="36" rx="18" class="suggestion"/>
+    <text x="355" y="23" text-anchor="middle" font-size="12" class="accent-text">🔍 Search documents</text>
+
+    <rect x="440" y="0" width="100" height="36" rx="18" class="suggestion"/>
+    <text x="490" y="23" text-anchor="middle" font-size="12" class="accent-text">📝 Take notes</text>
+  </g>
+
+  <!-- Input Container (Footer) -->
+  <g transform="translate(80, 505)">
+    <!-- Input Field -->
+    <rect x="0" y="0" width="620" height="50" rx="25" class="input-bg"/>
+    <rect x="0" y="0" width="620" height="50" rx="25" class="border"/>
+    <text x="25" y="31" font-size="14" class="muted-text">Message...</text>
+
+    <!-- Voice Button -->
+    <g transform="translate(530, 9)">
+      <rect x="0" y="0" width="36" height="32" rx="16" class="icon-btn"/>
+      <text x="18" y="22" text-anchor="middle" font-size="16">🎤</text>
+    </g>
+
+    <!-- Send Button -->
+    <g transform="translate(640, 0)">
+      <rect x="0" y="0" width="60" height="50" rx="25" fill="url(#accentGrad)"/>
+      <text x="30" y="32" text-anchor="middle" font-size="18" class="white-text">↑</text>
+    </g>
+  </g>
+
+  <!-- Scroll to Bottom Button -->
+  <g transform="translate(800, 440)">
+    <circle cx="0" cy="0" r="20" class="icon-btn" filter="url(#shadowSm)"/>
+    <circle cx="0" cy="0" r="20" class="border"/>
+    <text x="0" y="6" text-anchor="middle" font-size="16" class="secondary-text">↓</text>
+  </g>
+
+  <!-- Keyboard Shortcuts Legend -->
+  <g transform="translate(80, 565)">
+    <text x="0" y="0" font-size="10" class="muted-text">💡 Tip: Use / for commands, @ to mention, # for tags</text>
+    <text x="450" y="0" font-size="10" class="muted-text">Enter = Send | Shift+Enter = New line | ↑ = Edit last</text>
+  </g>
+</svg>

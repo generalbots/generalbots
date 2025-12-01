@@ -1,0 +1,228 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .green-text { fill: #22c55e; font-family: system-ui, -apple-system, sans-serif; }
+    .red-text { fill: #ef4444; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card-bg { fill: #f8fafc; }
+    .chart-line { stroke: #3b82f6; stroke-width: 2; fill: none; }
+    .chart-area { fill: #3b82f6; opacity: 0.1; }
+    .grid-line { stroke: #e2e8f0; stroke-width: 1; }
+    .bar-blue { fill: #3b82f6; }
+    .bar-green { fill: #22c55e; }
+    .bar-purple { fill: #8b5cf6; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .green-text { fill: #4ade80; }
+      .red-text { fill: #f87171; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card-bg { fill: #1e293b; }
+      .grid-line { stroke: #334155; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Analytics - Dashboard</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Header -->
+  <g transform="translate(50, 55)">
+    <text x="0" y="20" font-size="20" font-weight="600" class="main-text">Dashboard Overview</text>
+    <text x="0" y="40" font-size="13" class="secondary-text">Last 30 days • Updated 5 min ago</text>
+
+    <!-- Date Range Selector -->
+    <g transform="translate(550, 5)">
+      <rect x="0" y="0" width="120" height="32" rx="6" class="icon-btn"/>
+      <rect x="0" y="0" width="120" height="32" rx="6" class="border"/>
+      <text x="15" y="21" font-size="12">📅</text>
+      <text x="35" y="21" font-size="12" class="secondary-text">Last 30 days</text>
+      <text x="105" y="21" font-size="10" class="muted-text">▾</text>
+
+      <rect x="130" y="0" width="80" height="32" rx="6" fill="url(#accentGrad)"/>
+      <text x="170" y="21" text-anchor="middle" font-size="12" class="white-text">Export</text>
+    </g>
+  </g>
+
+  <!-- Metric Cards Row -->
+  <g transform="translate(50, 105)">
+    <!-- Card 1: Total Users -->
+    <rect x="0" y="0" width="185" height="95" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="185" height="95" rx="10" class="border"/>
+    <text x="15" y="25" font-size="12" class="secondary-text">Total Users</text>
+    <text x="15" y="55" font-size="26" font-weight="700" class="main-text">12,847</text>
+    <text x="15" y="78" font-size="12" class="green-text">↑ 12.5%</text>
+    <text x="65" y="78" font-size="11" class="muted-text">vs last month</text>
+    <rect x="145" y="15" width="28" height="28" rx="8" fill="url(#accentGrad)"/>
+    <text x="159" y="34" text-anchor="middle" font-size="14" class="white-text">👥</text>
+
+    <!-- Card 2: Active Sessions -->
+    <rect x="200" y="0" width="185" height="95" rx="10" class="card-bg"/>
+    <rect x="200" y="0" width="185" height="95" rx="10" class="border"/>
+    <text x="215" y="25" font-size="12" class="secondary-text">Active Sessions</text>
+    <text x="215" y="55" font-size="26" font-weight="700" class="main-text">1,429</text>
+    <text x="215" y="78" font-size="12" class="green-text">↑ 8.2%</text>
+    <text x="260" y="78" font-size="11" class="muted-text">vs last month</text>
+    <rect x="345" y="15" width="28" height="28" rx="8" fill="url(#greenGrad)"/>
+    <text x="359" y="34" text-anchor="middle" font-size="14" class="white-text">📊</text>
+
+    <!-- Card 3: Avg Response Time -->
+    <rect x="400" y="0" width="185" height="95" rx="10" class="card-bg"/>
+    <rect x="400" y="0" width="185" height="95" rx="10" class="border"/>
+    <text x="415" y="25" font-size="12" class="secondary-text">Avg Response Time</text>
+    <text x="415" y="55" font-size="26" font-weight="700" class="main-text">1.2s</text>
+    <text x="415" y="78" font-size="12" class="green-text">↓ 15%</text>
+    <text x="455" y="78" font-size="11" class="muted-text">faster</text>
+    <rect x="545" y="15" width="28" height="28" rx="8" fill="url(#purpleGrad)"/>
+    <text x="559" y="34" text-anchor="middle" font-size="14" class="white-text">⚡</text>
+
+    <!-- Card 4: Satisfaction -->
+    <rect x="600" y="0" width="185" height="95" rx="10" class="card-bg"/>
+    <rect x="600" y="0" width="185" height="95" rx="10" class="border"/>
+    <text x="615" y="25" font-size="12" class="secondary-text">Satisfaction Rate</text>
+    <text x="615" y="55" font-size="26" font-weight="700" class="main-text">94.2%</text>
+    <text x="615" y="78" font-size="12" class="green-text">↑ 2.1%</text>
+    <text x="658" y="78" font-size="11" class="muted-text">vs last month</text>
+    <rect x="745" y="15" width="28" height="28" rx="8" fill="url(#orangeGrad)"/>
+    <text x="759" y="34" text-anchor="middle" font-size="14" class="white-text">⭐</text>
+  </g>
+
+  <!-- Charts Row -->
+  <g transform="translate(50, 220)">
+    <!-- Line Chart: User Activity -->
+    <rect x="0" y="0" width="480" height="200" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="480" height="200" rx="10" class="border"/>
+    <text x="20" y="25" font-size="14" font-weight="600" class="main-text">User Activity</text>
+    <text x="380" y="25" font-size="11" class="muted-text">Daily active users</text>
+
+    <!-- Grid Lines -->
+    <line x1="50" y1="50" x2="460" y2="50" class="grid-line"/>
+    <line x1="50" y1="85" x2="460" y2="85" class="grid-line"/>
+    <line x1="50" y1="120" x2="460" y2="120" class="grid-line"/>
+    <line x1="50" y1="155" x2="460" y2="155" class="grid-line"/>
+
+    <!-- Y-axis labels -->
+    <text x="40" y="54" text-anchor="end" font-size="10" class="muted-text">2k</text>
+    <text x="40" y="89" text-anchor="end" font-size="10" class="muted-text">1.5k</text>
+    <text x="40" y="124" text-anchor="end" font-size="10" class="muted-text">1k</text>
+    <text x="40" y="159" text-anchor="end" font-size="10" class="muted-text">500</text>
+
+    <!-- Line Chart Path -->
+    <path d="M50,130 L100,110 L150,125 L200,95 L250,80 L300,90 L350,65 L400,75 L460,55" class="chart-line"/>
+    <path d="M50,130 L100,110 L150,125 L200,95 L250,80 L300,90 L350,65 L400,75 L460,55 L460,155 L50,155 Z" class="chart-area"/>
+
+    <!-- Data Points -->
+    <circle cx="50" cy="130" r="4" fill="#3b82f6"/>
+    <circle cx="100" cy="110" r="4" fill="#3b82f6"/>
+    <circle cx="150" cy="125" r="4" fill="#3b82f6"/>
+    <circle cx="200" cy="95" r="4" fill="#3b82f6"/>
+    <circle cx="250" cy="80" r="4" fill="#3b82f6"/>
+    <circle cx="300" cy="90" r="4" fill="#3b82f6"/>
+    <circle cx="350" cy="65" r="4" fill="#3b82f6"/>
+    <circle cx="400" cy="75" r="4" fill="#3b82f6"/>
+    <circle cx="460" cy="55" r="4" fill="#3b82f6"/>
+
+    <!-- X-axis labels -->
+    <text x="50" y="175" text-anchor="middle" font-size="10" class="muted-text">1</text>
+    <text x="150" y="175" text-anchor="middle" font-size="10" class="muted-text">8</text>
+    <text x="250" y="175" text-anchor="middle" font-size="10" class="muted-text">15</text>
+    <text x="350" y="175" text-anchor="middle" font-size="10" class="muted-text">22</text>
+    <text x="460" y="175" text-anchor="middle" font-size="10" class="muted-text">30</text>
+    <text x="255" y="193" text-anchor="middle" font-size="10" class="muted-text">March 2024</text>
+
+    <!-- Bar Chart: Messages by Type -->
+    <rect x="500" y="0" width="285" height="200" rx="10" class="card-bg"/>
+    <rect x="500" y="0" width="285" height="200" rx="10" class="border"/>
+    <text x="520" y="25" font-size="14" font-weight="600" class="main-text">Messages by Type</text>
+
+    <!-- Bars -->
+    <rect x="540" y="55" width="40" height="100" rx="4" class="bar-blue"/>
+    <rect x="600" y="75" width="40" height="80" rx="4" class="bar-green"/>
+    <rect x="660" y="95" width="40" height="60" rx="4" class="bar-purple"/>
+    <rect x="720" y="115" width="40" height="40" rx="4" fill="#f97316"/>
+
+    <!-- Bar labels -->
+    <text x="560" y="170" text-anchor="middle" font-size="10" class="muted-text">Chat</text>
+    <text x="620" y="170" text-anchor="middle" font-size="10" class="muted-text">Email</text>
+    <text x="680" y="170" text-anchor="middle" font-size="10" class="muted-text">Voice</text>
+    <text x="740" y="170" text-anchor="middle" font-size="10" class="muted-text">Other</text>
+
+    <!-- Bar values -->
+    <text x="560" y="50" text-anchor="middle" font-size="11" class="main-text">4.2k</text>
+    <text x="620" y="70" text-anchor="middle" font-size="11" class="main-text">3.1k</text>
+    <text x="680" y="90" text-anchor="middle" font-size="11" class="main-text">1.8k</text>
+    <text x="740" y="110" text-anchor="middle" font-size="11" class="main-text">890</text>
+  </g>
+
+  <!-- Bottom Row -->
+  <g transform="translate(50, 440)">
+    <!-- Top Queries Table -->
+    <rect x="0" y="0" width="380" height="115" rx="10" class="card-bg"/>
+    <rect x="0" y="0" width="380" height="115" rx="10" class="border"/>
+    <text x="20" y="25" font-size="14" font-weight="600" class="main-text">Top Queries</text>
+
+    <text x="20" y="50" font-size="12" class="main-text">1. "How do I reset my password?"</text>
+    <text x="330" y="50" text-anchor="end" font-size="12" class="secondary-text">847</text>
+
+    <text x="20" y="70" font-size="12" class="main-text">2. "Billing information"</text>
+    <text x="330" y="70" text-anchor="end" font-size="12" class="secondary-text">623</text>
+
+    <text x="20" y="90" font-size="12" class="main-text">3. "Schedule a meeting"</text>
+    <text x="330" y="90" text-anchor="end" font-size="12" class="secondary-text">512</text>
+
+    <text x="330" y="108" text-anchor="end" font-size="11" class="accent-text">View all →</text>
+
+    <!-- Performance Metrics -->
+    <rect x="400" y="0" width="385" height="115" rx="10" class="card-bg"/>
+    <rect x="400" y="0" width="385" height="115" rx="10" class="border"/>
+    <text x="420" y="25" font-size="14" font-weight="600" class="main-text">Performance</text>
+
+    <text x="420" y="50" font-size="12" class="secondary-text">Resolution Rate</text>
+    <rect x="420" y="58" width="200" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="420" y="58" width="170" height="8" rx="4" fill="#22c55e"/>
+    <text x="640" y="67" font-size="12" class="main-text">85%</text>
+
+    <text x="420" y="85" font-size="12" class="secondary-text">Escalation Rate</text>
+    <rect x="420" y="93" width="200" height="8" rx="4" fill="#e2e8f0"/>
+    <rect x="420" y="93" width="30" height="8" rx="4" fill="#f97316"/>
+    <text x="640" y="102" font-size="12" class="main-text">15%</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(50, 565)">
+    <text x="0" y="0" font-size="10" class="muted-text">R = Refresh | E = Export | D = Date range | F = Filter</text>
+  </g>
+</svg>

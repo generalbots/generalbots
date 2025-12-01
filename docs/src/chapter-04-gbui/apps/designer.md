@@ -2,7 +2,7 @@
 
 > **Your no-code bot building studio**
 
-<img src="../../assets/suite/designer-flow.svg" alt="Designer Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/designer-screen.svg" alt="Designer Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

@@ -2,7 +2,7 @@
 
 > **Your intelligent research assistant**
 
-<img src="../../assets/suite/research-flow.svg" alt="Research Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/research-screen.svg" alt="Research Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

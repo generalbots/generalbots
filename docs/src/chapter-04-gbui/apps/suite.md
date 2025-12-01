@@ -2,7 +2,7 @@
 
 > **Complete productivity suite with integrated applications**
 
-<img src="../../assets/suite/suite-layout.svg" alt="Suite Layout" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/suite-screen.svg" alt="Suite Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

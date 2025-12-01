@@ -2,7 +2,7 @@
 
 > **Your intelligent inbox**
 
-![Mail Flow](../../assets/suite/mail-flow.svg)
+<img src="../../assets/suite/mail-screen.svg" alt="Mail Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

@@ -1,0 +1,19 @@
+[book]
+title = "General Bots Documentation"
+authors = ["General Bots Team"]
+language = "en"
+multilingual = false
+src = "src"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "light"
+preferred-dark-theme = "navy"
+smart-punctuation = true
+additional-css = ["src/custom.css", "src/whatsapp-chat.css"]
+additional-js = ["src/theme-sync.js"]
+
+[output.html.favicon]
+png = "favicon.png"
