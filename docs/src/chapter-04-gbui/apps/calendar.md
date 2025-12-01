@@ -2,7 +2,7 @@
 
 > **Your personal scheduling assistant**
 
-![Calendar Flow](../../assets/suite/calendar-flow.svg)
+<img src="../../assets/suite/calendar-screen.svg" alt="Calendar Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

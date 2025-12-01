@@ -2,7 +2,7 @@
 
 > **Your cloud storage workspace**
 
-<img src="../../assets/suite/drive-flow.svg" alt="Drive Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/drive-screen.svg" alt="Drive Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

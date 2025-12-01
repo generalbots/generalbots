@@ -11,6 +11,7 @@
 
 pub mod antivirus;
 pub mod ca;
+pub mod cert_pinning;
 pub mod integration;
 pub mod mutual_tls;
 pub mod tls;
@@ -20,6 +21,10 @@ pub use antivirus::{
     ThreatSeverity, ThreatStatus, Vulnerability,
 };
 pub use ca::{CaConfig, CaManager, CertificateRequest, CertificateResponse};
+pub use cert_pinning::{
+    compute_spki_fingerprint, format_fingerprint, parse_fingerprint, CertPinningConfig,
+    CertPinningManager, PinType, PinValidationResult, PinnedCert, PinningStats,
+};
 pub use integration::{
     create_https_client, get_tls_integration, init_tls_integration, to_secure_url, TlsIntegration,
 };

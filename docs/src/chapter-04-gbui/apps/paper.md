@@ -2,7 +2,7 @@
 
 > **Your intelligent document editor**
 
-<img src="../../assets/suite/paper-flow.svg" alt="Paper Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/paper-screen.svg" alt="Paper Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

@@ -317,5 +317,7 @@
 
 - [Appendix C: Environment Variables](./appendix-env-vars/README.md)
 
+- [Appendix D: Documentation Style](./appendix-docs-style/conversation-examples.md)
+
 [Glossary](./glossary.md)
 [Contact](./contact/README.md)

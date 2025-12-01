@@ -2,7 +2,7 @@
 
 > **Your virtual meeting room**
 
-![Meet Flow](../../assets/suite/meet-flow.svg)
+<img src="../../assets/suite/meet-screen.svg" alt="Meet Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

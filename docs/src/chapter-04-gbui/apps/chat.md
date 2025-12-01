@@ -2,7 +2,7 @@
 
 > **Your intelligent conversation partner**
 
-<img src="../../assets/suite/chat-flow.svg" alt="Chat Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/chat-screen.svg" alt="Chat Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

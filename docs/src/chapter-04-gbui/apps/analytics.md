@@ -2,7 +2,7 @@
 
 > **Your business intelligence center**
 
-<img src="../../assets/suite/analytics-flow.svg" alt="Analytics Flow Diagram" style="max-width: 100%; height: auto;">
+<img src="../../assets/suite/analytics-screen.svg" alt="Analytics Interface Screen" style="max-width: 100%; height: auto;">
 
 ---
 

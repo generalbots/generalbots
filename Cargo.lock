@@ -1465,6 +1465,7 @@ dependencies = [
  "regex",
  "reqwest 0.12.24",
  "rhai",
+ "ring 0.17.14",
  "rust_xlsxwriter",
  "rustls 0.21.12",
  "rustls-native-certs 0.6.3",

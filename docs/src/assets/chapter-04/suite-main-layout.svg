@@ -1,0 +1,82 @@
+<svg width="800" height="500" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .bg { fill: #f5f5f5; }
+    .frame { fill: none; stroke: #333; stroke-width: 2; }
+    .header-bg { fill: #e0e0e0; }
+    .main-text { fill: #1a1a1a; font-family: Arial, sans-serif; }
+    .secondary-text { fill: #666; font-family: Arial, sans-serif; }
+    .icon-text { fill: #333; font-family: Arial, sans-serif; }
+    .divider { stroke: #ccc; stroke-width: 1; }
+    .button { fill: #fff; stroke: #999; stroke-width: 1; rx: 4; }
+    .input-field { fill: #fff; stroke: #bbb; stroke-width: 1; }
+    .accent { fill: #4A90E2; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #1a1a1a; }
+      .frame { stroke: #555; }
+      .header-bg { fill: #2a2a2a; }
+      .main-text { fill: #ffffff; }
+      .secondary-text { fill: #aaa; }
+      .icon-text { fill: #ddd; }
+      .divider { stroke: #444; }
+      .button { fill: #333; stroke: #555; }
+      .input-field { fill: #2a2a2a; stroke: #444; }
+      .accent { fill: #00D4FF; }
+    }
+  </style>
+
+  <!-- Title -->
+  <text x="400" y="30" text-anchor="middle" font-size="20" font-weight="600" class="main-text">Suite - Main Layout</text>
+
+  <!-- Main Frame -->
+  <rect x="50" y="50" width="700" height="420" rx="8" class="frame bg"/>
+
+  <!-- Header Bar -->
+  <rect x="50" y="50" width="700" height="50" rx="8" class="header-bg"/>
+  <rect x="50" y="92" width="700" height="8" class="bg"/>
+
+  <!-- Logo/Brand -->
+  <circle cx="85" cy="75" r="15" class="accent"/>
+  <text x="85" y="80" text-anchor="middle" font-size="14" fill="#fff">🤖</text>
+  <text x="115" y="80" font-size="16" font-weight="600" class="main-text">General Bots</text>
+
+  <!-- Header Right Controls -->
+  <g transform="translate(620, 60)">
+    <!-- Apps Menu -->
+    <rect x="0" y="0" width="35" height="30" rx="4" class="button"/>
+    <text x="17" y="20" text-anchor="middle" font-size="12" class="icon-text">⋮⋮⋮</text>
+
+    <!-- Theme Toggle -->
+    <rect x="45" y="0" width="35" height="30" rx="4" class="button"/>
+    <text x="62" y="20" text-anchor="middle" font-size="14" class="icon-text">🌙</text>
+
+    <!-- User Avatar -->
+    <circle cx="110" cy="15" r="15" class="accent"/>
+    <text x="110" y="20" text-anchor="middle" font-size="12" fill="#fff">U</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="50" y1="100" x2="750" y2="100" class="divider"/>
+
+  <!-- Main Chat Area -->
+  <rect x="70" y="120" width="660" height="280" rx="6" class="input-field"/>
+
+  <!-- Chat Area Label -->
+  <text x="400" y="200" text-anchor="middle" font-size="24" class="secondary-text">💬</text>
+  <text x="400" y="240" text-anchor="middle" font-size="18" class="main-text">Chat</text>
+  <text x="400" y="265" text-anchor="middle" font-size="14" class="secondary-text">(Main Area)</text>
+
+  <!-- Message Input -->
+  <rect x="70" y="420" width="580" height="40" rx="20" class="input-field"/>
+  <text x="100" y="445" font-size="14" class="secondary-text">Type your message here...</text>
+
+  <!-- Send Button -->
+  <rect x="660" y="420" width="70" height="40" rx="20" class="accent"/>
+  <text x="695" y="445" text-anchor="middle" font-size="14" fill="#fff">Send</text>
+
+  <!-- Legend -->
+  <g transform="translate(50, 480)">
+    <text x="0" y="0" font-size="11" class="secondary-text">Header: Navigation, Apps Menu, Theme, Profile</text>
+    <text x="400" y="0" font-size="11" class="secondary-text">Main: AI Chat Interface with Message Input</text>
+  </g>
+</svg>

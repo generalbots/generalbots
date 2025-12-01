@@ -1,0 +1,248 @@
+<svg width="900" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3b82f6"/>
+      <stop offset="100%" stop-color="#60a5fa"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8b5cf6"/>
+      <stop offset="100%" stop-color="#a78bfa"/>
+    </linearGradient>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22c55e"/>
+      <stop offset="100%" stop-color="#4ade80"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#fb923c"/>
+    </linearGradient>
+  </defs>
+
+  <style>
+    .bg { fill: #ffffff; }
+    .sidebar-bg { fill: #f8fafc; }
+    .main-text { fill: #1e293b; font-family: system-ui, -apple-system, sans-serif; }
+    .secondary-text { fill: #64748b; font-family: system-ui, -apple-system, sans-serif; }
+    .muted-text { fill: #94a3b8; font-family: system-ui, -apple-system, sans-serif; }
+    .white-text { fill: #ffffff; font-family: system-ui, -apple-system, sans-serif; }
+    .accent-text { fill: #3b82f6; font-family: system-ui, -apple-system, sans-serif; }
+    .border { stroke: #e2e8f0; stroke-width: 1; fill: none; }
+    .icon-btn { fill: #f1f5f9; }
+    .card { fill: #ffffff; stroke: #e2e8f0; stroke-width: 1; }
+    .card-hover { fill: #f8fafc; stroke: #3b82f6; stroke-width: 2; }
+    .tag { fill: #dbeafe; }
+    .tag-green { fill: #dcfce7; }
+    .tag-purple { fill: #f3e8ff; }
+    .tag-orange { fill: #ffedd5; }
+
+    @media (prefers-color-scheme: dark) {
+      .bg { fill: #0f172a; }
+      .sidebar-bg { fill: #1e293b; }
+      .main-text { fill: #e2e8f0; }
+      .secondary-text { fill: #94a3b8; }
+      .muted-text { fill: #64748b; }
+      .accent-text { fill: #60a5fa; }
+      .border { stroke: #334155; }
+      .icon-btn { fill: #334155; }
+      .card { fill: #1e293b; stroke: #334155; }
+      .card-hover { fill: #1e293b; stroke: #3b82f6; }
+      .tag { fill: #1e3a5f; }
+      .tag-green { fill: #14532d; }
+      .tag-purple { fill: #3b0764; }
+      .tag-orange { fill: #431407; }
+    }
+  </style>
+
+  <text x="450" y="25" text-anchor="middle" font-size="16" font-weight="600" class="main-text">Sources - Prompts &amp; Templates</text>
+
+  <rect x="30" y="40" width="840" height="530" rx="8" class="bg"/>
+  <rect x="30" y="40" width="840" height="530" rx="8" class="border"/>
+
+  <!-- Sidebar -->
+  <rect x="30" y="40" width="180" height="530" class="sidebar-bg"/>
+  <line x1="210" y1="40" x2="210" y2="570" class="border"/>
+
+  <!-- New Source Button -->
+  <g transform="translate(45, 55)">
+    <rect x="0" y="0" width="150" height="40" rx="8" fill="url(#accentGrad)"/>
+    <text x="75" y="26" text-anchor="middle" font-size="14" font-weight="500" class="white-text">+ New Source</text>
+  </g>
+
+  <!-- Categories -->
+  <g transform="translate(45, 115)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">CATEGORIES</text>
+
+    <g transform="translate(0, 20)">
+      <rect x="-10" y="-8" width="160" height="36" rx="6" fill="#eff6ff"/>
+      <text x="0" y="14" font-size="14">📚</text>
+      <text x="25" y="14" font-size="13" class="accent-text">All Sources</text>
+      <text x="130" y="14" font-size="12" class="accent-text">24</text>
+    </g>
+
+    <g transform="translate(0, 60)">
+      <text x="0" y="14" font-size="14">💬</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Prompts</text>
+      <text x="130" y="14" font-size="12" class="muted-text">12</text>
+    </g>
+
+    <g transform="translate(0, 95)">
+      <text x="0" y="14" font-size="14">📄</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Templates</text>
+      <text x="130" y="14" font-size="12" class="muted-text">8</text>
+    </g>
+
+    <g transform="translate(0, 130)">
+      <text x="0" y="14" font-size="14">🔗</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Integrations</text>
+      <text x="130" y="14" font-size="12" class="muted-text">4</text>
+    </g>
+
+    <g transform="translate(0, 165)">
+      <text x="0" y="14" font-size="14">⭐</text>
+      <text x="25" y="14" font-size="13" class="secondary-text">Favorites</text>
+      <text x="130" y="14" font-size="12" class="muted-text">6</text>
+    </g>
+  </g>
+
+  <!-- Tags Section -->
+  <g transform="translate(45, 330)">
+    <text x="0" y="0" font-size="11" font-weight="600" class="muted-text">TAGS</text>
+
+    <g transform="translate(0, 18)">
+      <rect x="0" y="0" width="70" height="24" rx="12" class="tag"/>
+      <text x="35" y="16" text-anchor="middle" font-size="11" class="accent-text">customer</text>
+    </g>
+
+    <g transform="translate(78, 18)">
+      <rect x="0" y="0" width="55" height="24" rx="12" class="tag-green"/>
+      <text x="27" y="16" text-anchor="middle" font-size="11" fill="#16a34a">sales</text>
+    </g>
+
+    <g transform="translate(0, 50)">
+      <rect x="0" y="0" width="60" height="24" rx="12" class="tag-purple"/>
+      <text x="30" y="16" text-anchor="middle" font-size="11" fill="#7c3aed">support</text>
+    </g>
+
+    <g transform="translate(68, 50)">
+      <rect x="0" y="0" width="65" height="24" rx="12" class="tag-orange"/>
+      <text x="32" y="16" text-anchor="middle" font-size="11" fill="#c2410c">technical</text>
+    </g>
+  </g>
+
+  <!-- Main Content Header -->
+  <g transform="translate(230, 55)">
+    <text x="0" y="20" font-size="18" font-weight="600" class="main-text">All Sources</text>
+    <text x="0" y="42" font-size="13" class="secondary-text">24 items • Manage your prompts and templates</text>
+
+    <!-- Search and Filter -->
+    <g transform="translate(380, 5)">
+      <rect x="0" y="0" width="200" height="36" rx="18" class="icon-btn"/>
+      <rect x="0" y="0" width="200" height="36" rx="18" class="border"/>
+      <text x="20" y="23" font-size="14">🔍</text>
+      <text x="45" y="24" font-size="13" class="muted-text">Search sources...</text>
+    </g>
+  </g>
+
+  <!-- Cards Grid -->
+  <!-- Row 1 -->
+  <g transform="translate(230, 100)">
+    <!-- Card 1 - Selected -->
+    <rect x="0" y="0" width="185" height="140" rx="10" class="card-hover"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#accentGrad)"/>
+    <text x="35" y="42" text-anchor="middle" font-size="20" class="white-text">💬</text>
+    <text x="15" y="75" font-size="14" font-weight="600" class="main-text">Customer Support</text>
+    <text x="15" y="95" font-size="12" class="secondary-text">Handle support inquiries</text>
+    <text x="15" y="110" font-size="12" class="secondary-text">with empathy and clarity</text>
+    <rect x="15" y="120" width="55" height="18" rx="9" class="tag"/>
+    <text x="42" y="132" text-anchor="middle" font-size="10" class="accent-text">prompt</text>
+
+    <!-- Card 2 -->
+    <rect x="200" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="215" y="15" width="40" height="40" rx="10" fill="url(#purpleGrad)"/>
+    <text x="235" y="42" text-anchor="middle" font-size="20" class="white-text">📝</text>
+    <text x="215" y="75" font-size="14" font-weight="600" class="main-text">Email Template</text>
+    <text x="215" y="95" font-size="12" class="secondary-text">Professional email</text>
+    <text x="215" y="110" font-size="12" class="secondary-text">response format</text>
+    <rect x="215" y="120" width="60" height="18" rx="9" class="tag-purple"/>
+    <text x="245" y="132" text-anchor="middle" font-size="10" fill="#7c3aed">template</text>
+
+    <!-- Card 3 -->
+    <rect x="400" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="415" y="15" width="40" height="40" rx="10" fill="url(#greenGrad)"/>
+    <text x="435" y="42" text-anchor="middle" font-size="20" class="white-text">🤖</text>
+    <text x="415" y="75" font-size="14" font-weight="600" class="main-text">Sales Assistant</text>
+    <text x="415" y="95" font-size="12" class="secondary-text">Product recommendations</text>
+    <text x="415" y="110" font-size="12" class="secondary-text">and pricing help</text>
+    <rect x="415" y="120" width="55" height="18" rx="9" class="tag"/>
+    <text x="442" y="132" text-anchor="middle" font-size="10" class="accent-text">prompt</text>
+  </g>
+
+  <!-- Row 2 -->
+  <g transform="translate(230, 255)">
+    <!-- Card 4 -->
+    <rect x="0" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="url(#orangeGrad)"/>
+    <text x="35" y="42" text-anchor="middle" font-size="20" class="white-text">📊</text>
+    <text x="15" y="75" font-size="14" font-weight="600" class="main-text">Report Generator</text>
+    <text x="15" y="95" font-size="12" class="secondary-text">Create structured</text>
+    <text x="15" y="110" font-size="12" class="secondary-text">analysis reports</text>
+    <rect x="15" y="120" width="60" height="18" rx="9" class="tag-purple"/>
+    <text x="45" y="132" text-anchor="middle" font-size="10" fill="#7c3aed">template</text>
+
+    <!-- Card 5 -->
+    <rect x="200" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="215" y="15" width="40" height="40" rx="10" fill="#ef4444"/>
+    <text x="235" y="42" text-anchor="middle" font-size="20" class="white-text">🔗</text>
+    <text x="215" y="75" font-size="14" font-weight="600" class="main-text">CRM Integration</text>
+    <text x="215" y="95" font-size="12" class="secondary-text">Connect with your</text>
+    <text x="215" y="110" font-size="12" class="secondary-text">CRM system</text>
+    <rect x="215" y="120" width="70" height="18" rx="9" class="tag-orange"/>
+    <text x="250" y="132" text-anchor="middle" font-size="10" fill="#c2410c">integration</text>
+
+    <!-- Card 6 -->
+    <rect x="400" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="415" y="15" width="40" height="40" rx="10" fill="#06b6d4"/>
+    <text x="435" y="42" text-anchor="middle" font-size="20" class="white-text">🎯</text>
+    <text x="415" y="75" font-size="14" font-weight="600" class="main-text">FAQ Bot</text>
+    <text x="415" y="95" font-size="12" class="secondary-text">Automated answers</text>
+    <text x="415" y="110" font-size="12" class="secondary-text">for common questions</text>
+    <rect x="415" y="120" width="55" height="18" rx="9" class="tag"/>
+    <text x="442" y="132" text-anchor="middle" font-size="10" class="accent-text">prompt</text>
+  </g>
+
+  <!-- Row 3 -->
+  <g transform="translate(230, 410)">
+    <!-- Card 7 -->
+    <rect x="0" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="15" y="15" width="40" height="40" rx="10" fill="#ec4899"/>
+    <text x="35" y="42" text-anchor="middle" font-size="20" class="white-text">✍️</text>
+    <text x="15" y="75" font-size="14" font-weight="600" class="main-text">Content Writer</text>
+    <text x="15" y="95" font-size="12" class="secondary-text">Blog posts and</text>
+    <text x="15" y="110" font-size="12" class="secondary-text">marketing copy</text>
+    <rect x="15" y="120" width="55" height="18" rx="9" class="tag"/>
+    <text x="42" y="132" text-anchor="middle" font-size="10" class="accent-text">prompt</text>
+
+    <!-- Card 8 -->
+    <rect x="200" y="0" width="185" height="140" rx="10" class="card"/>
+    <rect x="215" y="15" width="40" height="40" rx="10" fill="#14b8a6"/>
+    <text x="235" y="42" text-anchor="middle" font-size="20" class="white-text">📋</text>
+    <text x="215" y="75" font-size="14" font-weight="600" class="main-text">Meeting Notes</text>
+    <text x="215" y="95" font-size="12" class="secondary-text">Structured meeting</text>
+    <text x="215" y="110" font-size="12" class="secondary-text">summary template</text>
+    <rect x="215" y="120" width="60" height="18" rx="9" class="tag-purple"/>
+    <text x="245" y="132" text-anchor="middle" font-size="10" fill="#7c3aed">template</text>
+
+    <!-- Add New Card -->
+    <rect x="400" y="0" width="185" height="140" rx="10" class="icon-btn" stroke-dasharray="6,4"/>
+    <rect x="400" y="0" width="185" height="140" rx="10" class="border" stroke-dasharray="6,4"/>
+    <circle cx="492" cy="50" r="20" class="icon-btn"/>
+    <text x="492" y="58" text-anchor="middle" font-size="24" class="secondary-text">+</text>
+    <text x="492" y="90" text-anchor="middle" font-size="13" class="secondary-text">Add New Source</text>
+    <text x="492" y="110" text-anchor="middle" font-size="11" class="muted-text">Create from scratch</text>
+  </g>
+
+  <!-- Footer -->
+  <g transform="translate(230, 565)">
+    <text x="0" y="0" font-size="10" class="muted-text">Click to edit | Del = Delete | D = Duplicate | Enter = Use in chat</text>
+  </g>
+</svg>
