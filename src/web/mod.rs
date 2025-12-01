@@ -23,6 +23,7 @@ use crate::shared::state::AppState;
 pub mod auth;
 pub mod auth_handlers;
 pub mod chat_handlers;
+pub mod compliance_handlers;
 pub mod stream_handlers;
 
 // Module stubs - to be implemented with full HTMX
@@ -470,6 +471,7 @@ pub fn create_router(app_state: AppState) -> Router {
         .merge(mail::routes())
         .merge(meet::routes())
         .merge(tasks::routes())
+        .merge(compliance_handlers::routes())
         // Partials
         .route("/api/apps/menu", get(apps_menu_handler))
         .route("/api/user/menu", get(user_menu_handler))

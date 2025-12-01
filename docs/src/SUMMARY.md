@@ -58,6 +58,12 @@
     - [Designer - Visual Builder](./chapter-04-gbui/apps/designer.md)
     - [Sources - Prompts & Templates](./chapter-04-gbui/apps/sources.md)
     - [Compliance - Security Scanner](./chapter-04-gbui/apps/compliance.md)
+  - [How-To Tutorials](./chapter-04-gbui/how-to/README.md)
+    - [Create Your First Bot](./chapter-04-gbui/how-to/create-first-bot.md)
+    - [Write Your First Dialog](./chapter-04-gbui/how-to/write-first-dialog.md)
+    - [Add Documents to Knowledge Base](./chapter-04-gbui/how-to/add-kb-documents.md)
+    - [Connect WhatsApp](./chapter-04-gbui/how-to/connect-whatsapp.md)
+    - [Monitor Your Bot](./chapter-04-gbui/how-to/monitor-sessions.md)
 
 # Part V - Themes and Styling
 

@@ -31,9 +31,9 @@
 //! QR Code generation keyword
 //!
 //! Provides BASIC keywords:
-//! - QR_CODE data -> generates QR code image, returns file path
-//! - QR_CODE data, size -> generates QR code with specified size
-//! - QR_CODE data, size, output_path -> generates QR code to specific path
+//! - QR CODE data -> generates QR code image, returns file path
+//! - QR CODE data, size -> generates QR code with specified size
+//! - QR CODE data, size, output_path -> generates QR code to specific path
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -52,17 +52,17 @@ pub fn register_qrcode_keywords(state: Arc<AppState>, user: UserSession, engine:
     register_qr_code_full_keyword(state, user, engine);
 }
 
-/// QR_CODE data
+/// QR CODE data
 /// Generates a QR code image with default size (256x256)
 pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
     engine
-        .register_custom_syntax(&["QR_CODE", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(&["QR", "CODE", "$expr$"], false, move |context, inputs| {
             let data = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("QR_CODE: Generating QR code for data: {}", data);
+            trace!("QR CODE: Generating QR code for data: {}", data);
 
             let state_for_task = Arc::clone(&state_clone);
             let user_for_task = user_clone.clone();
@@ -70,26 +70,27 @@ pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine:
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
-                let result = execute_qr_code_generation(&state_for_task, &user_for_task, &data, 256, None);
+                let result =
+                    execute_qr_code_generation(&state_for_task, &user_for_task, &data, 256, None);
                 if tx.send(result).is_err() {
-                    error!("Failed to send QR_CODE result from thread");
+                    error!("Failed to send QR CODE result from thread");
                 }
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                 Ok(Ok(result)) => Ok(Dynamic::from(result)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("QR_CODE failed: {}", e).into(),
+                    format!("QR CODE failed: {}", e).into(),
                     rhai::Position::NONE,
                 ))),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                     Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "QR_CODE generation timed out".into(),
+                        "QR CODE generation timed out".into(),
                         rhai::Position::NONE,
                     )))
                 }
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("QR_CODE thread failed: {}", e).into(),
+                    format!("QR CODE thread failed: {}", e).into(),
                     rhai::Position::NONE,
                 ))),
             }
@@ -97,7 +98,7 @@ pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine:
         .unwrap();
 }
 
-/// QR_CODE data, size
+/// QR CODE data, size
 /// Generates a QR code image with specified size
 pub fn register_qr_code_with_size_keyword(
     state: Arc<AppState>,
@@ -109,7 +110,7 @@ pub fn register_qr_code_with_size_keyword(
 
     engine
         .register_custom_syntax(
-            &["QR_CODE", "$expr$", ",", "$expr$"],
+            &["QR", "CODE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let data = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -118,7 +119,11 @@ pub fn register_qr_code_with_size_keyword(
                     .as_int()
                     .unwrap_or(256) as u32;
 
-                trace!("QR_CODE: Generating QR code with size {} for: {}", size, data);
+                trace!(
+                    "QR_CODE: Generating QR code with size {} for: {}",
+                    size,
+                    data
+                );
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
@@ -126,8 +131,13 @@ pub fn register_qr_code_with_size_keyword(
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let result =
-                        execute_qr_code_generation(&state_for_task, &user_for_task, &data, size, None);
+                    let result = execute_qr_code_generation(
+                        &state_for_task,
+                        &user_for_task,
+                        &data,
+                        size,
+                        None,
+                    );
                     if tx.send(result).is_err() {
                         error!("Failed to send QR_CODE result from thread");
                     }
@@ -157,11 +167,7 @@ pub fn register_qr_code_with_size_keyword(
 
 /// QR_CODE data, size, output_path
 /// Generates a QR code image with specified size and output path
-pub fn register_qr_code_full_keyword(
-    state: Arc<AppState>,
-    user: UserSession,
-    engine: &mut Engine,
-) {
+pub fn register_qr_code_full_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -336,7 +342,12 @@ pub fn generate_qr_code_with_logo(
 
     // Overlay logo
     let mut final_image = DynamicImage::ImageRgba8(rgba_image);
-    imageops::overlay(&mut final_image, &resized_logo, center_x.into(), center_y.into());
+    imageops::overlay(
+        &mut final_image,
+        &resized_logo,
+        center_x.into(),
+        center_y.into(),
+    );
 
     final_image.save(output_path)?;
     Ok(output_path.to_string())
