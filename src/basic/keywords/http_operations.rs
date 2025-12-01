@@ -302,54 +302,58 @@ pub fn register_delete_http_keyword(state: Arc<AppState>, _user: UserSession, en
         )
         .unwrap();
 
-    // DELETE_HTTP (underscore - backwards compatibility)
+    // DELETE HTTP (spaces - preferred syntax)
     engine
-        .register_custom_syntax(&["DELETE_HTTP", "$expr$"], false, move |context, inputs| {
-            let url = context.eval_expression_tree(&inputs[0])?.to_string();
+        .register_custom_syntax(
+            &["DELETE", "HTTP", "$expr$"],
+            false,
+            move |context, inputs| {
+                let url = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("DELETE_HTTP request to: {}", url);
+                trace!("DELETE HTTP request to: {}", url);
 
-            let (tx, rx) = std::sync::mpsc::channel();
-            let url_clone = url.clone();
+                let (tx, rx) = std::sync::mpsc::channel();
+                let url_clone = url.clone();
 
-            std::thread::spawn(move || {
-                let rt = tokio::runtime::Builder::new_multi_thread()
-                    .worker_threads(2)
-                    .enable_all()
-                    .build();
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
 
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        execute_http_request(Method::DELETE, &url_clone, None, None).await
-                    });
-                    tx.send(result).err()
-                } else {
-                    tx.send(Err("Failed to build tokio runtime".into())).err()
-                };
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            execute_http_request(Method::DELETE, &url_clone, None, None).await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".into())).err()
+                    };
 
-                if send_err.is_some() {
-                    error!("Failed to send DELETE result from thread");
-                }
-            });
+                    if send_err.is_some() {
+                        error!("Failed to send DELETE HTTP result from thread");
+                    }
+                });
 
-            match rx.recv_timeout(std::time::Duration::from_secs(60)) {
-                Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
-                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("DELETE failed: {}", e).into(),
-                    rhai::Position::NONE,
-                ))),
-                Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                    Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "DELETE request timed out".into(),
+                match rx.recv_timeout(std::time::Duration::from_secs(60)) {
+                    Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE HTTP failed: {}", e).into(),
                         rhai::Position::NONE,
-                    )))
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "DELETE HTTP request timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE HTTP thread failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
                 }
-                Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("DELETE thread failed: {}", e).into(),
-                    rhai::Position::NONE,
-                ))),
-            }
-        })
+            },
+        )
         .unwrap();
 }
 

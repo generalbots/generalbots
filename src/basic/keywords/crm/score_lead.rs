@@ -1,11 +1,11 @@
 //! Lead Scoring Functions for CRM Integration
 //!
 //! Provides BASIC keywords for lead scoring and qualification:
-//! - SCORE_LEAD - Calculate lead score based on criteria
-//! - GET_LEAD_SCORE - Retrieve stored lead score
-//! - QUALIFY_LEAD - Check if lead meets qualification threshold
-//! - UPDATE_LEAD_SCORE - Manually adjust lead score
-//! - AI_SCORE_LEAD - LLM-enhanced lead scoring
+//! - SCORE LEAD - Calculate lead score based on criteria
+//! - GET LEAD SCORE - Retrieve stored lead score
+//! - QUALIFY LEAD - Check if lead meets qualification threshold
+//! - UPDATE LEAD SCORE - Manually adjust lead score
+//! - AI SCORE LEAD - LLM-enhanced lead scoring
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -13,23 +13,23 @@ use log::{debug, trace};
 use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
 
-/// SCORE_LEAD - Calculate lead score based on provided criteria
+/// SCORE LEAD - Calculate lead score based on provided criteria
 ///
 /// BASIC Syntax:
-///   score = SCORE_LEAD(lead_data)
-///   score = SCORE_LEAD(lead_data, scoring_rules)
+///   score = SCORE LEAD(lead_data)
+///   score = SCORE LEAD(lead_data, scoring_rules)
 ///
 /// Examples:
 ///   lead = #{"email": "john@company.com", "job_title": "CTO", "company_size": 500}
-///   score = SCORE_LEAD(lead)
+///   score = SCORE LEAD(lead)
 pub fn score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let user_clone = user.clone();
 
-    // SCORE_LEAD with lead data only (uses default scoring)
-    engine.register_fn("SCORE_LEAD", move |lead_data: Map| -> i64 {
+    // SCORE LEAD with lead data only (uses default scoring)
+    engine.register_fn("SCORE LEAD", move |lead_data: Map| -> i64 {
         trace!(
-            "SCORE_LEAD called for user {} with data: {:?}",
+            "SCORE LEAD called for user {} with data: {:?}",
             user_clone.user_id,
             lead_data
         );
@@ -39,25 +39,25 @@ pub fn score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
     let state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // score_lead lowercase version
-    engine.register_fn("score_lead", move |lead_data: Map| -> i64 {
+    // score lead lowercase version
+    engine.register_fn("score lead", move |lead_data: Map| -> i64 {
         trace!(
-            "score_lead called for user {} with data: {:?}",
+            "score lead called for user {} with data: {:?}",
             user_clone2.user_id,
             lead_data
         );
         calculate_lead_score(&lead_data, None)
     });
 
-    // SCORE_LEAD with custom scoring rules
+    // SCORE LEAD with custom scoring rules
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
     engine.register_fn(
-        "SCORE_LEAD",
+        "SCORE LEAD",
         move |lead_data: Map, scoring_rules: Map| -> i64 {
             trace!(
-                "SCORE_LEAD called for user {} with custom rules",
+                "SCORE LEAD called for user {} with custom rules",
                 user_clone3.user_id
             );
             calculate_lead_score(&lead_data, Some(&scoring_rules))
@@ -65,22 +65,22 @@ pub fn score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
     );
 
     let _ = state_clone;
-    debug!("Registered SCORE_LEAD keyword");
+    debug!("Registered SCORE LEAD keyword");
 }
 
-/// GET_LEAD_SCORE - Retrieve stored lead score from database
+/// GET LEAD SCORE - Retrieve stored lead score from database
 ///
 /// BASIC Syntax:
-///   score = GET_LEAD_SCORE(lead_id)
-///   score_data = GET_LEAD_SCORE(lead_id, "full")
+///   score = GET LEAD SCORE(lead_id)
+///   score_data = GET LEAD SCORE(lead_id, "full")
 pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // GET_LEAD_SCORE - returns numeric score
-    engine.register_fn("GET_LEAD_SCORE", move |lead_id: &str| -> i64 {
+    // GET LEAD SCORE - returns numeric score
+    engine.register_fn("GET LEAD SCORE", move |lead_id: &str| -> i64 {
         trace!(
-            "GET_LEAD_SCORE called for lead {} by user {}",
+            "GET LEAD SCORE called for lead {} by user {}",
             lead_id,
             user_clone.user_id
         );
@@ -92,25 +92,25 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // get_lead_score lowercase
-    engine.register_fn("get_lead_score", move |lead_id: &str| -> i64 {
+    // get lead score lowercase
+    engine.register_fn("get lead score", move |lead_id: &str| -> i64 {
         trace!(
-            "get_lead_score called for lead {} by user {}",
+            "get lead score called for lead {} by user {}",
             lead_id,
             user_clone2.user_id
         );
         50
     });
 
-    // GET_LEAD_SCORE with "full" option - returns map with score details
+    // GET LEAD SCORE with "full" option - returns map with score details
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
     engine.register_fn(
-        "GET_LEAD_SCORE",
+        "GET LEAD SCORE",
         move |lead_id: &str, option: &str| -> Map {
             trace!(
-                "GET_LEAD_SCORE (full) called for lead {} by user {}",
+                "GET LEAD SCORE (full) called for lead {} by user {}",
                 lead_id,
                 user_clone3.user_id
             );
@@ -131,22 +131,22 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
         },
     );
 
-    debug!("Registered GET_LEAD_SCORE keyword");
+    debug!("Registered GET LEAD SCORE keyword");
 }
 
-/// QUALIFY_LEAD - Check if lead meets qualification threshold
+/// QUALIFY LEAD - Check if lead meets qualification threshold
 ///
 /// BASIC Syntax:
-///   is_qualified = QUALIFY_LEAD(lead_id)
-///   is_qualified = QUALIFY_LEAD(lead_id, threshold)
+///   is_qualified = QUALIFY LEAD(lead_id)
+///   is_qualified = QUALIFY LEAD(lead_id, threshold)
 pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // QUALIFY_LEAD with default threshold (70)
-    engine.register_fn("QUALIFY_LEAD", move |lead_id: &str| -> bool {
+    // QUALIFY LEAD with default threshold (70)
+    engine.register_fn("QUALIFY LEAD", move |lead_id: &str| -> bool {
         trace!(
-            "QUALIFY_LEAD called for lead {} by user {}",
+            "QUALIFY LEAD called for lead {} by user {}",
             lead_id,
             user_clone.user_id
         );
@@ -158,10 +158,10 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // qualify_lead lowercase
-    engine.register_fn("qualify_lead", move |lead_id: &str| -> bool {
+    // qualify lead lowercase
+    engine.register_fn("qualify lead", move |lead_id: &str| -> bool {
         trace!(
-            "qualify_lead called for lead {} by user {}",
+            "qualify lead called for lead {} by user {}",
             lead_id,
             user_clone2.user_id
         );
@@ -169,15 +169,15 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         score >= 70
     });
 
-    // QUALIFY_LEAD with custom threshold
+    // QUALIFY LEAD with custom threshold
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
     engine.register_fn(
-        "QUALIFY_LEAD",
+        "QUALIFY LEAD",
         move |lead_id: &str, threshold: i64| -> bool {
             trace!(
-                "QUALIFY_LEAD called for lead {} with threshold {} by user {}",
+                "QUALIFY LEAD called for lead {} with threshold {} by user {}",
                 lead_id,
                 threshold,
                 user_clone3.user_id
@@ -188,13 +188,13 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         },
     );
 
-    // IS_QUALIFIED alias
+    // IS QUALIFIED alias
     let _state_clone4 = state.clone();
     let user_clone4 = user.clone();
 
-    engine.register_fn("IS_QUALIFIED", move |lead_id: &str| -> bool {
+    engine.register_fn("IS QUALIFIED", move |lead_id: &str| -> bool {
         trace!(
-            "IS_QUALIFIED called for lead {} by user {}",
+            "IS QUALIFIED called for lead {} by user {}",
             lead_id,
             user_clone4.user_id
         );
@@ -202,24 +202,24 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         score >= 70
     });
 
-    debug!("Registered QUALIFY_LEAD keyword");
+    debug!("Registered QUALIFY LEAD keyword");
 }
 
-/// UPDATE_LEAD_SCORE - Manually adjust lead score
+/// UPDATE LEAD SCORE - Manually adjust lead score
 ///
 /// BASIC Syntax:
-///   UPDATE_LEAD_SCORE lead_id, adjustment
-///   UPDATE_LEAD_SCORE lead_id, adjustment, "reason"
+///   UPDATE LEAD SCORE lead_id, adjustment
+///   UPDATE LEAD SCORE lead_id, adjustment, "reason"
 pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // UPDATE_LEAD_SCORE with adjustment
+    // UPDATE LEAD SCORE with adjustment
     engine.register_fn(
-        "UPDATE_LEAD_SCORE",
+        "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64| -> i64 {
             trace!(
-                "UPDATE_LEAD_SCORE called for lead {} with adjustment {} by user {}",
+                "UPDATE LEAD SCORE called for lead {} with adjustment {} by user {}",
                 lead_id,
                 adjustment,
                 user_clone.user_id
@@ -232,12 +232,12 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // UPDATE_LEAD_SCORE with reason
+    // UPDATE LEAD SCORE with reason
     engine.register_fn(
-        "UPDATE_LEAD_SCORE",
+        "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64, reason: &str| -> i64 {
             trace!(
-                "UPDATE_LEAD_SCORE called for lead {} with adjustment {} reason '{}' by user {}",
+                "UPDATE LEAD SCORE called for lead {} with adjustment {} reason '{}' by user {}",
                 lead_id,
                 adjustment,
                 reason,
@@ -248,13 +248,13 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
         },
     );
 
-    // SET_LEAD_SCORE - set absolute score
+    // SET LEAD SCORE - set absolute score
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
-    engine.register_fn("SET_LEAD_SCORE", move |lead_id: &str, score: i64| -> i64 {
+    engine.register_fn("SET LEAD SCORE", move |lead_id: &str, score: i64| -> i64 {
         trace!(
-            "SET_LEAD_SCORE called for lead {} with score {} by user {}",
+            "SET LEAD SCORE called for lead {} with score {} by user {}",
             lead_id,
             score,
             user_clone3.user_id
@@ -263,24 +263,24 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
         score
     });
 
-    debug!("Registered UPDATE_LEAD_SCORE keyword");
+    debug!("Registered UPDATE LEAD SCORE keyword");
 }
 
-/// AI_SCORE_LEAD - LLM-enhanced lead scoring
+/// AI SCORE LEAD - LLM-enhanced lead scoring
 ///
 /// BASIC Syntax:
-///   score = AI_SCORE_LEAD(lead_data)
-///   score = AI_SCORE_LEAD(lead_data, context)
+///   score = AI SCORE LEAD(lead_data)
+///   score = AI SCORE LEAD(lead_data, context)
 ///
 /// Uses AI to analyze lead data and provide intelligent scoring
 pub fn ai_score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let user_clone = user.clone();
 
-    // AI_SCORE_LEAD with lead data
-    engine.register_fn("AI_SCORE_LEAD", move |lead_data: Map| -> Map {
+    // AI SCORE LEAD with lead data
+    engine.register_fn("AI SCORE LEAD", move |lead_data: Map| -> Map {
         trace!(
-            "AI_SCORE_LEAD called for user {} with data: {:?}",
+            "AI SCORE LEAD called for user {} with data: {:?}",
             user_clone.user_id,
             lead_data
         );
@@ -317,10 +317,10 @@ pub fn ai_score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // ai_score_lead lowercase
-    engine.register_fn("ai_score_lead", move |lead_data: Map| -> Map {
+    // ai score lead lowercase
+    engine.register_fn("ai score lead", move |lead_data: Map| -> Map {
         trace!(
-            "ai_score_lead called for user {} with data: {:?}",
+            "ai score lead called for user {} with data: {:?}",
             user_clone2.user_id,
             lead_data
         );
@@ -342,15 +342,15 @@ pub fn ai_score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         result
     });
 
-    // AI_SCORE_LEAD with context
+    // AI SCORE LEAD with context
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
     engine.register_fn(
-        "AI_SCORE_LEAD",
+        "AI SCORE LEAD",
         move |lead_data: Map, context: &str| -> Map {
             trace!(
-                "AI_SCORE_LEAD called for user {} with context: {}",
+                "AI SCORE LEAD called for user {} with context: {}",
                 user_clone3.user_id,
                 context
             );
@@ -371,7 +371,7 @@ pub fn ai_score_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     );
 
     let _ = state_clone;
-    debug!("Registered AI_SCORE_LEAD keyword");
+    debug!("Registered AI SCORE LEAD keyword");
 }
 
 /// Calculate lead score based on lead data and optional custom rules

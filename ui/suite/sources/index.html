@@ -1,1863 +1,943 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sources - General Bots Suite</title>
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    <script src="https://unpkg.com/htmx.org@1.9.10/dist/ext/ws.js"></script>
-    <link rel="stylesheet" href="../css/app.css">
-    <style>
-        :root {
-            --bg-primary: #0f0f23;
-            --bg-secondary: #1a1a2e;
-            --bg-tertiary: #252542;
-            --bg-card: #1e1e38;
-            --text-primary: #e4e4f0;
-            --text-secondary: #9898b0;
-            --accent-blue: #6366f1;
-            --accent-purple: #a855f7;
-            --accent-green: #22c55e;
-            --accent-yellow: #eab308;
-            --accent-red: #ef4444;
-            --accent-cyan: #06b6d4;
-            --accent-orange: #f97316;
-            --accent-pink: #ec4899;
-            --border-color: #2d2d4a;
-            --hover-bg: #2a2a48;
-        }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-        }
-
-        .page-container {
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Navigation */
-        .sidebar {
-            width: 240px;
-            background: var(--bg-secondary);
-            border-right: 1px solid var(--border-color);
-            padding: 16px 0;
-            position: fixed;
-            height: 100vh;
-            overflow-y: auto;
-        }
-
-        .sidebar-logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 0 20px 20px;
-            border-bottom: 1px solid var(--border-color);
-            margin-bottom: 16px;
-        }
-
-        .sidebar-logo svg {
-            width: 28px;
-            height: 28px;
-            color: var(--accent-blue);
-        }
-
-        .sidebar-logo span {
-            font-weight: 600;
-            font-size: 16px;
-        }
-
-        .nav-section {
-            padding: 0 12px;
-            margin-bottom: 16px;
-        }
-
-        .nav-section-title {
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            padding: 8px 8px;
-            letter-spacing: 0.5px;
-        }
-
-        .nav-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            color: var(--text-secondary);
-            text-decoration: none;
-            font-size: 14px;
-            transition: all 0.15s;
-            cursor: pointer;
-        }
-
-        .nav-item:hover {
-            background: var(--hover-bg);
-            color: var(--text-primary);
-        }
-
-        .nav-item.active {
-            background: var(--accent-blue);
-            color: white;
-        }
-
-        .nav-item svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .nav-item-badge {
-            margin-left: auto;
-            background: var(--bg-tertiary);
-            padding: 2px 8px;
-            border-radius: 10px;
-            font-size: 11px;
-        }
-
-        .nav-item.active .nav-item-badge {
-            background: rgba(255,255,255,0.2);
-        }
-
-        /* Main Content */
-        .main-content {
-            flex: 1;
-            margin-left: 240px;
-            padding: 24px;
-        }
-
-        .page-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 24px;
-        }
-
-        .page-title {
-            font-size: 24px;
-            font-weight: 600;
-        }
-
-        .page-subtitle {
-            color: var(--text-secondary);
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        .header-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 16px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-            border: 1px solid var(--border-color);
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .btn:hover {
-            background: var(--hover-bg);
-        }
-
-        .btn-primary {
-            background: var(--accent-blue);
-            border-color: var(--accent-blue);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #5558e3;
-        }
-
-        .btn svg {
-            width: 16px;
-            height: 16px;
-        }
-
-        /* Tabs */
-        .tabs-container {
-            display: flex;
-            gap: 4px;
-            background: var(--bg-secondary);
-            padding: 4px;
-            border-radius: 12px;
-            margin-bottom: 24px;
-        }
-
-        .tab {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            cursor: pointer;
-            transition: all 0.15s;
-            border: none;
-            background: transparent;
-        }
-
-        .tab:hover {
-            color: var(--text-primary);
-            background: var(--bg-tertiary);
-        }
-
-        .tab.active {
-            background: var(--accent-blue);
-            color: white;
-        }
-
-        .tab svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        /* Search Bar */
-        .search-bar {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
-        }
-
-        .search-input-wrapper {
-            flex: 1;
-            position: relative;
-        }
-
-        .search-input-wrapper svg {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            width: 18px;
-            height: 18px;
-            color: var(--text-secondary);
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px 16px 12px 44px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: var(--accent-blue);
-        }
-
-        .filter-dropdown {
-            padding: 12px 16px;
-            background: var(--bg-secondary);
-            border: 1px solid var(--border-color);
-            border-radius: 10px;
-            color: var(--text-primary);
-            font-size: 14px;
-            cursor: pointer;
-        }
-
-        /* Content Grid */
-        .content-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            gap: 24px;
-        }
-
-        /* Categories Sidebar */
-        .categories-panel {
-            background: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 16px;
-            height: fit-content;
-            position: sticky;
-            top: 24px;
-        }
-
-        .categories-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 12px;
-            letter-spacing: 0.5px;
-        }
-
-        .category-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 10px 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .category-item:hover {
-            background: var(--hover-bg);
-        }
-
-        .category-item.selected {
-            background: var(--bg-tertiary);
-        }
-
-        .category-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .category-icon svg {
-            width: 18px;
-            height: 18px;
-        }
-
-        .category-info {
-            flex: 1;
-        }
-
-        .category-name {
-            font-size: 14px;
-            font-weight: 500;
-        }
-
-        .category-count {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        /* Items Grid */
-        .items-panel {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-
-        .item-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 20px;
-            transition: all 0.2s;
-            cursor: pointer;
-        }
-
-        .item-card:hover {
-            border-color: var(--accent-blue);
-            transform: translateY(-2px);
-            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
-        }
-
-        .item-header {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 12px;
-        }
-
-        .item-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .item-icon svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        .item-title-section {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .item-title {
-            font-size: 15px;
-            font-weight: 600;
-            margin-bottom: 4px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .item-category {
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .item-description {
-            font-size: 13px;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 16px;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .item-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .item-tags {
-            display: flex;
-            gap: 6px;
-            flex-wrap: wrap;
-        }
-
-        .item-tag {
-            padding: 4px 10px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            font-size: 11px;
-            color: var(--text-secondary);
-        }
-
-        .item-action {
-            padding: 6px 12px;
-            background: var(--accent-blue);
-            border: none;
-            border-radius: 6px;
-            color: white;
-            font-size: 12px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-
-        .item-action:hover {
-            background: #5558e3;
-        }
-
-        /* Color utilities */
-        .bg-blue { background: rgba(99, 102, 241, 0.15); color: var(--accent-blue); }
-        .bg-purple { background: rgba(168, 85, 247, 0.15); color: var(--accent-purple); }
-        .bg-green { background: rgba(34, 197, 94, 0.15); color: var(--accent-green); }
-        .bg-yellow { background: rgba(234, 179, 8, 0.15); color: var(--accent-yellow); }
-        .bg-red { background: rgba(239, 68, 68, 0.15); color: var(--accent-red); }
-        .bg-cyan { background: rgba(6, 182, 212, 0.15); color: var(--accent-cyan); }
-        .bg-orange { background: rgba(249, 115, 22, 0.15); color: var(--accent-orange); }
-        .bg-pink { background: rgba(236, 72, 153, 0.15); color: var(--accent-pink); }
-
-        /* Featured Section */
-        .featured-section {
-            margin-bottom: 32px;
-        }
-
-        .featured-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 16px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .featured-title svg {
-            width: 20px;
-            height: 20px;
-            color: var(--accent-yellow);
-        }
-
-        .featured-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
-        }
-
-        .featured-card {
-            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-tertiary) 100%);
-            border: 1px solid var(--border-color);
-            border-radius: 16px;
-            padding: 24px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .featured-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple));
-        }
-
-        .featured-badge {
-            position: absolute;
-            top: 16px;
-            right: 16px;
-            background: var(--accent-yellow);
-            color: #000;
-            padding: 4px 10px;
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 600;
-        }
-
-        /* Stats Row */
-        .stats-row {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-        }
-
-        .stat-item {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            font-size: 12px;
-            color: var(--text-secondary);
-        }
-
-        .stat-item svg {
-            width: 14px;
-            height: 14px;
-        }
-
-        /* HTMX Indicators */
-        .htmx-indicator {
-            display: none;
-        }
-
-        .htmx-request .htmx-indicator {
-            display: inline-flex;
-        }
-
-        .htmx-request.htmx-indicator {
-            display: inline-flex;
-        }
-
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid var(--border-color);
-            border-top-color: var(--accent-blue);
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-
-        /* Empty State */
-        .empty-state {
-            text-align: center;
-            padding: 60px 20px;
-            color: var(--text-secondary);
-        }
-
-        .empty-state svg {
-            width: 64px;
-            height: 64px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-
-        .empty-state h3 {
-            font-size: 18px;
-            margin-bottom: 8px;
-            color: var(--text-primary);
-        }
-
-        /* Tab Content */
-        .tab-content {
-            display: none;
-        }
-
-        .tab-content.active {
-            display: block;
-        }
-
-        /* MCP Server Card specific */
-        .mcp-status {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            font-size: 12px;
-        }
-
-        .status-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-        }
-
-        .status-dot.online {
-            background: var(--accent-green);
-            box-shadow: 0 0 8px var(--accent-green);
-        }
-
-        .status-dot.offline {
-            background: var(--text-secondary);
-        }
-
-        /* Responsive */
-        @media (max-width: 1024px) {
-            .sidebar {
-                width: 64px;
-                padding: 16px 8px;
-            }
-
-            .sidebar-logo span,
-            .nav-section-title,
-            .nav-item span,
-            .nav-item-badge {
-                display: none;
-            }
-
-            .nav-item {
-                justify-content: center;
-                padding: 12px;
-            }
-
-            .main-content {
-                margin-left: 64px;
-            }
-
-            .content-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .categories-panel {
-                position: static;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-            }
-
-            .category-item {
-                flex: 0 0 auto;
-            }
-
-            .category-info {
-                display: none;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .page-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 16px;
-            }
-
-            .tabs-container {
-                flex-wrap: wrap;
-            }
-
-            .featured-grid,
-            .items-panel {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
-</head>
-<body hx-ext="ws" ws-connect="/ws/sources">
-    <div class="page-container">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-logo">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                    <path d="M2 17l10 5 10-5"/>
-                    <path d="M2 12l10 5 10-5"/>
+{% extends "suite/base.html" %}
+
+{% block title %}Sources - General Bots Suite{% endblock %}
+
+{% block content %}
+<div class="sources-container">
+    <!-- Header -->
+    <header class="sources-header">
+        <div class="header-left">
+            <h1>Sources</h1>
+            <p class="header-subtitle">Prompts, Templates, MCP Servers & AI Models</p>
+        </div>
+        <div class="header-right">
+            <div class="search-box">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                 </svg>
-                <span>GB Suite</span>
-            </div>
-
-            <nav class="nav-section">
-                <div class="nav-section-title">Main</div>
-                <a href="/suite/" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                        <polyline points="9 22 9 12 15 12 15 22"/>
-                    </svg>
-                    <span>Home</span>
-                </a>
-                <a href="/suite/chat/" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span>Chat</span>
-                </a>
-                <a href="/suite/sources/" class="nav-item active">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                        <polyline points="7.5 4.21 12 6.81 16.5 4.21"/>
-                        <polyline points="7.5 19.79 7.5 14.6 3 12"/>
-                        <polyline points="21 12 16.5 14.6 16.5 19.79"/>
-                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                        <line x1="12" y1="22.08" x2="12" y2="12"/>
-                    </svg>
-                    <span>Sources</span>
-                </a>
-                <a href="/suite/drive/" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    <span>Drive</span>
-                </a>
-            </nav>
-
-            <nav class="nav-section">
-                <div class="nav-section-title">Tools</div>
-                <a href="/suite/designer.html" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"/>
-                        <polyline points="2 17 12 22 22 17"/>
-                        <polyline points="2 12 12 17 22 12"/>
-                    </svg>
-                    <span>Designer</span>
-                </a>
-                <a href="/suite/editor.html" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                    </svg>
-                    <span>Editor</span>
-                </a>
-                <a href="/suite/tools/" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                    </svg>
-                    <span>Tools</span>
-                </a>
-            </nav>
-
-            <nav class="nav-section">
-                <div class="nav-section-title">Settings</div>
-                <a href="/suite/settings.html" class="nav-item">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="3"/>
-                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                    </svg>
-                    <span>Settings</span>
-                </a>
-            </nav>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title">Sources</h1>
-                    <p class="page-subtitle">Browse prompts, templates, MCP servers, and LLM tools</p>
-                </div>
-                <div class="header-actions">
-                    <button class="btn"
-                            hx-get="/api/v1/sources/refresh"
-                            hx-target="#sources-content"
-                            hx-indicator="#refresh-spinner">
-                        <span class="htmx-indicator spinner" id="refresh-spinner"></span>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <polyline points="1 20 1 14 7 14"/></div>
-                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-                        </svg>
-                        Refresh
-                    </button>
-                    <button class="btn btn-primary">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Source
-                    </button>
-                </div>
-            </div>
-
-            <!-- Tabs -->
-            <div class="tabs-container">
-                <button class="tab active" data-tab="prompts" onclick="switchTab('prompts')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                    </svg>
-                    Prompts
-                </button>
-                <button class="tab" data-tab="templates" onclick="switchTab('templates')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="3" y1="9" x2="21" y2="9"/>
-                        <line x1="9" y1="21" x2="9" y2="9"/>
-                    </svg>
-                    Templates
-                </button>
-                <button class="tab" data-tab="mcp" onclick="switchTab('mcp')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
-                        <line x1="6" y1="6" x2="6.01" y2="6"/>
-                        <line x1="6" y1="18" x2="6.01" y2="18"/>
-                    </svg>
-                    MCP Servers
-                </button>
-                <button class="tab" data-tab="llm" onclick="switchTab('llm')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
-                        <path d="M12 2a10 10 0 0 1 10 10"/>
-                        <circle cx="12" cy="12" r="6"/>
-                    </svg>
-                    LLM Tools
-                </button>
-                <button class="tab" data-tab="models" onclick="switchTab('models')">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                    </svg>
-                    Models
-                </button>
-            </div>
-
-            <!-- Search Bar -->
-            <div class="search-bar">
-                <div class="search-input-wrapper">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="11" cy="11" r="8"/>
-                        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                    </svg>
-                    <input type="text" class="search-input" placeholder="Search sources..."
-                           hx-get="/api/v1/sources/search"
-                           hx-trigger="keyup changed delay:300ms"
-                           hx-target="#items-grid"
-                           hx-include="[name='tab'], [name='category']"
-                           name="q">
-                </div>
-                <select class="filter-dropdown" name="sort"
-                        hx-get="/api/v1/sources/list"
-                        hx-trigger="change"
-                        hx-target="#items-grid"
-                        hx-include="[name='tab'], [name='category'], [name='q']">
-                    <option value="popular">Most Popular</option>
-                    <option value="recent">Recently Added</option>
-                    <option value="name">Alphabetical</option>
-                    <option value="rating">Highest Rated</option>
-                </select>
-            </div>
-
-            <!-- Tab Content -->
-            <div id="sources-content">
-                <!-- Prompts Tab -->
-                <div class="tab-content active" id="tab-prompts">
-                    <!-- Featured Section -->
-                    <div class="featured-section">
-                        <h2 class="featured-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                            </svg>
-                            Featured Prompts
-                        </h2>
-                        <div class="featured-grid"
-                             hx-get="/api/v1/sources/prompts/featured"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <!-- Featured cards loaded via HTMX -->
-                            <div class="featured-card">
-                                <span class="featured-badge">Featured</span>
-                                <div class="item-header">
-                                    <div class="item-icon bg-blue">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Customer Service Expert</div>
-                                        <div class="item-category">Customer Support</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Professional customer service agent that handles inquiries with empathy and efficiency.</p>
-                                <div class="stats-row">
-                                    <span class="stat-item">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                                        </svg>
-                                        4.9
-                                    </span>
-                                    <span class="stat-item">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                            <circle cx="9" cy="7" r="4"/>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                        </svg>
-                                        2.4k uses
-                                    </span>
-                                </div>
-                            </div>
-                            <div class="featured-card">
-                                <span class="featured-badge">Featured</span>
-                                <div class="item-header">
-                                    <div class="item-icon bg-purple">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Technical Writer</div>
-                                        <div class="item-category">Documentation</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Creates clear, concise technical documentation and user guides.</p>
-                                <div class="stats-row">
-                                    <span class="stat-item">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
-                                        </svg>
-                                        4.8
-                                    </span>
-                                    <span class="stat-item">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                            <circle cx="9" cy="7" r="4"/>
-                                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                                        </svg>
-                                        1.8k uses
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Content Grid -->
-                    <div class="content-grid">
-                        <input type="hidden" name="tab" value="prompts">
-
-                        <!-- Categories -->
-                        <div class="categories-panel"
-                             hx-get="/api/v1/sources/prompts/categories"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <div class="categories-title">Categories</div>
-                            <div class="category-item selected" data-category="all"
-                                 hx-get="/api/v1/sources/prompts?category=all"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="7" height="7"/>
-                                        <rect x="14" y="3" width="7" height="7"/>
-                                        <rect x="14" y="14" width="7" height="7"/>
-                                        <rect x="3" y="14" width="7" height="7"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">All Prompts</div>
-                                    <div class="category-count">156 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="customer-service"
-                                 hx-get="/api/v1/sources/prompts?category=customer-service"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Customer Service</div>
-                                    <div class="category-count">24 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="sales"
-                                 hx-get="/api/v1/sources/prompts?category=sales"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-yellow">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="12" y1="1" x2="12" y2="23"/>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Sales</div>
-                                    <div class="category-count">18 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="marketing"
-                                 hx-get="/api/v1/sources/prompts?category=marketing"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-pink">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Marketing</div>
-                                    <div class="category-count">32 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="hr"
-                                 hx-get="/api/v1/sources/prompts?category=hr"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-cyan">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="8.5" cy="7" r="4"/>
-                                        <line x1="20" y1="8" x2="20" y2="14"/>
-                                        <line x1="23" y1="11" x2="17" y2="11"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">HR</div>
-                                    <div class="category-count">14 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="technical"
-                                 hx-get="/api/v1/sources/prompts?category=technical"
-                                 hx-target="#items-grid"
-                                 hx-swap="innerHTML">
-                                <div class="category-icon bg-purple">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="16 18 22 12 16 6"/>
-                                        <polyline points="8 6 2 12 8 18"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Technical</div>
-                                    <div class="category-count">28 items</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Items Grid -->
-                        <div class="items-panel" id="items-grid"
-                             hx-get="/api/v1/sources/prompts"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <!-- Prompt cards -->
-                            <div class="item-card"
-                                 hx-get="/api/v1/sources/prompts/1"
-                                 hx-target="#modal-content"
-                                 hx-trigger="click">
-                                <div class="item-header">
-                                    <div class="item-icon bg-blue">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Sales Assistant</div>
-                                        <div class="item-category">Sales</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Helps qualify leads, answer product questions, and guide customers through the sales process.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Sales</span>
-                                        <span class="item-tag">CRM</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-green">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                            <polyline points="22 4 12 14.01 9 11.01"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Support Triage</div>
-                                        <div class="item-category">Customer Service</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Categorizes and prioritizes support tickets, routing them to the appropriate team.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Support</span>
-                                        <span class="item-tag">Triage</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-purple">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                                            <polyline points="14 2 14 8 20 8"/>
-                                            <line x1="16" y1="13" x2="8" y2="13"/>
-                                            <line x1="16" y1="17" x2="8" y2="17"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Content Writer</div>
-                                        <div class="item-category">Marketing</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Creates engaging blog posts, social media content, and marketing copy.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Content</span>
-                                        <span class="item-tag">SEO</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-orange">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
-                                            <line x1="8" y1="21" x2="16" y2="21"/>
-                                            <line x1="12" y1="17" x2="12" y2="21"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">IT Helpdesk</div>
-                                        <div class="item-category">Technical</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Assists users with common IT issues, troubleshooting, and password resets.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">IT</span>
-                                        <span class="item-tag">Helpdesk</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-cyan">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                            <circle cx="8.5" cy="7" r="4"/>
-                                            <line x1="20" y1="8" x2="20" y2="14"/>
-                                            <line x1="23" y1="11" x2="17" y2="11"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">HR Onboarding</div>
-                                        <div class="item-category">HR</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Guides new employees through the onboarding process and answers common questions.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">HR</span>
-                                        <span class="item-tag">Onboarding</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-red">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
-                                            <line x1="12" y1="9" x2="12" y2="13"/>
-                                            <line x1="12" y1="17" x2="12.01" y2="17"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Compliance Check</div>
-                                        <div class="item-category">Legal</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Reviews content and processes for compliance with regulations and policies.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Compliance</span>
-                                        <span class="item-tag">Legal</span>
-                                    </div>
-                                    <button class="item-action">Use</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Templates Tab -->
-                <div class="tab-content" id="tab-templates">
-                    <div class="content-grid">
-                        <input type="hidden" name="tab" value="templates">
-                        <div class="categories-panel">
-                            <div class="categories-title">Template Types</div>
-                            <div class="category-item selected" data-category="all">
-                                <div class="category-icon bg-blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">All Templates</div>
-                                    <div class="category-count">45 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="crm">
-                                <div class="category-icon bg-green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="9" cy="7" r="4"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">CRM</div>
-                                    <div class="category-count">8 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="hr">
-                                <div class="category-icon bg-cyan">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                        <circle cx="8.5" cy="7" r="4"/>
-                                        <line x1="20" y1="8" x2="20" y2="14"/>
-                                        <line x1="23" y1="11" x2="17" y2="11"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">HR</div>
-                                    <div class="category-count">6 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item" data-category="sales">
-                                <div class="category-icon bg-yellow">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="12" y1="1" x2="12" y2="23"/>
-                                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Sales</div>
-                                    <div class="category-count">12 items</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="items-panel" id="templates-grid"
-                             hx-get="/api/v1/sources/templates"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <div class="empty-state">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-                                    <line x1="3" y1="9" x2="21" y2="9"/>
-                                    <line x1="9" y1="21" x2="9" y2="9"/>
-                                </svg>
-                                <h3>Loading templates...</h3>
-                                <p>Please wait while we fetch the templates.</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- MCP Servers Tab -->
-                <div class="tab-content" id="tab-mcp">
-                    <div class="content-grid">
-                        <input type="hidden" name="tab" value="mcp">
-                        <div class="categories-panel">
-                            <div class="categories-title">Server Types</div>
-                            <div class="category-item selected">
-                                <div class="category-icon bg-blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="2" y="2" width="20" height="8" rx="2" ry="2"/>
-                                        <rect x="2" y="14" width="20" height="8" rx="2" ry="2"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">All Servers</div>
-                                    <div class="category-count">24 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
-                                        <polyline points="22,6 12,13 2,6"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Communication</div>
-                                    <div class="category-count">8 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-purple">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                                        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                                        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Database</div>
-                                    <div class="category-count">6 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-orange">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                        <line x1="2" y1="12" x2="22" y2="12"/>
-                                        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">API</div>
-                                    <div class="category-count">10 items</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="items-panel" id="mcp-grid"
-                             hx-get="/api/v1/sources/mcp"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <!-- MCP Server cards -->
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-green">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">File System</div>
-                                        <div class="item-category">Storage</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Access and manage local file system operations with secure sandboxing.</p>
-                                <div class="item-footer">
-                                    <div class="mcp-status">
-                                        <span class="status-dot online"></span>
-                                        Online
-                                    </div>
-                                    <button class="item-action">Connect</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-blue">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <line x1="2" y1="12" x2="22" y2="12"/>
-                                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Web Fetch</div>
-                                        <div class="item-category">Network</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Fetch and parse web pages, APIs, and remote resources.</p>
-                                <div class="item-footer">
-                                    <div class="mcp-status">
-                                        <span class="status-dot online"></span>
-                                        Online
-                                    </div>
-                                    <button class="item-action">Connect</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-purple">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <ellipse cx="12" cy="5" rx="9" ry="3"/>
-                                            <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
-                                            <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">PostgreSQL</div>
-                                        <div class="item-category">Database</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Query and manage PostgreSQL databases with full SQL support.</p>
-                                <div class="item-footer">
-                                    <div class="mcp-status">
-                                        <span class="status-dot online"></span>
-                                        Online
-                                    </div>
-                                    <button class="item-action">Connect</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-orange">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">GitHub</div>
-                                        <div class="item-category">Development</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Interact with GitHub repositories, issues, and pull requests.</p>
-                                <div class="item-footer">
-                                    <div class="mcp-status">
-                                        <span class="status-dot offline"></span>
-                                        Not configured
-                                    </div>
-                                    <button class="item-action">Configure</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- LLM Tools Tab -->
-                <div class="tab-content" id="tab-llm">
-                    <div class="content-grid">
-                        <input type="hidden" name="tab" value="llm">
-                        <div class="categories-panel">
-                            <div class="categories-title">Tool Categories</div>
-                            <div class="category-item selected">
-                                <div class="category-icon bg-blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="7" height="7"/>
-                                        <rect x="14" y="3" width="7" height="7"/>
-                                        <rect x="14" y="14" width="7" height="7"/>
-                                        <rect x="3" y="14" width="7" height="7"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">All Tools</div>
-                                    <div class="category-count">38 items</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="items-panel" id="llm-grid"
-                             hx-get="/api/v1/sources/llm-tools"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-blue">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="11" cy="11" r="8"/>
-                                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Web Search</div>
-                                        <div class="item-category">Search</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Search the web for current information and return relevant results.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Search</span>
-                                        <span class="item-tag">Web</span>
-                                    </div>
-                                    <button class="item-action">Enable</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-green">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                                            <line x1="16" y1="2" x2="16" y2="6"/>
-                                            <line x1="8" y1="2" x2="8" y2="6"/>
-                                            <line x1="3" y1="10" x2="21" y2="10"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Calendar</div>
-                                        <div class="item-category">Productivity</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Manage calendar events, schedule meetings, and check availability.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Calendar</span>
-                                        <span class="item-tag">Schedule</span>
-                                    </div>
-                                    <button class="item-action">Enable</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-yellow">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="16 18 22 12 16 6"/>
-                                            <polyline points="8 6 2 12 8 18"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Code Execution</div>
-                                        <div class="item-category">Development</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Execute Python, JavaScript, and Bash code in a secure sandbox.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">Code</span>
-                                        <span class="item-tag">Sandbox</span>
-                                    </div>
-                                    <button class="item-action">Enable</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Models Tab -->
-                <div class="tab-content" id="tab-models">
-                    <div class="content-grid">
-                        <input type="hidden" name="tab" value="models">
-                        <div class="categories-panel">
-                            <div class="categories-title">Model Providers</div>
-                            <div class="category-item selected">
-                                <div class="category-icon bg-blue">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <rect x="3" y="3" width="7" height="7"/>
-                                        <rect x="14" y="3" width="7" height="7"/>
-                                        <rect x="14" y="14" width="7" height="7"/>
-                                        <rect x="3" y="14" width="7" height="7"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">All Models</div>
-                                    <div class="category-count">28 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-green">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">OpenAI</div>
-                                    <div class="category-count">6 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-purple">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Anthropic</div>
-                                    <div class="category-count">4 items</div>
-                                </div>
-                            </div>
-                            <div class="category-item">
-                                <div class="category-icon bg-orange">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/>
-                                    </svg>
-                                </div>
-                                <div class="category-info">
-                                    <div class="category-name">Local</div>
-                                    <div class="category-count">12 items</div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="items-panel" id="models-grid"
-                             hx-get="/api/v1/sources/models"
-                             hx-trigger="load"
-                             hx-swap="innerHTML">
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-green">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">GPT-4o</div>
-                                        <div class="item-category">OpenAI</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Most capable OpenAI model with vision and advanced reasoning.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">128K context</span>
-                                        <span class="item-tag">Vision</span>
-                                    </div>
-                                    <button class="item-action">Select</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-purple">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2a10 10 0 1 0 10 10H12V2z"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Claude 3.5 Sonnet</div>
-                                        <div class="item-category">Anthropic</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Balanced model with excellent coding and analysis capabilities.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">200K context</span>
-                                        <span class="item-tag">Vision</span>
-                                    </div>
-                                    <button class="item-action">Select</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-orange">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <circle cx="12" cy="12" r="10"/>
-                                            <path d="M12 16v-4M12 8h.01"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Gemini 1.5 Pro</div>
-                                        <div class="item-category">Google</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Google's most capable model with 1M context window.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">1M context</span>
-                                        <span class="item-tag">Multimodal</span>
-                                    </div>
-                                    <button class="item-action">Select</button>
-                                </div>
-                            </div>
-
-                            <div class="item-card">
-                                <div class="item-header">
-                                    <div class="item-icon bg-cyan">
-                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                            <path d="M2 17l10 5 10-5"/>
-                                            <path d="M2 12l10 5 10-5"/>
-                                        </svg>
-                                    </div>
-                                    <div class="item-title-section">
-                                        <div class="item-title">Llama 3.1 405B</div>
-                                        <div class="item-category">Meta</div>
-                                    </div>
-                                </div>
-                                <p class="item-description">Open source model with strong performance across tasks.</p>
-                                <div class="item-footer">
-                                    <div class="item-tags">
-                                        <span class="item-tag">128K context</span>
-                                        <span class="item-tag">Open Source</span>
-                                    </div>
-                                    <button class="item-action">Select</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <input type="text"
+                       placeholder="Search sources..."
+                       name="q"
+                       hx-get="/api/sources/search"
+                       hx-trigger="keyup changed delay:300ms"
+                       hx-target="#content-area"
+                       hx-swap="innerHTML">
             </div>
         </div>
-    </div>
+    </header>
 
-    <script>
-        // Tab switching functionality
-        document.querySelectorAll('.tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active class from all tabs
-                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-                // Add active class to clicked tab
-                tab.classList.add('active');
+    <!-- Tab Navigation -->
+    <nav class="tab-nav" role="tablist">
+        <button class="tab-btn active"
+                role="tab"
+                aria-selected="true"
+                hx-get="/api/sources/prompts"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+            </svg>
+            Prompts
+        </button>
+        <button class="tab-btn"
+                role="tab"
+                aria-selected="false"
+                hx-get="/api/sources/templates"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+            </svg>
+            Templates
+        </button>
+        <button class="tab-btn"
+                role="tab"
+                aria-selected="false"
+                hx-get="/api/sources/news"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M19 20H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1m2 13a2 2 0 0 1-2-2V7m2 13a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-2"></path>
+            </svg>
+            News
+        </button>
+        <button class="tab-btn"
+                role="tab"
+                aria-selected="false"
+                hx-get="/api/sources/mcp-servers"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+                <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+                <line x1="6" y1="6" x2="6.01" y2="6"></line>
+                <line x1="6" y1="18" x2="6.01" y2="18"></line>
+            </svg>
+            MCP Servers
+        </button>
+        <button class="tab-btn"
+                role="tab"
+                aria-selected="false"
+                hx-get="/api/sources/llm-tools"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
+            </svg>
+            LLM Tools
+        </button>
+        <button class="tab-btn"
+                role="tab"
+                aria-selected="false"
+                hx-get="/api/sources/models"
+                hx-target="#content-area"
+                hx-swap="innerHTML"
+                onclick="setActiveTab(this)">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+                <rect x="9" y="9" width="6" height="6"></rect>
+                <line x1="9" y1="1" x2="9" y2="4"></line>
+                <line x1="15" y1="1" x2="15" y2="4"></line>
+                <line x1="9" y1="20" x2="9" y2="23"></line>
+                <line x1="15" y1="20" x2="15" y2="23"></line>
+                <line x1="20" y1="9" x2="23" y2="9"></line>
+                <line x1="20" y1="14" x2="23" y2="14"></line>
+                <line x1="1" y1="9" x2="4" y2="9"></line>
+                <line x1="1" y1="14" x2="4" y2="14"></line>
+            </svg>
+            Models
+        </button>
+    </nav>
 
-                // Hide all tab contents
-                document.querySelectorAll('.tab-content').forEach(content => {
-                    content.classList.remove('active');
-                });
+    <!-- Main Content Area -->
+    <main class="content-area" id="content-area" hx-get="/api/sources/prompts" hx-trigger="load" hx-swap="innerHTML">
+        <!-- Content loaded via HTMX -->
+        <div class="loading-spinner">
+            <div class="spinner"></div>
+            <p>Loading sources...</p>
+        </div>
+    </main>
+</div>
 
-                // Show corresponding tab content
-                const tabId = tab.dataset.tab;
-                const content = document.getElementById(`tab-${tabId}`);
-                if (content) {
-                    content.classList.add('active');
-                }
-            });
-        });
-
-        // Category selection
-        document.querySelectorAll('.category-item').forEach(item => {
-            item.addEventListener('click', () => {
-                document.querySelectorAll('.category-item').forEach(i => i.classList.remove('selected'));
-                item.classList.add('selected');
-                // Trigger HTMX request with category filter
-                const category = item.dataset.category;
-                htmx.ajax('GET', `/api/v1/sources/prompts?category=${category}`, {
-                    target: '#prompts-grid',
-                    swap: 'innerHTML'
-                });
-            });
-        });
-
-        // Search with debounce
-        let searchTimeout;
-        document.getElementById('search-input')?.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                const query = e.target.value;
-                const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'prompts';
-                htmx.ajax('GET', `/api/v1/sources/${activeTab}?search=${encodeURIComponent(query)}`, {
-                    target: `#${activeTab}-grid`,
-                    swap: 'innerHTML'
-                });
-            }, 300);
-        });
-
-        // Filter dropdown
-        document.getElementById('filter-select')?.addEventListener('change', (e) => {
-            const filter = e.target.value;
-            const activeTab = document.querySelector('.tab.active')?.dataset.tab || 'prompts';
-            htmx.ajax('GET', `/api/v1/sources/${activeTab}?sort=${filter}`, {
-                target: `#${activeTab}-grid`,
-                swap: 'innerHTML'
-            });
-        });
-
-        // Keyboard shortcuts
-        document.addEventListener('keydown', (e) => {
-            // Ctrl/Cmd + K to focus search
-            if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
-                e.preventDefault();
-                document.getElementById('search-input')?.focus();
-            }
-
-            // Escape to clear search
-            if (e.key === 'Escape') {
-                const searchInput = document.getElementById('search-input');
-                if (searchInput && document.activeElement === searchInput) {
-                    searchInput.value = '';
-                    searchInput.blur();
-                }
-            }
-
-            // Tab navigation with numbers 1-5
-            if (e.key >= '1' && e.key <= '5' && !e.ctrlKey && !e.metaKey && !e.altKey) {
-                const tabs = document.querySelectorAll('.tab');
-                const index = parseInt(e.key) - 1;
-                if (tabs[index]) {
-                    tabs[index].click();
-                }
-            }
-        });
-
-        // Item card actions
-        document.addEventListener('click', (e) => {
-            const actionBtn = e.target.closest('.item-action');
-            if (actionBtn) {
-                const card = actionBtn.closest('.item-card');
-                const title = card?.querySelector('.item-title')?.textContent;
-                const category = card?.querySelector('.item-category')?.textContent;
-
-                // Determine action based on active tab
-                const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-                switch (activeTab) {
-                    case 'prompts':
-                        // Copy prompt to clipboard or use it
-                        console.log('Using prompt:', title);
-                        break;
-                    case 'templates':
-                        // Navigate to template or install it
-                        console.log('Opening template:', title);
-                        break;
-                    case 'mcp':
-                        // Connect to MCP server
-                        console.log('Connecting to MCP server:', title);
-                        break;
-                    case 'tools':
-                        // Enable/disable tool
-                        console.log('Toggling tool:', title);
-                        break;
-                    case 'models':
-                        // Select model
-                        console.log('Selecting model:', title);
-                        break;
-                }
-            }
-        });
-
-        // Initialize HTMX event listeners
-        document.body.addEventListener('htmx:beforeRequest', (e) => {
-            // Show loading state
-            const target = e.detail.target;
-            if (target) {
-                target.classList.add('loading');
-            }
-        });
-
-        document.body.addEventListener('htmx:afterSwap', (e) => {
-            // Remove loading state
-            const target = e.detail.target;
-            if (target) {
-                target.classList.remove('loading');
-            }
-        });
-
-        document.body.addEventListener('htmx:responseError', (e) => {
-            console.error('HTMX request failed:', e.detail.error);
-            // Show error state
-            const target = e.detail.target;
-            if (target) {
-                target.innerHTML = `
-                    <div class="empty-state">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="48" height="48">
-                            <circle cx="12" cy="12" r="10"/>
-                            <line x1="12" y1="8" x2="12" y2="12"/>
-                            <line x1="12" y1="16" x2="12.01" y2="16"/>
+<!-- Prompts Panel Template (loaded via HTMX) -->
+<template id="prompts-template">
+    <div class="panel-layout">
+        <!-- Categories Sidebar -->
+        <aside class="categories-sidebar">
+            <h3>Categories</h3>
+            <div class="category-list">
+                <button class="category-item active"
+                        hx-get="/api/sources/prompts?category=all"
+                        hx-target="#prompts-grid"
+                        hx-swap="innerHTML">
+                    <span class="category-icon" style="background: var(--primary);">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
                         </svg>
-                        <h3>Failed to load content</h3>
-                        <p>Please try again later.</p>
-                    </div>
-                `;
-            }
+                    </span>
+                    <span class="category-name">All Prompts</span>
+                    <span class="category-count">42</span>
+                </button>
+                <!-- Categories loaded dynamically -->
+            </div>
+        </aside>
+
+        <!-- Prompts Grid -->
+        <section class="prompts-section">
+            <div class="section-header">
+                <h2>Featured Prompts</h2>
+                <div class="view-controls">
+                    <button class="view-btn active" title="Grid view">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <rect x="3" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="3" width="7" height="7"></rect>
+                            <rect x="14" y="14" width="7" height="7"></rect>
+                            <rect x="3" y="14" width="7" height="7"></rect>
+                        </svg>
+                    </button>
+                    <button class="view-btn" title="List view">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="21" y2="6"></line>
+                            <line x1="8" y1="12" x2="21" y2="12"></line>
+                            <line x1="8" y1="18" x2="21" y2="18"></line>
+                            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+                            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+                            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <div class="prompts-grid" id="prompts-grid">
+                <!-- Prompts loaded dynamically -->
+            </div>
+        </section>
+    </div>
+</template>
+
+<style>
+    .sources-container {
+        display: flex;
+        flex-direction: column;
+        height: calc(100vh - 56px);
+        overflow: hidden;
+        background: var(--bg);
+    }
+
+    /* Header */
+    .sources-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 20px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sources-header h1 {
+        font-size: 24px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .header-subtitle {
+        font-size: 14px;
+        color: var(--text-secondary);
+        margin: 4px 0 0 0;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        background: var(--surface-hover);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px 16px;
+        min-width: 300px;
+    }
+
+    .search-box svg {
+        color: var(--text-secondary);
+        flex-shrink: 0;
+    }
+
+    .search-box input {
+        flex: 1;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-size: 14px;
+    }
+
+    .search-box input::placeholder {
+        color: var(--text-secondary);
+    }
+
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        gap: 4px;
+        padding: 12px 24px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        overflow-x: auto;
+    }
+
+    .tab-btn {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 16px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: var(--text-secondary);
+        font-size: 14px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s;
+        white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+        background: var(--surface-hover);
+        color: var(--text);
+    }
+
+    .tab-btn.active {
+        background: var(--primary);
+        color: white;
+    }
+
+    .tab-btn svg {
+        flex-shrink: 0;
+    }
+
+    /* Content Area */
+    .content-area {
+        flex: 1;
+        overflow-y: auto;
+        padding: 24px;
+    }
+
+    /* Panel Layout */
+    .panel-layout {
+        display: grid;
+        grid-template-columns: 260px 1fr;
+        gap: 24px;
+        height: 100%;
+    }
+
+    /* Categories Sidebar */
+    .categories-sidebar {
+        background: var(--surface);
+        border-radius: 12px;
+        padding: 16px;
+        height: fit-content;
+        position: sticky;
+        top: 0;
+    }
+
+    .categories-sidebar h3 {
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        margin: 0 0 12px 0;
+        padding: 0 8px;
+    }
+
+    .category-list {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        padding: 10px 12px;
+        background: transparent;
+        border: none;
+        border-radius: 8px;
+        color: var(--text);
+        font-size: 14px;
+        text-align: left;
+        cursor: pointer;
+        transition: all 0.15s;
+    }
+
+    .category-item:hover {
+        background: var(--surface-hover);
+    }
+
+    .category-item.active {
+        background: var(--primary-light);
+    }
+
+    .category-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .category-icon svg {
+        color: white;
+    }
+
+    .category-name {
+        flex: 1;
+    }
+
+    .category-count {
+        font-size: 12px;
+        color: var(--text-secondary);
+        background: var(--surface-hover);
+        padding: 2px 8px;
+        border-radius: 10px;
+    }
+
+    /* Section Header */
+    .section-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 20px;
+    }
+
+    .section-header h2 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0;
+    }
+
+    .view-controls {
+        display: flex;
+        gap: 4px;
+        background: var(--surface);
+        border-radius: 8px;
+        padding: 4px;
+    }
+
+    .view-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: transparent;
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .view-btn:hover {
+        color: var(--text);
+    }
+
+    .view-btn.active {
+        background: var(--surface-hover);
+        color: var(--text);
+    }
+
+    /* Prompts Grid */
+    .prompts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 16px;
+    }
+
+    /* Prompt Card */
+    .prompt-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .prompt-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .prompt-card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .prompt-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .prompt-icon svg {
+        color: white;
+    }
+
+    .prompt-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .prompt-name {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .prompt-category {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .prompt-description {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 16px;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .prompt-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .prompt-rating {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 13px;
+        color: var(--text-secondary);
+    }
+
+    .prompt-rating svg {
+        color: #eab308;
+        fill: #eab308;
+    }
+
+    .prompt-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .prompt-action-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        border-radius: 6px;
+        background: var(--surface-hover);
+        color: var(--text-secondary);
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s;
+    }
+
+    .prompt-action-btn:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    /* MCP Server Card */
+    .server-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s;
+    }
+
+    .server-card:hover {
+        border-color: var(--primary);
+    }
+
+    .server-header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+
+    .server-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 10px;
+        background: var(--surface-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .server-icon svg {
+        color: var(--primary);
+    }
+
+    .server-info {
+        flex: 1;
+    }
+
+    .server-name {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+    }
+
+    .server-type {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 2px 8px;
+        background: var(--primary-light);
+        color: var(--primary);
+        font-size: 11px;
+        font-weight: 500;
+        border-radius: 4px;
+    }
+
+    .server-description {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 12px;
+    }
+
+    .server-meta {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    .server-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+
+    /* Model Card */
+    .model-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        transition: all 0.2s;
+    }
+
+    .model-card:hover {
+        border-color: var(--primary);
+    }
+
+    .model-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+    }
+
+    .model-name {
+        font-size: 16px;
+        font-weight: 600;
+    }
+
+    .model-status {
+        padding: 4px 10px;
+        border-radius: 12px;
+        font-size: 11px;
+        font-weight: 500;
+    }
+
+    .model-status.active {
+        background: rgba(34, 197, 94, 0.1);
+        color: #22c55e;
+    }
+
+    .model-status.coming-soon {
+        background: rgba(234, 179, 8, 0.1);
+        color: #eab308;
+    }
+
+    .model-provider {
+        font-size: 12px;
+        color: var(--text-secondary);
+        margin-bottom: 8px;
+    }
+
+    .model-description {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 16px;
+    }
+
+    .model-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .model-tag {
+        padding: 4px 10px;
+        background: var(--surface-hover);
+        border-radius: 6px;
+        font-size: 11px;
+        color: var(--text-secondary);
+    }
+
+    /* Loading Spinner */
+    .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        color: var(--text-secondary);
+    }
+
+    .spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--border);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+        margin-bottom: 16px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Empty State */
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 60px;
+        text-align: center;
+    }
+
+    .empty-state svg {
+        width: 64px;
+        height: 64px;
+        color: var(--text-secondary);
+        margin-bottom: 16px;
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 18px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Template Card */
+    .template-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        overflow: hidden;
+        transition: all 0.2s;
+    }
+
+    .template-card:hover {
+        border-color: var(--primary);
+        transform: translateY(-2px);
+    }
+
+    .template-preview {
+        height: 120px;
+        background: var(--surface-hover);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .template-preview svg {
+        width: 48px;
+        height: 48px;
+        color: var(--text-secondary);
+        opacity: 0.5;
+    }
+
+    .template-content {
+        padding: 16px;
+    }
+
+    .template-name {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 4px 0;
+    }
+
+    .template-meta {
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    /* News Card */
+    .news-card {
+        background: var(--surface);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 20px;
+        display: flex;
+        gap: 16px;
+        transition: all 0.2s;
+    }
+
+    .news-card:hover {
+        border-color: var(--primary);
+    }
+
+    .news-image {
+        width: 100px;
+        height: 80px;
+        border-radius: 8px;
+        background: var(--surface-hover);
+        flex-shrink: 0;
+    }
+
+    .news-content {
+        flex: 1;
+    }
+
+    .news-title {
+        font-size: 15px;
+        font-weight: 600;
+        margin: 0 0 8px 0;
+        line-height: 1.4;
+    }
+
+    .news-excerpt {
+        font-size: 13px;
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin-bottom: 8px;
+    }
+
+    .news-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        color: var(--text-secondary);
+    }
+
+    /* Responsive */
+    @media (max-width: 1024px) {
+        .panel-layout {
+            grid-template-columns: 1fr;
+        }
+
+        .categories-sidebar {
+            display: none;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .sources-header {
+            flex-direction: column;
+            gap: 16px;
+            align-items: stretch;
+        }
+
+        .search-box {
+            min-width: auto;
+        }
+
+        .tab-nav {
+            padding: 12px 16px;
+        }
+
+        .tab-btn span:not(.tab-icon) {
+            display: none;
+        }
+
+        .content-area {
+            padding: 16px;
+        }
+
+        .prompts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<script>
+    // Tab switching
+    function setActiveTab(btn) {
+        document.querySelectorAll('.tab-btn').forEach(t => {
+            t.classList.remove('active');
+            t.setAttribute('aria-selected', 'false');
         });
-    </script>
-</body>
-</html>
+        btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
+    }
+
+    // Category switching</script>
+    document.addEventListener('click', function(e) {
+        const categoryItem = e.target.closest('.category-item');
+        if (categoryItem) {
+            document.querySelectorAll('.category-item').forEach(c => c.classList.remove('active'));
+            categoryItem.classList.add('active');
+        }
+    });
+
+    // View toggle
+    document.addEventListener('click', function(e) {
+        const viewBtn = e.target.closest('.view-btn');
+        if (viewBtn) {
+            const controls = viewBtn.closest('.view-controls');
+            controls.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
+            viewBtn.classList.add('active');
+
+            const grid = document.querySelector('.prompts-grid, .templates-grid, .servers-grid, .models-grid');
+            if (grid) {
+                if (viewBtn.title === 'List view') {
+                    grid.classList.add('list-view');
+                } else {
+                    grid.classList.remove('list-view');
+                }
+            }
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+K to focus search
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+            e.preventDefault();
+            document.querySelector('.search-box input').focus();
+        }
+
+        // Tab navigation with number keys
+        if (!e.ctrlKey && !e.metaKey && !e.altKey) {
+            const tabs = document.querySelectorAll('.tab-btn');
+            const num = parseInt(e.key);
+            if (num >= 1 && num <= tabs.length) {
+                tabs[num - 1].click();
+            }
+        }
+    });
+
+    // HTMX events
+    document.body.addEventListener('htmx:beforeRequest', function(e) {
+        if (e.detail.target.id === 'content-area') {
+            e.detail.target.innerHTML = `
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading...</p>
+                </div>
+            `;
+        }
+    });
+</script>
+{% endblock %}
