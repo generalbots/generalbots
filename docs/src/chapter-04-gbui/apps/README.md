@@ -17,12 +17,14 @@ Each application in the Suite has its own dedicated documentation with:
 
 | App | Description | Documentation |
 |-----|-------------|---------------|
+| 🖥️ **Suite** | Full desktop interface | [suite.md](./suite.md) |
 | 💬 **Chat** | AI-powered conversation assistant | [chat.md](./chat.md) |
 | 📁 **Drive** | Cloud file storage and management | [drive.md](./drive.md) |
 | ✓ **Tasks** | To-do lists with priorities | [tasks.md](./tasks.md) |
 | ✉ **Mail** | Email client | [mail.md](./mail.md) |
 | 📅 **Calendar** | Scheduling and events | [calendar.md](./calendar.md) |
 | 🎥 **Meet** | Video conferencing | [meet.md](./meet.md) |
+| 🎬 **Player** | Media viewer | [player.md](./player.md) |
 
 ## Productivity Applications
 

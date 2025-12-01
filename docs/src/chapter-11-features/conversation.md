@@ -1,304 +1,93 @@
 # Conversation Management
 
-BotServer manages conversations through sessions, message history, and context tracking, providing seamless interaction between users and bots.
+This chapter explores how BotServer manages conversations through sessions, message history, and context tracking. Understanding these mechanisms helps you build bots that maintain coherent, contextual interactions across multiple turns and sessions.
 
-## Overview
+## The Conversation Lifecycle
 
-Conversation management handles:
-- Session lifecycle
-- Message history persistence
-- Context maintenance
-- Multi-turn interactions
-- User state tracking
+Every conversation in BotServer follows a well-defined lifecycle that begins when a user first connects and continues until the session expires or ends explicitly. When a user interacts with a bot, the system creates a session that serves as the container for all conversation state, including message history, user preferences, and any variables set during the interaction.
 
-## Session Management
+Sessions persist across individual messages, allowing conversations to span multiple interactions. A user might ask a question, receive a response, and return hours later to continue the same conversation thread. The system maintains this continuity by storing session data in PostgreSQL for durability while caching active sessions in the cache layer for fast access.
 
-### Session Creation
+The session contains a unique identifier, a reference to the associated user (or an anonymous identifier), the bot being interacted with, creation and expiration timestamps, and all accumulated conversation state. This comprehensive tracking enables sophisticated multi-turn interactions where the bot remembers previous exchanges and builds upon them.
 
-Sessions are created when:
-- User first interacts with bot
-- Authentication successful
-- Anonymous user connects
+## Message History and Persistence
 
-Session contains:
-- Unique session ID
-- User reference (or anonymous)
-- Bot ID
-- Creation timestamp
-- Expiration time
+Every message exchanged during a conversation is recorded in the message history table, creating a permanent record of the interaction. Each entry captures the session identifier linking it to the conversation, the user and bot involved, the actual message content, an indicator of whether the message came from the user or the bot, and a precise timestamp.
 
-### Session Persistence
+The system distinguishes between several message types that serve different purposes. User messages represent input from the human participant. Bot responses contain the generated replies. System messages convey status updates or notifications. Tool outputs capture results from executed tools. This categorization helps with both display formatting and analysis.
 
-Sessions stored in PostgreSQL:
-- `user_sessions` table
-- Cached in cache component for performance
-- Automatic cleanup on expiry
+Message history serves multiple purposes beyond simple record-keeping. The conversation context sent to the language model draws from recent history, enabling contextual responses. Analytics systems process history to understand usage patterns and conversation quality. Compliance requirements often mandate retention of interaction records, which the history system satisfies.
 
-## Message History
+## Context Assembly and Management
 
-### Storage Structure
+Context management represents one of the most sophisticated aspects of conversation handling. When generating a response, the system must assemble relevant information from multiple sources into a coherent context that guides the language model's output.
 
-Messages stored in `message_history` table:
-- Session ID reference
-- User ID
-- Bot ID
-- Message content
-- Sender (user/bot)
-- Timestamp
+The context assembly process draws from several layers. System context includes the bot's configuration and base prompts that establish personality and capabilities. Conversation context incorporates recent message history to maintain coherence. Knowledge context adds relevant documents retrieved from active knowledge bases. User context includes preferences and state specific to the current user. Tool context describes available tools the model can invoke.
 
-### Message Types
+Because language models have limited context windows, the system must manage what information to include. Automatic truncation removes older messages when the context grows too large, preserving the most recent and relevant exchanges. For very long conversations, summarization compresses earlier history into concise summaries that capture essential information without consuming excessive tokens.
 
-- **User Messages** - Input from users
-- **Bot Responses** - Generated replies
-- **System Messages** - Status updates
-- **Tool Outputs** - Results from tool execution
+Scripts can manipulate context directly through dedicated keywords. Setting context adds specific information that should influence responses. Clearing context removes information that is no longer relevant. These operations give developers fine-grained control over what the model knows during generation.
 
-### History Retrieval
+## Multi-Turn Interaction Patterns
 
-```basic
-# In BASIC scripts
-let history = GET_BOT_MEMORY("conversation_history")
-```
+Conversations rarely consist of single isolated exchanges. Users ask follow-up questions, refine requests, and reference earlier parts of the conversation. BotServer's architecture specifically supports these multi-turn patterns through careful context management and entity tracking.
 
-## Context Management
+When a user says "Book a meeting for tomorrow" followed by "Make it at 2 PM," the system must understand that "it" refers to the meeting mentioned in the previous turn. This reference resolution happens automatically through the included conversation history, which gives the model the context needed to interpret pronouns and implicit references correctly.
 
-### Context Layers
+Topic persistence allows conversations to maintain focus across multiple exchanges. If a user is discussing product returns, subsequent messages are interpreted in that context even when they don't explicitly mention returns. The accumulated history provides the framing that makes this natural understanding possible.
 
-1. **System Context** - Bot configuration and prompts
-2. **Conversation Context** - Recent message history
-3. **Knowledge Context** - Retrieved documents
-4. **User Context** - User preferences and state
-5. **Tool Context** - Available tool definitions
+Guided conversations implement multi-step flows where the bot collects information progressively. Rather than asking for all information at once, the bot might first ask for a name, then an email, then a preference. Each step builds on previous responses, with validation ensuring data quality before proceeding.
 
-### Context Window
+## Session Recovery and Continuity
 
-Limited by LLM constraints:
-- Automatic truncation
-- Oldest messages removed first
-- Important context preserved
-- Summarization for long conversations
+Network interruptions, browser refreshes, and other disruptions shouldn't break conversation flow. BotServer implements robust session recovery that allows users to seamlessly continue where they left off.
 
-### Context Operations
+When a user reconnects, the session identifier validates their return. The system retrieves stored history and reconstructs the conversation context. The user can then continue as if no interruption occurred, with full access to previous exchanges and accumulated state.
 
-```basic
-# Set context in BASIC
-SET_CONTEXT "user_info" AS "Name: John, Role: Admin"
+Error recovery extends beyond simple disconnections. If a response generation fails, the system preserves the last known good state. Graceful degradation provides meaningful feedback to users rather than cryptic errors. Automatic retry logic handles transient failures that resolve themselves.
 
-# Clear context
-CLEAR_CONTEXT "user_info"
-```
+## Anonymous and Authenticated Conversations
 
-## Conversation Flow
+BotServer supports both authenticated users and anonymous visitors, with different handling for each case. Understanding these distinctions helps design appropriate conversation experiences.
 
-### Turn Management
+Anonymous sessions receive temporary identifiers that exist only for the duration of the session. Permissions are limited compared to authenticated users. Storage is typically short-term, with sessions expiring quickly after inactivity. These constraints reflect the reduced trust level for unidentified users.
 
-1. User sends message
-2. Session validated
-3. Context assembled
-4. LLM processes input
-5. Tools invoked if needed
-6. Response generated
-7. History updated
-8. Response sent to user
+When an anonymous user authenticates, their session upgrades to a full user session. Accumulated history transfers to the persistent user record. Permissions expand to match the authenticated role. This seamless upgrade path encourages users to authenticate without losing conversation progress.
 
-### State Tracking
+## Real-Time Communication
 
-Conversation state includes:
-- Current topic
-- Active tools
-- Pending operations
-- User preferences
-- Session variables
+WebSocket connections provide the real-time communication channel for conversations. Unlike traditional HTTP request-response patterns, WebSockets maintain persistent bidirectional connections that enable instant message delivery in both directions.
 
-## Multi-Turn Interactions
+The WebSocket protocol supports several interaction patterns beyond basic message exchange. Streaming responses allow bots to send content progressively, displaying text as it generates rather than waiting for complete responses. Typing indicators let users know the bot is processing their request. Connection status updates inform users of connectivity changes.
 
-### Maintaining Continuity
-
-- Previous messages included in context
-- Entity tracking across turns
-- Reference resolution
-- Topic persistence
-
-### Example Flow
-
-```
-User: "Book a meeting for tomorrow"
-Bot: "What time would you prefer?"
-User: "2 PM"
-Bot: "Meeting booked for tomorrow at 2 PM"
-```
-
-Bot maintains context of "meeting" and "tomorrow" across turns.
-
-## Conversation Patterns
-
-### Question-Answer
-
-Simple single-turn interactions:
-```basic
-# For interactive conversations - don't use LLM
-let question = HEAR
-# System AI automatically answers based on context
-TALK "Let me help you with that question."
-```
-
-### Guided Conversation
-
-Multi-step flows with validation:
-```basic
-TALK "What's your name?"
-let name = HEAR
-
-TALK "What's your email?"
-let email = HEAR
-
-# Process collected information
-```
-
-### Contextual Dialog
-
-Using conversation history:
-```basic
-# System AI maintains conversation context automatically
-# No need to manually manage history
-TALK "How else can I help you?"
-```
-
-## Conversation Persistence
-
-### Database Storage
-
-All conversations permanently stored:
-- Full message history
-- Timestamps
-- User associations
-- Bot responses
-
-### Archival
-
-Old conversations:
-- Compressed after 30 days
-- Archived after 90 days
-- Configurable retention
-- GDPR compliance
-
-## Anonymous Conversations
-
-### Anonymous Sessions
-
-Users without authentication:
-- Temporary session created
-- Limited permissions
-- No permanent storage
-- Session expires quickly
-
-### Upgrading to Authenticated
-
-When anonymous user logs in:
-- Session associated with user
-- History preserved
-- Permissions updated
-- Full features enabled
+Messages follow a structured format with type identifiers, content payloads, and session references. The server processes incoming messages, routes them through the conversation engine, and pushes responses back through the same WebSocket connection.
 
 ## Conversation Analytics
 
-### Metrics Tracked
+Understanding how conversations perform helps improve bot effectiveness. BotServer tracks numerous metrics that reveal conversation patterns and quality indicators.
 
-- Message count
-- Conversation length
-- Response time
-- User satisfaction
-- Tool usage
-- Topic distribution
+Quantitative metrics include message counts, conversation lengths, response times, and tool usage frequency. These numbers identify basic patterns like peak usage times and average conversation depth.
 
-### Analysis Capabilities
+Qualitative analysis examines conversation content for sentiment, topics, intents, and entities. This deeper understanding reveals what users actually want from the bot, what frustrates them, and what succeeds.
 
-- Sentiment analysis
-- Topic extraction
-- Intent classification
-- Entity recognition
-- Performance metrics
+Performance metrics specifically track system behavior, including generation latency, error rates, and resource utilization during conversation processing.
 
-## WebSocket Communication
+## Configuration and Tuning
 
-### Real-Time Messaging
+Several configuration parameters affect conversation behavior. Session timeout controls how long inactive sessions persist before expiring. History length limits how many messages the system retains in active memory. Context window size determines how much information reaches the language model.
 
-WebSocket connection for:
-- Instant message delivery
-- Streaming responses
-- Typing indicators
-- Connection status
+Retention policies govern long-term storage of conversation data. Message retention duration sets how long history persists before archival. Archive timing determines when conversations move to compressed storage. Anonymous retention specifically addresses the shorter lifetime appropriate for unidentified users.
 
-### Protocol
+These settings balance resource usage against conversation quality and compliance requirements. Longer retention supports better context and audit trails but consumes more storage. Larger context windows improve response quality but increase processing costs.
 
-```javascript
-// Client sends
-{
-  "type": "message",
-  "content": "User message",
-  "session_id": "session-123"
-}
+## Privacy and Compliance
 
-// Server responds
-{
-  "type": "response",
-  "content": "Bot response",
-  "streaming": false
-}
-```
+Conversation data represents sensitive information that requires careful handling. BotServer implements multiple safeguards to protect user privacy while meeting compliance requirements.
 
-## Conversation Recovery
+Data retention policies ensure information doesn't persist longer than necessary. Compression and archival reduce storage costs while maintaining accessibility for compliance purposes. Clear deletion procedures support user rights to have their data removed.
 
-### Session Restoration
-
-After disconnection:
-- Session ID validates
-- History restored
-- Context rebuilt
-- Conversation continues
-
-### Error Recovery
-
-On failure:
-- Last state saved
-- Graceful degradation
-- User notified
-- Automatic retry
-
-## Best Practices
-
-1. **Keep Context Relevant** - Remove outdated information
-2. **Manage History Length** - Truncate old messages
-3. **Save Important State** - Use BOT_MEMORY for persistence
-4. **Handle Disconnections** - Implement recovery logic
-5. **Track Metrics** - Monitor conversation quality
-6. **Respect Privacy** - Implement data retention policies
-
-## Configuration
-
-### Session Settings
-
-```
-SESSION_TIMEOUT_MINUTES=30
-MAX_HISTORY_LENGTH=50
-CONTEXT_WINDOW_SIZE=4000
-```
-
-### Retention Policy
-
-```
-MESSAGE_RETENTION_DAYS=90
-ARCHIVE_AFTER_DAYS=30
-ANONYMOUS_RETENTION_HOURS=24
-```
-
-## Limitations
-
-- Context window size constraints
-- History storage costs
-- Real-time processing overhead
-- Concurrent conversation limits
+Access controls limit who can view conversation history. Users see their own conversations. Administrators may have audit access where compliance requires it. Appropriate logging tracks access to sensitive data.
 
 ## Summary
 
-Conversation management in BotServer provides robust session handling, message persistence, and context management, enabling sophisticated multi-turn interactions while maintaining performance and reliability.
+Conversation management in BotServer provides the foundation for meaningful bot interactions. Through careful session handling, comprehensive message history, sophisticated context assembly, and robust recovery mechanisms, the system enables conversations that feel natural and maintain coherence across multiple turns, sessions, and circumstances. Understanding these capabilities helps developers build bots that engage users effectively while respecting privacy and compliance requirements.

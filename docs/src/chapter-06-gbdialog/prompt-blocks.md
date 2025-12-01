@@ -27,12 +27,7 @@ END SYSTEM PROMPT
 
 ### Purpose
 
-The system prompt:
-- Sets the AI's persona and tone
-- Defines rules and constraints
-- Lists available tools and capabilities
-- Specifies response formats
-- Provides domain knowledge
+The system prompt sets the AI's persona and tone, defines rules and constraints, lists available tools and capabilities, specifies response formats, and provides domain knowledge. This block serves as the foundation for how the AI will interact with users throughout the conversation.
 
 ### Complete Example
 
@@ -87,7 +82,7 @@ END SYSTEM PROMPT
 
 ### Best Practices
 
-#### DO ✅
+A well-crafted system prompt should be specific about capabilities and constraints. Rather than writing a vague prompt like "You are a helpful assistant," provide detailed context about available tools, behavioral rules, and response expectations:
 
 ```basic
 BEGIN SYSTEM PROMPT
@@ -107,38 +102,9 @@ You can access patient records and doctor schedules through the connected system
 END SYSTEM PROMPT
 ```
 
-#### DON'T ❌
-
-```basic
-' Too vague - LLM won't know how to behave
-BEGIN SYSTEM PROMPT
-You are a helpful assistant.
-END SYSTEM PROMPT
-
-' Better to be specific about capabilities and constraints
-```
-
 ### Placement
 
-Place `BEGIN SYSTEM PROMPT` near the top of `start.bas`, after tool and KB registration:
-
-```basic
-' 1. Register tools first
-ADD TOOL "my-tool"
-
-' 2. Load knowledge bases
-USE KB "my-kb"
-
-' 3. Then define system prompt
-BEGIN SYSTEM PROMPT
-...
-END SYSTEM PROMPT
-
-' 4. Finally, welcome message
-BEGIN TALK
-...
-END TALK
-```
+Place `BEGIN SYSTEM PROMPT` near the top of `start.bas`, after tool and KB registration. Register tools first, then load knowledge bases, then define the system prompt, and finally include your welcome message. This ordering ensures all capabilities are available when the system prompt references them.
 
 ---
 
@@ -159,12 +125,7 @@ END TALK
 
 ### Purpose
 
-Use `BEGIN TALK` for:
-- Welcome messages
-- Formatted instructions
-- Multi-line responses
-- Messages with bullet points or structure
-- Content with emojis or special formatting
+Use `BEGIN TALK` for welcome messages, formatted instructions, multi-line responses, messages with bullet points or structure, and content with emojis or special formatting.
 
 ### Basic Example
 
@@ -184,7 +145,7 @@ END TALK
 
 ### Markdown Support
 
-`BEGIN TALK` supports common Markdown:
+`BEGIN TALK` supports common Markdown syntax:
 
 ```basic
 BEGIN TALK
@@ -239,21 +200,7 @@ END TALK
 | Emojis | ✅ | ✅ |
 | Variables | `TALK "Hi " + name` | `${name}` |
 
-```basic
-' Simple messages - use TALK
-TALK "Hello!"
-TALK "Your order is: " + orderId
-
-' Complex formatted messages - use BEGIN TALK
-BEGIN TALK
-**Order Confirmation** ✅
-
-Order ID: ${orderId}
-Total: $${total}
-
-Thank you for shopping with us!
-END TALK
-```
+Use `TALK` for simple messages like `TALK "Hello!"` or `TALK "Your order is: " + orderId`. Use `BEGIN TALK` for complex formatted messages that benefit from multiple lines, Markdown formatting, and preserved whitespace.
 
 ---
 
@@ -384,6 +331,8 @@ END TALK
 
 ### Data Sync Bot (Scheduled)
 
+Automated bots that run on a schedule don't need welcome messages since there's no user interaction:
+
 ```basic
 ' sync.bas - No welcome needed, runs on schedule
 
@@ -423,6 +372,8 @@ SEND EMAIL admin1, "Sync complete: " + REPORT
 
 ### Role-Based Prompts
 
+You can dynamically set different system prompts based on user role:
+
 ```basic
 role = GET USER "role"
 
@@ -448,6 +399,8 @@ END SWITCH
 
 ### Conditional Welcome
 
+Personalize welcome messages based on context:
+
 ```basic
 hour = HOUR(NOW)
 
@@ -470,7 +423,4 @@ END TALK
 
 ## See Also
 
-- [SET CONTEXT](./keyword-set-context.md) - Dynamic context setting
-- [TALK](./keyword-talk.md) - Simple message output
-- [Script Execution Flow](./script-execution-flow.md) - Execution lifecycle
-- [Tools System](./keyword-use-tool.md) - Tool registration
+The [SET CONTEXT](./keyword-set-context.md) keyword provides dynamic context setting during runtime. The [TALK](./keyword-talk.md) keyword handles simple message output for single-line messages. Review [Script Execution Flow](./script-execution-flow.md) to understand the execution lifecycle. The [Tools System](./keyword-use-tool.md) documentation explains tool registration that works with system prompts.

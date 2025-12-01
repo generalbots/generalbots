@@ -10,40 +10,25 @@ This API is planned for future development but is not currently available in Bot
 
 ## Planned Features
 
-The Whiteboard API will enable:
-- Collaborative real-time drawing
-- Shape and diagram creation
-- Text annotations
-- Image uploads
-- Multi-user cursors
-- Version history
-- Export capabilities
+The Whiteboard API will enable collaborative real-time drawing, shape and diagram creation, text annotations, image uploads, multi-user cursors, version history, and export capabilities. These features will provide teams with a complete visual collaboration environment integrated directly into the BotServer platform.
 
 ## Planned Endpoints
 
 ### Whiteboard Management
-- `POST /api/v1/whiteboards` - Create whiteboard
-- `GET /api/v1/whiteboards/{board_id}` - Get whiteboard
-- `PATCH /api/v1/whiteboards/{board_id}` - Update whiteboard
-- `DELETE /api/v1/whiteboards/{board_id}` - Delete whiteboard
-- `GET /api/v1/whiteboards` - List whiteboards
+
+The whiteboard management endpoints handle the lifecycle of whiteboard instances. Creating a whiteboard uses `POST /api/v1/whiteboards`, while retrieving whiteboard details uses `GET /api/v1/whiteboards/{board_id}`. Updates are handled through `PATCH /api/v1/whiteboards/{board_id}`, deletion through `DELETE /api/v1/whiteboards/{board_id}`, and listing all whiteboards through `GET /api/v1/whiteboards`.
 
 ### Collaboration
-- `POST /api/v1/whiteboards/{board_id}/join` - Join session
-- `POST /api/v1/whiteboards/{board_id}/leave` - Leave session
-- `GET /api/v1/whiteboards/{board_id}/participants` - List participants
-- `WebSocket /api/v1/whiteboards/{board_id}/ws` - Real-time updates
+
+Real-time collaboration is managed through several endpoints. Users join sessions via `POST /api/v1/whiteboards/{board_id}/join` and leave via `POST /api/v1/whiteboards/{board_id}/leave`. The current participant list is available at `GET /api/v1/whiteboards/{board_id}/participants`. For real-time updates, a WebSocket connection is established at `WebSocket /api/v1/whiteboards/{board_id}/ws`.
 
 ### Content Operations
-- `POST /api/v1/whiteboards/{board_id}/elements` - Add element
-- `PATCH /api/v1/whiteboards/{board_id}/elements/{element_id}` - Update element
-- `DELETE /api/v1/whiteboards/{board_id}/elements/{element_id}` - Delete element
-- `POST /api/v1/whiteboards/{board_id}/clear` - Clear board
+
+Content manipulation endpoints allow adding elements with `POST /api/v1/whiteboards/{board_id}/elements`, updating them with `PATCH /api/v1/whiteboards/{board_id}/elements/{element_id}`, and removing them with `DELETE /api/v1/whiteboards/{board_id}/elements/{element_id}`. The entire board can be cleared using `POST /api/v1/whiteboards/{board_id}/clear`.
 
 ### Export
-- `GET /api/v1/whiteboards/{board_id}/export/png` - Export as PNG
-- `GET /api/v1/whiteboards/{board_id}/export/svg` - Export as SVG
-- `GET /api/v1/whiteboards/{board_id}/export/pdf` - Export as PDF
+
+Export functionality supports multiple formats. PNG export is available at `GET /api/v1/whiteboards/{board_id}/export/png`, SVG at `GET /api/v1/whiteboards/{board_id}/export/svg`, and PDF at `GET /api/v1/whiteboards/{board_id}/export/pdf`.
 
 ## Planned Integration with BASIC
 
@@ -66,6 +51,7 @@ SEND FILE image_url
 ## Planned Data Models
 
 ### Whiteboard
+
 ```json
 {
   "board_id": "wb_123",
@@ -92,6 +78,7 @@ SEND FILE image_url
 ```
 
 ### Drawing Element
+
 ```json
 {
   "element_id": "elem_456",
@@ -115,76 +102,44 @@ SEND FILE image_url
 ## Planned Features Detail
 
 ### Drawing Tools
-- **Basic Shapes**: Rectangle, circle, triangle, line, arrow
-- **Freehand Drawing**: Pen, pencil, highlighter
-- **Text Tools**: Labels, sticky notes, comments
-- **Connectors**: Smart connectors between shapes
-- **Templates**: Flowcharts, mind maps, wireframes
+
+The drawing tools will include basic shapes such as rectangles, circles, triangles, lines, and arrows. Freehand drawing will support pen, pencil, and highlighter modes. Text tools will provide labels, sticky notes, and comments. Smart connectors will automatically route between shapes, and templates will offer pre-built layouts for flowcharts, mind maps, and wireframes.
 
 ### Collaboration Features
-- Real-time cursor tracking
-- User presence indicators
-- Change notifications
-- Commenting system
-- Version control
-- Conflict resolution
+
+Real-time collaboration will include cursor tracking so users can see where others are working, presence indicators showing who is currently viewing the board, and change notifications for updates made by collaborators. A commenting system will enable discussions on specific elements. Version control will track the history of changes, and conflict resolution will handle simultaneous edits gracefully.
 
 ### Advanced Features
-- Layers support
-- Grouping elements
-- Alignment and distribution
-- Copy/paste between boards
-- Undo/redo history
-- Keyboard shortcuts
+
+Advanced functionality will support layers for organizing complex diagrams, grouping to manipulate multiple elements together, and alignment and distribution tools for precise positioning. Copy and paste will work between boards, undo and redo history will allow reverting changes, and keyboard shortcuts will speed up common operations.
 
 ## Implementation Considerations
 
-When implemented, the Whiteboard API will:
-
-1. **Use WebSocket** for real-time collaboration
-2. **Implement CRDT** for conflict-free editing
-3. **Store in PostgreSQL** with JSON columns
-4. **Cache in cache component** for performance
-5. **Use SVG** as primary format
-6. **Support touch devices** and stylus input
-7. **Include access controls** and permissions
+When implemented, the Whiteboard API will use WebSocket for real-time collaboration and implement CRDT (Conflict-free Replicated Data Types) for conflict-free editing. Data will be stored in PostgreSQL with JSON columns for flexibility. The cache component will improve performance for frequently accessed boards. SVG will serve as the primary format for rendering, and the system will support touch devices and stylus input. Access controls and permissions will ensure proper security.
 
 ## Alternative Solutions
 
-Until the Whiteboard API is implemented, consider:
+Until the Whiteboard API is implemented, several alternatives are available.
 
-1. **External Whiteboard Services**
-   - Integrate with Miro API
-   - Embed Excalidraw
-   - Use draw.io (diagrams.net)
-   - Connect to Microsoft Whiteboard
+External whiteboard services can be integrated, including Miro API, embedded Excalidraw, draw.io (diagrams.net), or Microsoft Whiteboard.
 
-2. **Simple Drawing Storage**
-   ```basic
-   ' Store drawing as JSON
-   drawing = {
-       "shapes": [
-           {"type": "rect", "x": 10, "y": 10, "w": 100, "h": 50}
-       ]
-   }
-   SET BOT MEMORY "drawing_001", JSON_STRINGIFY(drawing)
-   ```
+For simple drawing storage, you can store drawing data as JSON in bot memory:
 
-3. **Image-Based Collaboration**
-   - Upload and annotate images
-   - Use existing image editing APIs
-   - Share screenshots with markup
+```basic
+' Store drawing as JSON
+drawing = {
+    "shapes": [
+        {"type": "rect", "x": 10, "y": 10, "w": 100, "h": 50}
+    ]
+}
+SET BOT MEMORY "drawing_001", JSON_STRINGIFY(drawing)
+```
+
+Image-based collaboration offers another approach, allowing you to upload and annotate images, use existing image editing APIs, or share screenshots with markup.
 
 ## Future Technology Stack
 
-The planned implementation will use:
-- **Canvas API** or **SVG** - Rendering
-- **WebSocket** - Real-time sync
-- **Y.js** or **OT.js** - Collaborative editing
-- **Fabric.js** - Canvas manipulation
-- **PostgreSQL** - Data persistence
-- **Cache** - Real-time state
-- **Sharp** - Image processing
+The planned implementation will use the Canvas API or SVG for rendering, WebSocket for real-time synchronization, Y.js or OT.js for collaborative editing, Fabric.js for canvas manipulation, PostgreSQL for data persistence, cache for real-time state management, and Sharp for image processing.
 
 ## Workaround Example
 
@@ -239,32 +194,20 @@ END FUNCTION
 ## Use Cases
 
 ### Technical Planning
-- Architecture diagrams
-- Database schemas
-- Network topology
-- UML diagrams
-- Flowcharts
+
+Technical teams can use the Whiteboard API for architecture diagrams, database schemas, network topology visualization, UML diagrams, and flowcharts that document system design and processes.
 
 ### Business Collaboration
-- Mind mapping
-- Process flows
-- Organizational charts
-- Brainstorming sessions
-- Project planning
+
+Business users will benefit from mind mapping for brainstorming, process flow documentation, organizational charts, collaborative brainstorming sessions, and project planning visualizations.
 
 ### Education
-- Teaching illustrations
-- Student collaboration
-- Problem solving
-- Visual explanations
+
+Educational applications include teaching illustrations, student collaboration on group projects, visual problem solving, and graphical explanations of complex concepts.
 
 ## Integration Points
 
-When available, the Whiteboard API will integrate with:
-- [Storage API](./storage-api.md) - Save whiteboard data
-- [Calls API](./calls-api.md) - Share during calls
-- [Document Processing](./document-processing.md) - Import/export
-- [Notifications API](./notifications-api.md) - Collaboration alerts
+When available, the Whiteboard API will integrate with the [Storage API](./storage-api.md) for saving whiteboard data, the [Calls API](./calls-api.md) for sharing during video calls, [Document Processing](./document-processing.md) for import and export capabilities, and the [Notifications API](./notifications-api.md) for collaboration alerts.
 
 ## Status Updates
 

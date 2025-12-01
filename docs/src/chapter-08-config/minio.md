@@ -4,78 +4,39 @@ The drive component provides S3-compatible object storage for BotServer, storing
 
 ## Overview
 
-BotServer uses the drive component as its primary storage backend for:
-- Bot packages (`.gbai` directories)
-- Knowledge base documents (`.gbkb` files)
-- Configuration files (`config.csv`)
-- Media and attachments
-- User-uploaded content
+BotServer uses the drive component as its primary storage backend for bot packages in `.gbai` directories, knowledge base documents in `.gbkb` files, configuration files like `config.csv`, media and attachments, and user-uploaded content.
 
 ## Configuration
 
-Storage configuration is **automatically managed** by the Directory service (Zitadel). You do not need to configure storage credentials manually.
-
-During bootstrap, the Directory service:
-1. Provisions storage credentials
-2. Distributes them securely to BotServer
-3. Handles credential rotation
+Storage configuration is automatically managed by the Directory service (Zitadel), so you do not need to configure storage credentials manually. During bootstrap, the Directory service provisions storage credentials, distributes them securely to BotServer, and handles credential rotation automatically.
 
 ## Storage Structure
 
 ### Bucket Organization
 
-Each bot gets its own bucket named after the bot package:
+Each bot gets its own bucket named after the bot package. The bucket naming convention uses `{bot-name}.gbai` for bot buckets and `botserver-media` for the shared media bucket. Each bucket contains the complete bot package structure.
 
 <img src="../assets/directory-tree.svg" alt="Bot package structure" width="400" />
-
-### Bucket Naming Convention
-
-- Bot buckets: `{bot-name}.gbai`
-- Media bucket: `botserver-media`
-- Each bucket contains the complete bot package structure
 
 ## Features
 
 ### Automatic Upload
 
-When deploying a bot package, BotServer automatically:
-1. Creates a bucket if it doesn't exist
-2. Uploads all package files
-3. Maintains directory structure
-4. Preserves file permissions
+When deploying a bot package, BotServer automatically creates a bucket if it doesn't exist, uploads all package files, maintains the directory structure, and preserves file permissions.
 
 ### Real-time Synchronization
 
-The bot monitors its bucket for changes:
-- Configuration updates trigger automatic reload
-- New knowledge base files are indexed immediately
-- Deleted files are removed from the index
+The bot monitors its bucket for changes. Configuration updates trigger automatic reload, new knowledge base files are indexed immediately, and deleted files are removed from the index automatically.
 
 ### Drive Monitor
 
-The `DriveMonitor` service watches for changes in drive storage:
-- Detects configuration updates
-- Triggers bot reloads
-- Syncs local cache with drive
+The `DriveMonitor` service watches for changes in drive storage. It detects configuration updates, triggers bot reloads when changes occur, and syncs the local cache with drive storage.
 
 ## Bootstrap Integration
 
-During bootstrap, BotServer:
+During bootstrap, BotServer handles installation by downloading and installing the drive binary if not present, receiving credentials from the Directory service, creating data directories, and uploading template files to drive storage.
 
-### 1. Installation
-- Installs the drive binary if not present
-- Receives credentials from Directory service
-- Creates data directories
-- Uploads template files to drive
-
-### 2. Knowledge Base Storage
-
-Knowledge base files are:
-- Uploaded to drive buckets
-- Indexed for vector search
-- Cached locally for performance
-
-### 3. File Retrieval
+Knowledge base files are uploaded to drive buckets, indexed for vector search, and cached locally for improved performance.
 
 The BASIC `GET` keyword can retrieve files from drive:
 
@@ -87,21 +48,11 @@ This retrieves files from the bot's bucket in drive storage.
 
 ## Media Handling
 
-The multimedia handler uses drive for:
-- Storing uploaded images
-- Serving media files
-- Managing attachments
-- Processing thumbnails
+The multimedia handler uses drive for storing uploaded images, serving media files, managing attachments, and processing thumbnails.
 
 ## Console Integration
 
-The built-in console provides a file browser for drive:
-
-```
-/media/                 # Browse uploaded media
-/files/{bot}/          # Browse bot files
-/download/{bot}/{file} # Download specific file
-```
+The built-in console provides a file browser for drive with paths like `/media/` for browsing uploaded media, `/files/{bot}/` for browsing bot files, and `/download/{bot}/{file}` for downloading specific files.
 
 ## S3-Compatible Client Configuration
 
@@ -121,10 +72,7 @@ The `force_path_style(true)` setting ensures compatibility with S3-compatible st
 
 ### Local Mode
 
-Default mode where drive runs on the same machine:
-- Binary downloaded to `{{BIN_PATH}}/drive`
-- Data stored in `{{DATA_PATH}}`
-- Logs written to `{{LOGS_PATH}}/drive.log`
+The default mode runs drive on the same machine. The binary is downloaded to `{{BIN_PATH}}/drive`, data is stored in `{{DATA_PATH}}`, and logs are written to `{{LOGS_PATH}}/drive.log`.
 
 ### Container Mode (LXC)
 
@@ -137,55 +85,34 @@ lxc config device add default-drive data disk \
 
 ### External S3-Compatible Storage
 
-BotServer can use existing S3-compatible infrastructure. The Directory service manages the connection:
-
-**Supported Providers:**
-- MinIO (default local installation)
-- Backblaze B2
-- Wasabi
-- DigitalOcean Spaces
-- Cloudflare R2
-- Any S3-compatible service
+BotServer can use existing S3-compatible infrastructure. The Directory service manages the connection and supports providers including MinIO (the default local installation), Backblaze B2, Wasabi, DigitalOcean Spaces, Cloudflare R2, and any other S3-compatible service.
 
 To use external storage, configure it through the Directory service admin console.
 
 ## Security
 
-- Credentials are managed by the Directory service
-- TLS can be enabled for secure communication
-- Bucket policies control access per bot
-- Credential rotation is handled automatically
+Credentials are managed by the Directory service for centralized security. TLS can be enabled for secure communication between components. Bucket policies control access on a per-bot basis, and credential rotation is handled automatically without service interruption.
 
 ## Monitoring
 
-- Drive console on port 9001 (optional)
-- API endpoint on port 9000
-- Health checks via `/health/live`
-- Metrics available via `/metrics`
+The drive console runs on port 9001 as an optional management interface. The API endpoint runs on port 9000 for programmatic access. Health checks are available via `/health/live` and metrics can be scraped from `/metrics`.
 
 ## Troubleshooting
 
 ### Check Drive Status
 
-The package manager monitors drive status with:
+The package manager monitors drive status using:
 ```bash
 ps -ef | grep drive | grep -v grep
 ```
 
 ### Console Access
 
-Drive console available at `http://localhost:9001` for:
-- Bucket management
-- User management
-- Policy configuration
-- Access logs
+The drive console is available at `http://localhost:9001` for bucket management, user management, policy configuration, and access log review.
 
 ## Common Issues
 
-1. **Connection Failed**: Check drive is running and ports are accessible
-2. **Access Denied**: Verify Directory service has provisioned credentials
-3. **Bucket Not Found**: Ensure bot deployment completed successfully
-4. **Upload Failed**: Check disk space and permissions
+Connection failures typically indicate that drive is not running or ports are not accessible. Access denied errors suggest the Directory service has not yet provisioned credentials. Bucket not found errors occur when bot deployment did not complete successfully. Upload failures often result from insufficient disk space or incorrect permissions.
 
 ### Debug Logging
 
@@ -195,21 +122,12 @@ Enable trace logging to see drive operations:
 RUST_LOG=trace ./botserver
 ```
 
-This shows:
-- File retrieval details
-- Bucket operations
-- Authentication attempts
+This reveals file retrieval details, bucket operations, and authentication attempts.
 
 ## Best Practices
 
-1. **Regular Backups**: Back up drive data directory regularly
-2. **Monitor Disk Usage**: Ensure adequate storage space
-3. **Access Control**: Use bucket policies to restrict access
-4. **Versioning**: Enable object versioning for critical data
-5. **Lifecycle Policies**: Configure automatic cleanup for old files
+Back up the drive data directory regularly to prevent data loss. Monitor disk usage to ensure adequate storage space remains available. Use bucket policies to restrict access appropriately for each bot. Enable object versioning for critical data that may need recovery. Configure lifecycle policies for automatic cleanup of old files that are no longer needed.
 
 ## See Also
 
-- [Storage API](../chapter-10-api/storage-api.md) - API reference
-- [Environment Variables](../appendix-env-vars/README.md) - Directory service configuration
-- [LXC Containers](../chapter-07-gbapp/containers.md) - Container deployment
+The Storage API chapter provides the complete API reference for drive operations. The Environment Variables appendix covers Directory service configuration options. The LXC Containers documentation explains container deployment in detail.

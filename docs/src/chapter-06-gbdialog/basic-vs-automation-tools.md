@@ -223,16 +223,3 @@ BASIC provides built-in capabilities for common office tasks:
 - [WEBHOOK](./keyword-webhook.md) - Event-driven automation
 - [Templates](./templates.md) - Ready-to-use examples
 
----
-
-<style>
-.wa-chat{background-color:#e5ddd5;border-radius:8px;padding:20px 15px;margin:20px 0;max-width:500px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px}
-.wa-message{margin-bottom:10px}
-.wa-message.user{text-align:right}
-.wa-message.user .wa-bubble{background-color:#dcf8c6;display:inline-block;text-align:left}
-.wa-message.bot .wa-bubble{background-color:#fff;display:inline-block}
-.wa-bubble{padding:8px 12px;border-radius:8px;box-shadow:0 1px .5px rgba(0,0,0,.13);max-width:85%}
-.wa-bubble p{margin:0 0 4px 0;line-height:1.4;color:#303030}
-.wa-bubble p:last-child{margin-bottom:0}
-.wa-time{font-size:11px;color:#8696a0;text-align:right;margin-top:4px}
-</style>

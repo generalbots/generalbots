@@ -1,207 +1,83 @@
 # CLEAR KB
 
-Remove knowledge bases from the current session's context.
+Remove knowledge bases from the current session.
 
 ## Syntax
 
 ```basic
-CLEAR KB kb_name
-```
-
-or to clear all:
-
-```basic
-CLEAR KB ALL
+CLEAR KB "collection_name"   ' Remove specific collection
+CLEAR KB ALL                 ' Remove all collections
 ```
 
 ## Parameters
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `kb_name` | String | Name of the knowledge base to remove, or "ALL" for all KBs |
+| `collection_name` | String | Name of KB to remove (optional) |
+| `ALL` | Keyword | Removes all active KBs |
 
 ## Description
 
-The `CLEAR KB` keyword removes previously loaded knowledge bases from the session's active context. This frees up memory and ensures that subsequent searches don't include unwanted collections.
+`CLEAR KB` removes previously loaded knowledge bases from the session's context. This frees memory and ensures subsequent queries don't search unwanted collections.
 
 ## Examples
 
-### Clear Specific Knowledge Base
-```basic
-USE KB "product-docs"
-USE KB "user-manuals"
+### Clear Specific KB
 
-' Later, remove just product-docs
-CLEAR KB "product-docs"
-' Now only user-manuals is active
+```basic
+USE KB "policies"
+USE KB "products"
+
+' Later, remove just policies
+CLEAR KB "policies"
+' Only products remains active
 ```
 
-### Clear All Knowledge Bases
-```basic
-' Load multiple KBs
-USE KB "policies"
-USE KB "procedures"
-USE KB "faqs"
+### Clear All KBs
 
-' Clear everything
+```basic
+USE KB "hr-docs"
+USE KB "it-docs"
+USE KB "finance"
+
 CLEAR KB ALL
-TALK "All knowledge bases have been unloaded"
+' All collections removed
 ```
 
-### Conditional Clearing
+### Context Switching
+
 ```basic
-topic = HEAR "What topic interests you?"
-IF topic = "technical" THEN
-    CLEAR KB "marketing-docs"
-    USE KB "technical-docs"
-ELSE IF topic = "sales" THEN
-    CLEAR KB "technical-docs"
-    USE KB "marketing-docs"
-END IF
-```
+' Support flow
+USE KB "troubleshooting"
+USE KB "known-issues"
+' ... handle support ...
 
-### Switch Knowledge Context
-```basic
-' Start with general KB
-USE KB "general-info"
-answer = FIND "company overview"
-TALK answer
-
-' Switch to specific department
-CLEAR KB "general-info"
-USE KB "engineering-specs"
-answer = FIND "API documentation"
-TALK answer
-```
-
-### Memory Management
-```basic
-' Load KBs for initial context
-USE KB "onboarding"
-USE KB "policies"
-
-' After onboarding complete
-CLEAR KB "onboarding"
-' Keep policies active but free onboarding memory
+' Switch to sales
+CLEAR KB ALL
+USE KB "products"
+USE KB "pricing"
 ```
 
 ## Return Value
 
-Returns `true` if the KB was successfully cleared, `false` if the KB wasn't loaded or doesn't exist.
-
-## Error Handling
-
-```basic
-result = CLEAR KB "unknown-kb"
-IF result = false THEN
-    LOG "KB was not loaded or doesn't exist"
-END IF
-```
-
-## Performance Considerations
-
-- Clearing KBs immediately frees session memory
-- Does not delete the actual KB from vector database
-- Only removes the session association
-- Clearing all KBs is faster than clearing individually
+Returns `true` if cleared successfully, `false` if KB wasn't loaded.
 
 ## Best Practices
 
-1. **Clear Unused KBs**: Remove KBs when no longer needed
-   ```basic
-   ' After processing department-specific queries
-   CLEAR KB "department-kb"
-   ```
-
-2. **Clear Before Loading**: Ensure clean state
-   ```basic
-   CLEAR KB ALL
-   USE KB "fresh-context"
-   ```
-
-3. **Memory Optimization**: Clear large KBs after use
-   ```basic
-   USE KB "large-archive"
-   results = FIND query
-   CLEAR KB "large-archive"  ' Free memory
-   ```
-
-4. **Context Switching**: Clear when changing topics
-   ```basic
-   ON TOPIC_CHANGE
-       CLEAR KB ALL
-       USE KB new_topic_kb
-   END ON
-   ```
+| Do | Don't |
+|----|-------|
+| Clear when switching topics | Leave large KBs active unnecessarily |
+| Clear before loading new context | Assume collections auto-clear |
+| Use `ALL` for clean slate | Clear one-by-one when `ALL` works |
 
 ## Session Scope
 
-- Clearing only affects the current session
-- Other sessions maintain their own KB associations
-- KBs remain in vector database for future use
-- Can reload cleared KBs anytime with `USE KB`
+- Only affects current session
+- Other sessions keep their KBs
+- KBs remain in database for future use
+- Can reload cleared KBs anytime
 
-## Monitoring Active KBs
-
-```basic
-' Check what's loaded before clearing
-active_kbs = GET_ACTIVE_KBS()
-TALK "Currently loaded: " + JOIN(active_kbs, ", ")
-
-' Clear specific ones
-FOR EACH kb IN active_kbs
-    IF kb STARTS WITH "temp_" THEN
-        CLEAR KB kb
-    END IF
-NEXT
-```
-
-## Advanced Usage
-
-### Batch Operations
-```basic
-kbs_to_clear = ["old-docs", "archive-2022", "deprecated"]
-FOR EACH kb IN kbs_to_clear
-    CLEAR KB kb
-NEXT
-```
-
-### Scheduled Cleanup
-```basic
-' Clear all KBs at conversation timeout
-ON TIMEOUT
-    CLEAR KB ALL
-    LOG "Session KBs cleared due to timeout"
-END ON
-```
-
-### Conditional Preservation
-```basic
-' Clear all except essential KBs
-all_kbs = GET_ACTIVE_KBS()
-essential = ["core-policies", "emergency-procedures"]
-
-FOR EACH kb IN all_kbs
-    IF kb NOT IN essential THEN
-        CLEAR KB kb
-    END IF
-NEXT
-```
-
-## Related Keywords
+## See Also
 
 - [USE KB](./keyword-use-kb.md) - Load knowledge bases
-- [USE WEBSITE](./keyword-use-website.md) - Associate website with conversation
-- [FIND](./keyword-find.md) - Search within loaded KBs
-- [LLM](./keyword-llm.md) - Use KB context in responses
-
-## Implementation
-
-Located in `src/basic/keywords/clear_kb.rs`
-
-The implementation:
-- Maintains session KB registry
-- Removes KB references from context
-- Updates search scope
-- Handles "ALL" keyword specially
-- Returns operation status
+- [Knowledge Base System](../chapter-03/README.md) - Technical details

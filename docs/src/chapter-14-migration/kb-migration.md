@@ -8,71 +8,48 @@ Knowledge base migration involves moving documents from various sources into `.g
 
 ## Source Systems
 
-Common document sources:
-- SharePoint document libraries
-- Google Drive folders
-- OneDrive/Dropbox
-- Confluence spaces
-- File servers
+Common document sources include SharePoint document libraries, Google Drive folders, OneDrive and Dropbox storage, Confluence spaces, and traditional file servers.
 
 ## Document Types
 
-Supported formats:
-- PDF files
-- Office documents (Word, Excel, PowerPoint)
-- Text files
-- Markdown files
-- HTML pages
+General Bots supports a variety of document formats for knowledge base ingestion. These include PDF files, Office documents such as Word, Excel, and PowerPoint, plain text files, Markdown files, and HTML pages.
 
 ## Migration Process
 
 ### 1. Export
-- Download documents from source
-- Preserve folder structure
-- Maintain metadata where possible
+
+Begin by downloading documents from the source system. Preserve the folder structure to maintain organizational context, and retain metadata where possible for future reference.
 
 ### 2. Organize
-- Group related documents
-- Create logical collections
-- Remove duplicates
+
+Group related documents into logical collections. Create meaningful organizational structures and remove any duplicate documents that would clutter the knowledge base.
 
 ### 3. Import
-- Place in `.gbkb` folders
-- General Bots indexes automatically
-- Documents become searchable
+
+Place the organized documents in `.gbkb` folders within your bot package. General Bots indexes these documents automatically, making them searchable for RAG-powered responses.
 
 ## Considerations
 
 ### Volume
-- Large document sets take time to index
-- Consider staged migration
-- Monitor disk space
+
+Large document sets require additional time to index. Consider staging the migration in batches rather than importing everything at once. Monitor disk space throughout the process to ensure adequate storage remains available.
 
 ### Quality
-- Clean up outdated content first
-- Remove duplicate documents
-- Fix broken files
+
+Before migration, clean up outdated content that no longer reflects current information. Remove duplicate documents to avoid confusing the AI with conflicting information. Fix any broken or corrupted files that would fail during indexing.
 
 ### Structure
-- Maintain logical organization
-- Use meaningful folder names
-- Group by topic or department
+
+Maintain logical organization within your knowledge base. Use meaningful folder names that describe the content within. Group documents by topic or department to improve retrieval accuracy.
 
 ## Format Conversion
 
-Some formats may need conversion:
-- Web pages → PDF or Markdown
-- Databases → CSV exports
-- Proprietary formats → Standard formats
+Some formats require conversion before import. Web pages should be converted to PDF or Markdown for reliable indexing. Database content should be exported to CSV format. Proprietary formats from specialized applications need conversion to standard formats that the indexing system can process.
 
 ## Testing
 
-After migration:
-- Verify search works
-- Check document access
-- Test with sample queries
+After migration, verify the knowledge base functions correctly. Test that search works across the imported documents. Check that users can access all migrated content. Run sample queries to ensure the AI provides accurate responses based on the imported knowledge.
 
 ## Next Steps
 
-- [Overview](./overview.md) - Migration concepts
-- [Validation](./validation.md) - Testing procedures
+Review the [Overview](./overview.md) for general migration concepts. See [Validation](./validation.md) for detailed testing procedures to verify your migration succeeded.

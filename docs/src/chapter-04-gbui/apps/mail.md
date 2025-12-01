@@ -12,431 +12,43 @@ Mail is the email application in General Bots Suite. Read, compose, and organize
 
 ---
 
-## Interface Layout
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Mail                                [Compose] [🔍 Search] [⚙️]    [×]  │
-├──────────────┬──────────────────────────────────────────────────────────┤
-│              │                                                          │
-│  FOLDERS     │  Inbox (23)                              [Refresh] [▼]   │
-│  ───────────  │  ═══════════════════════════════════════════════════    │
-│              │                                                          │
-│  📥 Inbox 23 │  ┌─────────────────────────────────────────────────────┐ │
-│  ⭐ Starred  │  │ ☐ ⭐ Sarah Johnson                          10:32 AM │ │
-│  📤 Sent     │  │      Q2 Report Review                               │ │
-│  📝 Drafts 2 │  │      Please review the attached Q2 report and...    │ │
-│  🗑️ Trash    │  └─────────────────────────────────────────────────────┘ │
-│              │  ┌─────────────────────────────────────────────────────┐ │
-│  ───────────  │  │ ☐    Mike Chen                              9:15 AM │ │
-│              │  │      Meeting Tomorrow                               │ │
-│  LABELS      │  │      Hi, just confirming our meeting tomorrow at... │ │
-│  ───────────  │  └─────────────────────────────────────────────────────┘ │
-│  🔴 Urgent   │  ┌─────────────────────────────────────────────────────┐ │
-│  🟢 Personal │  │ ☐    LinkedIn                            Yesterday │ │
-│  🔵 Work     │  │      You have 5 new connection requests             │ │
-│  🟡 Finance  │  │      People are looking at your profile...          │ │
-│              │  └─────────────────────────────────────────────────────┘ │
-│  ───────────  │  ┌─────────────────────────────────────────────────────┐ │
-│              │  │ ☐    Newsletter                          Yesterday │ │
-│  [+ Label]   │  │      Weekly Tech Digest                             │ │
-│              │  │      This week in tech: AI advances, new...         │ │
-│              │  └─────────────────────────────────────────────────────┘ │
-│              │                                                          │
-│              │  ─────────────────────────────────────────────────────   │
-│              │  Showing 1-23 of 23                    [◄ Prev] [Next ►] │
-│              │                                                          │
-└──────────────┴──────────────────────────────────────────────────────────┘
-```
-
----
-
 ## Features
 
-### Reading Emails
+### Folders
 
-**Opening an Email**
+| Folder | Description |
+|--------|-------------|
+| 📥 Inbox | Incoming messages |
+| ⭐ Starred | Important emails |
+| 📤 Sent | Sent messages |
+| 📝 Drafts | Unsent drafts |
+| 🗑️ Trash | Deleted emails |
 
-1. Click on any email in the list
-2. The email opens in the reading pane
+### Labels
 
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  ← Back to Inbox                        [Reply] [Forward] [Delete] [⋮]  │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  Q2 Report Review                                                       │
-│  ════════════════════════════════════════════════════════════════════   │
-│                                                                         │
-│  From:    Sarah Johnson <sarah.johnson@company.com>                     │
-│  To:      You <you@company.com>                                         │
-│  Date:    May 15, 2025 at 10:32 AM                                      │
-│                                                                         │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│  Hi,                                                                    │
-│                                                                         │
-│  Please review the attached Q2 report and let me know if you have       │
-│  any questions. I've highlighted the key metrics on page 3.             │
-│                                                                         │
-│  Key points:                                                            │
-│  • Revenue increased 15% from Q1                                        │
-│  • Customer acquisition cost decreased by 8%                            │
-│  • Retention rate steady at 94%                                         │
-│                                                                         │
-│  Looking forward to your feedback.                                      │
-│                                                                         │
-│  Best,                                                                  │
-│  Sarah                                                                  │
-│                                                                         │
-│  ─────────────────────────────────────────────────────────────────────  │
-│                                                                         │
-│  ATTACHMENTS                                                            │
-│  ┌────────────────────────────┐                                        │
-│  │ 📄 Q2_Report_2025.pdf      │                                        │
-│  │    2.4 MB                  │                                        │
-│  │    [Download] [Preview]    │                                        │
-│  └────────────────────────────┘                                        │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
+| Label | Icon | Use For |
+|-------|------|---------|
+| Urgent | 🔴 | Time-sensitive |
+| Personal | 🟢 | Private emails |
+| Work | 🔵 | Professional |
+| Finance | 🟡 | Bills & money |
+| Custom | 🟣 | Create your own |
 
-**Email Actions**
+### Email Actions
 
-| Action | What It Does |
-|--------|--------------|
-| **Reply** | Respond to the sender |
+| Action | Description |
+|--------|-------------|
+| **Reply** | Respond to sender |
 | **Reply All** | Respond to all recipients |
 | **Forward** | Send to someone else |
-| **Archive** | Remove from inbox, keep searchable |
-| **Delete** | Move to trash |
+| **Archive** | Remove from inbox |
 | **Star** | Mark as important |
-| **Mark Unread** | Show as unread again |
-
----
-
-### Composing Emails
-
-**Starting a New Email**
-
-1. Click **Compose** button
-2. Fill in the fields
-3. Click **Send**
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  New Message                                                      [×]   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  To:                                                                    │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ john.smith@company.com                                          │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│  [Cc] [Bcc]                                                             │
-│                                                                         │
-│  Subject:                                                               │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ Project Update - May 15                                         │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │ B  I  U  │ • ≡ │ 🔗 │                                           │   │
-│  ├─────────────────────────────────────────────────────────────────┤   │
-│  │                                                                 │   │
-│  │ Hi John,                                                        │   │
-│  │                                                                 │   │
-│  │ Here's the weekly project update:                               │   │
-│  │                                                                 │   │
-│  │ • Completed the user testing phase                              │   │
-│  │ • Fixed 12 bugs from QA                                         │   │
-│  │ • On track for next milestone                                   │   │
-│  │                                                                 │   │
-│  │ Let me know if you have questions.                              │   │
-│  │                                                                 │   │
-│  │ Best,                                                           │   │
-│  │                                                                 │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-│  ┌────────────────────────────┐                                        │
-│  │ 📎 project-timeline.pdf    │  [×]                                   │
-│  │    156 KB                  │                                        │
-│  └────────────────────────────┘                                        │
-│  [📎 Attach File]                                                       │
-│                                                                         │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐         │
-│  │      Send       │  │  Save Draft     │  │  ✨ AI Help     │         │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘         │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
-**Compose Fields**
-
-| Field | Purpose | Required |
-|-------|---------|----------|
-| **To** | Primary recipient(s) | Yes |
-| **Cc** | Carbon copy (visible to all) | No |
-| **Bcc** | Blind copy (hidden from others) | No |
-| **Subject** | Email topic | Recommended |
-| **Body** | Your message | Yes |
-| **Attachments** | Files to include | No |
-
----
-
-### AI Email Assistant ✨
-
-Let AI help you write better emails:
-
-**Write an Email**
-
-```
-You: Write an email declining a meeting politely
-Bot: Here's a draft:
-
-     Subject: Unable to Attend - Project Review Meeting
-     
-     Hi [Name],
-     
-     Thank you for the meeting invitation. Unfortunately, I have 
-     a scheduling conflict and won't be able to attend the 
-     project review meeting on [date].
-     
-     Would it be possible to reschedule, or could someone share 
-     the meeting notes with me afterward?
-     
-     Thank you for understanding.
-     
-     Best regards,
-     [Your name]
-     
-     [📧 Use This] [✏️ Edit] [🔄 Regenerate]
-```
-
-**Improve Your Draft**
-
-1. Select text in your email
-2. Click **✨ AI Help**
-3. Choose an option:
-
-```
-┌─────────────────────────────────────┐
-│  ✨ AI Email Help                   │
-├─────────────────────────────────────┤
-│                                     │
-│  [📝 Improve writing      ]         │
-│  [✂️  Make it shorter     ]         │
-│  [💼 Make it professional ]         │
-│  [😊 Make it friendlier   ]         │
-│  [🔧 Fix grammar          ]         │
-│  [📋 Add bullet points    ]         │
-│  [🌐 Translate to...      ]         │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-**Summarize Long Emails**
-
-```
-You: Summarize this email thread
-Bot: 📋 Email Thread Summary (15 messages)
-     
-     Topic: Q3 Budget Approval
-     
-     Key Points:
-     • Marketing requested $50K increase for Q3
-     • Finance asked for detailed breakdown
-     • VP approved $35K with conditions
-     • Final approval pending from CEO
-     
-     Action Items:
-     • You: Submit revised proposal by Friday
-     • Sarah: Schedule follow-up meeting
-     
-     Decision: Partial approval ($35K of $50K requested)
-```
-
-**Smart Reply**
-
-Get quick reply suggestions:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Smart Replies:                                                         │
-│                                                                         │
-│  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────┐ │
-│  │ Sounds good, I'll   │  │ Thanks for the      │  │ Let me check    │ │
-│  │ review it today.    │  │ update!             │  │ and get back    │ │
-│  │                     │  │                     │  │ to you.         │ │
-│  └─────────────────────┘  └─────────────────────┘  └─────────────────┘ │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Email Organization
-
-#### Folders
-
-| Folder | Purpose |
-|--------|---------|
-| **Inbox** | Incoming emails |
-| **Starred** | Emails you've starred |
-| **Sent** | Emails you've sent |
-| **Drafts** | Unsent emails |
-| **Trash** | Deleted emails (auto-deleted after 30 days) |
-| **Archive** | Archived emails (searchable) |
-| **Spam** | Suspected spam |
-
-#### Labels
-
-Create custom labels to organize emails:
-
-1. Click **+ Label** in the sidebar
-2. Enter a name
-3. Choose a color
-4. Click **Create**
-
-**Apply Labels**
-
-- Drag email to label in sidebar
-- Or right-click email → **Add Label**
-- Or use keyboard: `L` then select label
-
-```
-┌─────────────────────────────────────┐
-│  Add Label                    [×]   │
-├─────────────────────────────────────┤
-│                                     │
-│  🔍 Search labels...                │
-│                                     │
-│  ☐ 🔴 Urgent                        │
-│  ☑ 🟢 Personal                      │
-│  ☐ 🔵 Work                          │
-│  ☐ 🟡 Finance                       │
-│  ☐ 🟣 Projects                      │
-│                                     │
-│  [+ Create New Label]               │
-│                                     │
-│  ┌─────────────────────────────┐    │
-│  │         Apply               │    │
-│  └─────────────────────────────┘    │
-│                                     │
-└─────────────────────────────────────┘
-```
-
-#### Filters
-
-Create rules to automatically organize incoming emails:
-
-```
-┌─────────────────────────────────────────────────────────────────────────┐
-│  Create Filter                                                    [×]   │
-├─────────────────────────────────────────────────────────────────────────┤
-│                                                                         │
-│  WHEN EMAIL MATCHES                                                     │
-│  ──────────────────                                                     │
-│                                                                         │
-│  From:      [newsletter@                    ]                           │
-│  To:        [                               ]                           │
-│  Subject:   [                               ]                           │
-│  Has words: [                               ]                           │
-│                                                                         │
-│  THEN DO THIS                                                           │
-│  ────────────                                                           │
-│                                                                         │
-│  ☑ Skip inbox (archive)                                                 │
-│  ☐ Mark as read                                                         │
-│  ☑ Apply label: [Newsletters     ▼]                                    │
-│  ☐ Star it                                                              │
-│  ☐ Delete it                                                            │
-│  ☐ Forward to: [                ]                                       │
-│                                                                         │
-│  ☑ Also apply to existing emails (45 matches)                           │
-│                                                                         │
-│  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                      Create Filter                              │   │
-│  └─────────────────────────────────────────────────────────────────┘   │
-│                                                                         │
-└─────────────────────────────────────────────────────────────────────────┘
-```
-
----
-
-### Search
-
-Find emails quickly with powerful search:
-
-**Basic Search**
-
-Type in the search box to find emails containing those words.
-
-**Advanced Search**
-
-Use operators for precise searches:
-
-| Operator | Example | Finds |
-|----------|---------|-------|
-| `from:` | `from:sarah` | Emails from Sarah |
-| `to:` | `to:john` | Emails sent to John |
-| `subject:` | `subject:report` | Emails with "report" in subject |
-| `has:attachment` | `has:attachment` | Emails with attachments |
-| `is:starred` | `is:starred` | Starred emails |
-| `is:unread` | `is:unread` | Unread emails |
-| `label:` | `label:work` | Emails with "work" label |
-| `after:` | `after:2025-05-01` | Emails after May 1, 2025 |
-| `before:` | `before:2025-05-15` | Emails before May 15, 2025 |
-
-**Combine Operators**
-
-```
-from:sarah has:attachment after:2025-05-01 subject:report
-```
-
-Finds: Emails from Sarah with attachments after May 1, 2025, with "report" in the subject.
-
----
-
-### Attachments
-
-**Viewing Attachments**
-
-- Click **Preview** to view without downloading
-- Click **Download** to save to your device
-- Click the attachment name to open
-
-**Supported Preview Types**
-
-| Type | Extensions |
-|------|------------|
-| Documents | PDF, DOC, DOCX |
-| Spreadsheets | XLS, XLSX, CSV |
-| Images | JPG, PNG, GIF |
-| Text | TXT, MD |
-
-**Attachment Size Limits**
-
-- Maximum single file: 25 MB
-- Maximum total per email: 25 MB
+| **Label** | Organize with labels |
+| **Delete** | Move to trash |
 
 ---
 
 ## Keyboard Shortcuts
-
-### Navigation
-
-| Shortcut | Action |
-|----------|--------|
-| `J` | Next email |
-| `K` | Previous email |
-| `O` or `Enter` | Open email |
-| `U` | Back to list |
-| `G` then `I` | Go to Inbox |
-| `G` then `S` | Go to Starred |
-| `G` then `T` | Go to Sent |
-| `G` then `D` | Go to Drafts |
-
-### Actions
 
 | Shortcut | Action |
 |----------|--------|
@@ -445,243 +57,257 @@ Finds: Emails from Sarah with attachments after May 1, 2025, with "report" in th
 | `A` | Reply all |
 | `F` | Forward |
 | `E` | Archive |
-| `#` | Delete |
 | `S` | Star/unstar |
-| `L` | Add label |
-| `V` | Move to folder |
-| `Shift+U` | Mark unread |
-
-### Selection
-
-| Shortcut | Action |
-|----------|--------|
-| `X` | Select email |
-| `*` then `A` | Select all |
-| `*` then `N` | Deselect all |
-| `*` then `R` | Select read |
-| `*` then `U` | Select unread |
-
-### Other
-
-| Shortcut | Action |
-|----------|--------|
-| `/` | Search |
-| `?` | Show shortcuts |
-| `Escape` | Close dialog |
+| `Delete` | Move to trash |
 | `Ctrl+Enter` | Send email |
+| `Escape` | Close/cancel |
+| `↑` / `↓` | Navigate emails |
 
 ---
 
-## Tips & Tricks
+## Email via Chat
 
-### Inbox Management
+### Checking Your Inbox
 
-💡 **Use filters** to automatically organize newsletters and notifications
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Check my email</p>
+      <div class="wa-time">09:00</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📥 You have 5 unread emails:</p>
+      <p>⭐ Sarah Johnson - Q2 Report Review</p>
+      <p>📧 Mike Chen - Meeting Tomorrow</p>
+      <p>📧 LinkedIn - 5 new connections</p>
+      <p>📧 Newsletter - Weekly Tech Digest</p>
+      <p>📧 HR Team - Policy Update</p>
+      <div class="wa-time">09:00</div>
+    </div>
+  </div>
+</div>
 
-💡 **Archive instead of delete** - keeps emails searchable but clears inbox
+### Reading an Email
 
-💡 **Star important emails** you need to return to
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Read the email from Sarah</p>
+      <div class="wa-time">09:01</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📧 <strong>Q2 Report Review</strong></p>
+      <p>From: Sarah Johnson</p>
+      <p>Date: Today at 10:32 AM</p>
+      <p>---</p>
+      <p>Hi,</p>
+      <p>Please review the attached Q2 report and let me know if you have any questions. I've highlighted the key metrics on page 3.</p>
+      <p>📎 Q2-Report.pdf (2.4 MB)</p>
+      <p>---</p>
+      <p>[Reply] [Forward] [Archive]</p>
+      <div class="wa-time">09:01</div>
+    </div>
+  </div>
+</div>
 
-💡 **Process emails once** - reply, archive, or delete immediately
+### Composing an Email
 
-### Writing Better Emails
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Write an email to John about the project deadline</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📝 Here's a draft:</p>
+      <p><strong>To:</strong> john@company.com</p>
+      <p><strong>Subject:</strong> Project Deadline Update</p>
+      <p>---</p>
+      <p>Hi John,</p>
+      <p>I wanted to touch base regarding the project deadline. Could we schedule a quick call to discuss the timeline and any potential adjustments needed?</p>
+      <p>Let me know your availability.</p>
+      <p>Best regards</p>
+      <p>---</p>
+      <p>[📤 Send] [✏️ Edit] [🗑️ Discard]</p>
+      <div class="wa-time">10:30</div>
+    </div>
+  </div>
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Send it</p>
+      <div class="wa-time">10:31</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>✅ Email sent to John!</p>
+      <p>📤 Subject: Project Deadline Update</p>
+      <div class="wa-time">10:31</div>
+    </div>
+  </div>
+</div>
 
-💡 **Use AI to shorten** long emails - busy people appreciate brevity
+### AI-Assisted Writing
 
-💡 **Add a clear subject** that summarizes the email's purpose
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Write a polite email declining the meeting invitation for tomorrow</p>
+      <div class="wa-time">14:20</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>📝 Here's a polite decline:</p>
+      <p><strong>Subject:</strong> Re: Meeting Tomorrow</p>
+      <p>---</p>
+      <p>Hi Mike,</p>
+      <p>Thank you for the invitation. Unfortunately, I have a scheduling conflict and won't be able to attend tomorrow's meeting.</p>
+      <p>Would it be possible to reschedule, or could someone share the meeting notes with me afterward?</p>
+      <p>Thanks for understanding.</p>
+      <p>Best regards</p>
+      <p>---</p>
+      <p>[📤 Send] [✏️ Edit] [🗑️ Discard]</p>
+      <div class="wa-time">14:20</div>
+    </div>
+  </div>
+</div>
 
-💡 **Use bullet points** for lists and action items
+### Searching Emails
 
-💡 **Put the ask first** - don't bury your request at the bottom
+<div class="wa-chat">
+  <div class="wa-message user">
+    <div class="wa-bubble">
+      <p>Find emails about the budget from last month</p>
+      <div class="wa-time">11:00</div>
+    </div>
+  </div>
+  <div class="wa-message bot">
+    <div class="wa-bubble">
+      <p>🔍 Found 3 emails about "budget" from last month:</p>
+      <p>📧 Finance Team - Q1 Budget Review (Apr 15)</p>
+      <p>📧 Sarah - Budget Approval Needed (Apr 10)</p>
+      <p>📧 John - Budget Questions (Apr 5)</p>
+      <p>Which one would you like to read?</p>
+      <div class="wa-time">11:00</div>
+    </div>
+  </div>
+</div>
 
-### Search Tips
+---
 
-💡 **Search by sender** when you remember who sent something
+## API Endpoints
 
-💡 **Search attachments** with `has:attachment filename:report`
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/email/inbox` | GET | List inbox messages |
+| `/api/email/send` | POST | Send email |
+| `/api/email/draft` | POST | Save draft |
+| `/api/email/:id` | GET | Read email |
+| `/api/email/:id` | DELETE | Delete email |
+| `/api/email/:id/star` | POST | Toggle star |
+| `/api/email/:id/label` | POST | Add label |
+| `/api/email/search` | GET | Search emails |
 
-💡 **Search date ranges** when you remember when
+### Query Parameters
 
-💡 **Save frequent searches** as filters
+| Parameter | Values | Default |
+|-----------|--------|---------|
+| `folder` | `inbox`, `sent`, `drafts`, `trash`, `starred` | `inbox` |
+| `label` | Label name | none |
+| `unread` | `true`, `false` | none |
+| `limit` | 1-100 | 25 |
+| `offset` | Number | 0 |
 
-### Productivity Tips
+### Send Email Request
 
-💡 **Check email at set times** instead of constantly
+```json
+{
+    "to": ["john@company.com"],
+    "cc": [],
+    "bcc": [],
+    "subject": "Project Update",
+    "body": "Hi John,\n\nHere's the latest update...",
+    "attachments": ["file-id-123"]
+}
+```
 
-💡 **Use Smart Reply** for quick acknowledgments
+### Email Response
 
-💡 **Unsubscribe** from newsletters you don't read
+```json
+{
+    "id": "msg-456",
+    "from": "sarah@company.com",
+    "to": ["you@company.com"],
+    "subject": "Q2 Report Review",
+    "body": "Hi,\n\nPlease review the attached...",
+    "date": "2025-05-15T10:32:00Z",
+    "read": false,
+    "starred": true,
+    "labels": ["work"],
+    "attachments": [
+        {
+            "id": "att-789",
+            "name": "Q2-Report.pdf",
+            "size": 2457600
+        }
+    ]
+}
+```
 
-💡 **Use templates** for repetitive responses
+---
+
+## Configuration
+
+Configure email in `config.csv`:
+
+```csv
+key,value
+smtp-server,smtp.gmail.com
+smtp-port,587
+imap-server,imap.gmail.com
+imap-port,993
+email-from,Your Name <you@gmail.com>
+```
+
+**Note:** Use app-specific passwords for Gmail, not your main password.
 
 ---
 
 ## Troubleshooting
 
-### Emails not loading
+### Emails Not Loading
 
-**Possible causes:**
-1. Internet connection lost
-2. Email server temporarily unavailable
-3. Browser cache issue
+1. Check internet connection
+2. Verify email credentials
+3. Check IMAP settings
+4. Refresh the page
 
-**Solution:**
-1. Check your internet connection
-2. Click Refresh to reload
-3. Try clearing browser cache
-4. Wait a few minutes and try again
+### Send Fails
 
----
+1. Check recipient address
+2. Verify SMTP settings
+3. Check attachment size (max 25MB)
+4. Try again in a moment
 
-### Can't send email
+### Missing Emails
 
-**Possible causes:**
-1. Missing recipient address
-2. Attachment too large
-3. Email server issue
-
-**Solution:**
-1. Verify "To" field has valid email address
-2. Reduce attachment size or use Drive link
-3. Save as draft and try again later
-4. Check email settings are configured
-
----
-
-### Search not finding emails
-
-**Possible causes:**
-1. Typo in search terms
-2. Email is in Trash or Spam
-3. Using wrong search operators
-
-**Solution:**
-1. Try different keywords
-2. Check Trash and Spam folders
-3. Use simpler search terms
-4. Try searching "All Mail"
-
----
-
-### Attachments won't download
-
-**Possible causes:**
-1. File blocked by browser
-2. Download folder full
-3. File type blocked
-
-**Solution:**
-1. Check browser download settings
-2. Clear space on your device
-3. Right-click and "Save As"
-4. Try a different browser
-
----
-
-## BASIC Integration
-
-Control Mail from your bot dialogs:
-
-### Send an Email
-
-```basic
-email = NEW OBJECT
-email.to = "john@company.com"
-email.subject = "Meeting Reminder"
-email.body = "Don't forget our meeting tomorrow at 2 PM."
-
-SEND EMAIL email
-TALK "Email sent to John!"
-```
-
-### Send with Attachment
-
-```basic
-email = NEW OBJECT
-email.to = user.email
-email.subject = "Your Report"
-email.body = "Please find your report attached."
-email.attachments = [reportFile]
-
-SEND EMAIL email
-TALK "Report sent to your email!"
-```
-
-### Check for New Emails
-
-```basic
-newEmails = GET EMAILS WHERE "is:unread"
-
-IF COUNT(newEmails) > 0 THEN
-    TALK "You have " + COUNT(newEmails) + " unread emails."
-    TALK "Most recent from: " + newEmails[0].from
-ELSE
-    TALK "No new emails!"
-END IF
-```
-
-### Search Emails
-
-```basic
-HEAR query AS TEXT "What should I search for?"
-
-results = SEARCH EMAILS query
-
-IF COUNT(results) > 0 THEN
-    TALK "Found " + COUNT(results) + " emails:"
-    FOR i = 1 TO MIN(5, COUNT(results))
-        TALK "- " + results[i].subject + " from " + results[i].from
-    NEXT
-ELSE
-    TALK "No emails found matching '" + query + "'"
-END IF
-```
-
-### AI Email Drafting
-
-```basic
-HEAR recipient AS EMAIL "Who should I email?"
-HEAR topic AS TEXT "What's the email about?"
-HEAR tone AS TEXT "What tone? (formal/casual/friendly)"
-
-draft = GENERATE EMAIL
-    TO recipient
-    ABOUT topic
-    TONE tone
-
-TALK "Here's a draft:"
-TALK draft.body
-TALK ""
-HEAR confirm AS BOOLEAN "Should I send it?"
-
-IF confirm THEN
-    SEND EMAIL draft
-    TALK "Email sent!"
-ELSE
-    TALK "No problem. Draft saved."
-    SAVE DRAFT draft
-END IF
-```
-
----
-
-## Email Configuration
-
-Configure email settings in your bot's config.csv:
-
-| Setting | Description | Example |
-|---------|-------------|---------|
-| `MAIL_PROVIDER` | Email service | `gmail`, `outlook`, `smtp` |
-| `MAIL_HOST` | SMTP server | `smtp.gmail.com` |
-| `MAIL_PORT` | SMTP port | `587` |
-| `MAIL_USER` | Email account | `bot@company.com` |
-| `MAIL_FROM_NAME` | Display name | `Company Bot` |
+1. Check spam/junk folder
+2. Verify filters aren't hiding emails
+3. Check trash folder
+4. Sync may take a few minutes
 
 ---
 
 ## See Also
 
-- [Calendar App](./calendar.md) - Schedule meetings from emails
-- [Tasks App](./tasks.md) - Create tasks from emails
-- [Paper App](./paper.md) - Draft longer documents
-- [How To: Create Your First Bot](../how-to/create-first-bot.md)
+- [Suite Manual](../suite-manual.md) - Complete user guide
+- [Chat App](./chat.md) - Send quick emails via chat
+- [Email API](../../chapter-10-api/email-api.md) - API reference
+- [SEND MAIL Keyword](../../chapter-06-gbdialog/keyword-send-mail.md) - BASIC integration

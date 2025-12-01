@@ -2,24 +2,17 @@
 
 BotServer includes automatic caching to improve response times and reduce redundant processing, including semantic caching for LLM responses using an in-memory cache component.
 
+<img src="../assets/chapter-03/caching-architecture.svg" alt="Caching Architecture" style="max-height: 400px; width: 100%; object-fit: contain;">
+
 ## Features
 
-- **Exact Match Caching**: Cache responses for identical prompts
-- **Semantic Similarity Matching**: Find and reuse responses for semantically similar prompts
-- **Configurable TTL**: Control how long cached responses remain valid
-- **Per-Bot Configuration**: Enable/disable caching on a per-bot basis
-- **Embedding-Based Similarity**: Use local embedding models for semantic matching
-- **Statistics & Monitoring**: Track cache hits, misses, and performance metrics
+The caching system provides exact match caching for identical prompts and semantic similarity matching to find and reuse responses for semantically similar prompts. Configurable TTL settings control how long cached responses remain valid. Caching can be enabled or disabled on a per-bot basis through configuration. Embedding-based similarity uses local embedding models for semantic matching, and comprehensive statistics and monitoring track cache hits, misses, and performance metrics.
 
 ## How Caching Works
 
 Caching in BotServer is controlled by configuration parameters in `config.csv`. The system automatically caches LLM responses and manages conversation history.
 
-When enabled, the semantic cache:
-1. User asks a question
-2. System checks if a semantically similar question was asked before
-3. If similarity > threshold (0.95), returns cached response
-4. Otherwise, generates new response and caches it
+When enabled, the semantic cache operates through a straightforward process. When a user asks a question, the system checks if a semantically similar question was asked before. If the similarity exceeds the threshold (typically 0.95), it returns the cached response. Otherwise, it generates a new response and caches it for future queries.
 
 ## Configuration
 
@@ -61,30 +54,21 @@ prompt-history,2    # Number of previous messages to include in context
 prompt-compact,4    # Compact conversation after N exchanges
 ```
 
-### What These Settings Do
-
-- **prompt-history**: Keeps the last 2 exchanges in the conversation context
-- **prompt-compact**: After 4 exchanges, older messages are summarized or removed to save tokens
+The `prompt-history` setting keeps the last 2 exchanges in the conversation context, providing continuity without excessive token usage. The `prompt-compact` setting triggers summarization or removal of older messages after 4 exchanges to save tokens while preserving essential context.
 
 ## Cache Storage
 
 ### Architecture
 
-The caching system uses a multi-level approach for optimal performance.
+The caching system uses a multi-level approach for optimal performance, combining fast in-memory access with configurable persistence options.
 
 ### Cache Key Structure
 
-The cache uses a multi-level key structure:
-- **Exact match**: Hash of the exact prompt
-- **Semantic match**: Embedding vector stored with semantic index
+The cache uses a multi-level key structure where exact matches use a hash of the exact prompt while semantic matches store embedding vectors with a semantic index for similarity comparison.
 
 ### Cache Component Features
 
-The cache component provides:
-- **Fast in-memory storage**: Sub-millisecond response times
-- **Automatic expiration**: TTL-based cache invalidation
-- **Distributed caching**: Share cache across multiple bot instances
-- **Persistence options**: Optional disk persistence for cache durability
+The cache component provides fast in-memory storage with sub-millisecond response times. Automatic expiration handles TTL-based cache invalidation without manual intervention. Distributed caching enables sharing the cache across multiple bot instances for consistent performance. Persistence options offer optional disk persistence for cache durability across restarts.
 
 ## Example Usage
 
@@ -116,42 +100,25 @@ USE TOOL "weather-api"
 
 ## Cache Management
 
-The cache operates automatically based on your configuration settings. Cache entries are managed through TTL expiration and memory policies.
+The cache operates automatically based on your configuration settings. Cache entries are managed through TTL expiration and memory policies without requiring manual intervention.
 
 ## Best Practices
 
 ### When to Enable Caching
 
-Enable caching for:
-- ✅ FAQ bots with repetitive questions
-- ✅ Knowledge base queries
-- ✅ API-heavy integrations
-- ✅ High-traffic bots
+Enable caching for FAQ bots with repetitive questions, knowledge base queries where the same information is requested frequently, API-heavy integrations where external calls are expensive, and high-traffic bots where response latency impacts user experience.
 
-Disable caching for:
-- ❌ Real-time data queries
-- ❌ Personalized responses
-- ❌ Time-sensitive information
-- ❌ Development/testing
+Disable caching for real-time data queries where freshness is critical, personalized responses that should vary per user, time-sensitive information that changes frequently, and development or testing environments where you need to see actual responses.
 
 ### Tuning Cache Parameters
 
-**TTL Settings**:
-- Short (300s): News, weather, stock prices
-- Medium (3600s): General knowledge, FAQs
-- Long (86400s): Static documentation, policies
+TTL settings should match your data freshness requirements. Use short TTL values around 300 seconds for news, weather, and stock prices. Medium TTL values around 3600 seconds work well for general knowledge and FAQs. Long TTL values around 86400 seconds suit static documentation and policies.
 
-**Similarity Threshold**:
-- High (0.95+): Strict matching, fewer false positives
-- Medium (0.85-0.95): Balance between coverage and accuracy
-- Low (<0.85): Broad matching, risk of incorrect responses
+Similarity threshold affects matching precision. High thresholds of 0.95 or above provide strict matching with fewer false positives. Medium thresholds between 0.85 and 0.95 balance coverage and accuracy. Low thresholds below 0.85 enable broad matching but risk returning incorrect responses.
 
 ### Memory Management
 
-The cache component automatically manages memory through:
-- **Eviction policies**: LRU (Least Recently Used) by default
-- **Max memory limits**: Configurable memory settings
-- **Key expiration**: Automatic cleanup of expired entries
+The cache component automatically manages memory through LRU (Least Recently Used) eviction policies that remove the oldest accessed entries first. Configurable memory limits prevent unbounded growth. Automatic key expiration cleans up entries that have exceeded their TTL.
 
 ## Performance Impact
 
@@ -168,22 +135,12 @@ Typical performance improvements with caching enabled:
 
 ### Cache Not Working
 
-Check:
-1. Cache service is running
-2. Cache enabled in config: `llm-cache,true`
-3. TTL not expired
-4. Similarity threshold not too high
+If caching isn't working as expected, verify that the cache service is running and accessible. Confirm caching is enabled in your config with `llm-cache,true`. Check that the TTL hasn't expired for entries you expect to be cached. Review the similarity threshold to ensure it isn't set too high for your use case.
 
 ### Clear Cache
 
-Cache is managed automatically. To clear cache manually, restart the cache component or use the admin API endpoint `/api/admin/cache/clear`.
+Cache is managed automatically through TTL expiration and eviction policies. To clear the cache manually, restart the cache component or use the admin API endpoint `/api/admin/cache/clear`.
 
 ## Summary
 
-The semantic caching system in BotServer provides intelligent response caching that:
-- Reduces response latency by 10-100x
-- Cuts API costs by 90%+
-- Maintains response quality through semantic matching
-- Scales automatically with the cache component
-
-Configure caching based on your bot's needs, monitor performance metrics, and tune parameters for optimal results.
+The semantic caching system in BotServer provides intelligent response caching that reduces response latency by 10-100x and cuts API costs by 90% or more. Response quality is maintained through semantic matching that understands query intent rather than requiring exact matches. The system scales automatically with the cache component to handle increasing load. Configure caching based on your bot's needs, monitor performance metrics, and tune parameters for optimal results.

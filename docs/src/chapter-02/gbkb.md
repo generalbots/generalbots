@@ -1,80 +1,67 @@
 # .gbkb Knowledge Base
 
-The `.gbkb` package manages knowledge base collections that provide contextual information to the bot during conversations.
+The `.gbkb` package contains your bot's domain knowledge - documents that the AI uses to answer questions accurately about your specific organization, products, or services.
 
-## What is .gbkb?
+## What It Does
 
-`.gbkb` (General Bot Knowledge Base) collections store:
-- Document collections for semantic search
-- Vector embeddings for similarity matching
-- Metadata and indexing information
-- Access control and organization
+When you place documents in a `.gbkb` folder, the system automatically:
 
-## Knowledge Base Structure
+1. **Extracts text** from your files (PDF, DOCX, TXT, MD, HTML, CSV)
+2. **Creates searchable indexes** using vector embeddings
+3. **Enables semantic search** so users can ask questions naturally
 
-Each `.gbkb` collection is organized as:
+This means your bot answers based on YOUR documents, not just general AI knowledge.
+
+## Folder Structure
 
 ```
-collection-name.gbkb/
-  documents/
-    doc1.pdf
-    doc2.txt
-    doc3.html
-  embeddings/          # Auto-generated
-  metadata.json       # Collection info
-  index.json         # Search indexes
+mybot.gbai/
+└── mybot.gbkb/
+    ├── policies/           ← Collection: "policies"
+    │   ├── vacation.pdf
+    │   └── handbook.docx
+    ├── products/           ← Collection: "products"
+    │   ├── catalog.pdf
+    │   └── specs.xlsx
+    └── support/            ← Collection: "support"
+        └── faq.md
 ```
 
-## Supported Formats
+Each subfolder becomes a **collection** you can activate independently.
 
-The knowledge base can process:
-- **Text files**: .txt, .md, .html
-- **Documents**: .pdf, .docx
-- **Web content**: URLs and web pages
-- **Structured data**: .csv, .json
+## Using in BASIC Scripts
 
-## Vector Embeddings
-
-Each document is processed into vector embeddings using:
-- BGE-small-en-v1.5 model (default)
-- Chunking for large documents
-- Metadata extraction and indexing
-- Semantic similarity scoring
-
-## Collection Management
-
-### Creating Collections
 ```basic
-USE KB "company-policies"
-USE WEBSITE "https://company.com/docs"
-```
-
-### Using Collections
-```basic
-USE KB "company-policies"
-TALK "What would you like to know about company policies?"
-' The system AI will search the KB automatically when responding
-```
-
-### Multiple Collections
-```basic
+' Activate collections for this conversation
 USE KB "policies"
-USE KB "procedures"
-USE KB "faqs"
-REM All active collections contribute to context
+USE KB "products"
+
+' Now the AI automatically searches these when answering
+TALK "How can I help you today?"
+
+' Later, clear when done
+CLEAR KB "policies"
 ```
 
-## Semantic Search
+## Supported File Types
 
-The knowledge base provides:
-- **Similarity search**: Find relevant documents
-- **Hybrid search**: Combine semantic and keyword
-- **Context injection**: Automatically add to LLM prompts
-- **Relevance scoring**: Filter by similarity threshold
+| Format | Extensions |
+|--------|------------|
+| PDF | `.pdf` |
+| Word | `.docx`, `.doc` |
+| Text | `.txt`, `.md` |
+| Web | `.html` |
+| Data | `.csv`, `.json` |
 
-## Integration with Dialogs
+## Key Points
 
-Knowledge bases are automatically used when:
-- `USE KB` is called
-- Answer mode is set to use documents
-- LLM queries benefit from contextual information
+- **Automatic indexing** - Just drop files in folders
+- **Semantic search** - Users don't need exact keywords
+- **Multiple collections** - Organize by topic, activate as needed
+- **No code required** - The AI handles search automatically
+
+## Learn More
+
+- [Chapter 03: Knowledge Base System](../chapter-03/README.md) - Technical deep-dive on indexing, vectors, and search
+- [USE KB Keyword](../chapter-06-gbdialog/keyword-use-kb.md) - Complete keyword reference
+- [CLEAR KB Keyword](../chapter-06-gbdialog/keyword-clear-kb.md) - Managing active collections

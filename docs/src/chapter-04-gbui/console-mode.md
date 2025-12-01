@@ -37,22 +37,16 @@ The console displays real-time information about your running BotServer instance
 ## Console Features
 
 ### Status Overview
-- Server status (Running/Stopped)
-- Uptime counter
-- Port information
-- Component health checks
+
+The status overview displays the server's current state including whether it is running or stopped, an uptime counter showing how long the server has been active, the port the server is listening on, and health checks for all connected components.
 
 ### Session Information
-- Count of active sessions
-- Daily message count
-- Recent activity indicators
+
+Session information provides visibility into current activity with a count of active sessions, the total number of messages processed today, and recent activity indicators that show when the last interactions occurred.
 
 ### Component Status
-Real-time status of all components:
-- Database connectivity
-- Cache status
-- Storage availability
-- Vector database status
+
+Real-time status monitoring covers all infrastructure components including database connectivity to PostgreSQL, cache service status, storage availability for file operations, and vector database connection status for semantic search functionality.
 
 ## Keyboard Controls
 
@@ -65,7 +59,7 @@ Real-time status of all components:
 
 ## Console Output
 
-The console provides basic logging output:
+The console provides basic logging output showing timestamped events as they occur:
 
 ```
 [2024-01-15 10:23:45] Server started on port 8080
@@ -79,52 +73,35 @@ The console provides basic logging output:
 ## Using Console Mode
 
 ### Development
-Console mode is useful during development to monitor:
-- Component initialization
-- Connection status
-- Error messages
-- Session activity
+
+Console mode is particularly useful during development for monitoring component initialization, tracking connection status, observing error messages as they occur, and watching session activity in real time.
 
 ### Production
-In production, console mode can help with:
-- Quick status checks
-- Basic monitoring
-- Troubleshooting connection issues
+
+In production environments, console mode helps with quick status checks when you need immediate visibility, basic monitoring of system health, and troubleshooting connection issues without accessing the web interface.
 
 ## Limitations
 
-Console mode provides basic monitoring only. For detailed analytics:
-- Check PostgreSQL directly for session data
-- Use system logs for detailed error information
-- Monitor cache for statistics
-- Review application logs for debugging
+Console mode provides basic monitoring only and is not intended for detailed analytics. For comprehensive data analysis, query PostgreSQL directly for session data. System logs contain detailed error information for debugging. The cache service provides its own statistics interface. Application logs offer the most complete picture for troubleshooting complex issues.
 
 ## Terminal Requirements
 
-- Supports any terminal with basic text output
-- UTF-8 support recommended for box drawing
-- Minimum 80 columns width recommended
-- Works over SSH connections
+Console mode supports any terminal with basic text output capabilities. UTF-8 support is recommended to properly render box drawing characters. A minimum width of 80 columns is recommended for optimal display. The console works over SSH connections, making it suitable for remote server monitoring.
 
 ## Tips
 
-- Console mode is read-only - it doesn't accept bot commands
-- For interactive bot testing, use the web interface at http://localhost:8080
-- Console refreshes automatically every few seconds
-- Output is buffered for performance
+Console mode operates in read-only fashion and does not accept bot commands. For interactive bot testing, use the web interface available at http://localhost:8080. The display refreshes automatically every few seconds to show current status. Output is buffered for performance to avoid slowing down the server during high activity periods.
 
 ## Troubleshooting
 
 ### Console Not Updating
-- Check terminal compatibility
-- Ensure proper permissions
-- Verify components are running
+
+If the console stops updating, check terminal compatibility with your emulator, ensure the process has proper permissions to write to the terminal, and verify that all components are running and responsive.
 
 ### Display Issues
-- Try a different terminal emulator
-- Check terminal encoding (should be UTF-8)
-- Resize terminal window if text is cut off
+
+Display problems can often be resolved by trying a different terminal emulator. Check that your terminal encoding is set to UTF-8 for proper character rendering. If text appears cut off, resize the terminal window to provide adequate width for the display.
 
 ## Summary
 
-Console mode provides a simple, lightweight way to monitor BotServer status without needing a web browser. It's ideal for quick checks and basic monitoring, but for full functionality, use the web interface.
+Console mode provides a simple, lightweight way to monitor BotServer status without needing a web browser. It's ideal for quick checks and basic monitoring, but for full functionality including interactive bot testing and detailed analytics, use the web interface.

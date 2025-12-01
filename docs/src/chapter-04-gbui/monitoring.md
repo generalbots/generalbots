@@ -8,31 +8,15 @@ Your General Bots deployment is a living ecosystem of interconnected components.
 
 ![Live Monitoring Organism](../assets/suite/live-monitoring-organism.svg)
 
-This animated diagram shows:
-- **BotServer** (center) - The core that orchestrates all interactions
-- **Data Layer** (left) - PostgreSQL, Qdrant, and MinIO for storage
-- **Services** (right) - BotModels, Vault, Cache for AI and security
-- **Analytics** (bottom) - InfluxDB for metrics collection
-- **Connection flows** - Animated data packets showing real-time communication
+This animated diagram illustrates BotServer at the center orchestrating all interactions, with the data layer on the left comprising PostgreSQL, Qdrant, and MinIO for storage. Services on the right include BotModels, Vault, and Cache for AI and security functionality. Analytics at the bottom shows InfluxDB collecting metrics. The animated connection flows represent real-time data packets moving between components.
 
 ## Overview
 
-Access the Monitoring tab from the Suite interface to view:
-- Active sessions and conversations
-- Message throughput
-- System resources (CPU, GPU, Memory)
-- Service health status
-- Bot activity metrics
+Access the Monitoring tab from the Suite interface to view active sessions and conversations, message throughput statistics, system resources including CPU, GPU, and memory utilization, service health status for all components, and bot activity metrics across your deployment.
 
 ## Dashboard Layout
 
-The monitoring interface uses a hierarchical tree view for organized data display with the following panels:
-
-- **Sessions** - Active connections, peak usage, average duration
-- **Messages** - Daily totals, hourly rates, response times
-- **Resources** - CPU, Memory, GPU, and Disk utilization with progress bars
-- **Services** - Health status of PostgreSQL, Qdrant, Cache, Drive, BotModels
-- **Active Bots** - List of running bots with session counts
+The monitoring interface uses a hierarchical tree view for organized data display. The Sessions panel shows active connections, peak usage, and average duration. The Messages panel displays daily totals, hourly rates, and response times. The Resources panel presents CPU, Memory, GPU, and Disk utilization with visual progress bars. The Services panel indicates health status of PostgreSQL, Qdrant, Cache, Drive, and BotModels. The Active Bots panel lists all running bots with their respective session counts.
 
 ## Metrics Explained
 
@@ -73,15 +57,11 @@ The monitoring interface uses a hierarchical tree view for organized data displa
 
 ## Real-Time Updates
 
-The dashboard refreshes automatically using HTMX polling:
-- Session counts: Every 5 seconds
-- Message metrics: Every 10 seconds
-- Resource usage: Every 15 seconds
-- Service health: Every 30 seconds
+The dashboard refreshes automatically using HTMX polling at different intervals depending on the metric type. Session counts update every 5 seconds for immediate visibility into user activity. Message metrics refresh every 10 seconds to show current throughput. Resource usage updates every 15 seconds since hardware metrics change more gradually. Service health checks run every 30 seconds to detect component issues without excessive overhead.
 
 ## Accessing via API
 
-Monitoring data is available programmatically:
+Monitoring data is available programmatically through the REST API:
 
 ```
 GET /api/monitoring/status
@@ -118,7 +98,7 @@ GET /api/monitoring/status
 
 ## Understanding Component Health
 
-Each component in the system has specific health indicators:
+Each component in the system has specific health indicators that help identify potential issues before they impact users.
 
 | Component | Health Check | Warning Signs |
 |-----------|--------------|---------------|
@@ -132,7 +112,7 @@ Each component in the system has specific health indicators:
 
 ## Console Mode
 
-In console mode, monitoring displays as text output:
+In console mode, monitoring displays as text output suitable for terminal environments and SSH sessions:
 
 ```bash
 ./botserver --console --monitor
@@ -149,7 +129,7 @@ Services: 4/5 running
 
 ## Alerts Configuration
 
-Configure alert thresholds in `config.csv`. Example values:
+Configure alert thresholds in `config.csv` to receive notifications when metrics exceed acceptable levels:
 
 ```csv
 name,value
@@ -160,79 +140,50 @@ alert-response-time-ms,5000
 alert-email,admin@example.com
 ```
 
-**Note**: These are example configuration values. Adjust thresholds based on your infrastructure and requirements.
+These are example configuration values that should be adjusted based on your infrastructure capacity and operational requirements.
 
 ## Bot-Specific Metrics
 
-View metrics for individual bots:
+View metrics for individual bots by querying the bot-specific endpoint:
 
 ```
 GET /api/monitoring/bots/{bot_id}
 ```
 
-Returns:
-- Message count for this bot
-- Active sessions for this bot
-- Average response time
-- KB query statistics
-- Tool execution counts
+This returns message count for the specific bot, active sessions currently connected to it, average response time for that bot's interactions, knowledge base query statistics showing search performance, and tool execution counts indicating which tools are used most frequently.
 
 ## Historical Data
 
-Access historical metrics:
+Access historical metrics to analyze trends and patterns over time:
 
 ```
 GET /api/monitoring/history?period=24h
 ```
 
-Supported periods:
-- `1h` - Last hour (minute granularity)
-- `24h` - Last 24 hours (hourly granularity)
-- `7d` - Last 7 days (daily granularity)
-- `30d` - Last 30 days (daily granularity)
+Supported periods include `1h` for the last hour with minute granularity, `24h` for the last 24 hours with hourly granularity, `7d` for the last 7 days with daily granularity, and `30d` for the last 30 days with daily granularity. Historical data helps identify patterns and plan capacity improvements.
 
 ## Performance Tips
 
-1. **High CPU Usage**
-   - Check for complex BASIC scripts
-   - Review LLM call frequency
-   - Consider semantic caching
+When experiencing high CPU usage, check for complex BASIC scripts that may be computationally expensive, review LLM call frequency to identify unnecessary AI invocations, and consider enabling semantic caching to reduce redundant processing.
 
-2. **High Memory Usage**
-   - Reduce `max-context-messages`
-   - Clear unused KB collections
-   - Restart services to clear caches
+For high memory usage, reduce the `max-context-messages` configuration to limit conversation history size, clear unused KB collections that consume memory for vector storage, and restart services periodically to clear accumulated caches.
 
-3. **Slow Response Times**
-   - Enable semantic caching
-   - Optimize KB document sizes
-   - Use faster LLM models
+When response times are slow, enable semantic caching to serve repeated queries instantly, optimize KB document sizes by splitting large documents, and consider using faster LLM models that trade some quality for speed.
 
 ## Integration with External Tools
 
-Export metrics for external monitoring:
+Export metrics in Prometheus format for integration with external monitoring systems:
 
 ```
 GET /api/monitoring/prometheus
 ```
 
-Compatible with:
-- Prometheus
-- Grafana
-- Datadog
-- New Relic
+This endpoint is compatible with Prometheus for metrics collection, Grafana for visualization dashboards, Datadog for cloud monitoring, and New Relic for application performance management.
 
 ## Monitoring Best Practices
 
-1. **Check the live diagram regularly** - The animated SVG shows real-time data flow
-2. **Set up alerts early** - Don't wait for problems to configure notifications
-3. **Monitor trends, not just values** - A slow increase in CPU is as important as a spike
-4. **Keep historical data** - Use InfluxDB retention policies to maintain useful history
-5. **Correlate metrics** - High response time + high CPU usually means scaling needed
+Check the live diagram regularly since the animated SVG shows real-time data flow and helps visualize system behavior. Set up alerts early rather than waiting for problems to occur before configuring notifications. Monitor trends in addition to absolute values because a gradual increase in CPU usage can be as significant as a sudden spike. Keep historical data by configuring InfluxDB retention policies to maintain useful history for capacity planning. Correlate metrics when troubleshooting since high response time combined with high CPU usually indicates a need for scaling.
 
 ## See Also
 
-- [How-To: Monitor Your Bot](./how-to/monitor-sessions.md) - Step-by-step monitoring tutorial
-- [Console Mode](./console-mode.md) - Command-line interface
-- [Settings](../chapter-08-config/README.md) - Configuration options
-- [Monitoring API](../chapter-10-api/monitoring-api.md) - Full API reference
+The monitoring tutorial provides step-by-step guidance for monitoring your bot effectively. Console mode documentation covers the command-line interface for terminal-based monitoring. Configuration options explain all available settings. The Monitoring API reference provides complete endpoint documentation for programmatic access.

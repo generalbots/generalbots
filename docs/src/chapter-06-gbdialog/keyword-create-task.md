@@ -20,29 +20,25 @@ CREATE TASK title, description, assignee, due_date, priority
 
 ## Description
 
-The `CREATE TASK` keyword creates tasks in the task engine system with:
-
-- Automatic assignment to users or groups
-- Due date tracking and reminders
-- Priority-based organization
-- Integration with calendar system
-- Email notifications to assignees
-- Progress tracking capabilities
+The `CREATE TASK` keyword creates tasks in the task engine system with automatic assignment to users or groups, due date tracking and reminders, priority-based organization, integration with the calendar system, email notifications to assignees, and progress tracking capabilities.
 
 ## Examples
 
 ### Basic Task Creation
+
 ```basic
 CREATE TASK "Review proposal", "Review and provide feedback on Q4 proposal", "john@example.com", "2024-01-15", "high"
 ```
 
 ### Task with Current User
+
 ```basic
 user_email = GET "user.email"
 CREATE TASK "Follow up", "Contact customer about renewal", user_email, "tomorrow", "medium"
 ```
 
 ### Bulk Task Creation
+
 ```basic
 team = ["alice@example.com", "bob@example.com", "carol@example.com"]
 FOR EACH member IN team
@@ -51,6 +47,7 @@ NEXT
 ```
 
 ### Task from User Input
+
 ```basic
 task_info = HEAR "What task should I create?"
 CREATE TASK task_info, "User requested task", "support@example.com", "today", "high"
@@ -59,40 +56,26 @@ TALK "Task created and assigned to support team"
 
 ## Return Value
 
-Returns a task object containing:
-- `task_id`: Unique task identifier
-- `status`: Task status ("created", "assigned", "in_progress", "completed")
-- `created_at`: Creation timestamp
-- `url`: Link to task in web interface
-- `reminder_set`: Whether reminder was configured
+The keyword returns a task object containing the `task_id` as a unique task identifier, `status` indicating the task state (such as "created", "assigned", "in_progress", or "completed"), `created_at` with the creation timestamp, `url` providing a link to the task in the web interface, and `reminder_set` indicating whether a reminder was configured.
 
 ## Task Statuses
 
-Tasks progress through these statuses:
-1. `created` - Initial creation
-2. `assigned` - Assigned to user
-3. `in_progress` - Work started
-4. `blocked` - Waiting on dependency
-5. `completed` - Task finished
-6. `cancelled` - Task cancelled
+Tasks progress through a defined lifecycle. The `created` status indicates initial creation, followed by `assigned` when the task has been assigned to a user. Once work begins, the status changes to `in_progress`. If the task is waiting on a dependency, it enters the `blocked` state. When finished, it reaches `completed`, or alternatively `cancelled` if the task was terminated without completion.
 
 ## Integration Points
 
 ### Calendar Integration
-Tasks automatically appear in assignee's calendar if:
-- Due date is specified
-- Calendar integration is enabled
-- User has calendar permissions
+
+Tasks automatically appear in the assignee's calendar when a due date is specified, calendar integration is enabled, and the user has calendar permissions.
 
 ### Email Notifications
-Sends notifications for:
-- Task assignment
-- Due date reminders
-- Status changes
-- Comments added
+
+The system sends notifications for task assignment, due date reminders, status changes, and when comments are added.
 
 ### Task Dependencies
-Can link tasks together:
+
+Tasks can be linked together to create parent-child relationships:
+
 ```basic
 parent_task = CREATE TASK "Project", "Main project", "pm@example.com", "next month", "high"
 subtask = CREATE TASK "Research", "Initial research", "analyst@example.com", "next week", "medium"
@@ -110,45 +93,31 @@ LINK_TASKS parent_task.task_id, subtask.task_id
 
 ## Date Formats
 
-Supports multiple date formats:
-- Absolute: `"2024-01-15"`, `"01/15/2024"`
-- Relative: `"today"`, `"tomorrow"`, `"next week"`, `"in 3 days"`
-- Natural: `"Monday"`, `"next Friday"`, `"end of month"`
+The keyword supports multiple date formats. Absolute dates can be specified as "2024-01-15" or "01/15/2024". Relative dates include "today", "tomorrow", "next week", and "in 3 days". Natural language formats like "Monday", "next Friday", and "end of month" are also supported.
 
 ## Error Handling
 
-- Validates assignee exists in system
-- Checks date is in the future
-- Verifies priority is valid
-- Returns error if task creation fails
-- Handles permission issues gracefully
+The keyword validates that the assignee exists in the system, checks that the date is in the future, verifies the priority is valid, returns an error if task creation fails, and handles permission issues gracefully.
 
 ## Permissions
 
-User must have one of:
-- Task creation permission
-- Project member status
-- Admin privileges
-- Delegation rights from assignee
+To create tasks, the user must have task creation permission, project member status, admin privileges, or delegation rights from the assignee.
 
 ## Best Practices
 
-1. **Clear Titles**: Use descriptive, action-oriented titles
-2. **Detailed Descriptions**: Include acceptance criteria
-3. **Realistic Dates**: Set achievable deadlines
-4. **Appropriate Priority**: Don't mark everything as urgent
-5. **Valid Assignees**: Verify user can handle the task
-6. **Follow Up**: Check task status periodically
+Use clear, action-oriented titles that describe what needs to be done. Include detailed descriptions with acceptance criteria so the assignee understands the requirements. Set realistic deadlines that can actually be achieved. Reserve high and urgent priorities for tasks that truly warrant them rather than marking everything as urgent. Verify the assignee can handle the task before assignment. Follow up periodically to check task status and provide assistance if needed.
 
 ## Advanced Usage
 
 ### Task Templates
+
 ```basic
 template = GET_TASK_TEMPLATE("customer_onboarding")
 CREATE TASK template.title, template.description, assigned_user, due_date, template.priority
 ```
 
 ### Conditional Creation
+
 ```basic
 IF urgency = "high" AND department = "support" THEN
     CREATE TASK "Urgent Support", issue_description, "support-lead@example.com", "today", "urgent"
@@ -158,6 +127,7 @@ END IF
 ```
 
 ### Task with Attachments
+
 ```basic
 task = CREATE TASK "Review document", "Please review attached", reviewer, deadline, "high"
 ' Note: Use document sharing systems for attachments
@@ -165,26 +135,12 @@ task = CREATE TASK "Review document", "Please review attached", reviewer, deadli
 
 ## Related Keywords
 
-- [BOOK](./keyword-book.md) - Schedule meetings instead of tasks
-- [SET SCHEDULE](./keyword-set-schedule.md) - Create recurring tasks
-- [SEND MAIL](./keyword-send-mail.md) - Send task notifications
-- [ADD MEMBER](./keyword-add-member.md) - Add users to task groups
+The [BOOK](./keyword-book.md) keyword schedules meetings instead of tasks. Use [SET SCHEDULE](./keyword-set-schedule.md) to create recurring tasks. The [SEND MAIL](./keyword-send-mail.md) keyword sends task notifications, and [ADD MEMBER](./keyword-add-member.md) adds users to task groups.
 
 ## Database Tables
 
-Tasks are stored in:
-- `tasks` - Main task records
-- `task_assignments` - User assignments
-- `task_comments` - Task discussions
-- `task_attachments` - Related files
-- `task_history` - Status changes
+Tasks are stored across several database tables. The `tasks` table holds main task records. User assignments are tracked in `task_assignments`. Discussions happen in `task_comments`. Related files are referenced in `task_attachments`. The `task_history` table records status changes over time.
 
 ## Implementation
 
-Located in `src/basic/keywords/create_task.rs`
-
-Integrates with:
-- Task engine module for task management
-- Calendar engine for scheduling
-- Email module for notifications
-- Storage module for attachments
+The CREATE TASK keyword is implemented in `src/basic/keywords/create_task.rs`. It integrates with the task engine module for task management, the calendar engine for scheduling, the email module for notifications, and the storage module for attachments.
