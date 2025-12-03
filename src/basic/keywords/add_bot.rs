@@ -13,7 +13,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -120,17 +120,35 @@ pub struct SessionBot {
 
 /// Register all bot-related keywords
 pub fn register_bot_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    add_bot_with_trigger_keyword(state.clone(), user.clone(), engine);
-    add_bot_with_tools_keyword(state.clone(), user.clone(), engine);
-    add_bot_with_schedule_keyword(state.clone(), user.clone(), engine);
-    remove_bot_keyword(state.clone(), user.clone(), engine);
-    list_bots_keyword(state.clone(), user.clone(), engine);
-    set_bot_priority_keyword(state.clone(), user.clone(), engine);
-    delegate_to_keyword(state.clone(), user.clone(), engine);
+    if let Err(e) = add_bot_with_trigger_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register ADD BOT WITH TRIGGER keyword: {}", e);
+    }
+    if let Err(e) = add_bot_with_tools_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register ADD BOT WITH TOOLS keyword: {}", e);
+    }
+    if let Err(e) = add_bot_with_schedule_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register ADD BOT WITH SCHEDULE keyword: {}", e);
+    }
+    if let Err(e) = remove_bot_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register REMOVE BOT keyword: {}", e);
+    }
+    if let Err(e) = list_bots_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register LIST BOTS keyword: {}", e);
+    }
+    if let Err(e) = set_bot_priority_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register SET BOT PRIORITY keyword: {}", e);
+    }
+    if let Err(e) = delegate_to_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register DELEGATE TO keyword: {}", e);
+    }
 }
 
 /// ADD BOT "name" WITH TRIGGER "keywords"
-fn add_bot_with_trigger_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn add_bot_with_trigger_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -197,11 +215,16 @@ fn add_bot_with_trigger_keyword(state: Arc<AppState>, user: UserSession, engine:
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// ADD BOT "name" WITH TOOLS "tool1, tool2"
-fn add_bot_with_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn add_bot_with_tools_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -268,11 +291,16 @@ fn add_bot_with_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// ADD BOT "name" WITH SCHEDULE "cron"
-fn add_bot_with_schedule_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn add_bot_with_schedule_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -333,11 +361,16 @@ fn add_bot_with_schedule_keyword(state: Arc<AppState>, user: UserSession, engine
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// REMOVE BOT "name"
-fn remove_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn remove_bot_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -378,11 +411,16 @@ fn remove_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engi
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// LIST BOTS
-fn list_bots_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn list_bots_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -428,11 +466,16 @@ fn list_bots_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                 rhai::Position::NONE,
             ))),
         }
-    });
+    })?;
+    Ok(())
 }
 
 /// SET BOT PRIORITY "name", priority
-fn set_bot_priority_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn set_bot_priority_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -482,11 +525,16 @@ fn set_bot_priority_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// DELEGATE TO "bot" WITH CONTEXT
-fn delegate_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn delegate_to_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -527,7 +575,8 @@ fn delegate_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 // ============================================================================
@@ -538,7 +587,7 @@ fn delegate_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 async fn add_bot_to_session(
     state: &AppState,
     session_id: Uuid,
-    parent_bot_id: Uuid,
+    _parent_bot_id: Uuid,
     bot_name: &str,
     trigger: BotTrigger,
 ) -> Result<String, String> {
@@ -701,18 +750,39 @@ async fn delegate_to_bot(
     .get_result(&mut *conn)
     .ok();
 
-    if bot_config.is_none() {
-        return Err(format!("Bot '{}' not found", bot_name));
-    }
+    let config = match bot_config {
+        Some(cfg) => cfg,
+        None => return Err(format!("Bot '{}' not found", bot_name)),
+    };
 
-    // Mark delegation in session
+    // Log delegation details for debugging
+    trace!(
+        "Delegating to bot: id={}, name={}, has_system_prompt={}, has_model_config={}",
+        config.id,
+        config.name,
+        config.system_prompt.is_some(),
+        config.model_config.is_some()
+    );
+
+    // Mark delegation in session with bot ID for proper tracking
     diesel::sql_query("UPDATE sessions SET delegated_to = $1, delegated_at = NOW() WHERE id = $2")
-        .bind::<diesel::sql_types::Text, _>(bot_name)
+        .bind::<diesel::sql_types::Text, _>(&config.id)
         .bind::<diesel::sql_types::Text, _>(session_id.to_string())
         .execute(&mut *conn)
         .map_err(|e| format!("Failed to delegate: {}", e))?;
 
-    Ok(format!("Conversation delegated to '{}'", bot_name))
+    // Build response message with bot info
+    let response = if let Some(ref prompt) = config.system_prompt {
+        format!(
+            "Conversation delegated to '{}' (specialized: {})",
+            config.name,
+            prompt.chars().take(50).collect::<String>()
+        )
+    } else {
+        format!("Conversation delegated to '{}'", config.name)
+    };
+
+    Ok(response)
 }
 
 // ============================================================================

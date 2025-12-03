@@ -178,7 +178,7 @@ fn parse_at_time(input: &str) -> Option<String> {
     parse_time_to_cron(time_str, "*", "*")
 }
 
-fn parse_time_to_cron(time_str: &str, hour_default: &str, dow: &str) -> Option<String> {
+fn parse_time_to_cron(time_str: &str, _hour_default: &str, dow: &str) -> Option<String> {
     // midnight
     if time_str == "midnight" {
         return Some(format!("0 0 * * {}", dow));

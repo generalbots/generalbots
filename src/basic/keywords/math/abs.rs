@@ -15,8 +15,6 @@ pub fn abs_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     #[test]
     fn test_abs_positive() {
         assert_eq!(42_i64.abs(), 42);

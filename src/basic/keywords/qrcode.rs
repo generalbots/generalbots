@@ -317,7 +317,7 @@ pub fn generate_qr_code_with_logo(
     logo_path: &str,
     output_path: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    use image::{imageops, DynamicImage, GenericImageView, Rgba, RgbaImage};
+    use image::{imageops, DynamicImage, Rgba, RgbaImage};
 
     // Generate QR code with higher error correction for logo overlay
     let code = QrCode::with_error_correction_level(data.as_bytes(), qrcode::EcLevel::H)?;
@@ -362,9 +362,6 @@ mod tests {
 
     #[test]
     fn test_qr_code_generation() {
-        let temp_dir = std::env::temp_dir();
-        let output_path = temp_dir.join("test_qr.png");
-
         // Create a mock state and user for testing
         // In real tests, you'd set up proper test fixtures
         let result = QrCode::new(b"https://example.com");

@@ -39,8 +39,8 @@ use std::error::Error;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
-/// Thread-local storage for HTTP headers
 thread_local! {
+    // Thread-local storage for HTTP headers
     static HTTP_HEADERS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
 }
 
@@ -248,7 +248,7 @@ pub fn register_delete_http_keyword(state: Arc<AppState>, _user: UserSession, en
     let _state_clone = Arc::clone(&state);
 
     // DELETE HTTP (space-separated - preferred)
-    let state_clone2 = Arc::clone(&state);
+    let _state_clone2 = Arc::clone(&state);
     engine
         .register_custom_syntax(
             &["DELETE", "HTTP", "$expr$"],

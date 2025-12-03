@@ -7,6 +7,7 @@ pub enum TreeNode {
     Folder { bucket: String, path: String },
     File { bucket: String, path: String },
 }
+#[derive(Debug)]
 pub struct FileTree {
     app_state: Arc<AppState>,
     items: Vec<(String, TreeNode)>,
@@ -229,6 +230,10 @@ impl FileTree {
         Ok(())
     }
     pub fn render_items(&self) -> &[(String, TreeNode)] {
+        &self.items
+    }
+    /// Get items for external conversion (used by drive module)
+    pub fn get_items(&self) -> &[(String, TreeNode)] {
         &self.items
     }
     pub fn selected_index(&self) -> usize {

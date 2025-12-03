@@ -6,7 +6,7 @@ use axum::{
     extract::{Json, Path, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{delete, get, post, put},
+    routing::{delete, get, post},
     Router,
 };
 use serde::{Deserialize, Serialize};
@@ -79,25 +79,14 @@ pub async fn provision_user_handler(
     }
 
     // Get provisioning service
-    let db_conn = match state.conn.get() {
-        Ok(conn) => Arc::new(conn),
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(UserResponse {
-                    success: false,
-                    message: format!("Database connection failed: {}", e),
-                    user_id: None,
-                }),
-            );
-        }
-    };
+    let s3_client = state.s3_client.clone().map(Arc::new);
+    let base_url = state
+        .config
+        .as_ref()
+        .map(|c| c.server.base_url.clone())
+        .unwrap_or_else(|| "http://localhost:8080".to_string());
 
-    let provisioning = UserProvisioningService::new(
-        db_conn,
-        state.drive.clone(),
-        state.config.server.base_url.clone(),
-    );
+    let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
     // Provision the user
     match provisioning.provision_user(&account).await {
@@ -125,25 +114,14 @@ pub async fn deprovision_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
-    let db_conn = match state.conn.get() {
-        Ok(conn) => Arc::new(conn),
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(UserResponse {
-                    success: false,
-                    message: format!("Database connection failed: {}", e),
-                    user_id: None,
-                }),
-            );
-        }
-    };
+    let s3_client = state.s3_client.clone().map(Arc::new);
+    let base_url = state
+        .config
+        .as_ref()
+        .map(|c| c.server.base_url.clone())
+        .unwrap_or_else(|| "http://localhost:8080".to_string());
 
-    let provisioning = UserProvisioningService::new(
-        db_conn,
-        state.drive.clone(),
-        state.config.server.base_url.clone(),
-    );
+    let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
     match provisioning.deprovision_user(&id).await {
         Ok(_) => (
@@ -173,7 +151,7 @@ pub async fn get_user_handler(
     use crate::shared::models::schema::users;
     use diesel::prelude::*;
 
-    let conn = match state.conn.get() {
+    let mut conn = match state.conn.get() {
         Ok(conn) => conn,
         Err(e) => {
             return (
@@ -198,7 +176,7 @@ pub async fn get_user_handler(
     };
 
     let user_result: Result<(uuid::Uuid, String, String, bool), _> = users::table
-        .filter(users::id.eq(&user_uuid))
+        .filter(users::id.eq(user_uuid))
         .select((users::id, users::username, users::email, users::is_admin))
         .first(&mut conn);
 
@@ -226,7 +204,7 @@ pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl Into
     use crate::shared::models::schema::users;
     use diesel::prelude::*;
 
-    let conn = match state.conn.get() {
+    let mut conn = match state.conn.get() {
         Ok(conn) => conn,
         Err(e) => {
             return (
@@ -284,8 +262,10 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
     status.database = state.conn.get().is_ok();
 
     // Check S3/MinIO
-    if let Ok(result) = state.drive.list_buckets().send().await {
-        status.drive = result.buckets.is_some();
+    if let Some(s3_client) = &state.s3_client {
+        if let Ok(result) = s3_client.list_buckets().send().await {
+            status.drive = result.buckets.is_some();
+        }
     }
 
     // Check Directory (Zitadel)

@@ -1,7 +1,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::debug;
-use rhai::{Dynamic, Engine};
+use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
 
 /// Registers the ISEMPTY function for checking if a value is empty
@@ -25,19 +25,13 @@ use std::sync::Arc;
 ///   empty_check = ISEMPTY([])      ' Returns TRUE
 pub fn isempty_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     // ISEMPTY - uppercase version
-    engine.register_fn("ISEMPTY", |value: Dynamic| -> bool {
-        check_empty(&value)
-    });
+    engine.register_fn("ISEMPTY", |value: Dynamic| -> bool { check_empty(&value) });
 
     // isempty - lowercase version
-    engine.register_fn("isempty", |value: Dynamic| -> bool {
-        check_empty(&value)
-    });
+    engine.register_fn("isempty", |value: Dynamic| -> bool { check_empty(&value) });
 
     // IsEmpty - mixed case version
-    engine.register_fn("IsEmpty", |value: Dynamic| -> bool {
-        check_empty(&value)
-    });
+    engine.register_fn("IsEmpty", |value: Dynamic| -> bool { check_empty(&value) });
 
     debug!("Registered ISEMPTY keyword");
 }
@@ -65,7 +59,7 @@ fn check_empty(value: &Dynamic) -> bool {
 
     // Check for empty map
     if value.is_map() {
-        if let Ok(map) = value.as_map() {
+        if let Some(map) = value.clone().try_cast::<Map>() {
             return map.is_empty();
         }
     }

@@ -1,16 +1,29 @@
 use anyhow::Result;
 use aws_sdk_s3::Client as S3Client;
+use diesel::r2d2::{ConnectionManager, Pool};
 use diesel::PgConnection;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
-use std::path::PathBuf;
+
 use std::sync::Arc;
+use uuid::Uuid;
+
+/// Database pool type alias
+pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 /// User provisioning service that creates accounts across all integrated services
 pub struct UserProvisioningService {
-    db_conn: Arc<PgConnection>,
-    s3_client: Arc<S3Client>,
+    db_pool: DbPool,
+    s3_client: Option<Arc<S3Client>>,
     base_url: String,
+}
+
+impl std::fmt::Debug for UserProvisioningService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("UserProvisioningService")
+            .field("base_url", &self.base_url)
+            .field("has_s3_client", &self.s3_client.is_some())
+            .finish_non_exhaustive()
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -40,17 +53,31 @@ pub enum UserRole {
 }
 
 impl UserProvisioningService {
-    pub fn new(db_conn: Arc<PgConnection>, s3_client: Arc<S3Client>, base_url: String) -> Self {
+    pub fn new(db_pool: DbPool, s3_client: Option<Arc<S3Client>>, base_url: String) -> Self {
         Self {
-            db_conn,
+            db_pool,
             s3_client,
             base_url,
         }
     }
 
+    /// Get the base URL for the directory service
+    pub fn get_base_url(&self) -> &str {
+        &self.base_url
+    }
+
+    /// Build a user profile URL
+    pub fn build_profile_url(&self, username: &str) -> String {
+        format!("{}/users/{}/profile", self.base_url, username)
+    }
+
     /// Create a new user across all services
     pub async fn provision_user(&self, account: &UserAccount) -> Result<()> {
-        log::info!("Provisioning user: {}", account.username);
+        log::info!(
+            "Provisioning user: {} via directory at {}",
+            account.username,
+            self.base_url
+        );
 
         // 1. Create user in database using existing user management
         let user_id = self.create_database_user(account).await?;
@@ -68,52 +95,66 @@ impl UserProvisioningService {
         // 4. Setup OAuth linking in configuration
         self.setup_oauth_config(&user_id, account).await?;
 
-        log::info!("User {} provisioned successfully", account.username);
+        // Log profile URL for reference
+        let profile_url = self.build_profile_url(&account.username);
+        log::info!(
+            "User {} provisioned successfully. Profile: {}",
+            account.username,
+            profile_url
+        );
         Ok(())
     }
 
     async fn create_database_user(&self, account: &UserAccount) -> Result<String> {
         use crate::shared::models::schema::users;
-        use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
+        use argon2::{
+            password_hash::{rand_core::OsRng, SaltString},
+            Argon2, PasswordHasher,
+        };
         use diesel::prelude::*;
-        use uuid::Uuid;
 
-        let user_id = Uuid::new_v4().to_string();
-        let salt = SaltString::generate(&mut rand::rngs::OsRng);
+        let user_id = Uuid::new_v4();
+        let salt = SaltString::generate(&mut OsRng);
         let argon2 = Argon2::default();
         let password_hash = argon2
             .hash_password(Uuid::new_v4().to_string().as_bytes(), &salt)
             .map_err(|e| anyhow::anyhow!("Password hashing failed: {}", e))?
             .to_string();
 
+        let mut conn = self
+            .db_pool
+            .get()
+            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         diesel::insert_into(users::table)
             .values((
-                users::id.eq(&user_id),
+                users::id.eq(user_id),
                 users::username.eq(&account.username),
                 users::email.eq(&account.email),
                 users::password_hash.eq(&password_hash),
                 users::is_admin.eq(account.is_admin),
                 users::created_at.eq(chrono::Utc::now()),
             ))
-            .execute(&*self.db_conn)?;
+            .execute(&mut conn)?;
 
-        Ok(user_id)
+        Ok(user_id.to_string())
     }
 
     async fn create_s3_home(&self, account: &UserAccount, bot_access: &BotAccess) -> Result<()> {
+        let s3_client = match &self.s3_client {
+            Some(client) => client,
+            None => {
+                log::warn!("S3 client not configured, skipping S3 home creation");
+                return Ok(());
+            }
+        };
+
         let bucket_name = format!("{}.gbdrive", bot_access.bot_name);
         let home_path = format!("home/{}/", account.username);
 
         // Ensure bucket exists
-        match self
-            .s3_client
-            .head_bucket()
-            .bucket(&bucket_name)
-            .send()
-            .await
-        {
+        match s3_client.head_bucket().bucket(&bucket_name).send().await {
             Err(_) => {
-                self.s3_client
+                s3_client
                     .create_bucket()
                     .bucket(&bucket_name)
                     .send()
@@ -123,7 +164,7 @@ impl UserProvisioningService {
         }
 
         // Create user home directory marker
-        self.s3_client
+        s3_client
             .put_object()
             .bucket(&bucket_name)
             .key(&home_path)
@@ -134,7 +175,7 @@ impl UserProvisioningService {
         // Create default folders
         for folder in &["documents", "projects", "shared"] {
             let folder_key = format!("{}{}/", home_path, folder);
-            self.s3_client
+            s3_client
                 .put_object()
                 .bucket(&bucket_name)
                 .key(&folder_key)
@@ -156,9 +197,16 @@ impl UserProvisioningService {
         use diesel::prelude::*;
 
         // Store email configuration in database
+        let mut conn = self
+            .db_pool
+            .get()
+            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
+
+        // Create a UUID for the user_id since the column expects UUID
+        let user_uuid = Uuid::new_v4();
         diesel::insert_into(user_email_accounts::table)
             .values((
-                user_email_accounts::user_id.eq(&account.username),
+                user_email_accounts::user_id.eq(user_uuid),
                 user_email_accounts::email.eq(&account.email),
                 user_email_accounts::imap_server.eq("localhost"),
                 user_email_accounts::imap_port.eq(993),
@@ -168,7 +216,7 @@ impl UserProvisioningService {
                 user_email_accounts::password_encrypted.eq("oauth"),
                 user_email_accounts::is_active.eq(true),
             ))
-            .execute(&*self.db_conn)?;
+            .execute(&mut conn)?;
 
         log::info!("Setup email configuration for: {}", account.email);
         Ok(())
@@ -186,10 +234,14 @@ impl UserProvisioningService {
             ("oauth-provider", "zitadel"),
         ];
 
+        let mut conn = self
+            .db_pool
+            .get()
+            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         for (key, value) in services {
             diesel::insert_into(bot_configuration::table)
                 .values((
-                    bot_configuration::bot_id.eq(uuid::Uuid::nil()),
+                    bot_configuration::bot_id.eq(Uuid::nil()),
                     bot_configuration::config_key.eq(key),
                     bot_configuration::config_value.eq(value),
                     bot_configuration::is_encrypted.eq(false),
@@ -200,7 +252,7 @@ impl UserProvisioningService {
                 .on_conflict((bot_configuration::bot_id, bot_configuration::config_key))
                 .do_update()
                 .set(bot_configuration::config_value.eq(value))
-                .execute(&*self.db_conn)?;
+                .execute(&mut conn)?;
         }
 
         log::info!("Setup OAuth configuration for user: {}", account.username);
@@ -224,40 +276,44 @@ impl UserProvisioningService {
         use crate::shared::models::schema::users;
         use diesel::prelude::*;
 
-        diesel::delete(users::table.filter(users::username.eq(username)))
-            .execute(&*self.db_conn)?;
+        let mut conn = self
+            .db_pool
+            .get()
+            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
+        diesel::delete(users::table.filter(users::username.eq(username))).execute(&mut conn)?;
 
         Ok(())
     }
 
     async fn remove_s3_data(&self, username: &str) -> Result<()> {
         // List all buckets and remove user home directories
-        let buckets_result = self.s3_client.list_buckets().send().await?;
+        if let Some(s3_client) = &self.s3_client {
+            let buckets_result = s3_client.list_buckets().send().await?;
 
-        if let Some(buckets) = buckets_result.buckets {
-            for bucket in buckets {
-                if let Some(name) = bucket.name {
-                    if name.ends_with(".gbdrive") {
-                        let prefix = format!("home/{}/", username);
+            if let Some(buckets) = buckets_result.buckets {
+                for bucket in buckets {
+                    if let Some(name) = bucket.name {
+                        if name.ends_with(".gbdrive") {
+                            let prefix = format!("home/{}/", username);
 
-                        // List and delete all objects with this prefix
-                        let objects = self
-                            .s3_client
-                            .list_objects_v2()
-                            .bucket(&name)
-                            .prefix(&prefix)
-                            .send()
-                            .await?;
+                            // List and delete all objects with this prefix
+                            let objects = s3_client
+                                .list_objects_v2()
+                                .bucket(&name)
+                                .prefix(&prefix)
+                                .send()
+                                .await?;
 
-                        if let Some(contents) = objects.contents {
-                            for object in contents {
-                                if let Some(key) = object.key {
-                                    self.s3_client
-                                        .delete_object()
-                                        .bucket(&name)
-                                        .key(&key)
-                                        .send()
-                                        .await?;
+                            if let Some(contents) = objects.contents {
+                                for object in contents {
+                                    if let Some(key) = object.key {
+                                        s3_client
+                                            .delete_object()
+                                            .bucket(&name)
+                                            .key(&key)
+                                            .send()
+                                            .await?;
+                                    }
                                 }
                             }
                         }
@@ -273,10 +329,14 @@ impl UserProvisioningService {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 
+        let mut conn = self
+            .db_pool
+            .get()
+            .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
         diesel::delete(
             user_email_accounts::table.filter(user_email_accounts::username.eq(username)),
         )
-        .execute(&*self.db_conn)?;
+        .execute(&mut conn)?;
 
         Ok(())
     }

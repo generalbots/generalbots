@@ -71,7 +71,7 @@ pub fn error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
 pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("IS_ERROR", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Ok(map) = v.as_map() {
+            if let Some(map) = v.clone().try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -84,7 +84,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("is_error", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Ok(map) = v.as_map() {
+            if let Some(map) = v.clone().try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -97,7 +97,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("ISERROR", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Ok(map) = v.as_map() {
+            if let Some(map) = v.clone().try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -110,7 +110,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("GET_ERROR_MESSAGE", |v: Dynamic| -> String {
         if v.is_map() {
-            if let Ok(map) = v.as_map() {
+            if let Some(map) = v.clone().try_cast::<Map>() {
                 if let Some(msg) = map.get("message") {
                     return msg.to_string();
                 }

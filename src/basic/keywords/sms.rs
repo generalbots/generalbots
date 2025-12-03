@@ -413,7 +413,7 @@ async fn send_via_aws_sns(
 
     // Create timestamp for AWS Signature
     let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    let date = &timestamp[..8];
+    let _date = &timestamp[..8];
 
     // Build the request parameters
     let params = [
