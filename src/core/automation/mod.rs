@@ -19,7 +19,7 @@ pub struct AutomationService {
 impl AutomationService {
     #[must_use]
     pub fn new(state: Arc<AppState>) -> Self {
-        crate::llm::compact_prompt::start_compact_prompt_scheduler(Arc::clone(&state));
+        crate::llm::episodic_memory::start_episodic_memory_scheduler(Arc::clone(&state));
         Self { state }
     }
     pub async fn spawn(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
