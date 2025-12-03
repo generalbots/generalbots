@@ -1,3 +1,11 @@
+pub mod model_routing_config;
+pub mod sse_config;
+pub mod user_memory_config;
+
+pub use model_routing_config::{ModelRoutingConfig, RoutingStrategy, TaskType};
+pub use sse_config::SseConfig;
+pub use user_memory_config::UserMemoryConfig;
+
 use crate::shared::utils::DbPool;
 use diesel::prelude::*;
 use diesel::r2d2::{ConnectionManager, PooledConnection};
@@ -36,6 +44,215 @@ pub struct EmailConfig {
     pub from: String,
     pub smtp_server: String,
     pub smtp_port: u16,
+}
+
+/// Custom database configuration for BASIC keywords (MariaDB, MySQL, etc.)
+/// Loaded from config.csv parameters: custom-server, custom-port, custom-database, custom-username, custom-password
+#[derive(Clone, Debug, Default)]
+pub struct CustomDatabaseConfig {
+    pub server: String,
+    pub port: u16,
+    pub database: String,
+    pub username: String,
+    pub password: String,
+}
+
+impl CustomDatabaseConfig {
+    /// Load custom database configuration from bot-level config.csv parameters
+    pub fn from_bot_config(
+        pool: &DbPool,
+        target_bot_id: &Uuid,
+    ) -> Result<Option<Self>, diesel::result::Error> {
+        use crate::shared::models::schema::bot_configuration::dsl::*;
+
+        let mut conn = pool.get().map_err(|e| {
+            diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                Box::new(e.to_string()),
+            )
+        })?;
+
+        // Check if custom database is configured
+        let database: Option<String> = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq("custom-database"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .ok()
+            .filter(|s| !s.is_empty());
+
+        let database = match database {
+            Some(db) => db,
+            None => return Ok(None), // No custom database configured
+        };
+
+        let server: String = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq("custom-server"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .ok()
+            .filter(|s| !s.is_empty())
+            .unwrap_or_else(|| "localhost".to_string());
+
+        let port: u16 = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq("custom-port"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .ok()
+            .and_then(|v| v.parse().ok())
+            .unwrap_or(3306);
+
+        let username: String = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq("custom-username"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .ok()
+            .unwrap_or_default();
+
+        let password: String = bot_configuration
+            .filter(bot_id.eq(target_bot_id))
+            .filter(config_key.eq("custom-password"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+            .ok()
+            .unwrap_or_default();
+
+        Ok(Some(CustomDatabaseConfig {
+            server,
+            port,
+            database,
+            username,
+            password,
+        }))
+    }
+
+    /// Build a connection string for MariaDB/MySQL
+    pub fn connection_string(&self) -> String {
+        format!(
+            "mysql://{}:{}@{}:{}/{}",
+            self.username, self.password, self.server, self.port, self.database
+        )
+    }
+
+    /// Check if the configuration is valid (has required fields)
+    pub fn is_valid(&self) -> bool {
+        !self.database.is_empty() && !self.server.is_empty()
+    }
+}
+
+impl EmailConfig {
+    /// Load email configuration from bot-level config.csv parameters
+    /// Parameters: email-from, email-server, email-port, email-user, email-pass
+    pub fn from_bot_config(
+        pool: &DbPool,
+        target_bot_id: &Uuid,
+    ) -> Result<Self, diesel::result::Error> {
+        let mut conn = pool.get().map_err(|e| {
+            diesel::result::Error::DatabaseError(
+                diesel::result::DatabaseErrorKind::UnableToSendCommand,
+                Box::new(e.to_string()),
+            )
+        })?;
+
+        // Helper to get config value
+        fn get_config_value(
+            conn: &mut diesel::r2d2::PooledConnection<
+                diesel::r2d2::ConnectionManager<diesel::PgConnection>,
+            >,
+            target_bot_id: &Uuid,
+            key: &str,
+            default: &str,
+        ) -> String {
+            use crate::shared::models::schema::bot_configuration::dsl::*;
+            bot_configuration
+                .filter(bot_id.eq(target_bot_id))
+                .filter(config_key.eq(key))
+                .select(config_value)
+                .first::<String>(conn)
+                .unwrap_or_else(|_| default.to_string())
+        }
+
+        fn get_port_value(
+            conn: &mut diesel::r2d2::PooledConnection<
+                diesel::r2d2::ConnectionManager<diesel::PgConnection>,
+            >,
+            target_bot_id: &Uuid,
+            key: &str,
+            default: u16,
+        ) -> u16 {
+            use crate::shared::models::schema::bot_configuration::dsl::*;
+            bot_configuration
+                .filter(bot_id.eq(target_bot_id))
+                .filter(config_key.eq(key))
+                .select(config_value)
+                .first::<String>(conn)
+                .ok()
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(default)
+        }
+
+        // Support both old ENV-style and new config.csv style parameter names
+        let new_smtp_server = get_config_value(&mut conn, target_bot_id, "email-server", "");
+        let smtp_server = if !new_smtp_server.is_empty() {
+            new_smtp_server
+        } else {
+            get_config_value(
+                &mut conn,
+                target_bot_id,
+                "EMAIL_SMTP_SERVER",
+                "smtp.gmail.com",
+            )
+        };
+
+        let new_smtp_port = get_port_value(&mut conn, target_bot_id, "email-port", 0);
+        let smtp_port = if new_smtp_port > 0 {
+            new_smtp_port
+        } else {
+            get_port_value(&mut conn, target_bot_id, "EMAIL_SMTP_PORT", 587)
+        };
+
+        let new_from = get_config_value(&mut conn, target_bot_id, "email-from", "");
+        let from = if !new_from.is_empty() {
+            new_from
+        } else {
+            get_config_value(&mut conn, target_bot_id, "EMAIL_FROM", "")
+        };
+
+        let new_user = get_config_value(&mut conn, target_bot_id, "email-user", "");
+        let username = if !new_user.is_empty() {
+            new_user
+        } else {
+            get_config_value(&mut conn, target_bot_id, "EMAIL_USERNAME", "")
+        };
+
+        let new_pass = get_config_value(&mut conn, target_bot_id, "email-pass", "");
+        let password = if !new_pass.is_empty() {
+            new_pass
+        } else {
+            get_config_value(&mut conn, target_bot_id, "EMAIL_PASSWORD", "")
+        };
+
+        let server = get_config_value(
+            &mut conn,
+            target_bot_id,
+            "EMAIL_IMAP_SERVER",
+            "imap.gmail.com",
+        );
+        let port = get_port_value(&mut conn, target_bot_id, "EMAIL_IMAP_PORT", 993);
+
+        Ok(EmailConfig {
+            server,
+            port,
+            username,
+            password,
+            from,
+            smtp_server,
+            smtp_port,
+        })
+    }
 }
 impl AppConfig {
     pub fn from_database(pool: &DbPool) -> Result<Self, diesel::result::Error> {

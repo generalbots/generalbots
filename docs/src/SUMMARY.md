@@ -23,6 +23,19 @@
   - [.gbdrive File Storage](./chapter-02/gbdrive.md)
   - [Bot Templates](./chapter-02/templates.md)
   - [Template Samples & Conversations](./chapter-02/template-samples.md)
+  - [Template: Business Intelligence](./chapter-02/template-bi.md)
+  - [Template: Web Crawler](./chapter-02/template-crawler.md)
+  - [Template: Legal Documents](./chapter-02/template-law.md)
+  - [Template: LLM Server](./chapter-02/template-llm-server.md)
+  - [Template: LLM Tools](./chapter-02/template-llm-tools.md)
+  - [Template: API Client](./chapter-02/template-api-client.md)
+  - [Template: Platform Analytics](./chapter-02/template-analytics.md)
+  - [Template: Office Automation](./chapter-02/template-office.md)
+  - [Template: Reminders](./chapter-02/template-reminder.md)
+  - [Template: Sales CRM](./chapter-02/template-crm.md)
+  - [Template: CRM Contacts](./chapter-02/template-crm-contacts.md)
+  - [Template: Marketing](./chapter-02/template-marketing.md)
+  - [Template: Creating Templates](./chapter-02/template-template.md)
 
 # Part III - Knowledge Base
 
