@@ -387,8 +387,12 @@ impl MultimediaHandler for DefaultMultimediaHandler {
 }
 
 /// Extension trait for UserMessage to support multimedia
-impl UserMessage {
-    pub fn to_multimedia(&self) -> MultimediaMessage {
+pub trait UserMessageMultimedia {
+    fn to_multimedia(&self) -> MultimediaMessage;
+}
+
+impl UserMessageMultimedia for UserMessage {
+    fn to_multimedia(&self) -> MultimediaMessage {
         // Parse message content to determine type
         if self.content.starts_with("http") {
             // Check if it's an image/video URL

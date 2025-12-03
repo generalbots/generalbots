@@ -1059,6 +1059,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "botlib"
+version = "6.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "diesel",
+ "log",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "toml 0.8.23",
+ "uuid",
+]
+
+[[package]]
 name = "botserver"
 version = "6.1.0"
 dependencies = [
@@ -1075,6 +1090,7 @@ dependencies = [
  "axum 0.7.9",
  "axum-server",
  "base64 0.22.1",
+ "botlib",
  "bytes",
  "calamine",
  "chrono",
