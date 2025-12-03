@@ -8,8 +8,8 @@
 //! - Organization configuration
 //! - Bot template selection
 
-use crate::core::shared::branding::platform_name;
-use crate::core::shared::version::BOTSERVER_VERSION;
+use crate::shared::platform_name;
+use crate::shared::BOTSERVER_VERSION;
 use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent},
