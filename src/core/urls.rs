@@ -4,6 +4,7 @@
 //! and ensure consistency across the application.
 
 /// API endpoint paths
+#[derive(Debug)]
 pub struct ApiUrls;
 
 impl ApiUrls {
@@ -148,6 +149,7 @@ impl ApiUrls {
 }
 
 /// Internal service URLs
+#[derive(Debug)]
 pub struct InternalUrls;
 
 impl InternalUrls {

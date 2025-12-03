@@ -20,10 +20,10 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{debug, error, info, trace, warn};
+use log::{info, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -472,6 +472,15 @@ pub struct ReflectionEngine {
     state: Arc<AppState>,
     config: ReflectionConfig,
     bot_id: Uuid,
+}
+
+impl std::fmt::Debug for ReflectionEngine {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ReflectionEngine")
+            .field("config", &self.config)
+            .field("bot_id", &self.bot_id)
+            .finish_non_exhaustive()
+    }
 }
 
 impl ReflectionEngine {

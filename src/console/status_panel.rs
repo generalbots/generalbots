@@ -16,6 +16,16 @@ pub struct StatusPanel {
     system: System,
 }
 
+impl std::fmt::Debug for StatusPanel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("StatusPanel")
+            .field("app_state", &"Arc<AppState>")
+            .field("last_update", &self.last_update)
+            .field("cached_content_len", &self.cached_content.len())
+            .finish()
+    }
+}
+
 impl StatusPanel {
     pub fn new(app_state: Arc<AppState>) -> Self {
         Self {

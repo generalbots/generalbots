@@ -36,7 +36,7 @@ use diesel::sql_query;
 use diesel::sql_types::Text;
 use log::{error, trace};
 use rhai::{Array, Dynamic, Engine, Map};
-use serde_json::{json, Map as JsonMap, Value};
+use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
@@ -890,10 +890,13 @@ fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, Box<rhai::Ev
 fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
     let mut result = HashMap::new();
 
-    if let Ok(map) = value.clone().try_cast::<Map>() {
-        for (k, v) in map {
-            result.insert(k.to_string(), v);
+    match value.clone().try_cast::<Map>() {
+        Some(map) => {
+            for (k, v) in map {
+                result.insert(k.to_string(), v);
+            }
         }
+        None => {}
     }
 
     result
@@ -901,10 +904,9 @@ fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
 
 /// Convert Dynamic to Rhai Map
 fn dynamic_to_rhai_map(value: &Dynamic) -> Map {
-    if let Ok(map) = value.clone().try_cast::<Map>() {
-        map
-    } else {
-        Map::new()
+    match value.clone().try_cast::<Map>() {
+        Some(map) => map,
+        None => Map::new(),
     }
 }
 

@@ -1,3 +1,4 @@
+use crate::drive::convert_tree_to_items;
 use crate::shared::state::AppState;
 use color_eyre::Result;
 use crossterm::{
@@ -28,6 +29,7 @@ use editor::Editor;
 use file_tree::{FileTree, TreeNode};
 use log_panel::{init_logger, LogPanel};
 use status_panel::StatusPanel;
+#[derive(Debug)]
 pub struct XtreeUI {
     app_state: Option<Arc<AppState>>,
     file_tree: Option<FileTree>,
@@ -408,6 +410,8 @@ format!("{:^30}", self.bootstrap_status)
         if let Some(file_tree) = &self.file_tree {
             let items = file_tree.render_items();
             let selected = file_tree.selected_index();
+            // Use convert_tree_to_items to get detailed file metadata
+            let _file_items = convert_tree_to_items(file_tree);
             let list_items: Vec<ListItem> = items
                 .iter()
                 .enumerate()

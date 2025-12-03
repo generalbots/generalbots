@@ -13,7 +13,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::debug;
-use rhai::{Array, Dynamic, Engine};
+use rhai::{Array, Engine};
 use std::collections::HashSet;
 use std::sync::Arc;
 
@@ -56,6 +56,7 @@ fn unique_array(arr: Array) -> Array {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use rhai::Dynamic;
 
     #[test]
     fn test_unique_integers() {

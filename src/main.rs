@@ -1,22 +1,20 @@
-#![cfg_attr(feature = "desktop", windows_subsystem = "windows")]
 use axum::extract::Extension;
 use axum::{
     routing::{get, post},
     Router,
 };
 // Configuration comes from Directory service, not .env files
+use dotenvy::dotenv;
 use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
-use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 use botserver::basic;
 use botserver::core;
 use botserver::shared;
-use botserver::web;
 
 #[cfg(feature = "console")]
 use botserver::console;
@@ -28,7 +26,6 @@ use botserver::core::bot;
 use botserver::core::config;
 use botserver::core::package_manager;
 use botserver::core::session;
-use botserver::core::ui_server;
 
 // Feature-gated modules
 #[cfg(feature = "attendance")]
@@ -39,9 +36,6 @@ mod calendar;
 
 #[cfg(feature = "compliance")]
 mod compliance;
-
-#[cfg(feature = "desktop")]
-mod desktop;
 
 #[cfg(feature = "directory")]
 mod directory;
@@ -121,11 +115,11 @@ async fn run_axum_server(
         .route(ApiUrls::SESSIONS, post(create_session))
         .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(
-            ApiUrls::SESSION_HISTORY.replace(":id", "{session_id}"),
+            &ApiUrls::SESSION_HISTORY.replace(":id", "{session_id}"),
             get(get_session_history),
         )
         .route(
-            ApiUrls::SESSION_START.replace(":id", "{session_id}"),
+            &ApiUrls::SESSION_START.replace(":id", "{session_id}"),
             post(start_session),
         )
         // WebSocket route
@@ -182,20 +176,15 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::calendar::configure_calendar_routes());
     }
 
-    // Build static file serving
-    let static_path = std::path::Path::new("./ui/suite");
-
-    // Create web router with authentication
-    let web_router = web::create_router(app_state.clone());
+    // Add suite application routes (gap analysis implementations)
+    api_router = api_router.merge(botserver::analytics::configure_analytics_routes());
+    api_router = api_router.merge(botserver::paper::configure_paper_routes());
+    api_router = api_router.merge(botserver::research::configure_research_routes());
+    api_router = api_router.merge(botserver::sources::configure_sources_routes());
+    api_router = api_router.merge(botserver::designer::configure_designer_routes());
 
     let app = Router::new()
-        // Static file services for remaining assets
-        .nest_service("/static/js", ServeDir::new(static_path.join("js")))
-        .nest_service("/static/css", ServeDir::new(static_path.join("css")))
-        .nest_service("/static/public", ServeDir::new(static_path.join("public")))
-        // Web module with authentication (handles all pages and auth)
-        .merge(web_router)
-        // Legacy API routes (will be migrated to web module)
+        // API routes
         .merge(api_router.with_state(app_state.clone()))
         .layer(Extension(app_state.clone()))
         // Layers
@@ -219,10 +208,11 @@ async fn run_axum_server(
 
         info!("HTTPS server listening on {} with TLS", addr);
 
+        let handle = axum_server::Handle::new();
         axum_server::bind_rustls(addr, tls_config)
+            .handle(handle)
             .serve(app.into_make_service())
             .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     } else {
         // Generate self-signed certificate if not present
         warn!("TLS certificates not found, generating self-signed certificate...");
@@ -269,7 +259,7 @@ async fn main() -> std::io::Result<()> {
          ring=off,webpki=off,\
          hickory_resolver=off,hickory_proto=off"
             .to_string()
-    });
+    };
 
     // Set the RUST_LOG env var if not already set
     std::env::set_var("RUST_LOG", &rust_log);
@@ -393,7 +383,8 @@ async fn main() -> std::io::Result<()> {
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
 
         // Check if services are already configured in Directory
-        let services_configured = std::path::Path::new("./botserver-stack/conf/directory/zitadel.yaml").exists();
+        let services_configured =
+            std::path::Path::new("./botserver-stack/conf/directory/zitadel.yaml").exists();
 
         let cfg = if services_configured {
             trace!("Services already configured, ensuring all are running...");
@@ -708,103 +699,13 @@ async fn main() -> std::io::Result<()> {
     });
     trace!("Initial data setup task spawned");
 
-    trace!("Checking desktop mode: {}", desktop_mode);
-    // Handle desktop mode vs server mode
-    #[cfg(feature = "desktop")]
-    if desktop_mode {
-        trace!("Desktop mode is enabled");
-        // For desktop mode: Run HTTP server in a separate thread with its own runtime
-        let app_state_for_server = app_state.clone();
-        let port = config.server.port;
-        let workers = worker_count; // Capture worker_count for the thread
+    // Run HTTP server directly
+    trace!("Starting HTTP server on port {}...", config.server.port);
+    run_axum_server(app_state, config.server.port, worker_count).await?;
 
-        info!(
-            "Desktop mode: Starting HTTP server on port {} in background thread",
-            port
-        );
-
-        std::thread::spawn(move || {
-            info!("HTTP server thread started, initializing runtime...");
-            let rt = tokio::runtime::Runtime::new().expect("Failed to create HTTP runtime");
-            rt.block_on(async move {
-                info!(
-                    "HTTP server runtime created, starting axum server on port {}...",
-                    port
-                );
-                if let Err(e) = run_axum_server(app_state_for_server, port, workers).await {
-                    error!("HTTP server error: {}", e);
-                    eprintln!("HTTP server error: {}", e);
-                } else {
-                    info!("HTTP server started successfully");
-                }
-            });
-        });
-
-        // Give the server thread a moment to start
-        std::thread::sleep(std::time::Duration::from_millis(500));
-        info!("Launching General Bots desktop application...");
-
-        // Run Tauri on main thread (GUI requires main thread)
-        let tauri_app = tauri::Builder::default()
-            .setup(|app| {
-                use tauri::WebviewWindowBuilder;
-                match WebviewWindowBuilder::new(
-                    app,
-                    "main",
-                    tauri::WebviewUrl::App("index.html".into()),
-                )
-                .title("General Bots")
-                .build()
-                {
-                    Ok(_window) => Ok(()),
-                    Err(e) if e.to_string().contains("WebviewLabelAlreadyExists") => {
-                        log::warn!("Main window already exists, reusing existing window");
-                        Ok(())
-                    }
-                    Err(e) => Err(e.into()),
-                }
-            })
-            .build(tauri::generate_context!())
-            .expect("error while running Desktop application");
-
-        tauri_app.run(|_app_handle, event| match event {
-            tauri::RunEvent::ExitRequested { api, .. } => {
-                api.prevent_exit();
-            }
-            _ => {}
-        });
-
-        return Ok(());
-    }
-
-    // Non-desktop mode: Run HTTP server directly
-    #[cfg(not(feature = "desktop"))]
-    {
-        trace!(
-            "Running in non-desktop mode, starting HTTP server on port {}...",
-            config.server.port
-        );
-        run_axum_server(app_state, config.server.port, worker_count).await?;
-
-        // Wait for UI thread to finish if it was started
-        if let Some(handle) = ui_handle {
-            handle.join().ok();
-        }
-    }
-
-    // For builds with desktop feature but not running in desktop mode
-    #[cfg(feature = "desktop")]
-    if !desktop_mode {
-        trace!(
-            "Desktop feature available but not in desktop mode, starting HTTP server on port {}...",
-            config.server.port
-        );
-        run_axum_server(app_state, config.server.port, worker_count).await?;
-
-        // Wait for UI thread to finish if it was started
-        if let Some(handle) = ui_handle {
-            handle.join().ok();
-        }
+    // Wait for UI thread to finish if it was started
+    if let Some(handle) = ui_handle {
+        handle.join().ok();
     }
 
     Ok(())

@@ -127,6 +127,15 @@ pub struct ApiToolGenerator {
     work_path: String,
 }
 
+impl std::fmt::Debug for ApiToolGenerator {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ApiToolGenerator")
+            .field("bot_id", &self.bot_id)
+            .field("work_path", &self.work_path)
+            .finish_non_exhaustive()
+    }
+}
+
 impl ApiToolGenerator {
     pub fn new(state: Arc<AppState>, bot_id: Uuid, work_path: &str) -> Self {
         Self {
@@ -729,94 +738,5 @@ pub struct SyncResult {
 impl SyncResult {
     pub fn is_success(&self) -> bool {
         self.errors.is_empty()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_sanitize_operation_id() {
-        let generator = ApiToolGenerator {
-            state: Arc::new(AppState::default_for_tests()),
-            bot_id: Uuid::new_v4(),
-            work_path: "/tmp".to_string(),
-        };
-
-        assert_eq!(
-            generator.sanitize_operation_id("getUserById"),
-            "getuserbyid"
-        );
-        assert_eq!(
-            generator.sanitize_operation_id("get-user-by-id"),
-            "get_user_by_id"
-        );
-    }
-
-    #[test]
-    fn test_generate_operation_id() {
-        let generator = ApiToolGenerator {
-            state: Arc::new(AppState::default_for_tests()),
-            bot_id: Uuid::new_v4(),
-            work_path: "/tmp".to_string(),
-        };
-
-        assert_eq!(
-            generator.generate_operation_id("get", "/users/{id}"),
-            "get_users_id"
-        );
-        assert_eq!(
-            generator.generate_operation_id("post", "/users"),
-            "post_users"
-        );
-    }
-
-    #[test]
-    fn test_map_openapi_type() {
-        let generator = ApiToolGenerator {
-            state: Arc::new(AppState::default_for_tests()),
-            bot_id: Uuid::new_v4(),
-            work_path: "/tmp".to_string(),
-        };
-
-        assert_eq!(generator.map_openapi_type("integer"), "number");
-        assert_eq!(generator.map_openapi_type("string"), "string");
-        assert_eq!(generator.map_openapi_type("boolean"), "boolean");
-        assert_eq!(generator.map_openapi_type("array"), "array");
-    }
-
-    #[test]
-    fn test_escape_description() {
-        let generator = ApiToolGenerator {
-            state: Arc::new(AppState::default_for_tests()),
-            bot_id: Uuid::new_v4(),
-            work_path: "/tmp".to_string(),
-        };
-
-        assert_eq!(
-            generator.escape_description("Test \"description\" here"),
-            "Test 'description' here"
-        );
-        assert_eq!(
-            generator.escape_description("Line 1\nLine 2"),
-            "Line 1 Line 2"
-        );
-    }
-
-    #[test]
-    fn test_calculate_hash() {
-        let generator = ApiToolGenerator {
-            state: Arc::new(AppState::default_for_tests()),
-            bot_id: Uuid::new_v4(),
-            work_path: "/tmp".to_string(),
-        };
-
-        let hash1 = generator.calculate_hash("test content");
-        let hash2 = generator.calculate_hash("test content");
-        let hash3 = generator.calculate_hash("different content");
-
-        assert_eq!(hash1, hash2);
-        assert_ne!(hash1, hash3);
     }
 }

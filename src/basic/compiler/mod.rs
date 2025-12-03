@@ -314,7 +314,7 @@ impl BasicCompiler {
         let bot_uuid = bot_id;
         let mut result = String::new();
         let mut has_schedule = false;
-        let mut has_webhook = false;
+        let mut _has_webhook = false;
         let script_name = Path::new(source_path)
             .file_stem()
             .and_then(|s| s.to_str())
@@ -376,7 +376,7 @@ impl BasicCompiler {
             }
             // Handle WEBHOOK preprocessing - register webhook endpoint
             if normalized.starts_with("WEBHOOK") {
-                has_webhook = true;
+                _has_webhook = true;
                 let parts: Vec<&str> = normalized.split('"').collect();
                 if parts.len() >= 2 {
                     let endpoint = parts[1];

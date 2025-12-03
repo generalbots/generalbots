@@ -21,12 +21,11 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{debug, error, info, trace, warn};
+use log::{trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::io::Write;
-use std::process::{Command, Stdio};
+use std::process::Command;
 use std::sync::Arc;
 use std::time::Duration;
 use tokio::time::timeout;
@@ -277,6 +276,15 @@ pub struct CodeSandbox {
     session_id: Uuid,
 }
 
+impl std::fmt::Debug for CodeSandbox {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CodeSandbox")
+            .field("config", &self.config)
+            .field("session_id", &self.session_id)
+            .finish()
+    }
+}
+
 impl CodeSandbox {
     pub fn new(config: SandboxConfig, session_id: Uuid) -> Self {
         Self { config, session_id }
@@ -409,7 +417,7 @@ impl CodeSandbox {
         };
 
         // Build Docker command
-        let mut args = vec![
+        let args = vec![
             "run".to_string(),
             "--rm".to_string(),
             "--network".to_string(),

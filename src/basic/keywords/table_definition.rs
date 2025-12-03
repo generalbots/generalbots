@@ -56,7 +56,6 @@ use diesel::sql_query;
 use diesel::sql_types::Text;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
@@ -131,7 +130,7 @@ fn parse_single_table(
     if parts.len() < 2 {
         return Err(format!(
             "Invalid TABLE syntax at line {}: {}",
-            index + 1,
+            *index + 1,
             header_line
         )
         .into());
@@ -374,27 +373,40 @@ pub fn load_connection_config(
 
     let server = config_manager
         .get_config(&bot_id, &format!("{}Server", prefix), None)
-        .ok_or_else(|| format!("Missing {prefix}Server in config"))?;
+        .map_err(|_| {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Missing {prefix}Server in config"),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
 
     let database = config_manager
         .get_config(&bot_id, &format!("{}Name", prefix), None)
-        .ok_or_else(|| format!("Missing {prefix}Name in config"))?;
+        .map_err(|_| {
+            Box::new(std::io::Error::new(
+                std::io::ErrorKind::NotFound,
+                format!("Missing {prefix}Name in config"),
+            )) as Box<dyn std::error::Error + Send + Sync>
+        })?;
 
     let username = config_manager
         .get_config(&bot_id, &format!("{}Username", prefix), None)
+        .ok()
         .unwrap_or_default();
 
     let password = config_manager
         .get_config(&bot_id, &format!("{}Password", prefix), None)
+        .ok()
         .unwrap_or_default();
 
     let port = config_manager
         .get_config(&bot_id, &format!("{}Port", prefix), None)
+        .ok()
         .and_then(|p| p.parse().ok());
 
     let driver = config_manager
         .get_config(&bot_id, &format!("{}Driver", prefix), None)
-        .unwrap_or_else(|| "postgres".to_string());
+        .unwrap_or_else(|_| "postgres".to_string());
 
     Ok(ExternalConnection {
         name: connection_name.to_string(),

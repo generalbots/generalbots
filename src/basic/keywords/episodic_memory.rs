@@ -37,14 +37,10 @@
 //! ```
 
 use chrono::{DateTime, Duration, Utc};
-use rhai::{Array, Dynamic, Engine, EvalAltResult, Map};
+use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
-use std::sync::Arc;
-use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 use uuid::Uuid;
-
-use crate::shared::state::AppState;
 
 /// Episode summary structure
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -208,6 +204,7 @@ pub struct ConversationMessage {
 }
 
 /// Episodic Memory Manager
+#[derive(Debug)]
 pub struct EpisodicMemoryManager {
     config: EpisodicMemoryConfig,
 }

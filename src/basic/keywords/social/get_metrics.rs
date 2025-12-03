@@ -1,6 +1,6 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, error, trace};
+use log::{debug, trace};
 use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;

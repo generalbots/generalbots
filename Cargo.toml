@@ -40,11 +40,9 @@ repository = "https://github.com/GeneralBots/BotServer"
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["ui-server", "console", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
+default = ["console", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
 
 # ===== UI FEATURES =====
-desktop = ["dep:tauri", "dep:tauri-plugin-dialog", "dep:tauri-plugin-opener", "dep:trayicon", "dep:ksni", "ui-server"]
-ui-server = []
 console = ["dep:crossterm", "dep:ratatui", "monitoring"]
 
 # ===== CORE INTEGRATIONS =====
@@ -83,7 +81,7 @@ dynamic-db = ["dep:sqlx"]
 
 # ===== META FEATURES (BUNDLES) =====
 full = [
-    "ui-server", "desktop", "console",
+    "console",
     "vectordb", "llm", "nvidia", "timeseries",
     "email", "whatsapp", "instagram", "msteams",
     "chat", "drive", "tasks", "calendar", "meet", "mail",
@@ -94,8 +92,8 @@ full = [
 communications = ["email", "whatsapp", "instagram", "msteams", "chat", "redis-cache"]
 productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "redis-cache"]
 enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring", "timeseries"]
-minimal = ["ui-server", "chat"]
-lightweight = ["ui-server", "chat", "drive", "tasks"]
+minimal = ["chat"]
+lightweight = ["chat", "drive", "tasks"]
 
 [dependencies]
 # === CORE RUNTIME (Always Required) ===
@@ -106,7 +104,7 @@ async-lock = "2.8.0"
 async-stream = "0.3"
 async-trait = "0.1"
 axum = { version = "0.7.5", features = ["ws", "multipart", "macros"] }
-axum-server = { version = "0.5", features = ["tls-rustls"] }
+axum-server = { version = "0.7", features = ["tls-rustls"] }
 base64 = "0.22"
 bytes = "1.8"
 chrono = { version = "0.4", features = ["serde"] }
@@ -156,19 +154,7 @@ time = { version = "0.3", features = ["formatting", "parsing"] }
 jsonwebtoken = "9.3"
 tower-cookies = "0.10"
 
-# === SYSTEM TRAY DEPENDENCIES ===
-trayicon = { version = "0.2", optional = true }
-ksni = { version = "0.2", optional = true }
-webbrowser = "0.8"
-hostname = "0.4"
-local-ip-address = "0.6"
-
 # === FEATURE-SPECIFIC DEPENDENCIES (Optional) ===
-
-# Desktop UI (desktop feature)
-tauri = { version = "2", features = ["unstable"], optional = true }
-tauri-plugin-dialog = { version = "2", optional = true }
-tauri-plugin-opener = { version = "2", optional = true }
 
 # Email Integration (email feature)
 imap = { version = "3.0.0-alpha.15", optional = true }
@@ -236,9 +222,6 @@ scopeguard = "1.2.0"
 [dev-dependencies]
 mockito = "1.7.0"
 tempfile = "3"
-
-[build-dependencies]
-tauri-build = { version = "2", features = [] }
 
 # === SECURITY AND CODE QUALITY CONFIGURATION ===
 [lints.rust]

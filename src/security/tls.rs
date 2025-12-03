@@ -7,8 +7,6 @@
 //! - External CA integration capabilities
 
 use anyhow::{Context, Result};
-use axum::extract::connect_info::Connected;
-use hyper::server::conn::AddrIncoming;
 use rustls::server::{AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient};
 use rustls::{Certificate, PrivateKey, RootCertStore, ServerConfig};
 use rustls_pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
@@ -20,8 +18,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
-use tower::ServiceBuilder;
-use tracing::{debug, error, info, warn};
+use tracing::{info, warn};
 
 /// TLS Configuration for services
 #[derive(Debug, Clone, Deserialize, Serialize)]
@@ -79,6 +76,7 @@ impl Default for TlsConfig {
 }
 
 /// TLS Manager for handling certificates and configurations
+#[derive(Debug)]
 pub struct TlsManager {
     config: TlsConfig,
     server_config: Arc<ServerConfig>,
@@ -278,7 +276,7 @@ impl TlsManager {
     pub fn create_https_client(&self) -> Result<reqwest::Client> {
         let mut builder = reqwest::Client::builder().use_rustls_tls().https_only(true);
 
-        if let Some(client_config) = &self.client_config {
+        if let Some(_client_config) = &self.client_config {
             // Configure client certificates if available
             if let (Some(cert_path), Some(key_path)) =
                 (&self.config.client_cert_path, &self.config.client_key_path)
@@ -334,7 +332,7 @@ impl TlsManager {
 /// Helper to create HTTPS server binding
 pub async fn create_https_server(
     addr: SocketAddr,
-    tls_manager: &TlsManager,
+    _tls_manager: &TlsManager,
 ) -> Result<TcpListener> {
     let listener = TcpListener::bind(addr).await?;
     info!("HTTPS server listening on {}", addr);
@@ -381,6 +379,7 @@ impl ServiceTlsConfig {
 }
 
 /// Registry for all service TLS configurations
+#[derive(Debug, Clone)]
 pub struct TlsRegistry {
     services: Vec<ServiceTlsConfig>,
 }
@@ -461,7 +460,6 @@ impl TlsRegistry {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use tempfile::TempDir;
 
     #[test]
     fn test_tls_config_default() {
