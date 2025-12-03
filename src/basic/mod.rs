@@ -20,6 +20,7 @@ struct ParamConfigRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
     config_value: String,
 }
+use self::keywords::add_bot::register_bot_keywords;
 use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
 use self::keywords::book::book_keyword;
@@ -41,6 +42,7 @@ use self::keywords::hear_talk::{hear_keyword, talk_keyword};
 use self::keywords::http_operations::register_http_operations;
 use self::keywords::last::last_keyword;
 use self::keywords::lead_scoring::register_lead_scoring_keywords;
+use self::keywords::model_routing::register_model_routing_keywords;
 use self::keywords::multimodal::register_multimodal_keywords;
 use self::keywords::on_form_submit::on_form_submit_keyword;
 use self::keywords::remember::remember_keyword;
@@ -112,6 +114,12 @@ impl ScriptService {
         save_from_unstructured_keyword(state.clone(), user.clone(), &mut engine);
         create_task_keyword(state.clone(), user.clone(), &mut engine);
         add_member_keyword(state.clone(), user.clone(), &mut engine);
+
+        // Register dynamic bot management keywords (ADD BOT, REMOVE BOT)
+        register_bot_keywords(state.clone(), user.clone(), &mut engine);
+
+        // Register model routing keywords (USE MODEL, SET MODEL ROUTING, etc.)
+        register_model_routing_keywords(state.clone(), user.clone(), &mut engine);
 
         // Register universal messaging keywords
         keywords::universal_messaging::register_universal_messaging(

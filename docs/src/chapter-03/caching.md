@@ -50,11 +50,11 @@ embedding-model,../../../../data/llm/bge-small-en-v1.5-f32.gguf
 The system manages conversation context through these parameters:
 
 ```csv
-prompt-history,2    # Number of previous messages to include in context
-prompt-compact,4    # Compact conversation after N exchanges
+episodic-memory-history,2    # Number of previous messages to include in context
+episodic-memory-threshold,4    # Compact conversation after N exchanges
 ```
 
-The `prompt-history` setting keeps the last 2 exchanges in the conversation context, providing continuity without excessive token usage. The `prompt-compact` setting triggers summarization or removal of older messages after 4 exchanges to save tokens while preserving essential context.
+The `episodic-memory-history` setting keeps the last 2 exchanges in the conversation context, providing continuity without excessive token usage. The `episodic-memory-threshold` setting triggers summarization or removal of older messages after 4 exchanges to save tokens while preserving essential context.
 
 ## Cache Storage
 

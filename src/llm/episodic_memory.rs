@@ -8,19 +8,21 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
-pub fn start_compact_prompt_scheduler(state: Arc<AppState>) {
+
+pub fn start_episodic_memory_scheduler(state: Arc<AppState>) {
     tokio::spawn(async move {
         tokio::time::sleep(Duration::from_secs(30)).await;
         let mut interval = interval(Duration::from_secs(60));
         loop {
             interval.tick().await;
-            if let Err(e) = compact_prompt_for_bots(&Arc::clone(&state)).await {
-                error!("Prompt compaction failed: {}", e);
+            if let Err(e) = process_episodic_memory(&Arc::clone(&state)).await {
+                error!("Episodic memory processing failed: {}", e);
             }
         }
     });
 }
-async fn compact_prompt_for_bots(
+
+async fn process_episodic_memory(
     state: &Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use once_cell::sync::Lazy;
@@ -34,21 +36,27 @@ async fn compact_prompt_for_bots(
     };
     for session in sessions {
         let config_manager = ConfigManager::new(state.conn.clone());
-        let compact_threshold = config_manager
-            .get_config(&session.bot_id, "prompt-compact", None)?
+
+        // Support both old and new config key names for backwards compatibility
+        let threshold = config_manager
+            .get_config(&session.bot_id, "episodic-memory-threshold", None)
+            .or_else(|_| config_manager.get_config(&session.bot_id, "prompt-compact", None))
+            .unwrap_or_default()
             .parse::<i32>()
             .unwrap_or(4); // Default to 4 if not configured
 
         let history_to_keep = config_manager
-            .get_config(&session.bot_id, "prompt-history", None)?
+            .get_config(&session.bot_id, "episodic-memory-history", None)
+            .or_else(|_| config_manager.get_config(&session.bot_id, "prompt-history", None))
+            .unwrap_or_default()
             .parse::<usize>()
             .unwrap_or(2); // Default to 2 if not configured
 
-        if compact_threshold == 0 {
+        if threshold == 0 {
             return Ok(());
-        } else if compact_threshold < 0 {
+        } else if threshold < 0 {
             trace!(
-                "Negative compact threshold detected for bot {}, skipping",
+                "Negative episodic memory threshold detected for bot {}, skipping",
                 session.bot_id
             );
             continue;
@@ -64,14 +72,14 @@ async fn compact_prompt_for_bots(
         let last_summary_index = history
             .iter()
             .rev()
-            .position(|(role, _)| role == "compact")
+            .position(|(role, _)| role == "episodic" || role == "compact")
             .map(|pos| history.len() - pos - 1);
 
         // Calculate start index: if there's a summary, start after it; otherwise start from 0
         let start_index = last_summary_index.map(|idx| idx + 1).unwrap_or(0);
 
         for (_i, (role, _)) in history.iter().enumerate().skip(start_index) {
-            if role == "compact" {
+            if role == "episodic" || role == "compact" {
                 continue;
             }
             messages_since_summary += 1;
@@ -81,7 +89,7 @@ async fn compact_prompt_for_bots(
         if !has_new_messages && last_summary_index.is_some() {
             continue;
         }
-        if messages_since_summary < compact_threshold as usize {
+        if messages_since_summary < threshold as usize {
             continue;
         }
 
@@ -89,7 +97,7 @@ async fn compact_prompt_for_bots(
             let mut session_in_progress = SESSION_IN_PROGRESS.lock().await;
             if session_in_progress.contains(&session.id) {
                 trace!(
-                    "Skipping session {} - compaction already in progress",
+                    "Skipping session {} - episodic memory processing already in progress",
                     session.id
                 );
                 continue;
@@ -98,7 +106,7 @@ async fn compact_prompt_for_bots(
         }
 
         trace!(
-            "Compacting prompt for session {}: {} messages since last summary (keeping last {})",
+            "Creating episodic memory for session {}: {} messages since last summary (keeping last {})",
             session.id,
             messages_since_summary,
             history_to_keep
@@ -113,7 +121,10 @@ async fn compact_prompt_for_bots(
         };
 
         if messages_to_summarize == 0 {
-            trace!("Not enough messages to compact for session {}", session.id);
+            trace!(
+                "Not enough messages to create episodic memory for session {}",
+                session.id
+            );
             continue;
         }
 
@@ -123,7 +134,7 @@ async fn compact_prompt_for_bots(
 
         // Only summarize messages beyond the history_to_keep threshold
         for (role, content) in history.iter().skip(start_index).take(messages_to_summarize) {
-            if role == "compact" {
+            if role == "episodic" || role == "compact" {
                 continue;
             }
             conversation.push_str(&format!(
@@ -155,7 +166,7 @@ async fn compact_prompt_for_bots(
         {
             Ok(summary) => {
                 trace!(
-                    "Successfully summarized session {} ({} chars)",
+                    "Successfully created episodic memory for session {} ({} chars)",
                     session.id,
                     summary.len()
                 );
@@ -168,29 +179,26 @@ async fn compact_prompt_for_bots(
                 );
 
                 filtered = handler.process_content(&summary);
-                format!("SUMMARY: {}", filtered)
+                format!("EPISODIC MEMORY: {}", filtered)
             }
             Err(e) => {
                 error!(
-                    "Failed to summarize conversation for session {}: {}",
+                    "Failed to create episodic memory for session {}: {}",
                     session.id, e
                 );
                 trace!("Using fallback summary for session {}", session.id);
-                format!("SUMMARY: {}", filtered) // Fallback
+                format!("EPISODIC MEMORY: {}", filtered) // Fallback
             }
         };
         info!(
-            "Prompt compacted {}: {} messages summarized, {} kept",
+            "Episodic memory created for session {}: {} messages summarized, {} kept",
             session.id, messages_to_summarize, history_to_keep
         );
 
-        // Save the summary
+        // Save the episodic memory (role 9 = episodic/compact)
         {
             let mut session_manager = state.session_manager.lock().await;
             session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;
-
-            // Mark older messages as compacted (optional - for cleanup)
-            // This allows the system to potentially archive or remove old messages
         }
 
         let _session_cleanup = guard((), |_| {

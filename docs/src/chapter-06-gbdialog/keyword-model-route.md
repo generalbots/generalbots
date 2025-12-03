@@ -6,23 +6,27 @@ Route LLM requests to different models based on task type, cost, or capability r
 
 | Keyword | Purpose |
 |---------|---------|
-| `MODEL ROUTE` | Route request to appropriate model |
-| `SET MODEL ROUTE` | Configure routing rules |
-| `GET MODEL ROUTES` | List configured routes |
+| `USE MODEL` | Select a specific model for next request |
+| `SET MODEL ROUTING` | Configure routing strategy |
+| `GET CURRENT MODEL` | Get active model name |
+| `LIST MODELS` | List available models |
 
-## MODEL ROUTE
+## USE MODEL
 
 ```basic
-response = MODEL ROUTE "complex-analysis", user_query
+USE MODEL "fast"
+response = ASK "Quick question about the weather"
+
+USE MODEL "quality"
+response = ASK "Analyze this complex legal document"
 ```
 
-## SET MODEL ROUTE
+## SET MODEL ROUTING
 
 ```basic
-SET MODEL ROUTE "fast", "gpt-3.5-turbo"
-SET MODEL ROUTE "smart", "gpt-4o"
-SET MODEL ROUTE "code", "claude-sonnet"
-SET MODEL ROUTE "vision", "gpt-4o"
+SET MODEL ROUTING "auto"
+SET MODEL ROUTING "cost"
+SET MODEL ROUTING "manual"
 ```
 
 ## Routing Strategies
@@ -30,19 +34,24 @@ SET MODEL ROUTE "vision", "gpt-4o"
 | Strategy | Description |
 |----------|-------------|
 | `manual` | Explicitly specify model per request |
+| `auto` | Auto-select based on task complexity |
 | `cost` | Prefer cheaper models when possible |
-| `capability` | Match model to task requirements |
-| `fallback` | Try models in order until success |
+| `quality` | Always use highest quality model |
 
-## Example: Cost-Optimized Routing
+## GET CURRENT MODEL
 
 ```basic
-SET MODEL ROUTE "default", "gpt-3.5-turbo"
-SET MODEL ROUTE "complex", "gpt-4o"
+model = GET CURRENT MODEL
+TALK "Currently using: " + model
+```
 
-' Simple queries use fast/cheap model
-' Complex analysis uses more capable model
-response = MODEL ROUTE "complex", "Analyze market trends for Q4"
+## LIST MODELS
+
+```basic
+models = LIST MODELS
+FOR EACH m IN models
+    TALK m.name + " - " + m.description
+NEXT
 ```
 
 ## Configuration
@@ -50,9 +59,23 @@ response = MODEL ROUTE "complex", "Analyze market trends for Q4"
 Add to `config.csv`:
 
 ```csv
-model-routing-strategy,capability
+llm-models,default;fast;quality;code
+model-routing-strategy,auto
 model-default,gpt-3.5-turbo
-model-fallback,gpt-4o
+model-fast,gpt-3.5-turbo
+model-quality,gpt-4o
+model-code,claude-sonnet
+```
+
+## Example: Task-Based Routing
+
+```basic
+USE MODEL "code"
+code_review = ASK "Review this function for bugs: " + code
+
+USE MODEL "fast"
+TALK "Here's what I found:"
+TALK code_review
 ```
 
 ## See Also

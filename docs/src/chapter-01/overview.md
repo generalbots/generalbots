@@ -61,7 +61,7 @@ Production deployments benefit from more substantial resources. Plan for 16GB of
 
 ## Configuration
 
-Bot configuration uses `config.csv` files with key-value parameters. Server settings like `server_host` and `server_port` control where the UI server listens. LLM configuration through `llm-url` and `llm-model` specifies which language model to use. Email settings including `email-from` and `email-server` enable outbound email functionality. UI customization parameters like `theme-color1`, `theme-color2`, `theme-title`, and `theme-logo` brand the interface. Conversation settings such as `prompt-history` and `prompt-compact` tune how context is managed. Refer to the config.csv files in bot packages for the complete list of available parameters.
+Bot configuration uses `config.csv` files with key-value parameters. Server settings like `server_host` and `server_port` control where the UI server listens. LLM configuration through `llm-url` and `llm-model` specifies which language model to use. Email settings including `email-from` and `email-server` enable outbound email functionality. UI customization parameters like `theme-color1`, `theme-color2`, `theme-title`, and `theme-logo` brand the interface. Conversation settings such as `episodic-memory-history` and `episodic-memory-threshold` tune how context is managed. Refer to the config.csv files in bot packages for the complete list of available parameters.
 
 
 ## Bot Package Structure

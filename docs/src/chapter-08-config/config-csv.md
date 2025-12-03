@@ -57,7 +57,7 @@ name,value
 server-port,8080
 llm-url,http://localhost:8081
 llm-model,../../../../data/llm/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf
-prompt-compact,4
+episodic-memory-threshold,4
 ```
 
 Four lines. Bot configured. That's the General Bots way.

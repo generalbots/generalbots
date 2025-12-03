@@ -105,8 +105,8 @@ llm-model,mixtral-8x7b-32768
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `prompt-compact` | Context compaction level | `4` | Number |
-| `prompt-history` | Messages in history | Not set | Number |
+| `episodic-memory-threshold` | Context compaction level | `4` | Number |
+| `episodic-memory-history` | Messages in history | Not set | Number |
 
 ## Email Parameters
 
