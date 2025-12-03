@@ -670,10 +670,10 @@ async fn main() -> std::io::Result<()> {
         .map(|n| n.get())
         .unwrap_or(4);
 
-    // Initialize automation service for prompt compaction
+    // Initialize automation service for episodic memory
     let _automation_service =
         botserver::core::automation::AutomationService::new(app_state.clone());
-    info!("Automation service initialized with prompt compaction scheduler");
+    info!("Automation service initialized with episodic memory scheduler");
 
     // Mount bots
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());

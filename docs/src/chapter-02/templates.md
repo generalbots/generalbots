@@ -216,8 +216,8 @@ TALK "✅ Action completed successfully!"
 
 ```csv
 name,value
-prompt-history,2
-prompt-compact,4
+episodic-memory-history,2
+episodic-memory-threshold,4
 theme-color1,#1565C0
 theme-color2,#E3F2FD
 theme-logo,https://pragmatismo.com.br/icons/general-bots.svg

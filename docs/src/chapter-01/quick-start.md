@@ -250,7 +250,7 @@ You can also configure per-bot settings in `config.csv`:
 name,value
 server_port,8080
 llm-url,http://localhost:8081
-prompt-compact,4
+episodic-memory-threshold,4
 theme-color1,#0d2b55
 ```
 

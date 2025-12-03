@@ -308,7 +308,7 @@ impl SessionManager {
                 1 => "user".to_string(),
                 2 => "assistant".to_string(),
                 3 => "system".to_string(),
-                9 => "compact".to_string(),
+                9 => "episodic".to_string(),
                 _ => "unknown".to_string(),
             };
             history.push((role_str, content));

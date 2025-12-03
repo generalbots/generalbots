@@ -6,7 +6,7 @@ use log::{info, trace};
 use serde_json::Value;
 use tokio::sync::mpsc;
 pub mod cache;
-pub mod compact_prompt;
+pub mod episodic_memory;
 pub mod llm_models;
 pub mod local;
 pub mod observability;

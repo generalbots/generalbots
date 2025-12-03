@@ -87,8 +87,8 @@ Semantic search uses sensible defaults. Two settings affect context:
 
 ```csv
 name,value
-prompt-history,2      # Previous exchanges to include
-prompt-compact,4      # When to compress older context
+episodic-memory-history,2      # Previous exchanges to include
+episodic-memory-threshold,4      # When to compress older context
 ```
 
 ## See Also

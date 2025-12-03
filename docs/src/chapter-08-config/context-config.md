@@ -86,14 +86,14 @@ llm-cache-threshold,0.95
 ### Context Management
 
 ```csv
-prompt-compact,4
-prompt-history,2
+episodic-memory-threshold,4
+episodic-memory-history,2
 ```
 
 | Name | Description | Default | Range |
 |------|-------------|---------|-------|
-| `prompt-compact` | Messages before compaction | `4` | 1-10 |
-| `prompt-history` | Messages to keep in history | Not set | 1-20 |
+| `episodic-memory-threshold` | Messages before compaction | `4` | 1-10 |
+| `episodic-memory-history` | Messages to keep in history | Not set | 1-20 |
 
 ### Embedding Configuration
 
@@ -203,7 +203,7 @@ llm-cache-ttl,7200
 llm-cache-semantic,true
 llm-cache-threshold,0.95
 ,
-prompt-compact,6
+episodic-memory-threshold,6
 ,
 email-from,bot@company.com
 email-server,smtp.company.com
@@ -227,7 +227,7 @@ llm-model,../../../../data/llm/DeepSeek-R1-Distill-Qwen-7B-Q4_K_M.gguf
 ,
 # Disable cache for development
 llm-cache,false
-prompt-compact,2
+episodic-memory-threshold,2
 ```
 
 ## Environment Variables
