@@ -6,7 +6,7 @@
 //! - Security/access assignment
 //! - Custom UI routing (/botname/gbui)
 
-use crate::core::shared::branding::platform_name;
+use crate::shared::platform_name;
 use chrono::{DateTime, Utc};
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};

@@ -38,6 +38,10 @@ description = "General Bots Server - Open-source bot platform by Pragmatismo.com
 license = "AGPL-3.0"
 repository = "https://github.com/GeneralBots/BotServer"
 
+[dependencies.botlib]
+path = "../botlib"
+features = ["database"]
+
 [features]
 # ===== DEFAULT FEATURE SET =====
 default = ["console", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
