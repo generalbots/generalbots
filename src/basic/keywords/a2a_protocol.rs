@@ -159,6 +159,10 @@ pub struct A2AConfig {
     pub protocol_version: String,
     /// Enable message persistence
     pub persist_messages: bool,
+    /// Retry attempts on failure
+    pub retry_count: u32,
+    /// Maximum pending messages in queue
+    pub queue_size: u32,
 }
 
 impl Default for A2AConfig {
@@ -169,6 +173,8 @@ impl Default for A2AConfig {
             max_hops: 5,
             protocol_version: "1.0".to_string(),
             persist_messages: true,
+            retry_count: 3,
+            queue_size: 100,
         }
     }
 }
@@ -210,6 +216,12 @@ pub fn load_a2a_config(state: &AppState, bot_id: Uuid) -> A2AConfig {
                 }
                 "a2a-persist-messages" => {
                     config.persist_messages = row.config_value.to_lowercase() == "true";
+                }
+                "a2a-retry-count" => {
+                    config.retry_count = row.config_value.parse().unwrap_or(3);
+                }
+                "a2a-queue-size" => {
+                    config.queue_size = row.config_value.parse().unwrap_or(100);
                 }
                 _ => {}
             }

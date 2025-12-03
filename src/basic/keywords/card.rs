@@ -1,4 +1,38 @@
+/*****************************************************************************\
+|  █████  █████ ██    █ █████ █████   ████  ██      ████   █████ █████  ███ ® |
+| ██      █     ███   █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █   █      |
+| ██  ███ ████  █ ██  █ ████  █████  ██████ ██      ████   █   █   █    ██    |
+| ██   ██ █     █  ██ █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █      █   |
+|  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
+|                                                                             |
+| General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
+| Licensed under the AGPL-3.0.                                                |
+|                                                                             |
+| According to our dual licensing model, this program can be used either      |
+| under the terms of the GNU Affero General Public License, version 3,        |
+| or under a proprietary license.                                             |
+|                                                                             |
+| The texts of the GNU Affero General Public License with an additional       |
+| permission and of our proprietary license can be found at and               |
+| in the LICENSE file you have received along with this program.              |
+|                                                                             |
+| This program is distributed in the hope that it will be useful,             |
+| but WITHOUT ANY WARRANTY, without even the implied warranty of              |
+| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
+| GNU Affero General Public License for more details.                         |
+|                                                                             |
+| "General Bots" is a registered trademark of pragmatismo.com.br.             |
+| The licensing of the program under the AGPLv3 does not imply a              |
+| trademark license. Therefore any rights, title and interest in              |
+| our trademarks remain entirely with us.                                     |
+|                                                                             |
+\*****************************************************************************/
+
 //! CARD keyword - Creates beautiful Instagram-style posts from prompts
+//!
+//! This module generates social media cards by combining AI-generated images
+//! with AI-generated text. The LLM handles both image generation and text
+//! composition, eliminating the need for local image processing.
 //!
 //! Syntax:
 //!   CARD image_prompt, text_prompt TO variable
@@ -13,10 +47,9 @@
 use crate::basic::runtime::{BasicRuntime, BasicValue};
 use crate::llm::LLMProvider;
 use anyhow::{anyhow, Result};
-use image::{DynamicImage, ImageBuffer, Rgba, RgbaImage};
-use imageproc::drawing::{draw_text_mut, text_size};
-use rusttype::{Font, Scale};
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
@@ -87,18 +120,7 @@ impl CardDimensions {
     }
 }
 
-/// Text overlay configuration
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct TextOverlay {
-    pub text: String,
-    pub font_size: f32,
-    pub color: [u8; 4],
-    pub position: TextPosition,
-    pub max_width_ratio: f32,
-    pub shadow: bool,
-    pub background: Option<[u8; 4]>,
-}
-
+/// Text position configuration
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum TextPosition {
     Top,
@@ -148,6 +170,7 @@ impl Default for CardConfig {
 }
 
 /// CARD keyword implementation
+/// Uses LLM for both image generation and text composition
 pub struct CardKeyword {
     llm_provider: Arc<dyn LLMProvider>,
     output_dir: String,
@@ -178,6 +201,9 @@ impl CardKeyword {
             ..Default::default()
         };
 
+        // Ensure output directory exists
+        fs::create_dir_all(&self.output_dir)?;
+
         let mut results = Vec::with_capacity(card_count);
 
         for i in 0..card_count {
@@ -201,16 +227,20 @@ impl CardKeyword {
         // Step 1: Generate optimized text content using LLM
         let text_content = self.generate_text_content(text_prompt, config).await?;
 
-        // Step 2: Generate image using image generation API
-        let base_image = self.generate_image(image_prompt, config).await?;
+        // Step 2: Create enhanced prompt that includes text overlay instructions
+        let enhanced_image_prompt = self.create_card_prompt(image_prompt, &text_content, config);
 
-        // Step 3: Apply style and text overlay
-        let styled_image = self.apply_style_and_text(&base_image, &text_content, config)?;
+        // Step 3: Generate image with text baked in via LLM image generation
+        let image_bytes = self
+            .llm_provider
+            .generate_image(
+                &enhanced_image_prompt,
+                config.dimensions.width,
+                config.dimensions.height,
+            )
+            .await?;
 
-        // Step 4: Generate hashtags and caption
-        let (hashtags, caption) = self.generate_social_content(&text_content, config).await?;
-
-        // Step 5: Save the final image
+        // Step 4: Save the image
         let filename = format!(
             "card_{}_{}.png",
             chrono::Utc::now().format("%Y%m%d_%H%M%S"),
@@ -218,7 +248,15 @@ impl CardKeyword {
         );
         let image_path = format!("{}/{}", self.output_dir, filename);
 
-        styled_image.save(&image_path)?;
+        // Ensure parent directory exists
+        if let Some(parent) = Path::new(&image_path).parent() {
+            fs::create_dir_all(parent)?;
+        }
+
+        fs::write(&image_path, &image_bytes)?;
+
+        // Step 5: Generate hashtags and caption
+        let (hashtags, caption) = self.generate_social_content(&text_content, config).await?;
 
         Ok(CardResult {
             image_path: image_path.clone(),
@@ -276,30 +314,13 @@ Respond with ONLY the text content, nothing else."#,
         }
     }
 
-    /// Generate the base image
-    async fn generate_image(
+    /// Create an enhanced prompt for image generation that includes text overlay
+    fn create_card_prompt(
         &self,
         image_prompt: &str,
+        text_content: &str,
         config: &CardConfig,
-    ) -> Result<DynamicImage> {
-        let enhanced_prompt = self.enhance_image_prompt(image_prompt, config);
-
-        // Call image generation service
-        let image_bytes = self
-            .llm_provider
-            .generate_image(
-                &enhanced_prompt,
-                config.dimensions.width,
-                config.dimensions.height,
-            )
-            .await?;
-
-        let image = image::load_from_memory(&image_bytes)?;
-        Ok(image)
-    }
-
-    /// Enhance the image prompt based on style
-    fn enhance_image_prompt(&self, base_prompt: &str, config: &CardConfig) -> String {
+    ) -> String {
         let style_modifiers = match config.style {
             CardStyle::Minimal => {
                 "minimalist, clean, simple composition, lots of negative space, muted colors"
@@ -315,175 +336,45 @@ Respond with ONLY the text content, nothing else."#,
             CardStyle::Modern => "modern, trendy, instagram aesthetic, high quality",
         };
 
-        format!(
-            "{}, {}, perfect for Instagram, professional quality, 4K, highly detailed",
-            base_prompt, style_modifiers
-        )
-    }
-
-    /// Apply style effects and text overlay to the image
-    fn apply_style_and_text(
-        &self,
-        image: &DynamicImage,
-        text: &str,
-        config: &CardConfig,
-    ) -> Result<DynamicImage> {
-        let mut rgba_image = image.to_rgba8();
-
-        // Apply style-specific filters
-        self.apply_style_filter(&mut rgba_image, &config.style);
-
-        // Add text overlay
-        self.add_text_overlay(&mut rgba_image, text, config)?;
-
-        // Add watermark if configured
-        if let Some(ref watermark) = config.brand_watermark {
-            self.add_watermark(&mut rgba_image, watermark)?;
-        }
-
-        Ok(DynamicImage::ImageRgba8(rgba_image))
-    }
-
-    /// Apply style-specific image filters
-    fn apply_style_filter(&self, image: &mut RgbaImage, style: &CardStyle) {
-        match style {
-            CardStyle::Dark => {
-                // Darken and increase contrast
-                for pixel in image.pixels_mut() {
-                    pixel[0] = (pixel[0] as f32 * 0.7) as u8;
-                    pixel[1] = (pixel[1] as f32 * 0.7) as u8;
-                    pixel[2] = (pixel[2] as f32 * 0.7) as u8;
-                }
-            }
-            CardStyle::Light => {
-                // Brighten slightly
-                for pixel in image.pixels_mut() {
-                    pixel[0] = ((pixel[0] as f32 * 1.1).min(255.0)) as u8;
-                    pixel[1] = ((pixel[1] as f32 * 1.1).min(255.0)) as u8;
-                    pixel[2] = ((pixel[2] as f32 * 1.1).min(255.0)) as u8;
-                }
-            }
-            CardStyle::Polaroid => {
-                // Add warm vintage tint
-                for pixel in image.pixels_mut() {
-                    pixel[0] = ((pixel[0] as f32 * 1.05).min(255.0)) as u8;
-                    pixel[1] = ((pixel[1] as f32 * 0.95).min(255.0)) as u8;
-                    pixel[2] = ((pixel[2] as f32 * 0.85).min(255.0)) as u8;
-                }
-            }
-            CardStyle::Vibrant => {
-                // Increase saturation
-                for pixel in image.pixels_mut() {
-                    let r = pixel[0] as f32;
-                    let g = pixel[1] as f32;
-                    let b = pixel[2] as f32;
-                    let avg = (r + g + b) / 3.0;
-                    let factor = 1.3;
-                    pixel[0] = ((r - avg) * factor + avg).clamp(0.0, 255.0) as u8;
-                    pixel[1] = ((g - avg) * factor + avg).clamp(0.0, 255.0) as u8;
-                    pixel[2] = ((b - avg) * factor + avg).clamp(0.0, 255.0) as u8;
-                }
-            }
-            _ => {}
-        }
-    }
-
-    /// Add text overlay to the image
-    fn add_text_overlay(
-        &self,
-        image: &mut RgbaImage,
-        text: &str,
-        config: &CardConfig,
-    ) -> Result<()> {
-        let (width, height) = (image.width(), image.height());
-
-        // Load font (embedded or from file)
-        let font_data = include_bytes!("../../../assets/fonts/Inter-Bold.ttf");
-        let font = Font::try_from_bytes(font_data as &[u8])
-            .ok_or_else(|| anyhow!("Failed to load font"))?;
-
-        // Calculate font size based on image dimensions and text length
-        let base_size = (width as f32 * 0.08).min(height as f32 * 0.1);
-        let scale = Scale::uniform(base_size);
-
-        // Calculate text position
-        let (text_width, text_height) = text_size(scale, &font, text);
-        let (x, y) = self.calculate_text_position(
-            width,
-            height,
-            text_width as u32,
-            text_height as u32,
-            &config.text_position,
-        );
-
-        // Draw text shadow for better readability
-        let shadow_color = Rgba([0u8, 0u8, 0u8, 180u8]);
-        draw_text_mut(image, shadow_color, x + 3, y + 3, scale, &font, text);
-
-        // Draw main text
-        let text_color = match config.style {
-            CardStyle::Dark => Rgba([255u8, 255u8, 255u8, 255u8]),
-            CardStyle::Light => Rgba([30u8, 30u8, 30u8, 255u8]),
-            _ => Rgba([255u8, 255u8, 255u8, 255u8]),
+        let text_position = match config.text_position {
+            TextPosition::Top => "at the top",
+            TextPosition::Center => "in the center",
+            TextPosition::Bottom => "at the bottom",
+            TextPosition::TopLeft => "in the top left corner",
+            TextPosition::TopRight => "in the top right corner",
+            TextPosition::BottomLeft => "in the bottom left corner",
+            TextPosition::BottomRight => "in the bottom right corner",
         };
-        draw_text_mut(image, text_color, x, y, scale, &font, text);
 
-        Ok(())
-    }
+        let text_color = match config.style {
+            CardStyle::Dark => "white",
+            CardStyle::Light => "dark gray or black",
+            _ => "white with a subtle shadow",
+        };
 
-    /// Calculate text position based on configuration
-    fn calculate_text_position(
-        &self,
-        img_width: u32,
-        img_height: u32,
-        text_width: u32,
-        text_height: u32,
-        position: &TextPosition,
-    ) -> (i32, i32) {
-        let padding = (img_width as f32 * 0.05) as i32;
+        format!(
+            r#"Create an Instagram-ready image with the following specifications:
 
-        match position {
-            TextPosition::Top => (
-                ((img_width - text_width) / 2) as i32,
-                padding + text_height as i32,
-            ),
-            TextPosition::Center => (
-                ((img_width - text_width) / 2) as i32,
-                ((img_height - text_height) / 2) as i32,
-            ),
-            TextPosition::Bottom => (
-                ((img_width - text_width) / 2) as i32,
-                (img_height - text_height) as i32 - padding,
-            ),
-            TextPosition::TopLeft => (padding, padding + text_height as i32),
-            TextPosition::TopRight => (
-                (img_width - text_width) as i32 - padding,
-                padding + text_height as i32,
-            ),
-            TextPosition::BottomLeft => (padding, (img_height - text_height) as i32 - padding),
-            TextPosition::BottomRight => (
-                (img_width - text_width) as i32 - padding,
-                (img_height - text_height) as i32 - padding,
-            ),
-        }
-    }
+Background/Scene: {}
+Style: {}, perfect for Instagram, professional quality, 4K, highly detailed
 
-    /// Add brand watermark
-    fn add_watermark(&self, image: &mut RgbaImage, watermark: &str) -> Result<()> {
-        let font_data = include_bytes!("../../../assets/fonts/Inter-Regular.ttf");
-        let font = Font::try_from_bytes(font_data as &[u8])
-            .ok_or_else(|| anyhow!("Failed to load font"))?;
+Text Overlay Requirements:
+- Display the text "{}" {} of the image
+- Use bold, modern typography
+- Text color should be {} for readability
+- Add a subtle text shadow or background blur behind text for contrast
+- Leave appropriate padding around text
 
-        let scale = Scale::uniform(image.width() as f32 * 0.025);
-        let color = Rgba([255u8, 255u8, 255u8, 128u8]);
-
-        let padding = 20i32;
-        let x = padding;
-        let y = (image.height() - 30) as i32;
-
-        draw_text_mut(image, color, x, y, scale, &font, watermark);
-
-        Ok(())
+The image should be {} x {} pixels, optimized for social media.
+Make the text an integral part of the design, not just overlaid."#,
+            image_prompt,
+            style_modifiers,
+            text_content,
+            text_position,
+            text_color,
+            config.dimensions.width,
+            config.dimensions.height
+        )
     }
 
     /// Generate hashtags and caption for the post
@@ -516,11 +407,22 @@ HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
         let mut hashtags = Vec::new();
 
         for line in response.lines() {
-            if line.starts_with("CAPTION:") {
-                caption = line.trim_start_matches("CAPTION:").trim().to_string();
-            } else if line.starts_with("HASHTAGS:") {
-                let tags = line.trim_start_matches("HASHTAGS:").trim();
-                hashtags = tags.split(',').map(|t| format!("#{}", t.trim())).collect();
+            let line_trimmed = line.trim();
+            if line_trimmed.starts_with("CAPTION:") {
+                caption = line_trimmed
+                    .trim_start_matches("CAPTION:")
+                    .trim()
+                    .to_string();
+            } else if line_trimmed.starts_with("HASHTAGS:") {
+                let tags = line_trimmed.trim_start_matches("HASHTAGS:").trim();
+                hashtags = tags
+                    .split(',')
+                    .map(|t| {
+                        let tag = t.trim().trim_start_matches('#');
+                        format!("#{}", tag)
+                    })
+                    .filter(|t| t.len() > 1)
+                    .collect();
             }
         }
 
@@ -550,27 +452,36 @@ pub fn register_card_keyword(runtime: &mut BasicRuntime, llm_provider: Arc<dyn L
             let style = args.get(2).map(|v| v.as_string()).transpose()?;
             let count = args
                 .get(3)
-                .map(|v| v.as_number().map(|n| n as usize))
+                .map(|v| v.as_integer().map(|i| i as usize))
                 .transpose()?;
 
-            let kw = keyword.lock().await;
-            let results = kw
+            let keyword = keyword.lock().await;
+            let results = keyword
                 .execute(&image_prompt, &text_prompt, style.as_deref(), count)
                 .await?;
 
             // Convert results to BasicValue
-            let value = if results.len() == 1 {
-                BasicValue::Object(serde_json::to_value(&results[0])?)
-            } else {
-                BasicValue::Array(
-                    results
-                        .into_iter()
-                        .map(|r| BasicValue::Object(serde_json::to_value(&r).unwrap()))
-                        .collect(),
-                )
-            };
+            let result_values: Vec<BasicValue> = results
+                .into_iter()
+                .map(|r| {
+                    BasicValue::Object(serde_json::json!({
+                        "image_path": r.image_path,
+                        "image_url": r.image_url,
+                        "text": r.text_content,
+                        "hashtags": r.hashtags,
+                        "caption": r.caption,
+                        "style": r.style,
+                        "width": r.dimensions.0,
+                        "height": r.dimensions.1,
+                    }))
+                })
+                .collect();
 
-            Ok(value)
+            if result_values.len() == 1 {
+                Ok(result_values.into_iter().next().unwrap())
+            } else {
+                Ok(BasicValue::Array(result_values))
+            }
         })
     });
 }
@@ -583,19 +494,27 @@ mod tests {
     fn test_card_style_from_string() {
         assert!(matches!(CardStyle::from("minimal"), CardStyle::Minimal));
         assert!(matches!(CardStyle::from("VIBRANT"), CardStyle::Vibrant));
+        assert!(matches!(CardStyle::from("dark"), CardStyle::Dark));
         assert!(matches!(CardStyle::from("unknown"), CardStyle::Modern));
     }
 
     #[test]
-    fn test_card_dimensions() {
-        assert_eq!(CardDimensions::INSTAGRAM_SQUARE.width, 1080);
-        assert_eq!(CardDimensions::INSTAGRAM_SQUARE.height, 1080);
-        assert_eq!(CardDimensions::INSTAGRAM_STORY.height, 1920);
+    fn test_card_dimensions_for_style() {
+        let story_dims = CardDimensions::for_style(&CardStyle::Story);
+        assert_eq!(story_dims.width, 1080);
+        assert_eq!(story_dims.height, 1920);
+
+        let square_dims = CardDimensions::for_style(&CardStyle::Modern);
+        assert_eq!(square_dims.width, 1080);
+        assert_eq!(square_dims.height, 1080);
     }
 
     #[test]
-    fn test_text_position_calculation() {
-        // Create a mock keyword for testing
-        // In real tests, we'd use a mock LLM provider
+    fn test_card_config_default() {
+        let config = CardConfig::default();
+        assert!(matches!(config.style, CardStyle::Modern));
+        assert!(config.include_hashtags);
+        assert!(config.include_caption);
+        assert!(config.brand_watermark.is_none());
     }
 }

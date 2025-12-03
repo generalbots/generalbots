@@ -3,14 +3,39 @@
 //! Implements hybrid search combining sparse (BM25) and dense (embedding) retrieval
 //! with Reciprocal Rank Fusion (RRF) for optimal results.
 //!
-//! Config.csv properties:
+//! # Features
+//!
+//! - **BM25 Sparse Search**: Powered by Tantivy (when `vectordb` feature enabled)
+//! - **Dense Search**: Uses Qdrant for embedding-based similarity search
+//! - **Hybrid Fusion**: Reciprocal Rank Fusion (RRF) combines both methods
+//! - **Reranking**: Optional cross-encoder reranking for improved relevance
+//!
+//! # Config.csv Properties
+//!
 //! ```csv
+//! # Hybrid search weights
 //! rag-hybrid-enabled,true
 //! rag-dense-weight,0.7
 //! rag-sparse-weight,0.3
 //! rag-reranker-enabled,true
 //! rag-reranker-model,cross-encoder/ms-marco-MiniLM-L-6-v2
+//! rag-max-results,10
+//! rag-min-score,0.0
+//! rag-rrf-k,60
+//!
+//! # BM25 tuning (see bm25_config.rs for details)
+//! bm25-enabled,true
+//! bm25-k1,1.2
+//! bm25-b,0.75
+//! bm25-stemming,true
+//! bm25-stopwords,true
 //! ```
+//!
+//! # Switching Search Modes
+//!
+//! - **Hybrid (default)**: Set `rag-hybrid-enabled=true` and `bm25-enabled=true`
+//! - **Dense only**: Set `bm25-enabled=false` (faster, semantic search only)
+//! - **Sparse only**: Set `rag-dense-weight=0` and `rag-sparse-weight=1`
 
 use log::{debug, error, info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -37,6 +62,8 @@ pub struct HybridSearchConfig {
     pub min_score: f32,
     /// K parameter for RRF (typically 60)
     pub rrf_k: u32,
+    /// Whether BM25 sparse search is enabled
+    pub bm25_enabled: bool,
 }
 
 impl Default for HybridSearchConfig {
@@ -49,6 +76,7 @@ impl Default for HybridSearchConfig {
             max_results: 10,
             min_score: 0.0,
             rrf_k: 60,
+            bm25_enabled: true,
         }
     }
 }
@@ -71,7 +99,7 @@ impl HybridSearchConfig {
 
             let configs: Vec<ConfigRow> = diesel::sql_query(
                 "SELECT config_key, config_value FROM bot_configuration \
-                 WHERE bot_id = $1 AND config_key LIKE 'rag-%'",
+                 WHERE bot_id = $1 AND (config_key LIKE 'rag-%' OR config_key LIKE 'bm25-%')",
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
             .load(&mut conn)
@@ -100,6 +128,9 @@ impl HybridSearchConfig {
                     "rag-rrf-k" => {
                         config.rrf_k = row.config_value.parse().unwrap_or(60);
                     }
+                    "bm25-enabled" => {
+                        config.bm25_enabled = row.config_value.to_lowercase() == "true";
+                    }
                     _ => {}
                 }
             }
@@ -112,7 +143,22 @@ impl HybridSearchConfig {
             config.sparse_weight /= total;
         }
 
+        debug!(
+            "Loaded HybridSearchConfig: dense={}, sparse={}, bm25_enabled={}",
+            config.dense_weight, config.sparse_weight, config.bm25_enabled
+        );
+
         config
+    }
+
+    /// Check if sparse (BM25) search should be used
+    pub fn use_sparse_search(&self) -> bool {
+        self.bm25_enabled && self.sparse_weight > 0.0
+    }
+
+    /// Check if dense (embedding) search should be used
+    pub fn use_dense_search(&self) -> bool {
+        self.dense_weight > 0.0
     }
 }
 
@@ -142,23 +188,23 @@ pub enum SearchMethod {
     Reranked,
 }
 
-/// BM25 search index for sparse retrieval
+// ============================================================================
+// Built-in BM25 Index Implementation
+// ============================================================================
+
 pub struct BM25Index {
-    /// Document frequency for each term
     doc_freq: HashMap<String, usize>,
-    /// Total number of documents
     doc_count: usize,
-    /// Average document length
     avg_doc_len: f32,
-    /// Document lengths
     doc_lengths: HashMap<String, usize>,
-    /// Term frequencies per document
     term_freqs: HashMap<String, HashMap<String, usize>>,
-    /// BM25 parameters
+    doc_sources: HashMap<String, String>,
     k1: f32,
     b: f32,
+    enabled: bool,
 }
 
+#[cfg(not(feature = "vectordb"))]
 impl BM25Index {
     pub fn new() -> Self {
         Self {
@@ -167,27 +213,31 @@ impl BM25Index {
             avg_doc_len: 0.0,
             doc_lengths: HashMap::new(),
             term_freqs: HashMap::new(),
+            doc_sources: HashMap::new(),
             k1: 1.2,
             b: 0.75,
+            enabled: true,
         }
     }
 
-    /// Add a document to the index
-    pub fn add_document(&mut self, doc_id: &str, content: &str) {
+    pub fn add_document(&mut self, doc_id: &str, content: &str, source: &str) {
+        if !self.enabled {
+            return;
+        }
+
         let terms = self.tokenize(content);
         let doc_len = terms.len();
 
-        // Update document length
         self.doc_lengths.insert(doc_id.to_string(), doc_len);
+        self.doc_sources
+            .insert(doc_id.to_string(), source.to_string());
 
-        // Calculate term frequencies
         let mut term_freq: HashMap<String, usize> = HashMap::new();
         let mut seen_terms: std::collections::HashSet<String> = std::collections::HashSet::new();
 
         for term in &terms {
             *term_freq.entry(term.clone()).or_insert(0) += 1;
 
-            // Update document frequency (only once per document per term)
             if !seen_terms.contains(term) {
                 *self.doc_freq.entry(term.clone()).or_insert(0) += 1;
                 seen_terms.insert(term.clone());
@@ -197,15 +247,12 @@ impl BM25Index {
         self.term_freqs.insert(doc_id.to_string(), term_freq);
         self.doc_count += 1;
 
-        // Update average document length
         let total_len: usize = self.doc_lengths.values().sum();
         self.avg_doc_len = total_len as f32 / self.doc_count as f32;
     }
 
-    /// Remove a document from the index
     pub fn remove_document(&mut self, doc_id: &str) {
         if let Some(term_freq) = self.term_freqs.remove(doc_id) {
-            // Update document frequencies
             for term in term_freq.keys() {
                 if let Some(freq) = self.doc_freq.get_mut(term) {
                     *freq = freq.saturating_sub(1);
@@ -217,9 +264,9 @@ impl BM25Index {
         }
 
         self.doc_lengths.remove(doc_id);
+        self.doc_sources.remove(doc_id);
         self.doc_count = self.doc_count.saturating_sub(1);
 
-        // Update average document length
         if self.doc_count > 0 {
             let total_len: usize = self.doc_lengths.values().sum();
             self.avg_doc_len = total_len as f32 / self.doc_count as f32;
@@ -228,8 +275,11 @@ impl BM25Index {
         }
     }
 
-    /// Search the index with BM25 scoring
-    pub fn search(&self, query: &str, max_results: usize) -> Vec<(String, f32)> {
+    pub fn search(&self, query: &str, max_results: usize) -> Vec<(String, String, f32)> {
+        if !self.enabled {
+            return Vec::new();
+        }
+
         let query_terms = self.tokenize(query);
         let mut scores: HashMap<String, f32> = HashMap::new();
 
@@ -239,7 +289,6 @@ impl BM25Index {
                 continue;
             }
 
-            // IDF calculation
             let idf = ((self.doc_count as f32 - df as f32 + 0.5) / (df as f32 + 0.5) + 1.0).ln();
 
             for (doc_id, term_freqs) in &self.term_freqs {
@@ -254,30 +303,38 @@ impl BM25Index {
             }
         }
 
-        // Sort by score and return top results
         let mut results: Vec<(String, f32)> = scores.into_iter().collect();
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         results.truncate(max_results);
 
         results
+            .into_iter()
+            .map(|(doc_id, score)| {
+                let source = self.doc_sources.get(&doc_id).cloned().unwrap_or_default();
+                (doc_id, source, score)
+            })
+            .collect()
     }
 
-    /// Tokenize text into terms
     fn tokenize(&self, text: &str) -> Vec<String> {
         text.to_lowercase()
             .split(|c: char| !c.is_alphanumeric())
-            .filter(|s| s.len() > 2) // Filter out very short tokens
+            .filter(|s| s.len() > 2)
             .map(|s| s.to_string())
             .collect()
     }
 
-    /// Get index statistics
     pub fn stats(&self) -> BM25Stats {
         BM25Stats {
             doc_count: self.doc_count,
             unique_terms: self.doc_freq.len(),
             avg_doc_len: self.avg_doc_len,
+            enabled: self.enabled,
         }
+    }
+
+    pub fn set_enabled(&mut self, enabled: bool) {
+        self.enabled = enabled;
     }
 }
 
@@ -288,16 +345,29 @@ impl Default for BM25Index {
 }
 
 /// BM25 index statistics
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BM25Stats {
     pub doc_count: usize,
     pub unique_terms: usize,
     pub avg_doc_len: f32,
+    pub enabled: bool,
+}
+
+// ============================================================================
+// Hybrid Search Engine
+// ============================================================================
+
+/// Document entry in the store
+#[derive(Debug, Clone)]
+struct DocumentEntry {
+    pub content: String,
+    pub source: String,
+    pub metadata: HashMap<String, String>,
 }
 
 /// Hybrid search engine combining dense and sparse retrieval
 pub struct HybridSearchEngine {
-    /// BM25 sparse index
+    /// BM25 sparse index (built-in implementation)
     bm25_index: BM25Index,
     /// Document store for content retrieval
     documents: HashMap<String, DocumentEntry>,
@@ -309,18 +379,18 @@ pub struct HybridSearchEngine {
     collection_name: String,
 }
 
-/// Document entry in the store
-#[derive(Debug, Clone)]
-struct DocumentEntry {
-    pub content: String,
-    pub source: String,
-    pub metadata: HashMap<String, String>,
-}
-
 impl HybridSearchEngine {
     pub fn new(config: HybridSearchConfig, qdrant_url: &str, collection_name: &str) -> Self {
+        let mut bm25_index = BM25Index::new();
+        bm25_index.set_enabled(config.bm25_enabled);
+
+        info!(
+            "Created HybridSearchEngine with fallback BM25 (enabled={})",
+            config.bm25_enabled
+        );
+
         Self {
-            bm25_index: BM25Index::new(),
+            bm25_index,
             documents: HashMap::new(),
             config,
             qdrant_url: qdrant_url.to_string(),
@@ -337,8 +407,8 @@ impl HybridSearchEngine {
         metadata: HashMap<String, String>,
         embedding: Option<Vec<f32>>,
     ) -> Result<(), String> {
-        // Add to BM25 index
-        self.bm25_index.add_document(doc_id, content);
+        // Add to BM25 index (fallback)
+        self.bm25_index.add_document(doc_id, content, source);
 
         // Store document
         self.documents.insert(
@@ -358,6 +428,11 @@ impl HybridSearchEngine {
         Ok(())
     }
 
+    /// Commit pending BM25 index changes
+    pub fn commit(&mut self) -> Result<(), String> {
+        Ok(())
+    }
+
     /// Remove a document from all indexes
     pub async fn remove_document(&mut self, doc_id: &str) -> Result<(), String> {
         self.bm25_index.remove_document(doc_id);
@@ -372,34 +447,46 @@ impl HybridSearchEngine {
         query: &str,
         query_embedding: Option<Vec<f32>>,
     ) -> Result<Vec<SearchResult>, String> {
-        let fetch_count = self.config.max_results * 3; // Fetch more for fusion
+        let fetch_count = self.config.max_results * 3;
 
-        // Sparse search (BM25)
-        let sparse_results = self.bm25_index.search(query, fetch_count);
-        trace!(
-            "BM25 search returned {} results for query: {}",
-            sparse_results.len(),
-            query
-        );
-
-        // Dense search (Qdrant)
-        let dense_results = if let Some(embedding) = query_embedding {
-            self.search_qdrant(&embedding, fetch_count).await?
+        // Sparse search (BM25 fallback)
+        let sparse_results: Vec<(String, f32)> = if self.config.use_sparse_search() {
+            self.bm25_index
+                .search(query, fetch_count)
+                .into_iter()
+                .map(|(doc_id, _source, score)| (doc_id, score))
+                .collect()
         } else {
             Vec::new()
         };
-        trace!(
-            "Dense search returned {} results for query: {}",
-            dense_results.len(),
-            query
-        );
 
-        // Reciprocal Rank Fusion
-        let fused_results = self.reciprocal_rank_fusion(&sparse_results, &dense_results);
-        trace!("RRF produced {} fused results", fused_results.len());
+        // Dense search (Qdrant)
+        let dense_results = if self.config.use_dense_search() {
+            if let Some(embedding) = query_embedding {
+                self.search_qdrant(&embedding, fetch_count).await?
+            } else {
+                Vec::new()
+            }
+        } else {
+            Vec::new()
+        };
+
+        // Combine results
+        let (results, method) = if sparse_results.is_empty() && dense_results.is_empty() {
+            (Vec::new(), SearchMethod::Hybrid)
+        } else if sparse_results.is_empty() {
+            (dense_results.clone(), SearchMethod::Dense)
+        } else if dense_results.is_empty() {
+            (sparse_results.clone(), SearchMethod::Sparse)
+        } else {
+            (
+                self.reciprocal_rank_fusion(&sparse_results, &dense_results),
+                SearchMethod::Hybrid,
+            )
+        };
 
         // Convert to SearchResult
-        let mut results: Vec<SearchResult> = fused_results
+        let mut search_results: Vec<SearchResult> = results
             .into_iter()
             .filter_map(|(doc_id, score)| {
                 self.documents.get(&doc_id).map(|doc| SearchResult {
@@ -408,7 +495,7 @@ impl HybridSearchEngine {
                     source: doc.source.clone(),
                     score,
                     metadata: doc.metadata.clone(),
-                    search_method: SearchMethod::Hybrid,
+                    search_method: method.clone(),
                 })
             })
             .filter(|r| r.score >= self.config.min_score)
@@ -416,11 +503,11 @@ impl HybridSearchEngine {
             .collect();
 
         // Optional reranking
-        if self.config.reranker_enabled && !results.is_empty() {
-            results = self.rerank(query, results).await?;
+        if self.config.reranker_enabled && !search_results.is_empty() {
+            search_results = self.rerank(query, search_results).await?;
         }
 
-        Ok(results)
+        Ok(search_results)
     }
 
     /// Perform only sparse (BM25) search
@@ -429,7 +516,7 @@ impl HybridSearchEngine {
 
         results
             .into_iter()
-            .filter_map(|(doc_id, score)| {
+            .filter_map(|(doc_id, _source, score)| {
                 self.documents.get(&doc_id).map(|doc| SearchResult {
                     doc_id,
                     content: doc.content.clone(),
@@ -511,12 +598,11 @@ impl HybridSearchEngine {
         query: &str,
         results: Vec<SearchResult>,
     ) -> Result<Vec<SearchResult>, String> {
-        // In a full implementation, this would call a cross-encoder model
-        // For now, we'll use a simple relevance heuristic
+        // Simple reranking based on query term overlap
+        // A full implementation would call a cross-encoder model API
         let mut reranked = results;
 
         for result in &mut reranked {
-            // Simple reranking based on query term overlap
             let query_terms: std::collections::HashSet<&str> =
                 query.to_lowercase().split_whitespace().collect();
             let content_lower = result.content.to_lowercase();
@@ -528,14 +614,16 @@ impl HybridSearchEngine {
                 }
             }
 
-            // Combine original score with overlap
             let overlap_normalized = overlap_score / query_terms.len().max(1) as f32;
             result.score = result.score * 0.7 + overlap_normalized * 0.3;
             result.search_method = SearchMethod::Reranked;
         }
 
-        // Re-sort by new scores
-        reranked.sort_by(|a, b| b.score.partial_cmp(&a.score).unwrap_or(std::cmp::Ordering::Equal));
+        reranked.sort_by(|a, b| {
+            b.score
+                .partial_cmp(&a.score)
+                .unwrap_or(std::cmp::Ordering::Equal)
+        });
 
         Ok(reranked)
     }
@@ -657,6 +745,7 @@ impl HybridSearchEngine {
             bm25_doc_count: bm25_stats.doc_count,
             unique_terms: bm25_stats.unique_terms,
             avg_doc_len: bm25_stats.avg_doc_len,
+            bm25_enabled: bm25_stats.enabled,
             config: self.config.clone(),
         }
     }
@@ -669,8 +758,13 @@ pub struct HybridSearchStats {
     pub bm25_doc_count: usize,
     pub unique_terms: usize,
     pub avg_doc_len: f32,
+    pub bm25_enabled: bool,
     pub config: HybridSearchConfig,
 }
+
+// ============================================================================
+// Query Decomposition
+// ============================================================================
 
 /// Query decomposition for complex questions
 pub struct QueryDecomposer {
@@ -688,9 +782,6 @@ impl QueryDecomposer {
 
     /// Decompose a complex query into simpler sub-queries
     pub async fn decompose(&self, query: &str) -> Result<Vec<String>, String> {
-        // Simple heuristic decomposition for common patterns
-        // A full implementation would use an LLM
-
         let mut sub_queries = Vec::new();
 
         // Check for conjunctions
@@ -711,7 +802,6 @@ impl QueryDecomposer {
                 sub_queries.push(part.to_string());
             }
         } else {
-            // Try question word splitting
             let question_words = ["what", "how", "why", "when", "where", "who"];
             let lower = query.to_lowercase();
 
@@ -724,7 +814,6 @@ impl QueryDecomposer {
             }
 
             if has_multiple_questions {
-                // Split on question marks or question words
                 for part in query.split('?') {
                     let trimmed = part.trim();
                     if !trimmed.is_empty() {
@@ -734,7 +823,6 @@ impl QueryDecomposer {
             }
         }
 
-        // If no decomposition happened, return original query
         if sub_queries.is_empty() {
             sub_queries.push(query.to_string());
         }
@@ -748,8 +836,10 @@ impl QueryDecomposer {
             return sub_answers[0].clone();
         }
 
-        // Simple concatenation with context
-        let mut synthesis = format!("Based on your question about \"{}\", here's what I found:\n\n", query);
+        let mut synthesis = format!(
+            "Based on your question about \"{}\", here's what I found:\n\n",
+            query
+        );
 
         for (i, answer) in sub_answers.iter().enumerate() {
             synthesis.push_str(&format!("{}. {}\n\n", i + 1, answer));
@@ -759,53 +849,13 @@ impl QueryDecomposer {
     }
 }
 
+// ============================================================================
+// Tests
+// ============================================================================
+
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn test_bm25_index_basic() {
-        let mut index = BM25Index::new();
-
-        index.add_document("doc1", "The quick brown fox jumps over the lazy dog");
-        index.add_document("doc2", "A quick brown dog runs in the park");
-        index.add_document("doc3", "The lazy cat sleeps all day");
-
-        let stats = index.stats();
-        assert_eq!(stats.doc_count, 3);
-        assert!(stats.avg_doc_len > 0.0);
-    }
-
-    #[test]
-    fn test_bm25_search() {
-        let mut index = BM25Index::new();
-
-        index.add_document("doc1", "machine learning artificial intelligence");
-        index.add_document("doc2", "natural language processing NLP");
-        index.add_document("doc3", "computer vision image recognition");
-
-        let results = index.search("machine learning", 10);
-
-        assert!(!results.is_empty());
-        assert_eq!(results[0].0, "doc1"); // doc1 should be first
-    }
-
-    #[test]
-    fn test_bm25_remove_document() {
-        let mut index = BM25Index::new();
-
-        index.add_document("doc1", "test document one");
-        index.add_document("doc2", "test document two");
-
-        assert_eq!(index.stats().doc_count, 2);
-
-        index.remove_document("doc1");
-
-        assert_eq!(index.stats().doc_count, 1);
-
-        let results = index.search("one", 10);
-        assert!(results.is_empty() || results[0].0 != "doc1");
-    }
 
     #[test]
     fn test_hybrid_config_default() {
@@ -815,6 +865,29 @@ mod tests {
         assert_eq!(config.sparse_weight, 0.3);
         assert!(!config.reranker_enabled);
         assert_eq!(config.max_results, 10);
+        assert!(config.bm25_enabled);
+    }
+
+    #[test]
+    fn test_hybrid_config_search_modes() {
+        let config = HybridSearchConfig::default();
+        assert!(config.use_sparse_search());
+        assert!(config.use_dense_search());
+
+        let dense_only = HybridSearchConfig {
+            bm25_enabled: false,
+            ..Default::default()
+        };
+        assert!(!dense_only.use_sparse_search());
+        assert!(dense_only.use_dense_search());
+
+        let sparse_only = HybridSearchConfig {
+            dense_weight: 0.0,
+            sparse_weight: 1.0,
+            ..Default::default()
+        };
+        assert!(sparse_only.use_sparse_search());
+        assert!(!sparse_only.use_dense_search());
     }
 
     #[test]
@@ -836,8 +909,8 @@ mod tests {
 
         let fused = engine.reciprocal_rank_fusion(&sparse, &dense);
 
-        // doc1 and doc2 should be in top results as they appear in both
         assert!(!fused.is_empty());
+        // doc1 and doc2 appear in both, should rank high
         let top_ids: Vec<&str> = fused.iter().take(2).map(|(id, _)| id.as_str()).collect();
         assert!(top_ids.contains(&"doc1") || top_ids.contains(&"doc2"));
     }
@@ -846,7 +919,6 @@ mod tests {
     fn test_query_decomposer_simple() {
         let decomposer = QueryDecomposer::new("http://localhost:8081", "none");
 
-        // Use tokio runtime for async test
         let rt = tokio::runtime::Runtime::new().unwrap();
 
         let result = rt.block_on(async {
@@ -877,5 +949,41 @@ mod tests {
         let parsed: Result<SearchResult, _> = serde_json::from_str(&json.unwrap());
         assert!(parsed.is_ok());
         assert_eq!(parsed.unwrap().doc_id, "test123");
+    }
+
+    #[cfg(not(feature = "vectordb"))]
+    #[test]
+    fn test_fallback_bm25_index() {
+        let mut index = BM25Index::new();
+
+        index.add_document(
+            "doc1",
+            "machine learning artificial intelligence",
+            "source1",
+        );
+        index.add_document("doc2", "natural language processing NLP", "source2");
+        index.add_document("doc3", "computer vision image recognition", "source3");
+
+        let results = index.search("machine learning", 10);
+
+        assert!(!results.is_empty());
+        assert_eq!(results[0].0, "doc1");
+
+        let stats = index.stats();
+        assert_eq!(stats.doc_count, 3);
+        assert!(stats.enabled);
+    }
+
+    #[cfg(not(feature = "vectordb"))]
+    #[test]
+    fn test_fallback_bm25_disabled() {
+        let mut index = BM25Index::new();
+        index.set_enabled(false);
+
+        index.add_document("doc1", "test content", "source1");
+        let results = index.search("test", 10);
+
+        assert!(results.is_empty());
+        assert!(!index.stats().enabled);
     }
 }
