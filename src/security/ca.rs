@@ -5,8 +5,7 @@
 
 use anyhow::Result;
 use rcgen::{
-    BasicConstraints, Certificate as RcgenCertificate, CertificateParams, DistinguishedName,
-    DnType, IsCa, KeyPair, SanType,
+    BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair, SanType,
 };
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -88,16 +87,18 @@ impl Default for CaConfig {
 /// Certificate Authority Manager
 pub struct CaManager {
     config: CaConfig,
-    ca_cert: Option<RcgenCertificate>,
-    intermediate_cert: Option<RcgenCertificate>,
+    ca_params: Option<CertificateParams>,
+    ca_key: Option<KeyPair>,
+    intermediate_params: Option<CertificateParams>,
+    intermediate_key: Option<KeyPair>,
 }
 
 impl std::fmt::Debug for CaManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("CaManager")
             .field("config", &self.config)
-            .field("ca_cert", &self.ca_cert.is_some())
-            .field("intermediate_cert", &self.intermediate_cert.is_some())
+            .field("ca_params", &self.ca_params.is_some())
+            .field("intermediate_params", &self.intermediate_params.is_some())
             .finish()
     }
 }
@@ -107,8 +108,10 @@ impl CaManager {
     pub fn new(config: CaConfig) -> Result<Self> {
         let mut manager = Self {
             config,
-            ca_cert: None,
-            intermediate_cert: None,
+            ca_params: None,
+            ca_key: None,
+            intermediate_params: None,
+            intermediate_key: None,
         };
 
         // Load existing CA if available
@@ -125,15 +128,12 @@ impl CaManager {
         self.create_ca_directories()?;
 
         // Generate root CA
-        let ca_cert = self.generate_root_ca()?;
+        self.generate_root_ca()?;
 
         // Generate intermediate CA if configured
         if self.config.intermediate_cert_path.is_some() {
-            let intermediate = self.generate_intermediate_ca(&ca_cert)?;
-            self.intermediate_cert = Some(intermediate);
+            self.generate_intermediate_ca()?;
         }
-
-        self.ca_cert = Some(ca_cert);
 
         info!("Certificate Authority initialized successfully");
         Ok(())
@@ -144,17 +144,21 @@ impl CaManager {
         if self.config.ca_cert_path.exists() && self.config.ca_key_path.exists() {
             debug!("Loading existing CA from {:?}", self.config.ca_cert_path);
 
-            let _cert_pem = fs::read_to_string(&self.config.ca_cert_path)?;
             let key_pem = fs::read_to_string(&self.config.ca_key_path)?;
-
             let key_pair = KeyPair::from_pem(&key_pem)?;
 
-            // Create CA params from scratch since rcgen doesn't support loading from PEM
+            // Create CA params
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
-            params.key_pair = Some(key_pair);
 
-            self.ca_cert = Some(RcgenCertificate::from_params(params)?);
+            let mut dn = DistinguishedName::new();
+            dn.push(DnType::CountryName, &self.config.country);
+            dn.push(DnType::OrganizationName, &self.config.organization);
+            dn.push(DnType::CommonName, "BotServer Root CA");
+            params.distinguished_name = dn;
+
+            self.ca_params = Some(params);
+            self.ca_key = Some(key_pair);
 
             // Load intermediate CA if exists
             if let (Some(cert_path), Some(key_path)) = (
@@ -162,17 +166,21 @@ impl CaManager {
                 &self.config.intermediate_key_path,
             ) {
                 if cert_path.exists() && key_path.exists() {
-                    let _cert_pem = fs::read_to_string(cert_path)?;
                     let key_pem = fs::read_to_string(key_path)?;
-
                     let key_pair = KeyPair::from_pem(&key_pem)?;
 
                     // Create intermediate CA params
                     let mut params = CertificateParams::default();
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-                    params.key_pair = Some(key_pair);
 
-                    self.intermediate_cert = Some(RcgenCertificate::from_params(params)?);
+                    let mut dn = DistinguishedName::new();
+                    dn.push(DnType::CountryName, &self.config.country);
+                    dn.push(DnType::OrganizationName, &self.config.organization);
+                    dn.push(DnType::CommonName, "BotServer Intermediate CA");
+                    params.distinguished_name = dn;
+
+                    self.intermediate_params = Some(params);
+                    self.intermediate_key = Some(key_pair);
                 }
             }
 
@@ -185,7 +193,7 @@ impl CaManager {
     }
 
     /// Generate root CA certificate
-    fn generate_root_ca(&self) -> Result<RcgenCertificate> {
+    fn generate_root_ca(&mut self) -> Result<()> {
         let mut params = CertificateParams::default();
 
         // Set as CA certificate
@@ -206,22 +214,33 @@ impl CaManager {
             OffsetDateTime::now_utc() + Duration::days(self.config.validity_days * 2);
 
         // Generate key pair
-        let key_pair = KeyPair::generate(&rcgen::PKCS_RSA_SHA256)?;
-        params.key_pair = Some(key_pair);
+        let key_pair = KeyPair::generate()?;
 
-        // Create certificate
-        let cert = RcgenCertificate::from_params(params)?;
+        // Create self-signed certificate
+        let cert = params.self_signed(&key_pair)?;
 
         // Save to disk
-        fs::write(&self.config.ca_cert_path, cert.serialize_pem()?)?;
-        fs::write(&self.config.ca_key_path, cert.serialize_private_key_pem())?;
+        fs::write(&self.config.ca_cert_path, cert.pem())?;
+        fs::write(&self.config.ca_key_path, key_pair.serialize_pem())?;
+
+        self.ca_params = Some(params);
+        self.ca_key = Some(key_pair);
 
         info!("Generated root CA certificate");
-        Ok(cert)
+        Ok(())
     }
 
     /// Generate intermediate CA certificate
-    fn generate_intermediate_ca(&self, root_ca: &RcgenCertificate) -> Result<RcgenCertificate> {
+    fn generate_intermediate_ca(&mut self) -> Result<()> {
+        let ca_params = self
+            .ca_params
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Root CA params not available"))?;
+        let ca_key = self
+            .ca_key
+            .as_ref()
+            .ok_or_else(|| anyhow::anyhow!("Root CA key not available"))?;
+
         let mut params = CertificateParams::default();
 
         // Set as intermediate CA
@@ -241,26 +260,28 @@ impl CaManager {
         params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days);
 
         // Generate key pair
-        let key_pair = KeyPair::generate(&rcgen::PKCS_RSA_SHA256)?;
-        params.key_pair = Some(key_pair);
+        let key_pair = KeyPair::generate()?;
 
-        // Create certificate
-        let cert = RcgenCertificate::from_params(params)?;
+        // Create issuer from root CA
+        let issuer = Issuer::from_params(ca_params, ca_key);
 
-        // Sign with root CA
-        let signed_cert = cert.serialize_pem_with_signer(root_ca)?;
+        // Create certificate signed by root CA
+        let cert = params.signed_by(&key_pair, &issuer)?;
 
         // Save to disk
         if let (Some(cert_path), Some(key_path)) = (
             &self.config.intermediate_cert_path,
             &self.config.intermediate_key_path,
         ) {
-            fs::write(cert_path, signed_cert)?;
-            fs::write(key_path, cert.serialize_private_key_pem())?;
+            fs::write(cert_path, cert.pem())?;
+            fs::write(key_path, key_pair.serialize_pem())?;
         }
 
+        self.intermediate_params = Some(params);
+        self.intermediate_key = Some(key_pair);
+
         info!("Generated intermediate CA certificate");
-        Ok(cert)
+        Ok(())
     }
 
     /// Issue a new certificate for a service
@@ -270,11 +291,14 @@ impl CaManager {
         san_names: Vec<String>,
         is_client: bool,
     ) -> Result<(String, String)> {
-        let signing_ca = self
-            .intermediate_cert
-            .as_ref()
-            .or(self.ca_cert.as_ref())
-            .ok_or_else(|| anyhow::anyhow!("CA not initialized"))?;
+        let (signing_params, signing_key) =
+            match (&self.intermediate_params, &self.intermediate_key) {
+                (Some(params), Some(key)) => (params, key),
+                _ => match (&self.ca_params, &self.ca_key) {
+                    (Some(params), Some(key)) => (params, key),
+                    _ => return Err(anyhow::anyhow!("CA not initialized")),
+                },
+            };
 
         let mut params = CertificateParams::default();
 
@@ -294,7 +318,9 @@ impl CaManager {
                     .subject_alt_names
                     .push(SanType::IpAddress(san.parse()?));
             } else {
-                params.subject_alt_names.push(SanType::DnsName(san));
+                params
+                    .subject_alt_names
+                    .push(SanType::DnsName(san.try_into()?));
             }
         }
 
@@ -310,13 +336,15 @@ impl CaManager {
         }
 
         // Generate key pair
-        let key_pair = KeyPair::generate(&rcgen::PKCS_RSA_SHA256)?;
-        params.key_pair = Some(key_pair);
+        let key_pair = KeyPair::generate()?;
+
+        // Create issuer from signing CA
+        let issuer = Issuer::from_params(signing_params, signing_key);
 
         // Create and sign certificate
-        let cert = RcgenCertificate::from_params(params)?;
-        let cert_pem = cert.serialize_pem_with_signer(signing_ca)?;
-        let key_pem = cert.serialize_private_key_pem();
+        let cert = params.signed_by(&key_pair, &issuer)?;
+        let cert_pem = cert.pem();
+        let key_pem = key_pair.serialize_pem();
 
         Ok((cert_pem, key_pem))
     }

@@ -12,10 +12,12 @@
 //! ```csv
 //! sandbox-enabled,true
 //! sandbox-timeout,30
-//! sandbox-memory-limit,256
-//! sandbox-cpu-limit,50
-//! sandbox-network-enabled,false
+//! sandbox-memory-mb,256
+//! sandbox-cpu-percent,50
+//! sandbox-network,false
 //! sandbox-runtime,lxc
+//! sandbox-python-packages,numpy,pandas,requests
+//! sandbox-allowed-paths,/data,/tmp
 //! ```
 
 use crate::shared::models::UserSession;
@@ -125,10 +127,10 @@ pub struct SandboxConfig {
     pub work_dir: String,
     /// Additional environment variables
     pub env_vars: HashMap<String, String>,
-    /// Allowed file paths for read access
-    pub allowed_read_paths: Vec<String>,
-    /// Allowed file paths for write access
-    pub allowed_write_paths: Vec<String>,
+    /// Allowed file paths for access
+    pub allowed_paths: Vec<String>,
+    /// Pre-installed Python packages
+    pub python_packages: Vec<String>,
 }
 
 impl Default for SandboxConfig {
@@ -142,8 +144,8 @@ impl Default for SandboxConfig {
             network_enabled: false,
             work_dir: "/tmp/gb-sandbox".to_string(),
             env_vars: HashMap::new(),
-            allowed_read_paths: vec![],
-            allowed_write_paths: vec![],
+            allowed_paths: vec!["/data".to_string(), "/tmp".to_string()],
+            python_packages: vec![],
         }
     }
 }
@@ -181,14 +183,31 @@ impl SandboxConfig {
                     "sandbox-timeout" => {
                         config.timeout_seconds = row.config_value.parse().unwrap_or(30);
                     }
-                    "sandbox-memory-limit" => {
+                    // Support both old and new parameter names for backward compatibility
+                    "sandbox-memory-mb" | "sandbox-memory-limit" => {
                         config.memory_limit_mb = row.config_value.parse().unwrap_or(256);
                     }
-                    "sandbox-cpu-limit" => {
+                    "sandbox-cpu-percent" | "sandbox-cpu-limit" => {
                         config.cpu_limit_percent = row.config_value.parse().unwrap_or(50);
                     }
-                    "sandbox-network-enabled" => {
+                    "sandbox-network" | "sandbox-network-enabled" => {
                         config.network_enabled = row.config_value.to_lowercase() == "true";
+                    }
+                    "sandbox-python-packages" => {
+                        config.python_packages = row
+                            .config_value
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect();
+                    }
+                    "sandbox-allowed-paths" => {
+                        config.allowed_paths = row
+                            .config_value
+                            .split(',')
+                            .map(|s| s.trim().to_string())
+                            .filter(|s| !s.is_empty())
+                            .collect();
                     }
                     _ => {}
                 }

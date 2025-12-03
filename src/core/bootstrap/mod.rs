@@ -8,7 +8,9 @@ use aws_sdk_s3::Client;
 use chrono;
 use log::{error, info, trace, warn};
 use rand::distr::Alphanumeric;
-use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
+use rcgen::{
+    BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair,
+};
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -709,50 +711,38 @@ meet    IN      A       127.0.0.1
         let ca_cert_path = cert_dir.join("ca/ca.crt");
         let ca_key_path = cert_dir.join("ca/ca.key");
 
-        let ca_cert = if ca_cert_path.exists() && ca_key_path.exists() {
+        // CA params for issuer creation
+        let mut ca_params = CertificateParams::default();
+        ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+
+        let mut dn = DistinguishedName::new();
+        dn.push(DnType::CountryName, "BR");
+        dn.push(DnType::OrganizationName, "BotServer");
+        dn.push(DnType::CommonName, "BotServer CA");
+        ca_params.distinguished_name = dn;
+
+        ca_params.not_before = time::OffsetDateTime::now_utc();
+        ca_params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(3650);
+
+        let ca_key_pair: KeyPair = if ca_cert_path.exists() && ca_key_path.exists() {
             info!("Using existing CA certificate");
-            // Load existing CA key and regenerate params
+            // Load existing CA key
             let key_pem = fs::read_to_string(&ca_key_path)?;
-            let key_pair = rcgen::KeyPair::from_pem(&key_pem)?;
-
-            // Recreate CA params with the loaded key
-            let mut ca_params = CertificateParams::default();
-            ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
-            ca_params.key_pair = Some(key_pair);
-
-            let mut dn = DistinguishedName::new();
-            dn.push(DnType::CountryName, "BR");
-            dn.push(DnType::OrganizationName, "BotServer");
-            dn.push(DnType::CommonName, "BotServer CA");
-            ca_params.distinguished_name = dn;
-
-            ca_params.not_before = time::OffsetDateTime::now_utc();
-            ca_params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(3650);
-
-            Certificate::from_params(ca_params)?
+            KeyPair::from_pem(&key_pem)?
         } else {
             info!("Generating new CA certificate");
-            // Generate new CA
-            let mut ca_params = CertificateParams::default();
-            ca_params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
-
-            let mut dn = DistinguishedName::new();
-            dn.push(DnType::CountryName, "BR");
-            dn.push(DnType::OrganizationName, "BotServer");
-            dn.push(DnType::CommonName, "BotServer CA");
-            ca_params.distinguished_name = dn;
-
-            ca_params.not_before = time::OffsetDateTime::now_utc();
-            ca_params.not_after = time::OffsetDateTime::now_utc() + time::Duration::days(3650);
-
-            let ca_cert = Certificate::from_params(ca_params)?;
+            let key_pair = KeyPair::generate()?;
+            let cert = ca_params.self_signed(&key_pair)?;
 
             // Save CA certificate and key
-            fs::write(&ca_cert_path, ca_cert.serialize_pem()?)?;
-            fs::write(&ca_key_path, ca_cert.serialize_private_key_pem())?;
+            fs::write(&ca_cert_path, cert.pem())?;
+            fs::write(&ca_key_path, key_pair.serialize_pem())?;
 
-            ca_cert
+            key_pair
         };
+
+        // Create issuer from CA params and key
+        let ca_issuer = Issuer::from_params(&ca_params, &ca_key_pair);
 
         // Services that need certificates
         let services = vec![
@@ -847,15 +837,15 @@ meet    IN      A       127.0.0.1
             for san in sans {
                 params
                     .subject_alt_names
-                    .push(rcgen::SanType::DnsName(san.to_string()));
+                    .push(rcgen::SanType::DnsName(san.to_string().try_into()?));
             }
 
-            let cert = Certificate::from_params(params)?;
-            let cert_pem = cert.serialize_pem_with_signer(&ca_cert)?;
+            let key_pair = KeyPair::generate()?;
+            let cert = params.signed_by(&key_pair, &ca_issuer)?;
 
             // Save certificate and key
-            fs::write(cert_path, cert_pem)?;
-            fs::write(key_path, cert.serialize_private_key_pem())?;
+            fs::write(cert_path, cert.pem())?;
+            fs::write(key_path, key_pair.serialize_pem())?;
 
             // Copy CA cert to service directory for easy access
             fs::copy(&ca_cert_path, service_dir.join("ca.crt"))?;

@@ -24,6 +24,7 @@ Complete reference of all available parameters in `config.csv`.
 | `llm-key` | API key for LLM service | `none` | String |
 | `llm-url` | LLM service endpoint | `http://localhost:8081` | URL |
 | `llm-model` | Model path or identifier | Required | Path/String |
+| `llm-models` | Available model aliases for routing | `default` | Semicolon-separated |
 
 ### LLM Cache
 | Parameter | Description | Default | Type |
@@ -48,6 +49,7 @@ Complete reference of all available parameters in `config.csv`.
 | `llm-server-cont-batching` | Continuous batching | `true` | Boolean |
 | `llm-server-mlock` | Lock in memory | `false` | Boolean |
 | `llm-server-no-mmap` | Disable mmap | `false` | Boolean |
+| `llm-server-reasoning-format` | Reasoning output format for llama.cpp | `none` | String |
 
 ### Hardware-Specific LLM Tuning
 
@@ -129,13 +131,24 @@ llm-model,mixtral-8x7b-32768
 
 ## Custom Database Parameters
 
+These parameters configure external database connections for use with BASIC keywords like MariaDB/MySQL connections.
+
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `custom-server` | Database server | `localhost` | Hostname |
-| `custom-port` | Database port | `5432` | Number |
+| `custom-server` | Database server hostname | `localhost` | Hostname |
+| `custom-port` | Database port | `3306` | Number |
 | `custom-database` | Database name | Not set | String |
 | `custom-username` | Database user | Not set | String |
 | `custom-password` | Database password | Not set | String |
+
+### Example: MariaDB Connection
+```csv
+custom-server,db.example.com
+custom-port,3306
+custom-database,myapp
+custom-username,botuser
+custom-password,secretpass
+```
 
 ## Multi-Agent Parameters
 
@@ -147,15 +160,35 @@ llm-model,mixtral-8x7b-32768
 | `a2a-max-hops` | Maximum delegation chain depth | `5` | Number |
 | `a2a-retry-count` | Retry attempts on failure | `3` | Number |
 | `a2a-queue-size` | Maximum pending messages | `100` | Number |
+| `a2a-protocol-version` | A2A protocol version | `1.0` | String |
+| `a2a-persist-messages` | Persist A2A messages to database | `false` | Boolean |
 
 ### Bot Reflection
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `reflection-enabled` | Enable bot self-analysis | `true` | Boolean |
-| `reflection-interval` | Messages between reflections | `10` | Number |
-| `reflection-min-messages` | Minimum messages before reflecting | `3` | Number |
-| `reflection-model` | LLM model for reflection | `quality` | String |
-| `reflection-store-insights` | Store insights in database | `true` | Boolean |
+| `bot-reflection-enabled` | Enable bot self-analysis | `true` | Boolean |
+| `bot-reflection-interval` | Messages between reflections | `10` | Number |
+| `bot-reflection-prompt` | Custom reflection prompt | (none) | String |
+| `bot-reflection-types` | Reflection types to perform | `ConversationQuality` | Semicolon-separated |
+| `bot-improvement-auto-apply` | Auto-apply suggested improvements | `false` | Boolean |
+| `bot-improvement-threshold` | Score threshold for improvements (0-10) | `6.0` | Float |
+
+#### Reflection Types
+Available values for `bot-reflection-types`:
+- `ConversationQuality` - Analyze conversation quality and user satisfaction
+- `ResponseAccuracy` - Analyze response accuracy and relevance
+- `ToolUsage` - Analyze tool usage effectiveness
+- `KnowledgeRetrieval` - Analyze knowledge retrieval performance
+- `Performance` - Analyze overall bot performance
+
+Example:
+```csv
+bot-reflection-enabled,true
+bot-reflection-interval,10
+bot-reflection-types,ConversationQuality;ResponseAccuracy;ToolUsage
+bot-improvement-auto-apply,false
+bot-improvement-threshold,7.0
+```
 
 ## Memory Parameters
 
@@ -173,20 +206,36 @@ llm-model,mixtral-8x7b-32768
 | `episodic-summary-model` | Model for summarization | `fast` | String |
 | `episodic-max-episodes` | Maximum episodes per user | `100` | Number |
 | `episodic-retention-days` | Days to retain episodes | `365` | Number |
+| `episodic-auto-summarize` | Enable automatic summarization | `true` | Boolean |
 
 ## Model Routing Parameters
 
+These parameters configure multi-model routing for different task types. Requires multiple llama.cpp server instances.
+
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
+| `llm-models` | Available model aliases | `default` | Semicolon-separated |
 | `model-routing-strategy` | Routing strategy (manual/auto/load-balanced/fallback) | `auto` | String |
-| `model-default` | Default model alias | `fast` | String |
+| `model-default` | Default model alias | `default` | String |
 | `model-fast` | Model for fast/simple tasks | (configured) | Path/String |
 | `model-quality` | Model for quality/complex tasks | (configured) | Path/String |
 | `model-code` | Model for code generation | (configured) | Path/String |
 | `model-fallback-enabled` | Enable automatic fallback | `true` | Boolean |
-| `model-fallback-order` | Order to try on failure | `quality,fast,local` | String |
+| `model-fallback-order` | Order to try on failure | `quality,fast,local` | Comma-separated |
+
+### Multi-Model Example
+```csv
+llm-models,default;fast;quality;code
+llm-url,http://localhost:8081
+model-routing-strategy,auto
+model-default,fast
+model-fallback-enabled,true
+model-fallback-order,quality,fast
+```
 
 ## Hybrid RAG Search Parameters
+
+General Bots uses hybrid search combining **dense (embedding)** and **sparse (BM25 keyword)** search for optimal retrieval. The BM25 implementation is powered by [Tantivy](https://github.com/quickwit-oss/tantivy), a full-text search engine library similar to Apache Lucene.
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
@@ -194,32 +243,103 @@ llm-model,mixtral-8x7b-32768
 | `rag-dense-weight` | Weight for semantic results | `0.7` | Float (0-1) |
 | `rag-sparse-weight` | Weight for keyword results | `0.3` | Float (0-1) |
 | `rag-reranker-enabled` | Enable LLM reranking | `false` | Boolean |
-| `rag-reranker-model` | Model for reranking | `quality` | String |
+| `rag-reranker-model` | Model for reranking | `cross-encoder/ms-marco-MiniLM-L-6-v2` | String |
 | `rag-reranker-top-n` | Candidates for reranking | `20` | Number |
-| `rag-top-k` | Results to return | `10` | Number |
+| `rag-max-results` | Maximum results to return | `10` | Number |
+| `rag-min-score` | Minimum relevance score threshold | `0.0` | Float (0-1) |
 | `rag-rrf-k` | RRF smoothing constant | `60` | Number |
 | `rag-cache-enabled` | Enable search result caching | `true` | Boolean |
 | `rag-cache-ttl` | Cache time-to-live | `3600` | Seconds |
 
-### BM25 (Sparse Search) Tuning
+### BM25 Sparse Search (Tantivy)
+
+BM25 is a keyword-based ranking algorithm that excels at finding exact term matches. It's powered by Tantivy when the `vectordb` feature is enabled.
+
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
-| `bm25-k1` | Term saturation parameter | `1.2` | Float |
-| `bm25-b` | Length normalization | `0.75` | Float |
-| `bm25-stemming` | Enable word stemming | `true` | Boolean |
-| `bm25-stopwords` | Filter common words | `true` | Boolean |
+| `bm25-enabled` | **Enable/disable BM25 sparse search** | `true` | Boolean |
+| `bm25-k1` | Term frequency saturation (0.5-3.0 typical) | `1.2` | Float |
+| `bm25-b` | Document length normalization (0.0-1.0) | `0.75` | Float |
+| `bm25-stemming` | Apply word stemming (running→run) | `true` | Boolean |
+| `bm25-stopwords` | Filter common words (the, a, is) | `true` | Boolean |
+
+### Switching Search Modes
+
+**Hybrid Search (Default - Best for most use cases)**
+```csv
+bm25-enabled,true
+rag-dense-weight,0.7
+rag-sparse-weight,0.3
+```
+Uses both semantic understanding AND keyword matching. Best for general queries.
+
+**Dense Only (Semantic Search)**
+```csv
+bm25-enabled,false
+rag-dense-weight,1.0
+rag-sparse-weight,0.0
+```
+Uses only embedding-based search. Faster, good for conceptual/semantic queries where exact words don't matter.
+
+**Sparse Only (Keyword Search)**
+```csv
+bm25-enabled,true
+rag-dense-weight,0.0
+rag-sparse-weight,1.0
+```
+Uses only BM25 keyword matching. Good for exact term searches, technical documentation, or when embeddings aren't available.
+
+### BM25 Parameter Tuning
+
+The `k1` and `b` parameters control BM25 behavior:
+
+- **`bm25-k1`** (Term Saturation): Controls how much additional term occurrences contribute to the score
+  - Lower values (0.5-1.0): Diminishing returns for repeated terms
+  - Higher values (1.5-2.0): More weight to documents with many term occurrences
+  - Default `1.2` works well for most content
+
+- **`bm25-b`** (Length Normalization): Controls document length penalty
+  - `0.0`: No length penalty (long documents scored equally)
+  - `1.0`: Full length normalization (strongly penalizes long documents)
+  - Default `0.75` balances length fairness
+
+**Tuning for specific content:**
+```csv
+# For short documents (tweets, titles)
+bm25-b,0.3
+
+# For long documents (articles, manuals)
+bm25-b,0.9
+
+# For code search (exact matches important)
+bm25-k1,1.5
+bm25-stemming,false
+```
 
 ## Code Sandbox Parameters
 
 | Parameter | Description | Default | Type |
 |-----------|-------------|---------|------|
+| `sandbox-enabled` | Enable code sandbox | `true` | Boolean |
 | `sandbox-runtime` | Isolation backend (lxc/docker/firecracker/process) | `lxc` | String |
 | `sandbox-timeout` | Maximum execution time | `30` | Seconds |
-| `sandbox-memory-mb` | Memory limit | `512` | MB |
+| `sandbox-memory-mb` | Memory limit in megabytes | `256` | MB |
 | `sandbox-cpu-percent` | CPU usage limit | `50` | Percent |
 | `sandbox-network` | Allow network access | `false` | Boolean |
 | `sandbox-python-packages` | Pre-installed Python packages | (none) | Comma-separated |
 | `sandbox-allowed-paths` | Accessible filesystem paths | `/data,/tmp` | Comma-separated |
+
+### Example: Python Sandbox
+```csv
+sandbox-enabled,true
+sandbox-runtime,lxc
+sandbox-timeout,60
+sandbox-memory-mb,512
+sandbox-cpu-percent,75
+sandbox-network,false
+sandbox-python-packages,numpy,pandas,requests,matplotlib
+sandbox-allowed-paths,/data,/tmp,/uploads
+```
 
 ## SSE Streaming Parameters
 
@@ -228,14 +348,6 @@ llm-model,mixtral-8x7b-32768
 | `sse-enabled` | Enable Server-Sent Events | `true` | Boolean |
 | `sse-heartbeat` | Heartbeat interval | `30` | Seconds |
 | `sse-max-connections` | Maximum concurrent connections | `1000` | Number |
-
-## OpenAPI Tool Generation Parameters
-
-| Parameter | Description | Default | Type |
-|-----------|-------------|---------|------|
-| `openapi-server` | OpenAPI spec URL for auto tool generation | Not set | URL |
-| `openapi-auth-header` | Authentication header name | `Authorization` | String |
-| `openapi-auth-value` | Authentication header value | Not set | String |
 
 ## Parameter Types
 
@@ -251,6 +363,7 @@ Integer values, must be within valid ranges:
 ### Float
 Decimal values:
 - Thresholds: 0.0 to 1.0
+- Weights: 0.0 to 1.0
 
 ### Path
 File system paths:
@@ -270,6 +383,12 @@ Valid email format: `user@domain.com`
 
 ### Hex Color
 HTML color codes: `#RRGGBB` format
+
+### Semicolon-separated
+Multiple values separated by semicolons: `value1;value2;value3`
+
+### Comma-separated
+Multiple values separated by commas: `value1,value2,value3`
 
 ## Required vs Optional
 
@@ -312,6 +431,7 @@ llm-server-cont-batching,true
 llm-cache-semantic,true
 llm-cache-threshold,0.90
 llm-server-parallel,8
+sse-max-connections,5000
 ```
 
 ### For Low Memory
@@ -321,6 +441,7 @@ llm-server-n-predict,512
 llm-server-mlock,false
 llm-server-no-mmap,false
 llm-cache,false
+sandbox-memory-mb,128
 ```
 
 ### For Multi-Agent Systems
@@ -328,9 +449,10 @@ llm-cache,false
 a2a-enabled,true
 a2a-timeout,30
 a2a-max-hops,5
-model-routing-strategy,auto
-reflection-enabled,true
-reflection-interval,10
+a2a-retry-count,3
+a2a-persist-messages,true
+bot-reflection-enabled,true
+bot-reflection-interval,10
 user-memory-enabled,true
 ```
 
@@ -340,11 +462,25 @@ rag-hybrid-enabled,true
 rag-dense-weight,0.7
 rag-sparse-weight,0.3
 rag-reranker-enabled,true
+rag-max-results,10
+rag-min-score,0.3
 rag-cache-enabled,true
+bm25-enabled,true
+bm25-k1,1.2
+bm25-b,0.75
+```
+
+### For Dense-Only Search (Faster)
+```csv
+bm25-enabled,false
+rag-dense-weight,1.0
+rag-sparse-weight,0.0
+rag-max-results,10
 ```
 
 ### For Code Execution
 ```csv
+sandbox-enabled,true
 sandbox-runtime,lxc
 sandbox-timeout,30
 sandbox-memory-mb,512
@@ -360,3 +496,4 @@ sandbox-python-packages,numpy,pandas,requests
 4. **Emails**: Must contain @ and domain
 5. **Colors**: Must be valid hex format
 6. **Booleans**: Exactly `true` or `false`
+7. **Weights**: Must sum to 1.0 (e.g., `rag-dense-weight` + `rag-sparse-weight`)

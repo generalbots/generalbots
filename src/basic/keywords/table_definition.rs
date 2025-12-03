@@ -527,56 +527,26 @@ pub async fn create_table_on_external_db(
     }
 }
 
-#[cfg(feature = "dynamic-db")]
-async fn create_table_mysql(
-    connection_string: &str,
-    sql: &str,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    use sqlx::mysql::MySqlPoolOptions;
-    use sqlx::Executor;
-
-    let pool = MySqlPoolOptions::new()
-        .max_connections(1)
-        .connect(connection_string)
-        .await?;
-
-    pool.execute(sql).await?;
-    info!("MySQL table created successfully");
-    Ok(())
-}
-
-#[cfg(not(feature = "dynamic-db"))]
 async fn create_table_mysql(
     _connection_string: &str,
     _sql: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    Err("MySQL support requires the 'dynamic-db' feature".into())
+    // MySQL support requires diesel mysql_backend feature which pulls in problematic dependencies
+    // Use PostgreSQL instead, or implement via raw SQL if needed
+    Err("MySQL support is disabled. Please use PostgreSQL for dynamic tables.".into())
 }
 
-#[cfg(feature = "dynamic-db")]
 async fn create_table_postgres(
     connection_string: &str,
     sql: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    use sqlx::postgres::PgPoolOptions;
-    use sqlx::Executor;
+    use diesel::pg::PgConnection;
+    use diesel::prelude::*;
 
-    let pool = PgPoolOptions::new()
-        .max_connections(1)
-        .connect(connection_string)
-        .await?;
-
-    pool.execute(sql).await?;
+    let mut conn = PgConnection::establish(connection_string)?;
+    diesel::sql_query(sql).execute(&mut conn)?;
     info!("PostgreSQL table created successfully");
     Ok(())
-}
-
-#[cfg(not(feature = "dynamic-db"))]
-async fn create_table_postgres(
-    _connection_string: &str,
-    _sql: &str,
-) -> Result<(), Box<dyn Error + Send + Sync>> {
-    Err("PostgreSQL dynamic table support requires the 'dynamic-db' feature".into())
 }
 
 /// Process TABLE definitions during .bas file compilation
