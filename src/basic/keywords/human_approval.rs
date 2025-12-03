@@ -56,7 +56,7 @@ use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 use uuid::Uuid;
 
 /// Approval request structure
@@ -290,6 +290,7 @@ impl Default for ApprovalConfig {
 }
 
 /// Approval Manager
+#[derive(Debug)]
 pub struct ApprovalManager {
     config: ApprovalConfig,
 }

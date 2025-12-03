@@ -94,7 +94,7 @@ pub fn add_suggestion_keyword(
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_context_suggestion(&cache, &user_session, &context_name, &button_text)?;
+                add_context_suggestion(cache.as_ref(), &user_session, &context_name, &button_text)?;
 
                 Ok(Dynamic::UNIT)
             },
@@ -111,7 +111,13 @@ pub fn add_suggestion_keyword(
                 let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let button_text = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                add_tool_suggestion(&cache2, &user_session2, &tool_name, None, &button_text)?;
+                add_tool_suggestion(
+                    cache2.as_ref(),
+                    &user_session2,
+                    &tool_name,
+                    None,
+                    &button_text,
+                )?;
 
                 Ok(Dynamic::UNIT)
             },
@@ -154,7 +160,7 @@ pub fn add_suggestion_keyword(
                 };
 
                 add_tool_suggestion(
-                    &cache3,
+                    cache3.as_ref(),
                     &user_session3,
                     &tool_name,
                     Some(params),
@@ -169,7 +175,7 @@ pub fn add_suggestion_keyword(
 
 /// Add a context-based suggestion (points to KB)
 fn add_context_suggestion(
-    cache: &Option<redis::Client>,
+    cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
     context_name: &str,
     button_text: &str,
@@ -236,7 +242,7 @@ fn add_context_suggestion(
 /// - If params provided, executes tool immediately with those params
 /// - If no params and tool has required params, prompts user for them first
 fn add_tool_suggestion(
-    cache: &Option<redis::Client>,
+    cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
     tool_name: &str,
     params: Option<Vec<String>>,

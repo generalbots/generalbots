@@ -6,12 +6,9 @@ use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use chrono;
-use dotenvy::dotenv;
 use log::{error, info, trace, warn};
 use rand::distr::Alphanumeric;
-use rcgen::{
-    BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa, SanType,
-};
+use rcgen::{BasicConstraints, Certificate, CertificateParams, DistinguishedName, DnType, IsCa};
 use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
@@ -51,7 +48,9 @@ impl BootstrapManager {
             ComponentInfo { name: "alm_ci" },
             ComponentInfo { name: "dns" },
             ComponentInfo { name: "meeting" },
-            ComponentInfo { name: "desktop" },
+            ComponentInfo {
+                name: "remote_terminal",
+            },
             ComponentInfo { name: "vector_db" },
             ComponentInfo { name: "host" },
         ];
@@ -139,8 +138,8 @@ impl BootstrapManager {
         }
 
         // Directory (Zitadel) is the root service - stores all configuration
-        let directory_password = self.generate_secure_password(32);
-        let directory_masterkey = self.generate_secure_password(32);
+        let _directory_password = self.generate_secure_password(32);
+        let _directory_masterkey = self.generate_secure_password(32);
 
         // Configuration is stored in Directory service, not .env files
         info!("Configuring services through Directory...");

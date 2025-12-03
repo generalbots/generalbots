@@ -160,7 +160,7 @@ impl ScriptService {
         register_send_template_keywords(state.clone(), user.clone(), &mut engine);
 
         // ON FORM SUBMIT: Webhook-based form handling for landing pages
-        on_form_submit_keyword(&state, user.clone(), &mut engine);
+        on_form_submit_keyword(state.clone(), user.clone(), &mut engine);
 
         // Lead Scoring: SCORE LEAD, GET LEAD SCORE, QUALIFY LEAD, AI SCORE LEAD
         register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
@@ -209,7 +209,7 @@ impl ScriptService {
     pub fn load_bot_config_params(&mut self, state: &AppState, bot_id: uuid::Uuid) {
         if let Ok(mut conn) = state.conn.get() {
             // Query all config entries for this bot that start with "param-"
-            let result: Result<Vec<(String, String)>, _> = diesel::sql_query(
+            let result = diesel::sql_query(
                 "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = $1 AND config_key LIKE 'param-%'"
             )
             .bind::<diesel::sql_types::Uuid, _>(bot_id)
@@ -723,7 +723,7 @@ impl ScriptService {
         ];
 
         // Regex to match identifiers (variable names)
-        let identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+        let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
 
         for line in script.lines() {
             let trimmed = line.trim();

@@ -132,7 +132,7 @@ fn switch_match_impl(expr: &Dynamic, case_val: &Dynamic) -> bool {
 /// ```
 pub fn preprocess_switch(input: &str) -> String {
     let mut result = String::new();
-    let mut lines: Vec<&str> = input.lines().collect();
+    let lines: Vec<&str> = input.lines().collect();
     let mut i = 0;
     let mut switch_counter = 0;
 
@@ -151,7 +151,7 @@ pub fn preprocess_switch(input: &str) -> String {
             // Process cases until END SWITCH
             i += 1;
             let mut first_case = true;
-            let mut in_default = false;
+            let mut _in_default = false;
 
             while i < lines.len() {
                 let case_line = lines[i].trim();
@@ -183,13 +183,13 @@ pub fn preprocess_switch(input: &str) -> String {
                     }
 
                     first_case = false;
-                    in_default = false;
+                    _in_default = false;
                 } else if case_upper == "DEFAULT" {
                     // Close previous case
                     if !first_case {
                         result.push_str("} else {\n");
                     }
-                    in_default = true;
+                    _in_default = true;
                 } else if !case_line.is_empty()
                     && !case_line.starts_with("//")
                     && !case_line.starts_with("'")

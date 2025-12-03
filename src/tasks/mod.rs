@@ -1252,23 +1252,23 @@ pub fn configure_task_routes() -> Router<Arc<AppState>> {
         .route("/api/tasks/stats", get(handle_task_stats))
         .route("/api/tasks/completed", delete(handle_clear_completed))
         .route(
-            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
             put(handle_task_update),
         )
         .route(
-            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
             delete(handle_task_delete).patch(handle_task_patch),
         )
         .route(
-            ApiUrls::TASK_ASSIGN.replace(":id", "{id}"),
+            &ApiUrls::TASK_ASSIGN.replace(":id", "{id}"),
             post(handle_task_assign),
         )
         .route(
-            ApiUrls::TASK_STATUS.replace(":id", "{id}"),
+            &ApiUrls::TASK_STATUS.replace(":id", "{id}"),
             put(handle_task_status_update),
         )
         .route(
-            ApiUrls::TASK_PRIORITY.replace(":id", "{id}"),
+            &ApiUrls::TASK_PRIORITY.replace(":id", "{id}"),
             put(handle_task_priority_set),
         )
         .route(
@@ -1285,7 +1285,7 @@ pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
         .route(ApiUrls::TASKS, post(handlers::create_task_handler))
         .route(ApiUrls::TASKS, get(handlers::get_tasks_handler))
         .route(
-            ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
+            &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
             put(handlers::update_task_handler),
         )
         .route(
@@ -1301,7 +1301,10 @@ pub async fn handle_task_list_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
-    let filter = params.get("filter").unwrap_or(&"all".to_string()).clone();
+    let filter = params
+        .get("filter")
+        .cloned()
+        .unwrap_or_else(|| "all".to_string());
 
     // Get tasks from database
     let conn = state.conn.clone();

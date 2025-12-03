@@ -13,7 +13,6 @@ use chrono::Utc;
 use diesel::prelude::*;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
-use serde_json::json;
 use std::sync::Arc;
 use uuid::Uuid;
 

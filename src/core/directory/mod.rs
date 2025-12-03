@@ -36,16 +36,23 @@ pub struct DirectoryService {
     provisioning: Arc<UserProvisioningService>,
 }
 
+impl std::fmt::Debug for DirectoryService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DirectoryService")
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
+}
+
 impl DirectoryService {
     pub fn new(
         config: DirectoryConfig,
         db_pool: Pool<ConnectionManager<PgConnection>>,
         s3_client: Arc<S3Client>,
     ) -> Result<Self> {
-        let db_conn = Arc::new(db_pool.get()?);
         let provisioning = Arc::new(UserProvisioningService::new(
-            db_conn,
-            s3_client,
+            db_pool,
+            Some(s3_client),
             config.url.clone(),
         ));
 
@@ -65,5 +72,25 @@ impl DirectoryService {
 
     pub fn get_provisioning_service(&self) -> Arc<UserProvisioningService> {
         Arc::clone(&self.provisioning)
+    }
+
+    /// Get the directory service URL
+    pub fn get_url(&self) -> &str {
+        &self.config.url
+    }
+
+    /// Check if OAuth is enabled
+    pub fn is_oauth_enabled(&self) -> bool {
+        self.config.oauth_enabled
+    }
+
+    /// Get the project ID
+    pub fn get_project_id(&self) -> &str {
+        &self.config.project_id
+    }
+
+    /// Get the full configuration (for admin purposes)
+    pub fn get_config(&self) -> &DirectoryConfig {
+        &self.config
     }
 }

@@ -57,7 +57,7 @@ pub struct WebhookRegistration {
 /// When called, it triggers the script containing the WEBHOOK declaration
 /// Request params become available as variables in the script
 pub fn webhook_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
-    let state_clone = state.clone();
+    let _state_clone = state.clone();
 
     engine
         .register_custom_syntax(&["WEBHOOK", "$expr$"], false, move |context, inputs| {
@@ -349,10 +349,13 @@ impl WebhookResponse {
 
             let mut headers = std::collections::HashMap::new();
             if let Some(h) = map.get("headers") {
-                if let Ok(headers_map) = h.clone().try_cast::<rhai::Map>() {
-                    for (k, v) in headers_map {
-                        headers.insert(k.to_string(), v.to_string());
+                match h.clone().try_cast::<rhai::Map>() {
+                    Some(headers_map) => {
+                        for (k, v) in headers_map {
+                            headers.insert(k.to_string(), v.to_string());
+                        }
                     }
+                    None => {}
                 }
             }
 

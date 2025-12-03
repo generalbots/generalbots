@@ -24,14 +24,15 @@
 //! - gbo/observability - InfluxDB credentials (url, org, token)
 
 use anyhow::{anyhow, Context, Result};
-use log::{debug, error, info, trace, warn};
-use serde::{Deserialize, Serialize};
+use log::{debug, info, trace, warn};
+use serde::Deserialize;
 use std::collections::HashMap;
 use std::env;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
 /// Secret paths in Vault
+#[derive(Debug)]
 pub struct SecretPaths;
 
 impl SecretPaths {
@@ -122,6 +123,15 @@ pub struct SecretsManager {
     client: reqwest::Client,
     cache: Arc<RwLock<HashMap<String, CachedSecret>>>,
     enabled: bool,
+}
+
+impl std::fmt::Debug for SecretsManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SecretsManager")
+            .field("config", &self.config)
+            .field("enabled", &self.enabled)
+            .finish_non_exhaustive()
+    }
 }
 
 impl SecretsManager {
@@ -509,14 +519,6 @@ impl SecretsManager {
                 }
                 if let Ok(v) = env::var("DRIVE_SECRET") {
                     data.insert("secret".to_string(), v);
-                }
-            }
-            SecretPaths::TABLES => {
-                if let Ok(v) = env::var("DB_USER") {
-                    data.insert("username".to_string(), v);
-                }
-                if let Ok(v) = env::var("DB_PASSWORD") {
-                    data.insert("password".to_string(), v);
                 }
             }
             SecretPaths::CACHE => {

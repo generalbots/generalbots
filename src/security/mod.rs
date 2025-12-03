@@ -37,9 +37,8 @@ pub use mutual_tls::{
 };
 pub use tls::{create_https_server, ServiceTlsConfig, TlsConfig, TlsManager, TlsRegistry};
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use std::path::PathBuf;
-use std::sync::Arc;
 use tracing::{info, warn};
 
 /// Security configuration for the entire system
@@ -81,6 +80,7 @@ impl Default for SecurityConfig {
 }
 
 /// Security Manager - Main entry point for security features
+#[derive(Debug)]
 pub struct SecurityManager {
     config: SecurityConfig,
     ca_manager: CaManager,
@@ -251,7 +251,7 @@ impl SecurityManager {
 }
 
 /// Check if a certificate needs renewal
-async fn check_certificate_renewal(tls_config: &TlsConfig) -> Result<()> {
+async fn check_certificate_renewal(_tls_config: &TlsConfig) -> Result<()> {
     // This would check certificate expiration
     // and trigger renewal if needed
     Ok(())

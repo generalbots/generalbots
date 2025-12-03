@@ -12,6 +12,19 @@ pub struct ChatPanel {
     pub user_id: Uuid,
     pub response_rx: Option<mpsc::Receiver<BotResponse>>,
 }
+
+impl std::fmt::Debug for ChatPanel {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("ChatPanel")
+            .field("messages_count", &self.messages.len())
+            .field("input_buffer_len", &self.input_buffer.len())
+            .field("session_id", &self.session_id)
+            .field("user_id", &self.user_id)
+            .field("has_response_rx", &self.response_rx.is_some())
+            .finish()
+    }
+}
+
 impl ChatPanel {
     pub fn new(_app_state: Arc<AppState>) -> Self {
         Self {

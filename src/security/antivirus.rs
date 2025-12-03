@@ -14,7 +14,7 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, info, warn};
+use tracing::{info, warn};
 
 /// Threat severity levels
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -156,6 +156,7 @@ impl Default for AntivirusConfig {
 }
 
 /// Antivirus Manager
+#[derive(Debug)]
 pub struct AntivirusManager {
     config: AntivirusConfig,
     threats: Arc<RwLock<Vec<Threat>>>,

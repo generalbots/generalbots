@@ -13,7 +13,7 @@
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -203,15 +203,29 @@ pub struct PlayResponse {
 
 /// Register the PLAY keyword
 pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    play_simple_keyword(state.clone(), user.clone(), engine);
-    play_with_options_keyword(state.clone(), user.clone(), engine);
-    stop_keyword(state.clone(), user.clone(), engine);
-    pause_keyword(state.clone(), user.clone(), engine);
-    resume_keyword(state.clone(), user.clone(), engine);
+    if let Err(e) = play_simple_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register PLAY keyword: {}", e);
+    }
+    if let Err(e) = play_with_options_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register PLAY WITH OPTIONS keyword: {}", e);
+    }
+    if let Err(e) = stop_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register STOP keyword: {}", e);
+    }
+    if let Err(e) = pause_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register PAUSE keyword: {}", e);
+    }
+    if let Err(e) = resume_keyword(state.clone(), user.clone(), engine) {
+        log::error!("Failed to register RESUME keyword: {}", e);
+    }
 }
 
 /// PLAY "source"
-fn play_simple_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn play_simple_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -251,11 +265,16 @@ fn play_simple_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 rhai::Position::NONE,
             ))),
         }
-    });
+    })?;
+    Ok(())
 }
 
 /// PLAY "source" WITH OPTIONS "options"
-fn play_with_options_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn play_with_options_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -311,11 +330,16 @@ fn play_with_options_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 ))),
             }
         },
-    );
+    )?;
+    Ok(())
 }
 
 /// STOP - Stop current playback
-fn stop_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn stop_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -345,11 +369,16 @@ fn stop_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
                 rhai::Position::NONE,
             ))),
         }
-    });
+    })?;
+    Ok(())
 }
 
 /// PAUSE - Pause current playback
-fn pause_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn pause_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -380,11 +409,16 @@ fn pause_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
                 rhai::Position::NONE,
             ))),
         }
-    });
+    })?;
+    Ok(())
 }
 
 /// RESUME - Resume paused playback
-fn resume_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+fn resume_keyword(
+    state: Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
@@ -415,7 +449,8 @@ fn resume_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) 
                 rhai::Position::NONE,
             ))),
         }
-    });
+    })?;
+    Ok(())
 }
 
 // ============================================================================
@@ -510,7 +545,7 @@ fn detect_content_type(source: &str) -> ContentType {
 
 /// Resolve source to a URL
 async fn resolve_source_url(
-    state: &AppState,
+    _state: &AppState,
     session_id: Uuid,
     source: &str,
 ) -> Result<String, String> {

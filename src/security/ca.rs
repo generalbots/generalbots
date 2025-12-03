@@ -3,15 +3,14 @@
 //! This module provides functionality for managing an internal CA
 //! with support for external CA integration.
 
-use anyhow::{Context, Result};
+use anyhow::Result;
 use rcgen::{
     BasicConstraints, Certificate as RcgenCertificate, CertificateParams, DistinguishedName,
     DnType, IsCa, KeyPair, SanType,
 };
-use rustls::{Certificate, PrivateKey};
 use serde::{Deserialize, Serialize};
 use std::fs;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use time::{Duration, OffsetDateTime};
 use tracing::{debug, info, warn};
 
@@ -93,6 +92,16 @@ pub struct CaManager {
     intermediate_cert: Option<RcgenCertificate>,
 }
 
+impl std::fmt::Debug for CaManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("CaManager")
+            .field("config", &self.config)
+            .field("ca_cert", &self.ca_cert.is_some())
+            .field("intermediate_cert", &self.intermediate_cert.is_some())
+            .finish()
+    }
+}
+
 impl CaManager {
     /// Create a new CA manager
     pub fn new(config: CaConfig) -> Result<Self> {
@@ -117,13 +126,14 @@ impl CaManager {
 
         // Generate root CA
         let ca_cert = self.generate_root_ca()?;
-        self.ca_cert = Some(ca_cert.clone());
 
         // Generate intermediate CA if configured
         if self.config.intermediate_cert_path.is_some() {
             let intermediate = self.generate_intermediate_ca(&ca_cert)?;
             self.intermediate_cert = Some(intermediate);
         }
+
+        self.ca_cert = Some(ca_cert);
 
         info!("Certificate Authority initialized successfully");
         Ok(())
@@ -134,11 +144,15 @@ impl CaManager {
         if self.config.ca_cert_path.exists() && self.config.ca_key_path.exists() {
             debug!("Loading existing CA from {:?}", self.config.ca_cert_path);
 
-            let cert_pem = fs::read_to_string(&self.config.ca_cert_path)?;
+            let _cert_pem = fs::read_to_string(&self.config.ca_cert_path)?;
             let key_pem = fs::read_to_string(&self.config.ca_key_path)?;
 
             let key_pair = KeyPair::from_pem(&key_pem)?;
-            let params = CertificateParams::from_ca_cert_pem(&cert_pem, key_pair)?;
+
+            // Create CA params from scratch since rcgen doesn't support loading from PEM
+            let mut params = CertificateParams::default();
+            params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
+            params.key_pair = Some(key_pair);
 
             self.ca_cert = Some(RcgenCertificate::from_params(params)?);
 
@@ -148,11 +162,15 @@ impl CaManager {
                 &self.config.intermediate_key_path,
             ) {
                 if cert_path.exists() && key_path.exists() {
-                    let cert_pem = fs::read_to_string(cert_path)?;
+                    let _cert_pem = fs::read_to_string(cert_path)?;
                     let key_pem = fs::read_to_string(key_path)?;
 
                     let key_pair = KeyPair::from_pem(&key_pem)?;
-                    let params = CertificateParams::from_ca_cert_pem(&cert_pem, key_pair)?;
+
+                    // Create intermediate CA params
+                    let mut params = CertificateParams::default();
+                    params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
+                    params.key_pair = Some(key_pair);
 
                     self.intermediate_cert = Some(RcgenCertificate::from_params(params)?);
                 }
@@ -184,7 +202,8 @@ impl CaManager {
 
         // Set validity period
         params.not_before = OffsetDateTime::now_utc();
-        params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days * 2);
+        params.not_after =
+            OffsetDateTime::now_utc() + Duration::days(self.config.validity_days * 2);
 
         // Generate key pair
         let key_pair = KeyPair::generate(&rcgen::PKCS_RSA_SHA256)?;
@@ -251,7 +270,9 @@ impl CaManager {
         san_names: Vec<String>,
         is_client: bool,
     ) -> Result<(String, String)> {
-        let signing_ca = self.intermediate_cert.as_ref()
+        let signing_ca = self
+            .intermediate_cert
+            .as_ref()
             .or(self.ca_cert.as_ref())
             .ok_or_else(|| anyhow::anyhow!("CA not initialized"))?;
 
@@ -269,7 +290,9 @@ impl CaManager {
         // Add Subject Alternative Names
         for san in san_names {
             if san.parse::<std::net::IpAddr>().is_ok() {
-                params.subject_alt_names.push(SanType::IpAddress(san.parse()?));
+                params
+                    .subject_alt_names
+                    .push(SanType::IpAddress(san.parse()?));
             } else {
                 params.subject_alt_names.push(SanType::DnsName(san));
             }
@@ -281,13 +304,9 @@ impl CaManager {
 
         // Set key usage based on certificate type
         if is_client {
-            params.extended_key_usages = vec![
-                rcgen::ExtendedKeyUsagePurpose::ClientAuth,
-            ];
+            params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ClientAuth];
         } else {
-            params.extended_key_usages = vec![
-                rcgen::ExtendedKeyUsagePurpose::ServerAuth,
-            ];
+            params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
         }
 
         // Generate key pair
@@ -364,7 +383,10 @@ impl CaManager {
 
     /// Create CA directory structure
     fn create_ca_directories(&self) -> Result<()> {
-        let ca_dir = self.config.ca_cert_path.parent()
+        let ca_dir = self
+            .config
+            .ca_cert_path
+            .parent()
             .ok_or_else(|| anyhow::anyhow!("Invalid CA cert path"))?;
 
         fs::create_dir_all(ca_dir)?;
@@ -383,14 +405,14 @@ impl CaManager {
     }
 
     /// Verify a certificate against the CA
-    pub fn verify_certificate(&self, cert_pem: &str) -> Result<bool> {
+    pub fn verify_certificate(&self, _cert_pem: &str) -> Result<bool> {
         // This would implement certificate verification logic
         // For now, return true as placeholder
         Ok(true)
     }
 
     /// Revoke a certificate
-    pub fn revoke_certificate(&self, serial_number: &str, reason: &str) -> Result<()> {
+    pub fn revoke_certificate(&self, _serial_number: &str, _reason: &str) -> Result<()> {
         // This would implement certificate revocation
         // and update the CRL
         warn!("Certificate revocation not yet implemented");
@@ -410,7 +432,10 @@ impl CaManager {
             return Ok(());
         }
 
-        if let (Some(url), Some(api_key)) = (&self.config.external_ca_url, &self.config.external_ca_api_key) {
+        if let (Some(url), Some(_api_key)) = (
+            &self.config.external_ca_url,
+            &self.config.external_ca_api_key,
+        ) {
             info!("Syncing with external CA at {}", url);
 
             // This would implement the actual external CA integration

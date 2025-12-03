@@ -1,7 +1,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, trace};
+use log::{info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -245,11 +245,7 @@ pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     .trim_matches('"')
                     .to_string();
 
-                trace!(
-                    "USE MODEL '{}' for session: {}",
-                    model_name,
-                    user_clone.id
-                );
+                trace!("USE MODEL '{}' for session: {}", model_name, user_clone.id);
 
                 let state_for_task = Arc::clone(&state_clone);
                 let session_id = user_clone.id;
@@ -350,7 +346,8 @@ pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine
         let state = Arc::clone(&state_clone);
 
         if let Ok(mut conn) = state.conn.get() {
-            get_session_model_sync(&mut conn, user_clone.id).unwrap_or_else(|_| "default".to_string())
+            get_session_model_sync(&mut conn, user_clone.id)
+                .unwrap_or_else(|_| "default".to_string())
         } else {
             "default".to_string()
         }
@@ -474,7 +471,9 @@ fn get_session_model_sync(
     .optional()
     .map_err(|e| format!("Failed to get session model: {}", e))?;
 
-    Ok(result.map(|r| r.preference_value).unwrap_or_else(|| "default".to_string()))
+    Ok(result
+        .map(|r| r.preference_value)
+        .unwrap_or_else(|| "default".to_string()))
 }
 
 /// List available models for a bot (sync version)
@@ -606,7 +605,8 @@ mod tests {
         );
         router.routing_strategy = RoutingStrategy::Auto;
 
-        let result = router.route_query("Please analyze and compare these two approaches in detail");
+        let result =
+            router.route_query("Please analyze and compare these two approaches in detail");
         assert_eq!(result, "quality");
     }
 

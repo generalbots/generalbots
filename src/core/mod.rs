@@ -9,5 +9,4 @@ pub mod package_manager;
 pub mod secrets;
 pub mod session;
 pub mod shared;
-pub mod ui_server;
 pub mod urls;

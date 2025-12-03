@@ -1,7 +1,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
+use log::{info, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

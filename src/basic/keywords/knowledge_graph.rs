@@ -49,7 +49,7 @@ use chrono::{DateTime, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 use uuid::Uuid;
 
 /// Entity in the knowledge graph
@@ -234,6 +234,7 @@ impl Default for KnowledgeGraphConfig {
 }
 
 /// Knowledge Graph Manager
+#[derive(Debug)]
 pub struct KnowledgeGraphManager {
     config: KnowledgeGraphConfig,
 }

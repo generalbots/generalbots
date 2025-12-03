@@ -421,7 +421,7 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
         let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let bot_id = Uuid::nil();
 
-        let session_result = {
+        let _session_result = {
             let mut sm = state.session_manager.lock().await;
             // Try to create, but don't fail if database has issues
             match sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {

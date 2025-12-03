@@ -227,6 +227,7 @@ pub struct SpeechToTextResponse {
 }
 
 /// BotModels client for multimodal operations
+#[derive(Debug)]
 pub struct BotModelsClient {
     client: Client,
     config: BotModelsConfig,

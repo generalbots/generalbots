@@ -100,9 +100,9 @@ pub fn is_numeric_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &m
 
     // Handle Dynamic type for flexibility
     engine.register_fn("IS_NUMERIC", |value: Dynamic| -> bool {
-        match value.as_str() {
-            Some(s) => is_numeric_impl(s),
-            None => {
+        match value.clone().into_string() {
+            Ok(s) => is_numeric_impl(&s),
+            Err(_) => {
                 // If it's already a number, return true
                 value.is::<i64>() || value.is::<f64>()
             }

@@ -10,7 +10,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, OnceLock};
 use std::time::Duration;
-use tracing::{debug, info, warn};
+use tracing::{info, warn};
 
 /// Service URL mappings for TLS conversion
 #[derive(Debug, Clone)]
@@ -22,6 +22,7 @@ pub struct ServiceUrls {
 }
 
 /// TLS Integration Manager
+#[derive(Debug)]
 pub struct TlsIntegration {
     /// Service URL mappings
     services: HashMap<String, ServiceUrls>,

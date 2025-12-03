@@ -27,7 +27,7 @@
 use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserSession};
 use crate::shared::state::AppState;
-use log::{error, info, trace};
+use log::{error, trace};
 use regex::Regex;
 use rhai::{Dynamic, Engine, EvalAltResult};
 use serde::{Deserialize, Serialize};
@@ -272,7 +272,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                     .expect("Expected identifier for type")
                     .to_string();
 
-                let input_type = InputType::from_str(&type_name);
+                let _input_type = InputType::from_str(&type_name);
 
                 trace!(
                     "HEAR {} AS {} - waiting for validated input",
@@ -746,7 +746,7 @@ fn validate_mobile(input: &str) -> ValidationResult {
     };
 
     ValidationResult::valid_with_metadata(
-        formatted,
+        formatted.clone(),
         serde_json::json!({ "digits": digits, "formatted": formatted }),
     )
 }
@@ -802,22 +802,26 @@ fn validate_language(input: &str) -> ValidationResult {
         ("es", "spanish", "espanhol", "español"),
         ("fr", "french", "francês", "frances"),
         ("de", "german", "alemão", "alemao"),
-        ("it", "italian", "italiano"),
+        ("it", "italian", "italiano", ""),
         ("ja", "japanese", "japonês", "japones"),
         ("zh", "chinese", "chinês", "chines"),
-        ("ko", "korean", "coreano"),
-        ("ru", "russian", "russo"),
+        ("ko", "korean", "coreano", ""),
+        ("ru", "russian", "russo", ""),
         ("ar", "arabic", "árabe", "arabe"),
-        ("hi", "hindi"),
+        ("hi", "hindi", "", ""),
         ("nl", "dutch", "holandês", "holandes"),
         ("pl", "polish", "polonês", "polones"),
-        ("tr", "turkish", "turco"),
+        ("tr", "turkish", "turco", ""),
     ];
 
     for entry in &languages {
-        let code = entry[0];
-        let variants = &entry[1..];
-        if lower == code || variants.iter().any(|v| lower == *v) {
+        let code = entry.0;
+        let variants = [entry.1, entry.2, entry.3];
+        if lower.as_str() == code
+            || variants
+                .iter()
+                .any(|v| !v.is_empty() && lower.as_str() == *v)
+        {
             return ValidationResult::valid_with_metadata(
                 code.to_string(),
                 serde_json::json!({ "code": code, "input": input }),
@@ -1152,7 +1156,7 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
         .collect();
 
     if matches.len() == 1 {
-        let idx = options.iter().position(|o| o == *matches[0]).unwrap();
+        let idx = options.iter().position(|o| o == matches[0]).unwrap();
         return ValidationResult::valid_with_metadata(
             matches[0].clone(),
             serde_json::json!({ "index": idx, "value": matches[0] }),
@@ -1385,9 +1389,21 @@ async fn process_qrcode(
     state: &AppState,
     image_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
-    // Call botmodels vision service
-    let botmodels_url =
-        std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string());
+    // Call botmodels vision service - use config from state if available
+    let botmodels_url = {
+        let config_url = state.conn.get().ok().and_then(|mut conn| {
+            use crate::shared::models::schema::bot_memories::dsl::*;
+            use diesel::prelude::*;
+            bot_memories
+                .filter(key.eq("botmodels-url"))
+                .select(value)
+                .first::<String>(&mut conn)
+                .ok()
+        });
+        config_url.unwrap_or_else(|| {
+            std::env::var("BOTMODELS_URL").unwrap_or_else(|_| "http://localhost:8001".to_string())
+        })
+    };
 
     let client = reqwest::Client::new();
 

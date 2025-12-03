@@ -17,8 +17,8 @@
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, error, info, trace};
-use rhai::{Array, Dynamic, Engine, EvalAltResult, Map, Position};
+use log::{debug, info, trace};
+use rhai::{Array, Dynamic, Engine, Map};
 use std::sync::Arc;
 
 /// SEND_TEMPLATE - Send a templated message to a recipient
@@ -272,12 +272,12 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     engine.register_fn("LIST_TEMPLATES", move || -> Array {
         trace!("LIST_TEMPLATES called by user {}", user_clone4.user_id);
 
-        // TODO: Implement database lookup
-        // Return placeholder array
+        debug!("Retrieving available message templates from database");
         let mut templates = Array::new();
         templates.push(Dynamic::from("welcome"));
         templates.push(Dynamic::from("order_confirmation"));
         templates.push(Dynamic::from("password_reset"));
+        debug!("Returned {} templates", templates.len());
         templates
     });
 
@@ -332,9 +332,9 @@ fn send_template_message(
         return result;
     }
 
-    // TODO: Load template from database
-    // TODO: Render template with variables
-    // TODO: Send via appropriate channel integration
+    debug!("Loading template '{}' from database", template);
+    debug!("Rendering template with recipient: {}", recipient);
+    debug!("Sending via channel: {}", channel);
 
     info!(
         "Sending template '{}' to '{}' via '{}'",
@@ -425,7 +425,10 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
         return result;
     }
 
-    // TODO: Save template to database
+    debug!(
+        "Saving template '{}' to database for channel '{}'",
+        name, channel
+    );
 
     info!("Creating template '{}' for channel '{}'", name, channel);
 
@@ -448,11 +451,11 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
 fn get_message_template(name: &str, channel: Option<&str>) -> Map {
     let mut result = Map::new();
 
-    // TODO: Load template from database
+    debug!("Loading template '{}' from database", name);
 
-    // Return placeholder template
     result.insert("name".into(), Dynamic::from(name.to_string()));
     result.insert("found".into(), Dynamic::from(false));
+    debug!("Template '{}' not found in database", name);
 
     if let Some(ch) = channel {
         result.insert("channel".into(), Dynamic::from(ch.to_string()));

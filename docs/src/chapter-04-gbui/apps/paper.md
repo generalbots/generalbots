@@ -410,6 +410,79 @@ Paper automatically saves versions of your document:
 
 ---
 
+## User Storage
+
+Paper documents are stored in your personal `.gbusers` folder within the bot's `.gbdrive` storage. This ensures your documents are private and accessible only to you.
+
+### Storage Structure
+
+```
+mybot.gbai/
+  mybot.gbdrive/
+    users/
+      your.email@example.com/      # Your user folder
+        papers/
+          current/                 # Working documents (auto-saved)
+            untitled-1.md
+            meeting-notes.md
+          named/                   # Saved documents
+            quarterly-report/
+              document.md
+              metadata.json
+            project-proposal/
+              document.md
+              metadata.json
+        exports/                   # Exported files (PDF, DOCX, etc.)
+          quarterly-report.pdf
+          project-proposal.docx
+```
+
+### Storage Types
+
+| Type | Location | Description |
+|------|----------|-------------|
+| **Current** | `papers/current/` | Auto-saved working documents. These are drafts being actively edited. |
+| **Named** | `papers/named/{name}/` | Explicitly saved documents with metadata. Each gets its own folder. |
+| **Exports** | `exports/` | Generated export files (PDF, Word, HTML, etc.) |
+
+### Auto-Save Behavior
+
+Paper auto-saves your work every 30 seconds to `papers/current/`. When you explicitly save with a title:
+
+1. Document moves from `current/` to `named/{title}/`
+2. Metadata file is created with title, timestamps, and word count
+3. Original draft in `current/` is removed
+
+### Accessing Your Documents
+
+Your documents follow you across sessions and devices. As long as you're logged in with the same email or phone number, you'll see all your documents.
+
+**From the UI:**
+- Documents appear in the sidebar automatically
+- Search finds documents by title
+- Recent documents shown first
+
+**From BASIC scripts:**
+```basic
+' Read your document
+content = READ USER DRIVE "papers/named/my-report/document.md"
+
+' List your papers
+papers = LIST USER DRIVE "papers/named/"
+```
+
+### Storage Limits
+
+Default limits per user (configurable by administrator):
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Total storage | 100 MB | Maximum storage per user |
+| File size | 5 MB | Maximum single document |
+| File count | 500 | Maximum number of documents |
+
+---
+
 ## BASIC Integration
 
 Control Paper from your bot dialogs:

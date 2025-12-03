@@ -269,16 +269,14 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
     if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
         let mut map = Map::new();
 
-        map.insert(
-            "is_valid".into(),
-            Dynamic::from(json["is_valid"].as_bool().unwrap_or(false)),
-        );
+        let is_valid = json["is_valid"].as_bool().unwrap_or(false);
+        map.insert("is_valid".into(), Dynamic::from(is_valid));
 
         let errors: Array = json["errors"]
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|v| Dynamic::from(v.as_str().unwrap_or("")))
+                    .map(|v| Dynamic::from(v.as_str().unwrap_or("").to_string()))
                     .collect()
             })
             .unwrap_or_default();
@@ -288,7 +286,7 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
             .as_array()
             .map(|arr| {
                 arr.iter()
-                    .map(|v| Dynamic::from(v.as_str().unwrap_or("")))
+                    .map(|v| Dynamic::from(v.as_str().unwrap_or("").to_string()))
                     .collect()
             })
             .unwrap_or_default();

@@ -1385,17 +1385,33 @@ async fn execute_upload(
     let bucket_name = format!("{}.gbai", bot_name);
     let key = format!("{}.gbdrive/{}", bot_name, destination);
 
+    // Use filename for Content-Disposition metadata
+    let content_disposition = format!("attachment; filename=\"{}\"", file_data.filename);
+
+    trace!(
+        "Uploading file '{}' to {}/{} ({} bytes)",
+        file_data.filename,
+        bucket_name,
+        key,
+        file_data.content.len()
+    );
+
     client
         .put_object()
         .bucket(&bucket_name)
         .key(&key)
+        .content_disposition(&content_disposition)
         .body(file_data.content.into())
         .send()
         .await
         .map_err(|e| format!("S3 put failed: {}", e))?;
 
     let url = format!("s3://{}/{}", bucket_name, key);
-    trace!("UPLOAD successful: {}", url);
+    trace!(
+        "UPLOAD successful: {} (original filename: {})",
+        url,
+        file_data.filename
+    );
     Ok(url)
 }
 

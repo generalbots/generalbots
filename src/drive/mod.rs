@@ -341,9 +341,55 @@ pub async fn list_files(
 }
 
 #[cfg(feature = "console")]
-fn convert_tree_to_items(_tree: &FileTree) -> Vec<FileItem> {
-    // Tree conversion is handled by the FileTree implementation
-    vec![]
+/// Convert a FileTree to a list of FileItems for display in the console UI
+#[allow(dead_code)]
+pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
+    let mut items = Vec::new();
+
+    for (display_name, node) in tree.get_items() {
+        match node {
+            crate::console::file_tree::TreeNode::Bucket { name } => {
+                if !name.is_empty() {
+                    items.push(FileItem {
+                        name: display_name.clone(),
+                        path: format!("/{}", name),
+                        is_dir: true,
+                        size: None,
+                        modified: None,
+                        icon: if name.ends_with(".gbai") {
+                            "🤖".to_string()
+                        } else {
+                            "📦".to_string()
+                        },
+                    });
+                }
+            }
+            crate::console::file_tree::TreeNode::Folder { bucket, path } => {
+                let folder_name = path.split('/').last().unwrap_or(&display_name);
+                items.push(FileItem {
+                    name: folder_name.to_string(),
+                    path: format!("/{}/{}", bucket, path),
+                    is_dir: true,
+                    size: None,
+                    modified: None,
+                    icon: "📁".to_string(),
+                });
+            }
+            crate::console::file_tree::TreeNode::File { bucket, path } => {
+                let file_name = path.split('/').last().unwrap_or(&display_name);
+                items.push(FileItem {
+                    name: file_name.to_string(),
+                    path: format!("/{}/{}", bucket, path),
+                    is_dir: false,
+                    size: None,
+                    modified: None,
+                    icon: "📄".to_string(),
+                });
+            }
+        }
+    }
+
+    items
 }
 
 /// POST /files/read - Read file content from S3

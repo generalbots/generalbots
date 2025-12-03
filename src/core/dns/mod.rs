@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::net::IpAddr;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -34,7 +34,7 @@ impl Default for DnsConfig {
         Self {
             enabled: false,
             zone_file_path: PathBuf::from("./botserver-stack/conf/dns/botserver.local.zone"),
-            domain: "botserver.local",
+            domain: "botserver.local".to_string(),
             max_entries_per_ip: 5,
             ttl_seconds: 60,
             cleanup_interval_hours: 24,
@@ -46,6 +46,14 @@ pub struct DynamicDnsService {
     config: DnsConfig,
     entries: Arc<RwLock<HashMap<String, DnsEntry>>>,
     entries_by_ip: Arc<RwLock<HashMap<IpAddr, Vec<String>>>>,
+}
+
+impl std::fmt::Debug for DynamicDnsService {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DynamicDnsService")
+            .field("config", &self.config)
+            .finish_non_exhaustive()
+    }
 }
 
 impl DynamicDnsService {
@@ -257,7 +265,7 @@ use axum::{
     extract::{Query, State},
     http::StatusCode,
     response::Json,
-    routing::{get, post},
+    routing::post,
     Router,
 };
 

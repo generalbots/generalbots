@@ -48,13 +48,16 @@ impl PackageManager {
         self.register_alm();
         self.register_alm_ci();
         self.register_meeting();
-        self.register_desktop();
+        self.register_remote_terminal();
         self.register_devtools();
         self.register_vector_db();
         self.register_timeseries_db();
         self.register_secrets();
         self.register_observability();
         self.register_host();
+        self.register_webmail();
+        self.register_table_editor();
+        self.register_doc_editor();
     }
 
     fn register_drive(&mut self) {
@@ -518,11 +521,11 @@ impl PackageManager {
         );
     }
 
-    fn register_desktop(&mut self) {
+    fn register_remote_terminal(&mut self) {
         self.components.insert(
-            "desktop".to_string(),
+            "remote_terminal".to_string(),
             ComponentConfig {
-                name: "desktop".to_string(),
+                name: "remote_terminal".to_string(),
 
                 ports: vec![3389],
                 dependencies: vec![],

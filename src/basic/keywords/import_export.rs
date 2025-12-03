@@ -70,7 +70,7 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
             let state_for_task = Arc::clone(&state_clone);
             let user_for_task = user_clone.clone();
 
-            let (tx, rx) = std::sync::mpsc::channel();
+            let (tx, rx) = std::sync::mpsc::channel::<Result<Value, String>>();
 
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_multi_thread()
@@ -80,7 +80,7 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
-                        execute_import(&state_for_task, &user_for_task, &file_path).await
+                        execute_import_json(&state_for_task, &user_for_task, &file_path).await
                     });
                     tx.send(result).err()
                 } else {
@@ -93,7 +93,7 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
             });
 
             match rx.recv_timeout(std::time::Duration::from_secs(60)) {
-                Ok(Ok(result)) => Ok(result),
+                Ok(Ok(json_result)) => Ok(json_to_dynamic(&json_result)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                     format!("IMPORT failed: {}", e).into(),
                     rhai::Position::NONE,
@@ -129,6 +129,9 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                 trace!("EXPORT: Saving data to {}", file_path);
 
+                // Convert Dynamic to JSON string to make it Send-safe
+                let data_json = dynamic_to_json_value(&data);
+
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
 
@@ -142,7 +145,13 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_export(&state_for_task, &user_for_task, &file_path, data).await
+                            execute_export_json(
+                                &state_for_task,
+                                &user_for_task,
+                                &file_path,
+                                data_json,
+                            )
+                            .await
                         });
                         tx.send(result).err()
                     } else {
@@ -174,6 +183,37 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
             },
         )
         .unwrap();
+}
+
+/// Thread-safe import wrapper that returns JSON Value instead of Dynamic
+async fn execute_import_json(
+    state: &AppState,
+    user: &UserSession,
+    file_path: &str,
+) -> Result<Value, String> {
+    match execute_import(state, user, file_path).await {
+        Ok(dynamic) => Ok(dynamic_to_json(&dynamic)),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Thread-safe export wrapper that takes JSON Value instead of Dynamic
+async fn execute_export_json(
+    state: &AppState,
+    user: &UserSession,
+    file_path: &str,
+    data_json: Value,
+) -> Result<String, String> {
+    let data = json_to_dynamic(&data_json);
+    match execute_export(state, user, file_path, data).await {
+        Ok(result) => Ok(result),
+        Err(e) => Err(e.to_string()),
+    }
+}
+
+/// Convert Dynamic to JSON Value for thread-safe transfer
+fn dynamic_to_json_value(data: &Dynamic) -> Value {
+    dynamic_to_json(data)
 }
 
 async fn execute_import(

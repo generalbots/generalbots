@@ -308,6 +308,7 @@ impl PinValidationResult {
 }
 
 /// Certificate Pinning Manager
+#[derive(Debug)]
 pub struct CertPinningManager {
     config: Arc<RwLock<CertPinningConfig>>,
     validation_cache: Arc<RwLock<HashMap<String, (PinValidationResult, std::time::Instant)>>>,

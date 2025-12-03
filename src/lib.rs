@@ -3,7 +3,13 @@ pub mod basic;
 pub mod core;
 pub mod multimodal;
 pub mod security;
-pub mod web;
+
+// Suite application modules (gap analysis implementations)
+pub mod analytics;
+pub mod designer;
+pub mod paper;
+pub mod research;
+pub mod sources;
 
 // Re-export shared from core
 pub use core::shared;
@@ -28,7 +34,6 @@ pub use core::bot;
 pub use core::config;
 pub use core::package_manager;
 pub use core::session;
-pub use core::ui_server;
 
 // Re-exports from security
 pub use security::{get_secure_port, SecurityConfig, SecurityManager};
@@ -45,9 +50,6 @@ pub mod compliance;
 
 #[cfg(feature = "console")]
 pub mod console;
-
-#[cfg(feature = "desktop")]
-pub mod desktop;
 
 #[cfg(feature = "directory")]
 pub mod directory;

@@ -5,8 +5,7 @@
 //! PostgreSQL, Qdrant, LiveKit, Forgejo, and Directory services.
 
 use std::path::Path;
-use std::sync::Arc;
-use tracing::{debug, error, info, warn};
+use tracing::{debug, error, info};
 
 /// Services module containing mTLS configuration functions for each service
 pub mod services {
@@ -77,15 +76,13 @@ pub mod services {
     ) -> Result<MtlsConfig, MtlsError> {
         match (ca_cert_path, client_cert_path, client_key_path) {
             (Some(ca), Some(cert), Some(key)) => {
-                let ca_pem = std::fs::read_to_string(ca).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read CA cert: {}", e))
-                })?;
+                let ca_pem = std::fs::read_to_string(ca)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read CA cert: {}", e)))?;
                 let cert_pem = std::fs::read_to_string(cert).map_err(|e| {
                     MtlsError::IoError(format!("Failed to read client cert: {}", e))
                 })?;
-                let key_pem = std::fs::read_to_string(key).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read client key: {}", e))
-                })?;
+                let key_pem = std::fs::read_to_string(key)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read client key: {}", e)))?;
 
                 info!("Qdrant mTLS configured successfully");
                 Ok(MtlsConfig {
@@ -118,15 +115,13 @@ pub mod services {
     ) -> Result<MtlsConfig, MtlsError> {
         match (ca_cert_path, client_cert_path, client_key_path) {
             (Some(ca), Some(cert), Some(key)) => {
-                let ca_pem = std::fs::read_to_string(ca).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read CA cert: {}", e))
-                })?;
+                let ca_pem = std::fs::read_to_string(ca)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read CA cert: {}", e)))?;
                 let cert_pem = std::fs::read_to_string(cert).map_err(|e| {
                     MtlsError::IoError(format!("Failed to read client cert: {}", e))
                 })?;
-                let key_pem = std::fs::read_to_string(key).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read client key: {}", e))
-                })?;
+                let key_pem = std::fs::read_to_string(key)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read client key: {}", e)))?;
 
                 info!("LiveKit mTLS configured successfully");
                 Ok(MtlsConfig {
@@ -159,15 +154,13 @@ pub mod services {
     ) -> Result<MtlsConfig, MtlsError> {
         match (ca_cert_path, client_cert_path, client_key_path) {
             (Some(ca), Some(cert), Some(key)) => {
-                let ca_pem = std::fs::read_to_string(ca).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read CA cert: {}", e))
-                })?;
+                let ca_pem = std::fs::read_to_string(ca)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read CA cert: {}", e)))?;
                 let cert_pem = std::fs::read_to_string(cert).map_err(|e| {
                     MtlsError::IoError(format!("Failed to read client cert: {}", e))
                 })?;
-                let key_pem = std::fs::read_to_string(key).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read client key: {}", e))
-                })?;
+                let key_pem = std::fs::read_to_string(key)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read client key: {}", e)))?;
 
                 info!("Forgejo mTLS configured successfully");
                 Ok(MtlsConfig {
@@ -200,15 +193,13 @@ pub mod services {
     ) -> Result<MtlsConfig, MtlsError> {
         match (ca_cert_path, client_cert_path, client_key_path) {
             (Some(ca), Some(cert), Some(key)) => {
-                let ca_pem = std::fs::read_to_string(ca).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read CA cert: {}", e))
-                })?;
+                let ca_pem = std::fs::read_to_string(ca)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read CA cert: {}", e)))?;
                 let cert_pem = std::fs::read_to_string(cert).map_err(|e| {
                     MtlsError::IoError(format!("Failed to read client cert: {}", e))
                 })?;
-                let key_pem = std::fs::read_to_string(key).map_err(|e| {
-                    MtlsError::IoError(format!("Failed to read client key: {}", e))
-                })?;
+                let key_pem = std::fs::read_to_string(key)
+                    .map_err(|e| MtlsError::IoError(format!("Failed to read client key: {}", e)))?;
 
                 info!("Directory service mTLS configured successfully");
                 Ok(MtlsConfig {
@@ -287,6 +278,7 @@ pub enum MtlsError {
 }
 
 /// mTLS Manager for handling mutual TLS connections
+#[derive(Debug)]
 pub struct MtlsManager {
     config: MtlsConfig,
 }
@@ -379,9 +371,15 @@ mod tests {
     fn test_mtls_manager_validation() {
         let config = MtlsConfig {
             enabled: true,
-            ca_cert: Some("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string()),
-            client_cert: Some("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string()),
-            client_key: Some("-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string()),
+            ca_cert: Some(
+                "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
+            ),
+            client_cert: Some(
+                "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
+            ),
+            client_key: Some(
+                "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string(),
+            ),
         };
         let manager = MtlsManager::new(config);
         assert!(manager.validate().is_ok());
@@ -392,8 +390,12 @@ mod tests {
         let config = MtlsConfig {
             enabled: true,
             ca_cert: Some("invalid".to_string()),
-            client_cert: Some("-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string()),
-            client_key: Some("-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string()),
+            client_cert: Some(
+                "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
+            ),
+            client_key: Some(
+                "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string(),
+            ),
         };
         let manager = MtlsManager::new(config);
         assert!(manager.validate().is_err());

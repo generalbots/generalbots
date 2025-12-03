@@ -5,8 +5,8 @@
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{error, info, trace};
-use rhai::{Dynamic, Engine, EvalAltResult};
+use log::{error, trace};
+use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
@@ -303,7 +303,7 @@ async fn get_kb_statistics(
 
 /// Get statistics for a specific collection
 async fn get_collection_statistics(
-    state: &AppState,
+    _state: &AppState,
     collection_name: &str,
 ) -> Result<CollectionStats, Box<dyn std::error::Error + Send + Sync>> {
     let qdrant_url =
@@ -391,7 +391,7 @@ async fn get_documents_added_since(
 
 /// List all collections for a bot
 async fn list_collections(
-    state: &AppState,
+    _state: &AppState,
     user: &UserSession,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
     let qdrant_url =

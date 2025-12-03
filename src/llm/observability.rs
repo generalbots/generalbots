@@ -31,14 +31,14 @@
 //! observability-alert-threshold,0.8
 //! ```
 
-use chrono::{DateTime, Duration, Utc};
-use rhai::{Array, Dynamic, Engine, Map};
+use chrono::{DateTime, Utc};
+use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{debug, error, info, warn};
+use tracing::info;
 use uuid::Uuid;
 
 /// LLM request metrics
@@ -411,6 +411,7 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
 }
 
 /// Observability Manager
+#[derive(Debug)]
 pub struct ObservabilityManager {
     config: ObservabilityConfig,
     /// In-memory metrics buffer

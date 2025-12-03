@@ -14,7 +14,7 @@ use crossterm::{
     cursor,
     event::{self, Event, KeyCode, KeyEvent},
     execute,
-    style::{Color, Print, ResetColor, SetForegroundColor, Stylize},
+    style::{Color, Print, ResetColor, SetForegroundColor},
     terminal::{self, ClearType},
 };
 use serde::{Deserialize, Serialize};
@@ -150,6 +150,7 @@ impl Default for WizardConfig {
 }
 
 /// Startup Wizard
+#[derive(Debug)]
 pub struct StartupWizard {
     config: WizardConfig,
     current_step: usize,
