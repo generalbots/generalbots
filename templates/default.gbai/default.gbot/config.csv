@@ -13,7 +13,7 @@ llm-cache-ttl,3600
 llm-cache-semantic,true
 llm-cache-threshold,0.95
 ,
-prompt-compact,4
+episodic-memory-threshold,4
 ,
 mcp-server,false
 ,

@@ -79,7 +79,7 @@ name,value
 theme-title,My CRM Bot
 theme-color1,#2196F3
 theme-color2,#E3F2FD
-prompt-history,2
+episodic-memory-history,2
 ```
 
 ### 4. Customize Knowledge Base
@@ -144,8 +144,8 @@ theme-title,My Template
 theme-color1,#1565C0
 theme-color2,#E3F2FD
 theme-logo,https://example.com/logo.svg
-prompt-history,2
-prompt-compact,4
+episodic-memory-history,2
+episodic-memory-threshold,4
 ```
 
 ### Step 3: Create Start Dialog
@@ -239,7 +239,7 @@ Email support@example.com.
 
 - Use clear, descriptive `theme-title`
 - Choose accessible color combinations
-- Set appropriate `prompt-history` (2-4 recommended)
+- Set appropriate `episodic-memory-history` (2-4 recommended)
 
 ### Knowledge Base
 
