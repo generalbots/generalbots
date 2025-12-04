@@ -6,8 +6,11 @@
 //! - Security/access assignment
 //! - Custom UI routing (/botname/gbui)
 
+use crate::core::shared::schema::organizations;
 use crate::shared::platform_name;
+use crate::shared::utils::DbPool;
 use chrono::{DateTime, Utc};
+use diesel::prelude::*;
 use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -458,8 +461,13 @@ END IF
                         if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                             if !templates.contains_key(name) {
                                 debug!("Found template directory: {}", name);
-                                // Load template from directory
-                                // TODO: Implement full template loading from filesystem
+                                // Load template from filesystem directory
+                                if let Some(template) =
+                                    self.load_template_from_directory(&path, name)
+                                {
+                                    templates.insert(name.to_string(), template);
+                                    info!("Loaded template from filesystem: {}", name);
+                                }
                             }
                         }
                     }
@@ -471,10 +479,101 @@ END IF
         Ok(())
     }
 
+    /// Load a template from a filesystem directory
+    fn load_template_from_directory(&self, path: &PathBuf, name: &str) -> Option<BotTemplate> {
+        // Check for template metadata file
+        let metadata_path = path.join("template.toml");
+        let description = if metadata_path.exists() {
+            std::fs::read_to_string(&metadata_path)
+                .ok()
+                .and_then(|content| {
+                    toml::from_str::<toml::Value>(&content).ok().and_then(|v| {
+                        v.get("description")
+                            .and_then(|d| d.as_str().map(String::from))
+                    })
+                })
+                .unwrap_or_else(|| format!("Template loaded from {}", name))
+        } else {
+            format!("Template loaded from {}", name)
+        };
+
+        // Check for dialogs
+        let dialog_dir = path.join(format!("{}.gbdialog", name));
+        let dialogs = if dialog_dir.exists() {
+            std::fs::read_dir(&dialog_dir)
+                .ok()
+                .map(|entries| {
+                    entries
+                        .flatten()
+                        .filter(|e| e.path().extension().map_or(false, |ext| ext == "bas"))
+                        .filter_map(|e| {
+                            let file_name = e.file_name().to_string_lossy().to_string();
+                            let content = std::fs::read_to_string(e.path()).ok()?;
+                            Some(DialogFile {
+                                name: file_name,
+                                content,
+                            })
+                        })
+                        .collect::<Vec<_>>()
+                })
+                .unwrap_or_default()
+        } else {
+            Vec::new()
+        };
+
+        // Check for preview image
+        let preview_image = ["preview.png", "preview.jpg", "preview.svg"]
+            .iter()
+            .map(|f| path.join(f))
+            .find(|p| p.exists())
+            .and_then(|p| p.to_str().map(String::from));
+
+        Some(BotTemplate {
+            name: name.to_string(),
+            description,
+            category: "Custom".to_string(),
+            dialogs,
+            preview_image,
+        })
+    }
+
+    /// Look up organization slug from database
+    fn get_org_slug_from_db(&self, conn: &DbPool, org_id: Uuid) -> String {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Failed to get database connection for org lookup: {}", e);
+                return "default".to_string();
+            }
+        };
+
+        let result = organizations::table
+            .filter(organizations::org_id.eq(org_id))
+            .select(organizations::slug)
+            .first::<String>(&mut db_conn)
+            .optional();
+
+        match result {
+            Ok(Some(slug)) => {
+                debug!("Found org slug '{}' for org_id {}", slug, org_id);
+                slug
+            }
+            Ok(None) => {
+                debug!("No org found for org_id {}, using 'default'", org_id);
+                "default".to_string()
+            }
+            Err(e) => {
+                warn!("Database error looking up org {}: {}", org_id, e);
+                "default".to_string()
+            }
+        }
+    }
+
     /// Create a new bot
     pub async fn create_bot(
         &self,
         request: CreateBotRequest,
+        conn: &DbPool,
     ) -> Result<BotConfig, Box<dyn std::error::Error + Send + Sync>> {
         info!("Creating bot: {} for org: {}", request.name, request.org_id);
 
@@ -484,8 +583,8 @@ END IF
             return Err("Invalid bot name".into());
         }
 
-        // Get org slug (would come from database in production)
-        let org_slug = "default"; // TODO: Look up from database
+        // Get org slug from database
+        let org_slug = self.get_org_slug_from_db(conn, request.org_id);
 
         // Generate bucket name: org_botname
         let bucket_name = format!("{}_{}", org_slug, bot_name);
