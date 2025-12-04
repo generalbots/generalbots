@@ -37,20 +37,17 @@ async fn process_episodic_memory(
     for session in sessions {
         let config_manager = ConfigManager::new(state.conn.clone());
 
-        // Support both old and new config key names for backwards compatibility
         let threshold = config_manager
             .get_config(&session.bot_id, "episodic-memory-threshold", None)
-            .or_else(|_| config_manager.get_config(&session.bot_id, "prompt-compact", None))
             .unwrap_or_default()
             .parse::<i32>()
-            .unwrap_or(4); // Default to 4 if not configured
+            .unwrap_or(4);
 
         let history_to_keep = config_manager
             .get_config(&session.bot_id, "episodic-memory-history", None)
-            .or_else(|_| config_manager.get_config(&session.bot_id, "prompt-history", None))
             .unwrap_or_default()
             .parse::<usize>()
-            .unwrap_or(2); // Default to 2 if not configured
+            .unwrap_or(2);
 
         if threshold == 0 {
             return Ok(());
@@ -75,7 +72,6 @@ async fn process_episodic_memory(
             .position(|(role, _)| role == "episodic" || role == "compact")
             .map(|pos| history.len() - pos - 1);
 
-        // Calculate start index: if there's a summary, start after it; otherwise start from 0
         let start_index = last_summary_index.map(|idx| idx + 1).unwrap_or(0);
 
         for (_i, (role, _)) in history.iter().enumerate().skip(start_index) {
@@ -112,7 +108,6 @@ async fn process_episodic_memory(
             history_to_keep
         );
 
-        // Determine which messages to summarize and which to keep
         let total_messages = history.len() - start_index;
         let messages_to_summarize = if total_messages > history_to_keep {
             total_messages - history_to_keep
@@ -132,7 +127,6 @@ async fn process_episodic_memory(
         conversation
             .push_str("Please summarize this conversation between user and bot: \n\n [[[***** \n");
 
-        // Only summarize messages beyond the history_to_keep threshold
         for (role, content) in history.iter().skip(start_index).take(messages_to_summarize) {
             if role == "episodic" || role == "compact" {
                 continue;
@@ -170,7 +164,6 @@ async fn process_episodic_memory(
                     session.id,
                     summary.len()
                 );
-                // Use handler to filter <think> content
                 let handler = llm_models::get_handler(
                     config_manager
                         .get_config(&session.bot_id, "llm-model", None)
@@ -187,7 +180,7 @@ async fn process_episodic_memory(
                     session.id, e
                 );
                 trace!("Using fallback summary for session {}", session.id);
-                format!("EPISODIC MEMORY: {}", filtered) // Fallback
+                format!("EPISODIC MEMORY: {}", filtered)
             }
         };
         info!(
@@ -195,7 +188,6 @@ async fn process_episodic_memory(
             session.id, messages_to_summarize, history_to_keep
         );
 
-        // Save the episodic memory (role 9 = episodic/compact)
         {
             let mut session_manager = state.session_manager.lock().await;
             session_manager.save_message(session.id, session.user_id, 9, &summarized, 1)?;

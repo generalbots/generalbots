@@ -29,11 +29,12 @@
 //! ```csv
 //! name,value
 //! episodic-memory-enabled,true
-//! episodic-summary-threshold,20
-//! episodic-summary-model,fast
-//! episodic-max-episodes,100
-//! episodic-retention-days,365
-//! episodic-auto-summarize,true
+//! episodic-memory-threshold,4
+//! episodic-memory-history,2
+//! episodic-memory-model,fast
+//! episodic-memory-max-episodes,100
+//! episodic-memory-retention-days,365
+//! episodic-memory-auto-summarize,true
 //! ```
 
 use chrono::{DateTime, Duration, Utc};
@@ -170,9 +171,11 @@ pub struct EpisodicMemoryConfig {
     /// Whether episodic memory is enabled
     pub enabled: bool,
     /// Message count threshold before auto-summarization
-    pub summary_threshold: usize,
+    pub threshold: usize,
+    /// Number of recent exchanges to keep in full
+    pub history: usize,
     /// Model to use for summarization
-    pub summary_model: String,
+    pub model: String,
     /// Maximum episodes to keep per user
     pub max_episodes: usize,
     /// Days to retain episodes
@@ -185,8 +188,9 @@ impl Default for EpisodicMemoryConfig {
     fn default() -> Self {
         EpisodicMemoryConfig {
             enabled: true,
-            summary_threshold: 20,
-            summary_model: "fast".to_string(),
+            threshold: 4,
+            history: 2,
+            model: "fast".to_string(),
             max_episodes: 100,
             retention_days: 365,
             auto_summarize: true,
@@ -222,24 +226,28 @@ impl EpisodicMemoryManager {
                 .get("episodic-memory-enabled")
                 .map(|v| v == "true")
                 .unwrap_or(true),
-            summary_threshold: config_map
-                .get("episodic-summary-threshold")
+            threshold: config_map
+                .get("episodic-memory-threshold")
                 .and_then(|v| v.parse().ok())
-                .unwrap_or(20),
-            summary_model: config_map
-                .get("episodic-summary-model")
+                .unwrap_or(4),
+            history: config_map
+                .get("episodic-memory-history")
+                .and_then(|v| v.parse().ok())
+                .unwrap_or(2),
+            model: config_map
+                .get("episodic-memory-model")
                 .cloned()
                 .unwrap_or_else(|| "fast".to_string()),
             max_episodes: config_map
-                .get("episodic-max-episodes")
+                .get("episodic-memory-max-episodes")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(100),
             retention_days: config_map
-                .get("episodic-retention-days")
+                .get("episodic-memory-retention-days")
                 .and_then(|v| v.parse().ok())
                 .unwrap_or(365),
             auto_summarize: config_map
-                .get("episodic-auto-summarize")
+                .get("episodic-memory-auto-summarize")
                 .map(|v| v == "true")
                 .unwrap_or(true),
         };
@@ -248,9 +256,17 @@ impl EpisodicMemoryManager {
 
     /// Check if auto-summarization should trigger
     pub fn should_summarize(&self, message_count: usize) -> bool {
-        self.config.enabled
-            && self.config.auto_summarize
-            && message_count >= self.config.summary_threshold
+        self.config.enabled && self.config.auto_summarize && message_count >= self.config.threshold
+    }
+
+    /// Get number of recent exchanges to keep in full
+    pub fn get_history_to_keep(&self) -> usize {
+        self.config.history
+    }
+
+    /// Get the threshold value
+    pub fn get_threshold(&self) -> usize {
+        self.config.threshold
     }
 
     /// Generate the summarization prompt
@@ -668,7 +684,8 @@ mod tests {
     fn test_default_config() {
         let config = EpisodicMemoryConfig::default();
         assert!(config.enabled);
-        assert_eq!(config.summary_threshold, 20);
+        assert_eq!(config.threshold, 4);
+        assert_eq!(config.history, 2);
         assert_eq!(config.max_episodes, 100);
     }
 
@@ -676,14 +693,15 @@ mod tests {
     fn test_should_summarize() {
         let manager = EpisodicMemoryManager::new(EpisodicMemoryConfig {
             enabled: true,
-            summary_threshold: 10,
+            threshold: 4,
+            history: 2,
             auto_summarize: true,
             ..Default::default()
         });
 
-        assert!(!manager.should_summarize(5));
+        assert!(!manager.should_summarize(2));
+        assert!(manager.should_summarize(4));
         assert!(manager.should_summarize(10));
-        assert!(manager.should_summarize(15));
     }
 
     #[test]

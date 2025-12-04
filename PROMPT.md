@@ -5,6 +5,48 @@
 
 ---
 
+## Official Icons - MANDATORY
+
+**NEVER generate icons with LLM. ALWAYS use official SVG icons from assets.**
+
+Icons are stored in two locations (kept in sync):
+- `botui/ui/suite/assets/icons/` - Runtime icons for UI
+- `botbook/src/assets/icons/` - Documentation icons
+
+### Available Icons
+
+| Icon | File | Usage |
+|------|------|-------|
+| Logo | `gb-logo.svg` | Main GB branding |
+| Bot | `gb-bot.svg` | Bot/assistant representation |
+| Analytics | `gb-analytics.svg` | Charts, metrics, dashboards |
+| Calendar | `gb-calendar.svg` | Scheduling, events |
+| Chat | `gb-chat.svg` | Conversations, messaging |
+| Compliance | `gb-compliance.svg` | Security, auditing |
+| Designer | `gb-designer.svg` | Workflow automation |
+| Drive | `gb-drive.svg` | File storage, documents |
+| Mail | `gb-mail.svg` | Email functionality |
+| Meet | `gb-meet.svg` | Video conferencing |
+| Paper | `gb-paper.svg` | Document editing |
+| Research | `gb-research.svg` | Search, investigation |
+| Sources | `gb-sources.svg` | Knowledge bases |
+| Tasks | `gb-tasks.svg` | Task management |
+
+### Icon Guidelines
+
+- All icons use `stroke="currentColor"` for CSS theming
+- ViewBox: `0 0 24 24`
+- Stroke width: `1.5`
+- Rounded line caps and joins
+
+**DO NOT:**
+- Generate new icons with AI/LLM
+- Use emoji or unicode symbols as icons
+- Use external icon libraries
+- Create inline SVG content
+
+---
+
 ## Project Overview
 
 BotServer is the core backend for General Bots - an open-source conversational AI platform built in Rust. It provides:

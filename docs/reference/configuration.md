@@ -50,28 +50,31 @@ theme-color2,#E3F2FD
 | Red | `#C62828` | `#FFEBEE` |
 | Dark | `#212121` | `#424242` |
 
-## Prompt Settings
+## Episodic Memory Settings
 
 | Setting | Description | Default | Range |
 |---------|-------------|---------|-------|
-| `prompt-history` | Messages in context | `2` | 1-10 |
-| `prompt-compact` | Compact mode threshold | `4` | 2-20 |
-| `prompt-max-tokens` | Max response tokens | `2048` | 256-8192 |
-| `prompt-temperature` | Response creativity | `0.7` | 0.0-2.0 |
+| `episodic-memory-history` | Messages in context | `2` | 1-10 |
+| `episodic-memory-threshold` | Compaction threshold | `4` | 2-20 |
+| `episodic-memory-enabled` | Enable episodic memory | `true` | Boolean |
+| `episodic-memory-model` | Model for summarization | `fast` | String |
+| `episodic-memory-max-episodes` | Max episodes per user | `100` | 1-1000 |
+| `episodic-memory-retention-days` | Days to retain episodes | `365` | 1-3650 |
+| `episodic-memory-auto-summarize` | Auto-summarize conversations | `true` | Boolean |
 
 ```csv
 name,value
-prompt-history,2
-prompt-compact,4
-prompt-max-tokens,2048
-prompt-temperature,0.7
+episodic-memory-history,2
+episodic-memory-threshold,4
+episodic-memory-enabled,true
+episodic-memory-auto-summarize,true
 ```
 
 ### History Settings
 
-- `prompt-history=1`: Minimal context, faster responses
-- `prompt-history=2`: Balanced (recommended)
-- `prompt-history=5`: More context, slower responses
+- `episodic-memory-history=1`: Minimal context, faster responses
+- `episodic-memory-history=2`: Balanced (recommended)
+- `episodic-memory-history=5`: More context, slower responses
 
 ## LLM Settings
 
@@ -286,9 +289,8 @@ theme-title,Acme Support Bot
 theme-color1,#1565C0
 theme-color2,#E3F2FD
 theme-logo,https://acme.com/logo.svg
-prompt-history,2
-prompt-compact,4
-prompt-temperature,0.7
+episodic-memory-history,2
+episodic-memory-threshold,4
 llm-provider,openai
 llm-model,gpt-4-turbo
 feature-voice,false
