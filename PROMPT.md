@@ -29,6 +29,39 @@ botplugin/     # Browser extension
 
 ---
 
+## LLM Workflow Strategy
+
+### Two Types of LLM Work
+
+1. **Execution Mode (Fazer)**
+   - Pre-annotate phrases and send for execution
+   - Focus on automation freedom
+   - Less concerned with code details
+   - Primary concern: Is the LLM destroying something?
+   - Trust but verify output doesn't break existing functionality
+
+2. **Review Mode (Conferir)**
+   - Read generated code with full attention
+   - Line-by-line verification
+   - Check for correctness, security, performance
+   - Validate against requirements
+
+### Development Process
+
+1. **One requirement at a time** with sequential commits
+2. **Start with docs** - explain user behavior before coding
+3. **Design first** - spend time on architecture
+4. **On unresolved error** - stop and consult with web search enabled
+
+### LLM Fallback Strategy (After 3 attempts / 10 minutes)
+
+1. DeepSeek-V3-0324 (good architect, reliable)
+2. gpt-5-chat (slower but thorough)
+3. gpt-oss-120b (final validation)
+4. Claude Web (for complex debugging, unit tests, UI)
+
+---
+
 ## Code Generation Rules
 
 ### CRITICAL REQUIREMENTS
@@ -43,6 +76,25 @@ botplugin/     # Browser extension
 - Only return files that have actual changes
 - DO NOT WRITE ERROR HANDLING CODE - LET IT CRASH
 - Return 0 warnings - review unused imports!
+- NO DEAD CODE - implement real functionality, never use _ for unused
+```
+
+### Documentation Rules
+
+```
+- Rust code examples ONLY in docs/reference/architecture.md (gbapp chapter)
+- All other docs: BASIC, bash, JSON, SQL, YAML only
+- Scan for ALL_CAPS.md files created at wrong places - delete or integrate to docs/
+- Keep only README.md and PROMPT.md at project root level
+```
+
+### Frontend Rules
+
+```
+- Use HTMX to minimize JavaScript - delegate logic to Rust server
+- NO external CDN - all JS/CSS must be local in vendor/ folders
+- Server-side rendering with Askama templates returning HTML
+- Endpoints return HTML fragments, not JSON (for HTMX)
 ```
 
 ### Rust Patterns
@@ -55,12 +107,20 @@ let mut rng = rand::rng();
 use diesel::prelude::*;
 
 // All config from AppConfig - no hardcoded values
-let url = config.drive.endpoint.clone();  // NOT "api.openai.com"
+let url = config.drive.endpoint.clone();
 
 // Logging (all-in-one-line, unique messages)
 info!("Processing request id={} user={}", req_id, user_id);
-debug!("Cache hit for key={}", key);
-trace!("Raw response bytes={}", bytes.len());
+```
+
+### Dependency Management
+
+```
+- Use diesel - remove any sqlx references
+- After adding to Cargo.toml: cargo audit must show 0 warnings
+- If audit fails, find alternative library
+- Minimize redundancy - check existing libs before adding new ones
+- Review src/ to identify reusable patterns and libraries
 ```
 
 ### BotServer Specifics
@@ -74,20 +134,37 @@ trace!("Raw response bytes={}", bytes.len());
 
 ---
 
+## Documentation Validation
+
+### Chapter Validation Process
+
+For each documentation chapter:
+
+1. Read the chapter instructions step by step
+2. Check if source code accomplishes each instruction
+3. Verify paths exist and are correct
+4. Ensure 100% alignment between docs and implementation
+5. Fix either docs or code to match
+
+### Documentation Structure
+
+```
+docs/
+├── api/                    # API documentation (no Rust code)
+├── guides/                 # How-to guides (no Rust code)
+└── reference/
+    ├── architecture.md     # ONLY place for Rust code examples
+    ├── basic-language.md   # BASIC only
+    └── configuration.md    # Config examples only
+```
+
+---
+
 ## Adding New Features
 
 ### Adding a Rhai Keyword
 
 ```rust
-// 1. Define enum (Rust-only, NOT in database)
-#[repr(i32)]
-pub enum TriggerKind {
-    Scheduled = 0,
-    TableUpdate = 1,
-    TableInsert = 2,
-}
-
-// 2. Register keyword with engine
 pub fn my_keyword(state: &AppState, engine: &mut Engine) {
     let db = state.db_custom.clone();
     
@@ -111,7 +188,6 @@ pub fn my_keyword(state: &AppState, engine: &mut Engine) {
     ).unwrap();
 }
 
-// 3. Async execution with diesel
 pub async fn execute_my_keyword(
     pool: &PgPool,
     value: String,
@@ -140,76 +216,60 @@ use uuid::Uuid;
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
     pub id: Uuid,
-    pub status: i16,           // Use i16 for enum storage
+    pub status: i16,
     pub email: String,
-    pub age: Option<i16>,      // Nullable fields
-    pub metadata: Vec<u8>,     // Binary data
+    pub age: Option<i16>,
+    pub metadata: Vec<u8>,
     pub created_at: DateTime<Utc>,
 }
 ```
 
-### Adding a Service/Endpoint
+### Adding a Service/Endpoint (HTMX Pattern)
 
 ```rust
-use axum::{routing::{get, post}, Router, Json, extract::State};
+use axum::{routing::get, Router, extract::State, response::Html};
+use askama::Template;
+
+#[derive(Template)]
+#[template(path = "partials/items.html")]
+struct ItemsTemplate {
+    items: Vec<Item>,
+}
 
 pub fn configure() -> Router<AppState> {
     Router::new()
-        .route("/api/resource", get(list_handler))
-        .route("/api/resource", post(create_handler))
+        .route("/api/items", get(list_handler))
 }
 
 async fn list_handler(
     State(state): State<Arc<AppState>>,
-) -> Json<Vec<Resource>> {
+) -> Html<String> {
     let conn = state.conn.get().unwrap();
-    let items = resources::table.load::<Resource>(&conn).unwrap();
-    Json(items)
-}
-
-async fn create_handler(
-    State(state): State<Arc<AppState>>,
-    Json(payload): Json<CreateRequest>,
-) -> Json<Resource> {
-    let conn = state.conn.get().unwrap();
-    let item = diesel::insert_into(resources::table)
-        .values(&payload)
-        .get_result(&conn)
-        .unwrap();
-    Json(item)
+    let items = items::table.load::<Item>(&conn).unwrap();
+    let template = ItemsTemplate { items };
+    Html(template.render().unwrap())
 }
 ```
 
 ---
 
-## LLM Workflow Strategy
-
-### Development Process
-
-1. **One requirement at a time** with sequential commits
-2. **Start with docs** - explain user behavior before coding
-3. **Design first** - spend time on architecture
-4. **On unresolved error** - stop and consult with web search enabled
-
-### LLM Fallback Strategy (After 3 attempts / 10 minutes)
-
-1. DeepSeek-V3-0324 (good architect, reliable)
-2. gpt-5-chat (slower but thorough)
-3. gpt-oss-120b (final validation)
-4. Claude Web (for complex debugging, unit tests, UI)
-
-### Final Steps Before Commit
+## Final Steps Before Commit
 
 ```bash
-# Remove warnings
+# Check for warnings
 cargo check 2>&1 | grep warning
 
-# If many warnings, add #[allow(dead_code)] temporarily
-# Then fix properly in dedicated pass
+# Audit dependencies (must be 0 warnings)
+cargo audit
 
-# Final validation
+# Build release
 cargo build --release
+
+# Run tests
 cargo test
+
+# Verify no dead code with _ prefixes
+grep -r "let _" src/ --include="*.rs"
 ```
 
 ---
@@ -217,8 +277,6 @@ cargo test
 ## Output Format
 
 ### Shell Script Format
-
-When returning code changes, use this exact format:
 
 ```sh
 #!/bin/bash
@@ -230,12 +288,6 @@ pub fn my_function() -> Result<(), io::Error> {
     Ok(())
 }
 EOF
-
-cat > src/another_file.rs << 'EOF'
-pub fn another() {
-    println!("Hello");
-}
-EOF
 ```
 
 ### Rules
@@ -245,66 +297,6 @@ EOF
 - Use `cat > path << 'EOF'` format
 - Include complete file content
 - No partial snippets
-
----
-
-## Error Fixing Guide
-
-When fixing Rust compiler errors:
-
-1. **Respect Cargo.toml** - check dependencies, editions, features
-2. **Type safety** - ensure all types match, trait bounds satisfied
-3. **Ownership rules** - fix borrowing, ownership, lifetime issues
-4. **Only return input files** - other files already exist
-
-Common errors to check:
-- Borrow of moved value
-- Unused variable
-- Use of moved value
-- Missing trait implementations
-
----
-
-## Documentation Style
-
-When writing documentation:
-
-- Be pragmatic and concise with examples
-- Create both guide-like and API-like sections
-- Use clear and consistent terminology
-- Ensure consistency in formatting
-- Follow logical flow
-- Relate to BASIC keyword list where applicable
-
----
-
-## SVG Diagram Guidelines
-
-For technical diagrams:
-
-```
-- Transparent background
-- Width: 1040-1400px, Height: appropriate for content
-- Simple colored borders (no fill, stroke-width="2.6")
-- Font: Arial, sans-serif
-- Dual-theme support with CSS classes
-- Colors: Blue #4A90E2, Orange #F5A623, Purple #BD10E0, Green #7ED321
-- Rounded rectangles (rx="6.5")
-- Font sizes: 29-32px titles, 22-24px labels, 18-21px descriptions
-```
-
----
-
-## IDE Integration Rules
-
-```
-- Return identifiers/characters in English language only
-- Do not emit any comments, remove existing ones
-- Compact code emission where possible
-- Ensure cargo check cycle removes warnings
-- Never use defaults or magic values
-- Check borrow, clone, types - return 0 warning code!
-```
 
 ---
 
@@ -333,41 +325,25 @@ src/shared/
 | Library | Version | Purpose |
 |---------|---------|---------|
 | axum | 0.7.5 | Web framework |
-| diesel | 2.1 | PostgreSQL ORM |
+| diesel | 2.1 | PostgreSQL ORM (NOT sqlx) |
 | tokio | 1.41 | Async runtime |
 | rhai | git | BASIC scripting |
 | reqwest | 0.12 | HTTP client |
 | serde | 1.0 | Serialization |
-| askama | 0.12 | Templates |
-
----
-
-## Testing Commands
-
-```bash
-# Build
-cargo build
-
-# Check warnings
-cargo check
-
-# Run tests
-cargo test
-
-# Run with features
-cargo run --features "console,llm,drive"
-
-# Audit dependencies
-cargo audit
-```
+| askama | 0.12 | HTML Templates |
 
 ---
 
 ## Remember
 
+- **Two LLM modes**: Execution (fazer) vs Review (conferir)
+- **Rust code**: Only in architecture.md documentation
+- **HTMX**: Minimize JS, delegate to server
+- **Local assets**: No CDN, all vendor files local
+- **Dead code**: Never use _ prefix, implement real code
+- **cargo audit**: Must pass with 0 warnings
+- **diesel**: No sqlx references
 - **Sessions**: Always retrieve by ID when present
 - **Config**: Never hardcode values, use AppConfig
 - **Bootstrap**: Never suggest manual installation
-- **Database**: Use diesel, not sqlx
-- **Logging**: Unique messages, appropriate levels
 - **Warnings**: Target zero warnings before commit
