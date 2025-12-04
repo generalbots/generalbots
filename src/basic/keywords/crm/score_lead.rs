@@ -7,11 +7,15 @@
 //! - UPDATE LEAD SCORE - Manually adjust lead score
 //! - AI SCORE LEAD - LLM-enhanced lead scoring
 
+use crate::core::shared::schema::bot_memories;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use log::{debug, info, trace};
+use chrono::Utc;
+use diesel::prelude::*;
+use log::{debug, error, info, trace};
 use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
+use uuid::Uuid;
 
 /// SCORE LEAD - Calculate lead score based on provided criteria
 pub fn score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -466,7 +470,7 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
     // Budget signal
     if let Some(budget_val) = lead_data.get("budget") {
         if let Ok(budget) = budget_val.as_int() {
-            if budget > 100000 {
+            if budget > 100_000 {
                 score += 25;
             } else if budget > 50000 {
                 score += 20;
@@ -541,17 +545,134 @@ fn get_suggested_action(score: i64) -> String {
     }
 }
 
-/// Get lead score from database (real implementation)
-fn get_lead_score_from_db(_state: &Arc<AppState>, _lead_id: &str) -> Option<i64> {
-    // TODO: Query actual database for lead score
-    // Placeholder returns None - database implementation needed
-    None
+/// Get lead score from database using bot_memories table
+/// Key format: "lead_score:{lead_id}"
+fn get_lead_score_from_db(state: &Arc<AppState>, lead_id: &str) -> Option<i64> {
+    let memory_key = format!("lead_score:{}", lead_id);
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            error!(
+                "Failed to get database connection for lead score lookup: {}",
+                e
+            );
+            return None;
+        }
+    };
+
+    // Query bot_memories table for the lead score
+    // We use a default bot_id (nil UUID) for system-wide lead scores
+    let result = bot_memories::table
+        .filter(bot_memories::key.eq(&memory_key))
+        .select(bot_memories::value)
+        .first::<String>(&mut conn)
+        .optional();
+
+    match result {
+        Ok(Some(value)) => match value.parse::<i64>() {
+            Ok(score) => {
+                debug!("Retrieved lead score {} for lead {}", score, lead_id);
+                Some(score)
+            }
+            Err(e) => {
+                error!(
+                    "Failed to parse lead score '{}' for lead {}: {}",
+                    value, lead_id, e
+                );
+                None
+            }
+        },
+        Ok(None) => {
+            debug!("No lead score found for lead {}", lead_id);
+            None
+        }
+        Err(e) => {
+            error!(
+                "Database error retrieving lead score for {}: {}",
+                lead_id, e
+            );
+            None
+        }
+    }
 }
 
-/// Update lead score in database (real implementation)
-fn update_lead_score_in_db(_state: &Arc<AppState>, _lead_id: &str, _score: i64) {
-    // TODO: Update actual database with new lead score
-    // Placeholder - database implementation needed
+/// Update lead score in database using bot_memories table
+/// Key format: "lead_score:{lead_id}"
+fn update_lead_score_in_db(state: &Arc<AppState>, lead_id: &str, score: i64) {
+    let memory_key = format!("lead_score:{}", lead_id);
+    let score_value = score.to_string();
+    let now = Utc::now();
+
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            error!(
+                "Failed to get database connection for lead score update: {}",
+                e
+            );
+            return;
+        }
+    };
+
+    // Check if record exists
+    let existing = bot_memories::table
+        .filter(bot_memories::key.eq(&memory_key))
+        .select(bot_memories::id)
+        .first::<Uuid>(&mut conn)
+        .optional();
+
+    match existing {
+        Ok(Some(existing_id)) => {
+            // Update existing record
+            let update_result = diesel::update(bot_memories::table.find(existing_id))
+                .set((
+                    bot_memories::value.eq(&score_value),
+                    bot_memories::updated_at.eq(now),
+                ))
+                .execute(&mut conn);
+
+            match update_result {
+                Ok(_) => {
+                    info!("Updated lead score to {} for lead {}", score, lead_id);
+                }
+                Err(e) => {
+                    error!("Failed to update lead score for {}: {}", lead_id, e);
+                }
+            }
+        }
+        Ok(None) => {
+            // Insert new record with nil bot_id for system-wide scores
+            let new_id = Uuid::new_v4();
+            let bot_id = Uuid::nil();
+
+            let insert_result = diesel::insert_into(bot_memories::table)
+                .values((
+                    bot_memories::id.eq(new_id),
+                    bot_memories::bot_id.eq(bot_id),
+                    bot_memories::key.eq(&memory_key),
+                    bot_memories::value.eq(&score_value),
+                    bot_memories::created_at.eq(now),
+                    bot_memories::updated_at.eq(now),
+                ))
+                .execute(&mut conn);
+
+            match insert_result {
+                Ok(_) => {
+                    info!("Inserted new lead score {} for lead {}", score, lead_id);
+                }
+                Err(e) => {
+                    error!("Failed to insert lead score for {}: {}", lead_id, e);
+                }
+            }
+        }
+        Err(e) => {
+            error!(
+                "Database error checking existing lead score for {}: {}",
+                lead_id, e
+            );
+        }
+    }
 }
 
 #[cfg(test)]

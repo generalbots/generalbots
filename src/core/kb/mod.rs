@@ -8,7 +8,7 @@ pub use document_processor::{DocumentFormat, DocumentProcessor, TextChunk};
 pub use embedding_generator::{
     EmailEmbeddingGenerator, EmbeddingConfig, EmbeddingGenerator, KbEmbeddingGenerator,
 };
-pub use kb_indexer::{KbFolderMonitor, KbIndexer, QdrantConfig, SearchResult};
+pub use kb_indexer::{CollectionInfo, KbFolderMonitor, KbIndexer, QdrantConfig, SearchResult};
 pub use web_crawler::{WebCrawler, WebPage, WebsiteCrawlConfig};
 pub use website_crawler_service::{ensure_crawler_service_running, WebsiteCrawlerService};
 
@@ -119,17 +119,31 @@ impl KnowledgeBaseManager {
         }
     }
 
-    /// Get collection statistics
+    /// Get collection statistics from Qdrant
     pub async fn get_kb_stats(&self, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
         let collection_name = format!("{}_{}", bot_name, kb_name);
 
-        // This would query Qdrant for collection statistics
-        // For now, return placeholder stats
+        // Query Qdrant for collection statistics
+        let collection_info = self.indexer.get_collection_info(&collection_name).await?;
+
+        // Estimate document count from unique document paths
+        // Each document typically produces multiple chunks (points)
+        // Average ~10 chunks per document is a reasonable estimate
+        let estimated_doc_count = if collection_info.points_count > 0 {
+            std::cmp::max(1, collection_info.points_count / 10)
+        } else {
+            0
+        };
+
+        // Estimate size: ~1KB per chunk average (text + metadata + vector)
+        let estimated_size = collection_info.points_count * 1024;
+
         Ok(KbStatistics {
             collection_name,
-            document_count: 0,
-            chunk_count: 0,
-            total_size_bytes: 0,
+            document_count: estimated_doc_count,
+            chunk_count: collection_info.points_count,
+            total_size_bytes: estimated_size,
+            status: collection_info.status,
         })
     }
 }
@@ -141,6 +155,7 @@ pub struct KbStatistics {
     pub document_count: usize,
     pub chunk_count: usize,
     pub total_size_bytes: usize,
+    pub status: String,
 }
 
 /// Integration with drive monitor
