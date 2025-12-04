@@ -1,3 +1,0 @@
-- Sessions must always be retrived by id if session_id or something is present;
-- Never suggest to install any software, as /src/bootstrap and /src/package_manager does the job.
-- Configuration are stored in .gbot/config, and database bot_configuration table.
