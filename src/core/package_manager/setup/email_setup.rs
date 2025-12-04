@@ -158,12 +158,68 @@ impl EmailSetup {
         Ok(())
     }
 
-    /// Create admin email account
+    /// Create admin email account via Stalwart management API
     async fn create_admin_account(&self) -> Result<()> {
-        // In Stalwart, accounts are created via management API
-        // This is a placeholder - implement actual Stalwart API calls
-        log::info!("Creating admin email account...");
-        Ok(())
+        log::info!("Creating admin email account via Stalwart API...");
+
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(30))
+            .build()?;
+
+        // Stalwart management API endpoint for account creation
+        let api_url = format!("{}/api/account", self.base_url);
+
+        let account_data = serde_json::json!({
+            "name": self.admin_user,
+            "secret": self.admin_pass,
+            "description": "BotServer Admin Account",
+            "quota": 1073741824,  // 1GB quota
+            "type": "individual",
+            "emails": [self.admin_user.clone()],
+            "memberOf": ["administrators"],
+            "enabled": true
+        });
+
+        let response = client
+            .post(&api_url)
+            .header("Content-Type", "application/json")
+            .json(&account_data)
+            .send()
+            .await;
+
+        match response {
+            Ok(resp) => {
+                if resp.status().is_success() {
+                    log::info!(
+                        "Admin email account created successfully: {}",
+                        self.admin_user
+                    );
+                    Ok(())
+                } else if resp.status().as_u16() == 409 {
+                    // Account already exists
+                    log::info!("Admin email account already exists: {}", self.admin_user);
+                    Ok(())
+                } else {
+                    let status = resp.status();
+                    let error_text = resp.text().await.unwrap_or_default();
+                    log::warn!(
+                        "Failed to create admin account via API (status {}): {}",
+                        status,
+                        error_text
+                    );
+                    // Don't fail setup if account creation fails - may be configured differently
+                    Ok(())
+                }
+            }
+            Err(e) => {
+                log::warn!(
+                    "Could not connect to Stalwart management API: {}. Account may need manual setup.",
+                    e
+                );
+                // Don't fail setup - Stalwart may not have management API enabled
+                Ok(())
+            }
+        }
     }
 
     /// Set up Directory (Zitadel) integration for authentication

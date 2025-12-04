@@ -142,12 +142,32 @@ pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppSta
         .map(|r| r.count)
         .unwrap_or(0);
 
-    let _active_cutoff = Utc::now() - Duration::days(7);
-    let active_users: i64 = 50; // Placeholder for now, would query DB in production
+    let active_cutoff = Utc::now() - Duration::days(7);
+    let active_users: i64 = diesel::sql_query(
+        "SELECT COUNT(DISTINCT user_id) as count FROM user_sessions WHERE updated_at > $1",
+    )
+    .bind::<diesel::sql_types::Timestamptz, _>(active_cutoff)
+    .get_result::<CountResult>(&mut conn)
+    .map(|r| r.count)
+    .unwrap_or(0);
 
-    let total_sessions: i64 = 1000; // Placeholder for now
+    let total_sessions: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM user_sessions")
+        .get_result::<CountResult>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
 
-    let storage_bytes: i64 = 1024 * 1024 * 1024; // 1GB placeholder
+    // Query storage from kb_documents table for actual data size
+    #[derive(QueryableByName)]
+    struct SizeResult {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        total_size: i64,
+    }
+
+    let storage_bytes: i64 =
+        diesel::sql_query("SELECT COALESCE(SUM(file_size), 0) as total_size FROM kb_documents")
+            .get_result::<SizeResult>(&mut conn)
+            .map(|r| r.total_size)
+            .unwrap_or(0);
 
     let storage_gb = storage_bytes as f64 / (1024.0 * 1024.0 * 1024.0);
 
