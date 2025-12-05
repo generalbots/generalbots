@@ -17,7 +17,23 @@ use redis::Client as RedisClient;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::mpsc;
+use tokio::sync::{broadcast, mpsc};
+
+/// Notification sent to attendants via WebSocket/broadcast
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+pub struct AttendantNotification {
+    #[serde(rename = "type")]
+    pub notification_type: String,
+    pub session_id: String,
+    pub user_id: String,
+    pub user_name: Option<String>,
+    pub user_phone: Option<String>,
+    pub channel: String,
+    pub content: String,
+    pub timestamp: String,
+    pub assigned_to: Option<String>,
+    pub priority: i32,
+}
 
 /// Type-erased extension storage for AppState
 #[derive(Default)]
@@ -106,6 +122,9 @@ pub struct AppState {
     pub task_engine: Arc<TaskEngine>,
     /// Type-erased extension storage for web handlers and other components
     pub extensions: Extensions,
+    /// Broadcast channel for attendant notifications (human handoff)
+    /// Used to notify attendants of new messages from customers
+    pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
 }
 impl Clone for AppState {
     fn clone(&self) -> Self {
@@ -133,6 +152,7 @@ impl Clone for AppState {
             voice_adapter: Arc::clone(&self.voice_adapter),
             task_engine: Arc::clone(&self.task_engine),
             extensions: self.extensions.clone(),
+            attendant_broadcast: self.attendant_broadcast.clone(),
         }
     }
 }

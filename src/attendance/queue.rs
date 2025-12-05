@@ -97,22 +97,42 @@ pub struct QueueFilters {
     pub assigned_to: Option<Uuid>,
 }
 
-/// Check if bot has transfer enabled in config.csv
+/// Check if CRM/transfer is enabled in config.csv
+/// Supports both `crm-enabled = true` and legacy `transfer = true`
 async fn is_transfer_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("config.csv");
 
     if !config_path.exists() {
+        // Try alternate path without UUID prefix
+        let alt_path = PathBuf::from(work_path).join("config.csv");
+        if alt_path.exists() {
+            return check_config_for_crm_enabled(&alt_path);
+        }
         warn!("Config file not found: {:?}", config_path);
         return false;
     }
 
-    match std::fs::read_to_string(&config_path) {
+    check_config_for_crm_enabled(&config_path)
+}
+
+/// Helper to check config file for CRM/transfer settings
+fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
+    match std::fs::read_to_string(config_path) {
         Ok(content) => {
             for line in content.lines() {
-                if line.to_lowercase().contains("transfer") && line.to_lowercase().contains("true")
+                let line_lower = line.to_lowercase();
+                // Check for crm-enabled = true or crm_enabled = true (primary)
+                if (line_lower.contains("crm-enabled") || line_lower.contains("crm_enabled"))
+                    && line_lower.contains("true")
                 {
+                    info!("CRM enabled via crm-enabled setting");
+                    return true;
+                }
+                // Also support legacy transfer = true for backward compatibility
+                if line_lower.contains("transfer") && line_lower.contains("true") {
+                    info!("CRM enabled via legacy transfer setting");
                     return true;
                 }
             }

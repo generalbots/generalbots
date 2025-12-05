@@ -183,6 +183,18 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
 
+    // Add WhatsApp webhook routes if feature is enabled
+    #[cfg(feature = "whatsapp")]
+    {
+        api_router = api_router.merge(crate::whatsapp::configure());
+    }
+
+    // Add attendance/CRM routes for human handoff
+    #[cfg(feature = "attendance")]
+    {
+        api_router = api_router.merge(crate::attendance::configure_attendance_routes());
+    }
+
     // Add OAuth authentication routes
     api_router = api_router.merge(crate::core::oauth::routes::configure());
 
@@ -616,6 +628,11 @@ async fn main() -> std::io::Result<()> {
     // Initialize TaskScheduler (will be set after AppState creation)
     let task_scheduler = None;
 
+    // Create broadcast channel for attendant notifications (human handoff)
+    let (attendant_tx, _attendant_rx) = tokio::sync::broadcast::channel::<
+        botserver::core::shared::state::AttendantNotification,
+    >(1000);
+
     let app_state = Arc::new(AppState {
         drive: Some(drive.clone()),
         s3_client: Some(drive),
@@ -644,6 +661,7 @@ async fn main() -> std::io::Result<()> {
         kb_manager: Some(kb_manager.clone()),
         task_engine: task_engine,
         extensions: botserver::core::shared::state::Extensions::new(),
+        attendant_broadcast: Some(attendant_tx),
     });
 
     // Initialize TaskScheduler with the AppState

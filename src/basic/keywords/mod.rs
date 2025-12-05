@@ -59,6 +59,7 @@ pub mod social_media;
 pub mod string_functions;
 pub mod switch_case;
 pub mod table_definition;
+pub mod transfer_to_human;
 pub mod universal_messaging;
 pub mod use_kb;
 pub mod use_tool;
