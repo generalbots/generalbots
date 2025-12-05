@@ -1,3 +1,4 @@
+pub mod attendance;
 pub mod score_lead;
 
 use crate::shared::models::UserSession;
@@ -6,12 +7,21 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
+/// Register all CRM keywords including:
+/// - Lead scoring (SCORE LEAD, QUALIFY LEAD, AI SCORE LEAD)
+/// - Attendance/Queue management (GET QUEUE, ASSIGN CONVERSATION, etc.)
+/// - LLM Assist (GET TIPS, POLISH MESSAGE, ANALYZE SENTIMENT, etc.)
+/// - Customer journey (TAG CONVERSATION, ADD NOTE, GET CUSTOMER HISTORY)
 pub fn register_crm_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    // Lead scoring keywords
     score_lead::score_lead_keyword(state.clone(), user.clone(), engine);
     score_lead::get_lead_score_keyword(state.clone(), user.clone(), engine);
     score_lead::qualify_lead_keyword(state.clone(), user.clone(), engine);
     score_lead::update_lead_score_keyword(state.clone(), user.clone(), engine);
-    score_lead::ai_score_lead_keyword(state, user, engine);
+    score_lead::ai_score_lead_keyword(state.clone(), user.clone(), engine);
 
-    debug!("Registered all CRM keywords");
+    // Attendance/Queue management keywords
+    attendance::register_attendance_keywords(state.clone(), user.clone(), engine);
+
+    debug!("Registered all CRM keywords (lead scoring + attendance + LLM assist)");
 }

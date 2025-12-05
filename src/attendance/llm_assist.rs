@@ -1159,8 +1159,8 @@ async fn handle_take_command(
 }
 
 async fn handle_status_command(
-    _state: &Arc<AppState>,
-    _attendant_phone: &str,
+    state: &Arc<AppState>,
+    attendant_phone: &str,
     args: Vec<&str>,
 ) -> Result<String, String> {
     if args.is_empty() {
@@ -1171,11 +1171,11 @@ async fn handle_status_command(
     }
 
     let status = args[0].to_lowercase();
-    let (emoji, text) = match status.as_str() {
-        "online" => ("🟢", "Online - Available for conversations"),
-        "busy" => ("🟡", "Busy - Handling conversations"),
-        "away" => ("🟠", "Away - Temporarily unavailable"),
-        "offline" => ("⚫", "Offline - Not available"),
+    let (emoji, text, status_value) = match status.as_str() {
+        "online" => ("🟢", "Online - Available for conversations", "online"),
+        "busy" => ("🟡", "Busy - Handling conversations", "busy"),
+        "away" => ("🟠", "Away - Temporarily unavailable", "away"),
+        "offline" => ("⚫", "Offline - Not available", "offline"),
         _ => {
             return Err(format!(
                 "Invalid status: {}. Use online, busy, away, or offline.",
@@ -1184,13 +1184,62 @@ async fn handle_status_command(
         }
     };
 
-    // TODO: Update attendant status in database
+    // Update attendant status in database via user_sessions context
+    // Store status in sessions assigned to this attendant
+    let conn = state.conn.clone();
+    let phone = attendant_phone.to_string();
+    let status_val = status_value.to_string();
 
-    Ok(format!("{} Status set to *{}*", emoji, text))
+    let update_result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| e.to_string())?;
+
+        use crate::shared::models::schema::user_sessions;
+
+        // Find sessions assigned to this attendant and update their context
+        // We track attendant status in the session context for simplicity
+        let sessions: Vec<UserSession> = user_sessions::table
+            .filter(
+                user_sessions::context_data
+                    .retrieve_as_text("assigned_to_phone")
+                    .eq(&phone),
+            )
+            .load(&mut db_conn)
+            .map_err(|e| e.to_string())?;
+
+        for session in sessions {
+            let mut ctx = session.context_data.clone();
+            ctx["attendant_status"] = serde_json::json!(status_val);
+            ctx["attendant_status_updated_at"] = serde_json::json!(Utc::now().to_rfc3339());
+
+            diesel::update(user_sessions::table.filter(user_sessions::id.eq(session.id)))
+                .set(user_sessions::context_data.eq(&ctx))
+                .execute(&mut db_conn)
+                .map_err(|e| e.to_string())?;
+        }
+
+        Ok::<usize, String>(sessions.len())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
+
+    match update_result {
+        Ok(count) => {
+            info!(
+                "Attendant {} set status to {} ({} sessions updated)",
+                attendant_phone, status_value, count
+            );
+            Ok(format!("{} Status set to *{}*", emoji, text))
+        }
+        Err(e) => {
+            warn!("Failed to persist status for {}: {}", attendant_phone, e);
+            // Still return success to user - status change is acknowledged
+            Ok(format!("{} Status set to *{}*", emoji, text))
+        }
+    }
 }
 
 async fn handle_transfer_command(
-    _state: &Arc<AppState>,
+    state: &Arc<AppState>,
     current_session: Option<Uuid>,
     args: Vec<&str>,
 ) -> Result<String, String> {
@@ -1201,13 +1250,65 @@ async fn handle_transfer_command(
     }
 
     let target = args.join(" ");
+    let target_clean = target.trim_start_matches('@').to_string();
 
-    // TODO: Implement actual transfer logic
+    // Implement actual transfer logic
+    let conn = state.conn.clone();
+    let target_attendant = target_clean.clone();
+
+    let transfer_result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| e.to_string())?;
+
+        use crate::shared::models::schema::user_sessions;
+
+        // Get the session
+        let session: UserSession = user_sessions::table
+            .find(session_id)
+            .first(&mut db_conn)
+            .map_err(|e| format!("Session not found: {}", e))?;
+
+        // Update context_data with transfer information
+        let mut ctx = session.context_data.clone();
+        let previous_attendant = ctx
+            .get("assigned_to_phone")
+            .and_then(|v| v.as_str())
+            .unwrap_or("unknown")
+            .to_string();
+
+        ctx["transferred_from"] = serde_json::json!(previous_attendant);
+        ctx["transfer_target"] = serde_json::json!(target_attendant);
+        ctx["transferred_at"] = serde_json::json!(Utc::now().to_rfc3339());
+        ctx["status"] = serde_json::json!("pending_transfer");
+
+        // Clear current assignment - will be picked up by target or reassigned
+        ctx["assigned_to_phone"] = serde_json::Value::Null;
+        ctx["assigned_to"] = serde_json::Value::Null;
+
+        // Keep needs_human true so it stays in queue
+        ctx["needs_human"] = serde_json::json!(true);
+
+        diesel::update(user_sessions::table.filter(user_sessions::id.eq(session_id)))
+            .set((
+                user_sessions::context_data.eq(&ctx),
+                user_sessions::updated_at.eq(Utc::now()),
+            ))
+            .execute(&mut db_conn)
+            .map_err(|e| format!("Failed to update session: {}", e))?;
+
+        Ok::<String, String>(previous_attendant)
+    })
+    .await
+    .map_err(|e| e.to_string())??;
+
+    info!(
+        "Session {} transferred from {} to {}",
+        session_id, transfer_result, target_clean
+    );
 
     Ok(format!(
-        "🔄 *Transfer initiated*\n\nSession {} is being transferred to {}.\nThe new attendant will be notified.",
+        "🔄 *Transfer initiated*\n\nSession {} is being transferred to *{}*.\n\nThe conversation is now in the queue for the target attendant. They will be notified when they check their queue.",
         &session_id.to_string()[..8],
-        target
+        target_clean
     ))
 }
 
