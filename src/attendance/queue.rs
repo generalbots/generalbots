@@ -65,6 +65,12 @@ pub struct AttendantCSV {
     pub name: String,
     pub channel: String,
     pub preferences: String,
+    pub department: Option<String>,
+    pub aliases: Option<String>,
+    pub phone: Option<String>,
+    pub email: Option<String>,
+    pub teams: Option<String>,
+    pub google: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -172,6 +178,30 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
                         name: parts[1].to_string(),
                         channel: parts[2].to_string(),
                         preferences: parts[3].to_string(),
+                        department: parts
+                            .get(4)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        aliases: parts
+                            .get(5)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        phone: parts
+                            .get(6)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        email: parts
+                            .get(7)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        teams: parts
+                            .get(8)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
+                        google: parts
+                            .get(9)
+                            .filter(|s| !s.is_empty())
+                            .map(|s| s.to_string()),
                     });
                 }
             }
@@ -182,6 +212,103 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
             Vec::new()
         }
     }
+}
+
+/// Find an attendant by any identifier (email, phone, teams, google, name, or alias)
+/// This allows routing conversations to attendants via any channel
+pub async fn find_attendant_by_identifier(
+    bot_id: Uuid,
+    work_path: &str,
+    identifier: &str,
+) -> Option<AttendantCSV> {
+    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let identifier_lower = identifier.to_lowercase().trim().to_string();
+
+    for att in attendants {
+        // Check direct matches on all identifier fields
+        if att.id.to_lowercase() == identifier_lower {
+            return Some(att);
+        }
+        if att.name.to_lowercase() == identifier_lower {
+            return Some(att);
+        }
+        if let Some(ref phone) = att.phone {
+            // Normalize phone (remove spaces, dashes, etc.)
+            let phone_normalized = phone
+                .chars()
+                .filter(|c| c.is_numeric() || *c == '+')
+                .collect::<String>();
+            let id_normalized = identifier
+                .chars()
+                .filter(|c| c.is_numeric() || *c == '+')
+                .collect::<String>();
+            if phone_normalized == id_normalized || phone.to_lowercase() == identifier_lower {
+                return Some(att);
+            }
+        }
+        if let Some(ref email) = att.email {
+            if email.to_lowercase() == identifier_lower {
+                return Some(att);
+            }
+        }
+        if let Some(ref teams) = att.teams {
+            if teams.to_lowercase() == identifier_lower {
+                return Some(att);
+            }
+        }
+        if let Some(ref google) = att.google {
+            if google.to_lowercase() == identifier_lower {
+                return Some(att);
+            }
+        }
+        // Check aliases (semicolon-separated)
+        if let Some(ref aliases) = att.aliases {
+            for alias in aliases.split(';') {
+                if alias.trim().to_lowercase() == identifier_lower {
+                    return Some(att);
+                }
+            }
+        }
+    }
+
+    None
+}
+
+/// Find attendants by channel preference (whatsapp, web, teams, all)
+pub async fn find_attendants_by_channel(
+    bot_id: Uuid,
+    work_path: &str,
+    channel: &str,
+) -> Vec<AttendantCSV> {
+    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let channel_lower = channel.to_lowercase();
+
+    attendants
+        .into_iter()
+        .filter(|att| {
+            att.channel.to_lowercase() == "all" || att.channel.to_lowercase() == channel_lower
+        })
+        .collect()
+}
+
+/// Find attendants by department
+pub async fn find_attendants_by_department(
+    bot_id: Uuid,
+    work_path: &str,
+    department: &str,
+) -> Vec<AttendantCSV> {
+    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let dept_lower = department.to_lowercase();
+
+    attendants
+        .into_iter()
+        .filter(|att| {
+            att.department
+                .as_ref()
+                .map(|d| d.to_lowercase() == dept_lower)
+                .unwrap_or(false)
+        })
+        .collect()
 }
 
 /// GET /api/queue/list
