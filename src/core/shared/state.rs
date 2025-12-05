@@ -12,6 +12,8 @@ use crate::shared::utils::DbPool;
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
 #[cfg(feature = "cache")]
 use redis::Client as RedisClient;
 use std::any::{Any, TypeId};
@@ -191,5 +193,115 @@ impl std::fmt::Debug for AppState {
             .field("voice_adapter", &self.voice_adapter)
             .field("extensions", &self.extensions)
             .finish()
+    }
+}
+
+#[cfg(feature = "llm")]
+#[derive(Debug)]
+struct MockLLMProvider;
+
+#[cfg(feature = "llm")]
+#[async_trait::async_trait]
+impl LLMProvider for MockLLMProvider {
+    async fn generate(
+        &self,
+        _prompt: &str,
+        _config: &serde_json::Value,
+        _model: &str,
+        _key: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        Ok("Mock response".to_string())
+    }
+
+    async fn generate_stream(
+        &self,
+        _prompt: &str,
+        _config: &serde_json::Value,
+        tx: mpsc::Sender<String>,
+        _model: &str,
+        _key: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let _ = tx.send("Mock response".to_string()).await;
+        Ok(())
+    }
+
+    async fn cancel_job(
+        &self,
+        _session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        Ok(())
+    }
+}
+
+#[cfg(feature = "directory")]
+fn create_mock_auth_service() -> AuthService {
+    use crate::directory::client::ZitadelConfig;
+
+    let config = ZitadelConfig {
+        issuer_url: "http://localhost:8080".to_string(),
+        issuer: "http://localhost:8080".to_string(),
+        client_id: "mock_client_id".to_string(),
+        client_secret: "mock_client_secret".to_string(),
+        redirect_uri: "http://localhost:3000/callback".to_string(),
+        project_id: "mock_project_id".to_string(),
+        api_url: "http://localhost:8080".to_string(),
+        service_account_key: None,
+    };
+
+    let rt = tokio::runtime::Handle::try_current()
+        .map(|h| h.block_on(AuthService::new(config.clone())))
+        .unwrap_or_else(|_| {
+            tokio::runtime::Runtime::new()
+                .expect("Failed to create runtime")
+                .block_on(AuthService::new(config))
+        });
+
+    rt.expect("Failed to create mock AuthService")
+}
+
+impl Default for AppState {
+    fn default() -> Self {
+        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
+            "postgres://postgres:postgres@localhost:5432/botserver".to_string()
+        });
+
+        let manager = ConnectionManager::<PgConnection>::new(&database_url);
+        let pool = Pool::builder()
+            .max_size(1)
+            .test_on_check_out(false)
+            .build(manager)
+            .expect("Failed to create test database pool");
+
+        let conn = pool.get().expect("Failed to get test database connection");
+        let session_manager = SessionManager::new(conn, None);
+
+        let (attendant_tx, _) = broadcast::channel(100);
+
+        Self {
+            #[cfg(feature = "drive")]
+            drive: None,
+            s3_client: None,
+            #[cfg(feature = "cache")]
+            cache: None,
+            bucket_name: "test-bucket".to_string(),
+            config: None,
+            conn: pool.clone(),
+            database_url,
+            session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
+            metrics_collector: MetricsCollector::new(),
+            task_scheduler: None,
+            #[cfg(feature = "llm")]
+            llm_provider: Arc::new(MockLLMProvider),
+            #[cfg(feature = "directory")]
+            auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
+            channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            response_channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),
+            web_adapter: Arc::new(WebChannelAdapter::new()),
+            voice_adapter: Arc::new(VoiceAdapter::new()),
+            kb_manager: None,
+            task_engine: Arc::new(TaskEngine::new(pool)),
+            extensions: Extensions::new(),
+            attendant_broadcast: Some(attendant_tx),
+        }
     }
 }

@@ -184,7 +184,7 @@ tar = { version = "0.4", optional = true }
 cron = { version = "0.15.0", optional = true }
 
 # Automation & Scripting (automation feature)
-rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time", optional = true }
+rhai = { git = "https://github.com/therealprof/rhai.git", branch = "features/use-web-time", features = ["sync"], optional = true }
 
 # Compliance & Reporting (compliance feature)
 csv = { version = "1.3", optional = true }
