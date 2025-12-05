@@ -51,6 +51,7 @@ use self::keywords::send_mail::send_mail_keyword;
 use self::keywords::send_template::register_send_template_keywords;
 use self::keywords::social_media::register_social_media_keywords;
 use self::keywords::switch_case::preprocess_switch;
+use self::keywords::transfer_to_human::register_transfer_to_human_keyword;
 use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
 use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
@@ -172,6 +173,14 @@ impl ScriptService {
 
         // Lead Scoring: SCORE LEAD, GET LEAD SCORE, QUALIFY LEAD, AI SCORE LEAD
         register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ========================================================================
+        // CRM & HUMAN HANDOFF
+        // ========================================================================
+
+        // TRANSFER TO HUMAN: Bot-to-human handoff for hybrid support workflows
+        // Supports transfer by name/alias, department, priority, and context
+        register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
 
         // ========================================================================
         // CORE BASIC FUNCTIONS: Math, Date/Time, Validation, Arrays, Error Handling
