@@ -44,7 +44,7 @@ features = ["database"]
 
 [features]
 # ===== DEFAULT FEATURE SET =====
-default = ["console", "chat", "automation", "tasks", "drive", "llm", "redis-cache", "progress-bars", "directory"]
+default = ["console", "chat", "automation", "tasks", "drive", "llm", "cache", "progress-bars", "directory"]
 
 # ===== UI FEATURES =====
 console = ["dep:crossterm", "dep:ratatui", "monitoring"]
@@ -76,7 +76,7 @@ weba = []
 timeseries = []
 
 # ===== OPTIONAL INFRASTRUCTURE =====
-redis-cache = ["dep:redis"]
+cache = ["dep:redis"]
 monitoring = ["dep:sysinfo"]
 automation = ["dep:rhai"]
 grpc = ["dep:tonic"]
@@ -89,11 +89,11 @@ full = [
     "email", "whatsapp", "instagram", "msteams",
     "chat", "drive", "tasks", "calendar", "meet", "mail",
     "compliance", "attendance", "directory", "weba",
-    "redis-cache", "monitoring", "automation", "grpc", "progress-bars"
+    "cache", "monitoring", "automation", "grpc", "progress-bars"
 ]
 
-communications = ["email", "whatsapp", "instagram", "msteams", "chat", "redis-cache"]
-productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "redis-cache"]
+communications = ["email", "whatsapp", "instagram", "msteams", "chat", "cache"]
+productivity = ["chat", "drive", "tasks", "calendar", "meet", "mail", "cache"]
 enterprise = ["compliance", "attendance", "directory", "llm", "vectordb", "monitoring", "timeseries"]
 minimal = ["chat"]
 lightweight = ["chat", "drive", "tasks"]
@@ -204,7 +204,7 @@ rust_xlsxwriter = "0.79"
 # Error handling
 thiserror = "2.0"
 
-# Caching/Sessions (redis-cache feature)
+# Caching/Sessions (cache feature)
 redis = { version = "0.27", features = ["tokio-comp"], optional = true }
 
 # System Monitoring (monitoring feature)
