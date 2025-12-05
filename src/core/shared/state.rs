@@ -12,7 +12,7 @@ use crate::shared::utils::DbPool;
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
-#[cfg(feature = "redis-cache")]
+#[cfg(feature = "cache")]
 use redis::Client as RedisClient;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
@@ -85,7 +85,7 @@ pub struct AppState {
     #[cfg(feature = "drive")]
     pub drive: Option<S3Client>,
     pub s3_client: Option<S3Client>,
-    #[cfg(feature = "redis-cache")]
+    #[cfg(feature = "cache")]
     pub cache: Option<Arc<RedisClient>>,
     pub bucket_name: String,
     pub config: Option<AppConfig>,
@@ -117,7 +117,7 @@ impl Clone for AppState {
             config: self.config.clone(),
             conn: self.conn.clone(),
             database_url: self.database_url.clone(),
-            #[cfg(feature = "redis-cache")]
+            #[cfg(feature = "cache")]
             cache: self.cache.clone(),
             session_manager: Arc::clone(&self.session_manager),
             metrics_collector: self.metrics_collector.clone(),
@@ -146,7 +146,7 @@ impl std::fmt::Debug for AppState {
 
         debug.field("s3_client", &self.s3_client.is_some());
 
-        #[cfg(feature = "redis-cache")]
+        #[cfg(feature = "cache")]
         debug.field("cache", &self.cache.is_some());
 
         debug
