@@ -183,6 +183,9 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
 
+    // Add OAuth authentication routes
+    api_router = api_router.merge(crate::core::oauth::routes::configure());
+
     let app = Router::new()
         // API routes
         .merge(api_router.with_state(app_state.clone()))

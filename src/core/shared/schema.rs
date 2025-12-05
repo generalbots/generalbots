@@ -280,6 +280,178 @@ diesel::table! {
     }
 }
 
+// ============================================================================
+// Enterprise Email Tables (6.1.0_enterprise_suite migration)
+// ============================================================================
+
+diesel::table! {
+    global_email_signatures (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        content_html -> Text,
+        content_plain -> Text,
+        position -> Varchar,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_signatures (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Nullable<Uuid>,
+        name -> Varchar,
+        content_html -> Text,
+        content_plain -> Text,
+        is_default -> Bool,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    scheduled_emails (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Uuid,
+        to_addresses -> Text,
+        cc_addresses -> Nullable<Text>,
+        bcc_addresses -> Nullable<Text>,
+        subject -> Text,
+        body_html -> Text,
+        body_plain -> Nullable<Text>,
+        attachments_json -> Text,
+        scheduled_at -> Timestamptz,
+        sent_at -> Nullable<Timestamptz>,
+        status -> Varchar,
+        retry_count -> Int4,
+        error_message -> Nullable<Text>,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_templates (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        user_id -> Nullable<Uuid>,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        subject_template -> Text,
+        body_html_template -> Text,
+        body_plain_template -> Nullable<Text>,
+        variables_json -> Text,
+        category -> Nullable<Varchar>,
+        is_shared -> Bool,
+        usage_count -> Int4,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_auto_responders (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Uuid,
+        responder_type -> Varchar,
+        subject -> Text,
+        body_html -> Text,
+        body_plain -> Nullable<Text>,
+        start_date -> Nullable<Timestamptz>,
+        end_date -> Nullable<Timestamptz>,
+        send_to_internal_only -> Bool,
+        exclude_addresses -> Nullable<Text>,
+        is_active -> Bool,
+        stalwart_sieve_id -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_rules (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        priority -> Int4,
+        conditions_json -> Text,
+        actions_json -> Text,
+        stop_processing -> Bool,
+        is_active -> Bool,
+        stalwart_sieve_id -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_labels (id) {
+        id -> Uuid,
+        user_id -> Uuid,
+        bot_id -> Uuid,
+        name -> Varchar,
+        color -> Varchar,
+        parent_id -> Nullable<Uuid>,
+        is_system -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_label_assignments (id) {
+        id -> Uuid,
+        email_message_id -> Varchar,
+        label_id -> Uuid,
+        assigned_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    distribution_lists (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        owner_id -> Uuid,
+        name -> Varchar,
+        email_alias -> Nullable<Varchar>,
+        description -> Nullable<Text>,
+        members_json -> Text,
+        is_public -> Bool,
+        stalwart_principal_id -> Nullable<Varchar>,
+        created_at -> Timestamptz,
+        updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    shared_mailboxes (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        email_address -> Varchar,
+        display_name -> Varchar,
+        description -> Nullable<Text>,
+        settings_json -> Text,
+        stalwart_account_id -> Nullable<Varchar>,
+        is_active -> Bool,
+        created_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    shared_mailbox_members (id) {
+        id -> Uuid,
+        mailbox_id -> Uuid,
+        user_id -> Uuid,
+        permission_level -> Varchar,
+        added_at -> Timestamptz,
+    }
+}
+
 // Allow tables to be joined
 diesel::allow_tables_to_appear_in_same_query!(
     organizations,
@@ -302,4 +474,15 @@ diesel::allow_tables_to_appear_in_same_query!(
     user_preferences,
     user_login_tokens,
     tasks,
+    global_email_signatures,
+    email_signatures,
+    scheduled_emails,
+    email_templates,
+    email_auto_responders,
+    email_rules,
+    email_labels,
+    email_label_assignments,
+    distribution_lists,
+    shared_mailboxes,
+    shared_mailbox_members,
 );
