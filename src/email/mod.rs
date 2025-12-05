@@ -20,6 +20,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
+pub mod stalwart_client;
+pub mod stalwart_sync;
 pub mod vectordb;
 
 // Helper function to extract user from session
