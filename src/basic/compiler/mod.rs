@@ -347,11 +347,11 @@ impl BasicCompiler {
             }
             // Keywords now use spaces directly in Rhai registration
             // Only normalize keywords that still need it for special preprocessing
+            // Keywords now use spaces directly in Rhai registration
+            // Only normalize keywords that need underscores for Rhai parsing
             let normalized = trimmed
                 .replace("FOR EACH", "FOR_EACH")
                 .replace("EXIT FOR", "EXIT_FOR")
-                .replace("GENERATE PDF", "GENERATE_PDF")
-                .replace("MERGE PDF", "MERGE_PDF")
                 .replace("GROUP BY", "GROUP_BY");
             if normalized.starts_with("SET SCHEDULE") || trimmed.starts_with("SET SCHEDULE") {
                 has_schedule = true;

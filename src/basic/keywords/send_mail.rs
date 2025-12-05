@@ -12,17 +12,11 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
+    // SEND MAIL to, subject, body, attachments
     engine
         .register_custom_syntax(
             &[
-                "SEND_MAIL",
-                "$expr$",
-                ",",
-                "$expr$",
-                ",",
-                "$expr$",
-                ",",
-                "$expr$",
+                "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
             ],
             false,
             move |context, inputs| {
@@ -43,7 +37,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
 
                 trace!(
-                    "SEND_MAIL: to={}, subject={}, attachments={:?} for user={}",
+                    "SEND MAIL: to={}, subject={}, attachments={:?} for user={}",
                     to,
                     subject,
                     attachments,
@@ -80,24 +74,24 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send SEND_MAIL result from thread");
+                        error!("Failed to send SEND MAIL result from thread");
                     }
                 });
 
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(message_id)) => Ok(Dynamic::from(message_id)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SEND_MAIL failed: {}", e).into(),
+                        format!("SEND MAIL failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "SEND_MAIL timed out".into(),
+                            "SEND MAIL timed out".into(),
                             rhai::Position::NONE,
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SEND_MAIL thread failed: {}", e).into(),
+                        format!("SEND MAIL thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -105,7 +99,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-    // Register SEND_TEMPLATE for bulk templated emails
+    // Register SEND TEMPLATE for bulk templated emails
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
