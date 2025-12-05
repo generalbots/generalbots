@@ -14,10 +14,38 @@ pub use super::schema;
 
 // Also re-export individual tables at this level for convenience
 pub use super::schema::{
-    basic_tools, bot_configuration, bot_memories, bots, clicks, email_drafts, email_folders,
-    kb_collections, kb_documents, message_history, organizations, session_tool_associations,
-    system_automations, tasks, user_email_accounts, user_kb_associations, user_login_tokens,
-    user_preferences, user_sessions, users,
+    basic_tools,
+    bot_configuration,
+    bot_memories,
+    bots,
+    clicks,
+    // Enterprise email tables (6.1.0_enterprise_suite)
+    distribution_lists,
+    email_auto_responders,
+    email_drafts,
+    email_folders,
+    email_label_assignments,
+    email_labels,
+    email_rules,
+    email_signatures,
+    email_templates,
+    global_email_signatures,
+    kb_collections,
+    kb_documents,
+    message_history,
+    organizations,
+    scheduled_emails,
+    session_tool_associations,
+    shared_mailbox_members,
+    shared_mailboxes,
+    system_automations,
+    tasks,
+    user_email_accounts,
+    user_kb_associations,
+    user_login_tokens,
+    user_preferences,
+    user_sessions,
+    users,
 };
 
 // Re-export common types from botlib for convenience

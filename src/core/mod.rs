@@ -5,6 +5,7 @@ pub mod config;
 pub mod directory;
 pub mod dns;
 pub mod kb;
+pub mod oauth;
 pub mod package_manager;
 pub mod rate_limit;
 pub mod secrets;

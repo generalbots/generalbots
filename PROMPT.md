@@ -5,6 +5,58 @@
 
 ---
 
+## Version Management - CRITICAL
+
+**Current version is 6.1.0 - DO NOT CHANGE without explicit approval!**
+
+```bash
+# Check current version
+grep "^version" Cargo.toml
+```
+
+### Rules
+
+1. **Version is 6.1.0 across ALL workspace crates**
+2. **NEVER change version without explicit user approval**
+3. **All migrations use 6.1.0_* prefix**
+4. **Migration folder naming: `6.1.0_{feature_name}/`**
+
+---
+
+## Database Standards - CRITICAL
+
+### TABLES AND INDEXES ONLY
+
+**NEVER create in migrations:**
+- ❌ Views (`CREATE VIEW`)
+- ❌ Triggers (`CREATE TRIGGER`)
+- ❌ Functions (`CREATE FUNCTION`)
+- ❌ Stored Procedures
+
+**ALWAYS use:**
+- ✅ Tables (`CREATE TABLE IF NOT EXISTS`)
+- ✅ Indexes (`CREATE INDEX IF NOT EXISTS`)
+- ✅ Constraints (inline in table definitions)
+
+### Why?
+- Diesel ORM compatibility
+- Simpler rollbacks
+- Better portability
+- Easier testing
+
+### JSON Storage Pattern
+
+Use TEXT columns with `_json` suffix instead of JSONB:
+```sql
+-- CORRECT
+members_json TEXT DEFAULT '[]'
+
+-- WRONG
+members JSONB DEFAULT '[]'::jsonb
+```
+
+---
+
 ## Official Icons - MANDATORY
 
 **NEVER generate icons with LLM. ALWAYS use official SVG icons from assets.**
@@ -68,6 +120,48 @@ botbook/       # Documentation (mdBook)
 botmodels/     # Data models visualization
 botplugin/     # Browser extension
 ```
+
+---
+
+## Database Migrations
+
+### Creating New Migrations
+
+```bash
+# 1. Version is always 6.1.0
+# 2. List existing migrations
+ls -la migrations/
+
+# 3. Create new migration folder
+mkdir migrations/6.1.0_my_feature
+
+# 4. Create up.sql and down.sql (TABLES AND INDEXES ONLY)
+```
+
+### Migration Structure
+
+```
+migrations/
+├── 6.0.0_initial_schema/
+├── 6.0.1_bot_memories/
+├── ...
+├── 6.1.0_enterprise_features/
+│   ├── up.sql
+│   └── down.sql
+└── 6.1.0_next_feature/        # YOUR NEW MIGRATION
+    ├── up.sql
+    └── down.sql
+```
+
+### Migration Best Practices
+
+- Use `IF NOT EXISTS` for all CREATE TABLE statements
+- Use `IF EXISTS` for all DROP statements in down.sql
+- Always create indexes for foreign keys
+- **NO triggers** - handle updated_at in application code
+- **NO views** - use queries in application code
+- **NO functions** - use application logic
+- Use TEXT with `_json` suffix for JSON data (not JSONB)
 
 ---
 
@@ -312,7 +406,19 @@ cargo test
 
 # Verify no dead code with _ prefixes
 grep -r "let _" src/ --include="*.rs"
+
+# Verify version is 6.1.0
+grep "^version" Cargo.toml | grep "6.1.0"
+
+# Verify no views/triggers/functions in migrations
+grep -r "CREATE VIEW\|CREATE TRIGGER\|CREATE FUNCTION" migrations/
 ```
+
+### Pre-Commit Checklist
+
+1. Version is 6.1.0 in all workspace Cargo.toml files
+2. No views, triggers, or functions in migrations
+3. All JSON columns use TEXT with `_json` suffix
 
 ---
 
@@ -389,3 +495,7 @@ src/shared/
 - **Config**: Never hardcode values, use AppConfig
 - **Bootstrap**: Never suggest manual installation
 - **Warnings**: Target zero warnings before commit
+- **Version**: Always 6.1.0 - do not change without approval
+- **Migrations**: TABLES AND INDEXES ONLY - no views, triggers, functions
+- **Stalwart**: Use Stalwart IMAP/JMAP API for email features (sieve, filters, etc.)
+- **JSON**: Use TEXT columns with `_json` suffix, not JSONB
