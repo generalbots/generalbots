@@ -141,12 +141,19 @@ pub struct ShareResponse {
     pub expires_at: Option<String>,
 }
 
+/// Sync status for desktop file synchronization
+///
+/// Desktop-only: These endpoints coordinate with the rclone process
+/// running on the user's machine via the Tauri desktop app (botapp).
+/// Web-only users see stub responses as sync requires local filesystem access.
 #[derive(Debug, Serialize)]
 pub struct SyncStatus {
     pub status: String,
     pub last_sync: Option<String>,
     pub files_synced: i64,
     pub bytes_synced: i64,
+    pub is_desktop: bool,
+    pub message: Option<String>,
 }
 
 // ===== File Versioning Structures =====
@@ -973,34 +980,62 @@ pub async fn get_quota(
 }
 
 /// GET /files/sync/status - Get sync status
+///
+/// Desktop-only feature: File synchronization uses rclone running locally
+/// on the user's machine. The Tauri desktop app (botapp) manages the rclone
+/// process and reports status back through this endpoint.
+///
+/// For web-only users, this returns a stub response indicating sync
+/// is not available (requires desktop app with local filesystem access).
+///
+/// Desktop app implementation: botapp/src/desktop/sync.rs
 pub async fn sync_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SyncStatus>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SyncStatus {
-        status: "idle".to_string(),
-        last_sync: Some(chrono::Utc::now().to_rfc3339()),
+        status: "unavailable".to_string(),
+        last_sync: None,
         files_synced: 0,
         bytes_synced: 0,
+        is_desktop: false,
+        message: Some(
+            "File sync requires the General Bots desktop app with rclone installed".to_string(),
+        ),
     }))
 }
 
 /// POST /files/sync/start - Start file synchronization
+///
+/// Desktop-only feature: Triggers rclone sync on the user's local machine.
+/// The actual sync is performed by the Tauri desktop app which spawns
+/// and manages the rclone subprocess.
+///
+/// Web users receive a response indicating this feature requires the desktop app.
+///
+/// Desktop app implementation: botapp/src/desktop/sync.rs
 pub async fn start_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
-        success: true,
-        message: Some("Sync started".to_string()),
+        success: false,
+        message: Some("File sync requires the General Bots desktop app. Install rclone and use the desktop app to sync files.".to_string()),
     }))
 }
 
 /// POST /files/sync/stop - Stop file synchronization
+///
+/// Desktop-only feature: Stops the rclone process on the user's local machine.
+/// The Tauri desktop app handles graceful termination of the sync process.
+///
+/// Web users receive a response indicating this feature requires the desktop app.
+///
+/// Desktop app implementation: botapp/src/desktop/sync.rs
 pub async fn stop_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
-        success: true,
-        message: Some("Sync stopped".to_string()),
+        success: false,
+        message: Some("File sync requires the General Bots desktop app".to_string()),
     }))
 }
 
