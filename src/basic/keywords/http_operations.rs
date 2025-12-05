@@ -244,11 +244,15 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
 
 /// DELETE "url"
 /// Sends an HTTP DELETE request
-pub fn register_delete_http_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
-
-    // DELETE HTTP (space-separated - preferred)
-    let _state_clone2 = Arc::clone(&state);
+/// DELETE HTTP "url" - Backwards compatibility alias
+/// Note: Prefer using just DELETE "url" which auto-detects HTTP URLs
+pub fn register_delete_http_keyword(
+    _state: Arc<AppState>,
+    _user: UserSession,
+    engine: &mut Engine,
+) {
+    // DELETE HTTP "url" - kept for backwards compatibility
+    // The unified DELETE in data_operations.rs handles this automatically now
     engine
         .register_custom_syntax(
             &["DELETE", "HTTP", "$expr$"],
@@ -295,60 +299,6 @@ pub fn register_delete_http_keyword(state: Arc<AppState>, _user: UserSession, en
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         format!("DELETE thread failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                }
-            },
-        )
-        .unwrap();
-
-    // DELETE HTTP (spaces - preferred syntax)
-    engine
-        .register_custom_syntax(
-            &["DELETE", "HTTP", "$expr$"],
-            false,
-            move |context, inputs| {
-                let url = context.eval_expression_tree(&inputs[0])?.to_string();
-
-                trace!("DELETE HTTP request to: {}", url);
-
-                let (tx, rx) = std::sync::mpsc::channel();
-                let url_clone = url.clone();
-
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Builder::new_multi_thread()
-                        .worker_threads(2)
-                        .enable_all()
-                        .build();
-
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_http_request(Method::DELETE, &url_clone, None, None).await
-                        });
-                        tx.send(result).err()
-                    } else {
-                        tx.send(Err("Failed to build tokio runtime".into())).err()
-                    };
-
-                    if send_err.is_some() {
-                        error!("Failed to send DELETE HTTP result from thread");
-                    }
-                });
-
-                match rx.recv_timeout(std::time::Duration::from_secs(60)) {
-                    Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE HTTP failed: {}", e).into(),
-                        rhai::Position::NONE,
-                    ))),
-                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
-                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "DELETE HTTP request timed out".into(),
-                            rhai::Position::NONE,
-                        )))
-                    }
-                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE HTTP thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
