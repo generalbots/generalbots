@@ -280,7 +280,7 @@ mod tests {
         set_error_resume_next(false);
         clear_last_error();
 
-        let result: Result<i32, Box<dyn std::error::Error + Send + Sync>> =
+        let result: Result<String, Box<dyn std::error::Error + Send + Sync>> =
             Err("Test error".into());
         let handled = handle_error(result);
 
@@ -293,7 +293,7 @@ mod tests {
         set_error_resume_next(true);
         clear_last_error();
 
-        let result: Result<i32, Box<dyn std::error::Error + Send + Sync>> =
+        let result: Result<String, Box<dyn std::error::Error + Send + Sync>> =
             Err("Test error".into());
         let handled = handle_error(result);
 

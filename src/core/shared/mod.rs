@@ -8,6 +8,8 @@ pub mod analytics;
 pub mod models;
 pub mod schema;
 pub mod state;
+#[cfg(test)]
+pub mod test_utils;
 pub mod utils;
 
 // Re-export schema at module level for backward compatibility
