@@ -325,9 +325,9 @@ impl ScriptService {
                 "POST",
                 "PUT",
                 "PATCH",
-                "DELETE_HTTP",
-                "SET_HEADER",
-                "CLEAR_HEADERS",
+                "DELETE",
+                "SET HEADER",
+                "CLEAR HEADERS",
                 "GRAPHQL",
                 "SOAP",
                 // Data Operations
@@ -342,11 +342,10 @@ impl ScriptService {
                 "AGGREGATE",
                 "JOIN",
                 "PIVOT",
-                "GROUP_BY",
+                "GROUP BY",
                 // File Operations
                 "READ",
                 "WRITE",
-                "DELETE_FILE",
                 "COPY",
                 "MOVE",
                 "LIST",
@@ -354,8 +353,8 @@ impl ScriptService {
                 "EXTRACT",
                 "UPLOAD",
                 "DOWNLOAD",
-                "GENERATE_PDF",
-                "MERGE_PDF",
+                "GENERATE PDF",
+                "MERGE PDF",
                 // Webhook
                 "WEBHOOK",
                 // Social Media
@@ -370,9 +369,15 @@ impl ScriptService {
                 "GET TWITTER METRICS",
                 "DELETE POST",
                 // Template & Messaging
+                "SEND MAIL",
                 "SEND TEMPLATE",
                 "CREATE TEMPLATE",
                 "GET TEMPLATE",
+                // Error Handling
+                "ON ERROR RESUME NEXT",
+                "ON ERROR GOTO",
+                "CLEAR ERROR",
+                "ERROR MESSAGE",
                 // Form Handling
                 "ON FORM SUBMIT",
                 // Lead Scoring

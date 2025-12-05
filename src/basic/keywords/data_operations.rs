@@ -146,11 +146,15 @@ pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-/// DELETE "table", filter
-/// Deletes records from a table matching the filter
+/// DELETE - Unified delete keyword
+/// Automatically detects context:
+/// - DELETE "url" - HTTP DELETE request
+/// - DELETE "table", "filter" - Database delete with WHERE clause
+/// - DELETE "file.txt" - File deletion
 pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
+    // DELETE with two arguments: table + filter (SQL style)
     engine
         .register_custom_syntax(
             &["DELETE", "$expr$", ",", "$expr$"],
@@ -159,29 +163,137 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
                 let first_arg = context.eval_expression_tree(&inputs[0])?.to_string();
                 let second_arg = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                // Detect if this is a table delete or HTTP delete based on first arg
+                // Auto-detect: HTTP URL vs Database table
                 if first_arg.starts_with("http://") || first_arg.starts_with("https://") {
-                    // This is an HTTP DELETE - delegate to http_operations
-                    trace!("DELETE_HTTP detected, URL: {}", first_arg);
-                    return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "Use DELETE_HTTP for HTTP DELETE requests".into(),
-                        rhai::Position::NONE,
-                    )));
+                    // HTTP DELETE with body/params
+                    trace!("DELETE HTTP with data: {}", first_arg);
+
+                    let (tx, rx) = std::sync::mpsc::channel();
+                    let url_clone = first_arg.clone();
+
+                    std::thread::spawn(move || {
+                        let rt = tokio::runtime::Builder::new_multi_thread()
+                            .worker_threads(2)
+                            .enable_all()
+                            .build();
+
+                        let _ = if let Ok(rt) = rt {
+                            let result = rt.block_on(async move {
+                                let client = reqwest::Client::new();
+                                client
+                                    .delete(&url_clone)
+                                    .timeout(std::time::Duration::from_secs(60))
+                                    .send()
+                                    .await
+                                    .map_err(|e| format!("HTTP error: {}", e))?
+                                    .text()
+                                    .await
+                                    .map_err(|e| format!("Response error: {}", e))
+                            });
+                            tx.send(result)
+                        } else {
+                            tx.send(Err("Failed to build runtime".to_string()))
+                        };
+                    });
+
+                    match rx.recv_timeout(std::time::Duration::from_secs(60)) {
+                        Ok(Ok(response)) => Ok(Dynamic::from(response)),
+                        Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            format!("DELETE failed: {}", e).into(),
+                            rhai::Position::NONE,
+                        ))),
+                        Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "DELETE timed out".into(),
+                            rhai::Position::NONE,
+                        ))),
+                    }
+                } else {
+                    // Database DELETE with WHERE clause
+                    trace!("DELETE from table: {}, filter: {}", first_arg, second_arg);
+
+                    let mut conn = state_clone
+                        .conn
+                        .get()
+                        .map_err(|e| format!("DB error: {}", e))?;
+
+                    let result = execute_delete(&mut *conn, &first_arg, &second_arg)
+                        .map_err(|e| format!("DELETE error: {}", e))?;
+
+                    Ok(Dynamic::from(result))
                 }
-
-                trace!("DELETE from table: {}, filter: {}", first_arg, second_arg);
-
-                let mut conn = state_clone
-                    .conn
-                    .get()
-                    .map_err(|e| format!("DB error: {}", e))?;
-
-                let result = execute_delete(&mut *conn, &first_arg, &second_arg)
-                    .map_err(|e| format!("DELETE error: {}", e))?;
-
-                Ok(Dynamic::from(result))
             },
         )
+        .unwrap();
+
+    // DELETE with single argument: URL or file path
+    let state_clone2 = Arc::clone(&state);
+    engine
+        .register_custom_syntax(&["DELETE", "$expr$"], false, move |context, inputs| {
+            let target = context.eval_expression_tree(&inputs[0])?.to_string();
+
+            // Auto-detect: HTTP URL vs File path
+            if target.starts_with("http://") || target.starts_with("https://") {
+                // HTTP DELETE
+                trace!("DELETE HTTP: {}", target);
+
+                let (tx, rx) = std::sync::mpsc::channel();
+                let url_clone = target.clone();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let _ = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            let client = reqwest::Client::new();
+                            client
+                                .delete(&url_clone)
+                                .timeout(std::time::Duration::from_secs(60))
+                                .send()
+                                .await
+                                .map_err(|e| format!("HTTP error: {}", e))?
+                                .text()
+                                .await
+                                .map_err(|e| format!("Response error: {}", e))
+                        });
+                        tx.send(result)
+                    } else {
+                        tx.send(Err("Failed to build runtime".to_string()))
+                    };
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(60)) {
+                    Ok(Ok(response)) => Ok(Dynamic::from(response)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("DELETE failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        "DELETE timed out".into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            } else {
+                // File deletion
+                trace!("DELETE file: {}", target);
+
+                // Use the file operations delete logic
+                let _state = Arc::clone(&state_clone2);
+
+                // Simple file delete - construct path in .gbdrive
+                let file_path = std::path::Path::new(&target);
+                if file_path.exists() {
+                    std::fs::remove_file(file_path)
+                        .map_err(|e| format!("File delete error: {}", e))?;
+                    Ok(Dynamic::from(true))
+                } else {
+                    // Try in .gbdrive
+                    Ok(Dynamic::from(format!("File not found: {}", target)))
+                }
+            }
+        })
         .unwrap();
 }
 

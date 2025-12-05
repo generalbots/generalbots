@@ -812,20 +812,23 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
 
 /// GENERATE_PDF template, data, "output.pdf"
 /// Generates a PDF from a template with data
+/// GENERATE PDF template, data, "output.pdf"
+/// Generates a PDF from a template with data
 pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
+    // GENERATE PDF template, data, output
     engine
         .register_custom_syntax(
-            &["GENERATE_PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
+            &["GENERATE", "PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let template = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
                 let output = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                trace!("GENERATE_PDF template: {}, output: {}", template, output);
+                trace!("GENERATE PDF template: {}, output: {}", template, output);
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
@@ -858,7 +861,7 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send GENERATE_PDF result from thread");
+                        error!("Failed to send GENERATE PDF result from thread");
                     }
                 });
 
@@ -870,17 +873,17 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                         Ok(Dynamic::from(map))
                     }
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GENERATE_PDF failed: {}", e).into(),
+                        format!("GENERATE PDF failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "GENERATE_PDF timed out".into(),
+                            "GENERATE PDF timed out".into(),
                             rhai::Position::NONE,
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GENERATE_PDF thread failed: {}", e).into(),
+                        format!("GENERATE PDF thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -889,21 +892,22 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
         .unwrap();
 }
 
-/// MERGE_PDF files, "merged.pdf"
+/// MERGE PDF files, "merged.pdf"
 /// Merges multiple PDF files into one
 pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
+    // MERGE PDF files, output
     engine
         .register_custom_syntax(
-            &["MERGE_PDF", "$expr$", ",", "$expr$"],
+            &["MERGE", "PDF", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let files = context.eval_expression_tree(&inputs[0])?;
                 let output = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("MERGE_PDF to: {}", output);
+                trace!("MERGE PDF to: {}", output);
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
@@ -946,7 +950,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                     };
 
                     if send_err.is_some() {
-                        error!("Failed to send MERGE_PDF result from thread");
+                        error!("Failed to send MERGE PDF result from thread");
                     }
                 });
 
@@ -958,17 +962,17 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                         Ok(Dynamic::from(map))
                     }
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MERGE_PDF failed: {}", e).into(),
+                        format!("MERGE PDF failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
                         Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                            "MERGE_PDF timed out".into(),
+                            "MERGE PDF timed out".into(),
                             rhai::Position::NONE,
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MERGE_PDF thread failed: {}", e).into(),
+                        format!("MERGE PDF thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
