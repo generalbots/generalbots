@@ -81,23 +81,23 @@ episodic-memory-auto-summarize,true
 | Setting | Description | Default |
 |---------|-------------|---------|
 | `llm-provider` | LLM provider | `openai` |
-| `llm-model` | Model name | `gpt-4` |
+| `llm-model` | Model name | `gpt-5` |
 | `llm-api-key` | API key (or use env) | - |
 | `llm-endpoint` | Custom endpoint | Provider default |
 
 ```csv
 name,value
 llm-provider,openai
-llm-model,gpt-4-turbo
+llm-model,gpt-5
 ```
 
 ### Supported Providers
 
 | Provider | Models |
 |----------|--------|
-| `openai` | `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo` |
-| `anthropic` | `claude-3-opus`, `claude-3-sonnet` |
-| `groq` | `llama-3-70b`, `mixtral-8x7b` |
+| `openai` | `gpt-5`, `gpt-5-mini`, `o3` |
+| `anthropic` | `claude-sonnet-4.5`, `claude-opus-4.5` |
+| `groq` | `llama-3.3-70b`, `mixtral-8x7b` |
 | `ollama` | Any local model |
 
 ## Feature Flags
@@ -292,7 +292,7 @@ theme-logo,https://acme.com/logo.svg
 episodic-memory-history,2
 episodic-memory-threshold,4
 llm-provider,openai
-llm-model,gpt-4-turbo
+llm-model,gpt-5
 feature-voice,false
 feature-file-upload,true
 feature-suggestions,true
