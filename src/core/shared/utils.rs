@@ -8,6 +8,7 @@ use diesel::{
     PgConnection,
 };
 use futures_util::StreamExt;
+#[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
 use reqwest::Client;
 use rhai::{Array, Dynamic};
@@ -16,6 +17,7 @@ use smartstring::SmartString;
 use std::error::Error;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
+
 pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
@@ -41,6 +43,7 @@ pub async fn create_s3_operator(
         .build();
     Ok(S3Client::from_conf(s3_config))
 }
+
 pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
     match value {
         Value::Null => Dynamic::UNIT,
@@ -67,6 +70,7 @@ pub fn json_value_to_dynamic(value: &Value) -> Dynamic {
         ),
     }
 }
+
 pub fn to_array(value: Dynamic) -> Array {
     if value.is_array() {
         value.cast::<Array>()
@@ -76,6 +80,9 @@ pub fn to_array(value: Dynamic) -> Array {
         Array::from([value])
     }
 }
+
+/// Download a file from a URL with progress bar (when progress-bars feature is enabled)
+#[cfg(feature = "progress-bars")]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     let url = url.to_string();
     let output_path = output_path.to_string();
@@ -109,6 +116,32 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     });
     download_handle.await?
 }
+
+/// Download a file from a URL (without progress bar when progress-bars feature is disabled)
+#[cfg(not(feature = "progress-bars"))]
+pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
+    let url = url.to_string();
+    let output_path = output_path.to_string();
+    let download_handle = tokio::spawn(async move {
+        let client = Client::builder()
+            .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+            .build()?;
+        let response = client.get(&url).send().await?;
+        if response.status().is_success() {
+            let mut file = TokioFile::create(&output_path).await?;
+            let mut stream = response.bytes_stream();
+            while let Some(chunk_result) = stream.next().await {
+                let chunk = chunk_result?;
+                file.write_all(&chunk).await?;
+            }
+            Ok(())
+        } else {
+            Err(anyhow::anyhow!("HTTP {}: {}", response.status(), url))
+        }
+    });
+    download_handle.await?
+}
+
 pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn Error>> {
     let parts: Vec<&str> = filter_str.split('=').collect();
     if parts.len() != 2 {
@@ -124,21 +157,26 @@ pub fn parse_filter(filter_str: &str) -> Result<(String, Vec<String>), Box<dyn E
     }
     Ok((format!("{} = $1", column), vec![value.to_string()]))
 }
+
 pub fn estimate_token_count(text: &str) -> usize {
     let char_count = text.chars().count();
     (char_count / 4).max(1)
 }
+
 pub fn establish_pg_connection() -> Result<PgConnection> {
     let database_url = std::env::var("DATABASE_URL").unwrap();
     PgConnection::establish(&database_url)
         .with_context(|| format!("Failed to connect to database at {}", database_url))
 }
+
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
+
 pub fn create_conn() -> Result<DbPool, diesel::r2d2::PoolError> {
     let database_url = std::env::var("DATABASE_URL").unwrap();
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder().build(manager)
 }
+
 pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
     if let Some(stripped) = url.strip_prefix("postgres://") {
         let parts: Vec<&str> = stripped.split('@').collect();

@@ -133,7 +133,7 @@ Configure in `llm-server.gbot/config.csv`:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `LLM Provider` | AI model provider | `openai` |
-| `LLM Model` | Specific model | `gpt-4` |
+| `LLM Model` | Specific model | `gpt-5` |
 | `Max Tokens` | Response length limit | `500` |
 | `Temperature` | Response creativity | `0.3` |
 | `API Mode` | Enable API mode | `true` |

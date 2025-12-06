@@ -1382,7 +1382,7 @@ VALUES (
     'Test Bot',
     'Bot for automated testing',
     'openai',
-    '{"model": "gpt-4", "temperature": 0.7}',
+    '{"model": "gpt-5", "temperature": 0.7}',
     'qdrant',
     '{"collection": "test_kb"}'
 );

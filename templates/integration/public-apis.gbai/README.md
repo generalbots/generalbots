@@ -16,21 +16,21 @@ This `.gbai` template includes the following BASIC keyword files:
 
 ### 7Timer! Astro Weather
 Get 7-day astronomical weather forecast for stargazing.
-```vbs
+```basic
 PARAM location AS string LIKE "116.39,39.90"
 ' Returns: Weather data for astronomy observation
 ```
 
 ### 7Timer! Civil Weather
 Get 7-day civil weather forecast with temperature.
-```vbs
+```basic
 PARAM location AS string LIKE "116.39,39.90"
 ' Returns: Temperature, precipitation, wind data
 ```
 
 ### Open-Meteo Weather
 Get real-time weather data (70+ years of historical data available).
-```vbs
+```basic
 PARAM latitude AS number LIKE 52.52
 PARAM longitude AS number LIKE 13.41
 ' Returns: Current weather conditions
@@ -38,21 +38,21 @@ PARAM longitude AS number LIKE 13.41
 
 ### Rain Viewer Radar Map
 Get available rain radar map timestamps.
-```vbs
+```basic
 DESCRIPTION "Get available rain radar map timestamps"
 ' Returns: Radar data for visualization
 ```
 
 ### OpenSenseMap Weather Stations
 Get data from personal weather stations in a bounding box.
-```vbs
+```basic
 PARAM bbox AS string LIKE "7.6,51.2,7.8,51.3"
 ' Returns: Temperature data from senseBoxes
 ```
 
 ### Air Quality Index
 Get Air Quality Index data for major cities.
-```vbs
+```basic
 PARAM city AS string LIKE "beijing"
 ' Returns: AQI level and health recommendations
 ```
@@ -60,106 +60,106 @@ PARAM city AS string LIKE "beijing"
 ## 🐾 Animals APIs
 
 ### Random Cat Fact
-```vbs
+```basic
 DESCRIPTION "Get a random cat fact"
 ' Returns: Interesting cat fact
 ```
 
 ### Random Dog Fact
-```vbs
+```basic
 DESCRIPTION "Get a random dog fact"
 ' Returns: Interesting dog fact
 ```
 
 ### Random Dog Image
-```vbs
+```basic
 DESCRIPTION "Get a random dog image URL"
 ' Returns: URL and downloads image
 ```
 
 ### Random Cat Image
-```vbs
+```basic
 DESCRIPTION "Get a random cat image from Cataas"
 ' Returns: Cat image URL
 ```
 
 ### Random Fox Image
-```vbs
+```basic
 DESCRIPTION "Get a random fox image"
 ' Returns: Fox image URL
 ```
 
 ### Random Duck Image
-```vbs
+```basic
 DESCRIPTION "Get a random duck image"
 ' Returns: Duck image URL
 ```
 
 ### Random Shiba Inu Image
-```vbs
+```basic
 DESCRIPTION "Get a random Shiba Inu dog image"
 ' Returns: Shiba Inu image URL
 ```
 
 ### HTTP Cat (Status Code Cats)
-```vbs
+```basic
 PARAM status_code AS integer LIKE 404
 ' Returns: Cat image representing HTTP status
 ```
 
 ### HTTP Dog (Status Code Dogs)
-```vbs
+```basic
 PARAM status_code AS integer LIKE 404
 ' Returns: Dog image representing HTTP status
 ```
 
 ### PlaceBear Placeholder
-```vbs
+```basic
 PARAM width AS integer LIKE 400
 PARAM height AS integer LIKE 300
 ' Returns: Bear placeholder image
 ```
 
 ### PlaceDog Placeholder
-```vbs
+```basic
 PARAM width AS integer LIKE 400
 PARAM height AS integer LIKE 300
 ' Returns: Dog placeholder image
 ```
 
 ### PlaceKitten Placeholder
-```vbs
+```basic
 PARAM width AS integer LIKE 400
 PARAM height AS integer LIKE 300
 ' Returns: Kitten placeholder image
 ```
 
 ### MeowFacts
-```vbs
+```basic
 PARAM count AS integer LIKE 1
 ' Returns: Random cat facts (up to 100)
 ```
 
 ### Random Axolotl
-```vbs
+```basic
 DESCRIPTION "Get random axolotl picture and facts"
 ' Returns: Axolotl image and facts
 ```
 
 ### Zoo Animals Info
-```vbs
+```basic
 DESCRIPTION "Get information about various zoo animals"
 ' Returns: Animal data with images
 ```
 
 ### Dog Breeds List
-```vbs
+```basic
 DESCRIPTION "Get a list of all dog breeds"
 ' Returns: Array of dog breeds
 ```
 
 ### Specific Dog Breed Image
-```vbs
+```basic
 PARAM breed AS string LIKE "husky"
 ' Returns: Image of specified breed
 ```
@@ -167,145 +167,145 @@ PARAM breed AS string LIKE "husky"
 ## 😄 Entertainment APIs
 
 ### Chuck Norris Joke
-```vbs
+```basic
 DESCRIPTION "Get a random Chuck Norris joke"
 ' Returns: Chuck Norris joke
 ```
 
 ### Chuck Norris Categories
-```vbs
+```basic
 DESCRIPTION "Get available Chuck Norris joke categories"
 ' Returns: Array of categories
 ```
 
 ### Chuck Norris Joke by Category
-```vbs
+```basic
 PARAM category AS string LIKE "dev"
 ' Returns: Joke from specific category
 ```
 
 ### Dad Joke
-```vbs
+```basic
 DESCRIPTION "Get a random dad joke"
 ' Returns: Dad joke from icanhazdadjoke
 ```
 
 ### Search Dad Jokes
-```vbs
+```basic
 PARAM search_term AS string LIKE "cat"
 ' Returns: Dad jokes containing search term
 ```
 
 ### Bored Activity
-```vbs
+```basic
 DESCRIPTION "Get a random activity suggestion"
 ' Returns: Activity suggestion with details
 ```
 
 ### Bored Activity by Type
-```vbs
+```basic
 PARAM activity_type AS "education", "recreational", "social", "diy", "charity", "cooking", "relaxation", "music", "busywork"
 ' Returns: Activity of specific type
 ```
 
 ### Random Useless Fact
-```vbs
+```basic
 DESCRIPTION "Get a random useless but true fact"
 ' Returns: Useless fact
 ```
 
 ### Random Fun Fact
-```vbs
+```basic
 DESCRIPTION "Get a random fun fact"
 ' Returns: Fun fact
 ```
 
 ### Kanye West Quote
-```vbs
+```basic
 DESCRIPTION "Get a random Kanye West quote"
 ' Returns: Kanye quote
 ```
 
 ### Advice Slip
-```vbs
+```basic
 DESCRIPTION "Get a random piece of advice"
 ' Returns: Random advice
 ```
 
 ### Search Advice
-```vbs
+```basic
 PARAM query AS string LIKE "love"
 ' Returns: Advice containing query word
 ```
 
 ### Corporate Buzzword
-```vbs
+```basic
 DESCRIPTION "Get random corporate buzzwords"
 ' Returns: Corporate buzzword phrase
 ```
 
 ### Yo Momma Joke
-```vbs
+```basic
 DESCRIPTION "Get a random Yo Momma joke"
 ' Returns: Yo Momma joke
 ```
 
 ### Random Quote
-```vbs
+```basic
 DESCRIPTION "Get a random inspirational quote"
 ' Returns: Quote with author
 ```
 
 ### Quote by Author
-```vbs
+```basic
 PARAM author AS string LIKE "einstein"
 ' Returns: Quote by specific author
 ```
 
 ### Programming Quote
-```vbs
+```basic
 DESCRIPTION "Get a random programming quote"
 ' Returns: Programming-related quote
 ```
 
 ### Zen Quote
-```vbs
+```basic
 DESCRIPTION "Get a random Zen/Stoicism quote"
 ' Returns: Zen quote
 ```
 
 ### Affirmation
-```vbs
+```basic
 DESCRIPTION "Get a random positive affirmation"
 ' Returns: Daily affirmation
 ```
 
 ### Random Trivia
-```vbs
+```basic
 DESCRIPTION "Get a random trivia question"
 ' Returns: Trivia question with answer
 ```
 
 ### Multiple Trivia Questions
-```vbs
+```basic
 PARAM amount AS integer LIKE 5
 ' Returns: Multiple trivia questions
 ```
 
 ### Excuse Generator
-```vbs
+```basic
 DESCRIPTION "Get a random excuse"
 ' Returns: Random excuse
 ```
 
 ### Insult Generator
-```vbs
+```basic
 DESCRIPTION "Get a random insult (clean)"
 ' Returns: Random insult
 ```
 
 ### Compliment Generator
-```vbs
+```basic
 DESCRIPTION "Get a random compliment"
 ' Returns: Random compliment
 ```
@@ -313,97 +313,97 @@ DESCRIPTION "Get a random compliment"
 ## 🍽️ Food & Drink APIs
 
 ### Random Coffee Image
-```vbs
+```basic
 DESCRIPTION "Get a random coffee image"
 ' Returns: Coffee image URL
 ```
 
 ### Random Food Dish
-```vbs
+```basic
 DESCRIPTION "Get a random food dish image"
 ' Returns: Food dish image
 ```
 
 ### Random Food by Category
-```vbs
+```basic
 PARAM category AS "biryani", "burger", "butter-chicken", "dessert", "dosa", "idly", "pasta", "pizza", "rice", "samosa"
 ' Returns: Food image from category
 ```
 
 ### Random Meal Recipe
-```vbs
+```basic
 DESCRIPTION "Get a random meal recipe"
 ' Returns: Full recipe with ingredients
 ```
 
 ### Search Meal by Name
-```vbs
+```basic
 PARAM meal_name AS string LIKE "chicken"
 ' Returns: Meals matching search
 ```
 
 ### Random Cocktail Recipe
-```vbs
+```basic
 DESCRIPTION "Get a random cocktail recipe"
 ' Returns: Cocktail recipe with ingredients
 ```
 
 ### Search Cocktail by Name
-```vbs
+```basic
 PARAM cocktail_name AS string LIKE "margarita"
 ' Returns: Cocktails matching search
 ```
 
 ### Search Cocktail by Ingredient
-```vbs
+```basic
 PARAM ingredient AS string LIKE "vodka"
 ' Returns: Cocktails with ingredient
 ```
 
 ### Fruit Information
-```vbs
+```basic
 PARAM fruit_name AS string LIKE "apple"
 ' Returns: Nutritional information
 ```
 
 ### All Fruits List
-```vbs
+```basic
 DESCRIPTION "Get a list of all fruits"
 ' Returns: Array of fruits
 ```
 
 ### Fruits by Family
-```vbs
+```basic
 PARAM family AS string LIKE "Rosaceae"
 ' Returns: Fruits from specific family
 ```
 
 ### Random Taco Recipe
-```vbs
+```basic
 DESCRIPTION "Get a random taco recipe"
 ' Returns: Taco recipe components
 ```
 
 ### PunkAPI Beer Info
-```vbs
+```basic
 DESCRIPTION "Get a random beer recipe"
 ' Returns: Beer details and recipe
 ```
 
 ### Search Beer by Name
-```vbs
+```basic
 PARAM beer_name AS string LIKE "punk"
 ' Returns: Beers matching search
 ```
 
 ### High ABV Beers
-```vbs
+```basic
 PARAM min_abv AS number LIKE 8.0
 ' Returns: Beers with high alcohol content
 ```
 
 ### Bacon Ipsum Text
-```vbs
+```basic
 PARAM paragraphs AS integer LIKE 3
 ' Returns: Bacon-themed lorem ipsum
 ```
@@ -411,81 +411,81 @@ PARAM paragraphs AS integer LIKE 3
 ## 🔧 Data Utility & Geocoding APIs
 
 ### Generate UUID
-```vbs
+```basic
 DESCRIPTION "Generate a random UUID v4"
 ' Returns: UUID string
 ```
 
 ### Generate Multiple UUIDs
-```vbs
+```basic
 PARAM count AS integer LIKE 5
 ' Returns: Array of UUIDs
 ```
 
 ### Get My IP Address
-```vbs
+```basic
 DESCRIPTION "Get your current public IP"
 ' Returns: IP address string
 ```
 
 ### Get IP Geolocation
-```vbs
+```basic
 PARAM ip_address AS string LIKE "8.8.8.8"
 ' Returns: Country, city, coordinates, ISP
 ```
 
 ### Check if Number is Even
-```vbs
+```basic
 PARAM number AS integer LIKE 42
 ' Returns: Boolean (humor API)
 ```
 
 ### Random Data Generator
-```vbs
+```basic
 DESCRIPTION "Generate random test data"
 ' Returns: User profile data
 ```
 
 ### Generate Lorem Ipsum
-```vbs
+```basic
 PARAM paragraphs AS integer LIKE 3
 ' Returns: Lorem ipsum text
 ```
 
 ### QR Code Generator
-```vbs
+```basic
 PARAM text AS string LIKE "https://pragmatismo.com.br"
 PARAM size AS integer LIKE 200
 ' Returns: QR code image
 ```
 
 ### Barcode Generator
-```vbs
+```basic
 PARAM barcode_data AS string LIKE "1234567890"
 PARAM format AS "code128", "ean13", "upca", "code39"
 ' Returns: Barcode image
 ```
 
 ### Country Information
-```vbs
+```basic
 PARAM country AS string LIKE "brazil"
 ' Returns: Detailed country data
 ```
 
 ### All Countries List
-```vbs
+```basic
 DESCRIPTION "Get a list of all countries"
 ' Returns: Array of 250+ countries
 ```
 
 ### Countries by Region
-```vbs
+```basic
 PARAM region AS "africa", "americas", "asia", "europe", "oceania"
 ' Returns: Countries in region
 ```
 
 ### Currency Converter
-```vbs
+```basic
 PARAM amount AS number LIKE 100
 PARAM from_currency AS string LIKE "USD"
 PARAM to_currency AS string LIKE "EUR"
@@ -493,81 +493,81 @@ PARAM to_currency AS string LIKE "EUR"
 ```
 
 ### Timezone Info
-```vbs
+```basic
 PARAM timezone AS string LIKE "America/New_York"
 ' Returns: Current time in timezone
 ```
 
 ### All Timezones List
-```vbs
+```basic
 DESCRIPTION "Get all timezones"
 ' Returns: Array of 400+ timezones
 ```
 
 ### Public Holidays
-```vbs
+```basic
 PARAM country_code AS string LIKE "US"
 PARAM year AS integer LIKE 2024
 ' Returns: List of public holidays
 ```
 
 ### Number Facts
-```vbs
+```basic
 PARAM number AS integer LIKE 42
 ' Returns: Interesting number fact
 ```
 
 ### Random Number Fact
-```vbs
+```basic
 DESCRIPTION "Get a random number fact"
 ' Returns: Random number fact
 ```
 
 ### Date Facts
-```vbs
+```basic
 PARAM month AS integer LIKE 3
 PARAM day AS integer LIKE 14
 ' Returns: Historical facts about date
 ```
 
 ### Math Fact
-```vbs
+```basic
 PARAM number AS integer LIKE 1729
 ' Returns: Mathematical fact
 ```
 
 ### Yes or No Decision
-```vbs
+```basic
 DESCRIPTION "Get a random Yes/No answer"
 ' Returns: Yes or No with GIF
 ```
 
 ### Postcode Lookup UK
-```vbs
+```basic
 PARAM postcode AS string LIKE "SW1A1AA"
 ' Returns: UK postcode information
 ```
 
 ### Brazilian CEP Lookup
-```vbs
+```basic
 PARAM cep AS string LIKE "01310-100"
 ' Returns: Brazilian postal code data
 ```
 
 ### JSON Placeholder Post
-```vbs
+```basic
 DESCRIPTION "Get sample post data"
 ' Returns: Test post data
 ```
 
 ### Random User Generator
-```vbs
+```basic
 DESCRIPTION "Generate random user data"
 ' Returns: Realistic user profile
 ```
 
 ### Multiple Random Users
-```vbs
+```basic
 PARAM count AS integer LIKE 5
 ' Returns: Array of user profiles
 ```
@@ -575,7 +575,7 @@ PARAM count AS integer LIKE 5
 ## 🚀 Usage Examples
 
 ### Example 1: Weather Bot
-```vbs
+```basic
 TALK "Where would you like to check the weather?"
 HEAR city AS NAME
 
@@ -592,7 +592,7 @@ TALK "Wind speed: " + weather.current_weather.windspeed + " km/h"
 ```
 
 ### Example 2: Daily Motivation Bot
-```vbs
+```basic
 REM Get random quote
 quote_data = GET "https://api.quotable.io/random"
 
@@ -610,7 +610,7 @@ TALK affirmation.affirmation
 ```
 
 ### Example 3: Random Pet Image Bot
-```vbs
+```basic
 HEAR choice AS "Cat", "Dog", "Fox", "Duck"
 
 IF choice = "Cat" THEN
@@ -632,7 +632,7 @@ SEND FILE file
 ```
 
 ### Example 4: Recipe Finder Bot
-```vbs
+```basic
 TALK "What are you in the mood for?"
 HEAR food AS "Meal", "Cocktail", "Beer"
 
@@ -657,7 +657,7 @@ END IF
 ```
 
 ### Example 5: Travel Information Bot
-```vbs
+```basic
 TALK "Which country would you like to know about?"
 HEAR country AS NAME
 
@@ -713,7 +713,7 @@ All APIs in this package are from the [public-apis](https://github.com/public-ap
 
 You can easily extend these keywords or create your own:
 
-```vbs
+```basic
 REM Template for new API keyword
 PARAM your_param AS string LIKE "example"
 DESCRIPTION "What your keyword does"

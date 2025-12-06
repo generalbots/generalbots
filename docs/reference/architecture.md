@@ -336,9 +336,9 @@ pub trait LlmProvider: Send + Sync {
 
 | Provider | Models | Features |
 |----------|--------|----------|
-| OpenAI | GPT-4, GPT-3.5 | Streaming, Functions, Vision |
-| Anthropic | Claude 3 | Streaming, Long context |
-| Groq | Llama, Mixtral | Fast inference |
+| OpenAI | GPT-5, GPT-4o, o3 | Streaming, Functions, Vision |
+| Anthropic | Claude Sonnet 4.5, Claude Opus 4.5 | Streaming, Long context |
+| Groq | Llama 3.3, Mixtral | Fast inference |
 | Ollama | Any local | Self-hosted |
 
 ### Request Flow
