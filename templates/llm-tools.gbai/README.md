@@ -285,7 +285,7 @@ Configure in `llm-tools.gbot/config.csv`:
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `LLM Provider` | AI provider | `openai` |
-| `LLM Model` | Model for tool calls | `gpt-4` |
+| `LLM Model` | Model for tool calls | `gpt-4o` |
 | `Tool Timeout` | Max tool execution time | `30` |
 | `Max Tool Calls` | Limit per conversation | `10` |
 
