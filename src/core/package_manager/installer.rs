@@ -20,9 +20,31 @@ impl PackageManager {
         let os_type = detect_os();
         let base_path = if mode == InstallMode::Container {
             PathBuf::from("/opt/gbo")
+        } else if let Ok(custom_path) = std::env::var("BOTSERVER_STACK_PATH") {
+            PathBuf::from(custom_path)
         } else {
             std::env::current_dir()?.join("botserver-stack")
         };
+        let tenant = tenant.unwrap_or_else(|| "default".to_string());
+
+        let mut pm = PackageManager {
+            mode,
+            os_type,
+            base_path,
+            tenant,
+            components: HashMap::new(),
+        };
+        pm.register_components();
+        Ok(pm)
+    }
+
+    /// Create a PackageManager with a custom base path (for testing)
+    pub fn with_base_path(
+        mode: InstallMode,
+        tenant: Option<String>,
+        base_path: PathBuf,
+    ) -> Result<Self> {
+        let os_type = detect_os();
         let tenant = tenant.unwrap_or_else(|| "default".to_string());
 
         let mut pm = PackageManager {

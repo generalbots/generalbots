@@ -386,6 +386,14 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
+    // Set custom stack path if provided (for testing)
+    if let Some(idx) = args.iter().position(|a| a == "--stack-path") {
+        if let Some(path) = args.get(idx + 1) {
+            std::env::set_var("BOTSERVER_STACK_PATH", path);
+            info!("Using custom stack path: {}", path);
+        }
+    }
+
     // Bootstrap
     trace!("Starting bootstrap process...");
     let progress_tx_clone = progress_tx.clone();
