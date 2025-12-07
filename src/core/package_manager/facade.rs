@@ -2,7 +2,7 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::InstallMode;
 use crate::package_manager::OsType;
-use crate::shared::utils::{self, parse_database_url};
+use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
 use anyhow::{Context, Result};
 use log::{error, trace, warn};
 use reqwest::Client;
@@ -553,7 +553,8 @@ impl PackageManager {
         exec_cmd: &str,
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
-        let database_url = std::env::var("DATABASE_URL").unwrap();
+        let database_url = get_database_url_sync()
+            .context("Failed to get DATABASE_URL from Vault. Ensure Vault is configured.")?;
         let (_db_username, db_password, _db_server, _db_port, _db_name) =
             parse_database_url(&database_url);
 

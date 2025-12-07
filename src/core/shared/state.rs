@@ -261,9 +261,10 @@ fn create_mock_auth_service() -> AuthService {
 
 impl Default for AppState {
     fn default() -> Self {
-        let database_url = std::env::var("DATABASE_URL").unwrap_or_else(|_| {
-            "postgres://postgres:postgres@localhost:5432/botserver".to_string()
-        });
+        // NO LEGACY FALLBACK - Vault is mandatory
+        // This default is only for tests. In production, use the full initialization.
+        let database_url = crate::shared::utils::get_database_url_sync()
+            .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
 
         let manager = ConnectionManager::<PgConnection>::new(&database_url);
         let pool = Pool::builder()

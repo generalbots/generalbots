@@ -1,4 +1,5 @@
 use crate::config::DriveConfig;
+use crate::core::secrets::SecretsManager;
 use anyhow::{Context, Result};
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::{config::Builder as S3ConfigBuilder, Client as S3Client};
@@ -10,13 +11,68 @@ use diesel::{
 use futures_util::StreamExt;
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
+use once_cell::sync::Lazy;
 use reqwest::Client;
 use rhai::{Array, Dynamic};
 use serde_json::Value;
 use smartstring::SmartString;
 use std::error::Error;
+use std::sync::Arc;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
+use tokio::sync::RwLock;
+
+/// Global SecretsManager instance - initialized once, used everywhere
+static SECRETS_MANAGER: Lazy<Arc<RwLock<Option<SecretsManager>>>> = 
+    Lazy::new(|| Arc::new(RwLock::new(None)));
+
+/// Initialize the global secrets manager (call once at startup)
+pub async fn init_secrets_manager() -> Result<()> {
+    let manager = SecretsManager::from_env()?;
+    let mut guard = SECRETS_MANAGER.write().await;
+    *guard = Some(manager);
+    Ok(())
+}
+
+/// Get database URL from Vault - NO FALLBACK
+pub async fn get_database_url() -> Result<String> {
+    let guard = SECRETS_MANAGER.read().await;
+    if let Some(ref manager) = *guard {
+        if manager.is_enabled() {
+            return manager.get_database_url().await;
+        }
+    }
+    // NO FALLBACK - Vault is mandatory
+    Err(anyhow::anyhow!("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"))
+}
+
+/// Get database URL synchronously (blocking) for diesel connections - NO FALLBACK
+pub fn get_database_url_sync() -> Result<String> {
+    // Check if we're in an async runtime context
+    if let Ok(handle) = tokio::runtime::Handle::try_current() {
+        // We're inside a tokio runtime - use block_in_place to avoid nesting
+        let result = tokio::task::block_in_place(|| {
+            handle.block_on(async { get_database_url().await })
+        });
+        if let Ok(url) = result {
+            return Ok(url);
+        }
+    } else {
+        // Not in a runtime - create a new one
+        let rt = tokio::runtime::Runtime::new().map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+        if let Ok(url) = rt.block_on(async { get_database_url().await }) {
+            return Ok(url);
+        }
+    }
+    // NO FALLBACK - Vault is mandatory
+    Err(anyhow::anyhow!("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"))
+}
+
+/// Get the global SecretsManager instance
+pub async fn get_secrets_manager() -> Option<SecretsManager> {
+    let guard = SECRETS_MANAGER.read().await;
+    guard.clone()
+}
 
 pub async fn create_s3_operator(
     config: &DriveConfig,
@@ -164,7 +220,8 @@ pub fn estimate_token_count(text: &str) -> usize {
 }
 
 pub fn establish_pg_connection() -> Result<PgConnection> {
-    let database_url = std::env::var("DATABASE_URL").unwrap();
+    let database_url = get_database_url_sync()
+        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
     PgConnection::establish(&database_url)
         .with_context(|| format!("Failed to connect to database at {}", database_url))
 }
@@ -172,7 +229,16 @@ pub fn establish_pg_connection() -> Result<PgConnection> {
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
 pub fn create_conn() -> Result<DbPool, diesel::r2d2::PoolError> {
-    let database_url = std::env::var("DATABASE_URL").unwrap();
+    let database_url = get_database_url_sync()
+        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
+    let manager = ConnectionManager::<PgConnection>::new(database_url);
+    Pool::builder().build(manager)
+}
+
+/// Create database connection pool using SecretsManager (async version)
+pub async fn create_conn_async() -> Result<DbPool, diesel::r2d2::PoolError> {
+    let database_url = get_database_url().await
+        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder().build(manager)
 }

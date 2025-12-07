@@ -10,7 +10,7 @@ use crate::directory::AuthService;
 #[cfg(feature = "llm")]
 use crate::llm::LLMProvider;
 use crate::shared::models::BotResponse;
-use crate::shared::utils::DbPool;
+use crate::shared::utils::{get_database_url_sync, DbPool};
 use crate::tasks::TaskEngine;
 use async_trait::async_trait;
 use diesel::r2d2::{ConnectionManager, Pool};
@@ -171,7 +171,7 @@ impl TestAppStateBuilder {
     pub fn build(self) -> Result<AppState, Box<dyn std::error::Error + Send + Sync>> {
         let database_url = self
             .database_url
-            .or_else(|| std::env::var("DATABASE_URL").ok())
+            .or_else(|| get_database_url_sync().ok())
             .unwrap_or_else(|| "postgres://test:test@localhost:5432/test".to_string());
 
         let manager = ConnectionManager::<PgConnection>::new(&database_url);
@@ -245,7 +245,7 @@ fn create_mock_auth_service() -> AuthService {
 }
 
 pub fn create_test_db_pool() -> Result<DbPool, Box<dyn std::error::Error + Send + Sync>> {
-    let database_url = std::env::var("DATABASE_URL")
+    let database_url = get_database_url_sync()
         .unwrap_or_else(|_| "postgres://test:test@localhost:5432/test".to_string());
     let manager = ConnectionManager::<PgConnection>::new(&database_url);
     let pool = Pool::builder().max_size(1).build(manager)?;
