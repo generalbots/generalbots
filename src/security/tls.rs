@@ -7,8 +7,9 @@
 //! - External CA integration capabilities
 
 use anyhow::{Context, Result};
-use rustls::server::{AllowAnyAnonymousOrAuthenticatedClient, AllowAnyAuthenticatedClient};
-use rustls::{Certificate, PrivateKey, RootCertStore, ServerConfig};
+use rustls::pki_types::{CertificateDer, PrivateKeyDer};
+use rustls::server::WebPkiClientVerifier;
+use rustls::{RootCertStore, ServerConfig};
 use rustls_pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -106,53 +107,50 @@ impl TlsManager {
         let cert_chain = Self::load_certs(&config.cert_path)?;
         let key = Self::load_private_key(&config.key_path)?;
 
-        let builder = ServerConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
-            .with_protocol_versions(&[&rustls::version::TLS13, &rustls::version::TLS12])?;
-
-        let mut server_config = if config.require_client_cert {
+        let server_config = if config.require_client_cert {
             // mTLS: Require client certificates
             info!("Configuring mTLS - client certificates required");
-            let client_cert_verifier = if let Some(ca_path) = &config.ca_cert_path {
+            if let Some(ca_path) = &config.ca_cert_path {
                 let ca_certs = Self::load_certs(ca_path)?;
                 let mut root_store = RootCertStore::empty();
                 for cert in ca_certs {
-                    root_store.add(&cert)?;
+                    root_store.add(cert)?;
                 }
-                AllowAnyAuthenticatedClient::new(root_store)
+                let client_cert_verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
+                    .build()
+                    .map_err(|e| anyhow::anyhow!("Failed to build client verifier: {}", e))?;
+
+                ServerConfig::builder()
+                    .with_client_cert_verifier(client_cert_verifier)
+                    .with_single_cert(cert_chain, key)?
             } else {
                 return Err(anyhow::anyhow!(
                     "CA certificate required for mTLS but ca_cert_path not provided"
                 ));
-            };
-
-            builder
-                .with_client_cert_verifier(Arc::new(client_cert_verifier))
-                .with_single_cert(cert_chain, key)?
+            }
         } else if let Some(ca_path) = &config.ca_cert_path {
             // Optional client certificates
             info!("Configuring TLS with optional client certificates");
             let ca_certs = Self::load_certs(ca_path)?;
             let mut root_store = RootCertStore::empty();
             for cert in ca_certs {
-                root_store.add(&cert)?;
+                root_store.add(cert)?;
             }
-            let client_cert_verifier = AllowAnyAnonymousOrAuthenticatedClient::new(root_store);
+            let client_cert_verifier = WebPkiClientVerifier::builder(Arc::new(root_store))
+                .allow_unauthenticated()
+                .build()
+                .map_err(|e| anyhow::anyhow!("Failed to build client verifier: {}", e))?;
 
-            builder
-                .with_client_cert_verifier(Arc::new(client_cert_verifier))
+            ServerConfig::builder()
+                .with_client_cert_verifier(client_cert_verifier)
                 .with_single_cert(cert_chain, key)?
         } else {
             // No client certificate verification
             info!("Configuring standard TLS without client certificates");
-            builder
+            ServerConfig::builder()
                 .with_no_client_auth()
                 .with_single_cert(cert_chain, key)?
         };
-
-        // Configure ALPN for HTTP/2
-        server_config.alpn_protocols = vec![b"h2".to_vec(), b"http/1.1".to_vec()];
 
         Ok(server_config)
     }
@@ -165,18 +163,14 @@ impl TlsManager {
         if let Some(ca_path) = &config.ca_cert_path {
             let ca_certs = Self::load_certs(ca_path)?;
             for cert in ca_certs {
-                root_store.add(&cert)?;
+                root_store.add(cert)?;
             }
         } else {
             // Use system CA certificates
             Self::load_system_certs(&mut root_store)?;
         }
 
-        let builder = rustls::ClientConfig::builder()
-            .with_safe_default_cipher_suites()
-            .with_safe_default_kx_groups()
-            .with_protocol_versions(&[&rustls::version::TLS13, &rustls::version::TLS12])?
-            .with_root_certificates(root_store);
+        let builder = rustls::ClientConfig::builder().with_root_certificates(root_store);
 
         let client_config = if let (Some(cert_path), Some(key_path)) =
             (&config.client_cert_path, &config.client_key_path)
@@ -193,32 +187,36 @@ impl TlsManager {
     }
 
     /// Load certificates from PEM file
-    fn load_certs(path: &Path) -> Result<Vec<Certificate>> {
+    fn load_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
         let file = File::open(path)
             .with_context(|| format!("Failed to open certificate file: {:?}", path))?;
         let mut reader = BufReader::new(file);
-        let certs = certs(&mut reader)?.into_iter().map(Certificate).collect();
-        Ok(certs)
+        let certs: Result<Vec<_>, _> = certs(&mut reader).collect();
+        certs.with_context(|| format!("Failed to parse certificates from {:?}", path))
     }
 
     /// Load private key from PEM file
-    fn load_private_key(path: &Path) -> Result<PrivateKey> {
+    fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
         let file =
             File::open(path).with_context(|| format!("Failed to open key file: {:?}", path))?;
         let mut reader = BufReader::new(file);
 
         // Try PKCS#8 format first
-        let keys = pkcs8_private_keys(&mut reader)?;
+        let keys: Vec<_> = pkcs8_private_keys(&mut reader)
+            .filter_map(|k| k.ok())
+            .collect();
         if !keys.is_empty() {
-            return Ok(PrivateKey(keys[0].clone()));
+            return Ok(PrivateKeyDer::Pkcs8(keys[0].clone_key()));
         }
 
         // Reset reader and try RSA format
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
-        let keys = rsa_private_keys(&mut reader)?;
+        let keys: Vec<_> = rsa_private_keys(&mut reader)
+            .filter_map(|k| k.ok())
+            .collect();
         if !keys.is_empty() {
-            return Ok(PrivateKey(keys[0].clone()));
+            return Ok(PrivateKeyDer::Pkcs1(keys[0].clone_key()));
         }
 
         Err(anyhow::anyhow!("No private key found in file: {:?}", path))
@@ -240,7 +238,7 @@ impl TlsManager {
                 match Self::load_certs(Path::new(path)) {
                     Ok(certs) => {
                         for cert in certs {
-                            root_store.add(&cert)?;
+                            root_store.add(cert)?;
                         }
                         info!("Loaded system certificates from {}", path);
                         return Ok(());

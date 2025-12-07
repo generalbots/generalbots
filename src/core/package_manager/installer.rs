@@ -59,6 +59,7 @@ impl PackageManager {
     }
 
     fn register_components(&mut self) {
+        self.register_vault();
         self.register_tables();
         self.register_cache();
         self.register_drive();
@@ -74,7 +75,6 @@ impl PackageManager {
         self.register_devtools();
         self.register_vector_db();
         self.register_timeseries_db();
-        self.register_secrets();
         self.register_observability();
         self.register_host();
         self.register_webmail();
@@ -297,7 +297,7 @@ impl PackageManager {
             ComponentConfig {
                 name: "directory".to_string(),
                 ports: vec![8080],
-                dependencies: vec![],
+                dependencies: vec!["tables".to_string()],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
@@ -306,21 +306,30 @@ impl PackageManager {
                         .to_string(),
                 ),
                 binary_name: Some("zitadel".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
-                pre_install_cmds_macos: vec![],
+                pre_install_cmds_linux: vec![
+                    "mkdir -p {{CONF_PATH}}/directory".to_string(),
+                ],
+                post_install_cmds_linux: vec![
+                    // Initialize Zitadel with first instance setup to generate admin PAT
+                    "{{BIN_PATH}}/zitadel init --config {{CONF_PATH}}/directory/zitadel.yaml".to_string(),
+                    "{{BIN_PATH}}/zitadel setup --config {{CONF_PATH}}/directory/zitadel.yaml --init-projections --masterkeyFromEnv --steps {{CONF_PATH}}/directory/steps.yaml".to_string(),
+                ],
+                pre_install_cmds_macos: vec![
+                    "mkdir -p {{CONF_PATH}}/directory".to_string(),
+                ],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::from([
-                    ("ZITADEL_EXTERNALSECURE".to_string(), "true".to_string()),
-                    ("ZITADEL_TLS_ENABLED".to_string(), "true".to_string()),
-                    ("ZITADEL_TLS_CERT".to_string(), "{{CONF_PATH}}/system/certificates/directory/server.crt".to_string()),
-                    ("ZITADEL_TLS_KEY".to_string(), "{{CONF_PATH}}/system/certificates/directory/server.key".to_string()),
+                    ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
+                    ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
+                    ("ZITADEL_EXTERNALPORT".to_string(), "8080".to_string()),
+                    ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
+                    ("ZITADEL_MASTERKEY".to_string(), "MasterkeyNeedsToHave32Characters".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv".to_string(),
-                check_cmd: "curl -f -k https://localhost:8080/healthz >/dev/null 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                check_cmd: "curl -f http://localhost:8080/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -698,11 +707,11 @@ impl PackageManager {
     /// Register HashiCorp Vault for secrets management
     /// Vault stores service credentials (drive, email, etc.) securely
     /// Only VAULT_ADDR and VAULT_TOKEN needed in .env, all other secrets fetched from Vault
-    fn register_secrets(&mut self) {
+    fn register_vault(&mut self) {
         self.components.insert(
-            "secrets".to_string(),
+            "vault".to_string(),
             ComponentConfig {
-                name: "secrets".to_string(),
+                name: "vault".to_string(),
                 ports: vec![8200],
                 dependencies: vec![],
                 linux_packages: vec![],
