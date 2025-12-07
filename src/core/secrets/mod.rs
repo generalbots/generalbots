@@ -388,6 +388,7 @@ impl SecretsManager {
     }
 }
 
+#[allow(dead_code)]
 fn parse_database_url(url: &str) -> Option<HashMap<String, String>> {
     let url = url.strip_prefix("postgres://")?;
     let (auth, rest) = url.split_once('@')?;
