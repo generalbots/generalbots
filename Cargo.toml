@@ -144,9 +144,9 @@ urlencoding = "2.1"
 uuid = { version = "1.11", features = ["serde", "v4"] }
 
 # === TLS/SECURITY DEPENDENCIES ===
-rustls = { version = "0.21", features = ["dangerous_configuration"] }
-rustls-pemfile = "1.0"
-tokio-rustls = "0.24"
+rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
+rustls-pemfile = "2.0"
+tokio-rustls = "0.26"
 rcgen = { version = "0.14", features = ["pem"] }
 x509-parser = "0.15"
 rustls-native-certs = "0.6"

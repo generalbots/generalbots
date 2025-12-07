@@ -3,7 +3,6 @@ use axum::{
     routing::{get, post},
     Router,
 };
-// Configuration comes from Directory service, not .env files
 use dotenvy::dotenv;
 use log::{error, info, trace, warn};
 use std::collections::HashMap;
@@ -246,7 +245,20 @@ async fn run_axum_server(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    // Configuration comes from Directory service, not .env files
+    // Install rustls crypto provider (ring) before any TLS operations
+    // This must be done before any code that might use rustls
+    let _ = rustls::crypto::ring::default_provider().install_default();
+
+    // Load .env for VAULT_* variables only (all other secrets come from Vault)
+    dotenvy::dotenv().ok();
+
+    // Initialize SecretsManager early - this connects to Vault if configured
+    // Only VAULT_ADDR, VAULT_TOKEN, and VAULT_SKIP_VERIFY should be in .env
+    if let Err(e) = crate::shared::utils::init_secrets_manager().await {
+        warn!("Failed to initialize SecretsManager: {}. Falling back to env vars.", e);
+    } else {
+        info!("SecretsManager initialized - fetching secrets from Vault");
+    }
 
     // Initialize logger early to capture all logs with filters for noisy libraries
     let rust_log = {
@@ -294,7 +306,6 @@ async fn main() -> std::io::Result<()> {
 
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
-    let desktop_mode = args.contains(&"--desktop".to_string());
     let no_console = args.contains(&"--noconsole".to_string());
 
     // Configuration comes from Directory service, not .env files
@@ -321,8 +332,8 @@ async fn main() -> std::io::Result<()> {
         }
     }
 
-    // Start UI thread if console is enabled (default) and not disabled by --noconsole or desktop mode
-    let ui_handle: Option<std::thread::JoinHandle<()>> = if !no_console && !desktop_mode && !no_ui {
+    // Start UI thread if console is enabled (default) and not disabled by --noconsole or --noui
+    let ui_handle: Option<std::thread::JoinHandle<()>> = if !no_console && !no_ui {
         #[cfg(feature = "console")]
         {
             let progress_rx = Arc::new(tokio::sync::Mutex::new(_progress_rx));
@@ -646,7 +657,7 @@ async fn main() -> std::io::Result<()> {
         s3_client: Some(drive),
         config: Some(cfg.clone()),
         conn: pool.clone(),
-        database_url: std::env::var("DATABASE_URL").unwrap_or_else(|_| "".to_string()),
+        database_url: crate::shared::utils::get_database_url_sync().unwrap_or_default(),
         bucket_name: "default.gbai".to_string(),
         cache: redis_client.clone(),
         session_manager: session_manager.clone(),

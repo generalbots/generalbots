@@ -1029,14 +1029,20 @@ pub async fn attendant_respond(
     }
 }
 
-/// Get verify token from config
-async fn get_verify_token(state: &Arc<AppState>) -> String {
-    let bot_id = get_default_bot_id(state).await;
-    let adapter = WhatsAppAdapter::new(state.conn.clone(), bot_id);
-
-    // The verify token is stored in the adapter's config
-    // For now return a default - in production this should come from config
-    std::env::var("WHATSAPP_VERIFY_TOKEN").unwrap_or_else(|_| "webhook_verify".to_string())
+/// Get verify token from config (from Vault)
+async fn get_verify_token(_state: &Arc<AppState>) -> String {
+    // Get verify token from Vault - stored at gbo/whatsapp
+    use crate::core::secrets::SecretsManager;
+    
+    match SecretsManager::new() {
+        Ok(secrets) => {
+            match secrets.get("gbo/whatsapp", "verify_token").await {
+                Ok(token) => token,
+                Err(_) => "webhook_verify".to_string() // Default for initial setup
+            }
+        }
+        Err(_) => "webhook_verify".to_string() // Default if Vault not configured
+    }
 }
 
 /// Get default bot ID
