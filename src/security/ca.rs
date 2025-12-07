@@ -350,15 +350,16 @@ impl CaManager {
     }
 
     /// Issue certificates for all services
+    /// Using component names: tables (postgres), drive (minio), cache (redis), vectordb (qdrant)
     pub fn issue_service_certificates(&self) -> Result<()> {
         let services = vec![
-            ("api", vec!["localhost", "botserver", "127.0.0.1"]),
+            ("api", vec!["localhost", "api", "127.0.0.1"]),
             ("llm", vec!["localhost", "llm", "127.0.0.1"]),
             ("embedding", vec!["localhost", "embedding", "127.0.0.1"]),
-            ("qdrant", vec!["localhost", "qdrant", "127.0.0.1"]),
-            ("postgres", vec!["localhost", "postgres", "127.0.0.1"]),
-            ("redis", vec!["localhost", "redis", "127.0.0.1"]),
-            ("minio", vec!["localhost", "minio", "127.0.0.1"]),
+            ("vectordb", vec!["localhost", "vectordb", "127.0.0.1"]),
+            ("tables", vec!["localhost", "tables", "127.0.0.1"]),
+            ("cache", vec!["localhost", "cache", "127.0.0.1"]),
+            ("drive", vec!["localhost", "drive", "127.0.0.1"]),
             ("directory", vec!["localhost", "directory", "127.0.0.1"]),
             ("email", vec!["localhost", "email", "127.0.0.1"]),
             ("meet", vec!["localhost", "meet", "127.0.0.1"]),
@@ -410,6 +411,7 @@ impl CaManager {
     }
 
     /// Create CA directory structure
+    /// Using component names: tables, drive, cache, vectordb
     fn create_ca_directories(&self) -> Result<()> {
         let ca_dir = self
             .config
@@ -421,10 +423,10 @@ impl CaManager {
         fs::create_dir_all("certs/api")?;
         fs::create_dir_all("certs/llm")?;
         fs::create_dir_all("certs/embedding")?;
-        fs::create_dir_all("certs/qdrant")?;
-        fs::create_dir_all("certs/postgres")?;
-        fs::create_dir_all("certs/redis")?;
-        fs::create_dir_all("certs/minio")?;
+        fs::create_dir_all("certs/vectordb")?;
+        fs::create_dir_all("certs/tables")?;
+        fs::create_dir_all("certs/cache")?;
+        fs::create_dir_all("certs/drive")?;
         fs::create_dir_all("certs/directory")?;
         fs::create_dir_all("certs/email")?;
         fs::create_dir_all("certs/meet")?;

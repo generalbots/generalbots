@@ -543,7 +543,7 @@ meet.botserver.local {{
 
         fs::write(dns_config, corefile)?;
 
-        // Create initial zone file
+        // Create initial zone file with component names
         let zone = r#"$ORIGIN botserver.local.
 $TTL 60
 @       IN      SOA     ns1.botserver.local. admin.botserver.local. (
@@ -556,12 +556,21 @@ $TTL 60
         IN      NS      ns1.botserver.local.
 ns1     IN      A       127.0.0.1
 
-; Static entries
-api     IN      A       127.0.0.1
-auth    IN      A       127.0.0.1
-llm     IN      A       127.0.0.1
-mail    IN      A       127.0.0.1
-meet    IN      A       127.0.0.1
+; Core services
+api         IN      A       127.0.0.1
+tables      IN      A       127.0.0.1
+drive       IN      A       127.0.0.1
+cache       IN      A       127.0.0.1
+vectordb    IN      A       127.0.0.1
+vault       IN      A       127.0.0.1
+
+; Application services
+llm         IN      A       127.0.0.1
+embedding   IN      A       127.0.0.1
+directory   IN      A       127.0.0.1
+auth        IN      A       127.0.0.1
+email       IN      A       127.0.0.1
+meet        IN      A       127.0.0.1
 
 ; Dynamic entries will be added below
 "#;
@@ -1272,6 +1281,7 @@ log_level = "info"
         }
 
         // Services that need certificates - Vault FIRST
+        // Using component names: tables (postgres), drive (minio), cache (redis), vectordb (qdrant)
         let services = vec![
             ("vault", vec!["localhost", "127.0.0.1", "vault.botserver.local"]),
             ("api", vec!["localhost", "127.0.0.1", "api.botserver.local"]),
@@ -1281,20 +1291,20 @@ log_level = "info"
                 vec!["localhost", "127.0.0.1", "embedding.botserver.local"],
             ),
             (
-                "qdrant",
-                vec!["localhost", "127.0.0.1", "qdrant.botserver.local"],
+                "vectordb",
+                vec!["localhost", "127.0.0.1", "vectordb.botserver.local"],
             ),
             (
-                "postgres",
-                vec!["localhost", "127.0.0.1", "postgres.botserver.local"],
+                "tables",
+                vec!["localhost", "127.0.0.1", "tables.botserver.local"],
             ),
             (
-                "redis",
-                vec!["localhost", "127.0.0.1", "redis.botserver.local"],
+                "cache",
+                vec!["localhost", "127.0.0.1", "cache.botserver.local"],
             ),
             (
-                "minio",
-                vec!["localhost", "127.0.0.1", "minio.botserver.local"],
+                "drive",
+                vec!["localhost", "127.0.0.1", "drive.botserver.local"],
             ),
             (
                 "directory",
@@ -1310,7 +1320,7 @@ log_level = "info"
                 vec![
                     "localhost",
                     "127.0.0.1",
-                    "mail.botserver.local",
+                    "email.botserver.local",
                     "smtp.botserver.local",
                     "imap.botserver.local",
                 ],
