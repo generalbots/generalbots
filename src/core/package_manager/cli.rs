@@ -1,16 +1,18 @@
+use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 use anyhow::Result;
 use std::env;
 use std::process::Command;
-use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 pub async fn run() -> Result<()> {
-    env_logger::init();
+    // Logger is already initialized in main.rs, don't initialize again
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
         print_usage();
         return Ok(());
     }
-use tracing::info;
-fn print_usage(){info!("usage: botserver <command> [options]")}
+    use tracing::info;
+    fn print_usage() {
+        info!("usage: botserver <command> [options]")
+    }
     let command = &args[1];
     match command.as_str() {
         "start" => {
@@ -41,7 +43,10 @@ fn print_usage(){info!("usage: botserver <command> [options]")}
             println!("Stopping all components...");
             let components = get_all_components();
             for component in components {
-                let _ = Command::new("pkill").arg("-f").arg(component.termination_command).output();
+                let _ = Command::new("pkill")
+                    .arg("-f")
+                    .arg(component.termination_command)
+                    .output();
             }
             println!("✓ BotServer components stopped");
         }
@@ -49,7 +54,10 @@ fn print_usage(){info!("usage: botserver <command> [options]")}
             println!("Restarting BotServer...");
             let components = get_all_components();
             for component in components {
-                let _ = Command::new("pkill").arg("-f").arg(component.termination_command).output();
+                let _ = Command::new("pkill")
+                    .arg("-f")
+                    .arg(component.termination_command)
+                    .output();
             }
             tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             let mode = if args.contains(&"--container".to_string()) {

@@ -1,7 +1,7 @@
 {
   "base_url": "http://localhost:8080",
   "default_org": {
-    "id": "350170397284499470",
+    "id": "350192628202995726",
     "name": "default",
     "domain": "default.localhost"
   },
@@ -13,8 +13,8 @@
     "first_name": "Admin",
     "last_name": "User"
   },
-  "admin_token": "K7-6eQSzh7Lgcb5vuWZGODO1nrIAu1gFv7KxFJoYPSn15NFT8E9-iNy6AFaEQEkE9mb0tK0",
+  "admin_token": "D2IMmmxhLcL_DJMUMbmXxMuebowhWz0m8jBBwyCjI80wWz8kMfW2XqSsoXydz3oluL9gcns",
   "project_id": "",
-  "client_id": "350170398056316942",
-  "client_secret": "ej5NkifamoHntY21FFvz18wygcgFFKtaLpwW4lN1XHwMHRGWb5GrzFxIeaA1iqZu"
+  "client_id": "350192628773486606",
+  "client_secret": "lMT0aQarbjRVBRtzFUlheVkqKZlbcVO8j58EHOu0gIl4W65BGJVEc6k7WxJ8v4wr"
 }
