@@ -1,4 +1,6 @@
-use axum::extract::Extension;
+use axum::extract::{Extension, State};
+use axum::http::StatusCode;
+use axum::Json;
 use axum::{
     routing::{get, post},
     Router,
@@ -95,6 +97,42 @@ use crate::shared::utils::create_s3_operator;
 // Use BootstrapProgress from lib.rs
 use botserver::BootstrapProgress;
 
+/// Health check endpoint handler
+/// Returns server health status for monitoring and load balancers
+async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
+    // Check database connectivity
+    let db_ok = state.conn.get().is_ok();
+
+    let status = if db_ok { "healthy" } else { "degraded" };
+    let code = if db_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    (
+        code,
+        Json(serde_json::json!({
+            "status": status,
+            "service": "botserver",
+            "version": env!("CARGO_PKG_VERSION"),
+            "database": db_ok
+        })),
+    )
+}
+
+/// Simple health check without state (for basic liveness probes)
+async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "status": "ok",
+            "service": "botserver",
+            "version": env!("CARGO_PKG_VERSION")
+        })),
+    )
+}
+
 async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -111,6 +149,9 @@ async fn run_axum_server(
 
     // Build API router with module-specific routes
     let mut api_router = Router::new()
+        // Health check endpoints - both /health and /api/health for compatibility
+        .route("/health", get(health_check_simple))
+        .route(ApiUrls::HEALTH, get(health_check))
         .route(ApiUrls::SESSIONS, post(create_session))
         .route(ApiUrls::SESSIONS, get(get_sessions))
         .route(
@@ -213,8 +254,13 @@ async fn run_axum_server(
     // Bind to address
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
 
-    // Check if certificates exist
-    if cert_path.exists() && key_path.exists() {
+    // Check if TLS is disabled via environment variable (for local development)
+    let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")
+        .map(|v| v == "true" || v == "1")
+        .unwrap_or(false);
+
+    // Check if certificates exist and TLS is not disabled
+    if !disable_tls && cert_path.exists() && key_path.exists() {
         // Use HTTPS with existing certificates
         let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert_path, key_path)
             .await
@@ -228,15 +274,15 @@ async fn run_axum_server(
             .serve(app.into_make_service())
             .await
     } else {
-        // Generate self-signed certificate if not present
-        warn!("TLS certificates not found, generating self-signed certificate...");
+        // Use HTTP - either TLS is disabled or certificates don't exist
+        if disable_tls {
+            info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
+        } else {
+            warn!("TLS certificates not found, using HTTP");
+        }
 
-        // Fall back to HTTP temporarily (bootstrap will generate certs)
         let listener = tokio::net::TcpListener::bind(addr).await?;
-        info!(
-            "HTTP server listening on {} (certificates will be generated on next restart)",
-            addr
-        );
+        info!("HTTP server listening on {}", addr);
         axum::serve(listener, app.into_make_service())
             .await
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))

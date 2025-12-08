@@ -1,10 +1,11 @@
+use crate::package_manager::cache::{CacheResult, DownloadCache};
 use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::InstallMode;
 use crate::package_manager::OsType;
 use crate::shared::utils::{self, get_database_url_sync, parse_database_url};
 use anyhow::{Context, Result};
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use reqwest::Client;
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -67,14 +68,54 @@ impl PackageManager {
                 .await?;
         }
         if !component.data_download_list.is_empty() {
+            // Initialize cache for data files (models, etc.)
+            let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
+            let cache = DownloadCache::new(cache_base).ok();
+
             for url in &component.data_download_list {
-                let filename = url.split('/').last().unwrap_or("download.tmp");
+                let filename = DownloadCache::extract_filename(url);
                 let output_path = self
                     .base_path
                     .join("data")
                     .join(&component.name)
-                    .join(filename);
-                utils::download_file(url, output_path.to_str().unwrap()).await?;
+                    .join(&filename);
+
+                // Check if already exists at destination
+                if output_path.exists() {
+                    info!("Data file already exists: {:?}", output_path);
+                    continue;
+                }
+
+                // Ensure data directory exists
+                if let Some(parent) = output_path.parent() {
+                    std::fs::create_dir_all(parent)?;
+                }
+
+                // Check cache first
+                if let Some(ref c) = cache {
+                    if let Some(cached_path) = c.get_cached_path(&filename) {
+                        info!("Using cached data file: {:?}", cached_path);
+                        std::fs::copy(&cached_path, &output_path)?;
+                        continue;
+                    }
+                }
+
+                // Download to cache if available, otherwise directly to destination
+                let download_target = if let Some(ref c) = cache {
+                    c.get_cache_path(&filename)
+                } else {
+                    output_path.clone()
+                };
+
+                info!("Downloading data file: {}", url);
+                println!("Downloading {}", url);
+                utils::download_file(url, download_target.to_str().unwrap()).await?;
+
+                // Copy from cache to destination if we downloaded to cache
+                if cache.is_some() && download_target != output_path {
+                    std::fs::copy(&download_target, &output_path)?;
+                    info!("Copied cached file to: {:?}", output_path);
+                }
             }
         }
         self.run_commands(post_cmds, "local", &component.name)?;
@@ -121,10 +162,7 @@ impl PackageManager {
         };
         if !packages.is_empty() {
             let pkg_list = packages.join(" ");
-            self.exec_in_container(
-                &container_name,
-                &format!("apt-get install -y {}", pkg_list),
-            )?;
+            self.exec_in_container(&container_name, &format!("apt-get install -y {}", pkg_list))?;
         }
         if let Some(url) = &component.download_url {
             self.download_in_container(
@@ -156,7 +194,7 @@ impl PackageManager {
         );
         Ok(())
     }
-    
+
     pub fn remove(&self, component_name: &str) -> Result<()> {
         let component = self
             .components
@@ -272,25 +310,57 @@ impl PackageManager {
     ) -> Result<()> {
         let bin_path = self.base_path.join("bin").join(component);
         std::fs::create_dir_all(&bin_path)?;
-        let filename = url.split('/').last().unwrap_or("download.tmp");
-        let temp_file = if filename.starts_with('/') {
-            PathBuf::from(filename)
-        } else {
-            bin_path.join(filename)
+
+        // Initialize cache - use parent of base_path (botserver root) for cache
+        let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
+        let cache = DownloadCache::new(cache_base).unwrap_or_else(|e| {
+            warn!("Failed to initialize download cache: {}", e);
+            // Create a fallback cache in base_path
+            DownloadCache::new(&self.base_path).expect("Failed to create fallback cache")
+        });
+
+        // Check cache first
+        let cache_result = cache.resolve_component_url(component, url);
+
+        let source_file = match cache_result {
+            CacheResult::Cached(cached_path) => {
+                info!("Using cached file for {}: {:?}", component, cached_path);
+                cached_path
+            }
+            CacheResult::Download {
+                url: download_url,
+                cache_path,
+            } => {
+                info!("Downloading {} from {}", component, download_url);
+                println!("Downloading {}", download_url);
+
+                // Download to cache directory
+                self.download_with_reqwest(&download_url, &cache_path, component)
+                    .await?;
+
+                info!("Cached {} to {:?}", component, cache_path);
+                cache_path
+            }
         };
-        self.download_with_reqwest(url, &temp_file, component)
-            .await?;
-        self.handle_downloaded_file(&temp_file, &bin_path, binary_name)?;
+
+        // Now extract/install from the source file (either cached or freshly downloaded)
+        self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
         Ok(())
     }
     pub async fn download_with_reqwest(
         &self,
         url: &str,
-        temp_file: &PathBuf,
+        target_file: &PathBuf,
         component: &str,
     ) -> Result<()> {
         const MAX_RETRIES: u32 = 3;
         const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
+
+        // Ensure parent directory exists
+        if let Some(parent) = target_file.parent() {
+            std::fs::create_dir_all(parent)?;
+        }
+
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .user_agent("botserver-package-manager/1.0")
@@ -306,7 +376,10 @@ impl PackageManager {
                 );
                 std::thread::sleep(RETRY_DELAY * attempt);
             }
-            match self.attempt_reqwest_download(&client, url, temp_file).await {
+            match self
+                .attempt_reqwest_download(&client, url, target_file)
+                .await
+            {
                 Ok(_size) => {
                     if attempt > 0 {
                         trace!("Download succeeded on retry attempt {}", attempt);
@@ -316,7 +389,7 @@ impl PackageManager {
                 Err(e) => {
                     warn!("Download attempt {} failed: {}", attempt + 1, e);
                     last_error = Some(e);
-                    let _ = std::fs::remove_file(temp_file);
+                    let _ = std::fs::remove_file(target_file);
                 }
             }
         }
@@ -446,7 +519,7 @@ impl PackageManager {
         } else {
             PathBuf::from("/opt/gbo/logs")
         };
-        
+
         // Get DB password from Vault for commands that need it (e.g., PostgreSQL initdb)
         let db_password = match get_database_url_sync() {
             Ok(url) => {
@@ -460,7 +533,7 @@ impl PackageManager {
                 String::new()
             }
         };
-        
+
         for cmd in commands {
             let rendered_cmd = cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
