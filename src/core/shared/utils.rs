@@ -140,11 +140,16 @@ pub fn to_array(value: Dynamic) -> Array {
 /// Download a file from a URL with progress bar (when progress-bars feature is enabled)
 #[cfg(feature = "progress-bars")]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
+    use std::time::Duration;
     let url = url.to_string();
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+            .connect_timeout(Duration::from_secs(30))
+            .read_timeout(Duration::from_secs(300))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .tcp_keepalive(Duration::from_secs(60))
             .build()?;
         let response = client.get(&url).send().await?;
         if response.status().is_success() {
@@ -176,11 +181,16 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
 /// Download a file from a URL (without progress bar when progress-bars feature is disabled)
 #[cfg(not(feature = "progress-bars"))]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
+    use std::time::Duration;
     let url = url.to_string();
     let output_path = output_path.to_string();
     let download_handle = tokio::spawn(async move {
         let client = Client::builder()
             .user_agent("Mozilla/5.0 (compatible; BotServer/1.0)")
+            .connect_timeout(Duration::from_secs(30))
+            .read_timeout(Duration::from_secs(300))
+            .pool_idle_timeout(Duration::from_secs(90))
+            .tcp_keepalive(Duration::from_secs(60))
             .build()?;
         let response = client.get(&url).send().await?;
         if response.status().is_success() {

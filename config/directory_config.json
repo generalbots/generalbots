@@ -1,0 +1,20 @@
+{
+  "base_url": "http://localhost:8080",
+  "default_org": {
+    "id": "350084341642035214",
+    "name": "default",
+    "domain": "default.localhost"
+  },
+  "default_user": {
+    "id": "admin",
+    "username": "admin",
+    "email": "admin@localhost",
+    "password": "",
+    "first_name": "Admin",
+    "last_name": "User"
+  },
+  "admin_token": "6ToEETpAOVIPWXcuF9IclFdb4uGR0pDZvsA02rTVTUkhthzbH3MYjkJQB7OnNMHAQIFlreU",
+  "project_id": "",
+  "client_id": "350084343638589454",
+  "client_secret": "7rAHHUIiv04O3itDpnHbetUpH3JzG4TLP6zuL07x6TaPiUzTq1Ut3II1le8plTeG"
+}

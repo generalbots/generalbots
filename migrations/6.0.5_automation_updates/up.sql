@@ -9,8 +9,8 @@ ALTER TABLE public.system_automations ADD COLUMN IF NOT EXISTS name VARCHAR(255)
 -- Create index on name column for faster lookups
 CREATE INDEX IF NOT EXISTS idx_system_automations_name ON public.system_automations(name);
 
-ALTER TABLE bot_configuration
-ADD CONSTRAINT bot_configuration_config_key_unique UNIQUE (config_key);
+-- Note: bot_configuration already has UNIQUE(bot_id, config_key) from migration 6.0.4
+-- Do NOT add a global unique constraint on config_key alone as that breaks multi-bot configs
 
 -- Migration 6.0.9: Add bot_id column to system_automations
 -- Description: Introduces a bot_id column to associate automations with a specific bot.
@@ -30,7 +30,7 @@ ADD CONSTRAINT system_automations_bot_kind_param_unique
 UNIQUE (bot_id, kind, param);
 
 -- Add index for the new constraint
-CREATE INDEX IF NOT EXISTS idx_system_automations_bot_kind_param 
+CREATE INDEX IF NOT EXISTS idx_system_automations_bot_kind_param
 ON public.system_automations (bot_id, kind, param);
 
 
