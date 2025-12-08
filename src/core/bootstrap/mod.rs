@@ -1101,10 +1101,11 @@ meet        IN      A       127.0.0.1
         } else {
             // Initialize Vault if not already done
             info!("Initializing Vault...");
+            // Clear any mTLS env vars that might interfere with CLI
             let init_output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator init -key-shares=1 -key-threshold=1 -format=json",
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator init -key-shares=1 -key-threshold=1 -format=json",
                     vault_addr
                 ))
                 .output()?;
@@ -1140,10 +1141,11 @@ meet        IN      A       127.0.0.1
 
         // Unseal Vault
         info!("Unsealing Vault...");
+        // Clear any mTLS env vars that might interfere with CLI
         let unseal_output = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {}",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {}",
                 vault_addr, unseal_key
             ))
             .output()?;
@@ -1163,7 +1165,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault secrets enable -path=secret kv-v2 2>&1 || true",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault secrets enable -path=secret kv-v2 2>&1 || true",
                 vault_addr, root_token
             ))
             .output();
@@ -1175,7 +1177,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
                 vault_addr, root_token, db_password
             ))
             .output()?;
@@ -1185,7 +1187,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/drive accesskey='{}' secret='{}'",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/drive accesskey='{}' secret='{}'",
                 vault_addr, root_token, drive_accesskey, drive_secret
             ))
             .output()?;
@@ -1195,7 +1197,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/cache password='{}'",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/cache password='{}'",
                 vault_addr, root_token, cache_password
             ))
             .output()?;
@@ -1205,7 +1207,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8080 project_id= client_id= client_secret=",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8080 project_id= client_id= client_secret=",
                 vault_addr, root_token
             ))
             .output()?;
@@ -1215,7 +1217,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
                 vault_addr, root_token
             ))
             .output()?;
@@ -1225,7 +1227,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/email username= password=",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/email username= password=",
                 vault_addr, root_token
             ))
             .output()?;
@@ -1236,7 +1238,7 @@ meet        IN      A       127.0.0.1
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/encryption master_key='{}'",
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/encryption master_key='{}'",
                 vault_addr, root_token, encryption_key
             ))
             .output()?;
@@ -1261,8 +1263,7 @@ VAULT_ADDR={}
 VAULT_TOKEN={}
 
 # Vault uses HTTP for local development (TLS disabled in config.hcl)
-# In production, enable TLS and set proper certificates
-VAULT_CLIENT_KEY=./botserver-stack/conf/system/certificates/botserver/client.key
+# In production, enable TLS and set VAULT_CACERT, VAULT_CLIENT_CERT, VAULT_CLIENT_KEY
 
 # Cache TTL for secrets (seconds)
 VAULT_CACHE_TTL=300
