@@ -1,7 +1,9 @@
+pub mod cache;
 pub mod component;
 pub mod installer;
 pub mod os;
 pub mod setup;
+pub use cache::{CacheResult, DownloadCache};
 pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;

@@ -1,0 +1,154 @@
+# Third-Party Dependencies Configuration
+# ======================================
+# This file lists all external downloads required by botserver.
+#
+# Caching Behavior:
+# - On first run, files are downloaded from the URLs below
+# - Downloaded files are cached in ./botserver-installers/
+# - On subsequent runs, cached files are used instead of downloading
+# - To force re-download, delete the cached file
+#
+# Offline Installation:
+# - Pre-download all files to ./botserver-installers/
+# - The installer will use cached files automatically
+# - You can safely delete ./botserver-stack/ without losing downloads
+
+[cache_settings]
+# Directory where downloaded files are cached (relative to botserver root)
+cache_dir = "botserver-installers"
+
+# Components
+# ==========
+# Each component has:
+# - url: Download URL
+# - filename: Local filename in cache
+# - sha256: Optional checksum for verification (empty = skip verification)
+
+[components.drive]
+name = "MinIO Object Storage"
+url = "https://dl.min.io/server/minio/release/linux-amd64/minio"
+filename = "minio"
+sha256 = ""
+
+[components.tables]
+name = "PostgreSQL Database"
+url = "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+filename = "postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = ""
+
+[components.cache]
+name = "Valkey Cache (Redis-compatible)"
+# Note: Valkey doesn't provide prebuilt binaries, using source tarball
+# You may need to compile from source or use system package manager
+url = "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz"
+filename = "valkey-8.0.2.tar.gz"
+sha256 = ""
+# Alternative: Use Redis from system package or Docker
+# For prebuilt, consider: https://download.redis.io/releases/redis-7.2.4.tar.gz
+
+[components.llm]
+name = "Llama.cpp Server"
+url = "https://github.com/ggml-org/llama.cpp/releases/download/b4547/llama-b4547-bin-ubuntu-x64.zip"
+filename = "llama-b4547-bin-ubuntu-x64.zip"
+sha256 = ""
+
+[components.email]
+name = "Stalwart Mail Server"
+url = "https://github.com/stalwartlabs/mail-server/releases/download/v0.10.7/stalwart-mail-x86_64-linux.tar.gz"
+filename = "stalwart-mail-x86_64-linux.tar.gz"
+sha256 = ""
+
+[components.proxy]
+name = "Caddy Web Server"
+url = "https://github.com/caddyserver/caddy/releases/download/v2.9.1/caddy_2.9.1_linux_amd64.tar.gz"
+filename = "caddy_2.9.1_linux_amd64.tar.gz"
+sha256 = ""
+
+[components.directory]
+name = "Zitadel Identity Provider"
+url = "https://github.com/zitadel/zitadel/releases/download/v2.70.4/zitadel-linux-amd64.tar.gz"
+filename = "zitadel-linux-amd64.tar.gz"
+sha256 = ""
+
+[components.alm]
+name = "Forgejo Git Server"
+url = "https://codeberg.org/forgejo/forgejo/releases/download/v10.0.2/forgejo-10.0.2-linux-amd64"
+filename = "forgejo-10.0.2-linux-amd64"
+sha256 = ""
+
+[components.alm_ci]
+name = "Forgejo Actions Runner"
+url = "https://code.forgejo.org/forgejo/runner/releases/download/v6.3.1/forgejo-runner-6.3.1-linux-amd64"
+filename = "forgejo-runner-6.3.1-linux-amd64"
+sha256 = ""
+
+[components.dns]
+name = "CoreDNS Server"
+url = "https://github.com/coredns/coredns/releases/download/v1.11.1/coredns_1.11.1_linux_amd64.tgz"
+filename = "coredns_1.11.1_linux_amd64.tgz"
+sha256 = ""
+
+[components.webmail]
+name = "Roundcube Webmail"
+url = "https://github.com/roundcube/roundcubemail/releases/download/1.6.6/roundcubemail-1.6.6-complete.tar.gz"
+filename = "roundcubemail-1.6.6-complete.tar.gz"
+sha256 = ""
+
+[components.meet]
+name = "LiveKit Media Server"
+url = "https://github.com/livekit/livekit/releases/download/v2.8.2/livekit_2.8.2_linux_amd64.tar.gz"
+filename = "livekit_2.8.2_linux_amd64.tar.gz"
+sha256 = ""
+
+[components.table_editor]
+name = "NocoDB"
+url = "http://get.nocodb.com/linux-x64"
+filename = "nocodb-linux-x64"
+sha256 = ""
+
+[components.vector_db]
+name = "Qdrant Vector Database"
+url = "https://github.com/qdrant/qdrant/releases/latest/download/qdrant-x86_64-unknown-linux-gnu.tar.gz"
+filename = "qdrant-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = ""
+
+[components.timeseries_db]
+name = "InfluxDB Time Series Database"
+url = "https://download.influxdata.com/influxdb/releases/influxdb2-2.7.5-linux-amd64.tar.gz"
+filename = "influxdb2-2.7.5-linux-amd64.tar.gz"
+sha256 = ""
+
+[components.vault]
+name = "HashiCorp Vault"
+url = "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
+filename = "vault_1.15.4_linux_amd64.zip"
+sha256 = ""
+
+[components.observability]
+name = "Vector Log Aggregator"
+url = "https://packages.timber.io/vector/0.35.0/vector-0.35.0-x86_64-unknown-linux-gnu.tar.gz"
+filename = "vector-0.35.0-x86_64-unknown-linux-gnu.tar.gz"
+sha256 = ""
+
+# LLM Models
+# ==========
+# Large model files for AI/ML functionality
+
+[models.deepseek_small]
+name = "DeepSeek R1 Distill Qwen 1.5B (Q3_K_M)"
+url = "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"
+filename = "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf"
+sha256 = ""
+
+[models.bge_embedding]
+name = "BGE Small EN v1.5 Embedding Model"
+url = "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf"
+filename = "bge-small-en-v1.5-f32.gguf"
+sha256 = ""
+
+# Optional larger models (uncomment to include)
+# [models.gpt_oss_20b]
+# name = "GPT-OSS 20B F16 (requires 16GB+ VRAM)"
+# url = "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf"
+# filename = "gpt-oss-20b-F16.gguf"
+# sha256 = ""
