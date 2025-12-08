@@ -62,7 +62,7 @@ CREATE TABLE IF NOT EXISTS session_website_associations (
     -- Foreign key to sessions table
     CONSTRAINT fk_session_website_session
         FOREIGN KEY (session_id)
-        REFERENCES sessions(id)
+        REFERENCES user_sessions(id)
         ON DELETE CASCADE,
 
     -- Foreign key to bots table

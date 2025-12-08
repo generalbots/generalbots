@@ -107,7 +107,7 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/system/certificates/minio > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/system/certificates/drive > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
                 check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}}".to_string(),
             },
         );
@@ -124,20 +124,20 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/theseus-rs/postgresql-binaries/releases/download/18.0.0/postgresql-18.0.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
+                    "https://github.com/theseus-rs/postgresql-binaries/releases/download/17.2.0/postgresql-17.2.0-x86_64-unknown-linux-gnu.tar.gz".to_string(),
                 ),
                 binary_name: Some("postgres".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
                     "chmod +x ./bin/*".to_string(),
-                    format!("if [ ! -d \"{{{{DATA_PATH}}}}/pgdata\" ]; then PG_PASSWORD={{DB_PASSWORD}} ./bin/initdb -D {{{{DATA_PATH}}}}/pgdata -U gbuser --pwfile=<(echo $PG_PASSWORD); fi"),
+                    "if [ ! -d \"{{DATA_PATH}}/pgdata\" ]; then PG_PASSWORD='{{DB_PASSWORD}}' ./bin/initdb -D {{DATA_PATH}}/pgdata -U gbuser --pwfile=<(echo \"$PG_PASSWORD\"); fi".to_string(),
                     "echo \"data_directory = '{{DATA_PATH}}/pgdata'\" > {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"ident_file = '{{CONF_PATH}}/pg_ident.conf'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"port = 5432\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"listen_addresses = '*'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"ssl = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl_cert_file = '{{CONF_PATH}}/system/certificates/postgres/server.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
-                    "echo \"ssl_key_file = '{{CONF_PATH}}/system/certificates/postgres/server.key'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl_cert_file = '{{CONF_PATH}}/system/certificates/tables/server.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
+                    "echo \"ssl_key_file = '{{CONF_PATH}}/system/certificates/tables/server.key'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"ssl_ca_file = '{{CONF_PATH}}/system/certificates/ca/ca.crt'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"log_directory = '{{LOGS_PATH}}'\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
                     "echo \"logging_collector = on\" >> {{CONF_PATH}}/postgresql.conf".to_string(),
@@ -147,7 +147,7 @@ impl PackageManager {
                     "sleep 5".to_string(),
                     "for i in $(seq 1 30); do ./bin/pg_isready -h localhost -p 5432 -U gbuser >/dev/null 2>&1 && echo 'PostgreSQL is ready' && break || echo \"Waiting for PostgreSQL... attempt $i/30\" >&2; sleep 2; done".to_string(),
                     "./bin/pg_isready -h localhost -p 5432 -U gbuser || { echo 'ERROR: PostgreSQL failed to start properly' >&2; cat {{LOGS_PATH}}/postgres.log >&2; exit 1; }".to_string(),
-                    format!("PGPASSWORD={{DB_PASSWORD}} ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true"),
+                    "PGPASSWORD='{{DB_PASSWORD}}' ./bin/psql -h localhost -p 5432 -U gbuser -d postgres -c \"CREATE DATABASE botserver WITH OWNER gbuser\" 2>&1 | grep -v 'already exists' || true".to_string(),
                 ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![
@@ -165,6 +165,8 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
+        // Using Valkey - the Redis-compatible fork with pre-built binaries
+        // Valkey is maintained by the Linux Foundation and provides direct binary downloads
         self.components.insert(
             "cache".to_string(),
             ComponentConfig {
@@ -175,19 +177,23 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://download.redis.io/redis-stable.tar.gz".to_string(),
+                    "https://github.com/valkey-io/valkey/releases/download/9.0.0/valkey-9.0.0-linux-x86_64.tar.gz".to_string(),
                 ),
-                binary_name: Some("redis-server".to_string()),
+                binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![
+                    // Create symlink for redis-server compatibility
+                    "ln -sf {{BIN_PATH}}/valkey-server {{BIN_PATH}}/redis-server 2>/dev/null || true".to_string(),
+                    "ln -sf {{BIN_PATH}}/valkey-cli {{BIN_PATH}}/redis-cli 2>/dev/null || true".to_string(),
+                ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/redis-server --port 0 --tls-port 6379 --tls-cert-file {{CONF_PATH}}/system/certificates/redis/server.crt --tls-key-file {{CONF_PATH}}/system/certificates/redis/server.key --tls-ca-cert-file {{CONF_PATH}}/system/certificates/ca/ca.crt".to_string(),
-                check_cmd: "ps -ef | grep redis-server | grep -v grep | grep {{BIN_PATH}}".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/valkey-server --port 6379 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
+                check_cmd: "{{BIN_PATH}}/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
             },
         );
     }
@@ -308,11 +314,14 @@ impl PackageManager {
                 binary_name: Some("zitadel".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
+                    "mkdir -p {{LOGS_PATH}}".to_string(),
                 ],
                 post_install_cmds_linux: vec![
-                    // Initialize Zitadel with first instance setup to generate admin PAT
-                    "{{BIN_PATH}}/zitadel init --config {{CONF_PATH}}/directory/zitadel.yaml".to_string(),
-                    "{{BIN_PATH}}/zitadel setup --config {{CONF_PATH}}/directory/zitadel.yaml --init-projections --masterkeyFromEnv --steps {{CONF_PATH}}/directory/steps.yaml".to_string(),
+                    // Use start-from-init which does init + setup + start in one command
+                    // This properly creates the first instance with PAT
+                    "ZITADEL_MASTERKEY=MasterkeyNeedsToHave32Characters nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                    // Wait for Zitadel to be fully ready (up to 90 seconds for first instance setup)
+                    "for i in $(seq 1 90); do curl -sf http://localhost:8080/debug/ready && break || sleep 1; done".to_string(),
                 ],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
@@ -718,31 +727,17 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip".to_string(),
+                    "https://releases.hashicorp.com/vault/1.15.4/vault_1.15.4_linux_amd64.zip"
+                        .to_string(),
                 ),
                 binary_name: Some("vault".to_string()),
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
                     "mkdir -p {{CONF_PATH}}/vault".to_string(),
                 ],
-                post_install_cmds_linux: vec![
-                    // Initialize Vault and store root token
-                    "{{BIN_PATH}}/vault operator init -key-shares=1 -key-threshold=1 -format=json > {{CONF_PATH}}/vault/init.json".to_string(),
-                    // Extract and store unseal key and root token
-                    "VAULT_UNSEAL_KEY=$(cat {{CONF_PATH}}/vault/init.json | grep -o '\"unseal_keys_b64\":\\[\"[^\"]*\"' | cut -d'\"' -f4)".to_string(),
-                    "VAULT_ROOT_TOKEN=$(cat {{CONF_PATH}}/vault/init.json | grep -o '\"root_token\":\"[^\"]*\"' | cut -d'\"' -f4)".to_string(),
-                    // Unseal vault
-                    "{{BIN_PATH}}/vault operator unseal $VAULT_UNSEAL_KEY".to_string(),
-                    // Enable KV secrets engine
-                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault secrets enable -path=gbo kv-v2".to_string(),
-                    // Store initial secrets paths
-                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/drive accesskey={{GENERATED_PASSWORD}} secret={{GENERATED_PASSWORD}}".to_string(),
-                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/tables username=gbuser password={{GENERATED_PASSWORD}}".to_string(),
-                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/cache password={{GENERATED_PASSWORD}}".to_string(),
-                    "VAULT_TOKEN=$VAULT_ROOT_TOKEN {{BIN_PATH}}/vault kv put gbo/directory client_id= client_secret=".to_string(),
-                    "echo 'Vault initialized. Add VAULT_ADDR=https://localhost:8200 and VAULT_TOKEN to .env'".to_string(),
-                    "chmod 600 {{CONF_PATH}}/vault/init.json".to_string(),
-                ],
+                // Note: Vault initialization is handled in bootstrap::setup_vault()
+                // because it requires the Vault server to be running first
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
                     "mkdir -p {{CONF_PATH}}/vault".to_string(),
@@ -752,13 +747,18 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: {
                     let mut env = HashMap::new();
-                    env.insert("VAULT_ADDR".to_string(), "https://localhost:8200".to_string());
+                    env.insert(
+                        "VAULT_ADDR".to_string(),
+                        "https://localhost:8200".to_string(),
+                    );
                     env.insert("VAULT_SKIP_VERIFY".to_string(), "true".to_string());
                     env
                 },
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl".to_string(),
-                check_cmd: "curl -f -k https://localhost:8200/v1/sys/health >/dev/null 2>&1".to_string(),
+                exec_cmd: "{{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl"
+                    .to_string(),
+                check_cmd: "curl -f -k https://localhost:8200/v1/sys/health >/dev/null 2>&1"
+                    .to_string(),
             },
         );
     }

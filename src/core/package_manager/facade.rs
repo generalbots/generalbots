@@ -434,8 +434,10 @@ impl PackageManager {
         } else {
             PathBuf::from("/opt/gbo/data")
         };
+        // CONF_PATH should be the base conf directory, not component-specific
+        // Commands that need component subdirs include them explicitly (e.g., {{CONF_PATH}}/directory/zitadel.yaml)
         let conf_path = if target == "local" {
-            self.base_path.join("conf").join(component)
+            self.base_path.join("conf")
         } else {
             PathBuf::from("/opt/gbo/conf")
         };
@@ -444,12 +446,28 @@ impl PackageManager {
         } else {
             PathBuf::from("/opt/gbo/logs")
         };
+        
+        // Get DB password from Vault for commands that need it (e.g., PostgreSQL initdb)
+        let db_password = match get_database_url_sync() {
+            Ok(url) => {
+                let (_, password, _, _, _) = parse_database_url(&url);
+                password
+            }
+            Err(_) => {
+                // Vault not available yet - this is OK during early bootstrap
+                // Commands that don't need DB_PASSWORD will still work
+                trace!("Vault not available for DB_PASSWORD, using empty string");
+                String::new()
+            }
+        };
+        
         for cmd in commands {
             let rendered_cmd = cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
                 .replace("{{DATA_PATH}}", &data_path.to_string_lossy())
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
-                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
+                .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy())
+                .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
                 let child = Command::new("bash")

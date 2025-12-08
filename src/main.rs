@@ -255,7 +255,10 @@ async fn main() -> std::io::Result<()> {
     // Initialize SecretsManager early - this connects to Vault if configured
     // Only VAULT_ADDR, VAULT_TOKEN, and VAULT_SKIP_VERIFY should be in .env
     if let Err(e) = crate::shared::utils::init_secrets_manager().await {
-        warn!("Failed to initialize SecretsManager: {}. Falling back to env vars.", e);
+        warn!(
+            "Failed to initialize SecretsManager: {}. Falling back to env vars.",
+            e
+        );
     } else {
         info!("SecretsManager initialized - fetching secrets from Vault");
     }
@@ -416,11 +419,20 @@ async fn main() -> std::io::Result<()> {
         trace!("Creating BootstrapManager...");
         let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
 
-        // Check if services are already configured in Directory
-        let services_configured =
-            std::path::Path::new("./botserver-stack/conf/directory/zitadel.yaml").exists();
+        // Check if bootstrap has completed by looking for:
+        // 1. .env with VAULT_TOKEN
+        // 2. Vault init.json exists (actual credentials)
+        // Both must exist for bootstrap to be considered complete
+        let env_path = std::path::Path::new("./.env");
+        let vault_init_path = std::path::Path::new("./botserver-stack/conf/vault/init.json");
+        let bootstrap_completed = env_path.exists() && vault_init_path.exists() && {
+            // Check if .env contains VAULT_TOKEN (not just exists)
+            std::fs::read_to_string(env_path)
+                .map(|content| content.contains("VAULT_TOKEN="))
+                .unwrap_or(false)
+        };
 
-        let cfg = if services_configured {
+        let cfg = if bootstrap_completed {
             trace!("Services already configured, ensuring all are running...");
             info!("Ensuring database and drive services are running...");
             progress_tx_clone
@@ -437,6 +449,7 @@ async fn main() -> std::io::Result<()> {
 
             bootstrap
                 .start_all()
+                .await
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
             trace!("bootstrap.start_all() completed");
 
@@ -471,6 +484,7 @@ async fn main() -> std::io::Result<()> {
                 .ok();
             bootstrap
                 .start_all()
+                .await
                 .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
 
             match create_conn() {
@@ -480,21 +494,34 @@ async fn main() -> std::io::Result<()> {
             }
         };
 
-        trace!("Config loaded, uploading templates...");
+        trace!("Config loaded, syncing templates to database...");
         progress_tx_clone
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
 
-        if let Err(e) = bootstrap.upload_templates_to_drive(&cfg).await {
-            trace!("Template upload error: {}", e);
-            progress_tx_clone
-                .send(BootstrapProgress::BootstrapError(format!(
-                    "Failed to upload templates: {}",
-                    e
-                )))
-                .ok();
+        // First sync config.csv to database (fast, no S3 needed)
+        if let Err(e) = bootstrap.sync_templates_to_database() {
+            warn!("Failed to sync templates to database: {}", e);
         } else {
-            trace!("Templates uploaded successfully");
+            trace!("Templates synced to database");
+        }
+
+        // Then upload to drive with timeout to prevent blocking on MinIO issues
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(30),
+            bootstrap.upload_templates_to_drive(&cfg),
+        )
+        .await
+        {
+            Ok(Ok(_)) => {
+                trace!("Templates uploaded to drive successfully");
+            }
+            Ok(Err(e)) => {
+                warn!("Template drive upload error (non-blocking): {}", e);
+            }
+            Err(_) => {
+                warn!("Template drive upload timed out after 30s, continuing startup...");
+            }
         }
 
         Ok::<AppConfig, std::io::Error>(cfg)
@@ -504,10 +531,6 @@ async fn main() -> std::io::Result<()> {
     let cfg = cfg?;
     trace!("Reloading dotenv...");
     dotenv().ok();
-
-    trace!("Loading refreshed config from env...");
-    let refreshed_cfg = AppConfig::from_env().expect("Failed to load config from env");
-    let config = std::sync::Arc::new(refreshed_cfg.clone());
 
     trace!("Creating database pool again...");
     progress_tx.send(BootstrapProgress::ConnectingDatabase).ok();
@@ -540,6 +563,21 @@ async fn main() -> std::io::Result<()> {
             ));
         }
     };
+
+    // Load config from database (which now has values from config.csv)
+    info!("Loading config from database after template sync...");
+    let refreshed_cfg = AppConfig::from_database(&pool).unwrap_or_else(|e| {
+        warn!(
+            "Failed to load config from database: {}, falling back to env",
+            e
+        );
+        AppConfig::from_env().expect("Failed to load config from env")
+    });
+    let config = std::sync::Arc::new(refreshed_cfg.clone());
+    info!(
+        "Server configured to listen on {}:{}",
+        config.server.host, config.server.port
+    );
 
     let cache_url = "rediss://localhost:6379".to_string();
     let redis_client = match redis::Client::open(cache_url.as_str()) {
@@ -583,11 +621,16 @@ async fn main() -> std::io::Result<()> {
     let config_manager = ConfigManager::new(pool.clone());
 
     let mut bot_conn = pool.get().expect("Failed to get database connection");
-    let (default_bot_id, _default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
+    let (default_bot_id, default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
+    info!(
+        "Using default bot: {} (id: {})",
+        default_bot_name, default_bot_id
+    );
 
     let llm_url = config_manager
-        .get_config(&default_bot_id, "llm-url", Some("https://localhost:8081"))
-        .unwrap_or_else(|_| "https://localhost:8081".to_string());
+        .get_config(&default_bot_id, "llm-url", Some("http://localhost:8081"))
+        .unwrap_or_else(|_| "http://localhost:8081".to_string());
+    info!("LLM URL: {}", llm_url);
 
     // Create base LLM provider
     let base_llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
@@ -602,12 +645,14 @@ async fn main() -> std::io::Result<()> {
             .get_config(
                 &default_bot_id,
                 "embedding-url",
-                Some("https://localhost:8082"),
+                Some("http://localhost:8082"),
             )
-            .unwrap_or_else(|_| "https://localhost:8082".to_string());
+            .unwrap_or_else(|_| "http://localhost:8082".to_string());
         let embedding_model = config_manager
             .get_config(&default_bot_id, "embedding-model", Some("all-MiniLM-L6-v2"))
             .unwrap_or_else(|_| "all-MiniLM-L6-v2".to_string());
+        info!("Embedding URL: {}", embedding_url);
+        info!("Embedding Model: {}", embedding_model);
 
         let embedding_service = Some(Arc::new(botserver::llm::cache::LocalEmbeddingService::new(
             embedding_url,
