@@ -440,7 +440,13 @@ impl PackageManager {
                     self.install_binary(temp_file, bin_path, name)?;
                 } else {
                     let final_path = bin_path.join(temp_file.file_name().unwrap());
-                    std::fs::rename(temp_file, &final_path)?;
+                    // Copy instead of rename if source is in cache directory
+                    // This preserves cached files for offline installation
+                    if temp_file.to_string_lossy().contains("botserver-installers") {
+                        std::fs::copy(temp_file, &final_path)?;
+                    } else {
+                        std::fs::rename(temp_file, &final_path)?;
+                    }
                     self.make_executable(&final_path)?;
                 }
             }
@@ -458,7 +464,11 @@ impl PackageManager {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        std::fs::remove_file(temp_file)?;
+        // Only delete if NOT in the cache directory (botserver-installers)
+        // Cached files should be preserved for offline installation
+        if !temp_file.to_string_lossy().contains("botserver-installers") {
+            std::fs::remove_file(temp_file)?;
+        }
         Ok(())
     }
     pub fn extract_zip(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
@@ -472,7 +482,11 @@ impl PackageManager {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        std::fs::remove_file(temp_file)?;
+        // Only delete if NOT in the cache directory (botserver-installers)
+        // Cached files should be preserved for offline installation
+        if !temp_file.to_string_lossy().contains("botserver-installers") {
+            std::fs::remove_file(temp_file)?;
+        }
         Ok(())
     }
     pub fn install_binary(
@@ -482,7 +496,13 @@ impl PackageManager {
         name: &str,
     ) -> Result<()> {
         let final_path = bin_path.join(name);
-        std::fs::rename(temp_file, &final_path)?;
+        // Copy instead of rename if source is in cache directory
+        // This preserves cached files for offline installation
+        if temp_file.to_string_lossy().contains("botserver-installers") {
+            std::fs::copy(temp_file, &final_path)?;
+        } else {
+            std::fs::rename(temp_file, &final_path)?;
+        }
         self.make_executable(&final_path)?;
         Ok(())
     }
