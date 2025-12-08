@@ -257,55 +257,35 @@ impl EmailConfig {
 impl AppConfig {
     pub fn from_database(pool: &DbPool) -> Result<Self, diesel::result::Error> {
         use crate::shared::models::schema::bot_configuration::dsl::*;
+        use diesel::prelude::*;
+
         let mut conn = pool.get().map_err(|e| {
             diesel::result::Error::DatabaseError(
                 diesel::result::DatabaseErrorKind::UnableToSendCommand,
                 Box::new(e.to_string()),
             )
         })?;
-        let config_map: HashMap<String, (Uuid, Uuid, String, String, String, bool)> =
-            bot_configuration
-                .select((
-                    id,
-                    bot_id,
-                    config_key,
-                    config_value,
-                    config_type,
-                    is_encrypted,
-                ))
-                .load::<(Uuid, Uuid, String, String, String, bool)>(&mut conn)
-                .unwrap_or_default()
-                .into_iter()
-                .map(|(_, _, key, value, _, _)| {
-                    (
-                        key.clone(),
-                        (Uuid::nil(), Uuid::nil(), key, value, String::new(), false),
-                    )
-                })
-                .collect();
-        let mut get_str = |key: &str, default: &str| -> String {
-            bot_configuration
-                .filter(config_key.eq(key))
-                .select(config_value)
-                .first::<String>(&mut conn)
-                .unwrap_or_else(|_| default.to_string())
-        };
-        let _get_u32 = |key: &str, default: u32| -> u32 {
+
+        // Load all config values into a HashMap for efficient lookup
+        let config_map: HashMap<String, String> = bot_configuration
+            .select((config_key, config_value))
+            .load::<(String, String)>(&mut conn)
+            .unwrap_or_default()
+            .into_iter()
+            .collect();
+
+        // Helper functions that use the pre-loaded config_map
+        let get_str = |key: &str, default: &str| -> String {
             config_map
                 .get(key)
-                .and_then(|v| v.3.parse().ok())
-                .unwrap_or(default)
+                .cloned()
+                .unwrap_or_else(|| default.to_string())
         };
+
         let get_u16 = |key: &str, default: u16| -> u16 {
             config_map
                 .get(key)
-                .and_then(|v| v.3.parse().ok())
-                .unwrap_or(default)
-        };
-        let _get_bool = |key: &str, default: bool| -> bool {
-            config_map
-                .get(key)
-                .map(|v| v.3.to_lowercase() == "true")
+                .and_then(|v| v.parse().ok())
                 .unwrap_or(default)
         };
         let drive = DriveConfig {
@@ -326,9 +306,9 @@ impl AppConfig {
             drive,
             email,
             server: ServerConfig {
-                host: get_str("SERVER_HOST", "127.0.0.1"),
-                port: get_u16("SERVER_PORT", 8080),
-                base_url: get_str("SERVER_BASE_URL", "http://localhost:8080"),
+                host: get_str("server_host", "0.0.0.0"),
+                port: get_u16("server_port", 8080),
+                base_url: get_str("server_base_url", "http://localhost:8080"),
             },
             site_path: {
                 ConfigManager::new(pool.clone())

@@ -75,7 +75,7 @@ impl std::fmt::Debug for SecretsManager {
 
 impl SecretsManager {
     /// Create from environment variables with mTLS support
-    /// 
+    ///
     /// Environment variables:
     /// - VAULT_ADDR - Vault server address (https://localhost:8200)
     /// - VAULT_TOKEN - Vault authentication token
@@ -94,14 +94,16 @@ impl SecretsManager {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(300);
-        
+
         // mTLS certificate paths - default to botserver-stack paths
         let ca_cert = env::var("VAULT_CACERT")
             .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string());
-        let client_cert = env::var("VAULT_CLIENT_CERT")
-            .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/botserver/client.crt".to_string());
-        let client_key = env::var("VAULT_CLIENT_KEY")
-            .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/botserver/client.key".to_string());
+        let client_cert = env::var("VAULT_CLIENT_CERT").unwrap_or_else(|_| {
+            "./botserver-stack/conf/system/certificates/botserver/client.crt".to_string()
+        });
+        let client_key = env::var("VAULT_CLIENT_KEY").unwrap_or_else(|_| {
+            "./botserver-stack/conf/system/certificates/botserver/client.key".to_string()
+        });
 
         let enabled = !token.is_empty() && !addr.is_empty();
 
@@ -119,40 +121,28 @@ impl SecretsManager {
         let ca_path = PathBuf::from(&ca_cert);
         let cert_path = PathBuf::from(&client_cert);
         let key_path = PathBuf::from(&client_key);
-        
+
         let mut settings_builder = VaultClientSettingsBuilder::default();
-        settings_builder
-            .address(&addr)
-            .token(&token);
-        
+        settings_builder.address(&addr).token(&token);
+
         // Configure TLS verification
         if skip_verify {
             warn!("TLS verification disabled - NOT RECOMMENDED FOR PRODUCTION");
             settings_builder.verify(false);
         } else {
             settings_builder.verify(true);
-            
             // Add CA certificate if it exists
             if ca_path.exists() {
                 info!("Using CA certificate for Vault: {}", ca_cert);
                 settings_builder.ca_certs(vec![ca_cert.clone()]);
             }
         }
-        
+
         // Configure mTLS client certificates if they exist
-        if cert_path.exists() && key_path.exists() {
+        if cert_path.exists() && key_path.exists() && !skip_verify {
             info!("Using mTLS client certificate for Vault: {}", client_cert);
-            // Note: vaultrs uses the identity parameter for client certificates
-            // The identity is a PKCS12/PFX file or can be set via environment
-            // For now, we set environment variables that the underlying reqwest client will use
-            env::set_var("SSL_CERT_FILE", &ca_cert);
-            // Client certificate authentication is handled by reqwest through env vars
-            // or by building a custom client - vaultrs doesn't directly support client certs
-            // We'll document this limitation and use token auth with TLS verification
-        } else if !skip_verify {
-            info!("mTLS client certificates not found at {} - using token auth with TLS", client_cert);
         }
-        
+
         let settings = settings_builder.build()?;
         let client = VaultClient::new(settings)?;
 
