@@ -506,8 +506,10 @@ impl XtreeUI {
             .border_style(Style::default().fg(border))
             .style(Style::default().bg(bg));
 
+        // Calculate visible lines for log panel (area height minus borders)
+        let logs_visible_lines = main_chunks[2].height.saturating_sub(2) as usize;
         let logs_content = if let Ok(panel) = self.log_panel.lock() {
-            panel.render()
+            panel.render(logs_visible_lines)
         } else {
             String::from("  Waiting for logs...")
         };
@@ -720,12 +722,24 @@ impl XtreeUI {
         title_bg: Color,
         title_fg: Color,
     ) {
+        // Calculate visible lines (area height minus borders)
+        let visible_lines = area.height.saturating_sub(2) as usize;
+
         let log_panel = self.log_panel.try_lock();
-        let log_lines = if let Ok(panel) = log_panel {
-            panel.render()
-        } else {
-            "Loading logs...".to_string()
-        };
+        let (log_lines, can_scroll_up, can_scroll_down, logs_count, auto_scroll) =
+            if let Ok(panel) = log_panel {
+                let (content, up, down) = panel.render_with_scroll_indicator(visible_lines);
+                (
+                    content,
+                    up,
+                    down,
+                    panel.logs_count(),
+                    panel.is_auto_scroll(),
+                )
+            } else {
+                ("Loading logs...".to_string(), false, false, 0, true)
+            };
+
         let is_active = self.active_panel == ActivePanel::Logs;
         let border_color = if is_active {
             border_active
@@ -740,8 +754,26 @@ impl XtreeUI {
         } else {
             Style::default().fg(title_fg).bg(title_bg)
         };
+
+        // Build title with scroll indicators
+        let scroll_indicator = if can_scroll_up && can_scroll_down {
+            " [^v] "
+        } else if can_scroll_up {
+            " [^] "
+        } else if can_scroll_down {
+            " [v] "
+        } else {
+            ""
+        };
+
+        let auto_indicator = if auto_scroll { "" } else { " [SCROLL] " };
+        let title_text = format!(
+            " SYSTEM LOGS ({}) {}{}",
+            logs_count, scroll_indicator, auto_indicator
+        );
+
         let block = Block::default()
-            .title(Span::styled(" SYSTEM LOGS ", title_style))
+            .title(Span::styled(title_text, title_style))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border_color))
             .style(Style::default().bg(bg));
@@ -816,7 +848,11 @@ impl XtreeUI {
                     }
                 }
                 KeyCode::Tab => {
-                    self.active_panel = ActivePanel::Chat;
+                    if self.editor.is_some() {
+                        self.active_panel = ActivePanel::Editor;
+                    } else {
+                        self.active_panel = ActivePanel::Logs;
+                    }
                 }
                 KeyCode::Char('q') => {
                     self.should_quit = true;
@@ -841,6 +877,19 @@ impl XtreeUI {
                         KeyCode::Down => editor.move_down(),
                         KeyCode::Left => editor.move_left(),
                         KeyCode::Right => editor.move_right(),
+                        KeyCode::PageUp => editor.page_up(),
+                        KeyCode::PageDown => editor.page_down(),
+                        KeyCode::Home => {
+                            if modifiers.contains(KeyModifiers::CONTROL) {
+                                editor.goto_line(1);
+                            }
+                        }
+                        KeyCode::End => {
+                            if modifiers.contains(KeyModifiers::CONTROL) {
+                                let line_count = editor.file_path().lines().count().max(1);
+                                editor.goto_line(line_count);
+                            }
+                        }
                         KeyCode::Char(c) => editor.insert_char(c),
                         KeyCode::Backspace => editor.backspace(),
                         KeyCode::Enter => editor.insert_newline(),
@@ -857,9 +906,52 @@ impl XtreeUI {
                     }
                 }
             }
+            ActivePanel::Logs => match key {
+                KeyCode::Up | KeyCode::Char('k') => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.scroll_up(1);
+                    }
+                }
+                KeyCode::Down | KeyCode::Char('j') => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.scroll_down(1, 10); // approximate visible lines
+                    }
+                }
+                KeyCode::PageUp => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.page_up(10);
+                    }
+                }
+                KeyCode::PageDown => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.page_down(10);
+                    }
+                }
+                KeyCode::Home => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.scroll_to_top();
+                    }
+                }
+                KeyCode::End => {
+                    if let Ok(mut panel) = self.log_panel.lock() {
+                        panel.scroll_to_bottom();
+                    }
+                }
+                KeyCode::Tab => {
+                    self.active_panel = ActivePanel::Chat;
+                }
+                KeyCode::Char('q') => {
+                    self.should_quit = true;
+                }
+                _ => {}
+            },
             ActivePanel::Chat => match key {
                 KeyCode::Tab => {
-                    self.active_panel = ActivePanel::FileTree;
+                    if self.editor.is_some() {
+                        self.active_panel = ActivePanel::Editor;
+                    } else {
+                        self.active_panel = ActivePanel::FileTree;
+                    }
                 }
                 KeyCode::Enter => {
                     if let (Some(chat_panel), Some(file_tree), Some(app_state)) =
@@ -887,13 +979,7 @@ impl XtreeUI {
             },
             ActivePanel::Status => match key {
                 KeyCode::Tab => {
-                    self.active_panel = ActivePanel::Logs;
-                }
-                _ => {}
-            },
-            ActivePanel::Logs => match key {
-                KeyCode::Tab => {
-                    self.active_panel = ActivePanel::FileTree;
+                    self.active_panel = ActivePanel::Chat;
                 }
                 _ => {}
             },
