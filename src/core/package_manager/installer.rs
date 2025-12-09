@@ -107,8 +107,8 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/system/certificates/drive > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}}".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -165,8 +165,8 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
-        // Using Valkey - the Redis-compatible fork with pre-built binaries
-        // Valkey is maintained by the Linux Foundation and provides direct binary downloads
+        // Using Valkey - the Redis-compatible fork
+        // Source tarball - requires compilation with make
         self.components.insert(
             "cache".to_string(),
             ComponentConfig {
@@ -177,7 +177,7 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/valkey-io/valkey/releases/download/9.0.0/valkey-9.0.0-linux-x86_64.tar.gz".to_string(),
+                    "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz".to_string(),
                 ),
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
@@ -411,7 +411,7 @@ impl PackageManager {
                 },
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml".to_string(),
-                check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}}".to_string(),
+                check_cmd: "ps -ef | grep forgejo-runner | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -856,13 +856,15 @@ impl PackageManager {
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            let check_status = std::process::Command::new("sh")
+            let check_output = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&check_cmd)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .status();
 
-            if check_status.is_ok() && check_status.unwrap().success() {
+            if check_output.is_ok() && check_output.unwrap().success() {
                 trace!("Component {} is already running", component.name);
                 return Ok(std::process::Command::new("sh")
                     .arg("-c")
@@ -884,12 +886,21 @@ impl PackageManager {
                 rendered_cmd
             );
 
+            // Fetch credentials from Vault for special placeholders
+            let vault_credentials = Self::fetch_vault_credentials();
+
             // Create new env vars map with evaluated $VAR references
             let mut evaluated_envs = HashMap::new();
             for (k, v) in &component.env_vars {
                 if v.starts_with('$') {
                     let var_name = &v[1..];
-                    evaluated_envs.insert(k.clone(), std::env::var(var_name).unwrap_or_default());
+                    // First check Vault credentials, then fall back to env vars
+                    let value = vault_credentials
+                        .get(var_name)
+                        .cloned()
+                        .or_else(|| std::env::var(var_name).ok())
+                        .unwrap_or_default();
+                    evaluated_envs.insert(k.clone(), value);
                 } else {
                     evaluated_envs.insert(k.clone(), v.clone());
                 }
@@ -923,7 +934,73 @@ impl PackageManager {
                 }
             }
         } else {
-            Err(anyhow::anyhow!("Component {} not found", component))
+            Err(anyhow::anyhow!("Component not found: {}", component))
         }
+    }
+
+    /// Fetch credentials from Vault for component env var placeholders
+    /// Returns a HashMap with keys like DRIVE_ACCESSKEY, DRIVE_SECRET, etc.
+    fn fetch_vault_credentials() -> HashMap<String, String> {
+        let mut credentials = HashMap::new();
+
+        // Try to fetch drive credentials from Vault using vault CLI
+        let vault_addr =
+            std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://localhost:8200".to_string());
+        let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
+
+        if vault_token.is_empty() {
+            trace!("VAULT_TOKEN not set, skipping Vault credential fetch");
+            return credentials;
+        }
+
+        // Fetch drive credentials
+        if let Ok(output) = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!(
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get -format=json secret/gbo/drive 2>/dev/null",
+                vault_addr, vault_token
+            ))
+            .output()
+        {
+            if output.status.success() {
+                if let Ok(json_str) = String::from_utf8(output.stdout) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                        if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
+                            if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
+                                credentials.insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
+                            }
+                            if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
+                                credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fetch cache credentials
+        if let Ok(output) = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!(
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get -format=json secret/gbo/cache 2>/dev/null",
+                vault_addr, vault_token
+            ))
+            .output()
+        {
+            if output.status.success() {
+                if let Ok(json_str) = String::from_utf8(output.stdout) {
+                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
+                        if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
+                            if let Some(password) = data.get("password").and_then(|v| v.as_str()) {
+                                credentials.insert("CACHE_PASSWORD".to_string(), password.to_string());
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        trace!("Fetched {} credentials from Vault", credentials.len());
+        credentials
     }
 }

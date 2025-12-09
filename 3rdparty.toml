@@ -38,13 +38,12 @@ sha256 = ""
 
 [components.cache]
 name = "Valkey Cache (Redis-compatible)"
-# Note: Valkey doesn't provide prebuilt binaries, using source tarball
-# You may need to compile from source or use system package manager
+# Valkey requires compilation from source - no prebuilt binaries available
+# The installer will run 'make' to build valkey-server and valkey-cli
+# Requires: gcc, make (usually available on most Linux systems)
 url = "https://github.com/valkey-io/valkey/archive/refs/tags/8.0.2.tar.gz"
 filename = "valkey-8.0.2.tar.gz"
 sha256 = ""
-# Alternative: Use Redis from system package or Docker
-# For prebuilt, consider: https://download.redis.io/releases/redis-7.2.4.tar.gz
 
 [components.llm]
 name = "Llama.cpp Server"

@@ -291,6 +291,11 @@ async fn run_axum_server(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // Parse args early to check for --noconsole/--noui
+    let args: Vec<String> = std::env::args().collect();
+    let no_ui = args.contains(&"--noui".to_string());
+    let no_console = args.contains(&"--noconsole".to_string());
+
     // Install rustls crypto provider (ring) before any TLS operations
     // This must be done before any code that might use rustls
     let _ = rustls::crypto::ring::default_provider().install_default();
@@ -340,22 +345,22 @@ async fn main() -> std::io::Result<()> {
     // Set the RUST_LOG env var if not already set
     std::env::set_var("RUST_LOG", &rust_log);
 
-    env_logger::Builder::from_env(env_logger::Env::default())
-        .write_style(env_logger::WriteStyle::Always)
-        .init();
-
-    println!(
-        "Starting {} {}...",
-        "General Bots".to_string(),
-        env!("CARGO_PKG_VERSION")
-    );
-
     use crate::llm::local::ensure_llama_servers_running;
     use botserver::config::ConfigManager;
 
-    let args: Vec<String> = std::env::args().collect();
-    let no_ui = args.contains(&"--noui".to_string());
-    let no_console = args.contains(&"--noconsole".to_string());
+    // Only initialize env_logger if console UI is disabled
+    // When console is enabled, the UI will set up its own logger to capture logs
+    if no_console || no_ui {
+        env_logger::Builder::from_env(env_logger::Env::default())
+            .write_style(env_logger::WriteStyle::Always)
+            .init();
+
+        println!(
+            "Starting {} {}...",
+            "General Bots".to_string(),
+            env!("CARGO_PKG_VERSION")
+        );
+    }
 
     // Configuration comes from Directory service, not .env files
 
@@ -382,6 +387,7 @@ async fn main() -> std::io::Result<()> {
     }
 
     // Start UI thread if console is enabled (default) and not disabled by --noconsole or --noui
+    // Start UI IMMEDIATELY - empty shell first, data fills in later via channel
     let ui_handle: Option<std::thread::JoinHandle<()>> = if !no_console && !no_ui {
         #[cfg(feature = "console")]
         {
@@ -394,28 +400,10 @@ async fn main() -> std::io::Result<()> {
                     .spawn(move || {
                         let mut ui = botserver::console::XtreeUI::new();
                         ui.set_progress_channel(progress_rx.clone());
+                        ui.set_state_channel(state_rx.clone());
 
-                        let rt = tokio::runtime::Builder::new_current_thread()
-                            .enable_all()
-                            .build()
-                            .expect("Failed to create UI runtime");
-
-                        rt.block_on(async {
-                            tokio::select! {
-                                result = async {
-                                    let mut rx = state_rx.lock().await;
-                                    rx.recv().await
-                                } => {
-                                    if let Some(app_state) = result {
-                                        ui.set_app_state(app_state);
-                                    }
-                                }
-                                _ = tokio::time::sleep(tokio::time::Duration::from_secs(300)) => {
-                                    eprintln!("UI initialization timeout");
-                                }
-                            }
-                        });
-
+                        // Start UI right away - shows empty loading state
+                        // UI will poll for state updates internally
                         if let Err(e) = ui.start_ui() {
                             eprintln!("UI error: {}", e);
                         }
@@ -625,7 +613,7 @@ async fn main() -> std::io::Result<()> {
         config.server.host, config.server.port
     );
 
-    let cache_url = "rediss://localhost:6379".to_string();
+    let cache_url = "redis://localhost:6379".to_string();
     let redis_client = match redis::Client::open(cache_url.as_str()) {
         Ok(client) => Some(Arc::new(client)),
         Err(e) => {
