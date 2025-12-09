@@ -24,6 +24,9 @@ pub async fn ensure_llama_servers_running(
         (
             default_bot_id,
             config_manager
+                .get_config(&default_bot_id, "llm-server", None)
+                .unwrap_or_else(|_| "false".to_string()),
+            config_manager
                 .get_config(&default_bot_id, "llm-url", None)
                 .unwrap_or_default(),
             config_manager
@@ -40,8 +43,24 @@ pub async fn ensure_llama_servers_running(
                 .unwrap_or_default(),
         )
     };
-    let (_default_bot_id, llm_url, llm_model, embedding_url, embedding_model, llm_server_path) =
-        config_values;
+    let (
+        _default_bot_id,
+        llm_server_enabled,
+        llm_url,
+        llm_model,
+        embedding_url,
+        embedding_model,
+        llm_server_path,
+    ) = config_values;
+
+    // Check if local LLM server management is enabled
+    let llm_server_enabled = llm_server_enabled.to_lowercase() == "true";
+    if !llm_server_enabled {
+        info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
+        info!("  LLM URL: {}", llm_url);
+        info!("  Embedding URL: {}", embedding_url);
+        return Ok(());
+    }
     info!("Starting LLM servers...");
     info!("Configuration:");
     info!("  LLM URL: {}", llm_url);
