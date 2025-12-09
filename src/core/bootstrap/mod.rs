@@ -155,9 +155,22 @@ impl BootstrapManager {
                 }
             }
 
-            // Try to unseal Vault
+            // Try to unseal Vault - if this fails, we need to re-bootstrap
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal check: {}", e);
+                warn!("Vault unseal failed: {} - running re-bootstrap", e);
+
+                // Kill all processes and run fresh bootstrap
+                Self::kill_stack_processes();
+                if let Err(e) = Self::clean_stack_directory() {
+                    error!("Failed to clean stack directory: {}", e);
+                }
+
+                // Run bootstrap from scratch
+                self.bootstrap().await?;
+
+                // After bootstrap, services are already running
+                info!("Re-bootstrap complete from start_all");
+                return Ok(());
             }
 
             // Initialize SecretsManager so other code can use Vault
@@ -165,7 +178,11 @@ impl BootstrapManager {
             match init_secrets_manager().await {
                 Ok(_) => info!("SecretsManager initialized successfully"),
                 Err(e) => {
-                    warn!("Failed to initialize SecretsManager: {}", e);
+                    error!("Failed to initialize SecretsManager: {}", e);
+                    return Err(anyhow::anyhow!(
+                        "SecretsManager initialization failed: {}",
+                        e
+                    ));
                 }
             }
         }
