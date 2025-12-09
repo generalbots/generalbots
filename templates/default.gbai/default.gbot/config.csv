@@ -32,7 +32,7 @@ embedding-model,../../../../data/llm/bge-small-en-v1.5-f32.gguf
 # ============================================================================
 # LLM SERVER CONFIGURATION
 # ============================================================================
-llm-server,false
+llm-server,true
 llm-server-path,botserver-stack/bin/llm/build/bin
 llm-server-host,0.0.0.0
 llm-server-port,8081
