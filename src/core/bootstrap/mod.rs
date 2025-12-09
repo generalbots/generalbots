@@ -87,21 +87,55 @@ impl BootstrapManager {
         info!("Stack processes terminated");
     }
 
-    /// Clean up the entire stack directory for a fresh bootstrap
-    pub fn clean_stack_directory() -> Result<()> {
-        let stack_dir = PathBuf::from("./botserver-stack");
+    /// Check if another botserver process is already running on this stack
+    pub fn check_single_instance() -> Result<bool> {
+        let lock_file = PathBuf::from("./botserver-stack/.lock");
+        if lock_file.exists() {
+            // Check if the PID in the lock file is still running
+            if let Ok(pid_str) = fs::read_to_string(&lock_file) {
+                if let Ok(pid) = pid_str.trim().parse::<i32>() {
+                    let check = Command::new("kill").args(["-0", &pid.to_string()]).output();
+                    if let Ok(output) = check {
+                        if output.status.success() {
+                            warn!("Another botserver process (PID {}) is already running on this stack", pid);
+                            return Ok(false);
+                        }
+                    }
+                }
+            }
+        }
+        // Write our PID to the lock file
+        let pid = std::process::id();
+        if let Some(parent) = lock_file.parent() {
+            fs::create_dir_all(parent).ok();
+        }
+        fs::write(&lock_file, pid.to_string()).ok();
+        Ok(true)
+    }
+
+    /// Release the instance lock on shutdown
+    pub fn release_instance_lock() {
+        let lock_file = PathBuf::from("./botserver-stack/.lock");
+        if lock_file.exists() {
+            fs::remove_file(&lock_file).ok();
+        }
+    }
+
+    /// Reset only Vault credentials (when re-initialization is needed)
+    /// NEVER deletes user data in botserver-stack
+    fn reset_vault_only() -> Result<()> {
+        let vault_init = PathBuf::from("./botserver-stack/conf/vault/init.json");
         let env_file = PathBuf::from("./.env");
 
-        if stack_dir.exists() {
-            info!("Removing existing stack directory...");
-            fs::remove_dir_all(&stack_dir)?;
-            info!("Stack directory removed");
+        // Only remove vault init.json and .env - NEVER touch data/
+        if vault_init.exists() {
+            info!("Removing vault init.json for re-initialization...");
+            fs::remove_file(&vault_init)?;
         }
 
         if env_file.exists() {
-            info!("Removing existing .env file...");
+            info!("Removing .env file for re-initialization...");
             fs::remove_file(&env_file)?;
-            info!(".env file removed");
         }
 
         Ok(())
@@ -155,21 +189,25 @@ impl BootstrapManager {
                 }
             }
 
-            // Try to unseal Vault - if this fails, we need to re-bootstrap
+            // Try to unseal Vault - if this fails, we need to re-initialize Vault only
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal failed: {} - running re-bootstrap", e);
+                warn!("Vault unseal failed: {} - re-initializing Vault only", e);
 
-                // Kill all processes and run fresh bootstrap
-                Self::kill_stack_processes();
-                if let Err(e) = Self::clean_stack_directory() {
-                    error!("Failed to clean stack directory: {}", e);
+                // Kill only Vault process, reset only Vault credentials
+                // NEVER delete user data in botserver-stack
+                let _ = Command::new("pkill")
+                    .args(["-9", "-f", "botserver-stack/bin/vault"])
+                    .output();
+
+                if let Err(e) = Self::reset_vault_only() {
+                    error!("Failed to reset Vault: {}", e);
                 }
 
-                // Run bootstrap from scratch
+                // Run bootstrap to re-initialize Vault
                 self.bootstrap().await?;
 
                 // After bootstrap, services are already running
-                info!("Re-bootstrap complete from start_all");
+                info!("Vault re-initialization complete");
                 return Ok(());
             }
 
@@ -318,22 +356,26 @@ impl BootstrapManager {
             // Always try to unseal Vault (it may have restarted)
             // If unseal fails, Vault may need re-initialization (data deleted)
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal failed: {} - running re-bootstrap", e);
+                warn!("Vault unseal failed: {} - re-initializing Vault only", e);
 
-                // Kill all processes and run fresh bootstrap
-                Self::kill_stack_processes();
-                Self::clean_stack_directory()?;
+                // Kill only Vault process - NEVER delete user data
+                let _ = Command::new("pkill")
+                    .args(["-9", "-f", "botserver-stack/bin/vault"])
+                    .output();
 
-                // Run bootstrap from scratch
+                // Reset only Vault credentials, preserve everything else
+                Self::reset_vault_only()?;
+
+                // Run bootstrap to re-initialize Vault
                 self.bootstrap().await?;
 
                 // After bootstrap, services are already running
-                info!("Re-bootstrap complete, verifying Vault is ready...");
+                info!("Vault re-initialization complete, verifying...");
                 tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
                 if let Err(e) = self.ensure_vault_unsealed().await {
                     return Err(anyhow::anyhow!(
-                        "Failed to configure Vault after re-bootstrap: {}",
+                        "Failed to configure Vault after re-initialization: {}",
                         e
                     ));
                 }
@@ -1292,79 +1334,120 @@ VAULT_CACHE_TTL=300
             ))
             .output();
 
-        // Store all secrets in Vault
-        info!("Storing secrets in Vault...");
+        // Store secrets in Vault - ONLY if they don't already exist
+        // This protects existing customer data in distributed environments
+        info!("Storing secrets in Vault (only if not existing)...");
 
-        // Database credentials
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
-                vault_addr, root_token, db_password
-            ))
-            .output()?;
-        info!("  Stored database credentials");
+        // Helper to check if a secret path exists
+        let secret_exists = |path: &str| -> bool {
+            let output = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get {} 2>/dev/null",
+                    vault_addr, root_token, path
+                ))
+                .output();
+            output.map(|o| o.status.success()).unwrap_or(false)
+        };
 
-        // Drive credentials
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/drive accesskey='{}' secret='{}'",
-                vault_addr, root_token, drive_accesskey, drive_secret
-            ))
-            .output()?;
-        info!("  Stored drive credentials");
+        // Database credentials - only create if not existing
+        if !secret_exists("secret/gbo/tables") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
+                    vault_addr, root_token, db_password
+                ))
+                .output()?;
+            info!("  Stored database credentials");
+        } else {
+            info!("  Database credentials already exist - preserving");
+        }
 
-        // Cache credentials
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/cache password='{}'",
-                vault_addr, root_token, cache_password
-            ))
-            .output()?;
-        info!("  Stored cache credentials");
+        // Drive credentials - only create if not existing
+        if !secret_exists("secret/gbo/drive") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/drive accesskey='{}' secret='{}'",
+                    vault_addr, root_token, drive_accesskey, drive_secret
+                ))
+                .output()?;
+            info!("  Stored drive credentials");
+        } else {
+            info!("  Drive credentials already exist - preserving");
+        }
 
-        // Directory placeholder (will be updated after Zitadel setup)
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8080 project_id= client_id= client_secret=",
-                vault_addr, root_token
-            ))
-            .output()?;
-        info!("  Created directory placeholder");
+        // Cache credentials - only create if not existing
+        if !secret_exists("secret/gbo/cache") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/cache password='{}'",
+                    vault_addr, root_token, cache_password
+                ))
+                .output()?;
+            info!("  Stored cache credentials");
+        } else {
+            info!("  Cache credentials already exist - preserving");
+        }
 
-        // LLM placeholder
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
-                vault_addr, root_token
-            ))
-            .output()?;
-        info!("  Created LLM placeholder");
+        // Directory placeholder - only create if not existing
+        if !secret_exists("secret/gbo/directory") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8080 project_id= client_id= client_secret=",
+                    vault_addr, root_token
+                ))
+                .output()?;
+            info!("  Created directory placeholder");
+        } else {
+            info!("  Directory credentials already exist - preserving");
+        }
 
-        // Email placeholder
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/email username= password=",
-                vault_addr, root_token
-            ))
-            .output()?;
-        info!("  Created email placeholder");
+        // LLM placeholder - only create if not existing
+        if !secret_exists("secret/gbo/llm") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
+                    vault_addr, root_token
+                ))
+                .output()?;
+            info!("  Created LLM placeholder");
+        } else {
+            info!("  LLM credentials already exist - preserving");
+        }
 
-        // Encryption key
-        let encryption_key = self.generate_secure_password(32);
-        let _ = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/encryption master_key='{}'",
-                vault_addr, root_token, encryption_key
-            ))
-            .output()?;
-        info!("  Generated and stored encryption key");
+        // Email placeholder - only create if not existing
+        if !secret_exists("secret/gbo/email") {
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/email username= password=",
+                    vault_addr, root_token
+                ))
+                .output()?;
+            info!("  Created email placeholder");
+        } else {
+            info!("  Email credentials already exist - preserving");
+        }
+
+        // Encryption key - only create if not existing (CRITICAL - never overwrite!)
+        if !secret_exists("secret/gbo/encryption") {
+            let encryption_key = self.generate_secure_password(32);
+            let _ = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/encryption master_key='{}'",
+                    vault_addr, root_token, encryption_key
+                ))
+                .output()?;
+            info!("  Generated and stored encryption key");
+        } else {
+            info!("  Encryption key already exists - preserving (CRITICAL)");
+        }
 
         info!("Vault setup complete!");
         info!("   Vault UI: {}/ui", vault_addr);
@@ -1675,13 +1758,12 @@ VAULT_CACHE_TTL=300
         })
     }
     pub fn apply_migrations(&self, conn: &mut diesel::PgConnection) -> Result<()> {
-        use diesel_migrations::HarnessWithOutput;
         use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
         const MIGRATIONS: EmbeddedMigrations = embed_migrations!("migrations");
 
-        let mut harness = HarnessWithOutput::write_to_stdout(conn);
-        if let Err(e) = harness.run_pending_migrations(MIGRATIONS) {
+        // Run migrations silently - don't output to console
+        if let Err(e) = conn.run_pending_migrations(MIGRATIONS) {
             error!("Failed to apply migrations: {}", e);
             return Err(anyhow::anyhow!("Migration error: {}", e));
         }
