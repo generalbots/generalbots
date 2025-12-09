@@ -44,7 +44,7 @@ pub fn register_clear_kb_keyword(
         match result {
             Ok(Ok(_)) => {
                 info!(
-                    "✅ KB '{}' removed from session {}",
+                    " KB '{}' removed from session {}",
                     kb_name, session_clone.id
                 );
                 Ok(Dynamic::UNIT)
@@ -131,7 +131,7 @@ fn clear_specific_kb(
         );
     } else {
         info!(
-            "✅ Cleared KB '{}' from session {}, {} KB(s) remaining active",
+            " Cleared KB '{}' from session {}, {} KB(s) remaining active",
             kb_name, session_id, remaining_count
         );
     }
@@ -160,7 +160,7 @@ fn clear_all_kbs(
 
     if rows_affected > 0 {
         info!(
-            "✅ Cleared {} active KBs from session {}",
+            " Cleared {} active KBs from session {}",
             rows_affected, session_id
         );
     } else {

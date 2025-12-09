@@ -350,9 +350,9 @@ impl XtreeUI {
                 .iter()
                 .map(|(comp_name, process, _port)| {
                     let status = if status_panel::StatusPanel::check_component_running(process) {
-                        format!("🟢 {}", comp_name)
+                        format!(" {}", comp_name)
                     } else {
-                        format!("🔴 {}", comp_name)
+                        format!(" {}", comp_name)
                     };
                     status
                 })
@@ -467,7 +467,7 @@ impl XtreeUI {
             .style(Style::default().bg(bg));
 
         let status_text = format!(
-            "\n  ⏳ {}\n\n  Components:\n    ○ Vault\n    ○ Database\n    ○ Drive\n    ○ Cache\n    ○ LLM",
+            "\n   {}\n\n  Components:\n    ○ Vault\n    ○ Database\n    ○ Drive\n    ○ Cache\n    ○ LLM",
             self.bootstrap_status
         );
         let status_para = Paragraph::new(status_text)

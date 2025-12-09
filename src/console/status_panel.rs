@@ -104,9 +104,9 @@ impl StatusPanel {
 
         for (comp_name, process, port) in components {
             let status = if Self::check_component_running(process) {
-                format!("🟢 ONLINE  [Port: {}]", port)
+                format!(" ONLINE  [Port: {}]", port)
             } else {
-                "🔴 OFFLINE".to_string()
+                " OFFLINE".to_string()
             };
             lines.push(format!(" {:<10} {}", comp_name, status));
         }
@@ -138,7 +138,7 @@ impl StatusPanel {
                             } else {
                                 " "
                             };
-                            lines.push(format!(" {} 🤖 {}", marker, bot_name));
+                            lines.push(format!(" {}  {}", marker, bot_name));
 
                             if let Some(ref selected) = selected_bot {
                                 if selected == &bot_name {

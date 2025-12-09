@@ -666,7 +666,7 @@ impl StartupWizard {
                 stdout,
                 cursor::MoveTo(4, 19 + i as u16),
                 SetForegroundColor(Color::Green),
-                Print("✓ "),
+                Print("* "),
                 ResetColor,
                 Print(format!("{}", component))
             )?;
@@ -718,7 +718,7 @@ impl StartupWizard {
                     execute!(
                         stdout,
                         SetForegroundColor(Color::Green),
-                        Print("▶ "),
+                        Print("> "),
                         Print(format!("{:<25}", name)),
                         SetForegroundColor(Color::DarkGrey),
                         Print(format!(" {}", desc)),
@@ -775,8 +775,8 @@ impl StartupWizard {
             for (i, (component, _, can_toggle)) in options.iter().enumerate() {
                 execute!(stdout, cursor::MoveTo(4, start_row + i as u16))?;
 
-                let checkbox = if selected[i] { "[✓]" } else { "[ ]" };
-                let prefix = if i == cursor { "▶" } else { " " };
+                let checkbox = if selected[i] { "[*]" } else { "[ ]" };
+                let prefix = if i == cursor { ">" } else { " " };
 
                 if !can_toggle {
                     execute!(
@@ -930,7 +930,7 @@ pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
 
     fs::write(config.data_dir.join(".env"), env_content)?;
 
-    println!("\n✅ Configuration applied successfully!");
+    println!("\n Configuration applied successfully!");
     println!("   Data directory: {}", config.data_dir.display());
     println!("\n   Next steps:");
     println!("   1. Run: botserver start");

@@ -263,7 +263,7 @@ fn add_website_to_session(
     .map_err(|e| format!("Failed to add website to session: {}", e))?;
 
     info!(
-        "✅ Added website '{}' to session {} (collection: {})",
+        " Added website '{}' to session {} (collection: {})",
         url, session_id, collection_name
     );
 

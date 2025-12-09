@@ -491,13 +491,13 @@ impl BootstrapManager {
 
     pub async fn bootstrap(&mut self) -> Result<()> {
         // Generate certificates first (including for Vault)
-        info!("🔒 Generating TLS certificates...");
+        info!("Generating TLS certificates...");
         if let Err(e) = self.generate_certificates().await {
             error!("Failed to generate certificates: {}", e);
         }
 
         // Create Vault configuration with mTLS
-        info!("📝 Creating Vault configuration...");
+        info!("Creating Vault configuration...");
         if let Err(e) = self.create_vault_config().await {
             error!("Failed to create Vault config: {}", e);
         }
@@ -562,7 +562,7 @@ impl BootstrapManager {
 
                 // After tables is installed, START PostgreSQL and create Zitadel config files before installing directory
                 if component == "tables" {
-                    info!("🚀 Starting PostgreSQL database...");
+                    info!("Starting PostgreSQL database...");
                     match pm.start("tables") {
                         Ok(_) => {
                             info!("PostgreSQL started successfully");
@@ -575,7 +575,7 @@ impl BootstrapManager {
                     }
 
                     // Run migrations using direct connection (Vault not set up yet)
-                    info!("🔄 Running database migrations...");
+                    info!("Running database migrations...");
                     let database_url =
                         format!("postgres://gbuser:{}@localhost:5432/botserver", db_password);
                     match diesel::PgConnection::establish(&database_url) {
@@ -583,7 +583,7 @@ impl BootstrapManager {
                             if let Err(e) = self.apply_migrations(&mut conn) {
                                 error!("Failed to apply migrations: {}", e);
                             } else {
-                                info!("✓ Database migrations applied");
+                                info!("Database migrations applied");
                             }
                         }
                         Err(e) => {
@@ -591,7 +591,7 @@ impl BootstrapManager {
                         }
                     }
 
-                    info!("🔧 Creating Directory configuration files...");
+                    info!("Creating Directory configuration files...");
                     if let Err(e) = self.configure_services_in_directory(&db_password).await {
                         error!("Failed to create Directory config files: {}", e);
                     }
@@ -599,7 +599,7 @@ impl BootstrapManager {
 
                 // Directory configuration - setup happens after install starts Zitadel
                 if component == "directory" {
-                    info!("🔧 Waiting for Directory to be ready...");
+                    info!("Waiting for Directory to be ready...");
                     if let Err(e) = self.setup_directory().await {
                         // Don't fail completely - Zitadel may still be usable with first instance setup
                         warn!("Directory additional setup had issues: {}", e);
@@ -608,7 +608,7 @@ impl BootstrapManager {
 
                 // After Vault is installed, START the server then initialize it
                 if component == "vault" {
-                    info!("🚀 Starting Vault server...");
+                    info!("Starting Vault server...");
                     match pm.start("vault") {
                         Ok(_) => {
                             info!("Vault server started");
@@ -620,7 +620,7 @@ impl BootstrapManager {
                         }
                     }
 
-                    info!("🔐 Initializing Vault with secrets...");
+                    info!("Initializing Vault with secrets...");
                     if let Err(e) = self
                         .setup_vault(
                             &db_password,
@@ -634,14 +634,14 @@ impl BootstrapManager {
                     }
 
                     // Initialize the global SecretsManager so other components can use Vault
-                    info!("🔑 Initializing SecretsManager...");
+                    info!("Initializing SecretsManager...");
                     debug!(
                         "VAULT_ADDR={:?}, VAULT_TOKEN set={}",
                         std::env::var("VAULT_ADDR").ok(),
                         std::env::var("VAULT_TOKEN").is_ok()
                     );
                     match init_secrets_manager().await {
-                        Ok(_) => info!("✓ SecretsManager initialized successfully"),
+                        Ok(_) => info!("SecretsManager initialized successfully"),
                         Err(e) => {
                             error!("Failed to initialize SecretsManager: {}", e);
                             // Don't continue if SecretsManager fails - it's required for DB connection
@@ -654,21 +654,21 @@ impl BootstrapManager {
                 }
 
                 if component == "email" {
-                    info!("🔧 Auto-configuring Email (Stalwart)...");
+                    info!("Auto-configuring Email (Stalwart)...");
                     if let Err(e) = self.setup_email().await {
                         error!("Failed to setup Email: {}", e);
                     }
                 }
 
                 if component == "proxy" {
-                    info!("🔧 Configuring Caddy reverse proxy...");
+                    info!("Configuring Caddy reverse proxy...");
                     if let Err(e) = self.setup_caddy_proxy().await {
                         error!("Failed to setup Caddy: {}", e);
                     }
                 }
 
                 if component == "dns" {
-                    info!("🔧 Configuring CoreDNS for dynamic DNS...");
+                    info!("Configuring CoreDNS for dynamic DNS...");
                     if let Err(e) = self.setup_coredns().await {
                         error!("Failed to setup CoreDNS: {}", e);
                     }
@@ -1217,7 +1217,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token, db_password
             ))
             .output()?;
-        info!("  ✓ Stored database credentials");
+        info!("  Stored database credentials");
 
         // Drive credentials
         let _ = std::process::Command::new("sh")
@@ -1227,7 +1227,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token, drive_accesskey, drive_secret
             ))
             .output()?;
-        info!("  ✓ Stored drive credentials");
+        info!("  Stored drive credentials");
 
         // Cache credentials
         let _ = std::process::Command::new("sh")
@@ -1237,7 +1237,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token, cache_password
             ))
             .output()?;
-        info!("  ✓ Stored cache credentials");
+        info!("  Stored cache credentials");
 
         // Directory placeholder (will be updated after Zitadel setup)
         let _ = std::process::Command::new("sh")
@@ -1247,7 +1247,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token
             ))
             .output()?;
-        info!("  ✓ Created directory placeholder");
+        info!("  Created directory placeholder");
 
         // LLM placeholder
         let _ = std::process::Command::new("sh")
@@ -1257,7 +1257,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token
             ))
             .output()?;
-        info!("  ✓ Created LLM placeholder");
+        info!("  Created LLM placeholder");
 
         // Email placeholder
         let _ = std::process::Command::new("sh")
@@ -1267,7 +1267,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token
             ))
             .output()?;
-        info!("  ✓ Created email placeholder");
+        info!("  Created email placeholder");
 
         // Encryption key
         let encryption_key = self.generate_secure_password(32);
@@ -1278,7 +1278,7 @@ meet        IN      A       127.0.0.1
                 vault_addr, root_token, encryption_key
             ))
             .output()?;
-        info!("  ✓ Generated and stored encryption key");
+        info!("  Generated and stored encryption key");
 
         // Write .env file with ONLY Vault variables - NO LEGACY FALLBACK
         info!("Writing .env file with Vault configuration...");
@@ -1308,9 +1308,9 @@ VAULT_CACHE_TTL=300
         );
 
         fs::write(&env_file_path, env_content)?;
-        info!("  ✓ Created .env file with Vault configuration");
+        info!("  Created .env file with Vault configuration");
 
-        info!("🔐 Vault setup complete!");
+        info!("Vault setup complete!");
         info!("   Vault UI: {}/ui", vault_addr);
         info!("   Root token saved to: {}", vault_init_path.display());
 
@@ -1341,7 +1341,7 @@ VAULT_CACHE_TTL=300
         info!("   IMAP: {}:{}", config.imap_host, config.imap_port);
         info!("   Admin: {} / {}", config.admin_user, config.admin_pass);
         if config.directory_integration {
-            info!("   🔗 Integrated with Directory for authentication");
+            info!("    Integrated with Directory for authentication");
         }
 
         Ok(())
@@ -1562,7 +1562,7 @@ VAULT_CACHE_TTL=300
 
         if synced > 0 {
             info!(
-                "✓ Synced {} config values for bot {} (skipped {} empty lines)",
+                "Synced {} config values for bot {} (skipped {} empty lines)",
                 synced, bot_id, skipped
             );
         } else {

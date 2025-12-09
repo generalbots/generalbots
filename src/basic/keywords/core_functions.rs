@@ -104,23 +104,23 @@ pub fn register_core_functions(state: Arc<AppState>, user: UserSession, engine: 
 
     // Register math functions (ABS, ROUND, INT, MAX, MIN, MOD, RANDOM, etc.)
     register_math_functions(state.clone(), user.clone(), engine);
-    debug!("  ✓ Math functions registered");
+    debug!("  * Math functions registered");
 
     // Register date/time functions (NOW, TODAY, YEAR, MONTH, DAY, etc.)
     register_datetime_functions(state.clone(), user.clone(), engine);
-    debug!("  ✓ Date/Time functions registered");
+    debug!("  * Date/Time functions registered");
 
     // Register validation functions (VAL, STR, ISNULL, ISEMPTY, TYPEOF, etc.)
     register_validation_functions(state.clone(), user.clone(), engine);
-    debug!("  ✓ Validation functions registered");
+    debug!("  * Validation functions registered");
 
     // Register array functions (SORT, UNIQUE, CONTAINS, PUSH, POP, etc.)
     register_array_functions(state.clone(), user.clone(), engine);
-    debug!("  ✓ Array functions registered");
+    debug!("  * Array functions registered");
 
     // Register error handling functions (THROW, ERROR, IS_ERROR, ASSERT, etc.)
     register_error_functions(state, user, engine);
-    debug!("  ✓ Error handling functions registered");
+    debug!("  * Error handling functions registered");
 
     debug!("All core BASIC functions registered successfully");
 }
