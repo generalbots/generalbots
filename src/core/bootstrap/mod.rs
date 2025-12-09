@@ -512,6 +512,8 @@ impl BootstrapManager {
     }
 
     pub async fn bootstrap(&mut self) -> Result<()> {
+        info!("=== BOOTSTRAP STARTING ===");
+
         // Generate certificates first (including for Vault)
         info!("Generating TLS certificates...");
         if let Err(e) = self.generate_certificates().await {
@@ -552,13 +554,20 @@ impl BootstrapManager {
 
         for component in required_components {
             // For vault, also check if it needs initialization
+            let is_installed = pm.is_installed(component);
             let needs_install = if component == "vault" {
-                !pm.is_installed(component) || vault_needs_setup
+                !is_installed || vault_needs_setup
             } else {
-                !pm.is_installed(component)
+                !is_installed
             };
 
+            info!(
+                "Component {}: installed={}, needs_install={}, vault_needs_setup={}",
+                component, is_installed, needs_install, vault_needs_setup
+            );
+
             if needs_install {
+                info!("Installing/configuring component: {}", component);
                 // Quick check if component might be running - don't hang on this
                 let bin_path = pm.base_path.join("bin").join(component);
                 let binary_name = pm
@@ -630,6 +639,7 @@ impl BootstrapManager {
 
                 // After Vault is installed, START the server then initialize it
                 if component == "vault" {
+                    info!("=== VAULT SETUP BLOCK ENTERED ===");
                     info!("Starting Vault server...");
                     match pm.start("vault") {
                         Ok(_) => {
@@ -697,6 +707,7 @@ impl BootstrapManager {
                 }
             }
         }
+        info!("=== BOOTSTRAP COMPLETED SUCCESSFULLY ===");
         Ok(())
     }
 
