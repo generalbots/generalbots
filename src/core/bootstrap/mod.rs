@@ -5,7 +5,7 @@ use crate::shared::utils::{establish_pg_connection, init_secrets_manager};
 use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
-use diesel::RunQueryDsl;
+use diesel::{Connection, RunQueryDsl};
 use log::debug;
 use log::{error, info, trace, warn};
 use rand::distr::Alphanumeric;
@@ -574,6 +574,23 @@ impl BootstrapManager {
                         }
                     }
 
+                    // Run migrations using direct connection (Vault not set up yet)
+                    info!("🔄 Running database migrations...");
+                    let database_url =
+                        format!("postgres://gbuser:{}@localhost:5432/botserver", db_password);
+                    match diesel::PgConnection::establish(&database_url) {
+                        Ok(mut conn) => {
+                            if let Err(e) = self.apply_migrations(&mut conn) {
+                                error!("Failed to apply migrations: {}", e);
+                            } else {
+                                info!("✓ Database migrations applied");
+                            }
+                        }
+                        Err(e) => {
+                            error!("Failed to connect to database for migrations: {}", e);
+                        }
+                    }
+
                     info!("🔧 Creating Directory configuration files...");
                     if let Err(e) = self.configure_services_in_directory(&db_password).await {
                         error!("Failed to create Directory config files: {}", e);
@@ -634,11 +651,6 @@ impl BootstrapManager {
                             ));
                         }
                     }
-                }
-
-                if component == "tables" {
-                    let mut conn = establish_pg_connection().unwrap();
-                    self.apply_migrations(&mut conn)?;
                 }
 
                 if component == "email" {
