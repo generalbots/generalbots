@@ -755,9 +755,9 @@ impl PackageManager {
                     env
                 },
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl"
+                exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -k https://localhost:8200/v1/sys/health >/dev/null 2>&1"
+                check_cmd: "curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1"
                     .to_string(),
             },
         );
@@ -911,6 +911,8 @@ impl PackageManager {
                 .arg("-c")
                 .arg(&rendered_cmd)
                 .envs(&evaluated_envs)
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .spawn();
 
             std::thread::sleep(std::time::Duration::from_secs(2));
@@ -927,7 +929,12 @@ impl PackageManager {
                             "Component {} may already be running, continuing anyway",
                             component.name
                         );
-                        Ok(std::process::Command::new("sh").arg("-c").spawn()?)
+                        Ok(std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg("true")
+                            .stdout(std::process::Stdio::null())
+                            .stderr(std::process::Stdio::null())
+                            .spawn()?)
                     } else {
                         Err(e.into())
                     }
