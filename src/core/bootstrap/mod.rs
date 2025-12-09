@@ -159,6 +159,15 @@ impl BootstrapManager {
             if let Err(e) = self.ensure_vault_unsealed().await {
                 warn!("Vault unseal check: {}", e);
             }
+
+            // Initialize SecretsManager so other code can use Vault
+            info!("Initializing SecretsManager...");
+            match init_secrets_manager().await {
+                Ok(_) => info!("SecretsManager initialized successfully"),
+                Err(e) => {
+                    warn!("Failed to initialize SecretsManager: {}", e);
+                }
+            }
         }
 
         // Start tables (PostgreSQL) - needed for database operations
@@ -314,6 +323,19 @@ impl BootstrapManager {
 
                 // Services were started by bootstrap, no need to restart them
                 return Ok(());
+            }
+
+            // Initialize SecretsManager so other code can use Vault
+            info!("Initializing SecretsManager...");
+            match init_secrets_manager().await {
+                Ok(_) => info!("SecretsManager initialized successfully"),
+                Err(e) => {
+                    error!("Failed to initialize SecretsManager: {}", e);
+                    return Err(anyhow::anyhow!(
+                        "SecretsManager initialization failed: {}",
+                        e
+                    ));
+                }
             }
         } else {
             // Vault not installed - cannot proceed, need to run bootstrap
