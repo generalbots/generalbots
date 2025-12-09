@@ -1059,10 +1059,10 @@ async fn handle_queue_command(state: &Arc<AppState>) -> Result<String, String> {
     .map_err(|e| e.to_string())??;
 
     if result.is_empty() {
-        return Ok("📋 *Queue is empty*\nNo conversations waiting for attention.".to_string());
+        return Ok(" *Queue is empty*\nNo conversations waiting for attention.".to_string());
     }
 
-    let mut response = format!("📋 *Queue* ({} waiting)\n\n", result.len());
+    let mut response = format!(" *Queue* ({} waiting)\n\n", result.len());
 
     for (i, session) in result.iter().enumerate() {
         let name = session
@@ -1144,12 +1144,12 @@ async fn handle_take_command(
                 .unwrap_or("Unknown");
 
             Ok(format!(
-                "✅ *Conversation assigned*\n\nCustomer: *{}*\nSession: {}\n\nYou can now respond to this customer. Their messages will be forwarded to you.",
+                " *Conversation assigned*\n\nCustomer: *{}*\nSession: {}\n\nYou can now respond to this customer. Their messages will be forwarded to you.",
                 name,
                 &session.id.to_string()[..8]
             ))
         } else {
-            Ok("📭 No conversations waiting in queue.".to_string())
+            Ok(" No conversations waiting in queue.".to_string())
         }
     })
     .await
@@ -1165,17 +1165,17 @@ async fn handle_status_command(
 ) -> Result<String, String> {
     if args.is_empty() {
         return Ok(
-            "📊 *Status Options*\n\n`/status online` - Available\n`/status busy` - In conversation\n`/status away` - Temporarily away\n`/status offline` - Not available"
+            " *Status Options*\n\n`/status online` - Available\n`/status busy` - In conversation\n`/status away` - Temporarily away\n`/status offline` - Not available"
                 .to_string(),
         );
     }
 
     let status = args[0].to_lowercase();
     let (emoji, text, status_value) = match status.as_str() {
-        "online" => ("🟢", "Online - Available for conversations", "online"),
-        "busy" => ("🟡", "Busy - Handling conversations", "busy"),
-        "away" => ("🟠", "Away - Temporarily unavailable", "away"),
-        "offline" => ("⚫", "Offline - Not available", "offline"),
+        "online" => ("", "Online - Available for conversations", "online"),
+        "busy" => ("", "Busy - Handling conversations", "busy"),
+        "away" => ("", "Away - Temporarily unavailable", "away"),
+        "offline" => ("", "Offline - Not available", "offline"),
         _ => {
             return Err(format!(
                 "Invalid status: {}. Use online, busy, away, or offline.",
@@ -1306,7 +1306,7 @@ async fn handle_transfer_command(
     );
 
     Ok(format!(
-        "🔄 *Transfer initiated*\n\nSession {} is being transferred to *{}*.\n\nThe conversation is now in the queue for the target attendant. They will be notified when they check their queue.",
+        " *Transfer initiated*\n\nSession {} is being transferred to *{}*.\n\nThe conversation is now in the queue for the target attendant. They will be notified when they check their queue.",
         &session_id.to_string()[..8],
         target_clean
     ))
@@ -1345,7 +1345,7 @@ async fn handle_resolve_command(
     .map_err(|e| e.to_string())??;
 
     Ok(format!(
-        "✅ *Conversation resolved*\n\nSession {} has been marked as resolved. The customer will be returned to bot mode.",
+        " *Conversation resolved*\n\nSession {} has been marked as resolved. The customer will be returned to bot mode.",
         &session_id.to_string()[..8]
     ))
 }
@@ -1361,7 +1361,7 @@ async fn handle_tips_command(
 
     if history.is_empty() {
         return Ok(
-            "💡 No messages yet. Tips will appear when the customer sends a message.".to_string(),
+            " No messages yet. Tips will appear when the customer sends a message.".to_string(),
         );
     }
 
@@ -1383,19 +1383,19 @@ async fn handle_tips_command(
     let (_, Json(tip_response)) = response.into_response().into_parts();
 
     if tip_response.tips.is_empty() {
-        return Ok("💡 No specific tips for this conversation yet.".to_string());
+        return Ok(" No specific tips for this conversation yet.".to_string());
     }
 
-    let mut result = "💡 *Tips for this conversation*\n\n".to_string();
+    let mut result = " *Tips for this conversation*\n\n".to_string();
 
     for tip in tip_response.tips {
         let emoji = match tip.tip_type {
-            TipType::Intent => "🎯",
-            TipType::Action => "✅",
-            TipType::Warning => "⚠️",
-            TipType::Knowledge => "📚",
-            TipType::History => "📜",
-            TipType::General => "💡",
+            TipType::Intent => "",
+            TipType::Action => "",
+            TipType::Warning => "",
+            TipType::Knowledge => "",
+            TipType::History => "",
+            TipType::General => "",
         };
         result.push_str(&format!("{} {}\n\n", emoji, tip.content));
     }
@@ -1429,7 +1429,7 @@ async fn handle_polish_command(
             .unwrap_or("Failed to polish message".to_string()));
     }
 
-    let mut result = "✨ *Polished message*\n\n".to_string();
+    let mut result = " *Polished message*\n\n".to_string();
     result.push_str(&format!("_{}_\n\n", polish_response.polished));
 
     if !polish_response.changes.is_empty() {
@@ -1461,10 +1461,10 @@ async fn handle_replies_command(
     let (_, Json(replies_response)) = response.into_response().into_parts();
 
     if replies_response.replies.is_empty() {
-        return Ok("💬 No reply suggestions available.".to_string());
+        return Ok(" No reply suggestions available.".to_string());
     }
 
-    let mut result = "💬 *Suggested replies*\n\n".to_string();
+    let mut result = " *Suggested replies*\n\n".to_string();
 
     for (i, reply) in replies_response.replies.iter().enumerate() {
         result.push_str(&format!(
@@ -1497,7 +1497,7 @@ async fn handle_summary_command(
 
     let summary = summary_response.summary;
 
-    let mut result = "📝 *Conversation Summary*\n\n".to_string();
+    let mut result = " *Conversation Summary*\n\n".to_string();
     result.push_str(&format!("{}\n\n", summary.brief));
 
     if !summary.key_points.is_empty() {
@@ -1525,13 +1525,13 @@ async fn handle_summary_command(
     }
 
     result.push_str(&format!(
-        "📊 {} messages | {} minutes | Sentiment: {}",
+        " {} messages | {} minutes | Sentiment: {}",
         summary.message_count, summary.duration_minutes, summary.sentiment_trend
     ));
 
     if !summary.recommended_action.is_empty() {
         result.push_str(&format!(
-            "\n\n💡 *Recommended:* {}",
+            "\n\n *Recommended:* {}",
             summary.recommended_action
         ));
     }
@@ -1540,7 +1540,7 @@ async fn handle_summary_command(
 }
 
 fn get_help_text() -> String {
-    r#"🤖 *Attendant Commands*
+    r#" *Attendant Commands*
 
 *Queue Management:*
 `/queue` - View waiting conversations

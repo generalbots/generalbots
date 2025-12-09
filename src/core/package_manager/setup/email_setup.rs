@@ -93,7 +93,7 @@ impl EmailSetup {
         &mut self,
         directory_config_path: Option<PathBuf>,
     ) -> Result<EmailConfig> {
-        log::info!("🔧 Initializing Email (Stalwart) server...");
+        log::info!(" Initializing Email (Stalwart) server...");
 
         // Check if already initialized
         if let Ok(existing_config) = self.load_existing_config().await {
@@ -106,17 +106,17 @@ impl EmailSetup {
 
         // Create default domain
         self.create_default_domain().await?;
-        log::info!("✅ Created default email domain: localhost");
+        log::info!(" Created default email domain: localhost");
 
         // Set up Directory (Zitadel) integration if available
         let directory_integration = if let Some(dir_config_path) = directory_config_path {
             match self.setup_directory_integration(&dir_config_path).await {
                 Ok(_) => {
-                    log::info!("✅ Integrated with Directory for authentication");
+                    log::info!(" Integrated with Directory for authentication");
                     true
                 }
                 Err(e) => {
-                    log::warn!("⚠️  Directory integration failed: {}", e);
+                    log::warn!("  Directory integration failed: {}", e);
                     false
                 }
             }
@@ -126,7 +126,7 @@ impl EmailSetup {
 
         // Create admin account
         self.create_admin_account().await?;
-        log::info!("✅ Created admin email account: {}", self.admin_user);
+        log::info!(" Created admin email account: {}", self.admin_user);
 
         let config = EmailConfig {
             base_url: self.base_url.clone(),
@@ -141,9 +141,9 @@ impl EmailSetup {
 
         // Save configuration
         self.save_config(&config).await?;
-        log::info!("✅ Saved Email configuration");
+        log::info!(" Saved Email configuration");
 
-        log::info!("🎉 Email initialization complete!");
+        log::info!(" Email initialization complete!");
         log::info!("📧 SMTP: localhost:25 (587 for TLS)");
         log::info!("📬 IMAP: localhost:143 (993 for TLS)");
         log::info!("👤 Admin: {} / {}", config.admin_user, config.admin_pass);
@@ -288,7 +288,7 @@ impl EmailSetup {
 
             if !email.is_empty() {
                 self.create_user_mailbox(username, password, email).await?;
-                log::info!("✅ Created mailbox for: {}", email);
+                log::info!(" Created mailbox for: {}", email);
             }
         }
 

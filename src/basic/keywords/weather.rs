@@ -350,12 +350,12 @@ async fn fetch_fallback_weather(location: &str) -> Result<String, String> {
 fn format_weather_response(weather: &WeatherData) -> String {
     format!(
         "Current weather in {}:\n\
-        🌡️ Temperature: {:.1}{} (feels like {:.1}{})\n\
-        ☁️ Conditions: {}\n\
-        💧 Humidity: {}%\n\
-        💨 Wind: {:.1} m/s {}\n\
-        🔍 Visibility: {:.1} km\n\
-        📊 Pressure: {} hPa",
+         Temperature: {:.1}{} (feels like {:.1}{})\n\
+         Conditions: {}\n\
+         Humidity: {}%\n\
+         Wind: {:.1} m/s {}\n\
+         Visibility: {:.1} km\n\
+         Pressure: {} hPa",
         weather.location,
         weather.temperature,
         weather.temperature_unit,
@@ -375,10 +375,10 @@ fn format_forecast_response(weather: &WeatherData) -> String {
 
     for day in &weather.forecast {
         response.push_str(&format!(
-            "📅 {}\n\
-            🌡️ High: {:.1}°C, Low: {:.1}°C\n\
-            ☁️ {}\n\
-            ☔ Rain chance: {}%\n\n",
+            " {}\n\
+             High: {:.1}°C, Low: {:.1}°C\n\
+             {}\n\
+             Rain chance: {}%\n\n",
             day.date, day.temp_high, day.temp_low, day.description, day.rain_chance
         ));
     }

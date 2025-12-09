@@ -631,10 +631,10 @@ pub async fn handle_recent_activity(State(state): State<Arc<AppState>>) -> impl 
 
     for activity in &activities {
         let icon = match activity.activity_type.as_str() {
-            "session" => "💬",
-            "error" => "⚠️",
-            "bot" => "🤖",
-            _ => "📌",
+            "session" => "",
+            "error" => "",
+            "bot" => "",
+            _ => "",
         };
 
         html.push_str("<div class=\"activity-item\">");
@@ -773,7 +773,7 @@ pub async fn handle_analytics_chat(
 
     let mut html = String::new();
     html.push_str("<div class=\"chat-message assistant\">");
-    html.push_str("<div class=\"message-avatar\">🤖</div>");
+    html.push_str("<div class=\"message-avatar\"></div>");
     html.push_str("<div class=\"message-content\">");
     html.push_str(&html_escape(response));
     html.push_str("</div>");

@@ -32,12 +32,12 @@ pub async fn run() -> Result<()> {
             for component in components {
                 if pm.is_installed(component.name) {
                     match pm.start(component.name) {
-                        Ok(_) => println!("✓ Started {}", component.name),
-                        Err(e) => eprintln!("✗ Failed to start {}: {}", component.name, e),
+                        Ok(_) => println!("* Started {}", component.name),
+                        Err(e) => eprintln!("x Failed to start {}: {}", component.name, e),
                     }
                 }
             }
-            println!("✓ BotServer components started");
+            println!("* BotServer components started");
         }
         "stop" => {
             println!("Stopping all components...");
@@ -48,7 +48,7 @@ pub async fn run() -> Result<()> {
                     .arg(component.termination_command)
                     .output();
             }
-            println!("✓ BotServer components stopped");
+            println!("* BotServer components stopped");
         }
         "restart" => {
             println!("Restarting BotServer...");
@@ -77,7 +77,7 @@ pub async fn run() -> Result<()> {
                     let _ = pm.start(component.name);
                 }
             }
-            println!("✓ BotServer restarted");
+            println!("* BotServer restarted");
         }
         "install" => {
             if args.len() < 3 {
@@ -97,7 +97,7 @@ pub async fn run() -> Result<()> {
             };
             let pm = PackageManager::new(mode, tenant)?;
             pm.install(component).await?;
-            println!("✓ Component '{}' installed successfully", component);
+            println!("* Component '{}' installed successfully", component);
         }
         "remove" => {
             if args.len() < 3 {
@@ -117,7 +117,7 @@ pub async fn run() -> Result<()> {
             };
             let pm = PackageManager::new(mode, tenant)?;
             pm.remove(component)?;
-            println!("✓ Component '{}' removed successfully", component);
+            println!("* Component '{}' removed successfully", component);
         }
         "list" => {
             let mode = if args.contains(&"--container".to_string()) {
@@ -134,7 +134,7 @@ pub async fn run() -> Result<()> {
             println!("Available components:");
             for component in pm.list() {
                 let status = if pm.is_installed(&component) {
-                    "✓ installed"
+                    "* installed"
                 } else {
                     "  available"
                 };
@@ -159,9 +159,9 @@ pub async fn run() -> Result<()> {
             };
             let pm = PackageManager::new(mode, tenant)?;
             if pm.is_installed(component) {
-                println!("✓ Component '{}' is installed", component);
+                println!("* Component '{}' is installed", component);
             } else {
-                println!("✗ Component '{}' is not installed", component);
+                println!("x Component '{}' is not installed", component);
             }
         }
         "--help" | "-h" => {

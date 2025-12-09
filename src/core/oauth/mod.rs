@@ -79,12 +79,12 @@ impl OAuthProvider {
     /// Get icon/emoji for UI
     pub fn icon(&self) -> &'static str {
         match self {
-            OAuthProvider::Google => "🔵",
-            OAuthProvider::Discord => "🎮",
-            OAuthProvider::Reddit => "🟠",
-            OAuthProvider::Twitter => "🐦",
-            OAuthProvider::Microsoft => "🪟",
-            OAuthProvider::Facebook => "📘",
+            OAuthProvider::Google => "",
+            OAuthProvider::Discord => "",
+            OAuthProvider::Reddit => "",
+            OAuthProvider::Twitter => "",
+            OAuthProvider::Microsoft => "",
+            OAuthProvider::Facebook => "",
         }
     }
 }

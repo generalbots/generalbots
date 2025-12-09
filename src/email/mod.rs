@@ -1782,10 +1782,10 @@ pub async fn list_folders_htmx(
 
     let mut html = String::new();
     for (folder_name, icon, count) in &[
-        ("inbox", "📥", folder_counts.get("INBOX").unwrap_or(&0)),
-        ("sent", "📤", folder_counts.get("Sent").unwrap_or(&0)),
-        ("drafts", "📝", folder_counts.get("Drafts").unwrap_or(&0)),
-        ("trash", "🗑️", folder_counts.get("Trash").unwrap_or(&0)),
+        ("inbox", "", folder_counts.get("INBOX").unwrap_or(&0)),
+        ("sent", "", folder_counts.get("Sent").unwrap_or(&0)),
+        ("drafts", "", folder_counts.get("Drafts").unwrap_or(&0)),
+        ("trash", "", folder_counts.get("Trash").unwrap_or(&0)),
     ] {
         let active = if *folder_name == "inbox" { "active" } else { "" };
         let count_badge = if **count > 0 {

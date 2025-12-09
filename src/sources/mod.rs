@@ -45,13 +45,13 @@ pub async fn handle_prompts(
     html.push_str("<div class=\"category-list\">");
 
     let categories = vec![
-        ("all", "All Prompts", "📋"),
-        ("writing", "Writing", "✍️"),
-        ("coding", "Coding", "💻"),
-        ("analysis", "Analysis", "📊"),
-        ("creative", "Creative", "🎨"),
-        ("business", "Business", "💼"),
-        ("education", "Education", "📚"),
+        ("all", "All Prompts", ""),
+        ("writing", "Writing", ""),
+        ("coding", "Coding", ""),
+        ("analysis", "Analysis", ""),
+        ("creative", "Creative", ""),
+        ("business", "Business", ""),
+        ("education", "Education", ""),
     ];
 
     for (id, name, icon) in &categories {
@@ -160,11 +160,11 @@ pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoR
 /// GET /api/sources/news - News tab content
 pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let news_items = vec![
-        ("🚀", "General Bots 6.0 Released", "Major update with improved performance and new features", "2 hours ago"),
-        ("🔧", "New MCP Server Integration", "Connect to external tools more easily with our new MCP support", "1 day ago"),
-        ("📊", "Analytics Dashboard Update", "Real-time metrics and improved visualizations", "3 days ago"),
-        ("🔒", "Security Enhancement", "Enhanced encryption and authentication options", "1 week ago"),
-        ("🌐", "Multi-language Support", "Now supporting 15+ languages for bot conversations", "2 weeks ago"),
+        ("", "General Bots 6.0 Released", "Major update with improved performance and new features", "2 hours ago"),
+        ("", "New MCP Server Integration", "Connect to external tools more easily with our new MCP support", "1 day ago"),
+        ("", "Analytics Dashboard Update", "Real-time metrics and improved visualizations", "3 days ago"),
+        ("", "Security Enhancement", "Enhanced encryption and authentication options", "1 week ago"),
+        ("", "Multi-language Support", "Now supporting 15+ languages for bot conversations", "2 weeks ago"),
     ];
 
     let mut html = String::new();
@@ -203,12 +203,12 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
 /// GET /api/sources/mcp-servers - MCP Servers tab content
 pub async fn handle_mcp_servers(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let servers = vec![
-        ("🗄️", "Database Server", "PostgreSQL, MySQL, SQLite connections", "Active", true),
-        ("📁", "Filesystem Server", "Local and cloud file access", "Active", true),
-        ("🌐", "Web Server", "HTTP/REST API integrations", "Active", true),
-        ("📧", "Email Server", "SMTP/IMAP email handling", "Inactive", false),
-        ("💬", "Slack Server", "Slack workspace integration", "Active", true),
-        ("📊", "Analytics Server", "Data processing and reporting", "Active", true),
+        ("", "Database Server", "PostgreSQL, MySQL, SQLite connections", "Active", true),
+        ("", "Filesystem Server", "Local and cloud file access", "Active", true),
+        ("", "Web Server", "HTTP/REST API integrations", "Active", true),
+        ("", "Email Server", "SMTP/IMAP email handling", "Inactive", false),
+        ("", "Slack Server", "Slack workspace integration", "Active", true),
+        ("", "Analytics Server", "Data processing and reporting", "Active", true),
     ];
 
     let mut html = String::new();
@@ -259,14 +259,14 @@ pub async fn handle_mcp_servers(State(_state): State<Arc<AppState>>) -> impl Int
 /// GET /api/sources/llm-tools - LLM Tools tab content
 pub async fn handle_llm_tools(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let tools = vec![
-        ("🔍", "Web Search", "Search the web for real-time information", true),
-        ("🧮", "Calculator", "Perform mathematical calculations", true),
-        ("📅", "Calendar", "Manage calendar events and schedules", true),
-        ("📝", "Note Taking", "Create and manage notes", true),
-        ("🌤️", "Weather", "Get weather forecasts and conditions", false),
-        ("📰", "News Reader", "Fetch and summarize news articles", false),
-        ("🔗", "URL Fetcher", "Retrieve and parse web content", true),
-        ("💾", "Code Executor", "Run code snippets safely", false),
+        ("", "Web Search", "Search the web for real-time information", true),
+        ("", "Calculator", "Perform mathematical calculations", true),
+        ("", "Calendar", "Manage calendar events and schedules", true),
+        ("", "Note Taking", "Create and manage notes", true),
+        ("", "Weather", "Get weather forecasts and conditions", false),
+        ("", "News Reader", "Fetch and summarize news articles", false),
+        ("", "URL Fetcher", "Retrieve and parse web content", true),
+        ("", "Code Executor", "Run code snippets safely", false),
     ];
 
     let mut html = String::new();
@@ -318,7 +318,7 @@ pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResp
         ("🦙", "Llama 3.1 70B", "Meta", "Open source large language model", "Available"),
         ("🔷", "Claude 3.5 Sonnet", "Anthropic", "Advanced reasoning and analysis", "Available"),
         ("💎", "Gemini Pro", "Google", "Multimodal AI with long context", "Available"),
-        ("🌐", "Mistral Large", "Mistral AI", "European AI model with strong performance", "Available"),
+        ("", "Mistral Large", "Mistral AI", "European AI model with strong performance", "Available"),
     ];
 
     let mut html = String::new();
@@ -496,42 +496,42 @@ fn get_prompts_data(category: &str) -> Vec<PromptData> {
             title: "Summarize Text".to_string(),
             description: "Create concise summaries of long documents or articles".to_string(),
             category: "writing".to_string(),
-            icon: "📝".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "code-review".to_string(),
             title: "Code Review".to_string(),
             description: "Analyze code for bugs, improvements, and best practices".to_string(),
             category: "coding".to_string(),
-            icon: "💻".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "data-analysis".to_string(),
             title: "Data Analysis".to_string(),
             description: "Extract insights and patterns from data sets".to_string(),
             category: "analysis".to_string(),
-            icon: "📊".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "creative-writing".to_string(),
             title: "Creative Writing".to_string(),
             description: "Generate stories, poems, and creative content".to_string(),
             category: "creative".to_string(),
-            icon: "🎨".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "email-draft".to_string(),
             title: "Email Draft".to_string(),
             description: "Compose professional emails quickly".to_string(),
             category: "business".to_string(),
-            icon: "📧".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "explain-concept".to_string(),
             title: "Explain Concept".to_string(),
             description: "Break down complex topics into simple explanations".to_string(),
             category: "education".to_string(),
-            icon: "📚".to_string(),
+            icon: "".to_string(),
         },
         PromptData {
             id: "debug-code".to_string(),
@@ -545,7 +545,7 @@ fn get_prompts_data(category: &str) -> Vec<PromptData> {
             title: "Meeting Notes".to_string(),
             description: "Organize and format meeting discussions".to_string(),
             category: "business".to_string(),
-            icon: "📋".to_string(),
+            icon: "".to_string(),
         },
     ];
 
@@ -571,13 +571,13 @@ fn get_templates_data() -> Vec<TemplateData> {
             name: "FAQ Bot".to_string(),
             description: "Answer frequently asked questions from your knowledge base".to_string(),
             category: "Support".to_string(),
-            icon: "❓".to_string(),
+            icon: "".to_string(),
         },
         TemplateData {
             name: "Lead Generation Bot".to_string(),
             description: "Qualify leads and collect prospect information".to_string(),
             category: "Sales".to_string(),
-            icon: "🎯".to_string(),
+            icon: "".to_string(),
         },
         TemplateData {
             name: "Onboarding Bot".to_string(),
@@ -589,13 +589,13 @@ fn get_templates_data() -> Vec<TemplateData> {
             name: "Survey Bot".to_string(),
             description: "Collect feedback through conversational surveys".to_string(),
             category: "Research".to_string(),
-            icon: "📊".to_string(),
+            icon: "".to_string(),
         },
         TemplateData {
             name: "Appointment Scheduler".to_string(),
             description: "Book and manage appointments automatically".to_string(),
             category: "Productivity".to_string(),
-            icon: "📅".to_string(),
+            icon: "".to_string(),
         },
     ]
 }
