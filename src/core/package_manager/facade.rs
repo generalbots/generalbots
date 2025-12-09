@@ -563,19 +563,15 @@ impl PackageManager {
                 .replace("{{DB_PASSWORD}}", &db_password);
             if target == "local" {
                 trace!("Executing command: {}", rendered_cmd);
-                let child = Command::new("bash")
+                let output = Command::new("bash")
                     .current_dir(&bin_path)
                     .args(&["-c", &rendered_cmd])
-                    .spawn()
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::piped())
+                    .output()
                     .with_context(|| {
-                        format!("Failed to spawn command for component '{}'", component)
+                        format!("Failed to execute command for component '{}'", component)
                     })?;
-                let output = child.wait_with_output().with_context(|| {
-                    format!(
-                        "Failed while waiting for command to finish for component '{}'",
-                        component
-                    )
-                })?;
                 if !output.status.success() {
                     error!(
                         "Command had non-zero exit: {}",
