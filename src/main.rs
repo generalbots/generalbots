@@ -479,7 +479,15 @@ async fn main() -> std::io::Result<()> {
                 .unwrap_or(false)
         };
 
+        info!(
+            "Bootstrap check: .env exists={}, init.json exists={}, bootstrap_completed={}",
+            env_path.exists(),
+            vault_init_path.exists(),
+            bootstrap_completed
+        );
+
         let cfg = if bootstrap_completed {
+            info!(">>> BRANCH: bootstrap_completed=TRUE - starting services only");
             trace!("Services already configured, ensuring all are running...");
             info!("Ensuring database and drive services are running...");
             progress_tx_clone
@@ -521,6 +529,7 @@ async fn main() -> std::io::Result<()> {
                 }
             }
         } else {
+            info!(">>> BRANCH: bootstrap_completed=FALSE - running full bootstrap");
             info!("Bootstrap not complete - running full bootstrap...");
             trace!(".env file not found, running bootstrap.bootstrap()...");
             if let Err(e) = bootstrap.bootstrap().await {
