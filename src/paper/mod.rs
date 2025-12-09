@@ -796,7 +796,7 @@ pub async fn handle_save_document(
             log::info!("Document saved: {} at {}", doc_id, path);
             let mut html = String::new();
             html.push_str("<div class=\"save-success\">");
-            html.push_str("<span class=\"save-icon\">✓</span>");
+            html.push_str("<span class=\"save-icon\">*</span>");
             html.push_str("<span>Saved</span>");
             html.push_str("</div>");
             Html(html)
@@ -1392,7 +1392,7 @@ fn format_ai_response(content: &str) -> String {
 
     html.push_str("<div class=\"ai-response\">");
     html.push_str("<div class=\"ai-response-header\">");
-    html.push_str("<span class=\"ai-icon\">🤖</span>");
+    html.push_str("<span class=\"ai-icon\"></span>");
     html.push_str("<span>AI Response</span>");
     html.push_str("</div>");
     html.push_str("<div class=\"ai-response-content\">");
@@ -1415,7 +1415,7 @@ fn format_ai_response(content: &str) -> String {
 fn format_error(message: &str) -> String {
     let mut html = String::new();
     html.push_str("<div class=\"error-message\">");
-    html.push_str("<span class=\"error-icon\">⚠️</span>");
+    html.push_str("<span class=\"error-icon\"></span>");
     html.push_str("<span>");
     html.push_str(&html_escape(message));
     html.push_str("</span>");

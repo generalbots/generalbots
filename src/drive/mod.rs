@@ -364,7 +364,7 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
                         size: None,
                         modified: None,
                         icon: if name.ends_with(".gbai") {
-                            "🤖".to_string()
+                            "".to_string()
                         } else {
                             "📦".to_string()
                         },
@@ -586,13 +586,13 @@ pub async fn create_folder(
 /// Get appropriate icon for file based on extension
 fn get_file_icon(path: &str) -> String {
     if path.ends_with(".bas") {
-        "⚙️".to_string()
+        "".to_string()
     } else if path.ends_with(".ast") {
-        "🔧".to_string()
+        "".to_string()
     } else if path.ends_with(".csv") {
-        "📊".to_string()
+        "".to_string()
     } else if path.ends_with(".gbkb") {
-        "📚".to_string()
+        "".to_string()
     } else if path.ends_with(".json") {
         "🔖".to_string()
     } else if path.ends_with(".txt") || path.ends_with(".md") {
@@ -602,7 +602,7 @@ fn get_file_icon(path: &str) -> String {
     } else if path.ends_with(".zip") || path.ends_with(".tar") || path.ends_with(".gz") {
         "📦".to_string()
     } else if path.ends_with(".jpg") || path.ends_with(".png") || path.ends_with(".gif") {
-        "🖼️".to_string()
+        "".to_string()
     } else {
         "📄".to_string()
     }

@@ -110,7 +110,7 @@ pub async fn handle_list_collections(State(state): State<Arc<AppState>>) -> impl
         html.push_str("<div class=\"collection-item\" data-id=\"");
         html.push_str(&html_escape(id));
         html.push_str("\">");
-        html.push_str("<div class=\"collection-icon\">📁</div>");
+        html.push_str("<div class=\"collection-icon\"></div>");
         html.push_str("<div class=\"collection-info\">");
         html.push_str("<span class=\"collection-name\">");
         html.push_str(&html_escape(name));
@@ -193,7 +193,7 @@ pub async fn handle_create_collection(
     html.push_str("<div class=\"collection-item new-item\" data-id=\"");
     html.push_str(&html_escape(&id_clone));
     html.push_str("\">");
-    html.push_str("<div class=\"collection-icon\">📁</div>");
+    html.push_str("<div class=\"collection-icon\"></div>");
     html.push_str("<div class=\"collection-info\">");
     html.push_str("<span class=\"collection-name\">");
     html.push_str(&html_escape(&name_clone));
@@ -324,7 +324,7 @@ pub async fn handle_search(
 
     if results.is_empty() {
         html.push_str("<div class=\"no-results\">");
-        html.push_str("<div class=\"no-results-icon\">🔍</div>");
+        html.push_str("<div class=\"no-results-icon\"></div>");
         html.push_str("<h4>No results found</h4>");
         html.push_str("<p>Try different keywords or check your spelling</p>");
         html.push_str("</div>");
@@ -449,19 +449,19 @@ pub async fn handle_trending_tags(State(_state): State<Arc<AppState>>) -> impl I
 pub async fn handle_prompts(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let prompts = vec![
         (
-            "📚",
+            "",
             "Getting Started",
             "Learn the basics and set up your first bot",
         ),
-        ("🔧", "Configuration", "Customize settings and preferences"),
+        ("", "Configuration", "Customize settings and preferences"),
         (
             "🔌",
             "Integrations",
             "Connect with external services and APIs",
         ),
-        ("🚀", "Deployment", "Deploy your bot to production"),
-        ("🔒", "Security", "Best practices for securing your bot"),
-        ("📊", "Analytics", "Monitor and analyze bot performance"),
+        ("", "Deployment", "Deploy your bot to production"),
+        ("", "Security", "Best practices for securing your bot"),
+        ("", "Analytics", "Monitor and analyze bot performance"),
     ];
 
     let mut html = String::new();

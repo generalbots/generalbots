@@ -117,7 +117,7 @@ impl DirectorySetup {
 
     /// Initialize directory with default configuration
     pub async fn initialize(&mut self) -> Result<DirectoryConfig> {
-        log::info!("🔧 Initializing Directory (Zitadel) with defaults...");
+        log::info!(" Initializing Directory (Zitadel) with defaults...");
 
         // Check if already initialized
         if let Ok(existing_config) = self.load_existing_config().await {
@@ -133,19 +133,19 @@ impl DirectorySetup {
 
         // Create default organization
         let org = self.create_default_organization().await?;
-        log::info!("✅ Created default organization: {}", org.name);
+        log::info!(" Created default organization: {}", org.name);
 
         // Create default user
         let user = self.create_default_user(&org.id).await?;
-        log::info!("✅ Created default user: {}", user.username);
+        log::info!(" Created default user: {}", user.username);
 
         // Create OAuth2 application for BotServer
         let (project_id, client_id, client_secret) = self.create_oauth_application(&org.id).await?;
-        log::info!("✅ Created OAuth2 application");
+        log::info!(" Created OAuth2 application");
 
         // Grant user admin permissions
         self.grant_user_permissions(&org.id, &user.id).await?;
-        log::info!("✅ Granted admin permissions to default user");
+        log::info!(" Granted admin permissions to default user");
 
         let config = DirectoryConfig {
             base_url: self.base_url.clone(),
@@ -159,15 +159,15 @@ impl DirectorySetup {
 
         // Save configuration
         self.save_config_internal(&config).await?;
-        log::info!("✅ Saved Directory configuration");
+        log::info!(" Saved Directory configuration");
 
-        log::info!("🎉 Directory initialization complete!");
+        log::info!(" Directory initialization complete!");
         log::info!(
-            "📧 Default user: {} / {}",
+            " Default user: {} / {}",
             config.default_user.email,
             config.default_user.password
         );
-        log::info!("🌐 Login at: {}", self.base_url);
+        log::info!(" Login at: {}", self.base_url);
 
         Ok(config)
     }

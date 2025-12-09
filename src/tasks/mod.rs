@@ -1371,12 +1371,12 @@ pub async fn handle_task_list_htmx(
                     <button class="action-btn edit-btn"
                             data-action="edit"
                             data-task-id="{}">
-                        ✏️
+                        
                     </button>
                     <button class="action-btn delete-btn"
                             data-action="delete"
                             data-task-id="{}">
-                        🗑️
+                        
                     </button>
                 </div>
             </div>
@@ -1392,7 +1392,7 @@ pub async fn handle_task_list_htmx(
             },
             if let Some(due) = &task.due_date {
                 format!(
-                    r#"<span class="task-due-date">📅 {}</span>"#,
+                    r#"<span class="task-due-date"> {}</span>"#,
                     due.format("%Y-%m-%d")
                 )
             } else {

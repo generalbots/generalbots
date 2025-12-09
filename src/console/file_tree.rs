@@ -37,7 +37,7 @@ impl FileTree {
                     for bucket in buckets {
                         if let Some(name) = bucket.name() {
                             let icon = if name.ends_with(".gbai") {
-                                "🤖"
+                                ""
                             } else {
                                 "📦"
                             };
@@ -53,7 +53,7 @@ impl FileTree {
                 }
                 Err(e) => {
                     self.items.push((
-                        format!("✗ Error: {}", e),
+                        format!("x Error: {}", e),
                         TreeNode::Bucket {
                             name: String::new(),
                         },
@@ -62,7 +62,7 @@ impl FileTree {
             }
         } else {
             self.items.push((
-                "✗ Drive not connected".to_string(),
+                "x Drive not connected".to_string(),
                 TreeNode::Bucket {
                     name: String::new(),
                 },
@@ -116,7 +116,7 @@ impl FileTree {
     async fn load_bucket_contents(&mut self, bucket: &str, prefix: &str) -> Result<()> {
         self.items.clear();
         self.items.push((
-            "⬆️  .. (go back)".to_string(),
+            "  .. (go back)".to_string(),
             TreeNode::Folder {
                 bucket: bucket.to_string(),
                 path: "..".to_string(),
@@ -195,13 +195,13 @@ impl FileTree {
             files.sort_by(|(a, _), (b, _)| a.cmp(b));
             for (name, full_path) in files {
                 let icon = if name.ends_with(".bas") {
-                    "⚙️"
+                    ""
                 } else if name.ends_with(".ast") {
-                    "🔧"
+                    ""
                 } else if name.ends_with(".csv") {
-                    "📊"
+                    ""
                 } else if name.ends_with(".gbkb") {
-                    "📚"
+                    ""
                 } else if name.ends_with(".json") {
                     "🔖"
                 } else {

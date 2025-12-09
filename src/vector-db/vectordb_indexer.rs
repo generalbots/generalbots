@@ -120,7 +120,7 @@ impl VectorDBIndexer {
         *running = true;
         drop(running);
 
-        info!("🚀 Starting Vector DB Indexer background service");
+        info!(" Starting Vector DB Indexer background service");
 
         let indexer = Arc::clone(&self);
         tokio::spawn(async move {
@@ -148,7 +148,7 @@ impl VectorDBIndexer {
                 }
             }
 
-            info!("🔄 Running vector DB indexing cycle...");
+            info!(" Running vector DB indexing cycle...");
 
             // Get all active users
             match self.get_active_users().await {
@@ -166,7 +166,7 @@ impl VectorDBIndexer {
                 }
             }
 
-            info!("✅ Indexing cycle complete");
+            info!(" Indexing cycle complete");
 
             // Sleep until next cycle
             sleep(Duration::from_secs(self.interval_seconds)).await;
@@ -325,7 +325,7 @@ impl VectorDBIndexer {
                                     if let Err(e) = email_db.index_email(&email, embedding).await {
                                         error!("Failed to index email {}: {}", email.id, e);
                                     } else {
-                                        info!("✅ Indexed email: {}", email.subject);
+                                        info!(" Indexed email: {}", email.subject);
                                     }
                                 }
                                 Err(e) => {
@@ -401,7 +401,7 @@ impl VectorDBIndexer {
                                 if let Err(e) = drive_db.index_file(&file, embedding).await {
                                     error!("Failed to index file {}: {}", file.id, e);
                                 } else {
-                                    info!("✅ Indexed file: {}", file.file_name);
+                                    info!(" Indexed file: {}", file.file_name);
                                 }
                             }
                             Err(e) => {
@@ -531,7 +531,7 @@ impl VectorDBIndexer {
 
     /// Trigger immediate indexing for a user
     pub async fn trigger_user_indexing(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
-        info!("🔄 Triggering immediate indexing for user {}", user_id);
+        info!(" Triggering immediate indexing for user {}", user_id);
         self.index_user_data(user_id, bot_id).await
     }
 }

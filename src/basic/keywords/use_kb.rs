@@ -63,7 +63,7 @@ pub fn register_use_kb_keyword(
 
         match result {
             Ok(Ok(_)) => {
-                info!("✅ KB '{}' added to session {}", kb_name, session_clone.id);
+                info!(" KB '{}' added to session {}", kb_name, session_clone.id);
                 Ok(Dynamic::UNIT)
             }
             Ok(Err(e)) => {
@@ -163,7 +163,7 @@ fn add_kb_to_session(
     .map_err(|e| format!("Failed to add KB association: {}", e))?;
 
     info!(
-        "✅ Added KB '{}' to session {} (collection: {}, path: {})",
+        " Added KB '{}' to session {} (collection: {}, path: {})",
         kb_name, session_id, qdrant_collection, kb_folder_path
     );
 

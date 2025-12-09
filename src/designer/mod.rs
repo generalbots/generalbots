@@ -258,7 +258,7 @@ pub async fn handle_save(
         Ok(_) => {
             let mut html = String::new();
             html.push_str("<div class=\"save-result success\">");
-            html.push_str("<span class=\"save-icon\">✓</span>");
+            html.push_str("<span class=\"save-icon\">*</span>");
             html.push_str("<span class=\"save-message\">Saved successfully</span>");
             html.push_str("</div>");
             Html(html)
@@ -266,7 +266,7 @@ pub async fn handle_save(
         Err(e) => {
             let mut html = String::new();
             html.push_str("<div class=\"save-result error\">");
-            html.push_str("<span class=\"save-icon\">✗</span>");
+            html.push_str("<span class=\"save-icon\">x</span>");
             html.push_str("<span class=\"save-message\">Save failed: ");
             html.push_str(&html_escape(&e));
             html.push_str("</span>");
@@ -289,13 +289,13 @@ pub async fn handle_validate(
 
     if validation.valid {
         html.push_str("<div class=\"validation-success\">");
-        html.push_str("<span class=\"validation-icon\">✓</span>");
+        html.push_str("<span class=\"validation-icon\">*</span>");
         html.push_str("<span class=\"validation-text\">Dialog is valid</span>");
         html.push_str("</div>");
     } else {
         html.push_str("<div class=\"validation-errors\">");
         html.push_str("<div class=\"validation-header\">");
-        html.push_str("<span class=\"validation-icon\">✗</span>");
+        html.push_str("<span class=\"validation-icon\">x</span>");
         html.push_str("<span class=\"validation-text\">");
         html.push_str(&validation.errors.len().to_string());
         html.push_str(" error(s) found</span>");
@@ -318,7 +318,7 @@ pub async fn handle_validate(
     if !validation.warnings.is_empty() {
         html.push_str("<div class=\"validation-warnings\">");
         html.push_str("<div class=\"validation-header\">");
-        html.push_str("<span class=\"validation-icon\">⚠</span>");
+        html.push_str("<span class=\"validation-icon\">!</span>");
         html.push_str("<span class=\"validation-text\">");
         html.push_str(&validation.warnings.len().to_string());
         html.push_str(" warning(s)</span>");
