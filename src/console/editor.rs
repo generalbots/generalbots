@@ -1,6 +1,7 @@
 use crate::shared::state::AppState;
 use color_eyre::Result;
 use std::sync::Arc;
+
 pub struct Editor {
     file_path: String,
     bucket: String,
@@ -8,6 +9,7 @@ pub struct Editor {
     content: String,
     cursor_pos: usize,
     scroll_offset: usize,
+    visible_lines: usize,
     modified: bool,
 }
 
@@ -44,6 +46,7 @@ impl Editor {
             content,
             cursor_pos: 0,
             scroll_offset: 0,
+            visible_lines: 20,
             modified: false,
         })
     }
@@ -63,11 +66,34 @@ impl Editor {
     pub fn file_path(&self) -> &str {
         &self.file_path
     }
+    pub fn set_visible_lines(&mut self, lines: usize) {
+        self.visible_lines = lines.max(5);
+    }
+
+    fn get_cursor_line(&self) -> usize {
+        self.content[..self.cursor_pos].lines().count()
+    }
+
+    fn ensure_cursor_visible(&mut self) {
+        let cursor_line = self.get_cursor_line();
+
+        // Scroll up if cursor is above visible area
+        if cursor_line < self.scroll_offset {
+            self.scroll_offset = cursor_line;
+        }
+
+        // Scroll down if cursor is below visible area (leave some margin)
+        let visible = self.visible_lines.saturating_sub(3);
+        if cursor_line >= self.scroll_offset + visible {
+            self.scroll_offset = cursor_line.saturating_sub(visible) + 1;
+        }
+    }
+
     pub fn render(&self, cursor_blink: bool) -> String {
         let lines: Vec<&str> = self.content.lines().collect();
         let total_lines = lines.len().max(1);
-        let visible_lines = 25;
-        let cursor_line = self.content[..self.cursor_pos].lines().count();
+        let visible_lines = self.visible_lines;
+        let cursor_line = self.get_cursor_line();
         let cursor_col = self.content[..self.cursor_pos]
             .lines()
             .last()
@@ -121,6 +147,7 @@ impl Editor {
                 self.cursor_pos = (self.cursor_pos - prev_line_end - 1).min(prev_line_end);
             }
         }
+        self.ensure_cursor_visible();
     }
     pub fn move_down(&mut self) {
         if let Some(next_line_start) = self.content[self.cursor_pos..].find('\n') {
@@ -139,6 +166,37 @@ impl Editor {
                         .min(self.content[next_line_absolute..].len());
                 self.cursor_pos = target_pos;
             }
+        }
+        self.ensure_cursor_visible();
+    }
+
+    pub fn page_up(&mut self) {
+        for _ in 0..self.visible_lines.saturating_sub(2) {
+            if self.content[..self.cursor_pos].rfind('\n').is_none() {
+                break;
+            }
+            self.move_up();
+        }
+    }
+
+    pub fn page_down(&mut self) {
+        for _ in 0..self.visible_lines.saturating_sub(2) {
+            if self.content[self.cursor_pos..].find('\n').is_none() {
+                break;
+            }
+            self.move_down();
+        }
+    }
+
+    pub fn scroll_up(&mut self) {
+        self.scroll_offset = self.scroll_offset.saturating_sub(1);
+    }
+
+    pub fn scroll_down(&mut self) {
+        let total_lines = self.content.lines().count().max(1);
+        let max_scroll = total_lines.saturating_sub(self.visible_lines.saturating_sub(3));
+        if self.scroll_offset < max_scroll {
+            self.scroll_offset += 1;
         }
     }
     pub fn move_left(&mut self) {
@@ -167,5 +225,20 @@ impl Editor {
         self.modified = true;
         self.content.insert(self.cursor_pos, '\n');
         self.cursor_pos += 1;
+        self.ensure_cursor_visible();
+    }
+
+    pub fn goto_line(&mut self, line: usize) {
+        let lines: Vec<&str> = self.content.lines().collect();
+        let target_line = line.saturating_sub(1).min(lines.len().saturating_sub(1));
+
+        self.cursor_pos = 0;
+        for (i, line_content) in lines.iter().enumerate() {
+            if i == target_line {
+                break;
+            }
+            self.cursor_pos += line_content.len() + 1; // +1 for newline
+        }
+        self.ensure_cursor_visible();
     }
 }
