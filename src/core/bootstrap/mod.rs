@@ -111,31 +111,47 @@ impl BootstrapManager {
 
         // VAULT MUST START FIRST - all other services depend on it for secrets
         if pm.is_installed("vault") {
-            info!("Starting Vault secrets service...");
-            match pm.start("vault") {
-                Ok(_child) => {
-                    info!("Vault process started, waiting for initialization...");
-                }
-                Err(e) => {
-                    warn!("Vault might already be running: {}", e);
-                }
-            }
+            // Check if Vault is already running before trying to start
+            let vault_already_running = Command::new("sh")
+                .arg("-c")
+                .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status()
+                .map(|s| s.success())
+                .unwrap_or(false);
 
-            // Wait for Vault to be ready (up to 10 seconds)
-            for i in 0..10 {
-                let vault_ready = Command::new("sh")
-                    .arg("-c")
-                    .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
-                    .status()
-                    .map(|s| s.success())
-                    .unwrap_or(false);
-
-                if vault_ready {
-                    info!("Vault is responding");
-                    break;
+            if vault_already_running {
+                info!("Vault is already running");
+            } else {
+                info!("Starting Vault secrets service...");
+                match pm.start("vault") {
+                    Ok(_child) => {
+                        info!("Vault process started, waiting for initialization...");
+                    }
+                    Err(e) => {
+                        warn!("Vault might already be running: {}", e);
+                    }
                 }
-                if i < 9 {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                // Wait for Vault to be ready (up to 10 seconds)
+                for i in 0..10 {
+                    let vault_ready = Command::new("sh")
+                        .arg("-c")
+                        .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                        .stdout(std::process::Stdio::null())
+                        .stderr(std::process::Stdio::null())
+                        .status()
+                        .map(|s| s.success())
+                        .unwrap_or(false);
+
+                    if vault_ready {
+                        info!("Vault is responding");
+                        break;
+                    }
+                    if i < 9 {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    }
                 }
             }
 
@@ -251,6 +267,8 @@ impl BootstrapManager {
             let vault_running = Command::new("sh")
                 .arg("-c")
                 .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
                 .status()
                 .map(|s| s.success())
                 .unwrap_or(false);
@@ -380,9 +398,11 @@ impl BootstrapManager {
         let status_output = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>&1",
+                "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
                 vault_addr
             ))
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
             .output()?;
 
         let status_str = String::from_utf8_lossy(&status_output.stdout);
@@ -406,9 +426,11 @@ impl BootstrapManager {
                 let unseal_output = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(format!(
-                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {}",
+                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {} >/dev/null 2>&1",
                         vault_addr, unseal_key
                     ))
+                    .stdout(std::process::Stdio::null())
+                    .stderr(std::process::Stdio::null())
                     .output()?;
 
                 if !unseal_output.status.success() {
@@ -421,9 +443,11 @@ impl BootstrapManager {
                 let verify_output = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(format!(
-                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>&1",
+                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
                         vault_addr
                     ))
+                    .stdout(std::process::Stdio::piped())
+                    .stderr(std::process::Stdio::null())
                     .output()?;
 
                 let verify_str = String::from_utf8_lossy(&verify_output.stdout);
@@ -1317,15 +1341,41 @@ VAULT_CACHE_TTL=300
         } else {
             format!("{}/", config.drive.server)
         };
+
+        // Get credentials from config, or fetch from Vault if empty
+        let (access_key, secret_key) =
+            if config.drive.access_key.is_empty() || config.drive.secret_key.is_empty() {
+                // Try to get from Vault using the global SecretsManager
+                match crate::shared::utils::get_secrets_manager().await {
+                    Some(manager) if manager.is_enabled() => {
+                        match manager.get_drive_credentials().await {
+                            Ok((ak, sk)) => (ak, sk),
+                            Err(e) => {
+                                warn!("Failed to get drive credentials from Vault: {}", e);
+                                (
+                                    config.drive.access_key.clone(),
+                                    config.drive.secret_key.clone(),
+                                )
+                            }
+                        }
+                    }
+                    _ => (
+                        config.drive.access_key.clone(),
+                        config.drive.secret_key.clone(),
+                    ),
+                }
+            } else {
+                (
+                    config.drive.access_key.clone(),
+                    config.drive.secret_key.clone(),
+                )
+            };
+
         let base_config = aws_config::defaults(BehaviorVersion::latest())
             .endpoint_url(endpoint)
             .region("auto")
             .credentials_provider(aws_sdk_s3::config::Credentials::new(
-                config.drive.access_key.clone(),
-                config.drive.secret_key.clone(),
-                None,
-                None,
-                "static",
+                access_key, secret_key, None, None, "static",
             ))
             .load()
             .await;

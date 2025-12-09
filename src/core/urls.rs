@@ -153,16 +153,16 @@ impl ApiUrls {
 pub struct InternalUrls;
 
 impl InternalUrls {
-    pub const DIRECTORY_BASE: &'static str = "https://localhost:8080";
+    pub const DIRECTORY_BASE: &'static str = "http://localhost:8080";
     pub const DATABASE: &'static str = "postgres://localhost:5432";
-    pub const CACHE: &'static str = "rediss://localhost:6379";
-    pub const DRIVE: &'static str = "https://localhost:9000";
-    pub const EMAIL: &'static str = "https://localhost:8025";
-    pub const LLM: &'static str = "https://localhost:8081";
-    pub const EMBEDDING: &'static str = "https://localhost:8082";
-    pub const QDRANT: &'static str = "https://localhost:6334";
-    pub const FORGEJO: &'static str = "https://localhost:3000";
-    pub const LIVEKIT: &'static str = "https://localhost:7880";
+    pub const CACHE: &'static str = "redis://localhost:6379";
+    pub const DRIVE: &'static str = "http://localhost:9000";
+    pub const EMAIL: &'static str = "http://localhost:8025";
+    pub const LLM: &'static str = "http://localhost:8081";
+    pub const EMBEDDING: &'static str = "http://localhost:8082";
+    pub const QDRANT: &'static str = "http://localhost:6334";
+    pub const FORGEJO: &'static str = "http://localhost:3000";
+    pub const LIVEKIT: &'static str = "http://localhost:7880";
 }
 
 /// Helper functions for URL construction

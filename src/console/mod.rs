@@ -9,7 +9,7 @@ use crossterm::{
 use log::LevelFilter;
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
@@ -42,6 +42,7 @@ pub struct XtreeUI {
     progress_channel: Option<
         Arc<tokio::sync::Mutex<tokio::sync::mpsc::UnboundedReceiver<crate::BootstrapProgress>>>,
     >,
+    state_channel: Option<Arc<tokio::sync::Mutex<tokio::sync::mpsc::Receiver<Arc<AppState>>>>>,
     bootstrap_status: String,
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -65,6 +66,7 @@ impl XtreeUI {
             active_panel: ActivePanel::Logs,
             should_quit: false,
             progress_channel: None,
+            state_channel: None,
             bootstrap_status: "Initializing...".to_string(),
         }
     }
@@ -74,6 +76,12 @@ impl XtreeUI {
     ) {
         self.progress_channel = Some(rx);
     }
+    pub fn set_state_channel(
+        &mut self,
+        rx: Arc<tokio::sync::Mutex<tokio::sync::mpsc::Receiver<Arc<AppState>>>>,
+    ) {
+        self.state_channel = Some(rx);
+    }
     pub fn set_app_state(&mut self, app_state: Arc<AppState>) {
         self.file_tree = Some(FileTree::new(app_state.clone()));
         self.status_panel = Some(StatusPanel::new(app_state.clone()));
@@ -82,6 +90,7 @@ impl XtreeUI {
         self.active_panel = ActivePanel::FileTree;
         self.bootstrap_status = "Ready".to_string();
     }
+
     pub fn start_ui(&mut self) -> Result<()> {
         color_eyre::install()?;
         if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
@@ -92,8 +101,12 @@ impl XtreeUI {
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
-        init_logger(self.log_panel.clone())?;
-        log::set_max_level(LevelFilter::Trace);
+        // Initialize UI logger to capture logs for the log panel
+        // This works because env_logger is not initialized when console UI is enabled
+        if let Err(e) = init_logger(self.log_panel.clone()) {
+            eprintln!("Warning: Could not initialize UI logger: {}", e);
+        }
+        log::set_max_level(log::LevelFilter::Trace);
         let result = self.run_event_loop(&mut terminal);
         disable_raw_mode()?;
         execute!(terminal.backend_mut(), LeaveAlternateScreen)?;
@@ -110,6 +123,28 @@ impl XtreeUI {
         let mut last_blink = std::time::Instant::now();
         let rt = tokio::runtime::Runtime::new()?;
         loop {
+            // Poll for AppState updates from the main thread
+            if self.app_state.is_none() {
+                if let Some(ref state_rx) = self.state_channel {
+                    if let Ok(mut rx) = state_rx.try_lock() {
+                        if let Ok(app_state) = rx.try_recv() {
+                            // Initialize all panels with the new state
+                            self.file_tree = Some(FileTree::new(app_state.clone()));
+                            self.status_panel = Some(StatusPanel::new(app_state.clone()));
+                            self.chat_panel = Some(ChatPanel::new(app_state.clone()));
+                            self.app_state = Some(app_state);
+                            self.active_panel = ActivePanel::FileTree;
+                            self.bootstrap_status = "Ready".to_string();
+
+                            // Log that we received the state
+                            if let Ok(mut log_panel) = self.log_panel.lock() {
+                                log_panel.add_log("AppState received - UI fully initialized");
+                            }
+                        }
+                    }
+                }
+            }
+
             if let Some(ref progress_rx) = self.progress_channel {
                 if let Ok(mut rx) = progress_rx.try_lock() {
                     while let Ok(progress) = rx.try_recv() {
@@ -358,42 +393,130 @@ impl XtreeUI {
         title_bg: Color,
         title_fg: Color,
     ) {
-        let chunks = Layout::default()
+        // Same layout as the real UI - header, content, logs
+        let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
-                Constraint::Percentage(40),
-                Constraint::Percentage(20),
-                Constraint::Percentage(40),
+                Constraint::Length(3),
+                Constraint::Min(0),
+                Constraint::Length(12),
             ])
             .split(f.area());
-        let center = Layout::default()
+
+        // Render header with GENERAL BOTS title
+        let header_block = Block::default().style(Style::default().bg(title_bg));
+        f.render_widget(header_block, main_chunks[0]);
+
+        let title = " GENERAL BOTS ";
+        let title_len = title.len() as u16;
+        let centered_x = (main_chunks[0].width.saturating_sub(title_len)) / 2;
+        let title_span = Span::styled(
+            title,
+            Style::default()
+                .fg(title_fg)
+                .bg(title_bg)
+                .add_modifier(Modifier::BOLD),
+        );
+        f.render_widget(
+            Paragraph::new(Line::from(title_span)),
+            Rect {
+                x: main_chunks[0].x + centered_x,
+                y: main_chunks[0].y + 1,
+                width: title_len,
+                height: 1,
+            },
+        );
+
+        // Content area - same 3 columns as real UI
+        let content_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
-                Constraint::Percentage(30),
+                Constraint::Percentage(25),
                 Constraint::Percentage(40),
-                Constraint::Percentage(30),
+                Constraint::Percentage(35),
             ])
-            .split(chunks[1])[1];
-        let block = Block::default()
+            .split(main_chunks[1]);
+
+        // Left panel - FILE EXPLORER (loading)
+        let file_block = Block::default()
             .title(Span::styled(
-                " General Bots ",
-                Style::default()
-                    .fg(title_fg)
-                    .bg(title_bg)
-                    .add_modifier(Modifier::BOLD),
+                " FILE EXPLORER ",
+                Style::default().fg(title_fg).bg(title_bg),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border))
             .style(Style::default().bg(bg));
-        let loading_text = format!(
-"\n ╔════════════════════════════════╗\n ║                                ║\n ║  Initializing System...        ║\n ║                                ║\n ║  {}  ║\n ║                                ║\n ╚════════════════════════════════╝\n",
-format!("{:^30}", self.bootstrap_status)
-);
-        let paragraph = Paragraph::new(loading_text)
-            .block(block)
+        let file_text = Paragraph::new("\n\n     Loading files...")
+            .block(file_block)
+            .style(Style::default().fg(Color::DarkGray));
+        f.render_widget(file_text, content_chunks[0]);
+
+        // Middle panel - STATUS (loading with bootstrap info)
+        let middle_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(content_chunks[1]);
+
+        let status_block = Block::default()
+            .title(Span::styled(
+                " STATUS ",
+                Style::default().fg(title_fg).bg(title_bg),
+            ))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border))
+            .style(Style::default().bg(bg));
+
+        let status_text = format!(
+            "\n  ⏳ {}\n\n  Components:\n    ○ Vault\n    ○ Database\n    ○ Drive\n    ○ Cache\n    ○ LLM",
+            self.bootstrap_status
+        );
+        let status_para = Paragraph::new(status_text)
+            .block(status_block)
+            .style(Style::default().fg(text));
+        f.render_widget(status_para, middle_chunks[0]);
+
+        // Empty space below status (will be editor later)
+        let empty_block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(Color::DarkGray))
+            .style(Style::default().bg(bg));
+        f.render_widget(empty_block, middle_chunks[1]);
+
+        // Right panel - CHAT (loading)
+        let chat_block = Block::default()
+            .title(Span::styled(
+                " CHAT ",
+                Style::default().fg(title_fg).bg(title_bg),
+            ))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border))
+            .style(Style::default().bg(bg));
+        let chat_text = Paragraph::new("\n\n     Connecting...")
+            .block(chat_block)
+            .style(Style::default().fg(Color::DarkGray));
+        f.render_widget(chat_text, content_chunks[2]);
+
+        // Bottom panel - LOGS (showing bootstrap progress)
+        let logs_block = Block::default()
+            .title(Span::styled(
+                " SYSTEM LOGS ",
+                Style::default().fg(title_fg).bg(title_bg),
+            ))
+            .borders(Borders::ALL)
+            .border_style(Style::default().fg(border))
+            .style(Style::default().bg(bg));
+
+        let logs_content = if let Ok(panel) = self.log_panel.lock() {
+            panel.render()
+        } else {
+            String::from("  Waiting for logs...")
+        };
+
+        let logs_para = Paragraph::new(logs_content)
+            .block(logs_block)
             .style(Style::default().fg(text))
             .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, center);
+        f.render_widget(logs_para, main_chunks[2]);
     }
     fn render_file_tree(
         &self,

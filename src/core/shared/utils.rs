@@ -23,7 +23,7 @@ use tokio::io::AsyncWriteExt;
 use tokio::sync::RwLock;
 
 /// Global SecretsManager instance - initialized once, used everywhere
-static SECRETS_MANAGER: Lazy<Arc<RwLock<Option<SecretsManager>>>> = 
+static SECRETS_MANAGER: Lazy<Arc<RwLock<Option<SecretsManager>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
 /// Initialize the global secrets manager (call once at startup)
@@ -43,7 +43,9 @@ pub async fn get_database_url() -> Result<String> {
         }
     }
     // NO FALLBACK - Vault is mandatory
-    Err(anyhow::anyhow!("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"))
+    Err(anyhow::anyhow!(
+        "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
+    ))
 }
 
 /// Get database URL synchronously (blocking) for diesel connections - NO FALLBACK
@@ -51,21 +53,23 @@ pub fn get_database_url_sync() -> Result<String> {
     // Check if we're in an async runtime context
     if let Ok(handle) = tokio::runtime::Handle::try_current() {
         // We're inside a tokio runtime - use block_in_place to avoid nesting
-        let result = tokio::task::block_in_place(|| {
-            handle.block_on(async { get_database_url().await })
-        });
+        let result =
+            tokio::task::block_in_place(|| handle.block_on(async { get_database_url().await }));
         if let Ok(url) = result {
             return Ok(url);
         }
     } else {
         // Not in a runtime - create a new one
-        let rt = tokio::runtime::Runtime::new().map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
+        let rt = tokio::runtime::Runtime::new()
+            .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
         if let Ok(url) = rt.block_on(async { get_database_url().await }) {
             return Ok(url);
         }
     }
     // NO FALLBACK - Vault is mandatory
-    Err(anyhow::anyhow!("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"))
+    Err(anyhow::anyhow!(
+        "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
+    ))
 }
 
 /// Get the global SecretsManager instance
@@ -82,15 +86,35 @@ pub async fn create_s3_operator(
     } else {
         config.server.clone()
     };
+
+    // Get credentials from config, or fetch from Vault if empty
+    let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
+        // Try to get from Vault
+        let guard = SECRETS_MANAGER.read().await;
+        if let Some(ref manager) = *guard {
+            if manager.is_enabled() {
+                match manager.get_drive_credentials().await {
+                    Ok((ak, sk)) => (ak, sk),
+                    Err(e) => {
+                        log::warn!("Failed to get drive credentials from Vault: {}", e);
+                        (config.access_key.clone(), config.secret_key.clone())
+                    }
+                }
+            } else {
+                (config.access_key.clone(), config.secret_key.clone())
+            }
+        } else {
+            (config.access_key.clone(), config.secret_key.clone())
+        }
+    } else {
+        (config.access_key.clone(), config.secret_key.clone())
+    };
+
     let base_config = aws_config::defaults(BehaviorVersion::latest())
         .endpoint_url(endpoint)
         .region("auto")
         .credentials_provider(aws_sdk_s3::config::Credentials::new(
-            config.access_key.clone(),
-            config.secret_key.clone(),
-            None,
-            None,
-            "static",
+            access_key, secret_key, None, None, "static",
         ))
         .load()
         .await;
@@ -247,7 +271,8 @@ pub fn create_conn() -> Result<DbPool, diesel::r2d2::PoolError> {
 
 /// Create database connection pool using SecretsManager (async version)
 pub async fn create_conn_async() -> Result<DbPool, diesel::r2d2::PoolError> {
-    let database_url = get_database_url().await
+    let database_url = get_database_url()
+        .await
         .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
     let manager = ConnectionManager::<PgConnection>::new(database_url);
     Pool::builder().build(manager)
