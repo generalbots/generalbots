@@ -303,15 +303,28 @@ async fn main() -> std::io::Result<()> {
     // Load .env for VAULT_* variables only (all other secrets come from Vault)
     dotenvy::dotenv().ok();
 
-    // Initialize SecretsManager early - this connects to Vault if configured
-    // Only VAULT_ADDR, VAULT_TOKEN, and VAULT_SKIP_VERIFY should be in .env
-    if let Err(e) = crate::shared::utils::init_secrets_manager().await {
-        warn!(
-            "Failed to initialize SecretsManager: {}. Falling back to env vars.",
-            e
-        );
+    // Check if bootstrap is complete BEFORE trying to init SecretsManager
+    let env_path_early = std::path::Path::new("./.env");
+    let vault_init_path_early = std::path::Path::new("./botserver-stack/conf/vault/init.json");
+    let bootstrap_ready = env_path_early.exists() && vault_init_path_early.exists() && {
+        std::fs::read_to_string(env_path_early)
+            .map(|content| content.contains("VAULT_TOKEN="))
+            .unwrap_or(false)
+    };
+
+    // Only initialize SecretsManager early if bootstrap is complete
+    // Otherwise, bootstrap will handle it
+    if bootstrap_ready {
+        if let Err(e) = crate::shared::utils::init_secrets_manager().await {
+            warn!(
+                "Failed to initialize SecretsManager: {}. Falling back to env vars.",
+                e
+            );
+        } else {
+            info!("SecretsManager initialized - fetching secrets from Vault");
+        }
     } else {
-        info!("SecretsManager initialized - fetching secrets from Vault");
+        trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
     // Initialize logger early to capture all logs with filters for noisy libraries
@@ -508,8 +521,15 @@ async fn main() -> std::io::Result<()> {
                 }
             }
         } else {
+            info!("Bootstrap not complete - running full bootstrap...");
             trace!(".env file not found, running bootstrap.bootstrap()...");
-            _ = bootstrap.bootstrap().await;
+            if let Err(e) = bootstrap.bootstrap().await {
+                error!("Bootstrap failed: {}", e);
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    format!("Bootstrap failed: {}", e),
+                ));
+            }
             trace!("bootstrap.bootstrap() completed");
             progress_tx_clone
                 .send(BootstrapProgress::StartingComponent(
