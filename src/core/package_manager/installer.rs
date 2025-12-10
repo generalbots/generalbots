@@ -199,8 +199,7 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
-        // llama.cpp is compiled from source for maximum CPU compatibility
-        // This ensures it works on older CPUs (Sandy Bridge, etc.) without AVX2
+        // Use pre-built llama.cpp binaries
         self.components.insert(
             "llm".to_string(),
             ComponentConfig {
@@ -212,19 +211,11 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/ggml-org/llama.cpp/archive/refs/tags/b4967.zip".to_string(),
+                    "https://github.com/ggml-org/llama.cpp/releases/download/b4547/llama-b4547-bin-ubuntu-x64.zip".to_string(),
                 ),
                 binary_name: Some("llama-server".to_string()),
-                pre_install_cmds_linux: vec![
-                    // Install build dependencies
-                    "which cmake >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y cmake build-essential)".to_string(),
-                ],
-                post_install_cmds_linux: vec![
-                    // Compile llama.cpp from source for this CPU's instruction set
-                    "cd {{BIN_PATH}} && if [ -d llama.cpp-b4967 ]; then mv llama.cpp-b4967/* . && rmdir llama.cpp-b4967; fi".to_string(),
-                    "cd {{BIN_PATH}} && mkdir -p build && cd build && cmake .. -DGGML_NATIVE=ON -DGGML_CPU_ALL_VARIANTS=OFF && cmake --build . --config Release -j$(nproc)".to_string(),
-                    "echo 'llama.cpp compiled successfully for this CPU'".to_string(),
-                ],
+                pre_install_cmds_linux: vec![],
+                post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
@@ -238,7 +229,7 @@ impl PackageManager {
                     // GPT-OSS 20B F16 - Recommended for small GPU (16GB VRAM), no CPU
                     // Uncomment to download: "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf".to_string(),
                 ],
-                exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
             },
         );
