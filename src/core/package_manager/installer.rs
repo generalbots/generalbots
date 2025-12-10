@@ -2,9 +2,27 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
-use log::{info, trace};
+use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
+
+/// Check if the CPU supports AVX2 instructions (required for pre-built llama.cpp binaries)
+fn cpu_supports_avx2() -> bool {
+    #[cfg(target_arch = "x86_64")]
+    {
+        // Read /proc/cpuinfo on Linux to check for avx2 flag
+        if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
+            return cpuinfo.contains(" avx2 ") || cpuinfo.contains(" avx2\n");
+        }
+        // Fallback: assume AVX2 is not available if we can't read cpuinfo
+        false
+    }
+    #[cfg(not(target_arch = "x86_64"))]
+    {
+        // Non-x86_64 architectures (ARM, etc.) don't use AVX2
+        false
+    }
+}
 
 #[derive(Debug)]
 pub struct PackageManager {
@@ -199,6 +217,43 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
+        // Check CPU capabilities - pre-built llama.cpp binaries require AVX2
+        let has_avx2 = cpu_supports_avx2();
+
+        if !has_avx2 {
+            warn!("CPU does not support AVX2 instructions. Local LLM will not be available.");
+            warn!("To use local LLM on this CPU, you need to compile llama.cpp from source.");
+            warn!(
+                "Alternatively, configure an external LLM API (OpenAI, Anthropic, etc.) in Vault."
+            );
+            // Register a disabled LLM component that won't download or run anything
+            self.components.insert(
+                "llm".to_string(),
+                ComponentConfig {
+                    name: "llm".to_string(),
+                    ports: vec![8081, 8082],
+                    dependencies: vec![],
+                    linux_packages: vec![],
+                    macos_packages: vec![],
+                    windows_packages: vec![],
+                    download_url: None, // Don't download - CPU not compatible
+                    binary_name: None,
+                    pre_install_cmds_linux: vec![],
+                    post_install_cmds_linux: vec![],
+                    pre_install_cmds_macos: vec![],
+                    post_install_cmds_macos: vec![],
+                    pre_install_cmds_windows: vec![],
+                    post_install_cmds_windows: vec![],
+                    env_vars: HashMap::new(),
+                    data_download_list: vec![], // Don't download models
+                    exec_cmd: "echo 'LLM disabled - CPU does not support AVX2'".to_string(),
+                    check_cmd: "false".to_string(), // Always fail check - LLM not available
+                },
+            );
+            return;
+        }
+
+        info!("CPU supports AVX2 - local LLM will be available");
         self.components.insert(
             "llm".to_string(),
             ComponentConfig {
