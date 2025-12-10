@@ -211,7 +211,7 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/ggml-org/llama.cpp/releases/download/b4547/llama-b4547-bin-ubuntu-x64.zip".to_string(),
+                    "https://github.com/ggml-org/llama.cpp/releases/download/b6148/llama-b6148-bin-ubuntu-x64.zip".to_string(),
                 ),
                 binary_name: Some("llama-server".to_string()),
                 pre_install_cmds_linux: vec![],
