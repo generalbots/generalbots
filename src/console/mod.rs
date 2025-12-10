@@ -6,10 +6,10 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
-use log::LevelFilter;
+
 use ratatui::{
     backend::CrosstermBackend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Line, Span},
     widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},

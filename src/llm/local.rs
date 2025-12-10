@@ -128,14 +128,18 @@ pub async fn ensure_llama_servers_running(
     let mut llm_ready = llm_running || llm_model.is_empty();
     let mut embedding_ready = embedding_running || embedding_model.is_empty();
     let mut attempts = 0;
-    let max_attempts = 60;
+    let max_attempts = 120; // Increased to 4 minutes for large models
     while attempts < max_attempts && (!llm_ready || !embedding_ready) {
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-        info!(
-            "Checking server health (attempt {}/{})...",
-            attempts + 1,
-            max_attempts
-        );
+
+        // Only log every 5 attempts to reduce noise
+        if attempts % 5 == 0 {
+            info!(
+                "Checking server health (attempt {}/{})...",
+                attempts + 1,
+                max_attempts
+            );
+        }
         if !llm_ready && !llm_model.is_empty() {
             if is_server_running(&llm_url).await {
                 info!("LLM server ready at {}", llm_url);
@@ -148,14 +152,26 @@ pub async fn ensure_llama_servers_running(
             if is_server_running(&embedding_url).await {
                 info!("Embedding server ready at {}", embedding_url);
                 embedding_ready = true;
-            } else {
-                info!("Embedding server not ready yet");
+            } else if attempts % 10 == 0 {
+                warn!("Embedding server not ready yet at {}", embedding_url);
+                // Try to read log file for diagnostics
+                if let Ok(log_content) =
+                    std::fs::read_to_string(format!("{}/llmembd-stdout.log", llm_server_path))
+                {
+                    let last_lines: Vec<&str> = log_content.lines().rev().take(5).collect();
+                    if !last_lines.is_empty() {
+                        info!("Embedding server log (last 5 lines):");
+                        for line in last_lines.iter().rev() {
+                            info!("  {}", line);
+                        }
+                    }
+                }
             }
         }
         attempts += 1;
-        if attempts % 10 == 0 {
-            info!(
-                "Still waiting for servers... (attempt {}/{})",
+        if attempts % 20 == 0 {
+            warn!(
+                "Still waiting for servers... (attempt {}/{}) - this may take a while for large models",
                 attempts, max_attempts
             );
         }
@@ -181,10 +197,37 @@ pub async fn ensure_llama_servers_running(
     }
 }
 pub async fn is_server_running(url: &str) -> bool {
-    let client = reqwest::Client::new();
+    let client = reqwest::Client::builder()
+        .timeout(std::time::Duration::from_secs(5))
+        .build()
+        .unwrap_or_default();
+
+    // Try /health first (standard llama.cpp endpoint)
     match client.get(&format!("{}/health", url)).send().await {
-        Ok(response) => response.status().is_success(),
-        Err(_) => false,
+        Ok(response) => {
+            if response.status().is_success() {
+                return true;
+            }
+            // Log non-success status for debugging
+            info!("Health check returned status: {}", response.status());
+            false
+        }
+        Err(e) => {
+            // Also try root endpoint as fallback
+            match client.get(url).send().await {
+                Ok(response) => response.status().is_success(),
+                Err(_) => {
+                    // Only log connection errors occasionally to avoid spam
+                    if e.is_connect() {
+                        // Connection refused - server not started yet
+                        false
+                    } else {
+                        warn!("Health check error for {}: {}", url, e);
+                        false
+                    }
+                }
+            }
+        }
     }
 }
 pub async fn start_llm_server(
@@ -296,10 +339,28 @@ pub async fn start_embedding_server(
     url: String,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let port = url.split(':').last().unwrap_or("8082");
+
+    // Check if model file exists
+    let full_model_path = if model_path.starts_with('/') {
+        model_path.clone()
+    } else {
+        format!("{}/{}", llama_cpp_path, model_path)
+    };
+
+    if !std::path::Path::new(&full_model_path).exists() {
+        error!("Embedding model file not found: {}", full_model_path);
+        return Err(format!("Embedding model file not found: {}", full_model_path).into());
+    }
+
+    info!(
+        "Starting embedding server on port {} with model: {}",
+        port, model_path
+    );
+
     if cfg!(windows) {
         let mut cmd = tokio::process::Command::new("cmd");
         cmd.arg("/c").arg(format!(
-            "cd {} && .\\llama-server.exe -m {} --verbose --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99 >stdout.log",
+            "cd {} && .\\llama-server.exe -m {} --verbose --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99 >stdout.log 2>&1",
             llama_cpp_path, model_path, port
         ));
         cmd.spawn()?;
@@ -309,7 +370,15 @@ pub async fn start_embedding_server(
             "cd {} && ./llama-server -m {} --verbose --host 0.0.0.0 --port {} --embedding --n-gpu-layers 99 >llmembd-stdout.log 2>&1 &",
             llama_cpp_path, model_path, port
         ));
+        info!(
+            "Executing embedding server command: cd {} && ./llama-server -m {} --host 0.0.0.0 --port {} --embedding",
+            llama_cpp_path, model_path, port
+        );
         cmd.spawn()?;
     }
+
+    // Give the server a moment to start
+    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
     Ok(())
 }
