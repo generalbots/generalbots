@@ -2,7 +2,7 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
-use log::trace;
+use log::{info, trace};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -880,10 +880,21 @@ impl PackageManager {
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            trace!(
+            eprintln!(
+                "[START DEBUG] Starting component {} with command: {}",
+                component.name, rendered_cmd
+            );
+            eprintln!(
+                "[START DEBUG] Working directory: {:?}, logs_path: {:?}",
+                bin_path, logs_path
+            );
+            info!(
                 "Starting component {} with command: {}",
-                component.name,
-                rendered_cmd
+                component.name, rendered_cmd
+            );
+            info!(
+                "Working directory: {:?}, logs_path: {:?}",
+                bin_path, logs_path
             );
 
             // Fetch credentials from Vault for special placeholders
@@ -906,20 +917,43 @@ impl PackageManager {
                 }
             }
 
+            // Don't redirect stdout/stderr to null - let the shell command handle its own redirections
+            // This is important for commands like "nohup ... > file 2>&1 &" which need to redirect
+            // their own output to files
+            eprintln!("[START DEBUG] About to spawn shell command...");
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
                 .arg(&rendered_cmd)
                 .envs(&evaluated_envs)
-                .stdout(std::process::Stdio::null())
-                .stderr(std::process::Stdio::null())
                 .spawn();
 
+            eprintln!("[START DEBUG] Spawn result: {:?}", child.is_ok());
             std::thread::sleep(std::time::Duration::from_secs(2));
 
+            // Check if the process is actually running after sleep
+            eprintln!("[START DEBUG] Checking if vault process exists after 2s sleep...");
+            let check_proc = std::process::Command::new("pgrep")
+                .args(["-f", "vault server"])
+                .output();
+            if let Ok(output) = check_proc {
+                let pids = String::from_utf8_lossy(&output.stdout);
+                eprintln!("[START DEBUG] pgrep vault server result: '{}'", pids.trim());
+            }
+
+            // Check if log file was created
+            eprintln!(
+                "[START DEBUG] Log file exists: {}",
+                logs_path.join("vault.log").exists()
+            );
+
             match child {
-                Ok(c) => Ok(c),
+                Ok(c) => {
+                    eprintln!("[START DEBUG] Returning Ok from start()");
+                    Ok(c)
+                }
                 Err(e) => {
+                    eprintln!("[START DEBUG] Spawn failed with error: {}", e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")
@@ -932,8 +966,6 @@ impl PackageManager {
                         Ok(std::process::Command::new("sh")
                             .arg("-c")
                             .arg("true")
-                            .stdout(std::process::Stdio::null())
-                            .stderr(std::process::Stdio::null())
                             .spawn()?)
                     } else {
                         Err(e.into())

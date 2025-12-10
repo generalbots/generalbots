@@ -254,28 +254,28 @@ pub fn estimate_token_count(text: &str) -> usize {
 }
 
 pub fn establish_pg_connection() -> Result<PgConnection> {
-    let database_url = get_database_url_sync()
-        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
+    let database_url = get_database_url_sync()?;
     PgConnection::establish(&database_url)
         .with_context(|| format!("Failed to connect to database at {}", database_url))
 }
 
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-pub fn create_conn() -> Result<DbPool, diesel::r2d2::PoolError> {
-    let database_url = get_database_url_sync()
-        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
+pub fn create_conn() -> Result<DbPool, anyhow::Error> {
+    let database_url = get_database_url_sync()?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
-    Pool::builder().build(manager)
+    Pool::builder()
+        .build(manager)
+        .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
 
 /// Create database connection pool using SecretsManager (async version)
-pub async fn create_conn_async() -> Result<DbPool, diesel::r2d2::PoolError> {
-    let database_url = get_database_url()
-        .await
-        .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
+pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
+    let database_url = get_database_url().await?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
-    Pool::builder().build(manager)
+    Pool::builder()
+        .build(manager)
+        .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
 
 pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {

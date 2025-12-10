@@ -341,14 +341,9 @@ impl AppConfig {
                 port: 8080,
                 base_url: "http://localhost:8080".to_string(),
             },
-            site_path: {
-                let pool = create_conn()?;
-                ConfigManager::new(pool).get_config(
-                    &Uuid::nil(),
-                    "SITES_ROOT",
-                    Some("./botserver-stack/sites"),
-                )?
-            },
+            // Use default site_path - no database access needed for env-based config
+            // This allows from_env() to work during bootstrap before Vault/DB are ready
+            site_path: "./botserver-stack/sites".to_string(),
             data_dir: "./botserver-stack/data".to_string(),
         })
     }
@@ -448,8 +443,4 @@ impl ConfigManager {
         }
         Ok(updated)
     }
-}
-fn create_conn() -> Result<DbPool, anyhow::Error> {
-    crate::shared::utils::create_conn()
-        .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }

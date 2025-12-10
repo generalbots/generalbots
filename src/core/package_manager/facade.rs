@@ -482,6 +482,30 @@ impl PackageManager {
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
+
+        // Make all extracted files executable (especially important for binaries like Vault)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            if let Ok(entries) = std::fs::read_dir(bin_path) {
+                for entry in entries.flatten() {
+                    let path = entry.path();
+                    if path.is_file() {
+                        if let Ok(metadata) = std::fs::metadata(&path) {
+                            let mut perms = metadata.permissions();
+                            // Only make executable if it looks like a binary (no extension or common binary extensions)
+                            let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+                            if ext.is_empty() || ext == "sh" || ext == "bash" {
+                                perms.set_mode(0o755);
+                                let _ = std::fs::set_permissions(&path, perms);
+                                trace!("Made executable: {:?}", path);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         // Only delete if NOT in the cache directory (botserver-installers)
         // Cached files should be preserved for offline installation
         if !temp_file.to_string_lossy().contains("botserver-installers") {

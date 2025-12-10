@@ -12,7 +12,9 @@ use crate::shared::utils::DbPool;
 use crate::tasks::{TaskEngine, TaskScheduler};
 #[cfg(feature = "drive")]
 use aws_sdk_s3::Client as S3Client;
+#[cfg(test)]
 use diesel::r2d2::{ConnectionManager, Pool};
+#[cfg(test)]
 use diesel::PgConnection;
 #[cfg(feature = "cache")]
 use redis::Client as RedisClient;
@@ -259,12 +261,14 @@ fn create_mock_auth_service() -> AuthService {
     rt.expect("Failed to create mock AuthService")
 }
 
+/// Default implementation for AppState - ONLY FOR TESTS
+/// This will panic if Vault is not configured, so it must only be used in test contexts.
+#[cfg(test)]
 impl Default for AppState {
     fn default() -> Self {
-        // NO LEGACY FALLBACK - Vault is mandatory
         // This default is only for tests. In production, use the full initialization.
         let database_url = crate::shared::utils::get_database_url_sync()
-            .expect("Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env");
+            .expect("AppState::default() requires Vault to be configured. This should only be used in tests.");
 
         let manager = ConnectionManager::<PgConnection>::new(&database_url);
         let pool = Pool::builder()

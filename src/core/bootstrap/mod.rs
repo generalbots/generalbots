@@ -13,6 +13,7 @@ use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair,
 };
 use std::fs;
+use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -648,7 +649,27 @@ impl BootstrapManager {
                         .status();
                     std::thread::sleep(std::time::Duration::from_millis(200));
                 }
-                _ = pm.install(component).await;
+
+                eprintln!("[DEBUG] Installing component: {}", component);
+                let _ = std::io::stderr().flush();
+                info!("Installing component: {}", component);
+                let install_result = pm.install(component).await;
+                eprintln!(
+                    "[DEBUG] Install result for {}: {:?}",
+                    component,
+                    install_result.is_ok()
+                );
+                let _ = std::io::stderr().flush();
+                if let Err(e) = install_result {
+                    eprintln!("[DEBUG] Failed to install component {}: {}", component, e);
+                    error!("Failed to install component {}: {}", component, e);
+                    if component == "vault" {
+                        return Err(anyhow::anyhow!("Failed to install Vault: {}", e));
+                    }
+                }
+                eprintln!("[DEBUG] Component {} installed successfully", component);
+                let _ = std::io::stderr().flush();
+                info!("Component {} installed successfully", component);
 
                 // After tables is installed, START PostgreSQL and create Zitadel config files before installing directory
                 if component == "tables" {
@@ -698,19 +719,124 @@ impl BootstrapManager {
 
                 // After Vault is installed, START the server then initialize it
                 if component == "vault" {
+                    eprintln!("[VAULT DEBUG] === VAULT SETUP BLOCK ENTERED ===");
+                    eprintln!(
+                        "[VAULT DEBUG] Current working directory: {:?}",
+                        std::env::current_dir()
+                    );
+                    eprintln!("[VAULT DEBUG] base_path: {:?}", pm.base_path);
+                    let _ = std::io::stderr().flush();
                     info!("=== VAULT SETUP BLOCK ENTERED ===");
-                    info!("Starting Vault server...");
-                    match pm.start("vault") {
-                        Ok(_) => {
-                            info!("Vault server started");
-                            // Give Vault time to start
-                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                        }
-                        Err(e) => {
-                            warn!("Failed to start Vault server: {}", e);
+
+                    // Verify vault binary exists and is executable
+                    let vault_bin = PathBuf::from("./botserver-stack/bin/vault/vault");
+                    if !vault_bin.exists() {
+                        eprintln!("[VAULT DEBUG] Vault binary not found at {:?}", vault_bin);
+                        let _ = std::io::stderr().flush();
+                        error!("Vault binary not found at {:?}", vault_bin);
+                        return Err(anyhow::anyhow!("Vault binary not found after installation"));
+                    }
+                    eprintln!("[VAULT DEBUG] Vault binary exists at {:?}", vault_bin);
+                    let _ = std::io::stderr().flush();
+                    info!("Vault binary exists at {:?}", vault_bin);
+
+                    // Ensure logs directory exists
+                    let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+                    if let Some(parent) = vault_log_path.parent() {
+                        if let Err(e) = fs::create_dir_all(parent) {
+                            eprintln!("[VAULT DEBUG] Failed to create vault logs directory: {}", e);
+                            error!("Failed to create vault logs directory: {}", e);
                         }
                     }
 
+                    // Ensure data directory exists
+                    let vault_data_path = PathBuf::from("./botserver-stack/data/vault");
+                    if let Err(e) = fs::create_dir_all(&vault_data_path) {
+                        eprintln!("[VAULT DEBUG] Failed to create vault data directory: {}", e);
+                        error!("Failed to create vault data directory: {}", e);
+                    }
+
+                    eprintln!("[VAULT DEBUG] Starting Vault server...");
+                    let _ = std::io::stderr().flush();
+                    info!("Starting Vault server...");
+
+                    // Try starting vault directly first to see if it works
+                    eprintln!("[VAULT DEBUG] Testing direct vault start...");
+                    let direct_test = std::process::Command::new("sh")
+                        .arg("-c")
+                        .arg("cd ./botserver-stack/bin/vault && nohup ./vault server -config=../../conf/vault/config.hcl > ../../logs/vault/vault.log 2>&1 &")
+                        .status();
+                    eprintln!("[VAULT DEBUG] Direct test result: {:?}", direct_test);
+                    std::thread::sleep(std::time::Duration::from_secs(2));
+
+                    // Check if it's running now
+                    let check = std::process::Command::new("pgrep")
+                        .args(["-f", "vault server"])
+                        .output();
+                    if let Ok(output) = &check {
+                        let pids = String::from_utf8_lossy(&output.stdout);
+                        eprintln!(
+                            "[VAULT DEBUG] After direct start, pgrep result: '{}'",
+                            pids.trim()
+                        );
+                        if !pids.trim().is_empty() {
+                            eprintln!("[VAULT DEBUG] Vault started via direct command!");
+                            // Skip pm.start since vault is already running
+                            info!("Vault server started");
+                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                        } else {
+                            eprintln!("[VAULT DEBUG] Direct start failed, trying pm.start...");
+                            match pm.start("vault") {
+                                Ok(_) => {
+                                    eprintln!("[VAULT DEBUG] pm.start returned Ok");
+                                    info!("Vault server started");
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                                }
+                                Err(e) => {
+                                    eprintln!("[VAULT DEBUG] pm.start failed: {}", e);
+                                    error!("Failed to start Vault server: {}", e);
+                                    return Err(anyhow::anyhow!(
+                                        "Failed to start Vault server: {}",
+                                        e
+                                    ));
+                                }
+                            }
+                        }
+                    }
+
+                    // Check log file
+                    eprintln!(
+                        "[VAULT DEBUG] Checking if vault.log exists: {}",
+                        vault_log_path.exists()
+                    );
+                    if vault_log_path.exists() {
+                        if let Ok(content) = fs::read_to_string(&vault_log_path) {
+                            eprintln!(
+                                "[VAULT DEBUG] vault.log content (first 500 chars): {}",
+                                &content[..content.len().min(500)]
+                            );
+                        }
+                    }
+
+                    // The direct start above should have worked, but if pm.start is still called due to
+                    // code flow, just check if vault is running
+                    let final_check = std::process::Command::new("pgrep")
+                        .args(["-f", "vault server"])
+                        .output();
+                    if let Ok(output) = final_check {
+                        let pids = String::from_utf8_lossy(&output.stdout);
+                        if pids.trim().is_empty() {
+                            eprintln!(
+                                "[VAULT DEBUG] CRITICAL: Vault is not running after all attempts!"
+                            );
+                            return Err(anyhow::anyhow!("Failed to start Vault server"));
+                        } else {
+                            eprintln!("[VAULT DEBUG] Vault is running with PIDs: {}", pids.trim());
+                        }
+                    }
+
+                    eprintln!("[VAULT DEBUG] Initializing Vault with secrets...");
+                    let _ = std::io::stderr().flush();
                     info!("Initializing Vault with secrets...");
                     if let Err(e) = self
                         .setup_vault(
@@ -722,6 +848,19 @@ impl BootstrapManager {
                         .await
                     {
                         error!("Failed to setup Vault: {}", e);
+                        // Check vault.log for more details
+                        if vault_log_path.exists() {
+                            if let Ok(log_content) = fs::read_to_string(&vault_log_path) {
+                                let last_lines: Vec<&str> =
+                                    log_content.lines().rev().take(20).collect();
+                                error!("Vault log (last 20 lines):");
+                                for line in last_lines.iter().rev() {
+                                    error!("  {}", line);
+                                }
+                            }
+                        }
+                        // Vault is critical - fail the bootstrap
+                        return Err(anyhow::anyhow!("Vault setup failed: {}. Check ./botserver-stack/logs/vault/vault.log for details.", e));
                     }
 
                     // Initialize the global SecretsManager so other components can use Vault
@@ -1182,6 +1321,31 @@ meet        IN      A       127.0.0.1
         let max_attempts = 30;
 
         while attempts < max_attempts {
+            // First check if Vault process is running
+            let ps_check = std::process::Command::new("sh")
+                .arg("-c")
+                .arg("pgrep -f 'vault server' || echo 'NOT_RUNNING'")
+                .output();
+
+            if let Ok(ps_output) = ps_check {
+                let ps_result = String::from_utf8_lossy(&ps_output.stdout);
+                if ps_result.contains("NOT_RUNNING") {
+                    warn!("Vault process is not running (attempt {})", attempts + 1);
+                    // Check vault.log for crash info
+                    let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+                    if vault_log_path.exists() {
+                        if let Ok(log_content) = fs::read_to_string(&vault_log_path) {
+                            let last_lines: Vec<&str> =
+                                log_content.lines().rev().take(10).collect();
+                            warn!("Vault log (last 10 lines):");
+                            for line in last_lines.iter().rev() {
+                                warn!("  {}", line);
+                            }
+                        }
+                    }
+                }
+            }
+
             let health_check = std::process::Command::new("curl")
                 .args(["-f", "-s", "http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"])
                 .output();
@@ -1190,7 +1354,15 @@ meet        IN      A       127.0.0.1
                 if output.status.success() {
                     info!("Vault is responding");
                     break;
+                } else {
+                    // Log the HTTP response for debugging
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    if !stderr.is_empty() && attempts % 5 == 0 {
+                        debug!("Vault health check attempt {}: {}", attempts + 1, stderr);
+                    }
                 }
+            } else if attempts % 5 == 0 {
+                warn!("Vault health check curl failed (attempt {})", attempts + 1);
             }
 
             attempts += 1;
@@ -1198,9 +1370,25 @@ meet        IN      A       127.0.0.1
         }
 
         if attempts >= max_attempts {
-            warn!("Vault health check timed out");
+            warn!(
+                "Vault health check timed out after {} attempts",
+                max_attempts
+            );
+            // Final check of vault.log
+            let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+            if vault_log_path.exists() {
+                if let Ok(log_content) = fs::read_to_string(&vault_log_path) {
+                    let last_lines: Vec<&str> = log_content.lines().rev().take(20).collect();
+                    error!("Vault log (last 20 lines):");
+                    for line in last_lines.iter().rev() {
+                        error!("  {}", line);
+                    }
+                }
+            } else {
+                error!("Vault log file does not exist at {:?}", vault_log_path);
+            }
             return Err(anyhow::anyhow!(
-                "Vault not ready after {} seconds",
+                "Vault not ready after {} seconds. Check ./botserver-stack/logs/vault/vault.log for details.",
                 max_attempts
             ));
         }
