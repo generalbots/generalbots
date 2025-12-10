@@ -382,6 +382,7 @@ async fn main() -> std::io::Result<()> {
         // Default log level for botserver and suppress all other crates
         // Note: r2d2 is set to warn to see database connection pool warnings
         "info,botserver=info,\
+         vaultrs=off,rustify=off,rustify_derive=off,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
          aws_smithy_runtime=off,aws_smithy_runtime_api=off,aws_sdk_s3=off,aws_config=off,\
          aws_credential_types=off,aws_http=off,aws_sig_auth=off,aws_types=off,\
