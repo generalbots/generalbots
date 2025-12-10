@@ -1,0 +1,101 @@
+{
+  "llama_cpp": {
+    "version": "b7345",
+    "base_url": "https://github.com/ggml-org/llama.cpp/releases/download",
+    "binaries": {
+      "linux": {
+        "x64": {
+          "cpu": "llama-{version}-bin-ubuntu-x64.zip",
+          "cpu_tar": "llama-{version}-bin-ubuntu-x64.tar.gz",
+          "vulkan": "llama-{version}-bin-ubuntu-vulkan-x64.zip",
+          "vulkan_tar": "llama-{version}-bin-ubuntu-vulkan-x64.tar.gz"
+        },
+        "s390x": {
+          "cpu": "llama-{version}-bin-ubuntu-s390x.zip",
+          "cpu_tar": "llama-{version}-bin-ubuntu-s390x.tar.gz"
+        }
+      },
+      "macos": {
+        "arm64": {
+          "cpu": "llama-{version}-bin-macos-arm64.zip",
+          "cpu_tar": "llama-{version}-bin-macos-arm64.tar.gz"
+        },
+        "x64": {
+          "cpu": "llama-{version}-bin-macos-x64.zip",
+          "cpu_tar": "llama-{version}-bin-macos-x64.tar.gz"
+        }
+      },
+      "windows": {
+        "x64": {
+          "cpu": "llama-{version}-bin-win-cpu-x64.zip",
+          "cuda_12": "llama-{version}-bin-win-cuda-12.4-x64.zip",
+          "cuda_13": "llama-{version}-bin-win-cuda-13.1-x64.zip",
+          "vulkan": "llama-{version}-bin-win-vulkan-x64.zip",
+          "sycl": "llama-{version}-bin-win-sycl-x64.zip",
+          "hip": "llama-{version}-bin-win-hip-radeon-x64.zip"
+        },
+        "arm64": {
+          "cpu": "llama-{version}-bin-win-cpu-arm64.zip",
+          "opencl_adreno": "llama-{version}-bin-win-opencl-adreno-arm64.zip"
+        }
+      },
+      "ios": {
+        "xcframework": "llama-{version}-xcframework.zip",
+        "xcframework_tar": "llama-{version}-xcframework.tar.gz"
+      }
+    },
+    "cuda_runtime": {
+      "windows": {
+        "cuda_12": "cudart-llama-bin-win-cuda-12.4-x64.zip",
+        "cuda_13": "cudart-llama-bin-win-cuda-13.1-x64.zip"
+      }
+    },
+    "checksums": {
+      "llama-b7345-bin-ubuntu-x64.zip": "sha256:91b066ecc53c20693a2d39703c12bc7a69c804b0768fee064d47df702f616e52",
+      "llama-b7345-bin-ubuntu-x64.tar.gz": "sha256:c5f4c8111887072a5687b42e0700116e93eddf14c5401fa7eba3ab0b8481ff4e",
+      "llama-b7345-bin-ubuntu-vulkan-x64.zip": "sha256:03f0b3acbead2ddc23267073a8f8e0207937c849d3704c46c61cf167c1001442",
+      "llama-b7345-bin-ubuntu-vulkan-x64.tar.gz": "sha256:9b02b406106cd20ea0568c43c28c587d7e4908b5b649e943adebb0e1ae726076",
+      "llama-b7345-bin-ubuntu-s390x.zip": "sha256:688ddad6996b1166eaaa76d5025e304c684116efe655e6e881d877505ecffccb",
+      "llama-b7345-bin-ubuntu-s390x.tar.gz": "sha256:118011b38b02fee21596ab5b1c40b56369da514645394b6528a466e18f4336f5",
+      "llama-b7345-bin-macos-arm64.zip": "sha256:72ae9b4a4605aa1223d7aabaa5326c66c268b12d13a449fcc06f61099cd02a52",
+      "llama-b7345-bin-macos-arm64.tar.gz": "sha256:dc7c6b64848180259db19eb5d8ee8424cffcbb053960e5c45d79db6b9ac4f40d",
+      "llama-b7345-bin-macos-x64.zip": "sha256:bec6b805cf7533f66b38f29305429f521dcb2be6b25dbce73a18df448ec55cc5",
+      "llama-b7345-bin-macos-x64.tar.gz": "sha256:9267a292f39a86b2ee5eaa553a06f4a2fda2aee35142cde40a9099432b304313",
+      "llama-b7345-bin-win-cpu-x64.zip": "sha256:ea449082c8e808a289d9a1e8331f90a0379ead4dd288a1b9a2d2c0a7151836cd",
+      "llama-b7345-bin-win-cpu-arm64.zip": "sha256:91e3ff43c123c7c30decfe5a44c291827c1e47359abaa2fbad1eb5392b3a0d85",
+      "llama-b7345-bin-win-cuda-12.4-x64.zip": "sha256:7a82aba2662fa7d4477a7a40894de002854bae1ab8b0039888577c9a2ca24cae",
+      "llama-b7345-bin-win-cuda-13.1-x64.zip": "sha256:06ea715cefb07e9862394e6d1ffa066f4c33add536b1f1aa058723f86ae05572",
+      "llama-b7345-bin-win-vulkan-x64.zip": "sha256:3e948bee438f46c8ea0a3faf0416549391ee945ffa624b25bc1f73d60d668679",
+      "llama-b7345-bin-win-sycl-x64.zip": "sha256:708ddb786cdeb43ceadaa57c0ca669ce05b86753bf859f5a95012c2ea481f9da",
+      "llama-b7345-bin-win-hip-radeon-x64.zip": "sha256:ba1fe643e27bae8dcdf6d7be459a6dc5d8385f179e71e749c53f52083c68e107",
+      "llama-b7345-bin-win-opencl-adreno-arm64.zip": "sha256:59d625d21fb64294b075c61ec1a5f01d394baf826bee2df847d0ea3ed21fa3f3",
+      "llama-b7345-xcframework.zip": "sha256:c94e870ba844e4938d6fccf0bfd64c9fe57884a14a3e2a4966e56e35a6cbaef4",
+      "llama-b7345-xcframework.tar.gz": "sha256:a542ceace2621d9d860f2ec64c1b2294ac71f292106b95dcaf239aec0a06dd55",
+      "cudart-llama-bin-win-cuda-12.4-x64.zip": "sha256:8c79a9b226de4b3cacfd1f83d24f962d0773be79f1e7b75c6af4ded7e32ae1d6",
+      "cudart-llama-bin-win-cuda-13.1-x64.zip": "sha256:f96935e7e385e3b2d0189239077c10fe8fd7e95690fea4afec455b1b6c7e3f18"
+    }
+  },
+  "models": {
+    "default_llm": {
+      "name": "DeepSeek-R1-Distill-Qwen-1.5B",
+      "url": "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf",
+      "filename": "DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf",
+      "size_mb": 1100,
+      "description": "Small reasoning model, good for CPU or minimal GPU (4GB VRAM)"
+    },
+    "default_embedding": {
+      "name": "BGE Small EN v1.5",
+      "url": "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf",
+      "filename": "bge-small-en-v1.5-f32.gguf",
+      "size_mb": 130,
+      "description": "Embedding model for vector search"
+    },
+    "large_llm": {
+      "name": "GPT-OSS 20B",
+      "url": "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf",
+      "filename": "gpt-oss-20b-F16.gguf",
+      "size_mb": 40000,
+      "description": "Large model for GPU with 16GB+ VRAM"
+    }
+  }
+}
