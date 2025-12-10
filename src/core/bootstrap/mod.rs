@@ -377,34 +377,49 @@ impl BootstrapManager {
             }
 
             // Always try to unseal Vault (it may have restarted)
-            // If unseal fails, Vault may need re-initialization (data deleted)
+            // If unseal fails, try to restart Vault process only - NEVER delete other services
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal failed: {} - re-initializing Vault only", e);
+                warn!("Vault unseal failed: {} - attempting Vault restart only", e);
 
-                // Kill only Vault process - NEVER delete user data
+                // Kill ONLY Vault process - preserve all other services
                 let _ = Command::new("pkill")
                     .args(["-9", "-f", "botserver-stack/bin/vault"])
                     .output();
 
-                // Reset only Vault credentials, preserve everything else
-                Self::reset_vault_only()?;
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
-                // Run bootstrap to re-initialize Vault
-                self.bootstrap().await?;
-
-                // After bootstrap, services are already running
-                info!("Vault re-initialization complete, verifying...");
-                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-
-                if let Err(e) = self.ensure_vault_unsealed().await {
-                    return Err(anyhow::anyhow!(
-                        "Failed to configure Vault after re-initialization: {}",
-                        e
-                    ));
+                // Try to restart Vault without full bootstrap
+                let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+                if let Err(e) = pm.start("vault") {
+                    warn!("Failed to restart Vault: {}", e);
                 }
 
-                // Services were started by bootstrap, no need to restart them
-                return Ok(());
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+
+                // Try unseal again
+                if let Err(e) = self.ensure_vault_unsealed().await {
+                    warn!("Vault still not responding after restart: {}", e);
+
+                    // Only now reset Vault credentials and re-initialize ONLY Vault
+                    Self::reset_vault_only()?;
+
+                    // Install/configure ONLY Vault - NOT full bootstrap
+                    info!("Re-initializing Vault only (preserving other services)...");
+                    if let Err(e) = pm.install("vault").await {
+                        return Err(anyhow::anyhow!("Failed to re-initialize Vault: {}", e));
+                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+
+                    if let Err(e) = self.ensure_vault_unsealed().await {
+                        return Err(anyhow::anyhow!(
+                            "Failed to configure Vault after re-initialization: {}",
+                            e
+                        ));
+                    }
+                }
+
+                info!("Vault re-initialization complete");
             }
 
             // Initialize SecretsManager so other code can use Vault
