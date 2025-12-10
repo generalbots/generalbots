@@ -234,7 +234,7 @@ governor = "0.10"
 rss = "2.0"
 
 # HTML parsing/web scraping
-scraper = "0.22"
+scraper = "0.25"
 
 [dev-dependencies]
 mockito = "1.7.0"
