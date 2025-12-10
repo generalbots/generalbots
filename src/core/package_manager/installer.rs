@@ -6,24 +6,6 @@ use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Check if the CPU supports AVX2 instructions (required for pre-built llama.cpp binaries)
-fn cpu_supports_avx2() -> bool {
-    #[cfg(target_arch = "x86_64")]
-    {
-        // Read /proc/cpuinfo on Linux to check for avx2 flag
-        if let Ok(cpuinfo) = std::fs::read_to_string("/proc/cpuinfo") {
-            return cpuinfo.contains(" avx2 ") || cpuinfo.contains(" avx2\n");
-        }
-        // Fallback: assume AVX2 is not available if we can't read cpuinfo
-        false
-    }
-    #[cfg(not(target_arch = "x86_64"))]
-    {
-        // Non-x86_64 architectures (ARM, etc.) don't use AVX2
-        false
-    }
-}
-
 #[derive(Debug)]
 pub struct PackageManager {
     pub mode: InstallMode,
@@ -217,43 +199,8 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
-        // Check CPU capabilities - pre-built llama.cpp binaries require AVX2
-        let has_avx2 = cpu_supports_avx2();
-
-        if !has_avx2 {
-            warn!("CPU does not support AVX2 instructions. Local LLM will not be available.");
-            warn!("To use local LLM on this CPU, you need to compile llama.cpp from source.");
-            warn!(
-                "Alternatively, configure an external LLM API (OpenAI, Anthropic, etc.) in Vault."
-            );
-            // Register a disabled LLM component that won't download or run anything
-            self.components.insert(
-                "llm".to_string(),
-                ComponentConfig {
-                    name: "llm".to_string(),
-                    ports: vec![8081, 8082],
-                    dependencies: vec![],
-                    linux_packages: vec![],
-                    macos_packages: vec![],
-                    windows_packages: vec![],
-                    download_url: None, // Don't download - CPU not compatible
-                    binary_name: None,
-                    pre_install_cmds_linux: vec![],
-                    post_install_cmds_linux: vec![],
-                    pre_install_cmds_macos: vec![],
-                    post_install_cmds_macos: vec![],
-                    pre_install_cmds_windows: vec![],
-                    post_install_cmds_windows: vec![],
-                    env_vars: HashMap::new(),
-                    data_download_list: vec![], // Don't download models
-                    exec_cmd: "echo 'LLM disabled - CPU does not support AVX2'".to_string(),
-                    check_cmd: "false".to_string(), // Always fail check - LLM not available
-                },
-            );
-            return;
-        }
-
-        info!("CPU supports AVX2 - local LLM will be available");
+        // llama.cpp is compiled from source for maximum CPU compatibility
+        // This ensures it works on older CPUs (Sandy Bridge, etc.) without AVX2
         self.components.insert(
             "llm".to_string(),
             ComponentConfig {
@@ -265,11 +212,19 @@ impl PackageManager {
                 macos_packages: vec![],
                 windows_packages: vec![],
                 download_url: Some(
-                    "https://github.com/ggml-org/llama.cpp/releases/download/b6148/llama-b6148-bin-ubuntu-x64.zip".to_string(),
+                    "https://github.com/ggml-org/llama.cpp/archive/refs/tags/b4967.zip".to_string(),
                 ),
                 binary_name: Some("llama-server".to_string()),
-                pre_install_cmds_linux: vec![],
-                post_install_cmds_linux: vec![],
+                pre_install_cmds_linux: vec![
+                    // Install build dependencies
+                    "which cmake >/dev/null 2>&1 || (sudo apt-get update && sudo apt-get install -y cmake build-essential)".to_string(),
+                ],
+                post_install_cmds_linux: vec![
+                    // Compile llama.cpp from source for this CPU's instruction set
+                    "cd {{BIN_PATH}} && if [ -d llama.cpp-b4967 ]; then mv llama.cpp-b4967/* . && rmdir llama.cpp-b4967; fi".to_string(),
+                    "cd {{BIN_PATH}} && mkdir -p build && cd build && cmake .. -DGGML_NATIVE=ON -DGGML_CPU_ALL_VARIANTS=OFF && cmake --build . --config Release -j$(nproc)".to_string(),
+                    "echo 'llama.cpp compiled successfully for this CPU'".to_string(),
+                ],
                 pre_install_cmds_macos: vec![],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
@@ -283,7 +238,7 @@ impl PackageManager {
                     // GPT-OSS 20B F16 - Recommended for small GPU (16GB VRAM), no CPU
                     // Uncomment to download: "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf".to_string(),
                 ],
-                exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/build/bin/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/build/bin/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
             },
         );
