@@ -2,8 +2,9 @@ use crate::config::ConfigManager;
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info};
+use log::{error, info, warn};
 use reqwest;
+use std::path::Path;
 use std::sync::Arc;
 use tokio;
 
@@ -68,6 +69,51 @@ pub async fn ensure_llama_servers_running(
     info!("  LLM Model: {}", llm_model);
     info!("  Embedding Model: {}", embedding_model);
     info!("  LLM Server Path: {}", llm_server_path);
+
+    // Check if llama-server binary exists
+    let llama_server_path = if llm_server_path.is_empty() {
+        "./botserver-stack/bin/llm/build/bin/llama-server".to_string()
+    } else {
+        format!("{}/llama-server", llm_server_path)
+    };
+
+    if !Path::new(&llama_server_path).exists() {
+        warn!("llama-server binary not found at: {}", llama_server_path);
+        warn!("Local LLM server will not be available.");
+        warn!("This may be because:");
+        warn!("  1. The LLM component was not installed (check if CPU supports AVX2)");
+        warn!("  2. The binary path is incorrect");
+        warn!("Continuing without local LLM - use external LLM API instead.");
+        return Ok(());
+    }
+
+    // Test if the binary can actually run (check for illegal instruction)
+    info!("Testing llama-server binary compatibility...");
+    let test_result = std::process::Command::new(&llama_server_path)
+        .arg("--version")
+        .output();
+
+    match test_result {
+        Ok(output) => {
+            if !output.status.success() {
+                let stderr = String::from_utf8_lossy(&output.stderr);
+                warn!("llama-server test failed: {}", stderr);
+                if stderr.contains("Illegal instruction") {
+                    error!("CPU does not support required instructions (AVX2) for llama-server");
+                    error!("Your CPU: Check /proc/cpuinfo for 'avx2' flag");
+                    error!("Options:");
+                    error!("  1. Compile llama.cpp from source with your CPU's instruction set");
+                    error!("  2. Use an external LLM API (OpenAI, Anthropic, etc.)");
+                    return Ok(());
+                }
+            }
+        }
+        Err(e) => {
+            warn!("Failed to test llama-server: {}", e);
+            // Continue anyway - might work at runtime
+        }
+    }
+
     info!("Restarting any existing llama-server processes...");
 
     if let Err(e) = tokio::process::Command::new("sh")
