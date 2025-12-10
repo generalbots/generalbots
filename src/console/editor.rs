@@ -66,6 +66,7 @@ impl Editor {
     pub fn file_path(&self) -> &str {
         &self.file_path
     }
+    #[allow(dead_code)]
     pub fn set_visible_lines(&mut self, lines: usize) {
         self.visible_lines = lines.max(5);
     }
@@ -188,10 +189,12 @@ impl Editor {
         }
     }
 
+    #[allow(dead_code)]
     pub fn scroll_up(&mut self) {
         self.scroll_offset = self.scroll_offset.saturating_sub(1);
     }
 
+    #[allow(dead_code)]
     pub fn scroll_down(&mut self) {
         let total_lines = self.content.lines().count().max(1);
         let max_scroll = total_lines.saturating_sub(self.visible_lines.saturating_sub(3));
