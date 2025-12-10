@@ -6,6 +6,161 @@ use log::{info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
+/// Llama.cpp release version and download URLs
+const LLAMA_CPP_VERSION: &str = "b7345";
+
+/// Get the appropriate llama.cpp download URL for the current platform
+fn get_llama_cpp_url() -> Option<String> {
+    let base_url = format!(
+        "https://github.com/ggml-org/llama.cpp/releases/download/{}",
+        LLAMA_CPP_VERSION
+    );
+
+    #[cfg(target_os = "linux")]
+    {
+        #[cfg(target_arch = "x86_64")]
+        {
+            // Check for CUDA support
+            if std::path::Path::new("/usr/local/cuda").exists()
+                || std::path::Path::new("/opt/cuda").exists()
+                || std::env::var("CUDA_HOME").is_ok()
+            {
+                // Check CUDA version
+                if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
+                    let version_str = String::from_utf8_lossy(&output.stdout);
+                    if version_str.contains("13.") {
+                        info!("Detected CUDA 13.x - using CUDA 13.1 build");
+                        return Some(format!(
+                            "{}/llama-{}-bin-linux-cuda-13.1-x64.zip",
+                            base_url, LLAMA_CPP_VERSION
+                        ));
+                    } else if version_str.contains("12.") {
+                        info!("Detected CUDA 12.x - using CUDA 12.4 build");
+                        return Some(format!(
+                            "{}/llama-{}-bin-linux-cuda-12.4-x64.zip",
+                            base_url, LLAMA_CPP_VERSION
+                        ));
+                    }
+                }
+            }
+
+            // Check for Vulkan support
+            if std::path::Path::new("/usr/share/vulkan").exists()
+                || std::env::var("VULKAN_SDK").is_ok()
+            {
+                info!("Detected Vulkan - using Vulkan build");
+                return Some(format!(
+                    "{}/llama-{}-bin-ubuntu-vulkan-x64.zip",
+                    base_url, LLAMA_CPP_VERSION
+                ));
+            }
+
+            // Default to standard x64 build (CPU only)
+            info!("Using standard Ubuntu x64 build (CPU)");
+            return Some(format!(
+                "{}/llama-{}-bin-ubuntu-x64.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+
+        #[cfg(target_arch = "s390x")]
+        {
+            info!("Detected s390x architecture");
+            return Some(format!(
+                "{}/llama-{}-bin-ubuntu-s390x.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            info!("Detected ARM64 architecture on Linux");
+            // No official ARM64 Linux build, would need to compile from source
+            warn!("No pre-built llama.cpp for Linux ARM64 - LLM will not be available");
+            return None;
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        #[cfg(target_arch = "aarch64")]
+        {
+            info!("Detected macOS ARM64 (Apple Silicon)");
+            return Some(format!(
+                "{}/llama-{}-bin-macos-arm64.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+
+        #[cfg(target_arch = "x86_64")]
+        {
+            info!("Detected macOS x64 (Intel)");
+            return Some(format!(
+                "{}/llama-{}-bin-macos-x64.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+    }
+
+    #[cfg(target_os = "windows")]
+    {
+        #[cfg(target_arch = "x86_64")]
+        {
+            // Check for CUDA on Windows
+            if std::env::var("CUDA_PATH").is_ok() {
+                if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
+                    let version_str = String::from_utf8_lossy(&output.stdout);
+                    if version_str.contains("13.") {
+                        info!("Detected CUDA 13.x on Windows");
+                        return Some(format!(
+                            "{}/llama-{}-bin-win-cuda-13.1-x64.zip",
+                            base_url, LLAMA_CPP_VERSION
+                        ));
+                    } else if version_str.contains("12.") {
+                        info!("Detected CUDA 12.x on Windows");
+                        return Some(format!(
+                            "{}/llama-{}-bin-win-cuda-12.4-x64.zip",
+                            base_url, LLAMA_CPP_VERSION
+                        ));
+                    }
+                }
+            }
+
+            // Check for Vulkan on Windows
+            if std::env::var("VULKAN_SDK").is_ok() {
+                info!("Detected Vulkan SDK on Windows");
+                return Some(format!(
+                    "{}/llama-{}-bin-win-vulkan-x64.zip",
+                    base_url, LLAMA_CPP_VERSION
+                ));
+            }
+
+            // Default Windows CPU build
+            info!("Using standard Windows x64 CPU build");
+            return Some(format!(
+                "{}/llama-{}-bin-win-cpu-x64.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+
+        #[cfg(target_arch = "aarch64")]
+        {
+            info!("Detected Windows ARM64");
+            return Some(format!(
+                "{}/llama-{}-bin-win-cpu-arm64.zip",
+                base_url, LLAMA_CPP_VERSION
+            ));
+        }
+    }
+
+    // Fallback for unknown platforms
+    #[allow(unreachable_code)]
+    {
+        warn!("Unknown platform - no llama.cpp binary available");
+        None
+    }
+}
+
 #[derive(Debug)]
 pub struct PackageManager {
     pub mode: InstallMode,
@@ -199,20 +354,29 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
-        // Use pre-built llama.cpp binaries
+        // Detect platform and get appropriate llama.cpp URL
+        let download_url = get_llama_cpp_url();
+
+        if download_url.is_none() {
+            warn!("No llama.cpp binary available for this platform");
+            warn!("Local LLM will not be available - use external API instead");
+        }
+
+        info!(
+            "LLM component using llama.cpp {} for this platform",
+            LLAMA_CPP_VERSION
+        );
+
         self.components.insert(
             "llm".to_string(),
             ComponentConfig {
                 name: "llm".to_string(),
-
                 ports: vec![8081, 8082],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
                 windows_packages: vec![],
-                download_url: Some(
-                    "https://github.com/ggml-org/llama.cpp/releases/download/b6148/llama-b6148-bin-ubuntu-x64.zip".to_string(),
-                ),
+                download_url,
                 binary_name: Some("llama-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![],
@@ -226,8 +390,6 @@ impl PackageManager {
                     "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
                     // Embedding model for vector search
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
-                    // GPT-OSS 20B F16 - Recommended for small GPU (16GB VRAM), no CPU
-                    // Uncomment to download: "https://huggingface.co/unsloth/gpt-oss-20b-GGUF/resolve/main/gpt-oss-20b-F16.gguf".to_string(),
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
                 check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
