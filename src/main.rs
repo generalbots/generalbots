@@ -133,6 +133,58 @@ async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
+/// Print beautiful shutdown message
+fn print_shutdown_message() {
+    let version = env!("CARGO_PKG_VERSION");
+    println!();
+    println!("\x1b[36m╔════════════════════════════════════════════════════════════════╗\x1b[0m");
+    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m   \x1b[33m✨ Thank you for using General Bots! ✨\x1b[0m                      \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m   \x1b[37mVersion: {:<10}\x1b[0m                                        \x1b[36m║\x1b[0m", version);
+    println!("\x1b[36m║\x1b[0m   \x1b[37mGraceful shutdown completed.\x1b[0m                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m   \x1b[34m🌐 https://github.com/GeneralBots\x1b[0m                          \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m   \x1b[34m📧 contato@pragmatismo.cloud\x1b[0m                               \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m   \x1b[32mSee you next time! 👋\x1b[0m                                      \x1b[36m║\x1b[0m");
+    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
+    println!("\x1b[36m╚════════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!();
+}
+
+/// Graceful shutdown signal handler
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("Failed to install Ctrl+C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("Failed to install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {
+            info!("Received Ctrl+C, initiating graceful shutdown...");
+        }
+        _ = terminate => {
+            info!("Received SIGTERM, initiating graceful shutdown...");
+        }
+    }
+
+    // Print beautiful shutdown message
+    print_shutdown_message();
+}
+
 async fn run_axum_server(
     app_state: Arc<AppState>,
     port: u16,
@@ -269,6 +321,15 @@ async fn run_axum_server(
         info!("HTTPS server listening on {} with TLS", addr);
 
         let handle = axum_server::Handle::new();
+        let handle_clone = handle.clone();
+
+        // Spawn shutdown handler
+        tokio::spawn(async move {
+            shutdown_signal().await;
+            info!("Shutting down HTTPS server...");
+            handle_clone.graceful_shutdown(Some(std::time::Duration::from_secs(10)));
+        });
+
         axum_server::bind_rustls(addr, tls_config)
             .handle(handle)
             .serve(app.into_make_service())
@@ -284,6 +345,7 @@ async fn run_axum_server(
         let listener = tokio::net::TcpListener::bind(addr).await?;
         info!("HTTP server listening on {}", addr);
         axum::serve(listener, app.into_make_service())
+            .with_graceful_shutdown(shutdown_signal())
             .await
             .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
     }
