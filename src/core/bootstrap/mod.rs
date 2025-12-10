@@ -64,14 +64,14 @@ impl BootstrapManager {
             let _ = Command::new("pkill").args(["-9", "-f", pattern]).output();
         }
 
-        // Also kill by specific process names
+        // Also kill by specific process names (use -f for pattern match, not -x for exact)
         let process_names = vec![
-            "vault",
+            "vault server",
             "postgres",
             "minio",
             "redis-server",
             "zitadel",
-            "ollama",
+            "llama-server",
             "stalwart",
             "caddy",
             "coredns",
@@ -80,11 +80,33 @@ impl BootstrapManager {
         ];
 
         for name in process_names {
-            let _ = Command::new("pkill").args(["-9", "-x", name]).output();
+            let _ = Command::new("pkill").args(["-9", "-f", name]).output();
+        }
+
+        // Kill processes by port - this catches any process using our ports
+        // even if started from a different path
+        let ports = vec![
+            8200, // Vault
+            5432, // PostgreSQL
+            9000, // MinIO
+            6379, // Redis
+            8080, // Zitadel / Main API
+            8081, // LLM server
+            8082, // Embedding server
+            25,   // Email SMTP
+            443,  // HTTPS proxy
+            53,   // DNS
+        ];
+
+        for port in ports {
+            // Use fuser to kill processes on specific ports
+            let _ = Command::new("fuser")
+                .args(["-k", "-9", &format!("{}/tcp", port)])
+                .output();
         }
 
         // Give processes time to die
-        std::thread::sleep(std::time::Duration::from_millis(500));
+        std::thread::sleep(std::time::Duration::from_millis(1000));
         info!("Stack processes terminated");
     }
 
@@ -573,6 +595,11 @@ impl BootstrapManager {
 
     pub async fn bootstrap(&mut self) -> Result<()> {
         info!("=== BOOTSTRAP STARTING ===");
+
+        // Kill any existing stack processes first - critical for dev machines
+        // where old processes may be running from a deleted/recreated stack
+        info!("Cleaning up any existing stack processes...");
+        Self::kill_stack_processes();
 
         // Generate certificates first (including for Vault)
         info!("Generating TLS certificates...");
