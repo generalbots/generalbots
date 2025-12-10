@@ -230,6 +230,67 @@ fn register_utility_functions(engine: &mut Engine) {
         (0..count).map(|_| value.clone()).collect()
     });
 
+    // BATCH - split array into batches of specified size
+    engine.register_fn("BATCH", |arr: Array, batch_size: i64| -> Array {
+        let size = batch_size.max(1) as usize;
+        arr.chunks(size)
+            .map(|chunk| Dynamic::from(chunk.to_vec()))
+            .collect()
+    });
+    engine.register_fn("batch", |arr: Array, batch_size: i64| -> Array {
+        let size = batch_size.max(1) as usize;
+        arr.chunks(size)
+            .map(|chunk| Dynamic::from(chunk.to_vec()))
+            .collect()
+    });
+
+    // CHUNK - alias for BATCH
+    engine.register_fn("CHUNK", |arr: Array, chunk_size: i64| -> Array {
+        let size = chunk_size.max(1) as usize;
+        arr.chunks(size)
+            .map(|chunk| Dynamic::from(chunk.to_vec()))
+            .collect()
+    });
+    engine.register_fn("chunk", |arr: Array, chunk_size: i64| -> Array {
+        let size = chunk_size.max(1) as usize;
+        arr.chunks(size)
+            .map(|chunk| Dynamic::from(chunk.to_vec()))
+            .collect()
+    });
+
+    // TAKE - take first N elements
+    engine.register_fn("TAKE", |arr: Array, n: i64| -> Array {
+        arr.into_iter().take(n.max(0) as usize).collect()
+    });
+    engine.register_fn("take", |arr: Array, n: i64| -> Array {
+        arr.into_iter().take(n.max(0) as usize).collect()
+    });
+
+    // DROP - drop first N elements
+    engine.register_fn("DROP", |arr: Array, n: i64| -> Array {
+        arr.into_iter().skip(n.max(0) as usize).collect()
+    });
+    engine.register_fn("drop", |arr: Array, n: i64| -> Array {
+        arr.into_iter().skip(n.max(0) as usize).collect()
+    });
+
+    // HEAD - alias for TAKE
+    engine.register_fn("HEAD", |arr: Array, n: i64| -> Array {
+        arr.into_iter().take(n.max(0) as usize).collect()
+    });
+
+    // TAIL - get last N elements
+    engine.register_fn("TAIL", |arr: Array, n: i64| -> Array {
+        let len = arr.len();
+        let skip = len.saturating_sub(n.max(0) as usize);
+        arr.into_iter().skip(skip).collect()
+    });
+    engine.register_fn("tail", |arr: Array, n: i64| -> Array {
+        let len = arr.len();
+        let skip = len.saturating_sub(n.max(0) as usize);
+        arr.into_iter().skip(skip).collect()
+    });
+
     debug!("Registered array utility functions");
 }
 

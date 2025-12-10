@@ -230,6 +230,12 @@ figment = { version = "0.10", features = ["toml", "env", "json"] }
 # Rate limiting
 governor = "0.10"
 
+# RSS feed parsing
+rss = "2.0"
+
+# HTML parsing/web scraping
+scraper = "0.22"
+
 [dev-dependencies]
 mockito = "1.7.0"
 tempfile = "3"

@@ -23,6 +23,7 @@ struct ParamConfigRow {
 use self::keywords::add_bot::register_bot_keywords;
 use self::keywords::add_member::add_member_keyword;
 use self::keywords::add_suggestion::add_suggestion_keyword;
+use self::keywords::ai_tools::register_ai_tools_keywords;
 use self::keywords::book::book_keyword;
 use self::keywords::bot_memory::{get_bot_memory_keyword, set_bot_memory_keyword};
 use self::keywords::clear_kb::register_clear_kb_keyword;
@@ -49,12 +50,14 @@ use self::keywords::remember::remember_keyword;
 use self::keywords::save_from_unstructured::save_from_unstructured_keyword;
 use self::keywords::send_mail::send_mail_keyword;
 use self::keywords::send_template::register_send_template_keywords;
+use self::keywords::sms::register_sms_keywords;
 use self::keywords::social_media::register_social_media_keywords;
 use self::keywords::switch_case::preprocess_switch;
 use self::keywords::transfer_to_human::register_transfer_to_human_keyword;
 use self::keywords::use_kb::register_use_kb_keyword;
 use self::keywords::use_tool::use_tool_keyword;
 use self::keywords::use_website::{clear_websites_keyword, use_website_keyword};
+use self::keywords::web_data::register_web_data_keywords;
 use self::keywords::webhook::webhook_keyword;
 
 use self::keywords::llm_keyword::llm_keyword;
@@ -183,13 +186,28 @@ impl ScriptService {
         register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
 
         // ========================================================================
+        // AI-POWERED TOOLS: TRANSLATE, OCR, SENTIMENT, CLASSIFY
+        // ========================================================================
+        register_ai_tools_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ========================================================================
+        // WEB DATA: RSS, SCRAPE, SCRAPE_ALL, SCRAPE_TABLE, SCRAPE_LINKS, SCRAPE_IMAGES
+        // ========================================================================
+        register_web_data_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ========================================================================
+        // SMS: SEND_SMS phone, message - Send SMS via Twilio, AWS SNS, Vonage, etc.
+        // ========================================================================
+        register_sms_keywords(state.clone(), user.clone(), &mut engine);
+
+        // ========================================================================
         // CORE BASIC FUNCTIONS: Math, Date/Time, Validation, Arrays, Error Handling
         // ========================================================================
 
         // Math: ABS, ROUND, INT, MAX, MIN, MOD, RANDOM, SGN, SQR, LOG, EXP, SIN, COS, TAN
         // Date/Time: NOW, TODAY, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, DATEADD, DATEDIFF
         // Validation: VAL, STR, ISNULL, ISEMPTY, ISDATE, TYPEOF
-        // Arrays: ARRAY, UBOUND, SORT, UNIQUE, CONTAINS, PUSH, POP, REVERSE, SLICE
+        // Arrays: ARRAY, UBOUND, SORT, UNIQUE, CONTAINS, PUSH, POP, REVERSE, SLICE, BATCH, CHUNK
         // Error Handling: THROW, ERROR, IS_ERROR, ASSERT
         register_core_functions(state.clone(), user, &mut engine);
 

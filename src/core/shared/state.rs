@@ -200,6 +200,7 @@ impl std::fmt::Debug for AppState {
 
 #[cfg(feature = "llm")]
 #[derive(Debug)]
+#[allow(dead_code)]
 struct MockLLMProvider;
 
 #[cfg(feature = "llm")]
@@ -236,6 +237,7 @@ impl LLMProvider for MockLLMProvider {
 }
 
 #[cfg(feature = "directory")]
+#[allow(dead_code)]
 fn create_mock_auth_service() -> AuthService {
     use crate::directory::client::ZitadelConfig;
 
