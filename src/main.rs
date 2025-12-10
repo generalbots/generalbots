@@ -135,21 +135,9 @@ async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
 
 /// Print beautiful shutdown message
 fn print_shutdown_message() {
-    let version = env!("CARGO_PKG_VERSION");
     println!();
-    println!("\x1b[36m╔════════════════════════════════════════════════════════════════╗\x1b[0m");
-    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m   \x1b[33m✨ Thank you for using General Bots! ✨\x1b[0m                      \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m   \x1b[37mVersion: {:<10}\x1b[0m                                        \x1b[36m║\x1b[0m", version);
-    println!("\x1b[36m║\x1b[0m   \x1b[37mGraceful shutdown completed.\x1b[0m                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m   \x1b[34m🌐 https://github.com/GeneralBots\x1b[0m                          \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m   \x1b[34m📧 contato@pragmatismo.cloud\x1b[0m                               \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m   \x1b[32mSee you next time! 👋\x1b[0m                                      \x1b[36m║\x1b[0m");
-    println!("\x1b[36m║\x1b[0m                                                                \x1b[36m║\x1b[0m");
-    println!("\x1b[36m╚════════════════════════════════════════════════════════════════╝\x1b[0m");
+    println!("\x1b[33m✨ Thank you for using General Bots!\x1b[0m");
+    println!("\x1b[36m   pragmatismo.com.br\x1b[0m");
     println!();
 }
 
