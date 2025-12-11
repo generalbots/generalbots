@@ -90,7 +90,7 @@ impl BootstrapManager {
             5432, // PostgreSQL
             9000, // MinIO
             6379, // Redis
-            8080, // Zitadel / Main API
+            8300, // Zitadel / Main API
             8081, // LLM server
             8082, // Embedding server
             25,   // Email SMTP
@@ -999,7 +999,7 @@ Machine:
 
 ExternalSecure: false
 ExternalDomain: localhost
-ExternalPort: 8080
+ExternalPort: 8300
 
 DefaultInstance:
   OIDCSettings:
@@ -1214,7 +1214,7 @@ meet        IN      A       127.0.0.1
         while attempts < max_attempts {
             // Check if Zitadel is healthy
             let health_check = std::process::Command::new("curl")
-                .args(["-f", "-s", "http://localhost:8080/healthz"])
+                .args(["-f", "-s", "http://localhost:8300/healthz"])
                 .output();
 
             if let Ok(output) = health_check {
@@ -1248,7 +1248,7 @@ meet        IN      A       127.0.0.1
         };
 
         let mut setup = DirectorySetup::new(
-            "http://localhost:8080".to_string(), // Use HTTP since TLS is disabled
+            "http://localhost:8300".to_string(), // Use HTTP since TLS is disabled
             config_path,
         );
 
@@ -1627,7 +1627,7 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8080 project_id= client_id= client_secret=",
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret=",
                     vault_addr, root_token
                 ))
                 .output()?;

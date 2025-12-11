@@ -202,8 +202,6 @@ pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         // Basic file operations
         .route("/files/list", get(list_files))
-        // UI-compatible endpoint
-        .route("/api/drive/list", get(list_drive_files_ui))
         .route("/files/read", post(read_file))
         .route("/files/write", post(write_file))
         .route("/files/save", post(write_file))
@@ -1157,15 +1155,5 @@ pub async fn restore_version(
         message: format!("Successfully restored {} to version {}", path, version_id),
         restored_version: version_id,
         new_version_id,
-    }))
-}
-
-// ===== UI-Compatible Endpoints =====
-
-/// GET /api/drive/list - List files for UI display
-pub async fn list_drive_files_ui(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "files": [],
-        "message": "No files available"
     }))
 }
