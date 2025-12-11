@@ -465,7 +465,7 @@ impl PackageManager {
             "directory".to_string(),
             ComponentConfig {
                 name: "directory".to_string(),
-                ports: vec![8080],
+                ports: vec![8300],
                 dependencies: vec!["tables".to_string()],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -484,7 +484,7 @@ impl PackageManager {
                     // This properly creates the first instance with PAT
                     "ZITADEL_MASTERKEY=MasterkeyNeedsToHave32Characters nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
                     // Wait for Zitadel to be fully ready (up to 90 seconds for first instance setup)
-                    "for i in $(seq 1 90); do curl -sf http://localhost:8080/debug/ready && break || sleep 1; done".to_string(),
+                    "for i in $(seq 1 90); do curl -sf http://localhost:8300/debug/ready && break || sleep 1; done".to_string(),
                 ],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{CONF_PATH}}/directory".to_string(),
@@ -495,13 +495,13 @@ impl PackageManager {
                 env_vars: HashMap::from([
                     ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
-                    ("ZITADEL_EXTERNALPORT".to_string(), "8080".to_string()),
+                    ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string().to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
                     ("ZITADEL_MASTERKEY".to_string(), "MasterkeyNeedsToHave32Characters".to_string()),
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-                check_cmd: "curl -f http://localhost:8080/healthz >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -613,7 +613,7 @@ impl PackageManager {
             ComponentConfig {
                 name: "webmail".to_string(),
 
-                ports: vec![8080],
+                ports: vec![8300],
                 dependencies: vec!["email".to_string()],
                 linux_packages: vec![
                     "ca-certificates".to_string(),
@@ -636,7 +636,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
-                check_cmd: "curl -f -k https://localhost:8080 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k https://localhost:8300 >/dev/null 2>&1".to_string(),
             },
         );
     }

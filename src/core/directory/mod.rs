@@ -22,7 +22,7 @@ pub struct DirectoryConfig {
 impl Default for DirectoryConfig {
     fn default() -> Self {
         Self {
-            url: "https://localhost:8080".to_string(),
+            url: "https://localhost:8300".to_string(),
             admin_token: String::new(),
             project_id: "default".to_string(),
             oauth_enabled: true,

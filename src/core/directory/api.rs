@@ -84,7 +84,7 @@ pub async fn provision_user_handler(
         .config
         .as_ref()
         .map(|c| c.server.base_url.clone())
-        .unwrap_or_else(|| "http://localhost:8080".to_string());
+        .unwrap_or_else(|| "http://localhost:8300".to_string());
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
@@ -119,7 +119,7 @@ pub async fn deprovision_user_handler(
         .config
         .as_ref()
         .map(|c| c.server.base_url.clone())
-        .unwrap_or_else(|| "http://localhost:8080".to_string());
+        .unwrap_or_else(|| "http://localhost:8300".to_string());
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
@@ -275,7 +275,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         .build()
         .unwrap();
 
-    if let Ok(response) = client.get("https://localhost:8080/healthz").send().await {
+    if let Ok(response) = client.get("https://localhost:8300/healthz").send().await {
         status.directory = response.status().is_success();
     }
 
