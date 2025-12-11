@@ -337,7 +337,7 @@ impl AppConfig {
             drive: minio,
             email,
             server: ServerConfig {
-                host: "127.0.0.1".to_string(),
+                host: "0.0.0.0".to_string(),
                 port: 8080,
                 base_url: "http://localhost:8080".to_string(),
             },

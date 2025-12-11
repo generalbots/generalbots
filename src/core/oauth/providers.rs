@@ -365,7 +365,7 @@ mod tests {
             OAuthProvider::Google,
             "test_client_id".to_string(),
             "test_secret".to_string(),
-            "http://localhost:8080/callback".to_string(),
+            "http://localhost:8300/callback".to_string(),
         );
 
         let url = OAuthProvider::Google.build_auth_url(&config, "test_state");
@@ -389,7 +389,7 @@ mod tests {
             "my_secret".to_string(),
         );
 
-        let config = load_oauth_config(OAuthProvider::Google, &bot_config, "http://localhost:8080");
+        let config = load_oauth_config(OAuthProvider::Google, &bot_config, "http://localhost:8300");
 
         assert!(config.is_some());
         let config = config.unwrap();
@@ -410,7 +410,7 @@ mod tests {
             "my_secret".to_string(),
         );
 
-        let config = load_oauth_config(OAuthProvider::Google, &bot_config, "http://localhost:8080");
+        let config = load_oauth_config(OAuthProvider::Google, &bot_config, "http://localhost:8300");
 
         assert!(config.is_none());
     }

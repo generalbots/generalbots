@@ -490,7 +490,7 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
 fn get_base_url(state: &AppState) -> String {
     // Could read from config, for now use default
     let _ = state;
-    "http://localhost:8080".to_string()
+    "http://localhost:8300".to_string()
 }
 
 /// Create or get existing OAuth user
