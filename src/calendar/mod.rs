@@ -249,6 +249,32 @@ pub async fn list_events(
     Json(vec![])
 }
 
+/// List calendars
+pub async fn list_calendars(
+    State(_state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "calendars": [
+            {
+                "id": "default",
+                "name": "My Calendar",
+                "color": "#3b82f6",
+                "visible": true
+            }
+        ]
+    }))
+}
+
+/// Get upcoming events
+pub async fn upcoming_events(
+    State(_state): State<Arc<AppState>>,
+) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "events": [],
+        "message": "No upcoming events"
+    }))
+}
+
 pub async fn get_event(
     State(_state): State<Arc<AppState>>,
     Path(_id): Path<Uuid>,
@@ -309,6 +335,9 @@ pub fn router(state: Arc<AppState>) -> Router {
         )
         .route("/api/calendar/export.ics", get(export_ical))
         .route("/api/calendar/import", post(import_ical))
+        // UI-compatible endpoints
+        .route("/api/calendar/list", get(list_calendars))
+        .route("/api/calendar/upcoming", get(upcoming_events))
         .with_state(state)
 }
 

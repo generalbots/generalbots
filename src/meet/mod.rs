@@ -26,6 +26,11 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::VOICE_STOP, post(voice_stop))
         .route(ApiUrls::MEET_CREATE, post(create_meeting))
         .route(ApiUrls::MEET_ROOMS, get(list_rooms))
+        // UI-compatible endpoints
+        .route("/api/meet/rooms", get(list_rooms_ui))
+        .route("/api/meet/recent", get(recent_meetings))
+        .route("/api/meet/participants", get(all_participants))
+        .route("/api/meet/scheduled", get(scheduled_meetings))
         .route(
             ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
             get(get_room),
@@ -399,4 +404,38 @@ async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Ar
     info!("Meeting WebSocket connection established");
     // Handle WebSocket messages for real-time meeting communication
     // This would integrate with WebRTC signaling
+}
+
+// ===== UI-Compatible Endpoints =====
+
+/// List rooms for UI display
+pub async fn list_rooms_ui(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "rooms": [],
+        "message": "No active meeting rooms"
+    }))
+}
+
+/// Get recent meetings
+pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "meetings": [],
+        "message": "No recent meetings"
+    }))
+}
+
+/// Get all participants across meetings
+pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "participants": [],
+        "message": "No participants"
+    }))
+}
+
+/// Get scheduled meetings
+pub async fn scheduled_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+    Json(serde_json::json!({
+        "meetings": [],
+        "message": "No scheduled meetings"
+    }))
 }
