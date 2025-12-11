@@ -278,6 +278,24 @@ async fn run_axum_server(
     // Add OAuth authentication routes
     api_router = api_router.merge(crate::core::oauth::routes::configure());
 
+    // Serve static files for suite UI
+    // Look for UI files in multiple locations (dev vs installed)
+    let ui_paths = vec![
+        "../botui/ui/suite",          // Development: sibling project
+        "./botserver-stack/ui/suite", // Installed: in stack
+        "./ui/suite",                 // Local: in botserver dir
+    ];
+
+    let ui_service = ui_paths
+        .iter()
+        .find(|p| std::path::Path::new(p).exists())
+        .map(|p| {
+            info!("Serving suite UI from: {}", p);
+            tower_http::services::ServeDir::new(p).not_found_service(
+                tower_http::services::ServeFile::new(format!("{}/index.html", p)),
+            )
+        });
+
     let app = Router::new()
         // API routes
         .merge(api_router.with_state(app_state.clone()))
@@ -285,6 +303,14 @@ async fn run_axum_server(
         // Layers
         .layer(cors)
         .layer(TraceLayer::new_for_http());
+
+    // Add static file serving if UI directory exists
+    let app = if let Some(ui) = ui_service {
+        app.fallback_service(ui)
+    } else {
+        warn!("Suite UI not found in any of: {:?}", ui_paths);
+        app
+    };
 
     // Always use HTTPS - load certificates from botserver-stack
     let cert_dir = std::path::Path::new("./botserver-stack/conf/system/certificates");
