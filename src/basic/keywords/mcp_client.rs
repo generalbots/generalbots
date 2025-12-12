@@ -36,12 +36,10 @@
 //! tools = MCP_LIST_TOOLS "filesystem"
 //! ```
 
-use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
-use rhai::{Dynamic, Engine};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -310,11 +308,11 @@ pub struct McpTool {
 /// Tool risk level
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ToolRiskLevel {
-    Safe,      // Read-only, no side effects
-    Low,       // Minor side effects, easily reversible
-    Medium,    // Moderate side effects, reversible with effort
-    High,      // Significant side effects, difficult to reverse
-    Critical,  // Irreversible actions, requires approval
+    Safe,     // Read-only, no side effects
+    Low,      // Minor side effects, easily reversible
+    Medium,   // Moderate side effects, reversible with effort
+    High,     // Significant side effects, difficult to reverse
+    Critical, // Irreversible actions, requires approval
 }
 
 impl Default for ToolRiskLevel {
@@ -348,8 +346,9 @@ pub enum McpServerStatus {
     Active,
     Inactive,
     Connecting,
-    Error,
+    Error(String),
     Maintenance,
+    Unknown,
 }
 
 impl Default for McpServerStatus {
@@ -537,13 +536,20 @@ impl McpClient {
     }
 
     /// Load servers from database for a bot
-    pub async fn load_servers(&mut self, bot_id: &Uuid) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+    pub async fn load_servers(
+        &mut self,
+        bot_id: &Uuid,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("DB error: {}", e))?;
         let bot_id_str = bot_id.to_string();
 
         let query = diesel::sql_query(
             "SELECT id, name, description, server_type, config, status, created_at, updated_at
-             FROM mcp_servers WHERE bot_id = $1 AND status != 'deleted'"
+             FROM mcp_servers WHERE bot_id = $1 AND status != 'deleted'",
         )
         .bind::<diesel::sql_types::Text, _>(&bot_id_str);
 
@@ -578,7 +584,7 @@ impl McpClient {
                 status: match row.status.as_str() {
                     "active" => McpServerStatus::Active,
                     "inactive" => McpServerStatus::Inactive,
-                    "error" => McpServerStatus::Error,
+                    "error" => McpServerStatus::Error("Unknown error".to_string()),
                     "maintenance" => McpServerStatus::Maintenance,
                     _ => McpServerStatus::Inactive,
                 },
@@ -592,17 +598,29 @@ impl McpClient {
             self.servers.insert(row.name, server);
         }
 
-        info!("Loaded {} MCP servers for bot {}", self.servers.len(), bot_id);
+        info!(
+            "Loaded {} MCP servers for bot {}",
+            self.servers.len(),
+            bot_id
+        );
         Ok(())
     }
 
     /// Register a new MCP server
-    pub async fn register_server(&mut self, server: McpServer) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+    pub async fn register_server(
+        &mut self,
+        server: McpServer,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("DB error: {}", e))?;
 
         let config_json = serde_json::to_string(&server.connection)?;
         let now = Utc::now().to_rfc3339();
 
+        let server_type_str = server.server_type.to_string();
         let query = diesel::sql_query(
             "INSERT INTO mcp_servers (id, bot_id, name, description, server_type, config, status, created_at, updated_at)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
@@ -613,17 +631,19 @@ impl McpClient {
                 status = EXCLUDED.status,
                 updated_at = EXCLUDED.updated_at"
         )
-        .bind::<diesel::sql_types::Text, _>(&server.id)
-        .bind::<diesel::sql_types::Text, _>(&server.bot_id)
-        .bind::<diesel::sql_types::Text, _>(&server.name)
-        .bind::<diesel::sql_types::Text, _>(&server.description)
-        .bind::<diesel::sql_types::Text, _>(&server.server_type.to_string())
-        .bind::<diesel::sql_types::Text, _>(&config_json)
-        .bind::<diesel::sql_types::Text, _>("active")
-        .bind::<diesel::sql_types::Text, _>(&now)
-        .bind::<diesel::sql_types::Text, _>(&now);
+            .bind::<diesel::sql_types::Text, _>(&server.id)
+            .bind::<diesel::sql_types::Text, _>(&server.bot_id)
+            .bind::<diesel::sql_types::Text, _>(&server.name)
+            .bind::<diesel::sql_types::Text, _>(&server.description)
+            .bind::<diesel::sql_types::Text, _>(&server_type_str)
+            .bind::<diesel::sql_types::Text, _>(&config_json)
+            .bind::<diesel::sql_types::Text, _>("active")
+            .bind::<diesel::sql_types::Text, _>(&now)
+            .bind::<diesel::sql_types::Text, _>(&now);
 
-        query.execute(&mut *conn).map_err(|e| format!("Failed to register MCP server: {}", e))?;
+        query
+            .execute(&mut *conn)
+            .map_err(|e| format!("Failed to register MCP server: {}", e))?;
 
         self.servers.insert(server.name.clone(), server);
         Ok(())
@@ -640,16 +660,24 @@ impl McpClient {
     }
 
     /// List tools from a specific server
-    pub async fn list_tools(&self, server_name: &str) -> Result<Vec<McpTool>, Box<dyn std::error::Error + Send + Sync>> {
-        let server = self.servers.get(server_name)
+    pub async fn list_tools(
+        &self,
+        server_name: &str,
+    ) -> Result<Vec<McpTool>, Box<dyn std::error::Error + Send + Sync>> {
+        let server = self
+            .servers
+            .get(server_name)
             .ok_or_else(|| format!("MCP server '{}' not found", server_name))?;
 
         // For HTTP-based servers, call the tools/list endpoint
         if server.connection.connection_type == ConnectionType::Http {
             let url = format!("{}/tools/list", server.connection.url);
-            let response = self.http_client
+            let response = self
+                .http_client
                 .get(&url)
-                .timeout(Duration::from_secs(server.connection.timeout_seconds as u64))
+                .timeout(Duration::from_secs(
+                    server.connection.timeout_seconds as u64,
+                ))
                 .send()
                 .await?;
 
@@ -671,7 +699,9 @@ impl McpClient {
         let start_time = std::time::Instant::now();
 
         // Get server
-        let server = self.servers.get(&request.server)
+        let server = self
+            .servers
+            .get(&request.server)
             .ok_or_else(|| format!("MCP server '{}' not found", request.server))?;
 
         // Check server status
@@ -682,7 +712,10 @@ impl McpClient {
                 result: None,
                 error: Some(McpError {
                     code: "SERVER_UNAVAILABLE".to_string(),
-                    message: format!("MCP server '{}' is not active (status: {:?})", request.server, server.status),
+                    message: format!(
+                        "MCP server '{}' is not active (status: {:?})",
+                        request.server, server.status
+                    ),
                     details: None,
                     retryable: true,
                 }),
@@ -695,16 +728,23 @@ impl McpClient {
             });
         }
 
-        // Audit log the request
+        // Audit the request
         if self.config.audit_enabled {
-            self.audit_request(&request).await;
+            info!(
+                "MCP request: server={} tool={}",
+                request.server, request.tool
+            );
         }
 
         // Execute based on connection type
         let result = match server.connection.connection_type {
             ConnectionType::Http => self.invoke_http(server, &request).await,
             ConnectionType::Stdio => self.invoke_stdio(server, &request).await,
-            _ => Err(format!("Connection type {:?} not yet supported", server.connection.connection_type).into()),
+            _ => Err(format!(
+                "Connection type {:?} not yet supported",
+                server.connection.connection_type
+            )
+            .into()),
         };
 
         let duration_ms = start_time.elapsed().as_millis() as i64;
@@ -715,7 +755,10 @@ impl McpClient {
 
                 // Audit log the response
                 if self.config.audit_enabled {
-                    self.audit_response(&request, &response).await;
+                    info!(
+                        "MCP response: id={} success={}",
+                        response.id, response.success
+                    );
                 }
 
                 Ok(response)
@@ -741,7 +784,10 @@ impl McpClient {
 
                 // Audit log the error
                 if self.config.audit_enabled {
-                    self.audit_response(&request, &response).await;
+                    info!(
+                        "MCP error response: id={} error={:?}",
+                        response.id, response.error
+                    );
                 }
 
                 Ok(response)
@@ -762,10 +808,12 @@ impl McpClient {
             "arguments": request.arguments
         });
 
-        let timeout = request.timeout_seconds
+        let timeout = request
+            .timeout_seconds
             .unwrap_or(server.connection.timeout_seconds);
 
-        let mut http_request = self.http_client
+        let mut http_request = self
+            .http_client
             .post(&url)
             .json(&body)
             .timeout(Duration::from_secs(timeout as u64));
@@ -820,7 +868,7 @@ impl McpClient {
     ) -> Result<McpResponse, Box<dyn std::error::Error + Send + Sync>> {
         use tokio::process::Command;
 
-        let input = serde_json::json!({
+        let _input = serde_json::json!({
             "jsonrpc": "2.0",
             "method": "tools/call",
             "params": {
@@ -881,14 +929,20 @@ impl McpClient {
         auth: &McpAuth,
     ) -> reqwest::RequestBuilder {
         match &auth.credentials {
-            McpCredentials::ApiKey { header_name, key_ref } => {
+            McpCredentials::ApiKey {
+                header_name,
+                key_ref,
+            } => {
                 // In production, resolve key_ref from secret storage
                 request = request.header(header_name.as_str(), key_ref.as_str());
             }
             McpCredentials::Bearer { token_ref } => {
                 request = request.bearer_auth(token_ref);
             }
-            McpCredentials::Basic { username_ref, password_ref } => {
+            McpCredentials::Basic {
+                username_ref,
+                password_ref,
+            } => {
                 request = request.basic_auth(username_ref, Some(password_ref));
             }
             _ => {}
@@ -897,15 +951,62 @@ impl McpClient {
     }
 
     /// Perform health check on a server
-    pub async fn health_check(&mut self, server_name: &str) -> Result<HealthStatus, Box<dyn std::error::Error + Send + Sync>> {
-        let server = self.servers.get_mut(server_name)
+    pub async fn health_check(
+        &mut self,
+        server_name: &str,
+    ) -> Result<HealthStatus, Box<dyn std::error::Error + Send + Sync>> {
+        let server = self
+            .servers
+            .get_mut(server_name)
             .ok_or_else(|| format!("MCP server '{}' not found", server_name))?;
 
         let start_time = std::time::Instant::now();
 
         let health_url = format!("{}/health", server.connection.url);
-        let result = self.http_client
+        let result = self
+            .http_client
             .get(&health_url)
             .timeout(Duration::from_secs(5))
             .send()
-            .await
+            .await;
+
+        let latency_ms = start_time.elapsed().as_millis() as i64;
+
+        match result {
+            Ok(response) => {
+                if response.status().is_success() {
+                    server.status = McpServerStatus::Active;
+                    Ok(HealthStatus {
+                        healthy: true,
+                        last_check: Some(Utc::now()),
+                        response_time_ms: Some(latency_ms),
+                        error_message: None,
+                        consecutive_failures: 0,
+                    })
+                } else {
+                    server.status = McpServerStatus::Error(format!("HTTP {}", response.status()));
+                    Ok(HealthStatus {
+                        healthy: false,
+                        last_check: Some(Utc::now()),
+                        response_time_ms: Some(latency_ms),
+                        error_message: Some(format!(
+                            "Server returned status {}",
+                            response.status()
+                        )),
+                        consecutive_failures: 1,
+                    })
+                }
+            }
+            Err(e) => {
+                server.status = McpServerStatus::Unknown;
+                Ok(HealthStatus {
+                    healthy: false,
+                    last_check: Some(Utc::now()),
+                    response_time_ms: Some(latency_ms),
+                    error_message: Some(format!("Health check failed: {}", e)),
+                    consecutive_failures: 1,
+                })
+            }
+        }
+    }
+}
