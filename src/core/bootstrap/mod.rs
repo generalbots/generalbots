@@ -6,14 +6,12 @@ use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use diesel::{Connection, RunQueryDsl};
-use log::debug;
-use log::{error, info, trace, warn};
+use log::{debug, error, info, warn};
 use rand::distr::Alphanumeric;
 use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair,
 };
 use std::fs;
-use std::io::Write;
 #[cfg(unix)]
 use std::os::unix::fs::PermissionsExt;
 use std::path::{Path, PathBuf};
@@ -29,11 +27,6 @@ pub struct BootstrapManager {
 }
 impl BootstrapManager {
     pub async fn new(mode: InstallMode, tenant: Option<String>) -> Self {
-        trace!(
-            "Initializing BootstrapManager with mode {:?} and tenant {:?}",
-            mode,
-            tenant
-        );
         Self {
             install_mode: mode,
             tenant,
@@ -144,9 +137,37 @@ impl BootstrapManager {
         }
     }
 
+    /// Check if botserver-stack has installed components (indicating a working installation)
+    /// This is used to prevent accidental re-initialization of existing installations
+    fn has_installed_stack() -> bool {
+        let stack_dir = PathBuf::from("./botserver-stack");
+        if !stack_dir.exists() {
+            return false;
+        }
+        
+        // Check for key indicators of an installed stack
+        let indicators = vec![
+            "./botserver-stack/bin/vault/vault",
+            "./botserver-stack/data/vault",
+            "./botserver-stack/conf/vault/config.hcl",
+        ];
+        
+        indicators.iter().any(|path| PathBuf::from(path).exists())
+    }
+
     /// Reset only Vault credentials (when re-initialization is needed)
+    /// CRITICAL: This should NEVER be called if botserver-stack exists with installed components!
     /// NEVER deletes user data in botserver-stack
     fn reset_vault_only() -> Result<()> {
+        // SAFETY CHECK: NEVER reset if stack is installed
+        if Self::has_installed_stack() {
+            error!("REFUSING to reset Vault credentials - botserver-stack is installed!");
+            error!("If you need to re-initialize, manually delete botserver-stack directory first");
+            return Err(anyhow::anyhow!(
+                "Cannot reset Vault - existing installation detected. Manual intervention required."
+            ));
+        }
+
         let vault_init = PathBuf::from("./botserver-stack/conf/vault/init.json");
         let env_file = PathBuf::from("./.env");
 
@@ -212,26 +233,57 @@ impl BootstrapManager {
                 }
             }
 
-            // Try to unseal Vault - if this fails, we need to re-initialize Vault only
+            // Try to unseal Vault - if this fails, we need to handle carefully
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal failed: {} - re-initializing Vault only", e);
+                warn!("Vault unseal failed: {}", e);
 
-                // Kill only Vault process, reset only Vault credentials
-                // NEVER delete user data in botserver-stack
-                let _ = Command::new("pkill")
-                    .args(["-9", "-f", "botserver-stack/bin/vault"])
-                    .output();
+                // CRITICAL: If stack is installed, NEVER try to re-initialize
+                // Just try restarting Vault a few more times
+                if Self::has_installed_stack() {
+                    error!("Vault failed to unseal but stack is installed - NOT re-initializing");
+                    error!("Try manually restarting Vault or check ./botserver-stack/logs/vault/vault.log");
+                    
+                    // Kill only Vault process and try to restart
+                    let _ = Command::new("pkill")
+                        .args(["-9", "-f", "botserver-stack/bin/vault"])
+                        .output();
+                    
+                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+                    
+                    // Try to restart Vault
+                    if let Err(e) = pm.start("vault") {
+                        warn!("Failed to restart Vault: {}", e);
+                    }
+                    
+                    tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                    
+                    // Final attempt to unseal
+                    if let Err(e) = self.ensure_vault_unsealed().await {
+                        return Err(anyhow::anyhow!(
+                            "Vault failed to start/unseal after restart: {}. Manual intervention required.", e
+                        ));
+                    }
+                } else {
+                    // No installed stack, safe to re-initialize
+                    warn!("No installed stack detected - proceeding with re-initialization");
 
-                if let Err(e) = Self::reset_vault_only() {
-                    error!("Failed to reset Vault: {}", e);
+                    // Kill only Vault process, reset only Vault credentials
+                    let _ = Command::new("pkill")
+                        .args(["-9", "-f", "botserver-stack/bin/vault"])
+                        .output();
+
+                    if let Err(e) = Self::reset_vault_only() {
+                        error!("Failed to reset Vault: {}", e);
+                        return Err(e);
+                    }
+
+                    // Run bootstrap to re-initialize Vault
+                    self.bootstrap().await?;
+
+                    // After bootstrap, services are already running
+                    info!("Vault re-initialization complete");
+                    return Ok(());
                 }
-
-                // Run bootstrap to re-initialize Vault
-                self.bootstrap().await?;
-
-                // After bootstrap, services are already running
-                info!("Vault re-initialization complete");
-                return Ok(());
             }
 
             // Initialize SecretsManager so other code can use Vault
@@ -286,10 +338,10 @@ impl BootstrapManager {
             if pm.is_installed(component.name) {
                 match pm.start(component.name) {
                     Ok(_child) => {
-                        trace!("Started component: {}", component.name);
+                        info!("Started component: {}", component.name);
                     }
                     Err(e) => {
-                        trace!(
+                        debug!(
                             "Component {} might already be running: {}",
                             component.name,
                             e
@@ -400,8 +452,24 @@ impl BootstrapManager {
                 if let Err(e) = self.ensure_vault_unsealed().await {
                     warn!("Vault still not responding after restart: {}", e);
 
-                    // Only now reset Vault credentials and re-initialize ONLY Vault
-                    Self::reset_vault_only()?;
+                    // CRITICAL: If stack is installed, NEVER try to re-initialize
+                    // This protects existing installations from being destroyed
+                    if Self::has_installed_stack() {
+                        error!("CRITICAL: Vault failed but botserver-stack is installed!");
+                        error!("REFUSING to delete init.json or .env - this would destroy your installation");
+                        error!("Please check ./botserver-stack/logs/vault/vault.log for errors");
+                        error!("You may need to manually restart Vault or check its configuration");
+                        return Err(anyhow::anyhow!(
+                            "Vault failed to start. Manual intervention required. Check logs at ./botserver-stack/logs/vault/vault.log"
+                        ));
+                    }
+
+                    // Only reset if NO installed stack (fresh/broken install)
+                    warn!("No installed stack detected - attempting Vault re-initialization");
+                    if let Err(reset_err) = Self::reset_vault_only() {
+                        error!("Failed to reset Vault: {}", reset_err);
+                        return Err(reset_err);
+                    }
 
                     // Install/configure ONLY Vault - NOT full bootstrap
                     info!("Re-initializing Vault only (preserving other services)...");
@@ -419,7 +487,7 @@ impl BootstrapManager {
                     }
                 }
 
-                info!("Vault re-initialization complete");
+                info!("Vault recovery complete");
             }
 
             // Initialize SecretsManager so other code can use Vault
@@ -692,25 +760,14 @@ impl BootstrapManager {
                     std::thread::sleep(std::time::Duration::from_millis(200));
                 }
 
-                eprintln!("[DEBUG] Installing component: {}", component);
-                let _ = std::io::stderr().flush();
                 info!("Installing component: {}", component);
                 let install_result = pm.install(component).await;
-                eprintln!(
-                    "[DEBUG] Install result for {}: {:?}",
-                    component,
-                    install_result.is_ok()
-                );
-                let _ = std::io::stderr().flush();
                 if let Err(e) = install_result {
-                    eprintln!("[DEBUG] Failed to install component {}: {}", component, e);
                     error!("Failed to install component {}: {}", component, e);
                     if component == "vault" {
                         return Err(anyhow::anyhow!("Failed to install Vault: {}", e));
                     }
                 }
-                eprintln!("[DEBUG] Component {} installed successfully", component);
-                let _ = std::io::stderr().flush();
                 info!("Component {} installed successfully", component);
 
                 // After tables is installed, START PostgreSQL and create Zitadel config files before installing directory
@@ -761,32 +818,20 @@ impl BootstrapManager {
 
                 // After Vault is installed, START the server then initialize it
                 if component == "vault" {
-                    eprintln!("[VAULT DEBUG] === VAULT SETUP BLOCK ENTERED ===");
-                    eprintln!(
-                        "[VAULT DEBUG] Current working directory: {:?}",
-                        std::env::current_dir()
-                    );
-                    eprintln!("[VAULT DEBUG] base_path: {:?}", pm.base_path);
-                    let _ = std::io::stderr().flush();
-                    info!("=== VAULT SETUP BLOCK ENTERED ===");
+                    info!("Setting up Vault secrets service...");
 
                     // Verify vault binary exists and is executable
                     let vault_bin = PathBuf::from("./botserver-stack/bin/vault/vault");
                     if !vault_bin.exists() {
-                        eprintln!("[VAULT DEBUG] Vault binary not found at {:?}", vault_bin);
-                        let _ = std::io::stderr().flush();
                         error!("Vault binary not found at {:?}", vault_bin);
                         return Err(anyhow::anyhow!("Vault binary not found after installation"));
                     }
-                    eprintln!("[VAULT DEBUG] Vault binary exists at {:?}", vault_bin);
-                    let _ = std::io::stderr().flush();
-                    info!("Vault binary exists at {:?}", vault_bin);
+                    info!("Vault binary verified at {:?}", vault_bin);
 
                     // Ensure logs directory exists
                     let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
                     if let Some(parent) = vault_log_path.parent() {
                         if let Err(e) = fs::create_dir_all(parent) {
-                            eprintln!("[VAULT DEBUG] Failed to create vault logs directory: {}", e);
                             error!("Failed to create vault logs directory: {}", e);
                         }
                     }
@@ -794,21 +839,16 @@ impl BootstrapManager {
                     // Ensure data directory exists
                     let vault_data_path = PathBuf::from("./botserver-stack/data/vault");
                     if let Err(e) = fs::create_dir_all(&vault_data_path) {
-                        eprintln!("[VAULT DEBUG] Failed to create vault data directory: {}", e);
                         error!("Failed to create vault data directory: {}", e);
                     }
 
-                    eprintln!("[VAULT DEBUG] Starting Vault server...");
-                    let _ = std::io::stderr().flush();
                     info!("Starting Vault server...");
 
-                    // Try starting vault directly first to see if it works
-                    eprintln!("[VAULT DEBUG] Testing direct vault start...");
-                    let direct_test = std::process::Command::new("sh")
+                    // Try starting vault directly first
+                    let _ = std::process::Command::new("sh")
                         .arg("-c")
                         .arg("cd ./botserver-stack/bin/vault && nohup ./vault server -config=../../conf/vault/config.hcl > ../../logs/vault/vault.log 2>&1 &")
                         .status();
-                    eprintln!("[VAULT DEBUG] Direct test result: {:?}", direct_test);
                     std::thread::sleep(std::time::Duration::from_secs(2));
 
                     // Check if it's running now
@@ -817,25 +857,17 @@ impl BootstrapManager {
                         .output();
                     if let Ok(output) = &check {
                         let pids = String::from_utf8_lossy(&output.stdout);
-                        eprintln!(
-                            "[VAULT DEBUG] After direct start, pgrep result: '{}'",
-                            pids.trim()
-                        );
                         if !pids.trim().is_empty() {
-                            eprintln!("[VAULT DEBUG] Vault started via direct command!");
-                            // Skip pm.start since vault is already running
                             info!("Vault server started");
                             tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                         } else {
-                            eprintln!("[VAULT DEBUG] Direct start failed, trying pm.start...");
+                            debug!("Direct start failed, trying pm.start...");
                             match pm.start("vault") {
                                 Ok(_) => {
-                                    eprintln!("[VAULT DEBUG] pm.start returned Ok");
                                     info!("Vault server started");
                                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
                                 }
                                 Err(e) => {
-                                    eprintln!("[VAULT DEBUG] pm.start failed: {}", e);
                                     error!("Failed to start Vault server: {}", e);
                                     return Err(anyhow::anyhow!(
                                         "Failed to start Vault server: {}",
@@ -846,39 +878,18 @@ impl BootstrapManager {
                         }
                     }
 
-                    // Check log file
-                    eprintln!(
-                        "[VAULT DEBUG] Checking if vault.log exists: {}",
-                        vault_log_path.exists()
-                    );
-                    if vault_log_path.exists() {
-                        if let Ok(content) = fs::read_to_string(&vault_log_path) {
-                            eprintln!(
-                                "[VAULT DEBUG] vault.log content (first 500 chars): {}",
-                                &content[..content.len().min(500)]
-                            );
-                        }
-                    }
-
-                    // The direct start above should have worked, but if pm.start is still called due to
-                    // code flow, just check if vault is running
+                    // Verify vault is running
                     let final_check = std::process::Command::new("pgrep")
                         .args(["-f", "vault server"])
                         .output();
                     if let Ok(output) = final_check {
                         let pids = String::from_utf8_lossy(&output.stdout);
                         if pids.trim().is_empty() {
-                            eprintln!(
-                                "[VAULT DEBUG] CRITICAL: Vault is not running after all attempts!"
-                            );
+                            error!("Vault is not running after all start attempts");
                             return Err(anyhow::anyhow!("Failed to start Vault server"));
-                        } else {
-                            eprintln!("[VAULT DEBUG] Vault is running with PIDs: {}", pids.trim());
                         }
                     }
 
-                    eprintln!("[VAULT DEBUG] Initializing Vault with secrets...");
-                    let _ = std::io::stderr().flush();
                     info!("Initializing Vault with secrets...");
                     if let Err(e) = self
                         .setup_vault(
@@ -1457,6 +1468,19 @@ meet        IN      A       127.0.0.1
 
             (unseal_key, root_token)
         } else {
+            // Check if .env exists with VAULT_TOKEN - try to recover from that
+            let env_token = if env_file_path.exists() {
+                if let Ok(env_content) = fs::read_to_string(&env_file_path) {
+                    env_content.lines()
+                        .find(|line| line.starts_with("VAULT_TOKEN="))
+                        .map(|line| line.trim_start_matches("VAULT_TOKEN=").to_string())
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
             // Initialize Vault if not already done
             info!("Initializing Vault...");
             // Clear any mTLS env vars that might interfere with CLI
@@ -1472,7 +1496,52 @@ meet        IN      A       127.0.0.1
                 let stderr = String::from_utf8_lossy(&init_output.stderr);
                 if stderr.contains("already initialized") {
                     warn!("Vault already initialized but init.json not found");
-                    return Err(anyhow::anyhow!("Vault initialized but credentials lost"));
+                    
+                    // If we have a token from .env, check if Vault is already unsealed
+                    // and we can continue (maybe it was manually unsealed)
+                    if let Some(_token) = env_token {
+                        info!("Found VAULT_TOKEN in .env, checking if Vault is unsealed...");
+                        
+                        // Check Vault status
+                        let status_check = std::process::Command::new("sh")
+                            .arg("-c")
+                            .arg(format!(
+                                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
+                                vault_addr
+                            ))
+                            .output();
+                        
+                        if let Ok(status_output) = status_check {
+                            let status_str = String::from_utf8_lossy(&status_output.stdout);
+                            if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
+                                let sealed = status["sealed"].as_bool().unwrap_or(true);
+                                if !sealed {
+                                    // Vault is unsealed! We can continue with the token from .env
+                                    warn!("Vault is already unsealed - continuing with existing token");
+                                    warn!("NOTE: Unseal key is lost - Vault will need manual unseal after restart");
+                                    return Ok(());  // Skip rest of setup, Vault is already working
+                                }
+                            }
+                        }
+                        
+                        // Vault is sealed but we don't have unseal key
+                        error!("Vault is sealed and unseal key is lost (init.json missing)");
+                        error!("Options:");
+                        error!("  1. If you have a backup of init.json, restore it to ./botserver-stack/conf/vault/init.json");
+                        error!("  2. To start fresh, delete ./botserver-stack/data/vault/ and restart");
+                        return Err(anyhow::anyhow!(
+                            "Vault is sealed but unseal key is lost. See error messages above for recovery options."
+                        ));
+                    }
+                    
+                    // No token in .env either
+                    error!("Vault already initialized but credentials are lost");
+                    error!("Options:");
+                    error!("  1. If you have a backup of init.json, restore it to ./botserver-stack/conf/vault/init.json");  
+                    error!("  2. To start fresh, delete ./botserver-stack/data/vault/ and ./botserver-stack/conf/vault/init.json and restart");
+                    return Err(anyhow::anyhow!(
+                        "Vault initialized but credentials lost. See error messages above for recovery options."
+                    ));
                 }
                 return Err(anyhow::anyhow!("Vault init failed: {}", stderr));
             }
@@ -1803,8 +1872,6 @@ VAULT_CACHE_TTL=300
                             return Err(anyhow::anyhow!("Failed to create bucket {}: {}. Check S3 credentials and endpoint configuration", bucket, e));
                         }
                     }
-                } else {
-                    trace!("Bucket {} already exists", bucket);
                 }
             }
         }
@@ -1848,7 +1915,7 @@ VAULT_CACHE_TTL=300
             if config_path.exists() {
                 match std::fs::read_to_string(&config_path) {
                     Ok(csv_content) => {
-                        info!("Syncing config.csv from {:?}", config_path);
+                        debug!("Syncing config.csv from {:?}", config_path);
                         if let Err(e) =
                             self.sync_config_csv_to_db(conn, &default_bot_id, &csv_content)
                         {
@@ -1860,10 +1927,10 @@ VAULT_CACHE_TTL=300
                     }
                 }
             } else {
-                warn!("No config.csv found at {:?}", config_path);
+                debug!("No config.csv found at {:?}", config_path);
             }
         } else {
-            warn!("default.gbai template not found");
+            debug!("default.gbai template not found");
         }
 
         Ok(())
@@ -1918,7 +1985,6 @@ VAULT_CACHE_TTL=300
                 .bind::<diesel::sql_types::Text, _>(value)
                 .execute(conn) {
                     Ok(_) => {
-                        trace!("  Synced config: {} = {}", key, if key.contains("pass") || key.contains("secret") || key.contains("key") { "***" } else { value });
                         synced += 1;
                     }
                     Err(e) => {
@@ -1965,12 +2031,6 @@ VAULT_CACHE_TTL=300
                 }
                 key.push_str(&file_name);
                 if path.is_file() {
-                    trace!(
-                        "Uploading file {} to bucket {} with key {}",
-                        path.display(),
-                        bucket,
-                        key
-                    );
                     let content = tokio::fs::read(&path).await?;
                     client
                         .put_object()
@@ -2218,7 +2278,6 @@ log_level = "info"
 
             // Skip if certificate already exists
             if cert_path.exists() && key_path.exists() {
-                trace!("Certificate for {} already exists", service);
                 continue;
             }
 
