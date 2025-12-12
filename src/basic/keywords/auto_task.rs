@@ -23,16 +23,9 @@
 //! - **MCP Integration**: Leverage registered MCP servers for extended capabilities
 //! - **Rollback Support**: Automatic rollback on failure when possible
 
-use crate::shared::models::UserSession;
-use crate::shared::state::AppState;
-use chrono::{DateTime, Duration, Utc};
-use diesel::prelude::*;
-use log::{error, info, trace, warn};
-use rhai::{Dynamic, Engine};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
-use uuid::Uuid;
 
 // ============================================================================
 // AUTO TASK DATA STRUCTURES
@@ -391,4 +384,112 @@ pub struct RiskSummary {
     pub mitigations_applied: Vec<String>,
 }
 
-#
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RiskFactor {
+    pub id: String,
+    pub category: RiskCategory,
+    pub description: String,
+    pub probability: f64,
+    pub impact: RiskLevel,
+    pub mitigation: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum RiskCategory {
+    Data,
+    Cost,
+    Security,
+    Compliance,
+    Performance,
+    Availability,
+    Integration,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResourceUsage {
+    pub compute_hours: f64,
+    pub storage_gb: f64,
+    pub api_calls: i32,
+    pub llm_tokens: i32,
+    pub estimated_cost_usd: f64,
+    pub mcp_servers_used: Vec<String>,
+    pub external_services: Vec<String>,
+}
+
+impl Default for ResourceUsage {
+    fn default() -> Self {
+        ResourceUsage {
+            compute_hours: 0.0,
+            storage_gb: 0.0,
+            api_calls: 0,
+            llm_tokens: 0,
+            estimated_cost_usd: 0.0,
+            mcp_servers_used: Vec::new(),
+            external_services: Vec::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskError {
+    pub code: String,
+    pub message: String,
+    pub step_id: Option<String>,
+    pub recoverable: bool,
+    pub details: Option<serde_json::Value>,
+    pub occurred_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RollbackState {
+    pub available: bool,
+    pub steps_rolled_back: Vec<String>,
+    pub rollback_data: HashMap<String, serde_json::Value>,
+    pub started_at: Option<DateTime<Utc>>,
+    pub completed_at: Option<DateTime<Utc>>,
+}
+
+impl Default for RollbackState {
+    fn default() -> Self {
+        RollbackState {
+            available: false,
+            steps_rolled_back: Vec::new(),
+            rollback_data: HashMap::new(),
+            started_at: None,
+            completed_at: None,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TaskSchedule {
+    pub schedule_type: ScheduleType,
+    pub scheduled_at: Option<DateTime<Utc>>,
+    pub cron_expression: Option<String>,
+    pub timezone: String,
+    pub max_retries: i32,
+    pub retry_delay_seconds: i32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum ScheduleType {
+    Immediate,
+    Scheduled,
+    Recurring,
+    OnDemand,
+}
+
+impl Default for TaskSchedule {
+    fn default() -> Self {
+        TaskSchedule {
+            schedule_type: ScheduleType::Immediate,
+            scheduled_at: None,
+            cron_expression: None,
+            timezone: "UTC".to_string(),
+            max_retries: 3,
+            retry_delay_seconds: 60,
+        }
+    }
+}
+
+use crate::basic::keywords::safety_layer::SimulationResult;

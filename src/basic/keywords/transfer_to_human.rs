@@ -445,14 +445,22 @@ pub async fn execute_transfer(
                     "Transfer: Session {} queued for next available attendant",
                     session.id
                 );
+
+                let queue_position = calculate_queue_position(&state, session_id).await;
+                let estimated_wait = queue_position * 60;
+
                 TransferResult {
                     success: true,
                     status: TransferStatus::Queued,
-                    queue_position: Some(1), // TODO: Calculate actual position
+                    queue_position: Some(queue_position),
                     assigned_to: None,
                     assigned_to_name: None,
-                    estimated_wait_seconds: Some(120),
-                    message: "You have been added to the queue. The next available attendant will assist you.".to_string(),
+                    estimated_wait_seconds: Some(estimated_wait),
+                    message: format!(
+                        "You have been added to the queue at position {}. Estimated wait time: {} minutes.",
+                        queue_position,
+                        estimated_wait / 60
+                    ),
                 }
             }
         }
@@ -508,6 +516,50 @@ impl TransferResult {
         }
 
         Dynamic::from(map)
+    }
+}
+
+async fn calculate_queue_position(state: &Arc<AppState>, current_session_id: Uuid) -> i32 {
+    let conn = state.conn.clone();
+
+    let result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(e) => {
+                error!("DB connection error calculating queue position: {}", e);
+                return 1;
+            }
+        };
+
+        let query = diesel::sql_query(
+            r#"SELECT COUNT(*) as position FROM user_sessions
+               WHERE context_data->>'needs_human' = 'true'
+               AND context_data->>'status' = 'queued'
+               AND created_at <= (SELECT created_at FROM user_sessions WHERE id = $1)
+               AND id != $2"#,
+        )
+        .bind::<diesel::sql_types::Uuid, _>(current_session_id)
+        .bind::<diesel::sql_types::Uuid, _>(current_session_id);
+
+        #[derive(QueryableByName)]
+        struct QueueCount {
+            #[diesel(sql_type = diesel::sql_types::BigInt)]
+            position: i64,
+        }
+
+        match query.get_result::<QueueCount>(&mut *db_conn) {
+            Ok(count) => (count.position + 1) as i32,
+            Err(e) => {
+                debug!("Could not calculate queue position: {}", e);
+                1
+            }
+        }
+    })
+    .await;
+
+    match result {
+        Ok(pos) => pos,
+        Err(_) => 1,
     }
 }
 

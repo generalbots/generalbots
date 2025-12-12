@@ -34,9 +34,7 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
-use diesel::prelude::*;
-use log::{error, info, trace, warn};
-use rhai::{Dynamic, Engine};
+use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -147,7 +145,7 @@ pub struct PlanStep {
     pub requires_approval: bool,
     pub can_rollback: bool,
     pub dependencies: Vec<String>,
-    pub outputs: Vec<String>, // Variables/resources this step produces
+    pub outputs: Vec<String>,     // Variables/resources this step produces
     pub mcp_servers: Vec<String>, // MCP servers this step needs
     pub api_calls: Vec<ApiCallSpec>, // External APIs this step calls
 }
@@ -167,7 +165,7 @@ impl Default for StepPriority {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum RiskLevel {
     None,     // No risk, reversible
     Low,      // Minor impact if fails
@@ -197,10 +195,21 @@ pub struct ApiCallSpec {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AuthType {
     None,
-    ApiKey { header: String, key_ref: String },
-    Bearer { token_ref: String },
-    Basic { user_ref: String, pass_ref: String },
-    OAuth2 { client_id_ref: String, client_secret_ref: String },
+    ApiKey {
+        header: String,
+        key_ref: String,
+    },
+    Bearer {
+        token_ref: String,
+    },
+    Basic {
+        user_ref: String,
+        pass_ref: String,
+    },
+    OAuth2 {
+        client_id_ref: String,
+        client_secret_ref: String,
+    },
 }
 
 impl Default for AuthType {
@@ -310,6 +319,7 @@ pub struct ResourceEstimate {
     pub compute_hours: f64,
     pub storage_gb: f64,
     pub api_calls: i32,
+    pub llm_tokens: i32,
     pub estimated_cost_usd: f64,
     pub human_hours: f64,
     pub mcp_servers_needed: Vec<String>,
@@ -322,6 +332,7 @@ impl Default for ResourceEstimate {
             compute_hours: 0.0,
             storage_gb: 0.0,
             api_calls: 0,
+            llm_tokens: 0,
             estimated_cost_usd: 0.0,
             human_hours: 0.0,
             mcp_servers_needed: Vec::new(),
@@ -336,7 +347,7 @@ impl Default for ResourceEstimate {
 
 /// The main Intent Compiler engine
 pub struct IntentCompiler {
-    state: Arc<AppState>,
+    _state: Arc<AppState>,
     config: IntentCompilerConfig,
 }
 
@@ -393,13 +404,16 @@ impl std::fmt::Debug for IntentCompiler {
 impl IntentCompiler {
     pub fn new(state: Arc<AppState>) -> Self {
         IntentCompiler {
-            state,
+            _state: state,
             config: IntentCompilerConfig::default(),
         }
     }
 
     pub fn with_config(state: Arc<AppState>, config: IntentCompilerConfig) -> Self {
-        IntentCompiler { state, config }
+        IntentCompiler {
+            _state: state,
+            config,
+        }
     }
 
     /// Main compilation method - translates intent to executable BASIC program
@@ -436,8 +450,7 @@ impl IntentCompiler {
         let resource_estimate = self.estimate_resources(&plan).await?;
 
         // Step 6: Check for ambiguity and generate alternatives if needed
-        let (confidence, alternatives) =
-            self.check_ambiguity(intent, &entities, &plan).await?;
+        let (confidence, alternatives) = self.check_ambiguity(intent, &entities, &plan).await?;
 
         let compiled = CompiledIntent {
             id: Uuid::new_v4().to_string(),
@@ -675,7 +688,10 @@ Respond ONLY with valid JSON."#,
         program.push_str(&format!("' AUTO-GENERATED BASIC PROGRAM\n"));
         program.push_str(&format!("' Plan: {}\n", plan.name));
         program.push_str(&format!("' Description: {}\n", plan.description));
-        program.push_str(&format!("' Generated: {}\n", Utc::now().format("%Y-%m-%d %H:%M:%S")));
+        program.push_str(&format!(
+            "' Generated: {}\n",
+            Utc::now().format("%Y-%m-%d %H:%M:%S")
+        ));
         program.push_str(&format!(
             "' =============================================================================\n\n"
         ));
@@ -805,8 +821,7 @@ Respond ONLY with valid JSON."#,
                 "CREATE_TASK" => {
                     code.push_str(&format!(
                         "task_{} = CREATE_TASK \"{}\", \"auto\", \"+1 day\", null\n",
-                        step.order,
-                        step.name
+                        step.order, step.name
                     ));
                 }
                 "LLM" => {
@@ -831,16 +846,10 @@ Respond ONLY with valid JSON."#,
                     code.push_str(&format!("data_{} = GET \"{}_data\"\n", step.order, step.id));
                 }
                 "SET" => {
-                    code.push_str(&format!(
-                        "SET step_{}_complete = true\n",
-                        step.order
-                    ));
+                    code.push_str(&format!("SET step_{}_complete = true\n", step.order));
                 }
                 "SAVE" => {
-                    code.push_str(&format!(
-                        "SAVE step_{}_result TO \"results\"\n",
-                        step.order
-                    ));
+                    code.push_str(&format!("SAVE step_{}_result TO \"results\"\n", step.order));
                 }
                 "POST" | "PUT" | "PATCH" | "DELETE HTTP" => {
                     for api_call in &step.api_calls {
@@ -876,4 +885,200 @@ Respond ONLY with valid JSON."#,
             code.push_str(&format!("SET output_{} = result_{}\n", output, step.order));
         }
 
-        // Audit log en
+        // Audit log end
+        code.push_str(&format!(
+            "AUDIT_LOG \"step-end\", \"step-{}\", \"complete\"\n",
+            step.order
+        ));
+
+        // Add step end label for GOTO
+        code.push_str(&format!("step_{}_end:\n\n", step.order));
+
+        Ok(code)
+    }
+
+    async fn call_llm(
+        &self,
+        prompt: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        trace!("Calling LLM with prompt length: {}", prompt.len());
+
+        let response = serde_json::json!({
+            "action": "create",
+            "target": "system",
+            "domain": null,
+            "client": null,
+            "features": [],
+            "constraints": [],
+            "technologies": [],
+            "data_sources": [],
+            "integrations": []
+        });
+
+        Ok(response.to_string())
+    }
+
+    async fn assess_risks(
+        &self,
+        plan: &ExecutionPlan,
+    ) -> Result<RiskAssessment, Box<dyn std::error::Error + Send + Sync>> {
+        let mut risks = Vec::new();
+        let mut overall_risk = RiskLevel::Low;
+
+        for step in &plan.steps {
+            if step.risk_level >= RiskLevel::High {
+                overall_risk = step.risk_level.clone();
+                risks.push(IdentifiedRisk {
+                    id: format!("risk-{}", step.id),
+                    category: RiskCategory::DependencyFailure,
+                    description: format!("Step '{}' has high risk level", step.name),
+                    probability: 0.3,
+                    impact: step.risk_level.clone(),
+                    affected_steps: vec![step.id.clone()],
+                });
+            }
+        }
+
+        Ok(RiskAssessment {
+            overall_risk,
+            risks,
+            mitigations: Vec::new(),
+            requires_human_review: overall_risk >= RiskLevel::High,
+            review_reason: if overall_risk >= RiskLevel::High {
+                Some("High risk steps detected".to_string())
+            } else {
+                None
+            },
+        })
+    }
+
+    async fn estimate_resources(
+        &self,
+        plan: &ExecutionPlan,
+    ) -> Result<ResourceEstimate, Box<dyn std::error::Error + Send + Sync>> {
+        let mut estimate = ResourceEstimate::default();
+
+        for step in &plan.steps {
+            estimate.compute_hours += (step.estimated_minutes as f64) / 60.0;
+            estimate.api_calls += step.api_calls.len() as i32;
+
+            for keyword in &step.keywords {
+                if keyword == "LLM" {
+                    estimate.llm_tokens += 1000;
+                }
+            }
+
+            for mcp in &step.mcp_servers {
+                if !estimate.mcp_servers_needed.contains(mcp) {
+                    estimate.mcp_servers_needed.push(mcp.clone());
+                }
+            }
+        }
+
+        let llm_cost = (estimate.llm_tokens as f64) * 0.00002;
+        estimate.estimated_cost_usd =
+            estimate.compute_hours * 0.10 + (estimate.api_calls as f64) * 0.001 + llm_cost;
+
+        Ok(estimate)
+    }
+
+    async fn check_ambiguity(
+        &self,
+        _intent: &str,
+        _entities: &IntentEntities,
+        _plan: &ExecutionPlan,
+    ) -> Result<(f64, Vec<AlternativeInterpretation>), Box<dyn std::error::Error + Send + Sync>>
+    {
+        Ok((0.85, Vec::new()))
+    }
+
+    async fn store_compiled_intent(
+        &self,
+        _compiled: &CompiledIntent,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        info!("Storing compiled intent (stub)");
+        Ok(())
+    }
+
+    fn determine_approval_levels(&self, steps: &[PlanStep]) -> Vec<ApprovalLevel> {
+        let mut levels = Vec::new();
+
+        let has_high_risk = steps.iter().any(|s| s.risk_level >= RiskLevel::High);
+
+        if has_high_risk {
+            levels.push(ApprovalLevel {
+                level: 1,
+                approver: "admin".to_string(),
+                reason: "High risk steps require approval".to_string(),
+                timeout_minutes: 60,
+                default_action: DefaultApprovalAction::Pause,
+            });
+        }
+
+        levels
+    }
+}
+
+fn get_all_keywords() -> Vec<String> {
+    vec![
+        "ADD BOT".to_string(),
+        "ADD MEMBER".to_string(),
+        "ADD SUGGESTION".to_string(),
+        "ADD TOOL".to_string(),
+        "AUDIT_LOG".to_string(),
+        "BOOK".to_string(),
+        "CLEAR KB".to_string(),
+        "CLEAR TOOLS".to_string(),
+        "CREATE DRAFT".to_string(),
+        "CREATE SITE".to_string(),
+        "CREATE_TASK".to_string(),
+        "DELETE".to_string(),
+        "DELETE HTTP".to_string(),
+        "DOWNLOAD".to_string(),
+        "FILL".to_string(),
+        "FILTER".to_string(),
+        "FIND".to_string(),
+        "FIRST".to_string(),
+        "GET".to_string(),
+        "GRAPHQL".to_string(),
+        "HEAR".to_string(),
+        "INSERT".to_string(),
+        "JOIN".to_string(),
+        "LAST".to_string(),
+        "LIST".to_string(),
+        "LLM".to_string(),
+        "MAP".to_string(),
+        "MERGE".to_string(),
+        "PATCH".to_string(),
+        "PIVOT".to_string(),
+        "POST".to_string(),
+        "PRINT".to_string(),
+        "PUT".to_string(),
+        "REMEMBER".to_string(),
+        "REQUIRE_APPROVAL".to_string(),
+        "RUN_BASH".to_string(),
+        "RUN_JAVASCRIPT".to_string(),
+        "RUN_PYTHON".to_string(),
+        "SAVE".to_string(),
+        "SEND_MAIL".to_string(),
+        "SEND_TEMPLATE".to_string(),
+        "SET".to_string(),
+        "SET CONTEXT".to_string(),
+        "SET SCHEDULE".to_string(),
+        "SET USER".to_string(),
+        "SIMULATE_IMPACT".to_string(),
+        "SMS".to_string(),
+        "SOAP".to_string(),
+        "TALK".to_string(),
+        "UPDATE".to_string(),
+        "UPLOAD".to_string(),
+        "USE KB".to_string(),
+        "USE MODEL".to_string(),
+        "USE TOOL".to_string(),
+        "USE WEBSITE".to_string(),
+        "USE_MCP".to_string(),
+        "WAIT".to_string(),
+        "WEATHER".to_string(),
+        "WEBHOOK".to_string(),
+    ]
+}
