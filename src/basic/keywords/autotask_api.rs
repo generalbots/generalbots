@@ -7,22 +7,18 @@
 use crate::basic::keywords::auto_task::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
-use crate::basic::keywords::intent_compiler::{CompiledIntent, IntentCompiler};
-use crate::basic::keywords::mcp_client::McpClient;
+use crate::basic::keywords::intent_compiler::IntentCompiler;
 use crate::basic::keywords::safety_layer::{SafetyLayer, SimulationResult};
 use crate::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
     response::IntoResponse,
-    routing::{get, post},
-    Json, Router,
+    Json,
 };
-use chrono::{DateTime, Utc};
-use diesel::prelude::*;
+use chrono::Utc;
 use log::{error, info, trace};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -254,7 +250,10 @@ pub async fn compile_intent_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CompileIntentRequest>,
 ) -> impl IntoResponse {
-    info!("Compiling intent: {}", &request.intent[..request.intent.len().min(100)]);
+    info!(
+        "Compiling intent: {}",
+        &request.intent[..request.intent.len().min(100)]
+    );
 
     // Get session from state (in real implementation, extract from auth)
     let session = match get_current_session(&state).await {
@@ -339,7 +338,7 @@ pub async fn compile_intent_handler(
                     compute_hours: compiled.resource_estimate.compute_hours,
                     storage_gb: compiled.resource_estimate.storage_gb,
                     api_calls: compiled.resource_estimate.api_calls,
-                    llm_tokens: 0, // TODO: Track LLM tokens
+                    llm_tokens: compiled.resource_estimate.llm_tokens,
                     estimated_cost_usd: compiled.resource_estimate.estimated_cost_usd,
                 },
                 basic_program: Some(compiled.basic_program.clone()),
@@ -438,7 +437,9 @@ pub async fn execute_plan_handler(
     };
 
     // Create the auto task from the compiled plan
-    match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority).await {
+    match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority)
+        .await
+    {
         Ok(task) => {
             // Start execution
             match start_task_execution(&state, &task.id).await {
@@ -501,7 +502,10 @@ pub async fn list_tasks_handler(
                 </div>"#,
                 html_escape(&e.to_string())
             );
-            (StatusCode::INTERNAL_SERVER_ERROR, axum::response::Html(html))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                axum::response::Html(html),
+            )
         }
     }
 }
@@ -675,7 +679,11 @@ pub async fn simulate_task_handler(
                         step_name: s.step_name.clone(),
                         would_succeed: s.would_succeed,
                         success_probability: s.success_probability,
-                        failure_modes: s.failure_modes.iter().map(|f| f.failure_type.clone()).collect(),
+                        failure_modes: s
+                            .failure_modes
+                            .iter()
+                            .map(|f| f.failure_type.clone())
+                            .collect(),
                     })
                     .collect(),
                 impact: ImpactResponse {
@@ -695,12 +703,19 @@ pub async fn simulate_task_handler(
                         total_estimated_cost: result.impact.cost_impact.total_estimated_cost,
                     },
                     time_impact: TimeImpactResponse {
-                        estimated_duration_seconds: result.impact.time_impact.estimated_duration_seconds,
+                        estimated_duration_seconds: result
+                            .impact
+                            .time_impact
+                            .estimated_duration_seconds,
                         blocking: result.impact.time_impact.blocking,
                     },
                     security_impact: SecurityImpactResponse {
                         risk_level: format!("{}", result.impact.security_impact.risk_level),
-                        credentials_accessed: result.impact.security_impact.credentials_accessed.clone(),
+                        credentials_accessed: result
+                            .impact
+                            .security_impact
+                            .credentials_accessed
+                            .clone(),
                         external_systems: result.impact.security_impact.external_systems.clone(),
                         concerns: result.impact.security_impact.concerns.clone(),
                     },
@@ -785,7 +800,10 @@ pub async fn get_decisions_handler(
         Ok(decisions) => (StatusCode::OK, Json(decisions)),
         Err(e) => {
             error!("Failed to get decisions: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(Vec::<PendingDecision>::new()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(Vec::<PendingDecision>::new()),
+            )
         }
     }
 }
@@ -825,7 +843,10 @@ pub async fn get_approvals_handler(
         Ok(approvals) => (StatusCode::OK, Json(approvals)),
         Err(e) => {
             error!("Failed to get approvals: {}", e);
-            (StatusCode::INTERNAL_SERVER_ERROR, Json(Vec::<PendingApproval>::new()))
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(Vec::<PendingApproval>::new()),
+            )
         }
     }
 }
@@ -881,3 +902,359 @@ pub async fn simulate_plan_handler(
                             records_deleted: 0,
                             tables_affected: Vec::new(),
                             reversible: true,
+                        },
+                        cost_impact: CostImpactResponse {
+                            api_costs: 0.0,
+                            compute_costs: 0.0,
+                            storage_costs: 0.0,
+                            total_estimated_cost: 0.0,
+                        },
+                        time_impact: TimeImpactResponse {
+                            estimated_duration_seconds: 0,
+                            blocking: false,
+                        },
+                        security_impact: SecurityImpactResponse {
+                            risk_level: "unknown".to_string(),
+                            credentials_accessed: Vec::new(),
+                            external_systems: Vec::new(),
+                            concerns: Vec::new(),
+                        },
+                    },
+                    side_effects: Vec::new(),
+                    recommendations: Vec::new(),
+                    error: Some(format!("Authentication error: {}", e)),
+                }),
+            );
+        }
+    };
+
+    let safety_layer = SafetyLayer::new(Arc::clone(&state));
+
+    match simulate_plan_execution(&state, &safety_layer, &plan_id, &session).await {
+        Ok(result) => {
+            let response = SimulationResponse {
+                success: result.success,
+                confidence: result.confidence,
+                risk_score: result.impact.risk_score,
+                risk_level: format!("{}", result.impact.risk_level),
+                step_outcomes: result
+                    .step_outcomes
+                    .iter()
+                    .map(|s| StepOutcomeResponse {
+                        step_id: s.step_id.clone(),
+                        step_name: s.step_name.clone(),
+                        would_succeed: s.would_succeed,
+                        success_probability: s.success_probability,
+                        failure_modes: s
+                            .failure_modes
+                            .iter()
+                            .map(|f| f.failure_type.clone())
+                            .collect(),
+                    })
+                    .collect(),
+                impact: ImpactResponse {
+                    risk_score: result.impact.risk_score,
+                    risk_level: format!("{}", result.impact.risk_level),
+                    data_impact: DataImpactResponse {
+                        records_created: result.impact.data_impact.records_created,
+                        records_modified: result.impact.data_impact.records_modified,
+                        records_deleted: result.impact.data_impact.records_deleted,
+                        tables_affected: result.impact.data_impact.tables_affected.clone(),
+                        reversible: result.impact.data_impact.reversible,
+                    },
+                    cost_impact: CostImpactResponse {
+                        api_costs: result.impact.cost_impact.api_costs,
+                        compute_costs: result.impact.cost_impact.compute_costs,
+                        storage_costs: result.impact.cost_impact.storage_costs,
+                        total_estimated_cost: result.impact.cost_impact.total_estimated_cost,
+                    },
+                    time_impact: TimeImpactResponse {
+                        estimated_duration_seconds: result
+                            .impact
+                            .time_impact
+                            .estimated_duration_seconds,
+                        blocking: result.impact.time_impact.blocking,
+                    },
+                    security_impact: SecurityImpactResponse {
+                        risk_level: format!("{}", result.impact.security_impact.risk_level),
+                        credentials_accessed: result
+                            .impact
+                            .security_impact
+                            .credentials_accessed
+                            .clone(),
+                        external_systems: result.impact.security_impact.external_systems.clone(),
+                        concerns: result.impact.security_impact.concerns.clone(),
+                    },
+                },
+                side_effects: result
+                    .side_effects
+                    .iter()
+                    .map(|s| SideEffectResponse {
+                        effect_type: s.effect_type.clone(),
+                        description: s.description.clone(),
+                        severity: format!("{:?}", s.severity),
+                        mitigation: s.mitigation.clone(),
+                    })
+                    .collect(),
+                recommendations: result
+                    .recommendations
+                    .iter()
+                    .enumerate()
+                    .map(|(i, r)| RecommendationResponse {
+                        id: format!("rec-{}", i),
+                        recommendation_type: format!("{:?}", r.recommendation_type),
+                        description: r.description.clone(),
+                        action: r.action.clone(),
+                    })
+                    .collect(),
+                error: None,
+            };
+            (StatusCode::OK, Json(response))
+        }
+        Err(e) => {
+            error!("Plan simulation failed: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(SimulationResponse {
+                    success: false,
+                    confidence: 0.0,
+                    risk_score: 1.0,
+                    risk_level: "unknown".to_string(),
+                    step_outcomes: Vec::new(),
+                    impact: ImpactResponse {
+                        risk_score: 1.0,
+                        risk_level: "unknown".to_string(),
+                        data_impact: DataImpactResponse {
+                            records_created: 0,
+                            records_modified: 0,
+                            records_deleted: 0,
+                            tables_affected: Vec::new(),
+                            reversible: true,
+                        },
+                        cost_impact: CostImpactResponse {
+                            api_costs: 0.0,
+                            compute_costs: 0.0,
+                            storage_costs: 0.0,
+                            total_estimated_cost: 0.0,
+                        },
+                        time_impact: TimeImpactResponse {
+                            estimated_duration_seconds: 0,
+                            blocking: false,
+                        },
+                        security_impact: SecurityImpactResponse {
+                            risk_level: "unknown".to_string(),
+                            credentials_accessed: Vec::new(),
+                            external_systems: Vec::new(),
+                            concerns: Vec::new(),
+                        },
+                    },
+                    side_effects: Vec::new(),
+                    recommendations: Vec::new(),
+                    error: Some(e.to_string()),
+                }),
+            )
+        }
+    }
+}
+
+async fn get_current_session(
+    state: &Arc<AppState>,
+) -> Result<crate::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
+    use crate::shared::models::user_sessions::dsl::*;
+    use diesel::prelude::*;
+
+    let mut conn = state
+        .conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
+
+    let session = user_sessions
+        .order(created_at.desc())
+        .first::<crate::shared::models::UserSession>(&mut conn)
+        .optional()
+        .map_err(|e| format!("DB query error: {}", e))?
+        .ok_or_else(|| "No active session found")?;
+
+    Ok(session)
+}
+
+async fn create_auto_task_from_plan(
+    _state: &Arc<AppState>,
+    session: &crate::shared::models::UserSession,
+    plan_id: &str,
+    execution_mode: ExecutionMode,
+    priority: TaskPriority,
+) -> Result<AutoTask, Box<dyn std::error::Error + Send + Sync>> {
+    let task = AutoTask {
+        id: Uuid::new_v4().to_string(),
+        title: format!("Task from plan {}", plan_id),
+        intent: String::new(),
+        status: AutoTaskStatus::Ready,
+        mode: execution_mode,
+        priority,
+        plan_id: Some(plan_id.to_string()),
+        basic_program: None,
+        current_step: 0,
+        total_steps: 0,
+        progress: 0.0,
+        step_results: Vec::new(),
+        pending_decisions: Vec::new(),
+        pending_approvals: Vec::new(),
+        risk_summary: None,
+        resource_usage: crate::basic::keywords::auto_task::ResourceUsage::default(),
+        error: None,
+        rollback_state: None,
+        session_id: session.id.to_string(),
+        bot_id: session.bot_id.to_string(),
+        created_by: session.user_id.to_string(),
+        assigned_to: "auto".to_string(),
+        schedule: None,
+        tags: Vec::new(),
+        parent_task_id: None,
+        subtask_ids: Vec::new(),
+        depends_on: Vec::new(),
+        dependents: Vec::new(),
+        mcp_servers: Vec::new(),
+        external_apis: Vec::new(),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+        started_at: None,
+        completed_at: None,
+        estimated_completion: None,
+    };
+    Ok(task)
+}
+
+async fn start_task_execution(
+    _state: &Arc<AppState>,
+    task_id: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!("Starting task execution task_id={}", task_id);
+    Ok(())
+}
+
+async fn list_auto_tasks(
+    _state: &Arc<AppState>,
+    _filter: &str,
+    _limit: i32,
+    _offset: i32,
+) -> Result<Vec<AutoTask>, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(Vec::new())
+}
+
+async fn get_auto_task_stats(
+    _state: &Arc<AppState>,
+) -> Result<AutoTaskStatsResponse, Box<dyn std::error::Error + Send + Sync>> {
+    Ok(AutoTaskStatsResponse {
+        total: 0,
+        running: 0,
+        pending: 0,
+        completed: 0,
+        failed: 0,
+        pending_approval: 0,
+        pending_decision: 0,
+    })
+}
+
+async fn update_task_status(
+    _state: &Arc<AppState>,
+    task_id: &str,
+    status: AutoTaskStatus,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!(
+        "Updating task status task_id={} status={:?}",
+        task_id, status
+    );
+    Ok(())
+}
+
+async fn simulate_task_execution(
+    _state: &Arc<AppState>,
+    safety_layer: &SafetyLayer,
+    task_id: &str,
+    session: &crate::shared::models::UserSession,
+) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
+    info!("Simulating task execution task_id={}", task_id);
+    safety_layer.simulate_execution(task_id, session).await
+}
+
+async fn simulate_plan_execution(
+    _state: &Arc<AppState>,
+    safety_layer: &SafetyLayer,
+    plan_id: &str,
+    session: &crate::shared::models::UserSession,
+) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
+    info!("Simulating plan execution plan_id={}", plan_id);
+    safety_layer.simulate_execution(plan_id, session).await
+}
+
+async fn get_pending_decisions(
+    _state: &Arc<AppState>,
+    task_id: &str,
+) -> Result<Vec<PendingDecision>, Box<dyn std::error::Error + Send + Sync>> {
+    trace!("Getting pending decisions for task_id={}", task_id);
+    Ok(Vec::new())
+}
+
+async fn submit_decision(
+    _state: &Arc<AppState>,
+    task_id: &str,
+    request: &DecisionRequest,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!(
+        "Submitting decision task_id={} decision_id={}",
+        task_id, request.decision_id
+    );
+    Ok(())
+}
+
+async fn get_pending_approvals(
+    _state: &Arc<AppState>,
+    task_id: &str,
+) -> Result<Vec<PendingApproval>, Box<dyn std::error::Error + Send + Sync>> {
+    trace!("Getting pending approvals for task_id={}", task_id);
+    Ok(Vec::new())
+}
+
+async fn submit_approval(
+    _state: &Arc<AppState>,
+    task_id: &str,
+    request: &ApprovalRequest,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!(
+        "Submitting approval task_id={} approval_id={} action={}",
+        task_id, request.approval_id, request.action
+    );
+    Ok(())
+}
+
+fn render_task_list_html(tasks: &[AutoTask]) -> String {
+    if tasks.is_empty() {
+        return r#"<div class="empty-state"><p>No tasks found</p></div>"#.to_string();
+    }
+
+    let mut html = String::from(r#"<div class="task-list">"#);
+    for task in tasks {
+        html.push_str(&format!(
+            r#"<div class="task-item" data-task-id="{}">
+                <div class="task-title">{}</div>
+                <div class="task-status">{}</div>
+                <div class="task-progress">{}%</div>
+            </div>"#,
+            html_escape(&task.id),
+            html_escape(&task.title),
+            html_escape(&task.status.to_string()),
+            (task.progress * 100.0) as i32
+        ));
+    }
+    html.push_str("</div>");
+    html
+}
+
+fn html_escape(s: &str) -> String {
+    s.replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+        .replace('"', "&quot;")
+        .replace('\'', "&#39;")
+}

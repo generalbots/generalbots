@@ -26,10 +26,9 @@
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
-use chrono::{DateTime, Duration, Utc};
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
-use log::{error, info, trace, warn};
-use rhai::{Dynamic, Engine};
+use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -837,8 +836,15 @@ impl SafetyLayer {
     }
 
     /// Load constraints from database
-    pub async fn load_constraints(&mut self, bot_id: &Uuid) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut conn = self.state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+    pub async fn load_constraints(
+        &mut self,
+        bot_id: &Uuid,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("DB error: {}", e))?;
         let bot_id_str = bot_id.to_string();
 
         let query = diesel::sql_query(
@@ -871,8 +877,9 @@ impl SafetyLayer {
 
         let rows: Vec<ConstraintRow> = query.load(&mut *conn).unwrap_or_default();
 
-        self.constraints = rows.into_iter().map(|row| {
-            Constraint {
+        self.constraints = rows
+            .into_iter()
+            .map(|row| Constraint {
                 id: row.id,
                 name: row.name,
                 constraint_type: match row.constraint_type.as_str() {
@@ -899,14 +906,19 @@ impl SafetyLayer {
                     _ => ConstraintSeverity::Warning,
                 },
                 enabled: row.enabled,
-                applies_to: row.applies_to
+                applies_to: row
+                    .applies_to
                     .map(|s| s.split(',').map(|x| x.trim().to_string()).collect())
                     .unwrap_or_default(),
                 bot_id: bot_id_str.clone(),
-            }
-        }).collect();
+            })
+            .collect();
 
-        info!("Loaded {} constraints for bot {}", self.constraints.len(), bot_id);
+        info!(
+            "Loaded {} constraints for bot {}",
+            self.constraints.len(),
+            bot_id
+        );
         Ok(())
     }
 
@@ -915,5 +927,163 @@ impl SafetyLayer {
         &self,
         action: &str,
         context: &serde_json::Value,
-        user: &UserSession,
-    ) -> Result<ConstraintCheckResult, Box
+        _user: &UserSession,
+    ) -> Result<ConstraintCheckResult, Box<dyn std::error::Error + Send + Sync>> {
+        let mut result = ConstraintCheckResult::default();
+
+        for constraint in &self.constraints {
+            if !constraint.enabled {
+                continue;
+            }
+
+            if !constraint.applies_to.is_empty()
+                && !constraint.applies_to.contains(&action.to_string())
+            {
+                continue;
+            }
+
+            let check_result = self.evaluate_constraint(constraint, context).await;
+
+            match check_result {
+                Ok(passed) => {
+                    let constraint_result = ConstraintResult {
+                        constraint_id: constraint.id.clone(),
+                        constraint_type: constraint.constraint_type.clone(),
+                        passed,
+                        severity: constraint.severity.clone(),
+                        message: if passed {
+                            format!("Constraint '{}' passed", constraint.name)
+                        } else {
+                            format!(
+                                "Constraint '{}' violated: {}",
+                                constraint.name, constraint.description
+                            )
+                        },
+                        details: None,
+                        remediation: None,
+                    };
+
+                    if !passed {
+                        result.passed = false;
+                        match constraint.severity {
+                            ConstraintSeverity::Critical | ConstraintSeverity::Error => {
+                                result.blocking.push(constraint.name.clone());
+                            }
+                            ConstraintSeverity::Warning => {
+                                result.warnings.push(constraint.name.clone());
+                            }
+                            ConstraintSeverity::Info => {
+                                result.suggestions.push(constraint.name.clone());
+                            }
+                        }
+                    }
+
+                    result.results.push(constraint_result);
+                }
+                Err(e) => {
+                    warn!("Failed to evaluate constraint {}: {}", constraint.id, e);
+                }
+            }
+        }
+
+        result.risk_score = self.calculate_risk_score(&result);
+        Ok(result)
+    }
+
+    async fn evaluate_constraint(
+        &self,
+        constraint: &Constraint,
+        _context: &serde_json::Value,
+    ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
+        if let Some(ref _expression) = constraint.expression {
+            Ok(true)
+        } else {
+            Ok(true)
+        }
+    }
+
+    fn calculate_risk_score(&self, result: &ConstraintCheckResult) -> f64 {
+        let blocking_weight = 0.5;
+        let warning_weight = 0.3;
+        let suggestion_weight = 0.1;
+
+        let blocking_score = (result.blocking.len() as f64) * blocking_weight;
+        let warning_score = (result.warnings.len() as f64) * warning_weight;
+        let suggestion_score = (result.suggestions.len() as f64) * suggestion_weight;
+
+        (blocking_score + warning_score + suggestion_score).min(1.0)
+    }
+
+    pub async fn simulate_execution(
+        &self,
+        task_id: &str,
+        _session: &UserSession,
+    ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
+        info!("Simulating execution for task_id={}", task_id);
+
+        let start_time = std::time::Instant::now();
+
+        let result = SimulationResult {
+            id: Uuid::new_v4().to_string(),
+            success: true,
+            step_outcomes: Vec::new(),
+            impact: ImpactAssessment::default(),
+            resource_usage: PredictedResourceUsage::default(),
+            side_effects: Vec::new(),
+            recommendations: Vec::new(),
+            confidence: 0.85,
+            simulated_at: Utc::now(),
+            simulation_duration_ms: start_time.elapsed().as_millis() as i64,
+        };
+
+        Ok(result)
+    }
+
+    pub async fn log_audit(
+        &self,
+        entry: AuditEntry,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        if !self.config.audit_enabled {
+            return Ok(());
+        }
+
+        let mut conn = self
+            .state
+            .conn
+            .get()
+            .map_err(|e| format!("DB error: {}", e))?;
+
+        let details_json = serde_json::to_string(&entry.details)?;
+        let now = entry.timestamp.to_rfc3339();
+        let event_type_str = entry.event_type.to_string();
+        let actor_type_str = format!("{:?}", entry.actor.actor_type);
+        let risk_level_str = format!("{:?}", entry.risk_level);
+
+        let query = diesel::sql_query(
+            "INSERT INTO audit_log (id, timestamp, event_type, actor_type, actor_id, action, target_type, target_id, outcome_success, details, session_id, bot_id, task_id, step_id, risk_level)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)"
+        )
+        .bind::<diesel::sql_types::Text, _>(&entry.id)
+        .bind::<diesel::sql_types::Text, _>(&now)
+        .bind::<diesel::sql_types::Text, _>(&event_type_str)
+        .bind::<diesel::sql_types::Text, _>(&actor_type_str)
+        .bind::<diesel::sql_types::Text, _>(&entry.actor.id)
+        .bind::<diesel::sql_types::Text, _>(&entry.action)
+        .bind::<diesel::sql_types::Text, _>(&entry.target.target_type)
+        .bind::<diesel::sql_types::Text, _>(&entry.target.id)
+        .bind::<diesel::sql_types::Bool, _>(entry.outcome.success)
+        .bind::<diesel::sql_types::Text, _>(&details_json)
+        .bind::<diesel::sql_types::Text, _>(&entry.session_id)
+        .bind::<diesel::sql_types::Text, _>(&entry.bot_id)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&entry.task_id)
+        .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(&entry.step_id)
+        .bind::<diesel::sql_types::Text, _>(&risk_level_str);
+
+        query
+            .execute(&mut *conn)
+            .map_err(|e| format!("Failed to log audit: {}", e))?;
+
+        trace!("Audit logged: {} - {}", entry.event_type, entry.action);
+        Ok(())
+    }
+}

@@ -784,7 +784,9 @@ fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>) ->
 /// SET ATTENDANT STATUS "att-001", "busy"
 /// SET ATTENDANT STATUS attendant_id, "away"
 /// ```
-fn register_set_attendant_status(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+fn register_set_attendant_status(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+    let state_clone = state.clone();
+
     engine
         .register_custom_syntax(
             &["SET", "ATTENDANT", "STATUS", "$expr$", "$expr$"],
@@ -792,14 +794,32 @@ fn register_set_attendant_status(_state: Arc<AppState>, _user: UserSession, engi
             move |context, inputs| {
                 let attendant_id = context.eval_expression_tree(&inputs[0])?.to_string();
                 let status = context.eval_expression_tree(&inputs[1])?.to_string();
+                let now = Utc::now().to_rfc3339();
 
-                // TODO: Store in database or memory
-                info!("Set attendant {} status to {}", attendant_id, status);
+                let mut conn = state_clone
+                    .conn
+                    .get()
+                    .map_err(|e| format!("DB connection error: {}", e))?;
+
+                let query = diesel::sql_query(
+                    "UPDATE attendants SET status = $1, updated_at = $2 WHERE id = $3",
+                )
+                .bind::<diesel::sql_types::Text, _>(&status)
+                .bind::<diesel::sql_types::Text, _>(&now)
+                .bind::<diesel::sql_types::Text, _>(&attendant_id);
+
+                let rows_affected = query.execute(&mut *conn).unwrap_or(0);
+
+                info!(
+                    "Set attendant {} status to {} (rows_affected={})",
+                    attendant_id, status, rows_affected
+                );
 
                 let mut result = Map::new();
-                result.insert("success".into(), Dynamic::from(true));
+                result.insert("success".into(), Dynamic::from(rows_affected > 0));
                 result.insert("attendant_id".into(), Dynamic::from(attendant_id));
                 result.insert("status".into(), Dynamic::from(status));
+                result.insert("rows_affected".into(), Dynamic::from(rows_affected as i64));
                 Ok(Dynamic::from(result))
             },
         )
@@ -1691,10 +1711,35 @@ mod tests {
 
     fn analyze_text_sentiment(message: &str) -> &'static str {
         let msg_lower = message.to_lowercase();
-        let positive_words = ["thank", "great", "perfect", "awesome", "excellent", "good", "happy", "love"];
-        let negative_words = ["angry", "frustrated", "terrible", "awful", "horrible", "hate", "disappointed", "problem", "issue"];
-        let positive_count = positive_words.iter().filter(|w| msg_lower.contains(*w)).count();
-        let negative_count = negative_words.iter().filter(|w| msg_lower.contains(*w)).count();
+        let positive_words = [
+            "thank",
+            "great",
+            "perfect",
+            "awesome",
+            "excellent",
+            "good",
+            "happy",
+            "love",
+        ];
+        let negative_words = [
+            "angry",
+            "frustrated",
+            "terrible",
+            "awful",
+            "horrible",
+            "hate",
+            "disappointed",
+            "problem",
+            "issue",
+        ];
+        let positive_count = positive_words
+            .iter()
+            .filter(|w| msg_lower.contains(*w))
+            .count();
+        let negative_count = negative_words
+            .iter()
+            .filter(|w| msg_lower.contains(*w))
+            .count();
         if positive_count > negative_count {
             "positive"
         } else if negative_count > positive_count {
