@@ -6,7 +6,9 @@ use crate::shared::state::AppState;
 use diesel::ExpressionMethods;
 use diesel::QueryDsl;
 use diesel::RunQueryDsl;
-use log::warn;
+use log::{trace, warn};
+
+pub mod goto_transform;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -313,6 +315,16 @@ impl BasicCompiler {
     ) -> Result<String, Box<dyn Error + Send + Sync>> {
         let bot_uuid = bot_id;
         let mut result = String::new();
+
+        // Transform GOTO/labels into state machine if present
+        // WARNING: GOTO is supported but event-driven ON patterns are recommended
+        let source = if goto_transform::has_goto_constructs(source) {
+            trace!("GOTO constructs detected, transforming to state machine");
+            goto_transform::transform_goto(source)
+        } else {
+            source.to_string()
+        };
+        let source = source.as_str();
         let mut has_schedule = false;
         let mut _has_webhook = false;
         let script_name = Path::new(source_path)
