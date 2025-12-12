@@ -27,9 +27,12 @@ NC='\033[0m'
 # Default values
 TARGET_HOST=""
 WITH_UI=false
+WITH_LLAMA=false
 LOCAL_INSTALL=false
 ARCH=""
 SERVICE_NAME="botserver"
+LLAMA_MODEL="tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf"
+LLAMA_URL="https://huggingface.co/TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF/resolve/main"
 
 print_banner() {
     echo -e "${BLUE}"
@@ -271,12 +274,129 @@ deploy_local() {
     fi
 }
 
+install_llama_cpp() {
+    local host=$1
+    local is_local=$2
+    
+    echo -e "${YELLOW}Installing llama.cpp...${NC}"
+    
+    local commands='
+        # Install dependencies
+        sudo apt-get update
+        sudo apt-get install -y build-essential cmake git
+        
+        # Clone and build llama.cpp
+        cd /opt
+        if [ ! -d "llama.cpp" ]; then
+            sudo git clone https://github.com/ggerganov/llama.cpp.git
+            sudo chown -R $(whoami):$(whoami) llama.cpp
+        fi
+        cd llama.cpp
+        
+        # Build with optimizations for ARM
+        mkdir -p build && cd build
+        cmake .. -DLLAMA_NATIVE=ON -DCMAKE_BUILD_TYPE=Release
+        make -j$(nproc)
+        
+        # Create models directory
+        mkdir -p /opt/llama.cpp/models
+    '
+    
+    if [ "$is_local" = true ]; then
+        eval "$commands"
+    else
+        ssh $host "$commands"
+    fi
+}
+
+download_model() {
+    local host=$1
+    local is_local=$2
+    
+    echo -e "${YELLOW}Downloading model: $LLAMA_MODEL...${NC}"
+    
+    local commands="
+        cd /opt/llama.cpp/models
+        if [ ! -f '$LLAMA_MODEL' ]; then
+            wget -c '$LLAMA_URL/$LLAMA_MODEL'
+        fi
+        ls -lh /opt/llama.cpp/models/
+    "
+    
+    if [ "$is_local" = true ]; then
+        eval "$commands"
+    else
+        ssh $host "$commands"
+    fi
+}
+
+create_llama_service() {
+    cat > /tmp/llama-server.service << 'EOF'
+[Unit]
+Description=llama.cpp Server - Local LLM Inference
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/llama.cpp
+ExecStart=/opt/llama.cpp/build/bin/llama-server \
+    -m /opt/llama.cpp/models/tinyllama-1.1b-chat-v1.0.Q4_K_M.gguf \
+    --host 0.0.0.0 \
+    --port 8080 \
+    -c 2048 \
+    -ngl 0 \
+    --threads 4
+Restart=always
+RestartSec=5
+Environment=LLAMA_LOG_LEVEL=info
+
+[Install]
+WantedBy=multi-user.target
+EOF
+}
+
+setup_llama_service() {
+    local host=$1
+    local is_local=$2
+    
+    echo -e "${YELLOW}Setting up llama.cpp systemd service...${NC}"
+    
+    create_llama_service
+    
+    if [ "$is_local" = true ]; then
+        sudo mv /tmp/llama-server.service /etc/systemd/system/
+        sudo systemctl daemon-reload
+        sudo systemctl enable llama-server
+        sudo systemctl start llama-server
+    else
+        scp /tmp/llama-server.service "$host:/tmp/"
+        ssh $host "sudo mv /tmp/llama-server.service /etc/systemd/system/"
+        ssh $host "sudo systemctl daemon-reload"
+        ssh $host "sudo systemctl enable llama-server"
+        ssh $host "sudo systemctl start llama-server"
+    fi
+    
+    echo -e "${GREEN}llama.cpp server configured on port 8080${NC}"
+}
+
+deploy_llama() {
+    local host=$1
+    local is_local=${2:-false}
+    
+    install_llama_cpp "$host" "$is_local"
+    download_model "$host" "$is_local"
+    setup_llama_service "$host" "$is_local"
+}
+
 show_help() {
     echo "Usage: $0 [target-host] [options]"
     echo ""
     echo "Options:"
     echo "  --local       Install on this machine"
     echo "  --with-ui     Also deploy embedded UI with kiosk mode"
+    echo "  --with-llama  Install llama.cpp for local LLM inference"
+    echo "  --model NAME  Specify GGUF model (default: TinyLlama 1.1B Q4)"
     echo "  --arch ARCH   Force target architecture"
     echo "  -h, --help    Show this help"
     echo ""
@@ -305,6 +425,14 @@ while [[ $# -gt 0 ]]; do
             WITH_UI=true
             shift
             ;;
+        --with-llama)
+            WITH_LLAMA=true
+            shift
+            ;;
+        --model)
+            LLAMA_MODEL="$2"
+            shift 2
+            ;;
         --arch)
             ARCH="$2"
             shift 2
@@ -328,6 +456,9 @@ print_banner
 if [ "$LOCAL_INSTALL" = true ]; then
     detect_arch
     deploy_local
+    if [ "$WITH_LLAMA" = true ]; then
+        deploy_llama "" true
+    fi
 elif [ -n "$TARGET_HOST" ]; then
     # Get remote arch
     echo "Detecting remote architecture..."
@@ -349,6 +480,9 @@ elif [ -n "$TARGET_HOST" ]; then
     install_cross_compiler
     build_botserver
     deploy_remote $TARGET_HOST
+    if [ "$WITH_LLAMA" = true ]; then
+        deploy_llama $TARGET_HOST false
+    fi
 else
     show_help
     exit 1
@@ -365,4 +499,9 @@ echo "  ssh $TARGET_HOST 'sudo journalctl -u botserver -f'"
 echo ""
 if [ "$WITH_UI" = true ]; then
     echo "Access UI at: http://$TARGET_HOST:8088/embedded/"
+fi
+if [ "$WITH_LLAMA" = true ]; then
+    echo ""
+    echo "llama.cpp server running at: http://$TARGET_HOST:8080"
+    echo "Test: curl http://$TARGET_HOST:8080/v1/models"
 fi
