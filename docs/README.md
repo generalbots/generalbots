@@ -53,8 +53,8 @@ answer = HEAR
 
 ## Quick Links
 
-- **[GitHub Repository](https://github.com/GeneralBots/BotServer)**
-- **[Issue Tracker](https://github.com/GeneralBots/BotServer/issues)**
+- **[GitHub Repository](https://github.com/GeneralBots/botserver)**
+- **[Issue Tracker](https://github.com/GeneralBots/botserver/issues)**
 - **[Contributing Guide](../CONTRIBUTING.md)**
 
 ## Version

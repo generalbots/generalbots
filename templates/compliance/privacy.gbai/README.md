@@ -188,7 +188,7 @@ All requests are logged to `privacy_requests` and `consent_history` tables with:
 For questions about this template:
 
 - **Documentation**: https://docs.pragmatismo.com.br/privacy-template
-- **Issues**: https://github.com/GeneralBots/BotServer/issues
+- **Issues**: https://github.com/GeneralBots/botserver/issues
 - **Email**: support@pragmatismo.com.br
 
 ## License
