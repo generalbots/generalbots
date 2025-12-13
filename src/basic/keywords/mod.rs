@@ -41,6 +41,7 @@ pub mod llm_keyword;
 pub mod llm_macros;
 pub mod math;
 pub mod mcp_client;
+pub mod mcp_directory;
 pub mod messaging;
 pub mod model_routing;
 pub mod multimodal;
@@ -81,6 +82,7 @@ pub mod webhook;
 pub use auto_task::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
 pub use intent_compiler::{CompiledIntent, ExecutionPlan, IntentCompiler, PlanStep};
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};
+pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerConfig};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 
 // Re-export API handlers for route configuration
