@@ -1,7 +1,7 @@
-# BotServer Development Prompt Guide
+# botserver Development Prompt Guide
 
 **Version:** 6.1.0  
-**Purpose:** Consolidated LLM context for BotServer development
+**Purpose:** Consolidated LLM context for botserver development
 
 ---
 
@@ -101,7 +101,7 @@ Icons are stored in two locations (kept in sync):
 
 ## Project Overview
 
-BotServer is the core backend for General Bots - an open-source conversational AI platform built in Rust. It provides:
+botserver is the core backend for General Bots - an open-source conversational AI platform built in Rust. It provides:
 
 - **Bootstrap System**: Auto-installs PostgreSQL, MinIO, Redis, LLM servers
 - **Package Manager**: Manages bot deployments and service lifecycle
@@ -259,7 +259,7 @@ info!("Processing request id={} user={}", req_id, user_id);
 - Review src/ to identify reusable patterns and libraries
 ```
 
-### BotServer Specifics
+### botserver Specifics
 
 ```
 - Sessions MUST be retrieved by id when session_id is present

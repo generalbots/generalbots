@@ -1,6 +1,6 @@
 # General Bots - Enterprise-Grade LLM Orchestrator
 
-![General Bot Logo](https://github.com/GeneralBots/BotServer/blob/main/logo.png?raw=true)
+![General Bot Logo](https://github.com/GeneralBots/botserver/blob/main/logo.png?raw=true)
 
 **A strongly-typed LLM conversational platform focused on convention over configuration and code-less approaches.**
 
@@ -31,12 +31,12 @@ General Bots is a **self-hosted AI automation platform** that provides:
 ### Installation
 
 ```bash
-git clone https://github.com/GeneralBots/BotServer
-cd BotServer
+git clone https://github.com/GeneralBots/botserver
+cd botserver
 cargo run
 ```
 
-On first run, BotServer automatically sets up PostgreSQL, S3 storage, Redis cache, and downloads AI models.
+On first run, botserver automatically sets up PostgreSQL, S3 storage, Redis cache, and downloads AI models.
 
 The server will be available at `http://localhost:8080`.
 
@@ -137,7 +137,7 @@ According to our dual licensing model, this program can be used either under the
 
 ## Support
 
-- **GitHub Issues:** [github.com/GeneralBots/BotServer/issues](https://github.com/GeneralBots/BotServer/issues)
+- **GitHub Issues:** [github.com/GeneralBots/botserver/issues](https://github.com/GeneralBots/botserver/issues)
 - **Stack Overflow:** Tag questions with `generalbots`
 - **Video Tutorial:** [7 AI General Bots LLM Templates](https://www.youtube.com/watch?v=KJgvUPXi3Fw)
 

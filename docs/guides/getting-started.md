@@ -14,8 +14,8 @@ This guide will help you install, configure, and run your first General Bots ins
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/GeneralBots/BotServer
-cd BotServer
+git clone https://github.com/GeneralBots/botserver
+cd botserver
 ```
 
 ### 2. Run the Server
@@ -243,6 +243,6 @@ Check your LLM configuration in the admin panel or verify API keys are set.
 
 ## Getting Help
 
-- **GitHub Issues**: [github.com/GeneralBots/BotServer/issues](https://github.com/GeneralBots/BotServer/issues)
+- **GitHub Issues**: [github.com/GeneralBots/botserver/issues](https://github.com/GeneralBots/botserver/issues)
 - **Stack Overflow**: Tag questions with `generalbots`
 - **Documentation**: [docs.pragmatismo.com.br](https://docs.pragmatismo.com.br)

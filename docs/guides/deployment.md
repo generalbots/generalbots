@@ -28,8 +28,8 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
 
 # Clone and build
-git clone https://github.com/GeneralBots/BotServer
-cd BotServer
+git clone https://github.com/GeneralBots/botserver
+cd botserver
 cargo build --release
 
 # Run as service
@@ -162,8 +162,8 @@ apt update && apt install -y curl build-essential
 # Install Rust and build
 curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 source ~/.cargo/env
-git clone https://github.com/GeneralBots/BotServer
-cd BotServer
+git clone https://github.com/GeneralBots/botserver
+cd botserver
 cargo build --release
 
 # Run
