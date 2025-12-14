@@ -75,10 +75,26 @@ impl DownloadCache {
     ///
     /// # Arguments
     /// * `base_path` - Base path for botserver (typically current directory or botserver root)
+    ///
+    /// # Environment Variables
+    /// * `BOTSERVER_INSTALLERS_PATH` - Override path to pre-downloaded installers directory
     pub fn new(base_path: impl AsRef<Path>) -> Result<Self> {
         let base_path = base_path.as_ref().to_path_buf();
         let config = Self::load_config(&base_path)?;
-        let cache_dir = base_path.join(&config.cache_settings.cache_dir);
+
+        // Check for BOTSERVER_INSTALLERS_PATH env var first (for testing/offline installs)
+        let cache_dir = if let Ok(installers_path) = std::env::var("BOTSERVER_INSTALLERS_PATH") {
+            let path = PathBuf::from(&installers_path);
+            if path.exists() {
+                info!("Using installers from BOTSERVER_INSTALLERS_PATH: {:?}", path);
+                path
+            } else {
+                warn!("BOTSERVER_INSTALLERS_PATH set but path doesn't exist: {:?}", path);
+                base_path.join(&config.cache_settings.cache_dir)
+            }
+        } else {
+            base_path.join(&config.cache_settings.cache_dir)
+        };
 
         // Ensure cache directory exists
         if !cache_dir.exists() {
