@@ -10,6 +10,12 @@ use tokio;
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    // Skip LLM server startup if SKIP_LLM_SERVER is set (for testing with mock LLM)
+    if std::env::var("SKIP_LLM_SERVER").is_ok() {
+        info!("SKIP_LLM_SERVER set - skipping local LLM server startup (using mock/external LLM)");
+        return Ok(());
+    }
+
     let config_values = {
         let conn_arc = app_state.conn.clone();
         let default_bot_id = tokio::task::spawn_blocking(move || {
