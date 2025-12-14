@@ -24,13 +24,33 @@ pub struct ComponentInfo {
 pub struct BootstrapManager {
     pub install_mode: InstallMode,
     pub tenant: Option<String>,
+    pub stack_path: PathBuf,
 }
 impl BootstrapManager {
     pub async fn new(mode: InstallMode, tenant: Option<String>) -> Self {
+        // Get stack path from env var or use default
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .map(PathBuf::from)
+            .unwrap_or_else(|_| PathBuf::from("./botserver-stack"));
+
         Self {
             install_mode: mode,
             tenant,
+            stack_path,
         }
+    }
+
+    /// Get a path relative to the stack directory
+    fn stack_dir(&self, subpath: &str) -> PathBuf {
+        self.stack_path.join(subpath)
+    }
+
+    /// Get the vault binary path as a string for shell commands
+    fn vault_bin(&self) -> String {
+        self.stack_dir("bin/vault/vault")
+            .to_str()
+            .unwrap_or("./botserver-stack/bin/vault/vault")
+            .to_string()
     }
 
     /// Kill all processes running from the botserver-stack directory
@@ -105,7 +125,9 @@ impl BootstrapManager {
 
     /// Check if another botserver process is already running on this stack
     pub fn check_single_instance() -> Result<bool> {
-        let lock_file = PathBuf::from("./botserver-stack/.lock");
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let lock_file = PathBuf::from(&stack_path).join(".lock");
         if lock_file.exists() {
             // Check if the PID in the lock file is still running
             if let Ok(pid_str) = fs::read_to_string(&lock_file) {
@@ -131,7 +153,9 @@ impl BootstrapManager {
 
     /// Release the instance lock on shutdown
     pub fn release_instance_lock() {
-        let lock_file = PathBuf::from("./botserver-stack/.lock");
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let lock_file = PathBuf::from(&stack_path).join(".lock");
         if lock_file.exists() {
             fs::remove_file(&lock_file).ok();
         }
@@ -140,19 +164,21 @@ impl BootstrapManager {
     /// Check if botserver-stack has installed components (indicating a working installation)
     /// This is used to prevent accidental re-initialization of existing installations
     fn has_installed_stack() -> bool {
-        let stack_dir = PathBuf::from("./botserver-stack");
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let stack_dir = PathBuf::from(&stack_path);
         if !stack_dir.exists() {
             return false;
         }
-        
+
         // Check for key indicators of an installed stack
         let indicators = vec![
-            "./botserver-stack/bin/vault/vault",
-            "./botserver-stack/data/vault",
-            "./botserver-stack/conf/vault/config.hcl",
+            stack_dir.join("bin/vault/vault"),
+            stack_dir.join("data/vault"),
+            stack_dir.join("conf/vault/config.hcl"),
         ];
-        
-        indicators.iter().any(|path| PathBuf::from(path).exists())
+
+        indicators.iter().any(|path| path.exists())
     }
 
     /// Reset only Vault credentials (when re-initialization is needed)
@@ -168,7 +194,9 @@ impl BootstrapManager {
             ));
         }
 
-        let vault_init = PathBuf::from("./botserver-stack/conf/vault/init.json");
+        let stack_path = std::env::var("BOTSERVER_STACK_PATH")
+            .unwrap_or_else(|_| "./botserver-stack".to_string());
+        let vault_init = PathBuf::from(&stack_path).join("conf/vault/init.json");
         let env_file = PathBuf::from("./.env");
 
         // Only remove vault init.json and .env - NEVER touch data/
@@ -242,21 +270,21 @@ impl BootstrapManager {
                 if Self::has_installed_stack() {
                     error!("Vault failed to unseal but stack is installed - NOT re-initializing");
                     error!("Try manually restarting Vault or check ./botserver-stack/logs/vault/vault.log");
-                    
+
                     // Kill only Vault process and try to restart
                     let _ = Command::new("pkill")
                         .args(["-9", "-f", "botserver-stack/bin/vault"])
                         .output();
-                    
+
                     tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    
+
                     // Try to restart Vault
                     if let Err(e) = pm.start("vault") {
                         warn!("Failed to restart Vault: {}", e);
                     }
-                    
+
                     tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
-                    
+
                     // Final attempt to unseal
                     if let Err(e) = self.ensure_vault_unsealed().await {
                         return Err(anyhow::anyhow!(
@@ -343,8 +371,7 @@ impl BootstrapManager {
                     Err(e) => {
                         debug!(
                             "Component {} might already be running: {}",
-                            component.name,
-                            e
+                            component.name, e
                         );
                     }
                 }
@@ -377,7 +404,7 @@ impl BootstrapManager {
 
         // Check if we need to bootstrap first
         let vault_installed = installer.is_installed("vault");
-        let vault_initialized = PathBuf::from("./botserver-stack/conf/vault/init.json").exists();
+        let vault_initialized = self.stack_dir("conf/vault/init.json").exists();
 
         if !vault_installed || !vault_initialized {
             info!("Stack not fully bootstrapped, running bootstrap first...");
@@ -553,7 +580,7 @@ impl BootstrapManager {
     /// Ensure Vault is unsealed (required after restart)
     /// Returns Ok(()) if Vault is ready, Err if it needs re-initialization
     async fn ensure_vault_unsealed(&self) -> Result<()> {
-        let vault_init_path = PathBuf::from("./botserver-stack/conf/vault/init.json");
+        let vault_init_path = self.stack_dir("conf/vault/init.json");
         let vault_addr = "http://localhost:8200";
 
         if !vault_init_path.exists() {
@@ -582,11 +609,12 @@ impl BootstrapManager {
         }
 
         // First check if Vault is initialized (not just running)
+        let vault_bin = self.vault_bin();
         let status_output = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
-                vault_addr
+                "VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                vault_addr, vault_bin
             ))
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::null())
@@ -613,8 +641,8 @@ impl BootstrapManager {
                 let unseal_output = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(format!(
-                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {} >/dev/null 2>&1",
-                        vault_addr, unseal_key
+                        "VAULT_ADDR={} {} operator unseal {} >/dev/null 2>&1",
+                        vault_addr, vault_bin, unseal_key
                     ))
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::null())
@@ -630,8 +658,8 @@ impl BootstrapManager {
                 let verify_output = std::process::Command::new("sh")
                     .arg("-c")
                     .arg(format!(
-                        "VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
-                        vault_addr
+                        "VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                        vault_addr, vault_bin
                     ))
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::null())
@@ -661,15 +689,21 @@ impl BootstrapManager {
         // Also set mTLS cert paths
         std::env::set_var(
             "VAULT_CACERT",
-            "./botserver-stack/conf/system/certificates/ca/ca.crt",
+            self.stack_dir("conf/system/certificates/ca/ca.crt")
+                .to_str()
+                .unwrap_or(""),
         );
         std::env::set_var(
             "VAULT_CLIENT_CERT",
-            "./botserver-stack/conf/system/certificates/botserver/client.crt",
+            self.stack_dir("conf/system/certificates/botserver/client.crt")
+                .to_str()
+                .unwrap_or(""),
         );
         std::env::set_var(
             "VAULT_CLIENT_KEY",
-            "./botserver-stack/conf/system/certificates/botserver/client.key",
+            self.stack_dir("conf/system/certificates/botserver/client.key")
+                .to_str()
+                .unwrap_or(""),
         );
 
         info!("Vault environment configured");
@@ -720,7 +754,7 @@ impl BootstrapManager {
         ];
 
         // Special check: Vault needs setup even if binary exists but not initialized
-        let vault_needs_setup = !PathBuf::from("./botserver-stack/conf/vault/init.json").exists();
+        let vault_needs_setup = !self.stack_dir("conf/vault/init.json").exists();
 
         for component in required_components {
             // For vault, also check if it needs initialization
@@ -809,6 +843,18 @@ impl BootstrapManager {
 
                 // Directory configuration - setup happens after install starts Zitadel
                 if component == "directory" {
+                    info!("Starting Directory (Zitadel) service...");
+                    match pm.start("directory") {
+                        Ok(_) => {
+                            info!("Directory service started successfully");
+                            // Give Zitadel time to initialize before health checks
+                            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+                        }
+                        Err(e) => {
+                            warn!("Failed to start Directory service: {}", e);
+                        }
+                    }
+
                     info!("Waiting for Directory to be ready...");
                     if let Err(e) = self.setup_directory().await {
                         // Don't fail completely - Zitadel may still be usable with first instance setup
@@ -821,7 +867,7 @@ impl BootstrapManager {
                     info!("Setting up Vault secrets service...");
 
                     // Verify vault binary exists and is executable
-                    let vault_bin = PathBuf::from("./botserver-stack/bin/vault/vault");
+                    let vault_bin = self.stack_dir("bin/vault/vault");
                     if !vault_bin.exists() {
                         error!("Vault binary not found at {:?}", vault_bin);
                         return Err(anyhow::anyhow!("Vault binary not found after installation"));
@@ -829,7 +875,7 @@ impl BootstrapManager {
                     info!("Vault binary verified at {:?}", vault_bin);
 
                     // Ensure logs directory exists
-                    let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+                    let vault_log_path = self.stack_dir("logs/vault/vault.log");
                     if let Some(parent) = vault_log_path.parent() {
                         if let Err(e) = fs::create_dir_all(parent) {
                             error!("Failed to create vault logs directory: {}", e);
@@ -837,7 +883,7 @@ impl BootstrapManager {
                     }
 
                     // Ensure data directory exists
-                    let vault_data_path = PathBuf::from("./botserver-stack/data/vault");
+                    let vault_data_path = self.stack_dir("data/vault");
                     if let Err(e) = fs::create_dir_all(&vault_data_path) {
                         error!("Failed to create vault data directory: {}", e);
                     }
@@ -845,9 +891,14 @@ impl BootstrapManager {
                     info!("Starting Vault server...");
 
                     // Try starting vault directly first
+                    let vault_bin_dir = self.stack_dir("bin/vault");
+                    let vault_start_cmd = format!(
+                        "cd {} && nohup ./vault server -config=../../conf/vault/config.hcl > ../../logs/vault/vault.log 2>&1 &",
+                        vault_bin_dir.display()
+                    );
                     let _ = std::process::Command::new("sh")
                         .arg("-c")
-                        .arg("cd ./botserver-stack/bin/vault && nohup ./vault server -config=../../conf/vault/config.hcl > ../../logs/vault/vault.log 2>&1 &")
+                        .arg(&vault_start_cmd)
                         .status();
                     std::thread::sleep(std::time::Duration::from_secs(2));
 
@@ -968,11 +1019,14 @@ impl BootstrapManager {
     async fn configure_services_in_directory(&self, db_password: &str) -> Result<()> {
         info!("Creating Zitadel configuration files...");
 
-        let zitadel_config_path = PathBuf::from("./botserver-stack/conf/directory/zitadel.yaml");
-        let steps_config_path = PathBuf::from("./botserver-stack/conf/directory/steps.yaml");
+        let zitadel_config_path = self.stack_dir("conf/directory/zitadel.yaml");
+        let steps_config_path = self.stack_dir("conf/directory/steps.yaml");
         // Use absolute path for PAT file since zitadel runs from bin/directory/
-        let pat_path =
-            std::env::current_dir()?.join("botserver-stack/conf/directory/admin-pat.txt");
+        let pat_path = if self.stack_path.is_absolute() {
+            self.stack_dir("conf/directory/admin-pat.txt")
+        } else {
+            std::env::current_dir()?.join(self.stack_dir("conf/directory/admin-pat.txt"))
+        };
 
         fs::create_dir_all(zitadel_config_path.parent().unwrap())?;
 
@@ -986,6 +1040,8 @@ impl BootstrapManager {
   Level: info
   Formatter:
     Format: text
+
+Port: 8300
 
 Database:
   postgres:
@@ -1098,7 +1154,7 @@ DefaultInstance:
 
     /// Setup Caddy as reverse proxy for all services
     async fn setup_caddy_proxy(&self) -> Result<()> {
-        let caddy_config = PathBuf::from("./botserver-stack/conf/proxy/Caddyfile");
+        let caddy_config = self.stack_dir("conf/proxy/Caddyfile");
         fs::create_dir_all(caddy_config.parent().unwrap())?;
 
         let config = format!(
@@ -1151,10 +1207,10 @@ meet.botserver.local {{
 
     /// Setup CoreDNS for dynamic DNS service
     async fn setup_coredns(&self) -> Result<()> {
-        let dns_config = PathBuf::from("./botserver-stack/conf/dns/Corefile");
+        let dns_config = self.stack_dir("conf/dns/Corefile");
         fs::create_dir_all(dns_config.parent().unwrap())?;
 
-        let zone_file = PathBuf::from("./botserver-stack/conf/dns/botserver.local.zone");
+        let zone_file = self.stack_dir("conf/dns/botserver.local.zone");
 
         // Create Corefile
         let corefile = r#"botserver.local:53 {
@@ -1212,7 +1268,7 @@ meet        IN      A       127.0.0.1
     /// Setup Directory (Zitadel) with default organization and user
     async fn setup_directory(&self) -> Result<()> {
         let config_path = PathBuf::from("./config/directory_config.json");
-        let pat_path = PathBuf::from("./botserver-stack/conf/directory/admin-pat.txt");
+        let pat_path = self.stack_dir("conf/directory/admin-pat.txt");
 
         // Ensure config directory exists
         tokio::fs::create_dir_all("./config").await?;
@@ -1364,7 +1420,7 @@ meet        IN      A       127.0.0.1
         drive_secret: &str,
         cache_password: &str,
     ) -> Result<()> {
-        let vault_conf_path = PathBuf::from("./botserver-stack/conf/vault");
+        let vault_conf_path = self.stack_dir("conf/vault");
         let vault_init_path = vault_conf_path.join("init.json");
         let env_file_path = PathBuf::from("./.env");
 
@@ -1385,7 +1441,7 @@ meet        IN      A       127.0.0.1
                 if ps_result.contains("NOT_RUNNING") {
                     warn!("Vault process is not running (attempt {})", attempts + 1);
                     // Check vault.log for crash info
-                    let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+                    let vault_log_path = self.stack_dir("logs/vault/vault.log");
                     if vault_log_path.exists() {
                         if let Ok(log_content) = fs::read_to_string(&vault_log_path) {
                             let last_lines: Vec<&str> =
@@ -1428,7 +1484,7 @@ meet        IN      A       127.0.0.1
                 max_attempts
             );
             // Final check of vault.log
-            let vault_log_path = PathBuf::from("./botserver-stack/logs/vault/vault.log");
+            let vault_log_path = self.stack_dir("logs/vault/vault.log");
             if vault_log_path.exists() {
                 if let Ok(log_content) = fs::read_to_string(&vault_log_path) {
                     let last_lines: Vec<&str> = log_content.lines().rev().take(20).collect();
@@ -1471,7 +1527,8 @@ meet        IN      A       127.0.0.1
             // Check if .env exists with VAULT_TOKEN - try to recover from that
             let env_token = if env_file_path.exists() {
                 if let Ok(env_content) = fs::read_to_string(&env_file_path) {
-                    env_content.lines()
+                    env_content
+                        .lines()
                         .find(|line| line.starts_with("VAULT_TOKEN="))
                         .map(|line| line.trim_start_matches("VAULT_TOKEN=").to_string())
                 } else {
@@ -1483,12 +1540,13 @@ meet        IN      A       127.0.0.1
 
             // Initialize Vault if not already done
             info!("Initializing Vault...");
+            let vault_bin = self.vault_bin();
             // Clear any mTLS env vars that might interfere with CLI
             let init_output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator init -key-shares=1 -key-threshold=1 -format=json",
-                    vault_addr
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} operator init -key-shares=1 -key-threshold=1 -format=json",
+                    vault_addr, vault_bin
                 ))
                 .output()?;
 
@@ -1496,48 +1554,52 @@ meet        IN      A       127.0.0.1
                 let stderr = String::from_utf8_lossy(&init_output.stderr);
                 if stderr.contains("already initialized") {
                     warn!("Vault already initialized but init.json not found");
-                    
+
                     // If we have a token from .env, check if Vault is already unsealed
                     // and we can continue (maybe it was manually unsealed)
                     if let Some(_token) = env_token {
                         info!("Found VAULT_TOKEN in .env, checking if Vault is unsealed...");
-                        
+
                         // Check Vault status
                         let status_check = std::process::Command::new("sh")
                             .arg("-c")
                             .arg(format!(
-                                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault status -format=json 2>/dev/null",
-                                vault_addr
+                                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                                vault_addr, vault_bin
                             ))
                             .output();
-                        
+
                         if let Ok(status_output) = status_check {
                             let status_str = String::from_utf8_lossy(&status_output.stdout);
-                            if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
+                            if let Ok(status) =
+                                serde_json::from_str::<serde_json::Value>(&status_str)
+                            {
                                 let sealed = status["sealed"].as_bool().unwrap_or(true);
                                 if !sealed {
                                     // Vault is unsealed! We can continue with the token from .env
                                     warn!("Vault is already unsealed - continuing with existing token");
                                     warn!("NOTE: Unseal key is lost - Vault will need manual unseal after restart");
-                                    return Ok(());  // Skip rest of setup, Vault is already working
+                                    return Ok(()); // Skip rest of setup, Vault is already working
                                 }
                             }
                         }
-                        
+
                         // Vault is sealed but we don't have unseal key
                         error!("Vault is sealed and unseal key is lost (init.json missing)");
                         error!("Options:");
                         error!("  1. If you have a backup of init.json, restore it to ./botserver-stack/conf/vault/init.json");
-                        error!("  2. To start fresh, delete ./botserver-stack/data/vault/ and restart");
+                        error!(
+                            "  2. To start fresh, delete ./botserver-stack/data/vault/ and restart"
+                        );
                         return Err(anyhow::anyhow!(
                             "Vault is sealed but unseal key is lost. See error messages above for recovery options."
                         ));
                     }
-                    
+
                     // No token in .env either
                     error!("Vault already initialized but credentials are lost");
                     error!("Options:");
-                    error!("  1. If you have a backup of init.json, restore it to ./botserver-stack/conf/vault/init.json");  
+                    error!("  1. If you have a backup of init.json, restore it to ./botserver-stack/conf/vault/init.json");
                     error!("  2. To start fresh, delete ./botserver-stack/data/vault/ and ./botserver-stack/conf/vault/init.json and restart");
                     return Err(anyhow::anyhow!(
                         "Vault initialized but credentials lost. See error messages above for recovery options."
@@ -1568,12 +1630,13 @@ meet        IN      A       127.0.0.1
 
         // Unseal Vault
         info!("Unsealing Vault...");
+        let vault_bin = self.vault_bin();
         // Clear any mTLS env vars that might interfere with CLI
         let unseal_output = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} ./botserver-stack/bin/vault/vault operator unseal {}",
-                vault_addr, unseal_key
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} operator unseal {}",
+                vault_addr, vault_bin, unseal_key
             ))
             .output()?;
 
@@ -1628,8 +1691,8 @@ VAULT_CACHE_TTL=300
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault secrets enable -path=secret kv-v2 2>&1 || true",
-                vault_addr, root_token
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} secrets enable -path=secret kv-v2 2>&1 || true",
+                vault_addr, root_token, vault_bin
             ))
             .output();
 
@@ -1638,12 +1701,13 @@ VAULT_CACHE_TTL=300
         info!("Storing secrets in Vault (only if not existing)...");
 
         // Helper to check if a secret path exists
+        let vault_bin_clone = vault_bin.clone();
         let secret_exists = |path: &str| -> bool {
             let output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get {} 2>/dev/null",
-                    vault_addr, root_token, path
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get {} 2>/dev/null",
+                    vault_addr, root_token, vault_bin_clone, path
                 ))
                 .output();
             output.map(|o| o.status.success()).unwrap_or(false)
@@ -1654,8 +1718,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
-                    vault_addr, root_token, db_password
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
+                    vault_addr, root_token, vault_bin, db_password
                 ))
                 .output()?;
             info!("  Stored database credentials");
@@ -1668,8 +1732,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/drive accesskey='{}' secret='{}'",
-                    vault_addr, root_token, drive_accesskey, drive_secret
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/drive accesskey='{}' secret='{}'",
+                    vault_addr, root_token, vault_bin, drive_accesskey, drive_secret
                 ))
                 .output()?;
             info!("  Stored drive credentials");
@@ -1682,8 +1746,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/cache password='{}'",
-                    vault_addr, root_token, cache_password
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/cache password='{}'",
+                    vault_addr, root_token, vault_bin, cache_password
                 ))
                 .output()?;
             info!("  Stored cache credentials");
@@ -1696,8 +1760,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret=",
-                    vault_addr, root_token
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret=",
+                    vault_addr, root_token, vault_bin
                 ))
                 .output()?;
             info!("  Created directory placeholder");
@@ -1710,8 +1774,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
-                    vault_addr, root_token
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
+                    vault_addr, root_token, vault_bin
                 ))
                 .output()?;
             info!("  Created LLM placeholder");
@@ -1724,8 +1788,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/email username= password=",
-                    vault_addr, root_token
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/email username= password=",
+                    vault_addr, root_token, vault_bin
                 ))
                 .output()?;
             info!("  Created email placeholder");
@@ -1739,8 +1803,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv put secret/gbo/encryption master_key='{}'",
-                    vault_addr, root_token, encryption_key
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/encryption master_key='{}'",
+                    vault_addr, root_token, vault_bin, encryption_key
                 ))
                 .output()?;
             info!("  Generated and stored encryption key");
@@ -1844,10 +1908,26 @@ VAULT_CACHE_TTL=300
     }
 
     pub async fn upload_templates_to_drive(&self, _config: &AppConfig) -> Result<()> {
-        let templates_dir = Path::new("templates");
-        if !templates_dir.exists() {
-            return Ok(());
-        }
+        // Check multiple possible template locations
+        let possible_paths = [
+            "../bottemplates",     // Development: sibling directory
+            "bottemplates",        // In current directory
+            "botserver-templates", // Installation bundle subdirectory
+            "templates",           // Legacy path
+        ];
+
+        let templates_dir = possible_paths.iter().map(Path::new).find(|p| p.exists());
+
+        let templates_dir = match templates_dir {
+            Some(dir) => {
+                info!("Using templates from: {:?}", dir);
+                dir
+            }
+            None => {
+                info!("No templates directory found, skipping template upload");
+                return Ok(());
+            }
+        };
         let client = Self::get_drive_client(_config).await;
         let mut read_dir = tokio::fs::read_dir(templates_dir).await?;
         while let Some(entry) = read_dir.next_entry().await? {
@@ -1881,11 +1961,32 @@ VAULT_CACHE_TTL=300
         use crate::shared::models::schema::bots;
         use diesel::prelude::*;
 
-        let templates_dir = Path::new("templates");
-        if !templates_dir.exists() {
-            warn!("Templates directory does not exist");
-            return Ok(());
-        }
+        // Check multiple possible template locations
+        let possible_paths = [
+            "../bottemplates",     // Development: sibling directory
+            "bottemplates",        // In current directory
+            "botserver-templates", // Installation bundle subdirectory
+            "templates",           // Legacy path
+        ];
+
+        let templates_dir = possible_paths
+            .iter()
+            .map(|p| PathBuf::from(p))
+            .find(|p| p.exists());
+
+        let templates_dir = match templates_dir {
+            Some(dir) => {
+                info!("Loading templates from: {:?}", dir);
+                dir
+            }
+            None => {
+                warn!(
+                    "Templates directory does not exist (checked: {:?})",
+                    possible_paths
+                );
+                return Ok(());
+            }
+        };
 
         // Get the default bot (created by migrations) - we'll sync all template configs to it
         let default_bot: Option<(uuid::Uuid, String)> = bots::table
@@ -1909,6 +2010,7 @@ VAULT_CACHE_TTL=300
 
         // Only sync the default.gbai template config (main config for the system)
         let default_template = templates_dir.join("default.gbai");
+        info!("Looking for default template at: {:?}", default_template);
         if default_template.exists() {
             let config_path = default_template.join("default.gbot").join("config.csv");
 
@@ -2063,7 +2165,7 @@ VAULT_CACHE_TTL=300
 
     /// Create Vault configuration with mTLS settings
     async fn create_vault_config(&self) -> Result<()> {
-        let vault_conf_dir = PathBuf::from("./botserver-stack/conf/vault");
+        let vault_conf_dir = self.stack_dir("conf/vault");
         let config_path = vault_conf_dir.join("config.hcl");
 
         fs::create_dir_all(&vault_conf_dir)?;
@@ -2109,7 +2211,7 @@ log_level = "info"
         fs::write(&config_path, config)?;
 
         // Create data directory for Vault storage
-        fs::create_dir_all("./botserver-stack/data/vault")?;
+        fs::create_dir_all(self.stack_dir("data/vault"))?;
 
         info!(
             "Created Vault config with mTLS at {}",
@@ -2120,7 +2222,7 @@ log_level = "info"
 
     /// Generate TLS certificates for all services
     async fn generate_certificates(&self) -> Result<()> {
-        let cert_dir = PathBuf::from("./botserver-stack/conf/system/certificates");
+        let cert_dir = self.stack_dir("conf/system/certificates");
 
         // Create certificate directory structure
         fs::create_dir_all(&cert_dir)?;
