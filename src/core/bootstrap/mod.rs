@@ -628,13 +628,14 @@ impl BootstrapManager {
         let mut status_str = String::new();
         let mut parsed_status: Option<serde_json::Value> = None;
 
-        for attempt in 0..5 {
+        let mut connection_refused = false;
+        for attempt in 0..10 {
             if attempt > 0 {
-                trace!(
-                    "Waiting for Vault to be ready (attempt {}/5)...",
+                info!(
+                    "Waiting for Vault to be ready (attempt {}/10)...",
                     attempt + 1
                 );
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
             }
 
             let status_output = std::process::Command::new("sh")
@@ -654,14 +655,22 @@ impl BootstrapManager {
             if status_str.contains("connection refused")
                 || stderr_str.contains("connection refused")
             {
-                warn!("Vault is not running (connection refused)");
-                return Err(anyhow::anyhow!("Vault not running - needs to be started"));
+                connection_refused = true;
+                // Don't return immediately - keep retrying as vault may be starting
+                continue;
             }
 
+            connection_refused = false;
             if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
                 parsed_status = Some(status);
                 break;
             }
+        }
+
+        // Only return error after all retries exhausted
+        if connection_refused {
+            warn!("Vault is not running after retries (connection refused)");
+            return Err(anyhow::anyhow!("Vault not running - needs to be started"));
         }
 
         // Parse status - handle both success and error cases
