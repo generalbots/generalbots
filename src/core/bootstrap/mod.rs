@@ -609,21 +609,40 @@ impl BootstrapManager {
         }
 
         // First check if Vault is initialized (not just running)
+        // Retry a few times as Vault may be starting up
         let vault_bin = self.vault_bin();
-        let status_output = std::process::Command::new("sh")
-            .arg("-c")
-            .arg(format!(
-                "VAULT_ADDR={} {} status -format=json 2>/dev/null",
-                vault_addr, vault_bin
-            ))
-            .stdout(std::process::Stdio::piped())
-            .stderr(std::process::Stdio::null())
-            .output()?;
+        let mut status_str = String::new();
+        let mut parsed_status: Option<serde_json::Value> = None;
 
-        let status_str = String::from_utf8_lossy(&status_output.stdout);
+        for attempt in 0..5 {
+            if attempt > 0 {
+                trace!(
+                    "Waiting for Vault to be ready (attempt {}/5)...",
+                    attempt + 1
+                );
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+
+            let status_output = std::process::Command::new("sh")
+                .arg("-c")
+                .arg(format!(
+                    "VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                    vault_addr, vault_bin
+                ))
+                .stdout(std::process::Stdio::piped())
+                .stderr(std::process::Stdio::null())
+                .output()?;
+
+            status_str = String::from_utf8_lossy(&status_output.stdout).to_string();
+
+            if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
+                parsed_status = Some(status);
+                break;
+            }
+        }
 
         // Parse status - handle both success and error cases
-        if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
+        if let Some(status) = parsed_status {
             let initialized = status["initialized"].as_bool().unwrap_or(false);
             let sealed = status["sealed"].as_bool().unwrap_or(true);
 
@@ -676,8 +695,28 @@ impl BootstrapManager {
                 info!("Vault unsealed successfully");
             }
         } else {
-            // Could not parse status - Vault might not be responding properly
-            warn!("Could not get Vault status: {}", status_str);
+            // Could not parse status after retries - Vault might not be responding properly
+            // Try one more approach: check if vault process exists and restart it
+            let vault_pid = std::process::Command::new("pgrep")
+                .args(["-f", "vault server"])
+                .output()
+                .ok()
+                .and_then(|o| {
+                    String::from_utf8_lossy(&o.stdout)
+                        .trim()
+                        .parse::<i32>()
+                        .ok()
+                });
+
+            if vault_pid.is_some() {
+                warn!("Vault process exists but not responding - killing and will restart");
+                let _ = std::process::Command::new("pkill")
+                    .args(["-9", "-f", "vault server"])
+                    .status();
+                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+            }
+
+            warn!("Could not get Vault status after retries: {}", status_str);
             return Err(anyhow::anyhow!("Vault not responding properly"));
         }
 
