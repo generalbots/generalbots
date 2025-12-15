@@ -482,7 +482,8 @@ impl PackageManager {
                 post_install_cmds_linux: vec![
                     // Use start-from-init which does init + setup + start in one command
                     // This properly creates the first instance with PAT
-                    "ZITADEL_MASTERKEY=MasterkeyNeedsToHave32Characters nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                    // Masterkey comes from Vault (gbo/directory/masterkey)
+                    "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
                     // Wait for Zitadel to be fully ready (up to 90 seconds for first instance setup)
                     "for i in $(seq 1 90); do curl -sf http://localhost:8300/debug/ready && break || sleep 1; done".to_string(),
                 ],
@@ -497,10 +498,9 @@ impl PackageManager {
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
                     ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string().to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
-                    ("ZITADEL_MASTERKEY".to_string(), "MasterkeyNeedsToHave32Characters".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
+                exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
                 check_cmd: "curl -f http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
             },
         );
