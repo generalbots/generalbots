@@ -2,7 +2,7 @@ use crate::package_manager::component::ComponentConfig;
 use crate::package_manager::os::detect_os;
 use crate::package_manager::{InstallMode, OsType};
 use anyhow::Result;
-use log::{info, trace, warn};
+use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
@@ -1083,7 +1083,11 @@ impl PackageManager {
             // Don't redirect stdout/stderr to null - let the shell command handle its own redirections
             // This is important for commands like "nohup ... > file 2>&1 &" which need to redirect
             // their own output to files
-            trace!("[START DEBUG] About to spawn shell command...");
+            info!(
+                "[START] About to spawn shell command for {}: {}",
+                component.name, rendered_cmd
+            );
+            info!("[START] Working dir: {:?}", bin_path);
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
@@ -1091,32 +1095,40 @@ impl PackageManager {
                 .envs(&evaluated_envs)
                 .spawn();
 
-            trace!("[START DEBUG] Spawn result: {:?}", child.is_ok());
+            info!(
+                "[START] Spawn result for {}: {:?}",
+                component.name,
+                child.is_ok()
+            );
             std::thread::sleep(std::time::Duration::from_secs(2));
 
             // Check if the process is actually running after sleep
-            trace!("[START DEBUG] Checking if vault process exists after 2s sleep...");
+            info!(
+                "[START] Checking if {} process exists after 2s sleep...",
+                component.name
+            );
             let check_proc = std::process::Command::new("pgrep")
                 .args(["-f", "vault server"])
                 .output();
             if let Ok(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
-                trace!("[START DEBUG] pgrep vault server result: '{}'", pids.trim());
+                info!("[START] pgrep 'vault server' result: '{}'", pids.trim());
             }
 
             // Check if log file was created
-            trace!(
-                "[START DEBUG] Log file exists: {}",
+            info!(
+                "[START] Log file {}/vault.log exists: {}",
+                logs_path.display(),
                 logs_path.join("vault.log").exists()
             );
 
             match child {
                 Ok(c) => {
-                    trace!("[START DEBUG] Returning Ok from start()");
+                    info!("[START] Component {} started successfully", component.name);
                     Ok(c)
                 }
                 Err(e) => {
-                    trace!("[START DEBUG] Spawn failed with error: {}", e);
+                    error!("[START] Spawn failed for {}: {}", component.name, e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")
