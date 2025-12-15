@@ -458,22 +458,34 @@ impl BootstrapManager {
             // Always try to unseal Vault (it may have restarted)
             // If unseal fails, try to restart Vault process only - NEVER delete other services
             if let Err(e) = self.ensure_vault_unsealed().await {
-                warn!("Vault unseal failed: {} - attempting Vault restart only", e);
+                let err_msg = e.to_string();
 
-                // Kill ONLY Vault process - preserve all other services
-                let _ = Command::new("pkill")
-                    .args(["-9", "-f", "botserver-stack/bin/vault"])
-                    .output();
+                // Check if vault just needs to be started (not running at all)
+                if err_msg.contains("not running") || err_msg.contains("connection refused") {
+                    info!("Vault not running - starting it now...");
+                    let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+                    if let Err(e) = pm.start("vault") {
+                        warn!("Failed to start Vault: {}", e);
+                    }
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+                } else {
+                    warn!("Vault unseal failed: {} - attempting Vault restart only", e);
 
-                tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                    // Kill ONLY Vault process - preserve all other services
+                    let _ = Command::new("pkill")
+                        .args(["-9", "-f", "botserver-stack/bin/vault"])
+                        .output();
 
-                // Try to restart Vault without full bootstrap
-                let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
-                if let Err(e) = pm.start("vault") {
-                    warn!("Failed to restart Vault: {}", e);
+                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+
+                    // Try to restart Vault without full bootstrap
+                    let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+                    if let Err(e) = pm.start("vault") {
+                        warn!("Failed to restart Vault: {}", e);
+                    }
+
+                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                 }
-
-                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
                 // Try unseal again
                 if let Err(e) = self.ensure_vault_unsealed().await {
@@ -500,7 +512,9 @@ impl BootstrapManager {
 
                     // Install/configure ONLY Vault - NOT full bootstrap
                     info!("Re-initializing Vault only (preserving other services)...");
-                    if let Err(e) = pm.install("vault").await {
+                    let pm_reinit =
+                        PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
+                    if let Err(e) = pm_reinit.install("vault").await {
                         return Err(anyhow::anyhow!("Failed to re-initialize Vault: {}", e));
                     }
 
@@ -626,14 +640,23 @@ impl BootstrapManager {
             let status_output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "VAULT_ADDR={} {} status -format=json 2>/dev/null",
+                    "VAULT_ADDR={} {} status -format=json 2>&1",
                     vault_addr, vault_bin
                 ))
                 .stdout(std::process::Stdio::piped())
-                .stderr(std::process::Stdio::null())
+                .stderr(std::process::Stdio::piped())
                 .output()?;
 
             status_str = String::from_utf8_lossy(&status_output.stdout).to_string();
+            let stderr_str = String::from_utf8_lossy(&status_output.stderr).to_string();
+
+            // Check if vault is not running at all (connection refused)
+            if status_str.contains("connection refused")
+                || stderr_str.contains("connection refused")
+            {
+                warn!("Vault is not running (connection refused)");
+                return Err(anyhow::anyhow!("Vault not running - needs to be started"));
+            }
 
             if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
                 parsed_status = Some(status);
