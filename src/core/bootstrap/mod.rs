@@ -6,7 +6,7 @@ use anyhow::Result;
 use aws_config::BehaviorVersion;
 use aws_sdk_s3::Client;
 use diesel::{Connection, RunQueryDsl};
-use log::{debug, error, info, warn};
+use log::{debug, error, info, trace, warn};
 use rand::distr::Alphanumeric;
 use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair,
