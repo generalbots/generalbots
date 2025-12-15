@@ -920,7 +920,7 @@ impl PackageManager {
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1"
+                check_cmd: "curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
                     .to_string(),
             },
         );

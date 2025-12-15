@@ -220,7 +220,7 @@ impl BootstrapManager {
             // Check if Vault is already running before trying to start
             let vault_already_running = Command::new("sh")
                 .arg("-c")
-                .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
@@ -244,7 +244,7 @@ impl BootstrapManager {
                 for i in 0..10 {
                     let vault_ready = Command::new("sh")
                         .arg("-c")
-                        .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                        .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::null())
                         .status()
@@ -432,7 +432,7 @@ impl BootstrapManager {
             // Check if Vault is already running
             let vault_running = Command::new("sh")
                 .arg("-c")
-                .arg("curl -f -s http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200 >/dev/null 2>&1")
+                .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
