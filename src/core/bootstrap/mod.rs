@@ -1757,14 +1757,21 @@ VAULT_CACHE_TTL=300
 
         // Directory placeholder - only create if not existing
         if !secret_exists("secret/gbo/directory") {
+            // Generate a random 32-character masterkey for Zitadel
+            use rand::Rng;
+            let masterkey: String = rand::rng()
+                .sample_iter(&rand::distr::Alphanumeric)
+                .take(32)
+                .map(char::from)
+                .collect();
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret=",
-                    vault_addr, root_token, vault_bin
+                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret= masterkey={}",
+                    vault_addr, root_token, vault_bin, masterkey
                 ))
                 .output()?;
-            info!("  Created directory placeholder");
+            info!("  Created directory placeholder with masterkey");
         } else {
             info!("  Directory credentials already exist - preserving");
         }
