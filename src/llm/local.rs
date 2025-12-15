@@ -30,8 +30,8 @@ pub async fn ensure_llama_servers_running(
         (
             default_bot_id,
             config_manager
-                .get_config(&default_bot_id, "llm-server", None)
-                .unwrap_or_else(|_| "false".to_string()),
+                .get_config(&default_bot_id, "llm-server", Some("true"))
+                .unwrap_or_else(|_| "true".to_string()),
             config_manager
                 .get_config(&default_bot_id, "llm-url", None)
                 .unwrap_or_default(),
