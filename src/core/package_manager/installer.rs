@@ -1083,7 +1083,7 @@ impl PackageManager {
             // Don't redirect stdout/stderr to null - let the shell command handle its own redirections
             // This is important for commands like "nohup ... > file 2>&1 &" which need to redirect
             // their own output to files
-            eprintln!("[START DEBUG] About to spawn shell command...");
+            trace!("[START DEBUG] About to spawn shell command...");
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
@@ -1091,32 +1091,32 @@ impl PackageManager {
                 .envs(&evaluated_envs)
                 .spawn();
 
-            eprintln!("[START DEBUG] Spawn result: {:?}", child.is_ok());
+            trace!("[START DEBUG] Spawn result: {:?}", child.is_ok());
             std::thread::sleep(std::time::Duration::from_secs(2));
 
             // Check if the process is actually running after sleep
-            eprintln!("[START DEBUG] Checking if vault process exists after 2s sleep...");
+            trace!("[START DEBUG] Checking if vault process exists after 2s sleep...");
             let check_proc = std::process::Command::new("pgrep")
                 .args(["-f", "vault server"])
                 .output();
             if let Ok(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
-                eprintln!("[START DEBUG] pgrep vault server result: '{}'", pids.trim());
+                trace!("[START DEBUG] pgrep vault server result: '{}'", pids.trim());
             }
 
             // Check if log file was created
-            eprintln!(
+            trace!(
                 "[START DEBUG] Log file exists: {}",
                 logs_path.join("vault.log").exists()
             );
 
             match child {
                 Ok(c) => {
-                    eprintln!("[START DEBUG] Returning Ok from start()");
+                    trace!("[START DEBUG] Returning Ok from start()");
                     Ok(c)
                 }
                 Err(e) => {
-                    eprintln!("[START DEBUG] Spawn failed with error: {}", e);
+                    trace!("[START DEBUG] Spawn failed with error: {}", e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")
