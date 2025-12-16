@@ -249,10 +249,8 @@ pub async fn list_events(
     Json(vec![])
 }
 
-/// List calendars
-pub async fn list_calendars(
-    State(_state): State<Arc<AppState>>,
-) -> Json<serde_json::Value> {
+/// List calendars - JSON API for services
+pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "calendars": [
             {
@@ -265,14 +263,46 @@ pub async fn list_calendars(
     }))
 }
 
-/// Get upcoming events
-pub async fn upcoming_events(
-    State(_state): State<Arc<AppState>>,
-) -> Json<serde_json::Value> {
+/// List calendars - HTMX HTML response for UI
+pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
+    axum::response::Html(r#"
+        <div class="calendar-item" data-calendar-id="default">
+            <span class="calendar-checkbox checked" style="background: #3b82f6;" onclick="toggleCalendar(this)"></span>
+            <span class="calendar-name">My Calendar</span>
+        </div>
+        <div class="calendar-item" data-calendar-id="work">
+            <span class="calendar-checkbox checked" style="background: #22c55e;" onclick="toggleCalendar(this)"></span>
+            <span class="calendar-name">Work</span>
+        </div>
+        <div class="calendar-item" data-calendar-id="personal">
+            <span class="calendar-checkbox checked" style="background: #f59e0b;" onclick="toggleCalendar(this)"></span>
+            <span class="calendar-name">Personal</span>
+        </div>
+    "#.to_string())
+}
+
+/// Get upcoming events - JSON API for services
+pub async fn upcoming_events_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "events": [],
         "message": "No upcoming events"
     }))
+}
+
+/// Get upcoming events - HTMX HTML response for UI
+pub async fn upcoming_events(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
+    axum::response::Html(
+        r#"
+        <div class="upcoming-event">
+            <div class="upcoming-color" style="background: #3b82f6;"></div>
+            <div class="upcoming-info">
+                <span class="upcoming-title">No upcoming events</span>
+                <span class="upcoming-time">Create your first event</span>
+            </div>
+        </div>
+    "#
+        .to_string(),
+    )
 }
 
 pub async fn get_event(
@@ -323,7 +353,43 @@ pub async fn import_ical(
     Ok(Json(serde_json::json!({ "imported": events.len() })))
 }
 
-pub fn router(state: Arc<AppState>) -> Router {
+/// New event form (HTMX HTML response)
+pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
+    axum::response::Html(r#"
+        <div class="event-form-content">
+            <p>Create a new event using the form on the right panel.</p>
+        </div>
+    "#.to_string())
+}
+
+/// New calendar form (HTMX HTML response)
+pub async fn new_calendar_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
+    axum::response::Html(r#"
+        <form class="calendar-form" hx-post="/api/calendar/calendars" hx-swap="none">
+            <div class="form-group">
+                <label>Calendar Name</label>
+                <input type="text" name="name" placeholder="My Calendar" required />
+            </div>
+            <div class="form-group">
+                <label>Color</label>
+                <div class="color-options">
+                    <label><input type="radio" name="color" value="#3b82f6" checked /><span class="color-dot" style="background:#3b82f6"></span></label>
+                    <label><input type="radio" name="color" value="#22c55e" /><span class="color-dot" style="background:#22c55e"></span></label>
+                    <label><input type="radio" name="color" value="#f59e0b" /><span class="color-dot" style="background:#f59e0b"></span></label>
+                    <label><input type="radio" name="color" value="#ef4444" /><span class="color-dot" style="background:#ef4444"></span></label>
+                    <label><input type="radio" name="color" value="#8b5cf6" /><span class="color-dot" style="background:#8b5cf6"></span></label>
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn-secondary" onclick="this.closest('.modal').classList.add('hidden')">Cancel</button>
+                <button type="submit" class="btn-primary">Create Calendar</button>
+            </div>
+        </form>
+    "#.to_string())
+}
+
+/// Configure calendar API routes
+pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
             ApiUrls::CALENDAR_EVENTS,
@@ -335,10 +401,14 @@ pub fn router(state: Arc<AppState>) -> Router {
         )
         .route("/api/calendar/export.ics", get(export_ical))
         .route("/api/calendar/import", post(import_ical))
-        // UI-compatible endpoints
-        .route("/api/calendar/list", get(list_calendars))
-        .route("/api/calendar/upcoming", get(upcoming_events))
-        .with_state(state)
+        // JSON API endpoints for services
+        .route("/api/calendar/calendars", get(list_calendars_api))
+        .route("/api/calendar/events/upcoming", get(upcoming_events_api))
+        // HTMX UI endpoints (return HTML fragments)
+        .route("/ui/calendar/list", get(list_calendars))
+        .route("/ui/calendar/upcoming", get(upcoming_events))
+        .route("/ui/calendar/event/new", get(new_event_form))
+        .route("/ui/calendar/new", get(new_calendar_form))
 }
 
 #[cfg(test)]

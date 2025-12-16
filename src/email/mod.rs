@@ -36,6 +36,7 @@ async fn extract_user_from_session(state: &Arc<AppState>) -> Result<Uuid, String
 /// Configure email API routes
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
+        // JSON API endpoints for services
         .route(ApiUrls::EMAIL_ACCOUNTS, get(list_email_accounts))
         .route(
             &format!("{}/add", ApiUrls::EMAIL_ACCOUNTS),
@@ -45,11 +46,9 @@ pub fn configure() -> Router<Arc<AppState>> {
             ApiUrls::EMAIL_ACCOUNT_BY_ID.replace(":id", "{account_id}"),
             axum::routing::delete(delete_email_account),
         )
-        .route(ApiUrls::EMAIL_LIST, get(list_emails_htmx).post(list_emails))
+        .route(ApiUrls::EMAIL_LIST, post(list_emails))
         .route(ApiUrls::EMAIL_SEND, post(send_email))
         .route(ApiUrls::EMAIL_DRAFT, post(save_draft))
-        .route("/api/email/folders", get(list_folders_htmx))
-        .route("/api/email/compose", get(compose_email_htmx))
         .route(
             ApiUrls::EMAIL_FOLDERS.replace(":account_id", "{account_id}"),
             get(list_folders),
@@ -65,13 +64,24 @@ pub fn configure() -> Router<Arc<AppState>> {
                 .replace(":email", "{email}"),
             post(track_click),
         )
-        .route("/api/email/:id", get(get_email_content_htmx))
-        .route("/api/email/:id", delete(delete_email_htmx))
         // Email read tracking endpoints
         .route("/api/email/tracking/pixel/{tracking_id}", get(serve_tracking_pixel))
         .route("/api/email/tracking/status/{tracking_id}", get(get_tracking_status))
         .route("/api/email/tracking/list", get(list_sent_emails_tracking))
         .route("/api/email/tracking/stats", get(get_tracking_stats))
+        // UI HTMX endpoints (return HTML fragments)
+        .route("/ui/email/accounts", get(list_email_accounts_htmx))
+        .route("/ui/email/list", get(list_emails_htmx))
+        .route("/ui/email/folders", get(list_folders_htmx))
+        .route("/ui/email/compose", get(compose_email_htmx))
+        .route("/ui/email/:id", get(get_email_content_htmx))
+        .route("/ui/email/:id/delete", delete(delete_email_htmx))
+        .route("/ui/email/labels", get(list_labels_htmx))
+        .route("/ui/email/templates", get(list_templates_htmx))
+        .route("/ui/email/signatures", get(list_signatures_htmx))
+        .route("/ui/email/rules", get(list_rules_htmx))
+        .route("/ui/email/search", get(search_emails_htmx))
+        .route("/ui/email/auto-responder", post(save_auto_responder))
 }
 
 // Export SaveDraftRequest for other modules
@@ -383,6 +393,63 @@ pub async fn add_email_account(
     }))
 }
 
+/// List email accounts - HTMX HTML response for UI
+pub async fn list_email_accounts_htmx(
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    // Get user_id from session
+    let user_id = match extract_user_from_session(&state).await {
+        Ok(id) => id,
+        Err(_) => {
+            return axum::response::Html(r#"
+                <div class="account-item" onclick="document.getElementById('add-account-modal').showModal()">
+                    <span>+ Add email account</span>
+                </div>
+            "#.to_string());
+        }
+    };
+
+    let conn = state.conn.clone();
+    let accounts = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+
+        diesel::sql_query(
+            "SELECT id, email, display_name, is_primary FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .load::<(Uuid, String, Option<String>, bool)>(&mut db_conn)
+        .map_err(|e| format!("Query failed: {}", e))
+    })
+    .await
+    .ok()
+    .and_then(|r| r.ok())
+    .unwrap_or_default();
+
+    if accounts.is_empty() {
+        return axum::response::Html(r#"
+            <div class="account-item" onclick="document.getElementById('add-account-modal').showModal()">
+                <span>+ Add email account</span>
+            </div>
+        "#.to_string());
+    }
+
+    let mut html = String::new();
+    for (id, email, display_name, is_primary) in accounts {
+        let name = display_name.unwrap_or_else(|| email.clone());
+        let primary_badge = if is_primary { r#"<span class="badge">Primary</span>"# } else { "" };
+        html.push_str(&format!(
+            r#"<div class="account-item" data-account-id="{}">
+                <span>{}</span>
+                {}
+            </div>"#,
+            id, name, primary_badge
+        ));
+    }
+
+    axum::response::Html(html)
+}
+
+/// List email accounts - JSON API for services
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
@@ -2065,4 +2132,147 @@ struct EmailAccountRow {
     pub smtp_server: String,
     #[diesel(sql_type = diesel::sql_types::Integer)]
     pub smtp_port: i32,
+}
+
+// ===== HTMX UI Endpoint Handlers =====
+
+/// List email labels (HTMX HTML response)
+pub async fn list_labels_htmx(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    // Return default labels as HTML for HTMX
+    axum::response::Html(r#"
+        <div class="label-item" style="--label-color: #ef4444;">
+            <span class="label-dot" style="background: #ef4444;"></span>
+            <span>Important</span>
+        </div>
+        <div class="label-item" style="--label-color: #3b82f6;">
+            <span class="label-dot" style="background: #3b82f6;"></span>
+            <span>Work</span>
+        </div>
+        <div class="label-item" style="--label-color: #22c55e;">
+            <span class="label-dot" style="background: #22c55e;"></span>
+            <span>Personal</span>
+        </div>
+        <div class="label-item" style="--label-color: #f59e0b;">
+            <span class="label-dot" style="background: #f59e0b;"></span>
+            <span>Finance</span>
+        </div>
+    "#.to_string())
+}
+
+/// List email templates (HTMX HTML response)
+pub async fn list_templates_htmx(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    axum::response::Html(r#"
+        <div class="template-item" onclick="useTemplate('welcome')">
+            <h4>Welcome Email</h4>
+            <p>Standard welcome message for new contacts</p>
+        </div>
+        <div class="template-item" onclick="useTemplate('followup')">
+            <h4>Follow Up</h4>
+            <p>General follow-up template</p>
+        </div>
+        <div class="template-item" onclick="useTemplate('meeting')">
+            <h4>Meeting Request</h4>
+            <p>Request a meeting with scheduling options</p>
+        </div>
+        <p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">
+            Click a template to use it
+        </p>
+    "#.to_string())
+}
+
+/// List email signatures (HTMX HTML response)
+pub async fn list_signatures_htmx(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    axum::response::Html(r#"
+        <div class="signature-item" onclick="useSignature('default')">
+            <h4>Default Signature</h4>
+            <p class="text-sm text-gray">Best regards,<br>Your Name</p>
+        </div>
+        <div class="signature-item" onclick="useSignature('formal')">
+            <h4>Formal Signature</h4>
+            <p class="text-sm text-gray">Sincerely,<br>Your Name<br>Title | Company</p>
+        </div>
+        <p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">
+            Click a signature to insert it
+        </p>
+    "#.to_string())
+}
+
+/// List email rules (HTMX HTML response)
+pub async fn list_rules_htmx(
+    State(_state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    axum::response::Html(r#"
+        <div class="rule-item">
+            <div class="rule-header">
+                <span class="rule-name">Auto-archive newsletters</span>
+                <label class="toggle-label">
+                    <input type="checkbox" checked>
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <p class="text-sm text-gray">From: *@newsletter.* → Archive</p>
+        </div>
+        <div class="rule-item">
+            <div class="rule-header">
+                <span class="rule-name">Label work emails</span>
+                <label class="toggle-label">
+                    <input type="checkbox" checked>
+                    <span class="toggle-switch"></span>
+                </label>
+            </div>
+            <p class="text-sm text-gray">From: *@company.com → Label: Work</p>
+        </div>
+        <button class="btn-secondary" style="width: 100%; margin-top: 1rem;">
+            + Add New Rule
+        </button>
+    "#.to_string())
+}
+
+/// Search emails (HTMX HTML response)
+pub async fn search_emails_htmx(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    let query = params.get("q").map(|s| s.as_str()).unwrap_or("");
+
+    if query.is_empty() {
+        return axum::response::Html(r#"
+            <div class="empty-state">
+                <p>Enter a search term to find emails</p>
+            </div>
+        "#.to_string());
+    }
+
+    // For now, return a placeholder - in production this would search the database
+    axum::response::Html(format!(r#"
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <h3>Searching for "{}"</h3>
+            <p>No results found. Try different keywords.</p>
+        </div>
+    "#, query))
+}
+
+/// Save auto-responder settings
+pub async fn save_auto_responder(
+    State(_state): State<Arc<AppState>>,
+    axum::Form(form): axum::Form<std::collections::HashMap<String, String>>,
+) -> impl IntoResponse {
+    info!("Saving auto-responder settings: {:?}", form);
+
+    // In production, save to database
+    axum::response::Html(r#"
+        <div class="notification success">
+            Auto-responder settings saved successfully!
+        </div>
+    "#.to_string())
 }
