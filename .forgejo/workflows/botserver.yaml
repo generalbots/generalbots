@@ -6,10 +6,6 @@ on:
   pull_request:
     branches: ["main"]
 
-env:
-  CARGO_HOME: /root/.cargo
-  PATH: /root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-
 jobs:
   build:
     runs-on: gbo
@@ -38,52 +34,24 @@ jobs:
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
           echo "/root/.cargo/bin" >> $GITHUB_PATH
-          /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
-          /root/.cargo/bin/rustup target add aarch64-unknown-linux-gnu
-          /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
-
-      - name: Install cross-compilation dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            gcc-mingw-w64-x86-64 \
-            gcc-aarch64-linux-gnu \
-            libc6-dev-arm64-cross
 
       - name: Setup environment
         run: sudo cp /opt/gbo/bin/system/.env .
 
       - name: Build Linux x86_64
-        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-unknown-linux-gnu
-
-      - name: Build Linux ARM64
-        env:
-          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: /root/.cargo/bin/cargo build --release --locked --target aarch64-unknown-linux-gnu
-
-      - name: Build Windows x86_64
-        env:
-          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
-        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-pc-windows-gnu
+        run: /root/.cargo/bin/cargo build --release --locked
 
       - name: Prepare release artifacts
         run: |
-          sudo mkdir -p /opt/gbo/releases/botserver/{linux,windows}
-
-          # Linux
-          sudo cp ./target/x86_64-unknown-linux-gnu/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
-          sudo cp ./target/aarch64-unknown-linux-gnu/release/botserver /opt/gbo/releases/botserver/linux/botserver-aarch64 || true
-
-          # Windows
-          sudo cp ./target/x86_64-pc-windows-gnu/release/botserver.exe /opt/gbo/releases/botserver/windows/botserver-x86_64.exe || true
-
+          sudo mkdir -p /opt/gbo/releases/botserver/linux
+          sudo cp ./target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
           sudo chmod -R 755 /opt/gbo/releases/botserver/
 
       - name: Deploy to production and restart
         run: |
           lxc exec bot:pragmatismo-system -- systemctl stop system
 
-          sudo cp ./target/x86_64-unknown-linux-gnu/release/botserver /opt/gbo/bin/system/botserver
+          sudo cp ./target/release/botserver /opt/gbo/bin/system/botserver
           sudo chmod +x /opt/gbo/bin/system/botserver
 
           lxc exec bot:pragmatismo-system -- systemctl start system
