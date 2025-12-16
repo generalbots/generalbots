@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: ["main"]
 
+env:
+  CARGO_HOME: /root/.cargo
+  PATH: /root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 jobs:
   build:
     runs-on: gbo
@@ -33,10 +37,10 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source ~/.cargo/env
-          rustup target add x86_64-unknown-linux-gnu
-          rustup target add aarch64-unknown-linux-gnu
-          rustup target add x86_64-pc-windows-gnu
+          echo "/root/.cargo/bin" >> $GITHUB_PATH
+          /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
+          /root/.cargo/bin/rustup target add aarch64-unknown-linux-gnu
+          /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
 
       - name: Install cross-compilation dependencies
         run: |
@@ -49,27 +53,18 @@ jobs:
       - name: Setup environment
         run: sudo cp /opt/gbo/bin/system/.env .
 
-      # Linux x86_64
       - name: Build Linux x86_64
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target x86_64-unknown-linux-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-unknown-linux-gnu
 
-      # Linux ARM64
       - name: Build Linux ARM64
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target aarch64-unknown-linux-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target aarch64-unknown-linux-gnu
 
-      # Windows x86_64
       - name: Build Windows x86_64
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target x86_64-pc-windows-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-pc-windows-gnu
 
       - name: Prepare release artifacts
         run: |
