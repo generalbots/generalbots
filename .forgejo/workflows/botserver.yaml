@@ -1,0 +1,90 @@
+name: GBCI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build:
+    runs-on: gbo
+
+    steps:
+      - name: Disable SSL verification (temporary)
+        run: git config --global http.sslVerify false
+
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: msrd0/rust-toolchain@v1
+        with:
+          toolchain: stable
+          targets: >-
+            x86_64-unknown-linux-gnu,
+            aarch64-unknown-linux-gnu,
+            x86_64-pc-windows-gnu,
+            aarch64-pc-windows-msvc,
+            x86_64-apple-darwin,
+            aarch64-apple-darwin
+
+      - name: Install cross-compilation dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            gcc-mingw-w64-x86-64 \
+            gcc-aarch64-linux-gnu \
+            libc6-dev-arm64-cross
+
+      - name: Setup environment
+        run: sudo cp /opt/gbo/bin/system/.env .
+
+      # Linux x86_64
+      - name: Build Linux x86_64
+        run: cargo build --release --locked --target x86_64-unknown-linux-gnu
+
+      # Linux ARM64
+      - name: Build Linux ARM64
+        env:
+          CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
+        run: cargo build --release --locked --target aarch64-unknown-linux-gnu
+
+      # Windows x86_64
+      - name: Build Windows x86_64
+        env:
+          CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
+        run: cargo build --release --locked --target x86_64-pc-windows-gnu
+
+      # macOS x86_64 (cross-compile)
+      - name: Build macOS x86_64
+        run: cargo build --release --locked --target x86_64-apple-darwin || echo "macOS x86_64 cross-compile requires macOS SDK"
+
+      # macOS ARM64 (cross-compile)
+      - name: Build macOS ARM64
+        run: cargo build --release --locked --target aarch64-apple-darwin || echo "macOS ARM64 cross-compile requires macOS SDK"
+
+      - name: Prepare release artifacts
+        run: |
+          sudo mkdir -p /opt/gbo/releases/botserver/{linux,windows,macos}
+
+          # Linux
+          sudo cp ./target/x86_64-unknown-linux-gnu/release/gbserver /opt/gbo/releases/botserver/linux/gbserver-x86_64 || true
+          sudo cp ./target/aarch64-unknown-linux-gnu/release/gbserver /opt/gbo/releases/botserver/linux/gbserver-aarch64 || true
+
+          # Windows
+          sudo cp ./target/x86_64-pc-windows-gnu/release/gbserver.exe /opt/gbo/releases/botserver/windows/gbserver-x86_64.exe || true
+
+          # macOS
+          sudo cp ./target/x86_64-apple-darwin/release/gbserver /opt/gbo/releases/botserver/macos/gbserver-x86_64 || true
+          sudo cp ./target/aarch64-apple-darwin/release/gbserver /opt/gbo/releases/botserver/macos/gbserver-aarch64 || true
+
+          sudo chmod -R 755 /opt/gbo/releases/botserver/
+
+      - name: Deploy to production and restart
+        run: |
+          lxc exec bot:pragmatismo-system -- systemctl stop system
+
+          sudo cp ./target/x86_64-unknown-linux-gnu/release/gbserver /opt/gbo/bin/system/gbserver
+          sudo chmod +x /opt/gbo/bin/system/gbserver
+
+          lxc exec bot:pragmatismo-system -- systemctl start system
