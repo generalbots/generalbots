@@ -18,6 +18,41 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Checkout botlib dependency
+        uses: actions/checkout@v4
+        with:
+          repository: GeneralBots/botlib
+          path: ../botlib
+
+      - name: Checkout botui dependency
+        uses: actions/checkout@v4
+        with:
+          repository: GeneralBots/botui
+          path: ../botui
+
+      - name: Checkout botbook dependency
+        uses: actions/checkout@v4
+        with:
+          repository: GeneralBots/botbook
+          path: ../botbook
+
+      - name: Checkout botmodels dependency
+        uses: actions/checkout@v4
+        with:
+          repository: GeneralBots/botmodels
+          path: ../botmodels
+
+      - name: Cache Cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-bundle-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-bundle-
+
       - name: Install Rust
         uses: msrd0/rust-toolchain@v1
         with:
