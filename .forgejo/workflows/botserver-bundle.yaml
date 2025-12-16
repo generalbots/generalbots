@@ -37,15 +37,12 @@ jobs:
             ${{ runner.os }}-cargo-bundle-
 
       - name: Install Rust
-        uses: msrd0/rust-toolchain@v1
-        with:
-          toolchain: stable
-          targets: >-
-            x86_64-unknown-linux-gnu,
-            aarch64-unknown-linux-gnu,
-            x86_64-pc-windows-gnu,
-            x86_64-apple-darwin,
-            aarch64-apple-darwin
+        run: |
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+          source ~/.cargo/env
+          rustup target add x86_64-unknown-linux-gnu
+          rustup target add aarch64-unknown-linux-gnu
+          rustup target add x86_64-pc-windows-gnu
 
       - name: Install cross-compilation dependencies
         run: |
@@ -93,29 +90,30 @@ jobs:
       # Build botserver for all platforms
       # ============================================
       - name: Build botserver - Linux x86_64
-        run: cargo build --release --locked --target x86_64-unknown-linux-gnu
+        run: |
+          source ~/.cargo/env
+          cargo build --release --locked --target x86_64-unknown-linux-gnu
 
       - name: Build botserver - Linux ARM64
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: cargo build --release --locked --target aarch64-unknown-linux-gnu
+        run: |
+          source ~/.cargo/env
+          cargo build --release --locked --target aarch64-unknown-linux-gnu
 
       - name: Build botserver - Windows x86_64
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
-        run: cargo build --release --locked --target x86_64-pc-windows-gnu
-
-      - name: Build botserver - macOS x86_64
-        run: cargo build --release --locked --target x86_64-apple-darwin || echo "macOS x86_64 requires osxcross"
-
-      - name: Build botserver - macOS ARM64
-        run: cargo build --release --locked --target aarch64-apple-darwin || echo "macOS ARM64 requires osxcross"
+        run: |
+          source ~/.cargo/env
+          cargo build --release --locked --target x86_64-pc-windows-gnu
 
       # ============================================
       # Build botui for all platforms
       # ============================================
       - name: Build botui - Linux x86_64
         run: |
+          source ~/.cargo/env
           cd ../botui
           cargo build --release --locked --target x86_64-unknown-linux-gnu
 
@@ -123,6 +121,7 @@ jobs:
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: |
+          source ~/.cargo/env
           cd ../botui
           cargo build --release --locked --target aarch64-unknown-linux-gnu
 
@@ -130,24 +129,16 @@ jobs:
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
         run: |
+          source ~/.cargo/env
           cd ../botui
           cargo build --release --locked --target x86_64-pc-windows-gnu
-
-      - name: Build botui - macOS x86_64
-        run: |
-          cd ../botui
-          cargo build --release --locked --target x86_64-apple-darwin || echo "macOS x86_64 requires osxcross"
-
-      - name: Build botui - macOS ARM64
-        run: |
-          cd ../botui
-          cargo build --release --locked --target aarch64-apple-darwin || echo "macOS ARM64 requires osxcross"
 
       # ============================================
       # Build botbook documentation
       # ============================================
       - name: Install mdBook
         run: |
+          source ~/.cargo/env
           if ! command -v mdbook &> /dev/null; then
             cargo install mdbook
           fi
@@ -177,58 +168,44 @@ jobs:
           # Linux x86_64 bundle
           mkdir -p bundle/linux-x86_64/botserver-components
           mkdir -p bundle/linux-x86_64/botserver-installers
-          cp ./target/x86_64-unknown-linux-gnu/release/gbserver bundle/linux-x86_64/botserver || true
+          cp ./target/x86_64-unknown-linux-gnu/release/botserver bundle/linux-x86_64/botserver || true
           cp ../botui/target/x86_64-unknown-linux-gnu/release/botui bundle/linux-x86_64/botserver-components/ || true
           cp python-installers/python-${PYTHON_VERSION}-linux-x86_64.tar.gz bundle/linux-x86_64/botserver-installers/
 
           # Linux ARM64 bundle
           mkdir -p bundle/linux-arm64/botserver-components
           mkdir -p bundle/linux-arm64/botserver-installers
-          cp ./target/aarch64-unknown-linux-gnu/release/gbserver bundle/linux-arm64/botserver || true
+          cp ./target/aarch64-unknown-linux-gnu/release/botserver bundle/linux-arm64/botserver || true
           cp ../botui/target/aarch64-unknown-linux-gnu/release/botui bundle/linux-arm64/botserver-components/ || true
           cp python-installers/python-${PYTHON_VERSION}-linux-arm64.tar.gz bundle/linux-arm64/botserver-installers/
 
           # Windows x86_64 bundle
           mkdir -p bundle/windows-x86_64/botserver-components
           mkdir -p bundle/windows-x86_64/botserver-installers
-          cp ./target/x86_64-pc-windows-gnu/release/gbserver.exe bundle/windows-x86_64/botserver.exe || true
+          cp ./target/x86_64-pc-windows-gnu/release/botserver.exe bundle/windows-x86_64/botserver.exe || true
           cp ../botui/target/x86_64-pc-windows-gnu/release/botui.exe bundle/windows-x86_64/botserver-components/ || true
           cp python-installers/python-${PYTHON_VERSION}-windows-x86_64.tar.gz bundle/windows-x86_64/botserver-installers/
-
-          # macOS x86_64 bundle
-          mkdir -p bundle/macos-x86_64/botserver-components
-          mkdir -p bundle/macos-x86_64/botserver-installers
-          cp ./target/x86_64-apple-darwin/release/gbserver bundle/macos-x86_64/botserver || true
-          cp ../botui/target/x86_64-apple-darwin/release/botui bundle/macos-x86_64/botserver-components/ || true
-          cp python-installers/python-${PYTHON_VERSION}-macos-x86_64.tar.gz bundle/macos-x86_64/botserver-installers/
-
-          # macOS ARM64 bundle
-          mkdir -p bundle/macos-arm64/botserver-components
-          mkdir -p bundle/macos-arm64/botserver-installers
-          cp ./target/aarch64-apple-darwin/release/gbserver bundle/macos-arm64/botserver || true
-          cp ../botui/target/aarch64-apple-darwin/release/botui bundle/macos-arm64/botserver-components/ || true
-          cp python-installers/python-${PYTHON_VERSION}-macos-arm64.tar.gz bundle/macos-arm64/botserver-installers/
 
       # ============================================
       # Copy shared components to all bundles
       # ============================================
       - name: Copy botmodels to bundles
         run: |
-          for platform in linux-x86_64 linux-arm64 windows-x86_64 macos-x86_64 macos-arm64; do
+          for platform in linux-x86_64 linux-arm64 windows-x86_64; do
             mkdir -p bundle/$platform/botserver-components/botmodels
             cp -r ../botmodels/* bundle/$platform/botserver-components/botmodels/
           done
 
       - name: Copy botbook to bundles
         run: |
-          for platform in linux-x86_64 linux-arm64 windows-x86_64 macos-x86_64 macos-arm64; do
+          for platform in linux-x86_64 linux-arm64 windows-x86_64; do
             mkdir -p bundle/$platform/botserver-components/botbook
             cp -r ../botbook/book/* bundle/$platform/botserver-components/botbook/
           done
 
       - name: Copy installers to bundles
         run: |
-          for platform in linux-x86_64 linux-arm64 windows-x86_64 macos-x86_64 macos-arm64; do
+          for platform in linux-x86_64 linux-arm64 windows-x86_64; do
             cp -r ./botserver-installers/* bundle/$platform/botserver-installers/
           done
 
@@ -240,7 +217,7 @@ jobs:
           BUNDLE_VERSION=$(grep '^version' Cargo.toml | head -1 | sed 's/.*"\(.*\)".*/\1/')
 
           cd bundle
-          for platform in linux-x86_64 linux-arm64 windows-x86_64 macos-x86_64 macos-arm64; do
+          for platform in linux-x86_64 linux-arm64 windows-x86_64; do
             if [ -f "$platform/botserver" ] || [ -f "$platform/botserver.exe" ]; then
               zip -r "botserver-bundle-${BUNDLE_VERSION}-${platform}.zip" "$platform"
               echo "Created: botserver-bundle-${BUNDLE_VERSION}-${platform}.zip"
@@ -263,8 +240,6 @@ jobs:
           sudo cp -r bundle/linux-x86_64 /opt/gbo/releases/botserver-bundle/unpacked/ || true
           sudo cp -r bundle/linux-arm64 /opt/gbo/releases/botserver-bundle/unpacked/ || true
           sudo cp -r bundle/windows-x86_64 /opt/gbo/releases/botserver-bundle/unpacked/ || true
-          sudo cp -r bundle/macos-x86_64 /opt/gbo/releases/botserver-bundle/unpacked/ || true
-          sudo cp -r bundle/macos-arm64 /opt/gbo/releases/botserver-bundle/unpacked/ || true
 
           sudo chmod -R 755 /opt/gbo/releases/botserver-bundle/
 
