@@ -263,7 +263,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "ps -ef | grep minio | grep -v grep | grep {{BIN_PATH}} >/dev/null 2>&1".to_string(),
+                check_cmd: "pgrep -f 'minio server' >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -348,7 +348,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/valkey-server --port 6379 --dir {{DATA_PATH}} --logfile {{LOGS_PATH}}/valkey.log --daemonize yes > {{LOGS_PATH}}/valkey-startup.log 2>&1".to_string(),
-                check_cmd: "{{BIN_PATH}}/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
+                check_cmd: "pgrep -f 'valkey-server' >/dev/null 2>&1 || {{BIN_PATH}}/valkey-cli ping 2>/dev/null | grep -q PONG".to_string(),
             },
         );
     }
@@ -1028,7 +1028,10 @@ impl PackageManager {
                 .status();
 
             if check_output.is_ok() && check_output.unwrap().success() {
-                trace!("Component {} is already running", component.name);
+                info!(
+                    "Component {} is already running, skipping start",
+                    component.name
+                );
                 return Ok(std::process::Command::new("sh")
                     .arg("-c")
                     .arg("true")
@@ -1108,19 +1111,16 @@ impl PackageManager {
                 component.name
             );
             let check_proc = std::process::Command::new("pgrep")
-                .args(["-f", "vault server"])
+                .args(["-f", &component.name])
                 .output();
             if let Ok(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
-                info!("[START] pgrep 'vault server' result: '{}'", pids.trim());
+                info!(
+                    "[START] pgrep '{}' result: '{}'",
+                    component.name,
+                    pids.trim()
+                );
             }
-
-            // Check if log file was created
-            info!(
-                "[START] Log file {}/vault.log exists: {}",
-                logs_path.display(),
-                logs_path.join("vault.log").exists()
-            );
 
             match child {
                 Ok(c) => {
