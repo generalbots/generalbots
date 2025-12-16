@@ -16,6 +16,12 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Checkout botlib dependency
+        uses: actions/checkout@v4
+        with:
+          repository: GeneralBots/botlib
+          path: ../botlib
+
       - name: Cache Cargo registry
         uses: actions/cache@v4
         with:
