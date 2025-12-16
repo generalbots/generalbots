@@ -8,6 +8,10 @@ on:
     branches: ["main"]
   workflow_dispatch:
 
+env:
+  CARGO_HOME: /root/.cargo
+  PATH: /root/.cargo/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
 jobs:
   build-bundle:
     runs-on: gbo
@@ -39,10 +43,10 @@ jobs:
       - name: Install Rust
         run: |
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          source ~/.cargo/env
-          rustup target add x86_64-unknown-linux-gnu
-          rustup target add aarch64-unknown-linux-gnu
-          rustup target add x86_64-pc-windows-gnu
+          echo "/root/.cargo/bin" >> $GITHUB_PATH
+          /root/.cargo/bin/rustup target add x86_64-unknown-linux-gnu
+          /root/.cargo/bin/rustup target add aarch64-unknown-linux-gnu
+          /root/.cargo/bin/rustup target add x86_64-pc-windows-gnu
 
       - name: Install cross-compilation dependencies
         run: |
@@ -90,57 +94,47 @@ jobs:
       # Build botserver for all platforms
       # ============================================
       - name: Build botserver - Linux x86_64
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target x86_64-unknown-linux-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-unknown-linux-gnu
 
       - name: Build botserver - Linux ARM64
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target aarch64-unknown-linux-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target aarch64-unknown-linux-gnu
 
       - name: Build botserver - Windows x86_64
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
-        run: |
-          source ~/.cargo/env
-          cargo build --release --locked --target x86_64-pc-windows-gnu
+        run: /root/.cargo/bin/cargo build --release --locked --target x86_64-pc-windows-gnu
 
       # ============================================
       # Build botui for all platforms
       # ============================================
       - name: Build botui - Linux x86_64
         run: |
-          source ~/.cargo/env
           cd ../botui
-          cargo build --release --locked --target x86_64-unknown-linux-gnu
+          /root/.cargo/bin/cargo build --release --locked --target x86_64-unknown-linux-gnu
 
       - name: Build botui - Linux ARM64
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: aarch64-linux-gnu-gcc
         run: |
-          source ~/.cargo/env
           cd ../botui
-          cargo build --release --locked --target aarch64-unknown-linux-gnu
+          /root/.cargo/bin/cargo build --release --locked --target aarch64-unknown-linux-gnu
 
       - name: Build botui - Windows x86_64
         env:
           CARGO_TARGET_X86_64_PC_WINDOWS_GNU_LINKER: x86_64-w64-mingw32-gcc
         run: |
-          source ~/.cargo/env
           cd ../botui
-          cargo build --release --locked --target x86_64-pc-windows-gnu
+          /root/.cargo/bin/cargo build --release --locked --target x86_64-pc-windows-gnu
 
       # ============================================
       # Build botbook documentation
       # ============================================
       - name: Install mdBook
         run: |
-          source ~/.cargo/env
           if ! command -v mdbook &> /dev/null; then
-            cargo install mdbook
+            /root/.cargo/bin/cargo install mdbook
           fi
 
       - name: Build botbook
