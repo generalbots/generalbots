@@ -5,7 +5,7 @@
 //! PostgreSQL, Qdrant, LiveKit, Forgejo, and Directory services.
 
 use std::path::Path;
-use tracing::{debug, error, info};
+use tracing::{debug, info};
 
 /// Services module containing mTLS configuration functions for each service
 pub mod services {
