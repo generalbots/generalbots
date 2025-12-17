@@ -12,17 +12,12 @@ jobs:
 
     steps:
       - name: Disable SSL verification (temporary)
-        shell: bash
         run: git config --global http.sslVerify false
 
       - uses: actions/checkout@v4
 
       - name: Clone botlib dependency
-        shell: bash
-        run: |
-          echo "Cloning botlib..."
-          git clone --depth 1 https://github.com/GeneralBots/botlib.git ../botlib
-          echo "Done cloning botlib"
+        run: git clone --depth 1 https://github.com/GeneralBots/botlib.git ../botlib
 
       - name: Cache Cargo registry
         uses: actions/cache@v4
@@ -36,52 +31,40 @@ jobs:
             ${{ runner.os }}-cargo-botserver-
 
       - name: Install Rust
-        shell: bash
         run: |
-          echo "Installing Rust..."
           curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          echo "Rust installed"
           export PATH="$HOME/.cargo/bin:$PATH"
           rustc --version
           cargo --version
 
       - name: Setup environment
-        shell: bash
-        run: |
-          echo "Setting up environment..."
-          sudo cp /opt/gbo/bin/system/.env . || echo "No .env file found, continuing..."
-          echo "Environment setup done"
+        run: sudo cp /opt/gbo/bin/system/.env . || true
 
       - name: Build Linux x86_64
-        shell: bash
         run: |
-          echo "Starting build..."
           export PATH="$HOME/.cargo/bin:$PATH"
-          echo "PATH: $PATH"
-          which cargo || echo "cargo not found in PATH"
-          cargo --version
-          echo "Building botserver..."
-          cargo build --release --locked 2>&1
-          echo "Build completed"
-          ls -la target/release/botserver || echo "Binary not found"
+          cargo build --release --locked 2>&1 | tee /tmp/botserver-build.log
+          echo "Build exit code: $?"
+          tail -100 /tmp/botserver-build.log
+
+      - name: Save build log
+        if: always()
+        run: |
+          sudo mkdir -p /opt/gbo/logs
+          sudo cp /tmp/botserver-build.log /opt/gbo/logs/botserver-build-$(date +%Y%m%d-%H%M%S).log || true
+          sudo tail -200 /tmp/botserver-build.log || true
 
       - name: Prepare release artifacts
-        shell: bash
         run: |
-          echo "Preparing release artifacts..."
           sudo mkdir -p /opt/gbo/releases/botserver/linux
-          sudo cp ./target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || echo "Failed to copy binary"
+          sudo cp ./target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
           sudo chmod -R 755 /opt/gbo/releases/botserver/
-          echo "Done"
 
       - name: Deploy to production and restart
-        shell: bash
         run: |
-          echo "Deploying to production..."
-          lxc exec bot:pragmatismo-system -- systemctl stop system || echo "Failed to stop system"
+          lxc exec bot:pragmatismo-system -- systemctl stop system || true
 
           sudo cp ./target/release/botserver /opt/gbo/bin/system/botserver
           sudo chmod +x /opt/gbo/bin/system/botserver
 
-          lxc exec bot:pragmatismo-system -- systemctl start system || echo "Failed to start system"
-          echo "Deployment done"
+          lxc exec bot:pragmatismo-system -- systemctl start system || true
