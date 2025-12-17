@@ -1,4 +1,3 @@
-#![allow(dead_code)]
 
 pub mod deepseek_r3;
 pub mod gpt_oss_120b;

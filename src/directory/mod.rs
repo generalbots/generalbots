@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use crate::shared::state::AppState;
 use axum::{
     extract::{Query, State},
@@ -16,7 +14,7 @@ pub mod groups;
 pub mod router;
 pub mod users;
 
-use self::client::{ZitadelClient, ZitadelConfig};
+pub use client::{ZitadelClient, ZitadelConfig};
 
 pub struct AuthService {
     client: Arc<ZitadelClient>,

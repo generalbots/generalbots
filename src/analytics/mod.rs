@@ -1,3 +1,4 @@
+use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
 use crate::shared::state::AppState;
 use axum::{
     extract::State,
@@ -8,6 +9,7 @@ use axum::{
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
+use tokio::sync::RwLock;
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable)]
 pub struct AnalyticsStats {
@@ -47,9 +49,45 @@ pub struct AnalyticsQuery {
     pub time_range: Option<String>,
 }
 
+#[derive(Debug)]
+pub struct AnalyticsService {
+    observability: Arc<RwLock<ObservabilityManager>>,
+}
+
+impl AnalyticsService {
+    pub fn new() -> Self {
+        let config = ObservabilityConfig::default();
+        Self {
+            observability: Arc::new(RwLock::new(ObservabilityManager::new(config))),
+        }
+    }
+
+    pub fn with_config(config: ObservabilityConfig) -> Self {
+        Self {
+            observability: Arc::new(RwLock::new(ObservabilityManager::new(config))),
+        }
+    }
+
+    pub async fn get_quick_stats(&self) -> QuickStats {
+        let manager = self.observability.read().await;
+        manager.get_quick_stats()
+    }
+
+    pub async fn get_observability_manager(
+        &self,
+    ) -> tokio::sync::RwLockReadGuard<'_, ObservabilityManager> {
+        self.observability.read().await
+    }
+}
+
+impl Default for AnalyticsService {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // Metric cards - match frontend hx-get endpoints
         .route("/api/analytics/messages/count", get(handle_message_count))
         .route(
             "/api/analytics/sessions/active",
@@ -59,7 +97,6 @@ pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
         .route("/api/analytics/llm/tokens", get(handle_llm_tokens))
         .route("/api/analytics/storage/usage", get(handle_storage_usage))
         .route("/api/analytics/errors/count", get(handle_errors_count))
-        // Timeseries charts
         .route(
             "/api/analytics/timeseries/messages",
             get(handle_timeseries_messages),
@@ -68,7 +105,6 @@ pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
             "/api/analytics/timeseries/response_time",
             get(handle_timeseries_response),
         )
-        // Distribution charts
         .route(
             "/api/analytics/channels/distribution",
             get(handle_channels_distribution),
@@ -77,17 +113,16 @@ pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
             "/api/analytics/bots/performance",
             get(handle_bots_performance),
         )
-        // Activity and queries
         .route(
             "/api/analytics/activity/recent",
             get(handle_recent_activity),
         )
         .route("/api/analytics/queries/top", get(handle_top_queries))
-        // Chat endpoint for analytics assistant
         .route("/api/analytics/chat", post(handle_analytics_chat))
+        .route("/api/analytics/llm/stats", get(handle_llm_stats))
+        .route("/api/analytics/budget/status", get(handle_budget_status))
 }
 
-/// GET /api/analytics/messages/count - Messages Today metric card
 pub async fn handle_message_count(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -110,9 +145,6 @@ pub async fn handle_message_count(State(state): State<Arc<AppState>>) -> impl In
     .await
     .unwrap_or(0);
 
-    let trend = if count > 100 { "+12%" } else { "+5%" };
-    let trend_class = "trend-up";
-
     let mut html = String::new();
     html.push_str("<div class=\"metric-icon messages\">");
     html.push_str("<svg width=\"20\" height=\"20\" viewBox=\"0 0 24 24\" fill=\"none\"><path d=\"M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>");
@@ -122,17 +154,11 @@ pub async fn handle_message_count(State(state): State<Arc<AppState>>) -> impl In
     html.push_str(&format_number(count));
     html.push_str("</span>");
     html.push_str("<span class=\"metric-label\">Messages Today</span>");
-    html.push_str("<span class=\"metric-trend ");
-    html.push_str(trend_class);
-    html.push_str("\">");
-    html.push_str(trend);
-    html.push_str("</span>");
     html.push_str("</div>");
 
     Html(html)
 }
 
-/// GET /api/analytics/sessions/active - Active Sessions metric card
 pub async fn handle_active_sessions(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -146,7 +172,7 @@ pub async fn handle_active_sessions(State(state): State<Arc<AppState>>) -> impl 
         };
 
         diesel::sql_query(
-            "SELECT COUNT(*) as count FROM user_sessions WHERE updated_at > NOW() - INTERVAL '1 hour'",
+            "SELECT COUNT(DISTINCT session_id) as count FROM message_history WHERE created_at > NOW() - INTERVAL '30 minutes'",
         )
         .get_result::<CountResult>(&mut db_conn)
         .map(|r| r.count)
@@ -163,13 +189,12 @@ pub async fn handle_active_sessions(State(state): State<Arc<AppState>>) -> impl 
     html.push_str("<span class=\"metric-value\">");
     html.push_str(&count.to_string());
     html.push_str("</span>");
-    html.push_str("<span class=\"metric-label\">Active Now</span>");
+    html.push_str("<span class=\"metric-label\">Active Sessions</span>");
     html.push_str("</div>");
 
     Html(html)
 }
 
-/// GET /api/analytics/response/avg - Average Response Time metric card
 pub async fn handle_avg_response_time(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -183,7 +208,7 @@ pub async fn handle_avg_response_time(State(state): State<Arc<AppState>>) -> imp
         };
 
         diesel::sql_query(
-            "SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg FROM user_sessions WHERE created_at > NOW() - INTERVAL '24 hours'",
+            "SELECT AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg FROM message_history WHERE role = 1 AND created_at > NOW() - INTERVAL '24 hours'",
         )
         .get_result::<AvgResult>(&mut db_conn)
         .map(|r| r.avg.unwrap_or(0.0))
@@ -193,7 +218,7 @@ pub async fn handle_avg_response_time(State(state): State<Arc<AppState>>) -> imp
     .unwrap_or(0.0);
 
     let display_time = if avg_time < 1.0 {
-        format!("{}ms", (avg_time * 1000.0) as i64)
+        format!("{}ms", (avg_time * 1000.0) as i32)
     } else {
         format!("{:.1}s", avg_time)
     };
@@ -212,7 +237,6 @@ pub async fn handle_avg_response_time(State(state): State<Arc<AppState>>) -> imp
     Html(html)
 }
 
-/// GET /api/analytics/llm/tokens - LLM Tokens Used metric card
 pub async fn handle_llm_tokens(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -225,7 +249,6 @@ pub async fn handle_llm_tokens(State(state): State<Arc<AppState>>) -> impl IntoR
             }
         };
 
-        // Try to get token count from analytics_events or estimate from messages
         diesel::sql_query(
             "SELECT COALESCE(SUM((metadata->>'tokens')::bigint), COUNT(*) * 150) as count FROM message_history WHERE created_at > NOW() - INTERVAL '24 hours'",
         )
@@ -250,9 +273,7 @@ pub async fn handle_llm_tokens(State(state): State<Arc<AppState>>) -> impl IntoR
     Html(html)
 }
 
-/// GET /api/analytics/storage/usage - Storage Usage metric card
 pub async fn handle_storage_usage(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    // In production, this would query S3/Drive storage usage
     let usage_gb = 2.4f64;
     let total_gb = 10.0f64;
     let percentage = (usage_gb / total_gb * 100.0) as i32;
@@ -273,7 +294,6 @@ pub async fn handle_storage_usage(State(_state): State<Arc<AppState>>) -> impl I
     Html(html)
 }
 
-/// GET /api/analytics/errors/count - Errors Count metric card
 pub async fn handle_errors_count(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -286,7 +306,6 @@ pub async fn handle_errors_count(State(state): State<Arc<AppState>>) -> impl Int
             }
         };
 
-        // Count errors from analytics_events table
         diesel::sql_query(
             "SELECT COUNT(*) as count FROM analytics_events WHERE event_type = 'error' AND created_at > NOW() - INTERVAL '24 hours'",
         )
@@ -297,12 +316,12 @@ pub async fn handle_errors_count(State(state): State<Arc<AppState>>) -> impl Int
     .await
     .unwrap_or(0);
 
-    let status_class = if count == 0 {
-        "status-good"
-    } else if count < 10 {
-        "status-warning"
+    let status_class = if count > 10 {
+        "error"
+    } else if count > 0 {
+        "warning"
     } else {
-        "status-error"
+        "success"
     };
 
     let mut html = String::new();
@@ -321,11 +340,10 @@ pub async fn handle_errors_count(State(state): State<Arc<AppState>>) -> impl Int
     Html(html)
 }
 
-/// GET /api/analytics/timeseries/messages - Messages chart data
 pub async fn handle_timeseries_messages(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
-    let data = tokio::task::spawn_blocking(move || {
+    let hourly_data = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -335,7 +353,11 @@ pub async fn handle_timeseries_messages(State(state): State<Arc<AppState>>) -> i
         };
 
         diesel::sql_query(
-            "SELECT EXTRACT(HOUR FROM created_at)::float8 as hour, COUNT(*) as count FROM message_history WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY EXTRACT(HOUR FROM created_at) ORDER BY hour",
+            "SELECT EXTRACT(HOUR FROM created_at) as hour, COUNT(*) as count
+             FROM message_history
+             WHERE created_at > NOW() - INTERVAL '24 hours'
+             GROUP BY EXTRACT(HOUR FROM created_at)
+             ORDER BY hour",
         )
         .load::<HourlyCount>(&mut db_conn)
         .unwrap_or_default()
@@ -343,35 +365,44 @@ pub async fn handle_timeseries_messages(State(state): State<Arc<AppState>>) -> i
     .await
     .unwrap_or_default();
 
-    let max_count = data.iter().map(|d| d.count).max().unwrap_or(1).max(1);
+    let hours: Vec<i32> = (0..24).collect();
+    let mut counts: Vec<i64> = vec![0; 24];
+
+    for data in hourly_data {
+        let hour_idx = data.hour as usize;
+        if hour_idx < 24 {
+            counts[hour_idx] = data.count;
+        }
+    }
+
+    let labels: Vec<String> = hours.iter().map(|h| format!("{}:00", h)).collect();
+    let max_count = counts.iter().max().copied().unwrap_or(1).max(1);
 
     let mut html = String::new();
+    html.push_str("<div class=\"chart-container\">");
     html.push_str("<div class=\"chart-bars\">");
 
-    for i in 0..24 {
-        let count = data
-            .iter()
-            .find(|d| d.hour as i32 == i)
-            .map(|d| d.count)
-            .unwrap_or(0);
-        let height = (count as f64 / max_count as f64 * 100.0) as i32;
-
-        html.push_str("<div class=\"chart-bar\" style=\"height: ");
-        html.push_str(&height.to_string());
-        html.push_str("%\" title=\"");
-        html.push_str(&format!("{}:00 - {} messages", i, count));
-        html.push_str("\"></div>");
+    for (i, count) in counts.iter().enumerate() {
+        let height_pct = (*count as f64 / max_count as f64) * 100.0;
+        html.push_str(&format!(
+            "<div class=\"chart-bar\" style=\"height: {}%\" title=\"{}: {} messages\"></div>",
+            height_pct, labels[i], count
+        ));
     }
 
     html.push_str("</div>");
     html.push_str("<div class=\"chart-labels\">");
-    html.push_str("<span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span>");
+    for (i, label) in labels.iter().enumerate() {
+        if i % 4 == 0 {
+            html.push_str(&format!("<span>{}</span>", label));
+        }
+    }
+    html.push_str("</div>");
     html.push_str("</div>");
 
     Html(html)
 }
 
-/// GET /api/analytics/timeseries/response_time - Response time chart data
 pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -384,7 +415,7 @@ pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> i
         avg_time: Option<f64>,
     }
 
-    let data = tokio::task::spawn_blocking(move || {
+    let hourly_data = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
@@ -394,7 +425,12 @@ pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> i
         };
 
         diesel::sql_query(
-            "SELECT EXTRACT(HOUR FROM created_at)::float8 as hour, AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg_time FROM user_sessions WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY EXTRACT(HOUR FROM created_at) ORDER BY hour",
+            "SELECT EXTRACT(HOUR FROM created_at) as hour,
+                    AVG(EXTRACT(EPOCH FROM (updated_at - created_at))) as avg_time
+             FROM message_history
+             WHERE role = 1 AND created_at > NOW() - INTERVAL '24 hours'
+             GROUP BY EXTRACT(HOUR FROM created_at)
+             ORDER BY hour",
         )
         .load::<HourlyAvg>(&mut db_conn)
         .unwrap_or_default()
@@ -402,25 +438,42 @@ pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> i
     .await
     .unwrap_or_default();
 
-    let mut html = String::new();
-    html.push_str("<div class=\"chart-line\">");
-    html.push_str("<svg viewBox=\"0 0 288 100\" preserveAspectRatio=\"none\">");
-    html.push_str("<path d=\"M0,50 ");
+    let mut avgs: Vec<f64> = vec![0.0; 24];
 
-    for (_i, point) in data.iter().enumerate() {
-        let x = (point.hour as f64 / 24.0 * 288.0) as i32;
-        let y = 100 - (point.avg_time.unwrap_or(0.0).min(10.0) / 10.0 * 100.0) as i32;
-        html.push_str(&format!("L{},{} ", x, y));
+    for data in hourly_data {
+        let hour_idx = data.hour as usize;
+        if hour_idx < 24 {
+            avgs[hour_idx] = data.avg_time.unwrap_or(0.0);
+        }
     }
 
-    html.push_str("\" fill=\"none\" stroke=\"var(--accent-color)\" stroke-width=\"2\"/>");
-    html.push_str("</svg>");
+    let labels: Vec<String> = (0..24).map(|h| format!("{}:00", h)).collect();
+    let max_avg = avgs.iter().cloned().fold(0.0f64, f64::max).max(0.1);
+
+    let mut html = String::new();
+    html.push_str("<div class=\"chart-container line-chart\">");
+    html.push_str("<svg viewBox=\"0 0 480 200\" preserveAspectRatio=\"none\">");
+    html.push_str("<polyline fill=\"none\" stroke=\"var(--primary)\" stroke-width=\"2\" points=\"");
+
+    for (i, avg) in avgs.iter().enumerate() {
+        let x = (i as f64 / 23.0) * 480.0;
+        let y = 200.0 - (*avg / max_avg) * 180.0;
+        html.push_str(&format!("{},{} ", x, y));
+    }
+
+    html.push_str("\"/></svg>");
+    html.push_str("<div class=\"chart-labels\">");
+    for (i, label) in labels.iter().enumerate() {
+        if i % 4 == 0 {
+            html.push_str(&format!("<span>{}</span>", label));
+        }
+    }
+    html.push_str("</div>");
     html.push_str("</div>");
 
     Html(html)
 }
 
-/// GET /api/analytics/channels/distribution - Channel distribution pie chart
 pub async fn handle_channels_distribution(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -433,67 +486,65 @@ pub async fn handle_channels_distribution(State(state): State<Arc<AppState>>) ->
         count: i64,
     }
 
-    let data = tokio::task::spawn_blocking(move || {
+    let channel_data = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {}", e);
-                return vec![
-                    ("Web".to_string(), 45i64),
-                    ("API".to_string(), 30i64),
-                    ("WhatsApp".to_string(), 15i64),
-                    ("Other".to_string(), 10i64),
-                ];
+                return Vec::new();
             }
         };
 
-        // Try to get real channel distribution
-        let result: Result<Vec<ChannelCount>, _> = diesel::sql_query(
-            "SELECT COALESCE(context_data->>'channel', 'Web') as channel, COUNT(*) as count FROM user_sessions WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY context_data->>'channel' ORDER BY count DESC LIMIT 5",
+        diesel::sql_query(
+            "SELECT COALESCE(channel, 'web') as channel, COUNT(*) as count
+             FROM sessions
+             WHERE created_at > NOW() - INTERVAL '7 days'
+             GROUP BY channel
+             ORDER BY count DESC
+             LIMIT 5",
         )
-        .load(&mut db_conn);
-
-        match result {
-            Ok(channels) if !channels.is_empty() => {
-                channels.into_iter().map(|c| (c.channel, c.count)).collect()
-            }
-            _ => vec![
-                ("Web".to_string(), 45i64),
-                ("API".to_string(), 30i64),
-                ("WhatsApp".to_string(), 15i64),
-                ("Other".to_string(), 10i64),
-            ],
-        }
+        .load::<ChannelCount>(&mut db_conn)
+        .unwrap_or_default()
     })
     .await
     .unwrap_or_default();
 
-    let total: i64 = data.iter().map(|(_, c)| c).sum();
+    let total: i64 = channel_data.iter().map(|c| c.count).sum();
     let colors = ["#4f46e5", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
     let mut html = String::new();
     html.push_str("<div class=\"pie-chart-container\">");
+    html.push_str("<div class=\"pie-chart\">");
+
+    let mut offset = 0.0f64;
+    for (i, data) in channel_data.iter().enumerate() {
+        let pct = if total > 0 {
+            (data.count as f64 / total as f64) * 100.0
+        } else {
+            0.0
+        };
+        let color = colors[i % colors.len()];
+        html.push_str(&format!(
+            "<div class=\"pie-segment\" style=\"--offset: {}; --value: {}; --color: {};\"></div>",
+            offset, pct, color
+        ));
+        offset += pct;
+    }
+
+    html.push_str("</div>");
     html.push_str("<div class=\"pie-legend\">");
 
-    for (i, (channel, count)) in data.iter().enumerate() {
-        let percentage = if total > 0 {
-            (*count as f64 / total as f64 * 100.0) as i32
+    for (i, data) in channel_data.iter().enumerate() {
+        let pct = if total > 0 {
+            (data.count as f64 / total as f64) * 100.0
         } else {
-            0
+            0.0
         };
-        let color = colors.get(i).unwrap_or(&"#6b7280");
-
-        html.push_str("<div class=\"legend-item\">");
-        html.push_str("<span class=\"legend-color\" style=\"background: ");
-        html.push_str(color);
-        html.push_str("\"></span>");
-        html.push_str("<span class=\"legend-label\">");
-        html.push_str(&html_escape(channel));
-        html.push_str("</span>");
-        html.push_str("<span class=\"legend-value\">");
-        html.push_str(&percentage.to_string());
-        html.push_str("%</span>");
-        html.push_str("</div>");
+        let color = colors[i % colors.len()];
+        html.push_str(&format!(
+            "<div class=\"legend-item\"><span class=\"legend-color\" style=\"background: {};\"></span>{} ({:.0}%)</div>",
+            color, html_escape(&data.channel), pct
+        ));
     }
 
     html.push_str("</div>");
@@ -502,7 +553,6 @@ pub async fn handle_channels_distribution(State(state): State<Arc<AppState>>) ->
     Html(html)
 }
 
-/// GET /api/analytics/bots/performance - Bot performance chart
 pub async fn handle_bots_performance(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -515,58 +565,48 @@ pub async fn handle_bots_performance(State(state): State<Arc<AppState>>) -> impl
         count: i64,
     }
 
-    let data = tokio::task::spawn_blocking(move || {
+    let bot_data = tokio::task::spawn_blocking(move || {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {}", e);
-                return vec![
-                    ("Default Bot".to_string(), 150i64),
-                    ("Support Bot".to_string(), 89i64),
-                    ("Sales Bot".to_string(), 45i64),
-                ];
+                return Vec::new();
             }
         };
 
-        let result: Result<Vec<BotStats>, _> = diesel::sql_query(
-            "SELECT b.name, COUNT(s.id) as count FROM bots b LEFT JOIN user_sessions s ON s.bot_id = b.id AND s.created_at > NOW() - INTERVAL '24 hours' GROUP BY b.id, b.name ORDER BY count DESC LIMIT 5",
+        diesel::sql_query(
+            "SELECT b.name, COUNT(mh.id) as count
+             FROM bots b
+             LEFT JOIN sessions s ON s.bot_id = b.id
+             LEFT JOIN message_history mh ON mh.session_id = s.id
+             WHERE mh.created_at > NOW() - INTERVAL '24 hours' OR mh.created_at IS NULL
+             GROUP BY b.id, b.name
+             ORDER BY count DESC
+             LIMIT 5",
         )
-        .load(&mut db_conn);
-
-        match result {
-            Ok(bots) if !bots.is_empty() => {
-                bots.into_iter().map(|b| (b.name, b.count)).collect()
-            }
-            _ => vec![
-                ("Default Bot".to_string(), 150i64),
-                ("Support Bot".to_string(), 89i64),
-                ("Sales Bot".to_string(), 45i64),
-            ],
-        }
+        .load::<BotStats>(&mut db_conn)
+        .unwrap_or_default()
     })
     .await
     .unwrap_or_default();
 
-    let max_count = data.iter().map(|(_, c)| *c).max().unwrap_or(1).max(1);
+    let max_count = bot_data.iter().map(|b| b.count).max().unwrap_or(1).max(1);
 
     let mut html = String::new();
     html.push_str("<div class=\"horizontal-bars\">");
 
-    for (name, count) in &data {
-        let width = (*count as f64 / max_count as f64 * 100.0) as i32;
-
-        html.push_str("<div class=\"bar-item\">");
-        html.push_str("<span class=\"bar-label\">");
-        html.push_str(&html_escape(name));
-        html.push_str("</span>");
-        html.push_str("<div class=\"bar-container\">");
-        html.push_str("<div class=\"bar-fill\" style=\"width: ");
-        html.push_str(&width.to_string());
-        html.push_str("%\"></div>");
-        html.push_str("</div>");
-        html.push_str("<span class=\"bar-value\">");
-        html.push_str(&count.to_string());
-        html.push_str("</span>");
+    for data in bot_data.iter() {
+        let pct = (data.count as f64 / max_count as f64) * 100.0;
+        html.push_str("<div class=\"bar-row\">");
+        html.push_str(&format!(
+            "<span class=\"bar-label\">{}</span>",
+            html_escape(&data.name)
+        ));
+        html.push_str(&format!(
+            "<div class=\"bar-track\"><div class=\"bar-fill\" style=\"width: {}%;\"></div></div>",
+            pct
+        ));
+        html.push_str(&format!("<span class=\"bar-value\">{}</span>", data.count));
         html.push_str("</div>");
     }
 
@@ -575,12 +615,22 @@ pub async fn handle_bots_performance(State(state): State<Arc<AppState>>) -> impl
     Html(html)
 }
 
-/// GET /api/analytics/activity/recent - Recent activity feed
+#[derive(Debug, QueryableByName, Clone)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+struct ActivityRow {
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    activity_type: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    description: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    time_ago: String,
+}
+
 pub async fn handle_recent_activity(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
     let activities = tokio::task::spawn_blocking(move || {
-        let mut db_conn = match conn.get() {
+        let db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {}", e);
@@ -588,103 +638,64 @@ pub async fn handle_recent_activity(State(state): State<Arc<AppState>>) -> impl 
             }
         };
 
-        #[derive(Debug, QueryableByName)]
-        #[diesel(check_for_backend(diesel::pg::Pg))]
-        struct ActivityRow {
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            activity_type: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            description: String,
-            #[diesel(sql_type = diesel::sql_types::Text)]
-            time_ago: String,
-        }
-
-        let result: Result<Vec<ActivityRow>, _> = diesel::sql_query(
-            "SELECT 'session' as activity_type, 'New conversation started' as description,
-             CASE
-                WHEN created_at > NOW() - INTERVAL '1 minute' THEN 'just now'
-                WHEN created_at > NOW() - INTERVAL '1 hour' THEN EXTRACT(MINUTE FROM NOW() - created_at)::text || 'm ago'
-                ELSE EXTRACT(HOUR FROM NOW() - created_at)::text || 'h ago'
-             END as time_ago
-             FROM user_sessions
-             WHERE created_at > NOW() - INTERVAL '24 hours'
-             ORDER BY created_at DESC LIMIT 10",
+        diesel::sql_query(
+            "SELECT
+                CASE
+                    WHEN role = 0 THEN 'message'
+                    WHEN role = 1 THEN 'response'
+                    ELSE 'system'
+                END as activity_type,
+                SUBSTRING(content FROM 1 FOR 50) as description,
+                CASE
+                    WHEN created_at > NOW() - INTERVAL '1 minute' THEN 'just now'
+                    WHEN created_at > NOW() - INTERVAL '1 hour' THEN CONCAT(EXTRACT(MINUTE FROM NOW() - created_at)::int, 'm ago')
+                    ELSE CONCAT(EXTRACT(HOUR FROM NOW() - created_at)::int, 'h ago')
+                END as time_ago
+             FROM message_history
+             ORDER BY created_at DESC
+             LIMIT 10",
         )
-        .load(&mut db_conn);
-
-        match result {
-            Ok(items) if !items.is_empty() => items
-                .into_iter()
-                .map(|i| ActivityItemSimple {
-                    activity_type: i.activity_type,
-                    description: i.description,
-                    time_ago: i.time_ago,
-                })
-                .collect(),
-            _ => get_default_activities(),
-        }
+        .load::<ActivityRow>(&mut { db_conn })
+        .unwrap_or_else(|_| get_default_activities())
     })
     .await
     .unwrap_or_else(|_| get_default_activities());
 
     let mut html = String::new();
+    html.push_str("<div class=\"activity-list\">");
 
-    for activity in &activities {
+    for activity in activities.iter() {
         let icon = match activity.activity_type.as_str() {
-            "session" => "",
-            "error" => "",
-            "bot" => "",
-            _ => "",
+            "message" => "💬",
+            "response" => "🤖",
+            "error" => "⚠️",
+            _ => "📋",
         };
 
         html.push_str("<div class=\"activity-item\">");
-        html.push_str("<span class=\"activity-icon\">");
-        html.push_str(icon);
-        html.push_str("</span>");
-        html.push_str("<span class=\"activity-text\">");
-        html.push_str(&html_escape(&activity.description));
-        html.push_str("</span>");
-        html.push_str("<span class=\"activity-time\">");
-        html.push_str(&html_escape(&activity.time_ago));
-        html.push_str("</span>");
+        html.push_str(&format!("<span class=\"activity-icon\">{}</span>", icon));
+        html.push_str("<div class=\"activity-content\">");
+        html.push_str(&format!(
+            "<span class=\"activity-desc\">{}</span>",
+            html_escape(&activity.description)
+        ));
+        html.push_str(&format!(
+            "<span class=\"activity-time\">{}</span>",
+            html_escape(&activity.time_ago)
+        ));
+        html.push_str("</div>");
         html.push_str("</div>");
     }
 
-    if activities.is_empty() {
-        html.push_str("<div class=\"activity-empty\">No recent activity</div>");
-    }
+    html.push_str("</div>");
 
     Html(html)
 }
 
-fn get_default_activities() -> Vec<ActivityItemSimple> {
-    vec![
-        ActivityItemSimple {
-            activity_type: "session".to_string(),
-            description: "New conversation started".to_string(),
-            time_ago: "2m ago".to_string(),
-        },
-        ActivityItemSimple {
-            activity_type: "session".to_string(),
-            description: "User query processed".to_string(),
-            time_ago: "5m ago".to_string(),
-        },
-        ActivityItemSimple {
-            activity_type: "bot".to_string(),
-            description: "Bot response generated".to_string(),
-            time_ago: "8m ago".to_string(),
-        },
-    ]
+fn get_default_activities() -> Vec<ActivityRow> {
+    vec![]
 }
 
-#[derive(Debug)]
-struct ActivityItemSimple {
-    activity_type: String,
-    description: String,
-    time_ago: String,
-}
-
-/// GET /api/analytics/queries/top - Top queries list
 pub async fn handle_top_queries(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -702,31 +713,20 @@ pub async fn handle_top_queries(State(state): State<Arc<AppState>>) -> impl Into
             Ok(c) => c,
             Err(e) => {
                 log::error!("DB connection error: {}", e);
-                return vec![
-                    ("How do I get started?".to_string(), 42i64),
-                    ("What are the pricing plans?".to_string(), 38i64),
-                    ("How to integrate API?".to_string(), 25i64),
-                    ("Contact support".to_string(), 18i64),
-                ];
+                return Vec::new();
             }
         };
 
-        let result: Result<Vec<QueryCount>, _> = diesel::sql_query(
-            "SELECT query, COUNT(*) as count FROM research_search_history WHERE created_at > NOW() - INTERVAL '24 hours' GROUP BY query ORDER BY count DESC LIMIT 10",
+        diesel::sql_query(
+            "SELECT SUBSTRING(content FROM 1 FOR 100) as query, COUNT(*) as count
+             FROM message_history
+             WHERE role = 0 AND created_at > NOW() - INTERVAL '24 hours'
+             GROUP BY SUBSTRING(content FROM 1 FOR 100)
+             ORDER BY count DESC
+             LIMIT 10",
         )
-        .load(&mut db_conn);
-
-        match result {
-            Ok(items) if !items.is_empty() => {
-                items.into_iter().map(|q| (q.query, q.count)).collect()
-            }
-            _ => vec![
-                ("How do I get started?".to_string(), 42i64),
-                ("What are the pricing plans?".to_string(), 38i64),
-                ("How to integrate API?".to_string(), 25i64),
-                ("Contact support".to_string(), 18i64),
-            ],
-        }
+        .load::<QueryCount>(&mut db_conn)
+        .unwrap_or_default()
     })
     .await
     .unwrap_or_default();
@@ -734,17 +734,14 @@ pub async fn handle_top_queries(State(state): State<Arc<AppState>>) -> impl Into
     let mut html = String::new();
     html.push_str("<div class=\"top-queries-list\">");
 
-    for (i, (query, count)) in queries.iter().enumerate() {
+    for (i, q) in queries.iter().enumerate() {
         html.push_str("<div class=\"query-item\">");
-        html.push_str("<span class=\"query-rank\">");
-        html.push_str(&(i + 1).to_string());
-        html.push_str("</span>");
-        html.push_str("<span class=\"query-text\">");
-        html.push_str(&html_escape(query));
-        html.push_str("</span>");
-        html.push_str("<span class=\"query-count\">");
-        html.push_str(&count.to_string());
-        html.push_str("</span>");
+        html.push_str(&format!("<span class=\"query-rank\">{}</span>", i + 1));
+        html.push_str(&format!(
+            "<span class=\"query-text\">{}</span>",
+            html_escape(&q.query)
+        ));
+        html.push_str(&format!("<span class=\"query-count\">{}</span>", q.count));
         html.push_str("</div>");
     }
 
@@ -753,27 +750,24 @@ pub async fn handle_top_queries(State(state): State<Arc<AppState>>) -> impl Into
     Html(html)
 }
 
-/// POST /api/analytics/chat - Analytics chat assistant
 pub async fn handle_analytics_chat(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<AnalyticsQuery>,
 ) -> impl IntoResponse {
     let query = payload.query.unwrap_or_default();
 
-    // In production, this would use the LLM to analyze data
     let response = if query.to_lowercase().contains("message") {
-        "Based on the current data, message volume has increased by 12% compared to yesterday. Peak hours are between 10 AM and 2 PM."
+        "Based on current data, message volume trends are being analyzed."
     } else if query.to_lowercase().contains("error") {
-        "Error rate is currently at 0.5%, which is within normal parameters. No critical issues detected in the last 24 hours."
+        "Error rate analysis is available in the errors dashboard."
     } else if query.to_lowercase().contains("performance") {
-        "Average response time is 245ms, which is 15% faster than last week. All systems are performing optimally."
+        "Performance metrics show average response times within normal parameters."
     } else {
-        "I can help you analyze your analytics data. Try asking about messages, errors, performance, or user activity."
+        "I can help analyze your data. Ask about messages, errors, or performance."
     };
 
     let mut html = String::new();
     html.push_str("<div class=\"chat-message assistant\">");
-    html.push_str("<div class=\"message-avatar\"></div>");
     html.push_str("<div class=\"message-content\">");
     html.push_str(&html_escape(response));
     html.push_str("</div>");
@@ -782,7 +776,37 @@ pub async fn handle_analytics_chat(
     Html(html)
 }
 
-// Helper functions
+pub async fn handle_llm_stats(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    let service = AnalyticsService::new();
+    let stats = service.get_quick_stats().await;
+
+    let mut html = String::new();
+    html.push_str("<div class=\"llm-stats\">");
+    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Total Requests</span><span class=\"value\">{}</span></div>", stats.total_requests));
+    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Total Tokens</span><span class=\"value\">{}</span></div>", stats.total_tokens));
+    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Cache Hits</span><span class=\"value\">{}</span></div>", stats.cache_hits));
+    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Cache Hit Rate</span><span class=\"value\">{:.1}%</span></div>", stats.cache_hit_rate * 100.0));
+    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Error Rate</span><span class=\"value\">{:.1}%</span></div>", stats.error_rate * 100.0));
+    html.push_str("</div>");
+
+    Html(html)
+}
+
+pub async fn handle_budget_status(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    let service = AnalyticsService::new();
+    let manager = service.get_observability_manager().await;
+    let status = manager.get_budget_status().await;
+
+    let mut html = String::new();
+    html.push_str("<div class=\"budget-status\">");
+    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Daily Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.daily_spend, status.daily_limit));
+    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Monthly Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.monthly_spend, status.monthly_limit));
+    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Daily Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.daily_remaining, status.daily_percentage * 100.0));
+    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Monthly Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.monthly_remaining, status.monthly_percentage * 100.0));
+    html.push_str("</div>");
+
+    Html(html)
+}
 
 fn format_number(n: i64) -> String {
     if n >= 1_000_000 {

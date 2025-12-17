@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -60,9 +58,9 @@ pub struct FileSearchResult {
 /// Per-user drive vector DB manager
 #[derive(Debug)]
 pub struct UserDriveVectorDB {
-    _user_id: Uuid,
-    _bot_id: Uuid,
-    _collection_name: String,
+    user_id: Uuid,
+    bot_id: Uuid,
+    collection_name: String,
     db_path: PathBuf,
     #[cfg(feature = "vectordb")]
     client: Option<Arc<QdrantClient>>,
@@ -74,13 +72,25 @@ impl UserDriveVectorDB {
         let collection_name = format!("drive_{}_{}", bot_id, user_id);
 
         Self {
-            _user_id: user_id,
-            _bot_id: bot_id,
-            _collection_name: collection_name,
+            user_id,
+            bot_id,
+            collection_name,
             db_path,
             #[cfg(feature = "vectordb")]
             client: None,
         }
+    }
+
+    pub fn user_id(&self) -> Uuid {
+        self.user_id
+    }
+
+    pub fn bot_id(&self) -> Uuid {
+        self.bot_id
+    }
+
+    pub fn collection_name(&self) -> &str {
+        &self.collection_name
     }
 
     /// Initialize vector DB collection
@@ -93,13 +103,13 @@ impl UserDriveVectorDB {
         let exists = collections
             .collections
             .iter()
-            .any(|c| c.name == self._collection_name);
+            .any(|c| c.name == self.collection_name);
 
         if !exists {
             // Create collection for file embeddings (1536 dimensions for OpenAI embeddings)
             client
                 .create_collection(&CreateCollection {
-                    collection_name: self._collection_name.clone(),
+                    collection_name: self.collection_name.clone(),
                     vectors_config: Some(VectorsConfig {
                         config: Some(Config::Params(VectorParams {
                             size: 1536,
@@ -111,10 +121,7 @@ impl UserDriveVectorDB {
                 })
                 .await?;
 
-            log::info!(
-                "Initialized vector DB collection: {}",
-                self._collection_name
-            );
+            log::info!("Initialized vector DB collection: {}", self.collection_name);
         }
 
         self.client = Some(Arc::new(client));
@@ -143,7 +150,7 @@ impl UserDriveVectorDB {
         let point = PointStruct::new(file.id.clone(), embedding, payload);
 
         client
-            .upsert_points(self._collection_name.clone(), None, vec![point], None)
+            .upsert_points(self.collection_name.clone(), None, vec![point], None)
             .await?;
 
         log::debug!("Indexed file: {} - {}", file.id, file.file_name);
@@ -181,7 +188,7 @@ impl UserDriveVectorDB {
 
             if !points.is_empty() {
                 client
-                    .upsert_points(self._collection_name.clone(), None, points, None)
+                    .upsert_points(self.collection_name.clone(), None, points, None)
                     .await?;
             }
         }
@@ -241,7 +248,7 @@ impl UserDriveVectorDB {
 
         let search_result = client
             .search_points(&qdrant_client::qdrant::SearchPoints {
-                collection_name: self._collection_name.clone(),
+                collection_name: self.collection_name.clone(),
                 vector: query_embedding,
                 limit: query.limit as u64,
                 filter,
@@ -390,7 +397,7 @@ impl UserDriveVectorDB {
 
         client
             .delete_points(
-                self._collection_name.clone(),
+                self.collection_name.clone(),
                 &vec![file_id.into()].into(),
                 None,
             )
@@ -417,9 +424,7 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        let info = client
-            .collection_info(self._collection_name.clone())
-            .await?;
+        let info = client.collection_info(self.collection_name.clone()).await?;
 
         Ok(info.result.unwrap().points_count.unwrap_or(0))
     }
@@ -471,13 +476,13 @@ impl UserDriveVectorDB {
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
         client
-            .delete_collection(self._collection_name.clone())
+            .delete_collection(self.collection_name.clone())
             .await?;
 
         // Recreate empty collection
         client
             .create_collection(&CreateCollection {
-                collection_name: self._collection_name.clone(),
+                collection_name: self.collection_name.clone(),
                 vectors_config: Some(VectorsConfig {
                     config: Some(Config::Params(VectorParams {
                         size: 1536,
@@ -489,7 +494,7 @@ impl UserDriveVectorDB {
             })
             .await?;
 
-        log::info!("Cleared drive vector collection: {}", self._collection_name);
+        log::info!("Cleared drive vector collection: {}", self.collection_name);
         Ok(())
     }
 
@@ -650,6 +655,6 @@ mod tests {
         let temp_dir = std::env::temp_dir().join("test_drive_vectordb");
         let db = UserDriveVectorDB::new(Uuid::new_v4(), Uuid::new_v4(), temp_dir);
 
-        assert!(db._collection_name.starts_with("drive_"));
+        assert!(db.collection_name.starts_with("drive_"));
     }
 }
