@@ -749,6 +749,18 @@ impl ObservabilityManager {
     }
 
     /// Get quick stats
+    pub async fn get_current_metrics(&self) -> AggregatedMetrics {
+        self.current_metrics.read().await.clone()
+    }
+
+    pub async fn update_current_metrics(&self) {
+        let now = Utc::now();
+        let start = now - chrono::Duration::hours(1);
+        let metrics = self.get_aggregated_metrics(start, now).await;
+        let mut current = self.current_metrics.write().await;
+        *current = metrics;
+    }
+
     pub fn get_quick_stats(&self) -> QuickStats {
         QuickStats {
             total_requests: self.request_count.load(Ordering::Relaxed),

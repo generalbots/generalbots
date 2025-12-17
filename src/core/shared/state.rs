@@ -3,6 +3,10 @@ use crate::core::config::AppConfig;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::core::session::SessionManager;
 use crate::core::shared::analytics::MetricsCollector;
+#[cfg(all(test, feature = "directory"))]
+use crate::core::shared::test_utils::create_mock_auth_service;
+#[cfg(all(test, feature = "llm"))]
+use crate::core::shared::test_utils::MockLLMProvider;
 #[cfg(feature = "directory")]
 use crate::directory::AuthService;
 #[cfg(feature = "llm")]
@@ -198,71 +202,6 @@ impl std::fmt::Debug for AppState {
     }
 }
 
-#[cfg(feature = "llm")]
-#[derive(Debug)]
-#[allow(dead_code)]
-struct MockLLMProvider;
-
-#[cfg(feature = "llm")]
-#[async_trait::async_trait]
-impl LLMProvider for MockLLMProvider {
-    async fn generate(
-        &self,
-        _prompt: &str,
-        _config: &serde_json::Value,
-        _model: &str,
-        _key: &str,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        Ok("Mock response".to_string())
-    }
-
-    async fn generate_stream(
-        &self,
-        _prompt: &str,
-        _config: &serde_json::Value,
-        tx: mpsc::Sender<String>,
-        _model: &str,
-        _key: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let _ = tx.send("Mock response".to_string()).await;
-        Ok(())
-    }
-
-    async fn cancel_job(
-        &self,
-        _session_id: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        Ok(())
-    }
-}
-
-#[cfg(feature = "directory")]
-#[allow(dead_code)]
-fn create_mock_auth_service() -> AuthService {
-    use crate::directory::client::ZitadelConfig;
-
-    let config = ZitadelConfig {
-        issuer_url: "http://localhost:8080".to_string(),
-        issuer: "http://localhost:8080".to_string(),
-        client_id: "mock_client_id".to_string(),
-        client_secret: "mock_client_secret".to_string(),
-        redirect_uri: "http://localhost:3000/callback".to_string(),
-        project_id: "mock_project_id".to_string(),
-        api_url: "http://localhost:8080".to_string(),
-        service_account_key: None,
-    };
-
-    let rt = tokio::runtime::Handle::try_current()
-        .map(|h| h.block_on(AuthService::new(config.clone())))
-        .unwrap_or_else(|_| {
-            tokio::runtime::Runtime::new()
-                .expect("Failed to create runtime")
-                .block_on(AuthService::new(config))
-        });
-
-    rt.expect("Failed to create mock AuthService")
-}
-
 /// Default implementation for AppState - ONLY FOR TESTS
 /// This will panic if Vault is not configured, so it must only be used in test contexts.
 #[cfg(test)]
@@ -297,8 +236,8 @@ impl Default for AppState {
             session_manager: Arc::new(tokio::sync::Mutex::new(session_manager)),
             metrics_collector: MetricsCollector::new(),
             task_scheduler: None,
-            #[cfg(feature = "llm")]
-            llm_provider: Arc::new(MockLLMProvider),
+            #[cfg(all(test, feature = "llm"))]
+            llm_provider: Arc::new(MockLLMProvider::new()),
             #[cfg(feature = "directory")]
             auth_service: Arc::new(tokio::sync::Mutex::new(create_mock_auth_service())),
             channels: Arc::new(tokio::sync::Mutex::new(HashMap::new())),

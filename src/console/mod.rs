@@ -244,20 +244,35 @@ impl XtreeUI {
                 title_bg,
                 title_fg,
             );
-            if let Some(editor) = &self.editor {
-                self.render_editor(
-                    f,
-                    content_chunks[1],
-                    editor,
-                    bg,
-                    text,
-                    border_active,
-                    border_inactive,
-                    highlight,
-                    title_bg,
-                    title_fg,
-                    cursor_blink,
-                );
+            if let Some(editor) = &mut self.editor {
+                let area = content_chunks[1];
+                editor.set_visible_lines(area.height.saturating_sub(4) as usize);
+                let is_active = self.active_panel == ActivePanel::Editor;
+                let border_color = if is_active {
+                    border_active
+                } else {
+                    border_inactive
+                };
+                let title_style = if is_active {
+                    Style::default()
+                        .fg(title_fg)
+                        .bg(title_bg)
+                        .add_modifier(Modifier::BOLD)
+                } else {
+                    Style::default().fg(title_fg).bg(title_bg)
+                };
+                let title_text = format!(" EDITOR: {} ", editor.file_path());
+                let block = Block::default()
+                    .title(Span::styled(title_text, title_style))
+                    .borders(Borders::ALL)
+                    .border_style(Style::default().fg(border_color))
+                    .style(Style::default().bg(bg));
+                let content = editor.render(cursor_blink);
+                let paragraph = Paragraph::new(content)
+                    .block(block)
+                    .style(Style::default().fg(text))
+                    .wrap(Wrap { trim: false });
+                f.render_widget(paragraph, area);
             }
             self.render_chat(
                 f,
@@ -616,47 +631,6 @@ impl XtreeUI {
             .border_style(Style::default().fg(border_color))
             .style(Style::default().bg(bg));
         let paragraph = Paragraph::new(status_text)
-            .block(block)
-            .style(Style::default().fg(text))
-            .wrap(Wrap { trim: false });
-        f.render_widget(paragraph, area);
-    }
-    fn render_editor(
-        &self,
-        f: &mut Frame,
-        area: Rect,
-        editor: &Editor,
-        bg: Color,
-        text: Color,
-        border_active: Color,
-        border_inactive: Color,
-        _highlight: Color,
-        title_bg: Color,
-        title_fg: Color,
-        cursor_blink: bool,
-    ) {
-        let is_active = self.active_panel == ActivePanel::Editor;
-        let border_color = if is_active {
-            border_active
-        } else {
-            border_inactive
-        };
-        let title_style = if is_active {
-            Style::default()
-                .fg(title_fg)
-                .bg(title_bg)
-                .add_modifier(Modifier::BOLD)
-        } else {
-            Style::default().fg(title_fg).bg(title_bg)
-        };
-        let title_text = format!(" EDITOR: {} ", editor.file_path());
-        let block = Block::default()
-            .title(Span::styled(title_text, title_style))
-            .borders(Borders::ALL)
-            .border_style(Style::default().fg(border_color))
-            .style(Style::default().bg(bg));
-        let content = editor.render(cursor_blink);
-        let paragraph = Paragraph::new(content)
             .block(block)
             .style(Style::default().fg(text))
             .wrap(Wrap { trim: false });
