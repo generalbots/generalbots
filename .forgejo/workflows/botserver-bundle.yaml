@@ -14,6 +14,7 @@ env:
 
 jobs:
   build-bundle:
+    if: false # Workflow disabled - keep file for reference
     runs-on: gbo
 
     steps:
