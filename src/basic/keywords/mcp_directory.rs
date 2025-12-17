@@ -276,6 +276,7 @@ pub struct McpLoadError {
 }
 
 /// MCP CSV Loader
+#[derive(Debug)]
 pub struct McpCsvLoader {
     /// Base work path
     work_path: String,
@@ -421,11 +422,11 @@ impl McpCsvLoader {
             .get(7)
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
-        let risk_level = columns
+        let _risk_level = columns
             .get(8)
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty());
-        let requires_approval = columns
+        let _requires_approval = columns
             .get(9)
             .map(|s| s.trim().to_lowercase() == "true")
             .unwrap_or(false);
