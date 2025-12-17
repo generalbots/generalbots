@@ -378,23 +378,6 @@ impl SecretsManager {
     }
 }
 
-#[allow(dead_code)]
-fn parse_database_url(url: &str) -> Option<HashMap<String, String>> {
-    let url = url.strip_prefix("postgres://")?;
-    let (auth, rest) = url.split_once('@')?;
-    let (user, pass) = auth.split_once(':').unwrap_or((auth, ""));
-    let (host_port, database) = rest.split_once('/').unwrap_or((rest, "botserver"));
-    let (host, port) = host_port.split_once(':').unwrap_or((host_port, "5432"));
-
-    Some(HashMap::from([
-        ("username".into(), user.into()),
-        ("password".into(), pass.into()),
-        ("host".into(), host.into()),
-        ("port".into(), port.into()),
-        ("database".into(), database.into()),
-    ]))
-}
-
 pub fn init_secrets_manager() -> Result<SecretsManager> {
     SecretsManager::from_env()
 }
@@ -421,6 +404,42 @@ impl BootstrapConfig {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Helper function to parse database URL into HashMap for tests
+    fn parse_database_url(url: &str) -> Result<HashMap<String, String>> {
+        let mut result = HashMap::new();
+        if let Some(stripped) = url.strip_prefix("postgres://") {
+            let parts: Vec<&str> = stripped.split('@').collect();
+            if parts.len() == 2 {
+                let user_pass: Vec<&str> = parts[0].split(':').collect();
+                let host_db: Vec<&str> = parts[1].split('/').collect();
+
+                result.insert(
+                    "username".to_string(),
+                    user_pass.get(0).unwrap_or(&"").to_string(),
+                );
+                result.insert(
+                    "password".to_string(),
+                    user_pass.get(1).unwrap_or(&"").to_string(),
+                );
+
+                let host_port: Vec<&str> = host_db[0].split(':').collect();
+                result.insert(
+                    "host".to_string(),
+                    host_port.get(0).unwrap_or(&"").to_string(),
+                );
+                result.insert(
+                    "port".to_string(),
+                    host_port.get(1).unwrap_or(&"5432").to_string(),
+                );
+
+                if host_db.len() >= 2 {
+                    result.insert("database".to_string(), host_db[1].to_string());
+                }
+            }
+        }
+        Ok(result)
+    }
 
     #[test]
     fn test_parse_database_url() {

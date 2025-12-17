@@ -221,7 +221,7 @@ impl Default for TestAppStateBuilder {
 }
 
 #[cfg(feature = "directory")]
-fn create_mock_auth_service() -> AuthService {
+pub fn create_mock_auth_service() -> AuthService {
     let config = ZitadelConfig {
         issuer_url: "http://localhost:8080".to_string(),
         issuer: "http://localhost:8080".to_string(),

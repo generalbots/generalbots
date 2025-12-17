@@ -11,88 +11,65 @@ use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use tower_http::cors::CorsLayer;
+use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
-use botserver::basic;
 use botserver::core;
 use botserver::shared;
-
-#[cfg(feature = "console")]
-use botserver::console;
 
 // Re-exports from core
 use botserver::core::automation;
 use botserver::core::bootstrap;
 use botserver::core::bot;
-use botserver::core::config;
 use botserver::core::package_manager;
 use botserver::core::session;
 
-// Feature-gated modules
+// Feature-gated re-exports from botserver lib
 #[cfg(feature = "attendance")]
-mod attendance;
+use botserver::attendance;
 
 #[cfg(feature = "calendar")]
-mod calendar;
+use botserver::calendar;
 
 #[cfg(feature = "compliance")]
-mod compliance;
+use botserver::compliance;
 
 #[cfg(feature = "directory")]
-mod directory;
-
-#[cfg(feature = "drive")]
-mod drive;
+use botserver::directory;
 
 #[cfg(feature = "email")]
-mod email;
-
-#[cfg(feature = "instagram")]
-mod instagram;
+use botserver::email;
 
 #[cfg(feature = "llm")]
-mod llm;
+use botserver::llm;
 
 #[cfg(feature = "meet")]
-mod meet;
-
-#[cfg(feature = "msteams")]
-mod msteams;
-
-#[cfg(feature = "nvidia")]
-mod nvidia;
-
-#[cfg(feature = "vectordb")]
-mod vector_db;
-
-#[cfg(feature = "weba")]
-mod weba;
+use botserver::meet;
 
 #[cfg(feature = "whatsapp")]
-mod whatsapp;
+use botserver::whatsapp;
 
-use crate::automation::AutomationService;
-use crate::bootstrap::BootstrapManager;
-#[cfg(feature = "email")]
-use crate::email::{
-    add_email_account, delete_email_account, get_emails, get_latest_email_from,
-    list_email_accounts, list_emails, list_folders, save_click, save_draft, send_email,
-};
+use automation::AutomationService;
+use bootstrap::BootstrapManager;
 use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use botserver::core::bot::websocket_handler;
 use botserver::core::bot::BotOrchestrator;
 use botserver::core::config::AppConfig;
+#[cfg(feature = "email")]
+use email::{
+    add_email_account, delete_email_account, get_emails, get_latest_email_from,
+    list_email_accounts, list_emails, list_folders, save_click, save_draft, send_email,
+};
 
-// use crate::file::upload_file; // Module doesn't exist
 #[cfg(feature = "directory")]
-use crate::directory::auth_handler;
+use directory::auth_handler;
 #[cfg(feature = "meet")]
-use crate::meet::{voice_start, voice_stop};
-use crate::package_manager::InstallMode;
-use crate::session::{create_session, get_session_history, get_sessions, start_session};
-use crate::shared::state::AppState;
-use crate::shared::utils::create_conn;
-use crate::shared::utils::create_s3_operator;
+use meet::{voice_start, voice_stop};
+use package_manager::InstallMode;
+use session::{create_session, get_session_history, get_sessions, start_session};
+use shared::state::AppState;
+use shared::utils::create_conn;
+use shared::utils::create_s3_operator;
 
 // Use BootstrapProgress from lib.rs
 use botserver::BootstrapProgress;
@@ -212,7 +189,8 @@ async fn run_axum_server(
     {
         api_router = api_router
             .route(ApiUrls::AUTH, get(auth_handler))
-            .merge(crate::core::directory::api::configure_user_routes());
+            .merge(crate::core::directory::api::configure_user_routes())
+            .merge(crate::directory::router::configure());
     }
 
     #[cfg(feature = "meet")]
@@ -278,9 +256,20 @@ async fn run_axum_server(
     // Add OAuth authentication routes
     api_router = api_router.merge(crate::core::oauth::routes::configure());
 
+    // Get site_path for serving apps
+    let site_path = app_state
+        .config
+        .as_ref()
+        .map(|c| c.site_path.clone())
+        .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+
+    info!("Serving apps from: {}", site_path);
+
     let app = Router::new()
         // API routes
         .merge(api_router.with_state(app_state.clone()))
+        // Serve generated apps from site_path at /apps/*
+        .nest_service("/apps", ServeDir::new(&site_path))
         .layer(Extension(app_state.clone()))
         // Layers
         .layer(cors)

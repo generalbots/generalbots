@@ -348,8 +348,6 @@ pub async fn list_files(
 }
 
 #[cfg(feature = "console")]
-/// Convert a FileTree to a list of FileItems for display in the console UI
-#[allow(dead_code)]
 pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
     let mut items = Vec::new();
 

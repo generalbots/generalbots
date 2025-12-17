@@ -66,9 +66,13 @@ impl Editor {
     pub fn file_path(&self) -> &str {
         &self.file_path
     }
-    #[allow(dead_code)]
+
     pub fn set_visible_lines(&mut self, lines: usize) {
         self.visible_lines = lines.max(5);
+    }
+
+    pub fn visible_lines(&self) -> usize {
+        self.visible_lines
     }
 
     fn get_cursor_line(&self) -> usize {
@@ -90,10 +94,10 @@ impl Editor {
         }
     }
 
-    pub fn render(&self, cursor_blink: bool) -> String {
+    pub fn render(&mut self, cursor_blink: bool) -> String {
         let lines: Vec<&str> = self.content.lines().collect();
         let total_lines = lines.len().max(1);
-        let visible_lines = self.visible_lines;
+        let visible_lines = self.visible_lines();
         let cursor_line = self.get_cursor_line();
         let cursor_col = self.content[..self.cursor_pos]
             .lines()
@@ -189,19 +193,6 @@ impl Editor {
         }
     }
 
-    #[allow(dead_code)]
-    pub fn scroll_up(&mut self) {
-        self.scroll_offset = self.scroll_offset.saturating_sub(1);
-    }
-
-    #[allow(dead_code)]
-    pub fn scroll_down(&mut self) {
-        let total_lines = self.content.lines().count().max(1);
-        let max_scroll = total_lines.saturating_sub(self.visible_lines.saturating_sub(3));
-        if self.scroll_offset < max_scroll {
-            self.scroll_offset += 1;
-        }
-    }
     pub fn move_left(&mut self) {
         if self.cursor_pos > 0 {
             self.cursor_pos -= 1;
