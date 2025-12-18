@@ -1,8 +1,9 @@
+use crate::basic::keywords::use_account::{get_account_credentials, AccountCredentials};
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
@@ -25,7 +26,6 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let body = context.eval_expression_tree(&inputs[2])?.to_string();
                 let attachments_input = context.eval_expression_tree(&inputs[3])?;
 
-                // Parse attachments array
                 let mut attachments = Vec::new();
                 if attachments_input.is_array() {
                     let arr = attachments_input.cast::<rhai::Array>();
@@ -64,6 +64,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                                 &subject,
                                 &body,
                                 attachments,
+                                None,
                             )
                             .await
                         });
@@ -92,6 +93,83 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                         format!("SEND MAIL thread failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                }
+            },
+        )
+        .unwrap();
+
+    // SEND MAIL to, subject, body USING account
+    let state_clone2 = Arc::clone(&state);
+    let user_clone2 = user.clone();
+
+    engine
+        .register_custom_syntax(
+            &[
+                "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", "USING", "$expr$",
+            ],
+            false,
+            move |context, inputs| {
+                let to = context.eval_expression_tree(&inputs[0])?.to_string();
+                let subject = context.eval_expression_tree(&inputs[1])?.to_string();
+                let body = context.eval_expression_tree(&inputs[2])?.to_string();
+                let using_account = context.eval_expression_tree(&inputs[3])?.to_string();
+
+                info!(
+                    "SEND MAIL USING: to={}, subject={}, using={} for user={}",
+                    to, subject, using_account, user_clone2.user_id
+                );
+
+                let state_for_task = Arc::clone(&state_clone2);
+                let user_for_task = user_clone2.clone();
+
+                let (tx, rx) = std::sync::mpsc::channel();
+
+                std::thread::spawn(move || {
+                    let rt = tokio::runtime::Builder::new_multi_thread()
+                        .worker_threads(2)
+                        .enable_all()
+                        .build();
+
+                    let send_err = if let Ok(rt) = rt {
+                        let result = rt.block_on(async move {
+                            execute_send_mail(
+                                &state_for_task,
+                                &user_for_task,
+                                &to,
+                                &subject,
+                                &body,
+                                vec![],
+                                Some(using_account),
+                            )
+                            .await
+                        });
+                        tx.send(result).err()
+                    } else {
+                        tx.send(Err("Failed to build tokio runtime".to_string()))
+                            .err()
+                    };
+
+                    if send_err.is_some() {
+                        error!("Failed to send SEND MAIL USING result from thread");
+                    }
+                });
+
+                match rx.recv_timeout(std::time::Duration::from_secs(30)) {
+                    Ok(Ok(message_id)) => Ok(Dynamic::from(message_id)),
+                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("SEND MAIL USING failed: {}", e).into(),
+                        rhai::Position::NONE,
+                    ))),
+                    Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
+                        Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "SEND MAIL USING timed out".into(),
+                            rhai::Position::NONE,
+                        )))
+                    }
+                    Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                        format!("SEND MAIL USING thread failed: {}", e).into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -194,13 +272,20 @@ async fn execute_send_mail(
     subject: &str,
     body: &str,
     attachments: Vec<String>,
+    using_account: Option<String>,
 ) -> Result<String, String> {
     let message_id = Uuid::new_v4().to_string();
 
-    // Track email in communication history
     track_email(state, user, &message_id, to, subject, "sent").await?;
 
-    // Send the actual email if email feature is enabled
+    if let Some(account_email) = using_account {
+        let creds = get_account_credentials(&state.conn, &account_email, user.bot_id)
+            .await
+            .map_err(|e| format!("Failed to get account credentials: {}", e))?;
+
+        return send_via_connected_account(state, &creds, to, subject, body, attachments).await;
+    }
+
     #[cfg(feature = "email")]
     {
         use crate::email::EmailService;
@@ -225,10 +310,112 @@ async fn execute_send_mail(
         }
     }
 
-    // Fallback: store as draft if email sending fails
     save_email_draft(state, user, to, subject, body, attachments).await?;
 
     Ok(format!("Email saved as draft: {}", message_id))
+}
+
+async fn send_via_connected_account(
+    state: &AppState,
+    creds: &AccountCredentials,
+    to: &str,
+    subject: &str,
+    body: &str,
+    _attachments: Vec<String>,
+) -> Result<String, String> {
+    let message_id = Uuid::new_v4().to_string();
+
+    match creds.provider.as_str() {
+        "gmail" | "google" => {
+            send_via_gmail(state, creds, to, subject, body).await?;
+        }
+        "outlook" | "microsoft" | "hotmail" => {
+            send_via_outlook(state, creds, to, subject, body).await?;
+        }
+        _ => {
+            return Err(format!("Unsupported email provider: {}", creds.provider));
+        }
+    }
+
+    info!("Email sent via {} account: {}", creds.provider, message_id);
+    Ok(format!("Email sent via {}: {}", creds.provider, message_id))
+}
+
+async fn send_via_gmail(
+    _state: &AppState,
+    creds: &AccountCredentials,
+    to: &str,
+    subject: &str,
+    body: &str,
+) -> Result<(), String> {
+    let client = reqwest::Client::new();
+
+    let raw_message = format!(
+        "To: {}\r\nSubject: {}\r\nContent-Type: text/html; charset=utf-8\r\n\r\n{}",
+        to, subject, body
+    );
+    let encoded = base64::Engine::encode(
+        &base64::engine::general_purpose::URL_SAFE,
+        raw_message.as_bytes(),
+    );
+
+    let response = client
+        .post("https://gmail.googleapis.com/gmail/v1/users/me/messages/send")
+        .bearer_auth(&creds.access_token)
+        .json(&serde_json::json!({ "raw": encoded }))
+        .send()
+        .await
+        .map_err(|e| format!("Gmail API request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("Gmail API error: {}", error_text));
+    }
+
+    Ok(())
+}
+
+async fn send_via_outlook(
+    _state: &AppState,
+    creds: &AccountCredentials,
+    to: &str,
+    subject: &str,
+    body: &str,
+) -> Result<(), String> {
+    let client = reqwest::Client::new();
+
+    let message = serde_json::json!({
+        "message": {
+            "subject": subject,
+            "body": {
+                "contentType": "HTML",
+                "content": body
+            },
+            "toRecipients": [
+                {
+                    "emailAddress": {
+                        "address": to
+                    }
+                }
+            ]
+        },
+        "saveToSentItems": "true"
+    });
+
+    let response = client
+        .post("https://graph.microsoft.com/v1.0/me/sendMail")
+        .bearer_auth(&creds.access_token)
+        .json(&message)
+        .send()
+        .await
+        .map_err(|e| format!("Microsoft Graph request failed: {}", e))?;
+
+    if !response.status().is_success() {
+        let error_text = response.text().await.unwrap_or_default();
+        return Err(format!("Microsoft Graph error: {}", error_text));
+    }
+
+    Ok(())
 }
 
 async fn execute_send_template(
@@ -243,15 +430,12 @@ async fn execute_send_template(
     let mut sent_count = 0;
 
     for recipient in recipients {
-        // Personalize template for each recipient
         let personalized_content =
             apply_template_variables(&template_content, &variables, &recipient)?;
 
-        // Extract subject from template or use default
         let subject = extract_template_subject(&personalized_content)
             .unwrap_or_else(|| format!("Message from {}", user.user_id));
 
-        // Send email
         if let Ok(_) = execute_send_mail(
             state,
             user,
@@ -259,13 +443,13 @@ async fn execute_send_template(
             &subject,
             &personalized_content,
             vec![],
+            None,
         )
         .await
         {
             sent_count += 1;
         }
 
-        // Add small delay to avoid rate limiting
         tokio::time::sleep(std::time::Duration::from_millis(100)).await;
     }
 
