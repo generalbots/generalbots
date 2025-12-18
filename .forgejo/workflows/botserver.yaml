@@ -9,6 +9,7 @@ on:
 env:
   CARGO_BUILD_JOBS: 1
   CARGO_INCREMENTAL: 0
+  RUSTFLAGS: "-C codegen-units=1"
 
 jobs:
   build:
