@@ -9,14 +9,15 @@ on:
 env:
   CARGO_BUILD_JOBS: 1
   CARGO_INCREMENTAL: 0
-  RUSTFLAGS: "-C codegen-units=1"
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: 1
 
 jobs:
   build:
     runs-on: gbo
 
     steps:
-      - name: Disable SSL verification (temporary)
+      - name: Disable SSL verification
         run: git config --global http.sslVerify false
 
       - uses: actions/checkout@v4
@@ -31,62 +32,53 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-botserver-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-botserver-
+            ${{ runner.os }}-cargo-release-
 
-      - name: Setup swap for low-memory builds
+      - name: Setup swap
         run: |
-          sudo fallocate -l 4G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+          sudo swapoff -a 2>/dev/null || true
+          sudo rm -f /swapfile
+          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
           sudo chmod 600 /swapfile
           sudo mkswap /swapfile
           sudo swapon /swapfile
-          echo "Swap enabled:"
           free -h
 
       - name: Install system dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y libpq-dev libssl-dev liblzma-dev
+          sudo apt-get install -y libpq-dev libssl-dev liblzma-dev pkg-config
 
       - name: Install Rust
         run: |
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-          export PATH="$HOME/.cargo/bin:$PATH"
-          rustc --version
-          cargo --version
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable --profile minimal
+          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
       - name: Setup environment
-        run: sudo cp /opt/gbo/bin/system/.env . || true
+        run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
 
-      - name: Build Linux x86_64 (minimal features first)
+      - name: Build release
+        env:
+          RUSTFLAGS: "-C codegen-units=1 -C link-arg=-Wl,--no-keep-memory"
         run: |
-          export PATH="$HOME/.cargo/bin:$PATH"
-          # Build dependencies first with minimal features to cache them
-          cargo build --locked --no-default-features --features "chat,cache,tasks" 2>&1 || true
-          # Then build with all default features
-          cargo build --locked 2>&1 | tee /tmp/botserver-build.log
-          echo "Build exit code: $?"
-          tail -100 /tmp/botserver-build.log
+          cargo build --release --locked -j 1 2>&1 | tee /tmp/build.log
+          ls -lh target/release/botserver
 
       - name: Save build log
         if: always()
         run: |
           sudo mkdir -p /opt/gbo/logs
-          sudo cp /tmp/botserver-build.log /opt/gbo/logs/botserver-build-$(date +%Y%m%d-%H%M%S).log || true
-          sudo tail -200 /tmp/botserver-build.log || true
+          sudo cp /tmp/build.log /opt/gbo/logs/botserver-$(date +%Y%m%d-%H%M%S).log || true
 
-      - name: Prepare release artifacts
+      - name: Deploy
         run: |
           sudo mkdir -p /opt/gbo/releases/botserver/linux
-          sudo cp ./target/debug/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
-          sudo chmod -R 755 /opt/gbo/releases/botserver/
+          sudo cp target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64
+          sudo chmod 755 /opt/gbo/releases/botserver/linux/botserver-x86_64
 
-      - name: Deploy to production and restart
-        run: |
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
-
-          sudo cp ./target/debug/botserver /opt/gbo/bin/system/botserver
+          sudo cp target/release/botserver /opt/gbo/bin/system/botserver
           sudo chmod +x /opt/gbo/bin/system/botserver
-
           lxc exec bot:pragmatismo-system -- systemctl start system || true
