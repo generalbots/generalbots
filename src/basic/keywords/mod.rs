@@ -46,6 +46,8 @@ pub mod messaging;
 pub mod model_routing;
 pub mod multimodal;
 pub mod on;
+pub mod on_change;
+pub mod on_email;
 pub mod on_form_submit;
 pub mod play;
 pub mod print;
@@ -68,6 +70,7 @@ pub mod switch_case;
 pub mod table_definition;
 pub mod transfer_to_human;
 pub mod universal_messaging;
+pub mod use_account;
 pub mod use_kb;
 pub mod use_tool;
 pub mod use_website;
@@ -223,6 +226,7 @@ pub fn get_all_keywords() -> Vec<String> {
         // Knowledge
         "CLEAR KB".to_string(),
         "USE KB".to_string(),
+        "USE ACCOUNT".to_string(),
         "USE WEBSITE".to_string(),
         // AI/LLM
         "LLM".to_string(),
@@ -237,6 +241,8 @@ pub fn get_all_keywords() -> Vec<String> {
         "TALK".to_string(),
         // Events
         "ON".to_string(),
+        "ON EMAIL".to_string(),
+        "ON CHANGE".to_string(),
         "SET SCHEDULE".to_string(),
         "WEBHOOK".to_string(),
         // Session
@@ -380,6 +386,16 @@ pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>
             "OPTION A OR B".to_string(),
             "DECIDE".to_string(),
             "ESCALATE".to_string(),
+        ],
+    );
+
+    categories.insert(
+        "Monitors".to_string(),
+        vec![
+            "ON EMAIL".to_string(),
+            "ON CHANGE".to_string(),
+            "SET SCHEDULE".to_string(),
+            "WEBHOOK".to_string(),
         ],
     );
 

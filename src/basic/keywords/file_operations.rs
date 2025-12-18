@@ -28,6 +28,9 @@
 |                                                                             |
 \*****************************************************************************/
 
+use crate::basic::keywords::use_account::{
+    get_account_credentials, is_account_path, parse_account_path,
+};
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -1100,6 +1103,13 @@ async fn execute_copy(
     source: &str,
     destination: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let source_is_account = is_account_path(source);
+    let dest_is_account = is_account_path(destination);
+
+    if source_is_account || dest_is_account {
+        return execute_copy_with_account(state, user, source, destination).await;
+    }
+
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
@@ -1129,6 +1139,179 @@ async fn execute_copy(
         .map_err(|e| format!("S3 copy failed: {}", e))?;
 
     trace!("COPY successful: {} -> {}", source, destination);
+    Ok(())
+}
+
+async fn execute_copy_with_account(
+    state: &AppState,
+    user: &UserSession,
+    source: &str,
+    destination: &str,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let source_is_account = is_account_path(source);
+    let dest_is_account = is_account_path(destination);
+
+    let content = if source_is_account {
+        let (email, path) = parse_account_path(source).ok_or("Invalid account:// path format")?;
+        let creds = get_account_credentials(&state.conn, &email, user.bot_id)
+            .await
+            .map_err(|e| format!("Failed to get credentials: {}", e))?;
+        download_from_account(&creds, &path).await?
+    } else {
+        read_from_local(state, user, source).await?
+    };
+
+    if dest_is_account {
+        let (email, path) =
+            parse_account_path(destination).ok_or("Invalid account:// path format")?;
+        let creds = get_account_credentials(&state.conn, &email, user.bot_id)
+            .await
+            .map_err(|e| format!("Failed to get credentials: {}", e))?;
+        upload_to_account(&creds, &path, &content).await?;
+    } else {
+        write_to_local(state, user, destination, &content).await?;
+    }
+
+    trace!(
+        "COPY with account successful: {} -> {}",
+        source,
+        destination
+    );
+    Ok(())
+}
+
+async fn download_from_account(
+    creds: &crate::basic::keywords::use_account::AccountCredentials,
+    path: &str,
+) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let client = reqwest::Client::new();
+
+    match creds.provider.as_str() {
+        "gmail" | "google" => {
+            let url = format!(
+                "https://www.googleapis.com/drive/v3/files/{}?alt=media",
+                urlencoding::encode(path)
+            );
+            let resp = client
+                .get(&url)
+                .bearer_auth(&creds.access_token)
+                .send()
+                .await?;
+            if !resp.status().is_success() {
+                return Err(format!("Google Drive download failed: {}", resp.status()).into());
+            }
+            Ok(resp.bytes().await?.to_vec())
+        }
+        "outlook" | "microsoft" => {
+            let url = format!(
+                "https://graph.microsoft.com/v1.0/me/drive/root:/{}:/content",
+                urlencoding::encode(path)
+            );
+            let resp = client
+                .get(&url)
+                .bearer_auth(&creds.access_token)
+                .send()
+                .await?;
+            if !resp.status().is_success() {
+                return Err(format!("OneDrive download failed: {}", resp.status()).into());
+            }
+            Ok(resp.bytes().await?.to_vec())
+        }
+        _ => Err(format!("Unsupported provider: {}", creds.provider).into()),
+    }
+}
+
+async fn upload_to_account(
+    creds: &crate::basic::keywords::use_account::AccountCredentials,
+    path: &str,
+    content: &[u8],
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let client = reqwest::Client::new();
+
+    match creds.provider.as_str() {
+        "gmail" | "google" => {
+            let url = format!(
+                "https://www.googleapis.com/upload/drive/v3/files?uploadType=media&name={}",
+                urlencoding::encode(path)
+            );
+            let resp = client
+                .post(&url)
+                .bearer_auth(&creds.access_token)
+                .body(content.to_vec())
+                .send()
+                .await?;
+            if !resp.status().is_success() {
+                return Err(format!("Google Drive upload failed: {}", resp.status()).into());
+            }
+        }
+        "outlook" | "microsoft" => {
+            let url = format!(
+                "https://graph.microsoft.com/v1.0/me/drive/root:/{}:/content",
+                urlencoding::encode(path)
+            );
+            let resp = client
+                .put(&url)
+                .bearer_auth(&creds.access_token)
+                .body(content.to_vec())
+                .send()
+                .await?;
+            if !resp.status().is_success() {
+                return Err(format!("OneDrive upload failed: {}", resp.status()).into());
+            }
+        }
+        _ => return Err(format!("Unsupported provider: {}", creds.provider).into()),
+    }
+    Ok(())
+}
+
+async fn read_from_local(
+    state: &AppState,
+    user: &UserSession,
+    path: &str,
+) -> Result<Vec<u8>, Box<dyn Error + Send + Sync>> {
+    let client = state.drive.as_ref().ok_or("S3 client not configured")?;
+    let bot_name: String = {
+        let mut db_conn = state.conn.get()?;
+        bots.filter(id.eq(&user.bot_id))
+            .select(name)
+            .first(&mut *db_conn)?
+    };
+    let bucket_name = format!("{}.gbai", bot_name);
+    let key = format!("{}.gbdrive/{}", bot_name, path);
+
+    let result = client
+        .get_object()
+        .bucket(&bucket_name)
+        .key(&key)
+        .send()
+        .await?;
+    let bytes = result.body.collect().await?.into_bytes();
+    Ok(bytes.to_vec())
+}
+
+async fn write_to_local(
+    state: &AppState,
+    user: &UserSession,
+    path: &str,
+    content: &[u8],
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    let client = state.drive.as_ref().ok_or("S3 client not configured")?;
+    let bot_name: String = {
+        let mut db_conn = state.conn.get()?;
+        bots.filter(id.eq(&user.bot_id))
+            .select(name)
+            .first(&mut *db_conn)?
+    };
+    let bucket_name = format!("{}.gbai", bot_name);
+    let key = format!("{}.gbdrive/{}", bot_name, path);
+
+    client
+        .put_object()
+        .bucket(&bucket_name)
+        .key(&key)
+        .body(content.to_vec().into())
+        .send()
+        .await?;
     Ok(())
 }
 
