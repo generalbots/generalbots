@@ -5,6 +5,8 @@ use std::collections::HashMap;
 use std::env;
 use std::process::Command;
 
+const VERSION: &str = env!("CARGO_PKG_VERSION");
+
 pub async fn run() -> Result<()> {
     let args: Vec<String> = env::args().collect();
     if args.len() < 2 {
@@ -163,6 +165,10 @@ pub async fn run() -> Result<()> {
                 println!("x Component '{}' is not installed", component);
             }
         }
+        "version" => {
+            let show_all = args.contains(&"--all".to_string());
+            print_version(show_all).await?;
+        }
         "vault" => {
             if args.len() < 3 {
                 print_vault_usage();
@@ -204,6 +210,9 @@ pub async fn run() -> Result<()> {
                 }
             }
         }
+        "--version" | "-v" => {
+            print_version(false).await?;
+        }
         "--help" | "-h" => {
             print_usage();
         }
@@ -216,7 +225,7 @@ pub async fn run() -> Result<()> {
 }
 
 fn print_usage() {
-    println!("BotServer CLI");
+    println!("BotServer CLI v{}", VERSION);
     println!();
     println!("Usage: botserver <command> [options]");
     println!();
@@ -229,6 +238,8 @@ fn print_usage() {
     println!("  stop                 Stop all components");
     println!("  restart              Restart all components");
     println!("  vault <subcommand>   Manage Vault secrets");
+    println!("  version [--all]      Show version information");
+    println!("  --version, -v        Show version");
     println!("  --help, -h           Show this help");
     println!();
     println!("Options:");
@@ -547,6 +558,66 @@ async fn vault_list() -> Result<()> {
     println!("  gbo/custom - Custom database");
 
     Ok(())
+}
+
+async fn print_version(show_all: bool) -> Result<()> {
+    println!("botserver {}", VERSION);
+
+    if show_all {
+        println!();
+        println!("Build Information:");
+        println!("  rustc: {}", rustc_version());
+        println!("  target: {}", std::env::consts::ARCH);
+        println!("  os: {}", std::env::consts::OS);
+        println!();
+
+        // Check installed components
+        let mode = InstallMode::Local;
+        if let Ok(pm) = PackageManager::new(mode, None) {
+            println!("Installed Components:");
+            let components = pm.list();
+            let mut installed_count = 0;
+            for component in &components {
+                if pm.is_installed(component) {
+                    println!("  * {} (installed)", component);
+                    installed_count += 1;
+                }
+            }
+            if installed_count == 0 {
+                println!("  (none)");
+            }
+            println!();
+            println!("Available Components: {}", components.len());
+        }
+
+        // Check Vault status
+        println!();
+        println!("Secrets:");
+        if let Ok(manager) = SecretsManager::from_env() {
+            if manager.is_enabled() {
+                match manager.health_check().await {
+                    Ok(true) => println!("  Vault: connected"),
+                    _ => println!("  Vault: not reachable"),
+                }
+            } else {
+                println!("  Vault: not configured");
+            }
+        } else {
+            println!("  Vault: not configured");
+        }
+    }
+
+    Ok(())
+}
+
+fn rustc_version() -> String {
+    Command::new("rustc")
+        .arg("--version")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| "unknown".to_string())
 }
 
 async fn vault_health() -> Result<()> {
