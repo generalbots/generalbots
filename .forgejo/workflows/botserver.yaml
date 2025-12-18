@@ -10,7 +10,6 @@ env:
   CARGO_BUILD_JOBS: 1
   CARGO_INCREMENTAL: 0
   CARGO_NET_RETRY: 10
-  RUST_BACKTRACE: 1
 
 jobs:
   build:
@@ -32,19 +31,9 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-release-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ runner.os }}-cargo-debug-${{ hashFiles('**/Cargo.lock') }}
           restore-keys: |
-            ${{ runner.os }}-cargo-release-
-
-      - name: Setup swap
-        run: |
-          sudo swapoff -a 2>/dev/null || true
-          sudo rm -f /swapfile
-          sudo dd if=/dev/zero of=/swapfile bs=1M count=4096 status=progress
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+            ${{ runner.os }}-cargo-debug-
 
       - name: Install system dependencies
         run: |
@@ -59,12 +48,10 @@ jobs:
       - name: Setup environment
         run: sudo cp /opt/gbo/bin/system/.env . 2>/dev/null || true
 
-      - name: Build release
-        env:
-          RUSTFLAGS: "-C codegen-units=1 -C link-arg=-Wl,--no-keep-memory"
+      - name: Build debug
         run: |
-          cargo build --release --locked -j 1 2>&1 | tee /tmp/build.log
-          ls -lh target/release/botserver
+          cargo build --locked -j 1 2>&1 | tee /tmp/build.log
+          ls -lh target/debug/botserver
 
       - name: Save build log
         if: always()
@@ -75,10 +62,10 @@ jobs:
       - name: Deploy
         run: |
           sudo mkdir -p /opt/gbo/releases/botserver/linux
-          sudo cp target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64
+          sudo cp target/debug/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64
           sudo chmod 755 /opt/gbo/releases/botserver/linux/botserver-x86_64
 
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
-          sudo cp target/release/botserver /opt/gbo/bin/system/botserver
+          sudo cp target/debug/botserver /opt/gbo/bin/system/botserver
           sudo chmod +x /opt/gbo/bin/system/botserver
           lxc exec bot:pragmatismo-system -- systemctl start system || true
