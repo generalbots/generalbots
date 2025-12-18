@@ -5,6 +5,45 @@
 
 ---
 
+## Weekly Maintenance - EVERY MONDAY
+
+### Package Review Checklist
+
+**Every Monday, review the following:**
+
+1. **Dependency Updates**
+   ```bash
+   cargo outdated
+   cargo audit
+   ```
+
+2. **Package Consolidation Opportunities**
+   - Check if new crates can replace custom code
+   - Look for crates that combine multiple dependencies
+   - Review `Cargo.toml` for redundant dependencies
+
+3. **Code Reduction Candidates**
+   - Custom implementations that now have crate equivalents
+   - Boilerplate that can be replaced with derive macros
+   - Manual serialization that `serde` can handle
+
+4. **Security Updates**
+   ```bash
+   cargo audit fix
+   ```
+
+### Packages to Watch
+
+| Area | Potential Packages | Purpose |
+|------|-------------------|---------|
+| Validation | `validator` | Replace manual validation |
+| Date/Time | `chrono`, `time` | Consolidate time handling |
+| Email | `lettre` | Simplify email sending |
+| File Watching | `notify` | Replace polling with events |
+| Background Jobs | `tokio-cron-scheduler` | Simplify scheduling |
+
+---
+
 ## Version Management - CRITICAL
 
 **Current version is 6.1.0 - DO NOT CHANGE without explicit approval!**
@@ -499,3 +538,123 @@ src/shared/
 - **Migrations**: TABLES AND INDEXES ONLY - no views, triggers, functions
 - **Stalwart**: Use Stalwart IMAP/JMAP API for email features (sieve, filters, etc.)
 - **JSON**: Use TEXT columns with `_json` suffix, not JSONB
+
+---
+
+## Monitor Keywords (ON EMAIL, ON CHANGE)
+
+These keywords register event-driven monitors similar to `SET SCHEDULER`, but triggered by external events.
+
+### ON EMAIL - Email Monitoring
+
+Triggers a script when an email arrives at the specified address.
+
+```basic
+' Basic usage - trigger on any email to address
+ON EMAIL "support@company.com"
+    email = GET LAST "email_received_events"
+    TALK "New email from " + email.from_address + ": " + email.subject
+END ON
+
+' With FROM filter - only trigger for specific sender
+ON EMAIL "orders@company.com" FROM "supplier@vendor.com"
+    ' Process supplier orders
+END ON
+
+' With SUBJECT filter - only trigger for matching subjects
+ON EMAIL "alerts@company.com" SUBJECT "URGENT"
+    ' Handle urgent alerts
+END ON
+```
+
+**Database Tables:**
+- `email_monitors` - Configuration for email monitoring
+- `email_received_events` - Log of received emails to process
+
+**TriggerKind:** `EmailReceived = 5`
+
+### ON CHANGE - Folder Monitoring
+
+Triggers a script when files change in cloud storage folders (GDrive, OneDrive, Dropbox) or local filesystem.
+
+**Uses same `account://` syntax as COPY, MOVE, and other file operations.**
+
+```basic
+' Using account:// syntax (recommended) - auto-detects provider from email
+ON CHANGE "account://user@gmail.com/Documents/invoices"
+    file = GET LAST "folder_change_events"
+    TALK "File changed: " + file.file_name + " (" + file.event_type + ")"
+END ON
+
+' OneDrive via account://
+ON CHANGE "account://user@outlook.com/Business/contracts"
+    ' Process OneDrive changes
+END ON
+
+' Direct provider syntax (without account)
+ON CHANGE "gdrive:///shared/reports"
+    ' Process Google Drive changes (requires USE ACCOUNT first)
+END ON
+
+ON CHANGE "onedrive:///documents"
+    ' Process OneDrive changes
+END ON
+
+ON CHANGE "dropbox:///team/assets"
+    ' Process Dropbox changes
+END ON
+
+' Local filesystem monitoring
+ON CHANGE "/var/uploads/incoming"
+    ' Process local filesystem changes
+END ON
+
+' With specific event types filter
+ON CHANGE "account://user@gmail.com/uploads" EVENTS "create, modify"
+    ' Only trigger on create and modify, ignore delete
+END ON
+
+' Watch for deletions only
+ON CHANGE "gdrive:///archive" EVENTS "delete"
+    ' Log when files are removed from archive
+END ON
+```
+
+**Path Syntax:**
+- `account://email@domain.com/path` - Uses connected account (auto-detects provider)
+- `gdrive:///path` - Google Drive direct
+- `onedrive:///path` - OneDrive direct
+- `dropbox:///path` - Dropbox direct
+- `/local/path` - Local filesystem
+
+**Provider Auto-Detection (from email):**
+- `@gmail.com`, `@google.com` → Google Drive
+- `@outlook.com`, `@hotmail.com`, `@live.com` → OneDrive
+- Other emails → Default to Google Drive
+
+**Event Types:**
+- `create` - New file created
+- `modify` - File content changed
+- `delete` - File deleted
+- `rename` - File renamed
+- `move` - File moved to different folder
+
+**Database Tables:**
+- `folder_monitors` - Configuration for folder monitoring
+- `folder_change_events` - Log of detected changes to process
+
+**TriggerKind:** `FolderChange = 6`
+
+### TriggerKind Enum Values
+
+```rust
+pub enum TriggerKind {
+    Scheduled = 0,      // SET SCHEDULER
+    TableUpdate = 1,    // ON UPDATE OF "table"
+    TableInsert = 2,    // ON INSERT OF "table"
+    TableDelete = 3,    // ON DELETE OF "table"
+    Webhook = 4,        // WEBHOOK
+    EmailReceived = 5,  // ON EMAIL
+    FolderChange = 6,   // ON CHANGE
+}
+```
