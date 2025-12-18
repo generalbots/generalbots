@@ -271,3 +271,17 @@ inherits = "release"
 lto = false
 codegen-units = 16
 debug = false
+
+[profile.low-memory]
+inherits = "release"
+lto = "thin"
+codegen-units = 16
+debug = false
+incremental = false
+opt-level = "s"
+
+[profile.dev]
+debug = 0
+incremental = true
+codegen-units = 256
+opt-level = 0
