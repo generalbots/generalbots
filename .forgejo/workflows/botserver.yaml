@@ -35,6 +35,15 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-cargo-botserver-
 
+      - name: Setup swap for low-memory builds
+        run: |
+          sudo fallocate -l 4G /swapfile || sudo dd if=/dev/zero of=/swapfile bs=1M count=4096
+          sudo chmod 600 /swapfile
+          sudo mkswap /swapfile
+          sudo swapon /swapfile
+          echo "Swap enabled:"
+          free -h
+
       - name: Install system dependencies
         run: |
           sudo apt-get update
@@ -50,9 +59,12 @@ jobs:
       - name: Setup environment
         run: sudo cp /opt/gbo/bin/system/.env . || true
 
-      - name: Build Linux x86_64
+      - name: Build Linux x86_64 (minimal features first)
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
+          # Build dependencies first with minimal features to cache them
+          cargo build --locked --no-default-features --features "chat,cache,tasks" 2>&1 || true
+          # Then build with all default features
           cargo build --locked 2>&1 | tee /tmp/botserver-build.log
           echo "Build exit code: $?"
           tail -100 /tmp/botserver-build.log
