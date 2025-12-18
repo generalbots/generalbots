@@ -1,6 +1,7 @@
 use crate::core::secrets::{SecretPaths, SecretsManager};
 use crate::package_manager::{get_all_components, InstallMode, PackageManager};
 use anyhow::Result;
+use rand::Rng;
 use std::collections::HashMap;
 use std::env;
 use std::process::Command;
@@ -169,6 +170,24 @@ pub async fn run() -> Result<()> {
             let show_all = args.contains(&"--all".to_string());
             print_version(show_all).await?;
         }
+        "rotate-secret" => {
+            if args.len() < 3 {
+                eprintln!("Usage: botserver rotate-secret <component>");
+                eprintln!("Components: tables, drive, cache, email, directory, encryption");
+                return Ok(());
+            }
+            let component = &args[2];
+            rotate_secret(component).await?;
+        }
+        "rotate-secrets" => {
+            let rotate_all = args.contains(&"--all".to_string());
+            if rotate_all {
+                rotate_all_secrets().await?;
+            } else {
+                eprintln!("Usage: botserver rotate-secrets --all");
+                eprintln!("This will rotate ALL secrets. Use with caution!");
+            }
+        }
         "vault" => {
             if args.len() < 3 {
                 print_vault_usage();
@@ -238,6 +257,8 @@ fn print_usage() {
     println!("  stop                 Stop all components");
     println!("  restart              Restart all components");
     println!("  vault <subcommand>   Manage Vault secrets");
+    println!("  rotate-secret <comp> Rotate a component's credentials");
+    println!("  rotate-secrets --all Rotate ALL credentials (dangerous!)");
     println!("  version [--all]      Show version information");
     println!("  --version, -v        Show version");
     println!("  --help, -h           Show this help");
@@ -618,6 +639,343 @@ fn rustc_version() -> String {
         .and_then(|o| String::from_utf8(o.stdout).ok())
         .map(|s| s.trim().to_string())
         .unwrap_or_else(|| "unknown".to_string())
+}
+
+fn generate_password(length: usize) -> String {
+    const CHARSET: &[u8] =
+        b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+    let mut rng = rand::rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+fn generate_access_key() -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+    let mut rng = rand::rng();
+    (0..20)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+fn generate_secret_key() -> String {
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut rng = rand::rng();
+    (0..40)
+        .map(|_| {
+            let idx = rng.random_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+async fn rotate_secret(component: &str) -> Result<()> {
+    let manager = SecretsManager::from_env()?;
+    if !manager.is_enabled() {
+        return Err(anyhow::anyhow!(
+            "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN"
+        ));
+    }
+
+    println!("Rotating credentials for: {}", component);
+    println!();
+
+    match component {
+        "tables" => {
+            let new_password = generate_password(32);
+            let mut secrets = manager
+                .get_secret(SecretPaths::TABLES)
+                .await
+                .unwrap_or_default();
+            let old_password = secrets.get("password").cloned().unwrap_or_default();
+            secrets.insert("password".to_string(), new_password.clone());
+
+            println!("⚠️  WARNING: You must update PostgreSQL with the new password!");
+            println!();
+            println!("Run this SQL command:");
+            println!(
+                "  ALTER USER {} WITH PASSWORD '{}';",
+                secrets.get("username").unwrap_or(&"postgres".to_string()),
+                new_password
+            );
+            println!();
+            println!(
+                "Old password: {}...",
+                &old_password.chars().take(4).collect::<String>()
+            );
+            println!(
+                "New password: {}...",
+                &new_password.chars().take(4).collect::<String>()
+            );
+
+            print!("Save to Vault? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim().to_lowercase() == "y" {
+                manager.put_secret(SecretPaths::TABLES, secrets).await?;
+                println!("✓ Credentials saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        "drive" => {
+            let new_accesskey = generate_access_key();
+            let new_secret = generate_secret_key();
+            let mut secrets = manager
+                .get_secret(SecretPaths::DRIVE)
+                .await
+                .unwrap_or_default();
+
+            println!("⚠️  WARNING: You must update MinIO with the new credentials!");
+            println!();
+            println!("Run these commands:");
+            println!(
+                "  mc admin user add myminio {} {}",
+                new_accesskey, new_secret
+            );
+            println!(
+                "  mc admin policy attach myminio readwrite --user {}",
+                new_accesskey
+            );
+            println!();
+            println!("New access key: {}", new_accesskey);
+            println!(
+                "New secret key: {}...",
+                &new_secret.chars().take(8).collect::<String>()
+            );
+
+            print!("Save to Vault? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim().to_lowercase() == "y" {
+                secrets.insert("accesskey".to_string(), new_accesskey);
+                secrets.insert("secret".to_string(), new_secret);
+                manager.put_secret(SecretPaths::DRIVE, secrets).await?;
+                println!("✓ Credentials saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        "cache" => {
+            let new_password = generate_password(32);
+            let mut secrets: HashMap<String, String> = HashMap::new();
+
+            println!("⚠️  WARNING: You must update Valkey/Redis with the new password!");
+            println!();
+            println!("Run this command:");
+            println!("  redis-cli CONFIG SET requirepass '{}'", new_password);
+            println!();
+            println!(
+                "New password: {}...",
+                &new_password.chars().take(4).collect::<String>()
+            );
+
+            print!("Save to Vault? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim().to_lowercase() == "y" {
+                secrets.insert("password".to_string(), new_password);
+                manager.put_secret(SecretPaths::CACHE, secrets).await?;
+                println!("✓ Credentials saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        "email" => {
+            let new_password = generate_password(24);
+            let mut secrets = manager
+                .get_secret(SecretPaths::EMAIL)
+                .await
+                .unwrap_or_default();
+
+            println!("⚠️  WARNING: You must update the mail server with the new password!");
+            println!();
+            println!(
+                "New password: {}...",
+                &new_password.chars().take(4).collect::<String>()
+            );
+
+            print!("Save to Vault? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim().to_lowercase() == "y" {
+                secrets.insert("password".to_string(), new_password);
+                manager.put_secret(SecretPaths::EMAIL, secrets).await?;
+                println!("✓ Credentials saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        "encryption" => {
+            let new_key = generate_password(64);
+            let mut secrets: HashMap<String, String> = HashMap::new();
+
+            println!("⚠️  CRITICAL WARNING: Rotating encryption key will make existing encrypted data unreadable!");
+            println!("⚠️  Make sure to re-encrypt all data with the new key!");
+            println!();
+            println!(
+                "New master key: {}...",
+                &new_key.chars().take(8).collect::<String>()
+            );
+
+            print!("Are you ABSOLUTELY sure? Type 'ROTATE' to confirm: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim() == "ROTATE" {
+                secrets.insert("master_key".to_string(), new_key);
+                manager.put_secret(SecretPaths::ENCRYPTION, secrets).await?;
+                println!("✓ Encryption key saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        "directory" => {
+            let new_secret = generate_password(48);
+            let mut secrets = manager
+                .get_secret(SecretPaths::DIRECTORY)
+                .await
+                .unwrap_or_default();
+
+            println!("⚠️  WARNING: You must update Zitadel with the new client secret!");
+            println!();
+            println!(
+                "New client secret: {}...",
+                &new_secret.chars().take(8).collect::<String>()
+            );
+
+            print!("Save to Vault? [y/N]: ");
+            std::io::Write::flush(&mut std::io::stdout())?;
+            let mut input = String::new();
+            std::io::stdin().read_line(&mut input)?;
+            if input.trim().to_lowercase() == "y" {
+                secrets.insert("client_secret".to_string(), new_secret);
+                manager.put_secret(SecretPaths::DIRECTORY, secrets).await?;
+                println!("✓ Credentials saved to Vault");
+            } else {
+                println!("✗ Aborted");
+            }
+        }
+        _ => {
+            eprintln!("Unknown component: {}", component);
+            eprintln!("Valid components: tables, drive, cache, email, directory, encryption");
+        }
+    }
+
+    Ok(())
+}
+
+async fn rotate_all_secrets() -> Result<()> {
+    println!("🔐 ROTATING ALL SECRETS");
+    println!("========================");
+    println!();
+    println!("⚠️  CRITICAL WARNING!");
+    println!("This will generate new credentials for ALL components.");
+    println!("You MUST update each service manually after rotation.");
+    println!();
+    print!("Type 'ROTATE ALL' to continue: ");
+    std::io::Write::flush(&mut std::io::stdout())?;
+    let mut input = String::new();
+    std::io::stdin().read_line(&mut input)?;
+
+    if input.trim() != "ROTATE ALL" {
+        println!("✗ Aborted");
+        return Ok(());
+    }
+
+    let manager = SecretsManager::from_env()?;
+    if !manager.is_enabled() {
+        return Err(anyhow::anyhow!("Vault not configured"));
+    }
+
+    println!();
+    println!("Generating new credentials...");
+    println!();
+
+    // Tables
+    let tables_password = generate_password(32);
+    let mut tables = manager
+        .get_secret(SecretPaths::TABLES)
+        .await
+        .unwrap_or_default();
+    tables.insert("password".to_string(), tables_password.clone());
+    manager
+        .put_secret(SecretPaths::TABLES, tables.clone())
+        .await?;
+    println!(
+        "✓ tables: ALTER USER {} WITH PASSWORD '{}';",
+        tables.get("username").unwrap_or(&"postgres".to_string()),
+        tables_password
+    );
+
+    // Drive
+    let drive_accesskey = generate_access_key();
+    let drive_secret = generate_secret_key();
+    let mut drive = manager
+        .get_secret(SecretPaths::DRIVE)
+        .await
+        .unwrap_or_default();
+    drive.insert("accesskey".to_string(), drive_accesskey.clone());
+    drive.insert("secret".to_string(), drive_secret.clone());
+    manager.put_secret(SecretPaths::DRIVE, drive).await?;
+    println!(
+        "✓ drive: mc admin user add myminio {} {}",
+        drive_accesskey, drive_secret
+    );
+
+    // Cache
+    let cache_password = generate_password(32);
+    let mut cache: HashMap<String, String> = HashMap::new();
+    cache.insert("password".to_string(), cache_password.clone());
+    manager.put_secret(SecretPaths::CACHE, cache).await?;
+    println!(
+        "✓ cache: redis-cli CONFIG SET requirepass '{}'",
+        cache_password
+    );
+
+    // Email
+    let email_password = generate_password(24);
+    let mut email = manager
+        .get_secret(SecretPaths::EMAIL)
+        .await
+        .unwrap_or_default();
+    email.insert("password".to_string(), email_password.clone());
+    manager.put_secret(SecretPaths::EMAIL, email).await?;
+    println!("✓ email: new password = {}", email_password);
+
+    // Directory
+    let directory_secret = generate_password(48);
+    let mut directory = manager
+        .get_secret(SecretPaths::DIRECTORY)
+        .await
+        .unwrap_or_default();
+    directory.insert("client_secret".to_string(), directory_secret.clone());
+    manager
+        .put_secret(SecretPaths::DIRECTORY, directory)
+        .await?;
+    println!(
+        "✓ directory: new client_secret = {}...",
+        &directory_secret.chars().take(12).collect::<String>()
+    );
+
+    println!();
+    println!("========================");
+    println!("✓ All secrets rotated and saved to Vault");
+    println!();
+    println!("⚠️  IMPORTANT: Run the commands above to update each service!");
+    println!("⚠️  Then restart botserver: botserver restart");
+
+    Ok(())
 }
 
 async fn vault_health() -> Result<()> {
