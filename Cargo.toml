@@ -265,3 +265,8 @@ strip = true
 panic = "abort"
 codegen-units = 1
 overflow-checks = true
+
+[profile.ci]
+inherits = "release"
+lto = "thin"
+codegen-units = 4

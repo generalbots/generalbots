@@ -47,7 +47,7 @@ jobs:
       - name: Build Linux x86_64
         run: |
           export PATH="$HOME/.cargo/bin:$PATH"
-          cargo build --release --locked 2>&1 | tee /tmp/botserver-build.log
+          cargo build --profile ci --locked 2>&1 | tee /tmp/botserver-build.log
           echo "Build exit code: $?"
           tail -100 /tmp/botserver-build.log
 
@@ -61,14 +61,14 @@ jobs:
       - name: Prepare release artifacts
         run: |
           sudo mkdir -p /opt/gbo/releases/botserver/linux
-          sudo cp ./target/release/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
+          sudo cp ./target/ci/botserver /opt/gbo/releases/botserver/linux/botserver-x86_64 || true
           sudo chmod -R 755 /opt/gbo/releases/botserver/
 
       - name: Deploy to production and restart
         run: |
           lxc exec bot:pragmatismo-system -- systemctl stop system || true
 
-          sudo cp ./target/release/botserver /opt/gbo/bin/system/botserver
+          sudo cp ./target/ci/botserver /opt/gbo/bin/system/botserver
           sudo chmod +x /opt/gbo/bin/system/botserver
 
           lxc exec bot:pragmatismo-system -- systemctl start system || true
