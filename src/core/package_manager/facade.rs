@@ -123,19 +123,48 @@ impl PackageManager {
     }
     pub fn install_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let output = Command::new("lxc")
-            .args(&[
-                "launch",
-                "images:debian/12",
-                &container_name,
-                "-c",
-                "security.privileged=true",
-            ])
-            .output()?;
-        if !output.status.success() {
+
+        // Try multiple image sources in case one is unavailable
+        let images = [
+            "ubuntu:24.04",
+            "ubuntu:22.04",
+            "images:debian/12",
+            "images:debian/11",
+        ];
+
+        let mut last_error = String::new();
+        let mut success = false;
+
+        for image in &images {
+            info!("Attempting to create container with image: {}", image);
+            let output = Command::new("lxc")
+                .args(&[
+                    "launch",
+                    image,
+                    &container_name,
+                    "-c",
+                    "security.privileged=true",
+                ])
+                .output()?;
+
+            if output.status.success() {
+                info!("Successfully created container with image: {}", image);
+                success = true;
+                break;
+            } else {
+                last_error = String::from_utf8_lossy(&output.stderr).to_string();
+                warn!("Failed to create container with {}: {}", image, last_error);
+                // Clean up any partial container before trying next image
+                let _ = Command::new("lxc")
+                    .args(&["delete", &container_name, "--force"])
+                    .output();
+            }
+        }
+
+        if !success {
             return Err(anyhow::anyhow!(
-                "LXC container creation failed: {}",
-                String::from_utf8_lossy(&output.stderr)
+                "LXC container creation failed with all images. Last error: {}",
+                last_error
             ));
         }
         std::thread::sleep(std::time::Duration::from_secs(15));
