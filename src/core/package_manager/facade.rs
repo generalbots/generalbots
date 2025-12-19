@@ -314,23 +314,15 @@ impl PackageManager {
         let mut env_vars = HashMap::new();
         let connection_info = match component {
             "vault" => {
-                // Only Vault returns .env variables
+                // Only Vault returns .env variables (VAULT_ADDR, VAULT_TOKEN, VAULT_UNSEAL_KEYS_FILE)
                 env_vars.insert("VAULT_ADDR".to_string(), format!("http://{}:8200", ip));
                 env_vars.insert(
                     "VAULT_TOKEN".to_string(),
                     "<root-token-from-init>".to_string(),
                 );
                 env_vars.insert(
-                    "VAULT_UNSEAL_KEY_1".to_string(),
-                    "<unseal-key-1>".to_string(),
-                );
-                env_vars.insert(
-                    "VAULT_UNSEAL_KEY_2".to_string(),
-                    "<unseal-key-2>".to_string(),
-                );
-                env_vars.insert(
-                    "VAULT_UNSEAL_KEY_3".to_string(),
-                    "<unseal-key-3>".to_string(),
+                    "VAULT_UNSEAL_KEYS_FILE".to_string(),
+                    "/opt/gbo/secrets/vault-unseal-keys".to_string(),
                 );
                 format!(
                     r#"Vault Server:
@@ -341,16 +333,27 @@ To initialize Vault (first time only):
   lxc exec {}-vault -- /opt/gbo/bin/vault operator init
 
   This will output 5 unseal keys and 1 root token.
-  Copy at least 3 unseal keys to your .env file for auto-unseal on restart.
+  Save at least 3 unseal keys to the secrets file for auto-unseal on restart.
 
-Add to your .env file:
+Step 1: Add to your .env file:
   VAULT_ADDR=http://{}:8200
   VAULT_TOKEN=<root-token-from-init>
-  VAULT_UNSEAL_KEY_1=<unseal-key-1>
-  VAULT_UNSEAL_KEY_2=<unseal-key-2>
-  VAULT_UNSEAL_KEY_3=<unseal-key-3>
+  VAULT_UNSEAL_KEYS_FILE=/opt/gbo/secrets/vault-unseal-keys
 
-botserver will automatically unseal Vault on startup using these keys."#,
+Step 2: Create secrets file (chmod 600 for security):
+  mkdir -p /opt/gbo/secrets
+  cat > /opt/gbo/secrets/vault-unseal-keys << 'EOF'
+  VAULT_UNSEAL_KEY_1=<unseal-key-1-from-init>
+  VAULT_UNSEAL_KEY_2=<unseal-key-2-from-init>
+  VAULT_UNSEAL_KEY_3=<unseal-key-3-from-init>
+  EOF
+  chmod 600 /opt/gbo/secrets/vault-unseal-keys
+  chown root:root /opt/gbo/secrets/vault-unseal-keys
+
+botserver will automatically unseal Vault on startup using keys from this file.
+
+For other auto-unseal options (TPM, HSM, Transit), see:
+  https://generalbots.github.io/botbook/chapter-08/secrets-management.html"#,
                     ip, ip, self.tenant, ip
                 )
             }
