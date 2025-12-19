@@ -316,19 +316,16 @@ impl PackageManager {
         std::thread::sleep(std::time::Duration::from_secs(5));
 
         // Initialize Vault and capture output
+        // Note: VAULT_ADDR must be set inside the container, not on host
         let output = Command::new("lxc")
             .args(&[
                 "exec",
                 container_name,
                 "--",
-                "/opt/gbo/bin/vault",
-                "operator",
-                "init",
-                "-key-shares=5",
-                "-key-threshold=3",
-                "-format=json",
+                "bash",
+                "-c",
+                "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator init -key-shares=5 -key-threshold=3 -format=json",
             ])
-            .env("VAULT_ADDR", format!("http://127.0.0.1:8200"))
             .output()?;
 
         if !output.status.success() {
@@ -405,20 +402,16 @@ impl PackageManager {
         }
 
         // Unseal Vault with the first 3 keys
+        // Note: VAULT_ADDR must be set inside the container, not on host
         for i in 0..3 {
             if let Some(key) = unseal_keys.get(i) {
                 let key_str = key.as_str().unwrap_or("");
+                let unseal_cmd = format!(
+                    "VAULT_ADDR=http://127.0.0.1:8200 /opt/gbo/bin/vault operator unseal {}",
+                    key_str
+                );
                 let unseal_output = Command::new("lxc")
-                    .args(&[
-                        "exec",
-                        container_name,
-                        "--",
-                        "/opt/gbo/bin/vault",
-                        "operator",
-                        "unseal",
-                        key_str,
-                    ])
-                    .env("VAULT_ADDR", "http://127.0.0.1:8200")
+                    .args(&["exec", container_name, "--", "bash", "-c", &unseal_cmd])
                     .output()?;
 
                 if !unseal_output.status.success() {
