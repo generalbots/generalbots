@@ -172,6 +172,13 @@ impl PackageManager {
         }
         std::thread::sleep(std::time::Duration::from_secs(15));
         self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
+
+        // Install base packages required for all containers (wget for downloads, unzip for .zip files, curl for health checks)
+        self.exec_in_container(&container_name, "apt-get update -qq")?;
+        self.exec_in_container(
+            &container_name,
+            "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq wget unzip curl ca-certificates",
+        )?;
         let (pre_cmds, post_cmds) = match self.os_type {
             OsType::Linux => (
                 &component.pre_install_cmds_linux,
