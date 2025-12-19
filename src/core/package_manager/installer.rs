@@ -897,6 +897,22 @@ impl PackageManager {
                 pre_install_cmds_linux: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
                     "mkdir -p {{CONF_PATH}}/vault".to_string(),
+                    "mkdir -p {{LOGS_PATH}}".to_string(),
+                    r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
+storage "file" {
+  path = "/opt/gbo/data/vault"
+}
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = 1
+}
+
+api_addr = "http://0.0.0.0:8200"
+cluster_addr = "http://0.0.0.0:8201"
+ui = true
+disable_mlock = true
+EOF"#.to_string(),
                 ],
                 // Note: Vault initialization is handled in bootstrap::setup_vault()
                 // because it requires the Vault server to be running first
@@ -904,6 +920,22 @@ impl PackageManager {
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
                     "mkdir -p {{CONF_PATH}}/vault".to_string(),
+                    "mkdir -p {{LOGS_PATH}}".to_string(),
+                    r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
+storage "file" {
+  path = "{{DATA_PATH}}/vault"
+}
+
+listener "tcp" {
+  address     = "0.0.0.0:8200"
+  tls_disable = 1
+}
+
+api_addr = "http://0.0.0.0:8200"
+cluster_addr = "http://0.0.0.0:8201"
+ui = true
+disable_mlock = true
+EOF"#.to_string(),
                 ],
                 post_install_cmds_macos: vec![],
                 pre_install_cmds_windows: vec![],
