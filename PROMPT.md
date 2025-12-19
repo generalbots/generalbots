@@ -5,6 +5,24 @@
 
 ---
 
+## Build Rules - IMPORTANT
+
+**Always use debug builds during development and testing:**
+
+```bash
+# CORRECT - debug build (fast compilation)
+cargo build
+cargo check
+
+# WRONG - do NOT use release builds unless explicitly requested
+# cargo build --release
+```
+
+Debug builds compile much faster and are sufficient for testing functionality.
+Only use `--release` when building final binaries for deployment.
+
+---
+
 ## Weekly Maintenance - EVERY MONDAY
 
 ### Package Review Checklist

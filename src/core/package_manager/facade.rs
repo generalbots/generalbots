@@ -1028,14 +1028,21 @@ Store credentials in Vault:
         Ok(())
     }
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
+        info!("Executing in container {}: {}", container, command);
         let output = Command::new("lxc")
             .args(&["exec", container, "--", "bash", "-c", command])
             .output()?;
         if !output.status.success() {
-            warn!(
-                "Container command failed: {}",
-                String::from_utf8_lossy(&output.stderr)
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            let stdout = String::from_utf8_lossy(&output.stdout);
+            error!(
+                "Container command failed.\nCommand: {}\nStderr: {}\nStdout: {}",
+                command, stderr, stdout
             );
+            return Err(anyhow::anyhow!(
+                "Container command failed: {}",
+                if stderr.is_empty() { stdout.to_string() } else { stderr.to_string() }
+            ));
         }
         Ok(())
     }
