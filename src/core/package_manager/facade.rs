@@ -262,17 +262,44 @@ impl PackageManager {
 
     /// Get the IP address of a container
     fn get_container_ip(&self, container_name: &str) -> Result<String> {
+        // Wait a moment for network to be ready
+        std::thread::sleep(std::time::Duration::from_secs(2));
+
+        // Try lxc list with network info
         let output = Command::new("lxc")
             .args(&["list", container_name, "-c", "4", "--format", "csv"])
             .output()?;
 
         if output.status.success() {
-            let ip_output = String::from_utf8_lossy(&output.stdout);
-            // Parse IP from output like "10.16.164.168 (eth0)"
-            if let Some(ip) = ip_output.split_whitespace().next() {
-                return Ok(ip.to_string());
+            let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            // Parse IP from output like "10.16.164.168 (eth0)" or just "10.16.164.168"
+            if !ip_output.is_empty() {
+                // Extract just the IP address (first part before space or parenthesis)
+                let ip = ip_output
+                    .split(|c| c == ' ' || c == '(')
+                    .next()
+                    .unwrap_or("")
+                    .trim();
+                if !ip.is_empty() && ip.contains('.') {
+                    return Ok(ip.to_string());
+                }
             }
         }
+
+        // Fallback: try lxc exec to get IP from inside container
+        let output = Command::new("lxc")
+            .args(&["exec", container_name, "--", "hostname", "-I"])
+            .output()?;
+
+        if output.status.success() {
+            let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
+            if let Some(ip) = ip_output.split_whitespace().next() {
+                if ip.contains('.') {
+                    return Ok(ip.to_string());
+                }
+            }
+        }
+
         Ok("unknown".to_string())
     }
 
@@ -291,7 +318,19 @@ impl PackageManager {
                 env_vars.insert("VAULT_ADDR".to_string(), format!("http://{}:8200", ip));
                 env_vars.insert(
                     "VAULT_TOKEN".to_string(),
-                    "<run 'vault operator init' to get root token>".to_string(),
+                    "<root-token-from-init>".to_string(),
+                );
+                env_vars.insert(
+                    "VAULT_UNSEAL_KEY_1".to_string(),
+                    "<unseal-key-1>".to_string(),
+                );
+                env_vars.insert(
+                    "VAULT_UNSEAL_KEY_2".to_string(),
+                    "<unseal-key-2>".to_string(),
+                );
+                env_vars.insert(
+                    "VAULT_UNSEAL_KEY_3".to_string(),
+                    "<unseal-key-3>".to_string(),
                 );
                 format!(
                     r#"Vault Server:
@@ -301,17 +340,18 @@ impl PackageManager {
 To initialize Vault (first time only):
   lxc exec {}-vault -- /opt/gbo/bin/vault operator init
 
-  Save the unseal keys and root token securely!
-
-To unseal Vault (required after restart):
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-1>
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-2>
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-3>
+  This will output 5 unseal keys and 1 root token.
+  Copy at least 3 unseal keys to your .env file for auto-unseal on restart.
 
 Add to your .env file:
   VAULT_ADDR=http://{}:8200
-  VAULT_TOKEN=<root-token-from-init>"#,
-                    ip, ip, self.tenant, self.tenant, self.tenant, self.tenant, ip
+  VAULT_TOKEN=<root-token-from-init>
+  VAULT_UNSEAL_KEY_1=<unseal-key-1>
+  VAULT_UNSEAL_KEY_2=<unseal-key-2>
+  VAULT_UNSEAL_KEY_3=<unseal-key-3>
+
+botserver will automatically unseal Vault on startup using these keys."#,
+                    ip, ip, self.tenant, ip
                 )
             }
             "vector_db" => {
