@@ -354,12 +354,8 @@ impl PackageManager {
             .as_str()
             .context("No root token in output")?;
 
-        // Create secrets directory
-        let secrets_dir = PathBuf::from("/opt/gbo/secrets");
-        std::fs::create_dir_all(&secrets_dir)?;
-
-        // Write vault-unseal-keys file
-        let unseal_keys_file = secrets_dir.join("vault-unseal-keys");
+        // Write vault-unseal-keys file in working directory
+        let unseal_keys_file = PathBuf::from("vault-unseal-keys");
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
@@ -385,7 +381,7 @@ impl PackageManager {
         // Check if .env exists, create or append
         let env_file = PathBuf::from(".env");
         let env_content = format!(
-            "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=/opt/gbo/secrets/vault-unseal-keys\n",
+            "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=vault-unseal-keys\n",
             ip, root_token
         );
 
@@ -454,11 +450,11 @@ impl PackageManager {
 
 ✓ Vault initialized and unsealed automatically
 ✓ Created .env with VAULT_ADDR, VAULT_TOKEN
-✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)
+✓ Created vault-unseal-keys (chmod 600)
 
 Files created:
-  .env                                  - Vault connection config
-  /opt/gbo/secrets/vault-unseal-keys    - Unseal keys for auto-unseal
+  .env                 - Vault connection config
+  vault-unseal-keys    - Unseal keys for auto-unseal
 
 On server restart, run:
   botserver vault unseal
