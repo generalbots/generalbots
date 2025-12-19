@@ -1,5 +1,5 @@
 use crate::package_manager::cache::{CacheResult, DownloadCache};
-use crate::package_manager::component::ComponentConfig;
+use crate::package_manager::component::{ComponentConfig, InstallResult};
 use crate::package_manager::installer::PackageManager;
 use crate::package_manager::InstallMode;
 use crate::package_manager::OsType;
@@ -11,7 +11,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::process::Command;
 impl PackageManager {
-    pub async fn install(&self, component_name: &str) -> Result<()> {
+    pub async fn install(&self, component_name: &str) -> Result<Option<InstallResult>> {
         let component = self
             .components
             .get(component_name)
@@ -27,15 +27,18 @@ impl PackageManager {
                 Box::pin(self.install(dep)).await?;
             }
         }
-        match self.mode {
-            InstallMode::Local => self.install_local(component).await?,
-            InstallMode::Container => self.install_container(component)?,
-        }
+        let result = match self.mode {
+            InstallMode::Local => {
+                self.install_local(component).await?;
+                None
+            }
+            InstallMode::Container => Some(self.install_container(component)?),
+        };
         trace!(
             "Component '{}' installation completed successfully",
             component_name
         );
-        Ok(())
+        Ok(result)
     }
     pub async fn install_local(&self, component: &ComponentConfig) -> Result<()> {
         trace!(
@@ -121,7 +124,7 @@ impl PackageManager {
         self.run_commands(post_cmds, "local", &component.name)?;
         Ok(())
     }
-    pub fn install_container(&self, component: &ComponentConfig) -> Result<()> {
+    pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
         // Ensure LXD is initialized (runs silently if already initialized)
@@ -233,12 +236,236 @@ impl PackageManager {
             )?;
         }
         self.setup_port_forwarding(&container_name, &component.ports)?;
+
+        // Get container IP
+        let container_ip = self.get_container_ip(&container_name)?;
+
+        // Generate connection info based on component type
+        let (connection_info, env_vars) =
+            self.generate_connection_info(&component.name, &container_ip, &component.ports);
+
         trace!(
             "Container installation of '{}' completed in {}",
             component.name,
             container_name
         );
-        Ok(())
+
+        Ok(InstallResult {
+            component: component.name.clone(),
+            container_name: container_name.clone(),
+            container_ip,
+            ports: component.ports.clone(),
+            env_vars,
+            connection_info,
+        })
+    }
+
+    /// Get the IP address of a container
+    fn get_container_ip(&self, container_name: &str) -> Result<String> {
+        let output = Command::new("lxc")
+            .args(&["list", container_name, "-c", "4", "--format", "csv"])
+            .output()?;
+
+        if output.status.success() {
+            let ip_output = String::from_utf8_lossy(&output.stdout);
+            // Parse IP from output like "10.16.164.168 (eth0)"
+            if let Some(ip) = ip_output.split_whitespace().next() {
+                return Ok(ip.to_string());
+            }
+        }
+        Ok("unknown".to_string())
+    }
+
+    /// Generate connection info and env vars based on component type
+    /// Only Vault returns .env vars - all others return Vault storage commands
+    fn generate_connection_info(
+        &self,
+        component: &str,
+        ip: &str,
+        ports: &[u16],
+    ) -> (String, HashMap<String, String>) {
+        let mut env_vars = HashMap::new();
+        let connection_info = match component {
+            "vault" => {
+                // Only Vault returns .env variables
+                env_vars.insert("VAULT_ADDR".to_string(), format!("http://{}:8200", ip));
+                env_vars.insert(
+                    "VAULT_TOKEN".to_string(),
+                    "<run 'vault operator init' to get root token>".to_string(),
+                );
+                format!(
+                    r#"Vault Server:
+  URL: http://{}:8200
+  UI:  http://{}:8200/ui
+
+To initialize Vault (first time only):
+  lxc exec {}-vault -- /opt/gbo/bin/vault operator init
+
+  Save the unseal keys and root token securely!
+
+To unseal Vault (required after restart):
+  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-1>
+  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-2>
+  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <unseal-key-3>
+
+Add to your .env file:
+  VAULT_ADDR=http://{}:8200
+  VAULT_TOKEN=<root-token-from-init>"#,
+                    ip, ip, self.tenant, self.tenant, self.tenant, self.tenant, ip
+                )
+            }
+            "vector_db" => {
+                format!(
+                    r#"Qdrant Vector Database:
+  REST API: http://{}:6333
+  gRPC:     {}:6334
+  Dashboard: http://{}:6333/dashboard
+
+Store credentials in Vault:
+  botserver vault put gbo/vectordb host={} port=6333"#,
+                    ip, ip, ip, ip
+                )
+            }
+            "tables" => {
+                format!(
+                    r#"PostgreSQL Database:
+  Host: {}
+  Port: 5432
+  Database: botserver
+  User: gbuser
+
+Store credentials in Vault:
+  botserver vault put gbo/tables host={} port=5432 database=botserver username=gbuser password=<your-password>"#,
+                    ip, ip
+                )
+            }
+            "drive" => {
+                format!(
+                    r#"MinIO Object Storage:
+  API:     http://{}:9000
+  Console: http://{}:9001
+
+Store credentials in Vault:
+  botserver vault put gbo/drive server={} port=9000 accesskey=minioadmin secret=<your-secret>"#,
+                    ip, ip, ip
+                )
+            }
+            "cache" => {
+                format!(
+                    r#"Redis/Valkey Cache:
+  Host: {}
+  Port: 6379
+
+Store credentials in Vault:
+  botserver vault put gbo/cache host={} port=6379 password=<your-password>"#,
+                    ip, ip
+                )
+            }
+            "email" => {
+                format!(
+                    r#"Email Server (Stalwart):
+  SMTP: {}:25
+  IMAP: {}:143
+  Web:  http://{}:8080
+
+Store credentials in Vault:
+  botserver vault put gbo/email server={} port=25 username=admin password=<your-password>"#,
+                    ip, ip, ip, ip
+                )
+            }
+            "directory" => {
+                format!(
+                    r#"Zitadel Identity Provider:
+  URL: http://{}:8080
+  Console: http://{}:8080/ui/console
+
+Store credentials in Vault:
+  botserver vault put gbo/directory url=http://{}:8080 client_id=<client-id> client_secret=<client-secret>"#,
+                    ip, ip, ip
+                )
+            }
+            "llm" => {
+                format!(
+                    r#"LLM Server (llama.cpp):
+  API: http://{}:8081
+
+Test:
+  curl http://{}:8081/v1/models
+
+Store credentials in Vault:
+  botserver vault put gbo/llm url=http://{}:8081 local=true"#,
+                    ip, ip, ip
+                )
+            }
+            "meeting" => {
+                format!(
+                    r#"LiveKit Meeting Server:
+  WebSocket: ws://{}:7880
+  API: http://{}:7880
+
+Store credentials in Vault:
+  botserver vault put gbo/meet url=ws://{}:7880 api_key=<api-key> api_secret=<api-secret>"#,
+                    ip, ip, ip
+                )
+            }
+            "proxy" => {
+                format!(
+                    r#"Caddy Reverse Proxy:
+  HTTP:  http://{}:80
+  HTTPS: https://{}:443
+  Admin: http://{}:2019"#,
+                    ip, ip, ip
+                )
+            }
+            "timeseries_db" => {
+                format!(
+                    r#"InfluxDB Time Series Database:
+  API: http://{}:8086
+
+Store credentials in Vault:
+  botserver vault put gbo/observability url=http://{}:8086 token=<influx-token> org=pragmatismo bucket=metrics"#,
+                    ip, ip
+                )
+            }
+            "observability" => {
+                format!(
+                    r#"Vector Log Aggregation:
+  API: http://{}:8686
+
+Store credentials in Vault:
+  botserver vault put gbo/observability vector_url=http://{}:8686"#,
+                    ip, ip
+                )
+            }
+            "alm" => {
+                format!(
+                    r#"Forgejo Git Server:
+  Web: http://{}:3000
+  SSH: {}:22
+
+Store credentials in Vault:
+  botserver vault put gbo/alm url=http://{}:3000 token=<api-token>"#,
+                    ip, ip, ip
+                )
+            }
+            _ => {
+                let ports_str = ports
+                    .iter()
+                    .map(|p| format!("  - {}:{}", ip, p))
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                format!(
+                    r#"Component: {}
+  Container: {}-{}
+  IP: {}
+  Ports:
+{}"#,
+                    component, self.tenant, component, ip, ports_str
+                )
+            }
+        };
+
+        (connection_info, env_vars)
     }
 
     pub fn remove(&self, component_name: &str) -> Result<()> {
