@@ -124,6 +124,9 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
+        // Ensure LXD is initialized (runs silently if already initialized)
+        let _ = Command::new("lxd").args(&["init", "--auto"]).output();
+
         // Try multiple image sources in case one is unavailable
         let images = [
             "ubuntu:24.04",
@@ -191,7 +194,14 @@ impl PackageManager {
         };
         if !packages.is_empty() {
             let pkg_list = packages.join(" ");
-            self.exec_in_container(&container_name, &format!("apt-get install -y {}", pkg_list))?;
+            self.exec_in_container(&container_name, "apt-get update -qq")?;
+            self.exec_in_container(
+                &container_name,
+                &format!(
+                    "DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {}",
+                    pkg_list
+                ),
+            )?;
         }
         if let Some(url) = &component.download_url {
             self.download_in_container(
