@@ -723,10 +723,20 @@ impl PackageManager {
         exec_cmd: &str,
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
-        let database_url = get_database_url_sync()
-            .context("Failed to get DATABASE_URL from Vault. Ensure Vault is configured.")?;
-        let (_db_username, db_password, _db_server, _db_port, _db_name) =
-            parse_database_url(&database_url);
+        // Try to get DB password from Vault, but don't fail if Vault isn't available yet
+        // (e.g., when installing Vault itself or other components that don't need DB)
+        let db_password = match get_database_url_sync() {
+            Ok(url) => {
+                let (_, password, _, _, _) = parse_database_url(&url);
+                password
+            }
+            Err(_) => {
+                trace!(
+                    "Vault not available for DB_PASSWORD in container service, using empty string"
+                );
+                String::new()
+            }
+        };
 
         let rendered_cmd = exec_cmd
             .replace("{{DB_PASSWORD}}", &db_password)
