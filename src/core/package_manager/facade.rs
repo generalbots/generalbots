@@ -240,6 +240,11 @@ impl PackageManager {
         // Get container IP
         let container_ip = self.get_container_ip(&container_name)?;
 
+        // For Vault, initialize and create config files automatically
+        if component.name == "vault" {
+            self.initialize_vault(&container_name, &container_ip)?;
+        }
+
         // Generate connection info based on component type
         let (connection_info, env_vars) =
             self.generate_connection_info(&component.name, &container_ip, &component.ports);
@@ -303,6 +308,133 @@ impl PackageManager {
         Ok("unknown".to_string())
     }
 
+    /// Initialize Vault, get unseal keys and root token, create .env and secrets files
+    fn initialize_vault(&self, container_name: &str, ip: &str) -> Result<()> {
+        info!("Initializing Vault...");
+
+        // Wait for Vault to be ready
+        std::thread::sleep(std::time::Duration::from_secs(5));
+
+        // Initialize Vault and capture output
+        let output = Command::new("lxc")
+            .args(&[
+                "exec",
+                container_name,
+                "--",
+                "/opt/gbo/bin/vault",
+                "operator",
+                "init",
+                "-key-shares=5",
+                "-key-threshold=3",
+                "-format=json",
+            ])
+            .env("VAULT_ADDR", format!("http://127.0.0.1:8200"))
+            .output()?;
+
+        if !output.status.success() {
+            let stderr = String::from_utf8_lossy(&output.stderr);
+            // Check if already initialized
+            if stderr.contains("already initialized") {
+                warn!("Vault already initialized, skipping file generation");
+                return Ok(());
+            }
+            return Err(anyhow::anyhow!("Failed to initialize Vault: {}", stderr));
+        }
+
+        let init_output = String::from_utf8_lossy(&output.stdout);
+
+        // Parse JSON output
+        let init_json: serde_json::Value =
+            serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
+
+        let unseal_keys = init_json["unseal_keys_b64"]
+            .as_array()
+            .context("No unseal keys in output")?;
+        let root_token = init_json["root_token"]
+            .as_str()
+            .context("No root token in output")?;
+
+        // Create secrets directory
+        let secrets_dir = PathBuf::from("/opt/gbo/secrets");
+        std::fs::create_dir_all(&secrets_dir)?;
+
+        // Write vault-unseal-keys file
+        let unseal_keys_file = secrets_dir.join("vault-unseal-keys");
+        let mut unseal_content = String::new();
+        for (i, key) in unseal_keys.iter().enumerate() {
+            if i < 3 {
+                // Only need 3 keys for threshold
+                unseal_content.push_str(&format!(
+                    "VAULT_UNSEAL_KEY_{}={}\n",
+                    i + 1,
+                    key.as_str().unwrap_or("")
+                ));
+            }
+        }
+        std::fs::write(&unseal_keys_file, &unseal_content)?;
+
+        // Set permissions to 600 (owner read/write only)
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            std::fs::set_permissions(&unseal_keys_file, std::fs::Permissions::from_mode(0o600))?;
+        }
+
+        info!("Created {}", unseal_keys_file.display());
+
+        // Check if .env exists, create or append
+        let env_file = PathBuf::from(".env");
+        let env_content = format!(
+            "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=/opt/gbo/secrets/vault-unseal-keys\n",
+            ip, root_token
+        );
+
+        if env_file.exists() {
+            // Read existing content
+            let existing = std::fs::read_to_string(&env_file)?;
+            // Check if VAULT_ADDR already exists
+            if !existing.contains("VAULT_ADDR=") {
+                // Append to existing file
+                let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
+                use std::io::Write;
+                file.write_all(env_content.as_bytes())?;
+                info!("Appended Vault config to .env");
+            } else {
+                warn!(".env already contains VAULT_ADDR, not overwriting");
+            }
+        } else {
+            // Create new .env file
+            std::fs::write(&env_file, env_content.trim_start())?;
+            info!("Created .env with Vault config");
+        }
+
+        // Unseal Vault with the first 3 keys
+        for i in 0..3 {
+            if let Some(key) = unseal_keys.get(i) {
+                let key_str = key.as_str().unwrap_or("");
+                let unseal_output = Command::new("lxc")
+                    .args(&[
+                        "exec",
+                        container_name,
+                        "--",
+                        "/opt/gbo/bin/vault",
+                        "operator",
+                        "unseal",
+                        key_str,
+                    ])
+                    .env("VAULT_ADDR", "http://127.0.0.1:8200")
+                    .output()?;
+
+                if !unseal_output.status.success() {
+                    warn!("Unseal step {} may have failed", i + 1);
+                }
+            }
+        }
+
+        info!("Vault initialized and unsealed successfully");
+        Ok(())
+    }
+
     /// Generate connection info and env vars based on component type
     /// Only Vault returns .env vars - all others return Vault storage commands
     fn generate_connection_info(
@@ -311,50 +443,32 @@ impl PackageManager {
         ip: &str,
         ports: &[u16],
     ) -> (String, HashMap<String, String>) {
-        let mut env_vars = HashMap::new();
+        let env_vars = HashMap::new();
         let connection_info = match component {
             "vault" => {
-                // Only Vault returns .env variables (VAULT_ADDR, VAULT_TOKEN, VAULT_UNSEAL_KEYS_FILE)
-                env_vars.insert("VAULT_ADDR".to_string(), format!("http://{}:8200", ip));
-                env_vars.insert(
-                    "VAULT_TOKEN".to_string(),
-                    "<root-token-from-init>".to_string(),
-                );
-                env_vars.insert(
-                    "VAULT_UNSEAL_KEYS_FILE".to_string(),
-                    "/opt/gbo/secrets/vault-unseal-keys".to_string(),
-                );
+                // Vault config files are auto-generated, just show confirmation
                 format!(
                     r#"Vault Server:
   URL: http://{}:8200
   UI:  http://{}:8200/ui
 
-To initialize Vault (first time only):
-  lxc exec {}-vault -- /opt/gbo/bin/vault operator init
+✓ Vault initialized and unsealed automatically
+✓ Created .env with VAULT_ADDR, VAULT_TOKEN
+✓ Created /opt/gbo/secrets/vault-unseal-keys (chmod 600)
 
-  This will output 5 unseal keys and 1 root token.
-  Save at least 3 unseal keys to the secrets file for auto-unseal on restart.
+Files created:
+  .env                                  - Vault connection config
+  /opt/gbo/secrets/vault-unseal-keys    - Unseal keys for auto-unseal
 
-Step 1: Add to your .env file:
-  VAULT_ADDR=http://{}:8200
-  VAULT_TOKEN=<root-token-from-init>
-  VAULT_UNSEAL_KEYS_FILE=/opt/gbo/secrets/vault-unseal-keys
+On server restart, run:
+  botserver vault unseal
 
-Step 2: Create secrets file (chmod 600 for security):
-  mkdir -p /opt/gbo/secrets
-  cat > /opt/gbo/secrets/vault-unseal-keys << 'EOF'
-  VAULT_UNSEAL_KEY_1=<unseal-key-1-from-init>
-  VAULT_UNSEAL_KEY_2=<unseal-key-2-from-init>
-  VAULT_UNSEAL_KEY_3=<unseal-key-3-from-init>
-  EOF
-  chmod 600 /opt/gbo/secrets/vault-unseal-keys
-  chown root:root /opt/gbo/secrets/vault-unseal-keys
-
-botserver will automatically unseal Vault on startup using keys from this file.
+Or manually:
+  lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <key>
 
 For other auto-unseal options (TPM, HSM, Transit), see:
   https://generalbots.github.io/botbook/chapter-08/secrets-management.html"#,
-                    ip, ip, self.tenant, ip
+                    ip, ip, self.tenant
                 )
             }
             "vector_db" => {
