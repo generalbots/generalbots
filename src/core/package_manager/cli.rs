@@ -98,8 +98,13 @@ pub async fn run() -> Result<()> {
                 None
             };
             let pm = PackageManager::new(mode, tenant)?;
-            pm.install(component).await?;
+            let result = pm.install(component).await?;
             println!("* Component '{}' installed successfully", component);
+
+            // Print connection info for container installs
+            if let Some(install_result) = result {
+                install_result.print();
+            }
         }
         "remove" => {
             if args.len() < 3 {
