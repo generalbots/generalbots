@@ -176,6 +176,16 @@ impl PackageManager {
         std::thread::sleep(std::time::Duration::from_secs(15));
         self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
 
+        // Configure DNS (some containers don't have proper DNS resolution)
+        self.exec_in_container(
+            &container_name,
+            "echo 'nameserver 8.8.8.8' > /etc/resolv.conf",
+        )?;
+        self.exec_in_container(
+            &container_name,
+            "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf",
+        )?;
+
         // Install base packages required for all containers (wget for downloads, unzip for .zip files, curl for health checks)
         self.exec_in_container(&container_name, "apt-get update -qq")?;
         self.exec_in_container(
@@ -1041,7 +1051,11 @@ Store credentials in Vault:
             );
             return Err(anyhow::anyhow!(
                 "Container command failed: {}",
-                if stderr.is_empty() { stdout.to_string() } else { stderr.to_string() }
+                if stderr.is_empty() {
+                    stdout.to_string()
+                } else {
+                    stderr.to_string()
+                }
             ));
         }
         Ok(())
