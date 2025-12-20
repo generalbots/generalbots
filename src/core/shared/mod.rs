@@ -43,7 +43,6 @@ pub use models::{
     Task, TriggerKind, User, UserLoginToken, UserPreference, UserSession,
 };
 
-// Database utilities
 pub use utils::{create_conn, DbPool};
 
 /// Prelude module for convenient imports

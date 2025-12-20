@@ -40,9 +40,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ============================================================================
 // CORE DATA STRUCTURES
-// ============================================================================
 
 /// Represents a compiled intent - the result of LLM analysis
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -341,9 +339,7 @@ impl Default for ResourceEstimate {
     }
 }
 
-// ============================================================================
 // INTENT COMPILER ENGINE
-// ============================================================================
 
 /// The main Intent Compiler engine
 pub struct IntentCompiler {

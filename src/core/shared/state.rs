@@ -25,9 +25,8 @@ use redis::Client as RedisClient;
 use std::any::{Any, TypeId};
 use std::collections::HashMap;
 use std::sync::Arc;
-use tokio::sync::{broadcast, mpsc};
+use tokio::sync::{broadcast, mpsc, RwLock};
 
-/// Notification sent to attendants via WebSocket/broadcast
 #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AttendantNotification {
     #[serde(rename = "type")]
@@ -43,65 +42,64 @@ pub struct AttendantNotification {
     pub priority: i32,
 }
 
-/// Type-erased extension storage for AppState
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct Extensions {
-    map: HashMap<TypeId, Box<dyn Any + Send + Sync>>,
+    map: Arc<RwLock<HashMap<TypeId, Arc<dyn Any + Send + Sync>>>>,
 }
 
 impl Extensions {
     pub fn new() -> Self {
         Self {
-            map: HashMap::new(),
+            map: Arc::new(RwLock::new(HashMap::new())),
         }
     }
 
-    /// Insert a value into the extensions
-    pub fn insert<T: Send + Sync + 'static>(&mut self, value: T) {
-        self.map.insert(TypeId::of::<T>(), Box::new(value));
+    pub async fn insert<T: Send + Sync + 'static>(&self, value: T) {
+        let mut map = self.map.write().await;
+        map.insert(TypeId::of::<T>(), Arc::new(value));
     }
 
-    /// Get a reference to a value from the extensions
-    pub fn get<T: Send + Sync + 'static>(&self) -> Option<&T> {
-        self.map
-            .get(&TypeId::of::<T>())
-            .and_then(|boxed| boxed.downcast_ref::<T>())
+    pub fn insert_blocking<T: Send + Sync + 'static>(&self, value: T) {
+        let map = self.map.clone();
+        tokio::task::block_in_place(|| {
+            tokio::runtime::Handle::current().block_on(async {
+                let mut guard = map.write().await;
+                guard.insert(TypeId::of::<T>(), Arc::new(value));
+            });
+        });
     }
 
-    /// Get a mutable reference to a value from the extensions
-    pub fn get_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
-        self.map
-            .get_mut(&TypeId::of::<T>())
-            .and_then(|boxed| boxed.downcast_mut::<T>())
+    pub async fn get<T: Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+        let map = self.map.read().await;
+        map.get(&TypeId::of::<T>())
+            .and_then(|boxed| Arc::clone(boxed).downcast::<T>().ok())
     }
 
-    /// Check if a value of type T exists
-    pub fn contains<T: Send + Sync + 'static>(&self) -> bool {
-        self.map.contains_key(&TypeId::of::<T>())
+    pub async fn contains<T: Send + Sync + 'static>(&self) -> bool {
+        let map = self.map.read().await;
+        map.contains_key(&TypeId::of::<T>())
     }
 
-    /// Remove a value from the extensions
-    pub fn remove<T: Send + Sync + 'static>(&mut self) -> Option<T> {
-        self.map
-            .remove(&TypeId::of::<T>())
+    pub async fn remove<T: Send + Sync + 'static>(&self) -> Option<Arc<T>> {
+        let mut map = self.map.write().await;
+        map.remove(&TypeId::of::<T>())
             .and_then(|boxed| boxed.downcast::<T>().ok())
-            .map(|boxed| *boxed)
     }
-}
 
-impl Clone for Extensions {
-    fn clone(&self) -> Self {
-        // Extensions cannot be cloned deeply, so we create an empty one
-        // This is a limitation - extensions should be Arc-wrapped if sharing is needed
-        Self::new()
+    pub async fn len(&self) -> usize {
+        let map = self.map.read().await;
+        map.len()
+    }
+
+    pub async fn is_empty(&self) -> bool {
+        let map = self.map.read().await;
+        map.is_empty()
     }
 }
 
 impl std::fmt::Debug for Extensions {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("Extensions")
-            .field("count", &self.map.len())
-            .finish()
+        f.debug_struct("Extensions").finish_non_exhaustive()
     }
 }
 
@@ -128,12 +126,10 @@ pub struct AppState {
     pub voice_adapter: Arc<VoiceAdapter>,
     pub kb_manager: Option<Arc<KnowledgeBaseManager>>,
     pub task_engine: Arc<TaskEngine>,
-    /// Type-erased extension storage for web handlers and other components
     pub extensions: Extensions,
-    /// Broadcast channel for attendant notifications (human handoff)
-    /// Used to notify attendants of new messages from customers
     pub attendant_broadcast: Option<broadcast::Sender<AttendantNotification>>,
 }
+
 impl Clone for AppState {
     fn clone(&self) -> Self {
         Self {
@@ -179,7 +175,7 @@ impl std::fmt::Debug for AppState {
 
         debug
             .field("bucket_name", &self.bucket_name)
-            .field("config", &self.config)
+            .field("config", &self.config.is_some())
             .field("conn", &"DbPool")
             .field("database_url", &"[REDACTED]")
             .field("session_manager", &"Arc<Mutex<SessionManager>>")
@@ -197,19 +193,19 @@ impl std::fmt::Debug for AppState {
             .field("response_channels", &"Arc<Mutex<HashMap>>")
             .field("web_adapter", &self.web_adapter)
             .field("voice_adapter", &self.voice_adapter)
+            .field("kb_manager", &self.kb_manager.is_some())
+            .field("task_engine", &"Arc<TaskEngine>")
             .field("extensions", &self.extensions)
+            .field("attendant_broadcast", &self.attendant_broadcast.is_some())
             .finish()
     }
 }
 
-/// Default implementation for AppState - ONLY FOR TESTS
-/// This will panic if Vault is not configured, so it must only be used in test contexts.
 #[cfg(test)]
 impl Default for AppState {
     fn default() -> Self {
-        // This default is only for tests. In production, use the full initialization.
         let database_url = crate::shared::utils::get_database_url_sync()
-            .expect("AppState::default() requires Vault to be configured. This should only be used in tests.");
+            .expect("AppState::default() requires Vault to be configured");
 
         let manager = ConnectionManager::<PgConnection>::new(&database_url);
         let pool = Pool::builder()
@@ -249,5 +245,66 @@ impl Default for AppState {
             extensions: Extensions::new(),
             attendant_broadcast: Some(attendant_tx),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[tokio::test]
+    async fn test_extensions_insert_and_get() {
+        let ext = Extensions::new();
+        ext.insert(42i32).await;
+        ext.insert("hello".to_string()).await;
+
+        let num = ext.get::<i32>().await;
+        assert!(num.is_some());
+        assert_eq!(*num.unwrap(), 42);
+
+        let text = ext.get::<String>().await;
+        assert!(text.is_some());
+        assert_eq!(&*text.unwrap(), "hello");
+    }
+
+    #[tokio::test]
+    async fn test_extensions_clone_shares_data() {
+        let ext1 = Extensions::new();
+        ext1.insert(100u64).await;
+
+        let ext2 = ext1.clone();
+
+        let val = ext2.get::<u64>().await;
+        assert!(val.is_some());
+        assert_eq!(*val.unwrap(), 100);
+
+        ext2.insert(200u32).await;
+
+        let val2 = ext1.get::<u32>().await;
+        assert!(val2.is_some());
+        assert_eq!(*val2.unwrap(), 200);
+    }
+
+    #[tokio::test]
+    async fn test_extensions_remove() {
+        let ext = Extensions::new();
+        ext.insert(42i32).await;
+
+        assert!(ext.contains::<i32>().await);
+        assert_eq!(ext.len().await, 1);
+
+        let removed = ext.remove::<i32>().await;
+        assert!(removed.is_some());
+        assert_eq!(*removed.unwrap(), 42);
+
+        assert!(!ext.contains::<i32>().await);
+        assert!(ext.is_empty().await);
+    }
+
+    #[tokio::test]
+    async fn test_extensions_get_nonexistent() {
+        let ext = Extensions::new();
+        let val = ext.get::<i32>().await;
+        assert!(val.is_none());
     }
 }

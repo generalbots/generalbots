@@ -381,8 +381,6 @@ impl EmailEmbeddingGenerator {
             &text
         };
 
-        // Call LLM embedding endpoint
-        // This is a placeholder - implement actual LLM call
         self.generate_text_embedding(text).await
     }
 

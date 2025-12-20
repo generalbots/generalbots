@@ -27,9 +27,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-// ============================================================================
 // Request/Response Types
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
@@ -162,9 +160,6 @@ pub struct AppInfo {
     pub status: String,
 }
 
-// ============================================================================
-// Route Configuration
-// ============================================================================
 
 pub fn configure_sources_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -216,9 +211,6 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
         .route("/api/sources/tools", get(handle_list_all_tools))
 }
 
-// ============================================================================
-// MCP Server Handlers
-// ============================================================================
 
 /// GET /api/sources/mcp - List all MCP servers (JSON API)
 pub async fn handle_list_mcp_servers_json(
@@ -585,9 +577,7 @@ pub async fn handle_get_mcp_examples(State(_state): State<Arc<AppState>>) -> imp
     Json(ApiResponse::success(examples))
 }
 
-// ============================================================================
 // Tools Handler (for Tasks)
-// ============================================================================
 
 /// GET /api/sources/tools - List all available tools (BASIC keywords + MCP tools)
 pub async fn handle_list_all_tools(
@@ -637,9 +627,7 @@ pub async fn handle_list_all_tools(
     Json(ApiResponse::success(all_tools))
 }
 
-// ============================================================================
 // @Mention Autocomplete
-// ============================================================================
 
 /// GET /api/sources/mentions?q=search - Autocomplete for @mentions
 pub async fn handle_mentions_autocomplete(
@@ -720,9 +708,6 @@ pub async fn handle_mentions_autocomplete(
     Json(mentions)
 }
 
-// ============================================================================
-// Repository Handlers
-// ============================================================================
 
 /// GET /api/sources/repositories - List connected repositories
 pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -761,9 +746,6 @@ pub async fn handle_disconnect_repository(
     )))
 }
 
-// ============================================================================
-// Apps Handlers
-// ============================================================================
 
 /// GET /api/sources/apps - List created apps
 pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -780,9 +762,6 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
     Json(ApiResponse::success(apps))
 }
 
-// ============================================================================
-// HTMX Tab Handlers
-// ============================================================================
 
 /// GET /api/sources/prompts - Prompts tab content
 pub async fn handle_prompts(
@@ -1099,9 +1078,6 @@ pub async fn handle_search(
     Html(html)
 }
 
-// ============================================================================
-// Helper Functions and Data
-// ============================================================================
 
 struct PromptData {
     id: String,

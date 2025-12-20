@@ -847,9 +847,7 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         .expect("Failed to register RUN JAVASCRIPT WITH FILE syntax");
 }
 
-// ============================================================================
 // LXC Container Setup Templates
-// ============================================================================
 
 /// Generate LXC configuration for Python sandbox
 pub fn generate_python_lxc_config() -> String {
@@ -919,9 +917,7 @@ lxc.mount.entry = tmpfs tmp tmpfs defaults 0 0
     .to_string()
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

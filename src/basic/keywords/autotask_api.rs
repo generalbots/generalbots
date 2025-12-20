@@ -22,9 +22,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// =============================================================================
 // REQUEST/RESPONSE TYPES
-// =============================================================================
 
 /// Request to compile an intent into an executable plan
 #[derive(Debug, Deserialize)]
@@ -241,9 +239,7 @@ pub struct RecommendationResponse {
     pub action: Option<String>,
 }
 
-// =============================================================================
 // API HANDLERS
-// =============================================================================
 
 /// POST /api/autotask/compile - Compile an intent into an execution plan
 pub async fn compile_intent_handler(

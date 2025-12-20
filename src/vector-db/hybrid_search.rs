@@ -188,9 +188,7 @@ pub enum SearchMethod {
     Reranked,
 }
 
-// ============================================================================
 // Built-in BM25 Index Implementation
-// ============================================================================
 
 pub struct BM25Index {
     doc_freq: HashMap<String, usize>,
@@ -353,9 +351,6 @@ pub struct BM25Stats {
     pub enabled: bool,
 }
 
-// ============================================================================
-// Hybrid Search Engine
-// ============================================================================
 
 /// Document entry in the store
 #[derive(Debug, Clone)]
@@ -762,9 +757,6 @@ pub struct HybridSearchStats {
     pub config: HybridSearchConfig,
 }
 
-// ============================================================================
-// Query Decomposition
-// ============================================================================
 
 /// Query decomposition for complex questions
 pub struct QueryDecomposer {
@@ -849,9 +841,6 @@ impl QueryDecomposer {
     }
 }
 
-// ============================================================================
-// Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {
