@@ -477,9 +477,7 @@ pub fn register_group_by_keyword(_state: Arc<AppState>, _user: UserSession, engi
         .unwrap();
 }
 
-// ============================================================================
 // Implementation Functions
-// ============================================================================
 
 /// Execute SAVE - upsert operation
 fn execute_save(
@@ -994,9 +992,7 @@ fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, Box<rhai::Ev
     Ok(Dynamic::from(result_map))
 }
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 /// Convert Dynamic to HashMap<String, Dynamic>
 fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {

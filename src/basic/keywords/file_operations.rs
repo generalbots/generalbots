@@ -984,9 +984,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
         .unwrap();
 }
 
-// ============================================================================
 // Implementation Functions
-// ============================================================================
 
 /// Read file content from .gbdrive
 async fn execute_read(
@@ -1718,9 +1716,7 @@ async fn execute_merge_pdf(
     })
 }
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 /// Convert Dynamic to JSON Value
 fn dynamic_to_json(value: &Dynamic) -> Value {

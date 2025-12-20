@@ -280,9 +280,7 @@ diesel::table! {
     }
 }
 
-// ============================================================================
 // Enterprise Email Tables (6.1.0_enterprise_suite migration)
-// ============================================================================
 
 diesel::table! {
     global_email_signatures (id) {
@@ -452,7 +450,6 @@ diesel::table! {
     }
 }
 
-// Allow tables to be joined
 diesel::allow_tables_to_appear_in_same_query!(
     organizations,
     bots,

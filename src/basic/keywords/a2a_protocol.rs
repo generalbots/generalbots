@@ -613,9 +613,7 @@ pub fn get_a2a_messages_keyword(state: Arc<AppState>, user: UserSession, engine:
     });
 }
 
-// ============================================================================
 // Database Operations
-// ============================================================================
 
 /// Send an A2A message
 async fn send_a2a_message(
@@ -840,9 +838,7 @@ pub async fn respond_to_a2a_message(
     .await
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

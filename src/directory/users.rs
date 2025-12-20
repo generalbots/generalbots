@@ -12,9 +12,7 @@ use std::sync::Arc;
 
 use crate::shared::state::AppState;
 
-// ============================================================================
 // Request/Response Types
-// ============================================================================
 
 #[derive(Debug, Deserialize)]
 pub struct CreateUserRequest {
@@ -78,9 +76,7 @@ pub struct ErrorResponse {
     pub details: Option<String>,
 }
 
-// ============================================================================
 // User Management Handlers
-// ============================================================================
 
 /// Create a new user in Zitadel
 pub async fn create_user(

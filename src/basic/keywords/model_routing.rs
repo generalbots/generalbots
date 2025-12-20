@@ -375,9 +375,7 @@ pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     });
 }
 
-// ============================================================================
 // Database Operations
-// ============================================================================
 
 /// Set the model for a session
 async fn set_session_model(
@@ -553,9 +551,7 @@ pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> Routi
     }
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

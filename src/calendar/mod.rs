@@ -1,7 +1,3 @@
-//! Calendar Module
-//!
-//! Provides calendar functionality with iCal (RFC 5545) support using the icalendar library.
-
 use axum::{
     extract::{Path, State},
     http::StatusCode,
@@ -12,11 +8,37 @@ use axum::{
 use chrono::{DateTime, Utc};
 use icalendar::{Calendar, Component, Event as IcalEvent, EventLike, Property};
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::sync::Arc;
+use tokio::sync::RwLock;
 use uuid::Uuid;
 
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
+
+pub struct CalendarState {
+    events: RwLock<HashMap<Uuid, CalendarEvent>>,
+}
+
+impl CalendarState {
+    pub fn new() -> Self {
+        Self {
+            events: RwLock::new(HashMap::new()),
+        }
+    }
+}
+
+impl Default for CalendarState {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+static CALENDAR_STATE: std::sync::OnceLock<CalendarState> = std::sync::OnceLock::new();
+
+fn get_calendar_state() -> &'static CalendarState {
+    CALENDAR_STATE.get_or_init(CalendarState::new)
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CalendarEvent {
@@ -240,13 +262,18 @@ impl CalendarEngine {
     }
 }
 
-// HTTP Handlers
 
 pub async fn list_events(
     State(_state): State<Arc<AppState>>,
     axum::extract::Query(_query): axum::extract::Query<serde_json::Value>,
 ) -> Json<Vec<CalendarEvent>> {
-    Json(vec![])
+    let calendar_state = get_calendar_state();
+    let events = calendar_state.events.read().await;
+
+    let mut result: Vec<CalendarEvent> = events.values().cloned().collect();
+    result.sort_by(|a, b| a.start_time.cmp(&b.start_time));
+
+    Json(result)
 }
 
 /// List calendars - JSON API for services
@@ -307,31 +334,87 @@ pub async fn upcoming_events(State(_state): State<Arc<AppState>>) -> axum::respo
 
 pub async fn get_event(
     State(_state): State<Arc<AppState>>,
-    Path(_id): Path<Uuid>,
+    Path(id): Path<Uuid>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    Err(StatusCode::NOT_FOUND)
+    let calendar_state = get_calendar_state();
+    let events = calendar_state.events.read().await;
+
+    events
+        .get(&id)
+        .cloned()
+        .map(Json)
+        .ok_or(StatusCode::NOT_FOUND)
 }
 
 pub async fn create_event(
     State(_state): State<Arc<AppState>>,
-    Json(_input): Json<CalendarEventInput>,
+    Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    Err(StatusCode::NOT_IMPLEMENTED)
+    let calendar_state = get_calendar_state();
+    let now = Utc::now();
+
+    let event = CalendarEvent {
+        id: Uuid::new_v4(),
+        title: input.title,
+        description: input.description,
+        start_time: input.start_time,
+        end_time: input.end_time,
+        location: input.location,
+        attendees: input.attendees,
+        organizer: input.organizer,
+        reminder_minutes: input.reminder_minutes,
+        recurrence: input.recurrence,
+        created_at: now,
+        updated_at: now,
+    };
+
+    let mut events = calendar_state.events.write().await;
+    events.insert(event.id, event.clone());
+
+    log::info!("Created calendar event: {} ({})", event.title, event.id);
+
+    Ok(Json(event))
 }
 
 pub async fn update_event(
     State(_state): State<Arc<AppState>>,
-    Path(_id): Path<Uuid>,
-    Json(_input): Json<CalendarEventInput>,
+    Path(id): Path<Uuid>,
+    Json(input): Json<CalendarEventInput>,
 ) -> Result<Json<CalendarEvent>, StatusCode> {
-    Err(StatusCode::NOT_IMPLEMENTED)
+    let calendar_state = get_calendar_state();
+    let mut events = calendar_state.events.write().await;
+
+    let event = events.get_mut(&id).ok_or(StatusCode::NOT_FOUND)?;
+
+    event.title = input.title;
+    event.description = input.description;
+    event.start_time = input.start_time;
+    event.end_time = input.end_time;
+    event.location = input.location;
+    event.attendees = input.attendees;
+    event.organizer = input.organizer;
+    event.reminder_minutes = input.reminder_minutes;
+    event.recurrence = input.recurrence;
+    event.updated_at = Utc::now();
+
+    log::info!("Updated calendar event: {} ({})", event.title, event.id);
+
+    Ok(Json(event.clone()))
 }
 
 pub async fn delete_event(
     State(_state): State<Arc<AppState>>,
-    Path(_id): Path<Uuid>,
+    Path(id): Path<Uuid>,
 ) -> StatusCode {
-    StatusCode::NOT_IMPLEMENTED
+    let calendar_state = get_calendar_state();
+    let mut events = calendar_state.events.write().await;
+
+    if events.remove(&id).is_some() {
+        log::info!("Deleted calendar event: {}", id);
+        StatusCode::NO_CONTENT
+    } else {
+        StatusCode::NOT_FOUND
+    }
 }
 
 pub async fn export_ical(State(_state): State<Arc<AppState>>) -> impl IntoResponse {

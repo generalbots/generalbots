@@ -52,9 +52,7 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ============================================================================
 // Configuration
-// ============================================================================
 
 /// LLM Assist configuration loaded from config.csv
 #[derive(Debug, Clone, Default)]
@@ -155,9 +153,7 @@ impl LlmAssistConfig {
     }
 }
 
-// ============================================================================
 // Request/Response Types
-// ============================================================================
 
 /// Request for generating tips based on customer message
 #[derive(Debug, Deserialize)]
@@ -328,9 +324,7 @@ pub struct Emotion {
     pub intensity: f32, // 0.0 to 1.0
 }
 
-// ============================================================================
 // LLM Integration
-// ============================================================================
 
 /// Execute LLM generation with the bot's context
 async fn execute_llm_with_context(
@@ -416,9 +410,7 @@ fn get_bot_system_prompt(bot_id: Uuid, work_path: &str) -> String {
     "You are a professional customer service assistant. Be helpful, empathetic, and solution-oriented. Maintain a friendly but professional tone.".to_string()
 }
 
-// ============================================================================
 // API Handlers
-// ============================================================================
 
 /// POST /api/attendance/llm/tips
 /// Generate contextual tips for the attendant based on customer message
@@ -989,9 +981,7 @@ pub async fn get_llm_config(
     )
 }
 
-// ============================================================================
 // WhatsApp Attendant Commands
-// ============================================================================
 
 /// Process WhatsApp command from attendant
 pub async fn process_attendant_command(
@@ -1562,9 +1552,7 @@ _Portuguese: /fila, /pegar, /transferir, /resolver, /dicas, /polir, /respostas, 
         .to_string()
 }
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 /// Get session from database
 async fn get_session(state: &Arc<AppState>, session_id: Uuid) -> Result<UserSession, String> {
@@ -2113,9 +2101,7 @@ fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
     }
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

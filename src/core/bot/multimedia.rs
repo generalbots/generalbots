@@ -438,9 +438,6 @@ impl UserMessageMultimedia for UserMessage {
     }
 }
 
-// ============================================================================
-// REST API Handlers
-// ============================================================================
 
 use crate::shared::state::AppState;
 use axum::{

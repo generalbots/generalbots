@@ -29,10 +29,8 @@ use std::sync::Arc;
 use tracing::{info, warn};
 use uuid::Uuid;
 
-// ============================================================================
 // Data Transfer Objects (matching 6.1.0_enterprise_suite migration)
 // These are simplified DTOs for the sync layer - not direct ORM mappings
-// ============================================================================
 
 /// Distribution list DTO
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -141,9 +139,7 @@ pub struct SharedMailboxMemberDto {
     pub added_at: DateTime<Utc>,
 }
 
-// ============================================================================
 // Sync Service
-// ============================================================================
 
 /// Service for synchronizing data between General Bots and Stalwart
 ///
@@ -456,9 +452,7 @@ impl StalwartSyncService {
     }
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

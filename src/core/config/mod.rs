@@ -12,7 +12,6 @@ use diesel::r2d2::{ConnectionManager, PooledConnection};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-// Type alias for backward compatibility
 pub type Config = AppConfig;
 
 #[derive(Clone, Debug)]

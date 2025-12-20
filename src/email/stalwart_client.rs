@@ -26,9 +26,7 @@ use serde_json::{json, Value};
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
-// ============================================================================
 // Configuration
-// ============================================================================
 
 /// Default timeout for API requests in seconds
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
@@ -39,9 +37,7 @@ pub const DEFAULT_QUEUE_POLL_INTERVAL_SECS: u64 = 30;
 /// Default poll interval for metrics in seconds
 pub const DEFAULT_METRICS_POLL_INTERVAL_SECS: u64 = 60;
 
-// ============================================================================
 // Data Types - Queue Monitoring
-// ============================================================================
 
 /// Represents the overall queue status
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -107,9 +103,7 @@ struct QueueListResponse {
     items: Vec<QueuedMessage>,
 }
 
-// ============================================================================
 // Data Types - Principal/Account Management
-// ============================================================================
 
 /// Types of principals in Stalwart
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -204,9 +198,7 @@ impl AccountUpdate {
     }
 }
 
-// ============================================================================
 // Data Types - Auto-Responder & Email Rules
-// ============================================================================
 
 /// Configuration for an auto-responder (out of office)
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -305,9 +297,7 @@ pub struct RuleAction {
     pub value: String,
 }
 
-// ============================================================================
 // Data Types - Telemetry & Monitoring
-// ============================================================================
 
 /// Server metrics from Stalwart
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -409,9 +399,7 @@ pub struct TraceList {
     pub items: Vec<TraceEvent>,
 }
 
-// ============================================================================
 // Data Types - Reports
-// ============================================================================
 
 /// A DMARC/TLS/ARF report
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -444,9 +432,7 @@ pub struct ReportList {
     pub items: Vec<Report>,
 }
 
-// ============================================================================
 // Data Types - Spam Filter
-// ============================================================================
 
 /// Request to classify a message for spam
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -496,9 +482,7 @@ pub struct SpamTest {
     pub description: Option<String>,
 }
 
-// ============================================================================
 // API Response Wrapper
-// ============================================================================
 
 /// Generic API response wrapper
 #[derive(Debug, Deserialize)]
@@ -509,9 +493,7 @@ enum ApiResponse<T> {
     Error { error: String },
 }
 
-// ============================================================================
 // Stalwart Client Implementation
-// ============================================================================
 
 /// Client for interacting with Stalwart Mail Server's Management API
 #[derive(Debug, Clone)]
@@ -1298,9 +1280,7 @@ impl StalwartClient {
     }
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

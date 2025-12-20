@@ -25,9 +25,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ============================================================================
-// Data Structures
-// ============================================================================
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -90,9 +87,6 @@ pub struct UserRow {
     pub username: String,
 }
 
-// ============================================================================
-// Route Configuration
-// ============================================================================
 
 pub fn configure_paper_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -127,9 +121,7 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route("/api/paper/export/txt", get(handle_export_txt))
 }
 
-// ============================================================================
 // Authentication & User Identity
-// ============================================================================
 
 /// Extract user identity from session/headers
 /// Returns (user_id, user_identifier) where identifier is email or phone
@@ -235,9 +227,7 @@ struct UserIdRow {
     user_id: Uuid,
 }
 
-// ============================================================================
 // Storage Functions (.gbusers integration)
-// ============================================================================
 
 /// Get the user's paper storage path
 /// Format: {bucket}/users/{user_identifier}/papers/
@@ -541,9 +531,6 @@ async fn delete_document_from_drive(
     Ok(())
 }
 
-// ============================================================================
-// LLM Integration
-// ============================================================================
 
 /// Call LLM for AI-powered text operations
 #[cfg(feature = "llm")]
@@ -587,9 +574,6 @@ async fn call_llm(
     ))
 }
 
-// ============================================================================
-// Document CRUD Handlers
-// ============================================================================
 
 /// POST /api/paper/new - Create a new document
 pub async fn handle_new_document(
@@ -862,9 +846,6 @@ pub async fn handle_delete_document(
     }
 }
 
-// ============================================================================
-// Template Handlers
-// ============================================================================
 
 /// POST /api/paper/template/blank - Create blank document
 pub async fn handle_template_blank(
@@ -967,9 +948,6 @@ pub async fn handle_template_research(
     Html(format_document_content(&title, &content))
 }
 
-// ============================================================================
-// AI Feature Handlers
-// ============================================================================
 
 /// POST /api/paper/ai/summarize - Summarize selected text
 pub async fn handle_ai_summarize(
@@ -1149,9 +1127,6 @@ pub async fn handle_ai_custom(
     }
 }
 
-// ============================================================================
-// Export Handlers
-// ============================================================================
 
 /// GET /api/paper/export/pdf - Export as PDF
 pub async fn handle_export_pdf(
@@ -1334,9 +1309,6 @@ pub async fn handle_export_txt(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-// ============================================================================
-// HTML Formatting Helpers
-// ============================================================================
 
 fn format_document_list_item(id: &str, title: &str, time: &str, is_new: bool) -> String {
     let mut html = String::new();

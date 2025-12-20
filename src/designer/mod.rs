@@ -509,7 +509,6 @@ pub async fn handle_get_dialog(
     }
 }
 
-// BASIC Code Validation
 
 fn validate_basic_code(code: &str) -> ValidationResult {
     let mut errors = Vec::new();
@@ -659,7 +658,6 @@ fn get_default_dialog_content() -> String {
         .to_string()
 }
 
-// Node parsing and HTML generation
 
 struct DialogNode {
     id: String,

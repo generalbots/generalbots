@@ -391,10 +391,8 @@ fn register_return_keyword(engine: &mut Engine) {
         .expect("Failed to register RETURN syntax");
 }
 
-// ============================================================================
 // PREPROCESSING FUNCTIONS
 // These run at compile time to extract SUB/FUNCTION definitions
-// ============================================================================
 
 /// Preprocess SUB definitions from source code
 /// Converts SUB/END SUB blocks into callable units
@@ -674,9 +672,7 @@ pub fn get_procedure(name: &str) -> Option<ProcedureDefinition> {
         .cloned()
 }
 
-// ============================================================================
 // TESTS
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

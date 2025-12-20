@@ -1,20 +1,16 @@
-// Core modules (always included)
 pub mod basic;
 pub mod core;
 pub mod multimodal;
 pub mod security;
 
-// Suite application modules (gap analysis implementations)
 pub mod analytics;
 pub mod designer;
 pub mod paper;
 pub mod research;
 pub mod sources;
 
-// Re-export shared from core
 pub use core::shared;
 
-// Bootstrap progress tracking
 #[derive(Debug, Clone)]
 pub enum BootstrapProgress {
     StartingBootstrap,
@@ -27,7 +23,6 @@ pub enum BootstrapProgress {
     BootstrapError(String),
 }
 
-// Re-exports from core (always included)
 pub use core::automation;
 pub use core::bootstrap;
 pub use core::bot;
@@ -35,10 +30,8 @@ pub use core::config;
 pub use core::package_manager;
 pub use core::session;
 
-// Re-exports from security
 pub use security::{get_secure_port, SecurityConfig, SecurityManager};
 
-// Feature-gated modules
 #[cfg(feature = "attendance")]
 pub mod attendance;
 
@@ -81,6 +74,7 @@ pub mod nvidia;
 
 #[cfg(feature = "tasks")]
 pub mod tasks;
+#[cfg(feature = "tasks")]
 pub use tasks::TaskEngine;
 
 #[cfg(feature = "vectordb")]
