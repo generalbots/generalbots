@@ -72,9 +72,7 @@ use rhai::{Array, Dynamic, Engine, Map};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ============================================================================
 // Registration
-// ============================================================================
 
 /// Register all CRM attendance keywords
 pub fn register_attendance_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -107,9 +105,7 @@ pub fn register_attendance_keywords(state: Arc<AppState>, user: UserSession, eng
     debug!("CRM attendance keywords registered successfully");
 }
 
-// ============================================================================
 // Queue Management Keywords
-// ============================================================================
 
 /// GET QUEUE - Get current queue status
 ///
@@ -675,9 +671,7 @@ fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dynamic)
     result
 }
 
-// ============================================================================
 // Attendant Management Keywords
-// ============================================================================
 
 /// GET ATTENDANTS - List available attendants
 ///
@@ -907,9 +901,7 @@ fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dynami
     result
 }
 
-// ============================================================================
 // LLM Assist Keywords
-// ============================================================================
 
 /// GET TIPS - Generate AI tips for conversation
 ///
@@ -1331,9 +1323,7 @@ fn analyze_sentiment_impl(_state: &Arc<AppState>, _session_id: &str, message: &s
     Dynamic::from(result)
 }
 
-// ============================================================================
 // Customer Journey Keywords
-// ============================================================================
 
 /// TAG CONVERSATION - Add tags to conversation
 ///
@@ -1622,9 +1612,7 @@ fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynamic {
     result
 }
 
-// ============================================================================
 // Helper Functions
-// ============================================================================
 
 fn create_error_result(message: &str) -> Dynamic {
     let mut result = Map::new();
@@ -1633,9 +1621,7 @@ fn create_error_result(message: &str) -> Dynamic {
     Dynamic::from(result)
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

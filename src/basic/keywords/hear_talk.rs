@@ -431,9 +431,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
         .unwrap();
 }
 
-// ============================================================================
 // Validation Functions
-// ============================================================================
 
 /// Validate input based on type
 pub fn validate_input(input: &str, input_type: &InputType) -> ValidationResult {
@@ -1166,9 +1164,7 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
     ValidationResult::invalid(format!("Please select one of: {}", options.join(", ")))
 }
 
-// ============================================================================
 // TALK Keyword
-// ============================================================================
 
 pub async fn execute_talk(
     state: Arc<AppState>,
@@ -1253,9 +1249,7 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-// ============================================================================
 // Input Processing (called when user sends message)
-// ============================================================================
 
 /// Process user input with validation
 pub async fn process_hear_input(

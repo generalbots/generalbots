@@ -27,9 +27,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-// ============================================================================
 // AUTO TASK DATA STRUCTURES
-// ============================================================================
 
 /// Represents an auto-executing task
 #[derive(Debug, Clone, Serialize, Deserialize)]

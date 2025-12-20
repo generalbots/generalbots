@@ -18,7 +18,6 @@ use crate::email::vectordb::UserEmailVectorDB;
 use crate::email::vectordb::{EmailDocument, EmailEmbeddingGenerator};
 use crate::shared::utils::DbPool;
 
-// UserWorkspace struct for managing user workspace paths
 #[derive(Debug, Clone)]
 struct UserWorkspace {
     root: PathBuf,
@@ -42,7 +41,6 @@ impl UserWorkspace {
     }
 }
 
-// VectorDB types are defined locally in this module
 
 /// Indexing job status
 #[derive(Debug, Clone, PartialEq)]
@@ -452,25 +450,159 @@ impl VectorDBIndexer {
         .await?
     }
 
-    /// Get unindexed emails (placeholder - needs actual implementation)
     async fn get_unindexed_emails(
         &self,
-        _user_id: Uuid,
-        _account_id: &str,
+        user_id: Uuid,
+        account_id: &str,
     ) -> Result<Vec<EmailDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        // Email fetching is handled by the email module
-        // This returns empty as emails are indexed on-demand
-        Ok(Vec::new())
+        let pool = self.pool.clone();
+        let account_id = account_id.to_string();
+
+        let results = tokio::task::spawn_blocking(move || {
+            let conn = pool.get()?;
+
+            let query = r#"
+                SELECT e.id, e.message_id, e.subject, e.from_address, e.to_addresses,
+                       e.body_text, e.body_html, e.received_at, e.folder
+                FROM emails e
+                LEFT JOIN email_index_status eis ON e.id = eis.email_id
+                WHERE e.user_id = $1
+                  AND e.account_id = $2
+                  AND (eis.indexed_at IS NULL OR eis.needs_reindex = true)
+                ORDER BY e.received_at DESC
+                LIMIT 100
+            "#;
+
+            let rows: Vec<(
+                Uuid,
+                String,
+                String,
+                String,
+                String,
+                Option<String>,
+                Option<String>,
+                DateTime<Utc>,
+                String,
+            )> = diesel::sql_query(query)
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .bind::<diesel::sql_types::Text, _>(&account_id)
+                .load(&conn)
+                .unwrap_or_default();
+
+            let emails: Vec<EmailDocument> = rows
+                .into_iter()
+                .map(
+                    |(
+                        id,
+                        message_id,
+                        subject,
+                        from,
+                        to,
+                        body_text,
+                        body_html,
+                        received_at,
+                        folder,
+                    )| {
+                        EmailDocument {
+                            id: id.to_string(),
+                            message_id,
+                            subject,
+                            from_address: from,
+                            to_addresses: to.split(',').map(|s| s.trim().to_string()).collect(),
+                            cc_addresses: Vec::new(),
+                            body_text: body_text.unwrap_or_default(),
+                            body_html,
+                            received_at,
+                            folder,
+                            labels: Vec::new(),
+                            has_attachments: false,
+                            account_id: account_id.clone(),
+                        }
+                    },
+                )
+                .collect();
+
+            Ok::<_, anyhow::Error>(emails)
+        })
+        .await??;
+
+        Ok(results)
     }
 
-    /// Get unindexed files (placeholder - needs actual implementation)
     async fn get_unindexed_files(
         &self,
-        _user_id: Uuid,
+        user_id: Uuid,
     ) -> Result<Vec<FileDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        // File fetching is handled by the drive module
-        // This returns empty as files are indexed on-demand
-        Ok(Vec::new())
+        let pool = self.pool.clone();
+
+        let results = tokio::task::spawn_blocking(move || {
+            let conn = pool.get()?;
+
+            let query = r#"
+                SELECT f.id, f.file_path, f.file_name, f.file_type, f.file_size,
+                       f.bucket, f.mime_type, f.created_at, f.modified_at
+                FROM files f
+                LEFT JOIN file_index_status fis ON f.id = fis.file_id
+                WHERE f.user_id = $1
+                  AND (fis.indexed_at IS NULL OR fis.needs_reindex = true)
+                  AND f.file_size < 10485760
+                ORDER BY f.modified_at DESC
+                LIMIT 100
+            "#;
+
+            let rows: Vec<(
+                Uuid,
+                String,
+                String,
+                String,
+                i64,
+                String,
+                Option<String>,
+                DateTime<Utc>,
+                DateTime<Utc>,
+            )> = diesel::sql_query(query)
+                .bind::<diesel::sql_types::Uuid, _>(user_id)
+                .load(&conn)
+                .unwrap_or_default();
+
+            let files: Vec<FileDocument> = rows
+                .into_iter()
+                .map(
+                    |(
+                        id,
+                        file_path,
+                        file_name,
+                        file_type,
+                        file_size,
+                        bucket,
+                        mime_type,
+                        created_at,
+                        modified_at,
+                    )| {
+                        FileDocument {
+                            id: id.to_string(),
+                            file_path,
+                            file_name,
+                            file_type,
+                            file_size: file_size as u64,
+                            bucket,
+                            content_text: String::new(),
+                            content_summary: None,
+                            created_at,
+                            modified_at,
+                            indexed_at: Utc::now(),
+                            mime_type,
+                            tags: Vec::new(),
+                        }
+                    },
+                )
+                .collect();
+
+            Ok::<_, anyhow::Error>(files)
+        })
+        .await??;
+
+        Ok(results)
     }
 
     /// Get indexing statistics for a user

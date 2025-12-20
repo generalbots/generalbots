@@ -12,9 +12,7 @@ use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
-// ============================================================================
 // Request/Response Types
-// ============================================================================
 
 #[derive(Debug, Deserialize)]
 pub struct CreateGroupRequest {
@@ -91,9 +89,7 @@ pub struct ErrorResponse {
     pub details: Option<String>,
 }
 
-// ============================================================================
 // Group Management Handlers
-// ============================================================================
 
 /// Create a new organization/group in Zitadel
 pub async fn create_group(

@@ -34,9 +34,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ============================================================================
 // CONSTRAINT DATA STRUCTURES
-// ============================================================================
 
 /// Constraint check result
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -182,9 +180,7 @@ pub struct Constraint {
     pub bot_id: String,
 }
 
-// ============================================================================
 // SIMULATION DATA STRUCTURES
-// ============================================================================
 
 /// Result of impact simulation
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -530,9 +526,7 @@ pub enum RecommendationType {
     Custom(String),
 }
 
-// ============================================================================
 // AUDIT TRAIL DATA STRUCTURES
-// ============================================================================
 
 /// Audit log entry
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -743,9 +737,7 @@ pub struct RelatedEntity {
     pub relationship: String,
 }
 
-// ============================================================================
 // SAFETY LAYER ENGINE
-// ============================================================================
 
 /// The Safety Layer engine
 pub struct SafetyLayer {

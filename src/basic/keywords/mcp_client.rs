@@ -46,9 +46,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-// ============================================================================
 // MCP DATA STRUCTURES
-// ============================================================================
 
 /// Represents a registered MCP server
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -379,9 +377,7 @@ impl Default for HealthStatus {
     }
 }
 
-// ============================================================================
 // MCP REQUEST/RESPONSE
-// ============================================================================
 
 /// MCP tool invocation request
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -444,9 +440,7 @@ pub struct McpResponseMetadata {
     pub rate_limit_reset: Option<DateTime<Utc>>,
 }
 
-// ============================================================================
 // MCP CLIENT
-// ============================================================================
 
 /// The MCP Client for managing server connections and tool invocations
 pub struct McpClient {

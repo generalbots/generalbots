@@ -2249,17 +2249,78 @@ pub async fn search_emails_htmx(
         "#.to_string());
     }
 
-    // For now, return a placeholder - in production this would search the database
-    axum::response::Html(format!(r#"
-        <div class="empty-state">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                <circle cx="11" cy="11" r="8"></circle>
-                <path d="m21 21-4.35-4.35"></path>
-            </svg>
-            <h3>Searching for "{}"</h3>
-            <p>No results found. Try different keywords.</p>
-        </div>
-    "#, query))
+    let search_term = format!("%{}%", query.to_lowercase());
+
+    let conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(_) => {
+            return axum::response::Html(r#"
+                <div class="empty-state error">
+                    <p>Database connection error</p>
+                </div>
+            "#.to_string());
+        }
+    };
+
+    let search_query = format!(
+        "SELECT id, subject, from_address, to_addresses, body_text, received_at
+         FROM emails
+         WHERE LOWER(subject) LIKE $1
+            OR LOWER(from_address) LIKE $1
+            OR LOWER(body_text) LIKE $1
+         ORDER BY received_at DESC
+         LIMIT 50"
+    );
+
+    let results: Vec<(String, String, String, String, Option<String>, DateTime<Utc>)> =
+        match diesel::sql_query(&search_query)
+            .bind::<diesel::sql_types::Text, _>(&search_term)
+            .load(&conn)
+        {
+            Ok(r) => r.into_iter().map(|row: (String, String, String, String, Option<String>, DateTime<Utc>)| row).collect(),
+            Err(e) => {
+                warn!("Email search query failed: {}", e);
+                Vec::new()
+            }
+        };
+
+    if results.is_empty() {
+        return axum::response::Html(format!(r#"
+            <div class="empty-state">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.35-4.35"></path>
+                </svg>
+                <h3>No results for "{}"</h3>
+                <p>Try different keywords or check your spelling.</p>
+            </div>
+        "#, query));
+    }
+
+    let mut html = String::from(r#"<div class="search-results">"#);
+    html.push_str(&format!(r#"<div class="search-header"><span>Found {} result(s) for "{}"</span></div>"#, results.len(), query));
+
+    for (id, subject, from, _to, body, date) in results {
+        let preview = body
+            .as_deref()
+            .unwrap_or("")
+            .chars()
+            .take(100)
+            .collect::<String>();
+        let formatted_date = date.format("%b %d, %Y").to_string();
+
+        html.push_str(&format!(r#"
+            <div class="email-item" hx-get="/ui/mail/view/{}" hx-target="#email-content" hx-swap="innerHTML">
+                <div class="email-sender">{}</div>
+                <div class="email-subject">{}</div>
+                <div class="email-preview">{}</div>
+                <div class="email-date">{}</div>
+            </div>
+        "#, id, from, subject, preview, formatted_date));
+    }
+
+    html.push_str("</div>");
+    axum::response::Html(html)
 }
 
 /// Save auto-responder settings

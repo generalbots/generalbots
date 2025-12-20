@@ -34,7 +34,6 @@ pub mod vectordb_indexer;
 // BM25 Configuration exports
 pub use bm25_config::{is_stopword, Bm25Config, DEFAULT_STOPWORDS};
 
-// Hybrid Search exports
 pub use hybrid_search::{
     BM25Stats, HybridSearchConfig, HybridSearchEngine, HybridSearchStats, QueryDecomposer,
     SearchMethod, SearchResult,
@@ -48,5 +47,4 @@ pub use hybrid_search::TantivyBM25Index;
 #[cfg(not(feature = "vectordb"))]
 pub use hybrid_search::BM25Index;
 
-// VectorDB Indexer exports
 pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};

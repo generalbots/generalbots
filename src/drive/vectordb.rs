@@ -1,4 +1,5 @@
 use anyhow::Result;
+use calamine::Reader;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -530,25 +531,22 @@ impl FileContentExtractor {
 
             // PDF files
             "application/pdf" => {
-                log::info!("PDF extraction requested for {:?}", file_path);
-                // Return placeholder for PDF files - requires pdf-extract crate
-                Ok(format!("[PDF content from {:?}]", file_path))
+                log::info!("PDF extraction for {:?}", file_path);
+                Self::extract_pdf_text(file_path).await
             }
 
             // Microsoft Word documents
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             | "application/msword" => {
-                log::info!("Word document extraction requested for {:?}", file_path);
-                // Return placeholder for Word documents - requires docx-rs crate
-                Ok(format!("[Word document content from {:?}]", file_path))
+                log::info!("Word document extraction for {:?}", file_path);
+                Self::extract_docx_text(file_path).await
             }
 
             // Excel/Spreadsheet files
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             | "application/vnd.ms-excel" => {
-                log::info!("Spreadsheet extraction requested for {:?}", file_path);
-                // Return placeholder for spreadsheets - requires calamine crate
-                Ok(format!("[Spreadsheet content from {:?}]", file_path))
+                log::info!("Spreadsheet extraction for {:?}", file_path);
+                Self::extract_xlsx_text(file_path).await
             }
 
             // JSON files
@@ -585,6 +583,113 @@ impl FileContentExtractor {
 
             _ => {
                 log::warn!("Unsupported file type for indexing: {}", mime_type);
+                Ok(String::new())
+            }
+        }
+    }
+
+    async fn extract_pdf_text(file_path: &PathBuf) -> Result<String> {
+        let bytes = fs::read(file_path).await?;
+
+        match pdf_extract::extract_text_from_mem(&bytes) {
+            Ok(text) => {
+                let cleaned = text
+                    .lines()
+                    .map(|l| l.trim())
+                    .filter(|l| !l.is_empty())
+                    .collect::<Vec<_>>()
+                    .join("\n");
+                Ok(cleaned)
+            }
+            Err(e) => {
+                log::warn!("PDF extraction failed for {:?}: {}", file_path, e);
+                Ok(String::new())
+            }
+        }
+    }
+
+    async fn extract_docx_text(file_path: &PathBuf) -> Result<String> {
+        let path = file_path.clone();
+
+        let result = tokio::task::spawn_blocking(move || {
+            let file = std::fs::File::open(&path)?;
+            let mut archive = zip::ZipArchive::new(file)?;
+
+            let mut content = String::new();
+
+            if let Ok(mut document) = archive.by_name("word/document.xml") {
+                let mut xml_content = String::new();
+                std::io::Read::read_to_string(&mut document, &mut xml_content)?;
+
+                let text_regex = regex::Regex::new(r"<w:t[^>]*>([^<]*)</w:t>").unwrap();
+
+                content = text_regex
+                    .captures_iter(&xml_content)
+                    .filter_map(|c| c.get(1).map(|m| m.as_str()))
+                    .collect::<Vec<_>>()
+                    .join("");
+
+                content = content.split("</w:p>").collect::<Vec<_>>().join("\n");
+            }
+
+            Ok::<String, anyhow::Error>(content)
+        })
+        .await?;
+
+        match result {
+            Ok(text) => Ok(text),
+            Err(e) => {
+                log::warn!("DOCX extraction failed for {:?}: {}", file_path, e);
+                Ok(String::new())
+            }
+        }
+    }
+
+    async fn extract_xlsx_text(file_path: &PathBuf) -> Result<String> {
+        let path = file_path.clone();
+
+        let result = tokio::task::spawn_blocking(move || {
+            let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(&path)?;
+            let mut content = String::new();
+
+            for sheet_name in workbook.sheet_names().to_vec() {
+                if let Ok(range) = workbook.worksheet_range(&sheet_name) {
+                    content.push_str(&format!("=== {} ===\n", sheet_name));
+
+                    for row in range.rows() {
+                        let row_text: Vec<String> = row
+                            .iter()
+                            .map(|cell| match cell {
+                                calamine::Data::Empty => String::new(),
+                                calamine::Data::String(s) => s.clone(),
+                                calamine::Data::Float(f) => f.to_string(),
+                                calamine::Data::Int(i) => i.to_string(),
+                                calamine::Data::Bool(b) => b.to_string(),
+                                calamine::Data::Error(e) => format!("{:?}", e),
+                                calamine::Data::DateTime(dt) => dt.to_string(),
+                                calamine::Data::DateTimeIso(s) => s.clone(),
+                                calamine::Data::DurationIso(s) => s.clone(),
+                            })
+                            .collect();
+
+                        let line = row_text.join("\t");
+                        if !line.trim().is_empty() {
+                            content.push_str(&line);
+                            content.push('\n');
+                        }
+                    }
+                    content.push('\n');
+                }
+            }
+
+            Ok::<String, anyhow::Error>(content)
+        })
+        .await?;
+
+        match result {
+            Ok(text) => Ok(text),
+            Err(e) => {
+                log::warn!("XLSX extraction failed for {:?}: {}", file_path, e);
                 Ok(String::new())
             }
         }

@@ -160,9 +160,7 @@ pub fn clear_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register CLEAR USER MEMORY syntax");
 }
 
-// ============================================================================
 // Database Operations
-// ============================================================================
 
 /// Async function to set user memory
 async fn set_user_memory_async(
@@ -293,9 +291,7 @@ async fn clear_user_memory_async(state: &AppState, user_id: Uuid) -> Result<(), 
     Ok(())
 }
 
-// ============================================================================
 // Tests
-// ============================================================================
 
 #[cfg(test)]
 mod tests {

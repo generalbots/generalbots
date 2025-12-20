@@ -579,9 +579,7 @@ fn delegate_to_keyword(
     Ok(())
 }
 
-// ============================================================================
 // Database Operations
-// ============================================================================
 
 /// Add a bot to the session
 async fn add_bot_to_session(
@@ -785,9 +783,7 @@ async fn delegate_to_bot(
     Ok(response)
 }
 
-// ============================================================================
 // Multi-Agent Message Processing
-// ============================================================================
 
 /// Check if a message matches any bot triggers
 pub fn match_bot_triggers(message: &str, bots: &[SessionBot]) -> Vec<SessionBot> {
@@ -857,9 +853,7 @@ pub fn match_tool_triggers(tool_name: &str, bots: &[SessionBot]) -> Vec<SessionB
     matching_bots
 }
 
-// ============================================================================
 // Helper Types for Diesel Queries
-// ============================================================================
 
 #[derive(QueryableByName)]
 struct BoolResult {
