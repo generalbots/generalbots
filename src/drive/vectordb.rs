@@ -109,7 +109,7 @@ impl UserDriveVectorDB {
         if !exists {
             // Create collection for file embeddings (1536 dimensions for OpenAI embeddings)
             client
-                .create_collection(&CreateCollection {
+                .create_collection(CreateCollection {
                     collection_name: self.collection_name.clone(),
                     vectors_config: Some(VectorsConfig {
                         config: Some(Config::Params(VectorParams {
@@ -482,7 +482,7 @@ impl UserDriveVectorDB {
 
         // Recreate empty collection
         client
-            .create_collection(&CreateCollection {
+            .create_collection(CreateCollection {
                 collection_name: self.collection_name.clone(),
                 vectors_config: Some(VectorsConfig {
                     config: Some(Config::Params(VectorParams {

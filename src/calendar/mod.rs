@@ -5,8 +5,13 @@ use axum::{
     routing::{get, post},
     Router,
 };
-use chrono::{DateTime, Utc};
-use icalendar::{Calendar, Component, Event as IcalEvent, EventLike, Property};
+use chrono::{DateTime, NaiveDateTime, TimeZone, Utc};
+use diesel::r2d2::{ConnectionManager, Pool};
+use diesel::PgConnection;
+use icalendar::{
+    Calendar, CalendarDateTime, Component, DatePerhapsTime, Event as IcalEvent, EventLike, Property,
+};
+use log::info;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
@@ -15,6 +20,8 @@ use uuid::Uuid;
 
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
+
+pub mod caldav;
 
 pub struct CalendarState {
     events: RwLock<HashMap<Uuid, CalendarEvent>>,
@@ -108,8 +115,8 @@ impl CalendarEvent {
         let uid = ical.get_uid()?;
         let summary = ical.get_summary()?;
 
-        let start_time = ical.get_start()?.with_timezone(&Utc);
-        let end_time = ical.get_end()?.with_timezone(&Utc);
+        let start_time = date_perhaps_time_to_utc(ical.get_start()?)?;
+        let end_time = date_perhaps_time_to_utc(ical.get_end()?)?;
 
         let id = Uuid::parse_str(uid).unwrap_or_else(|_| Uuid::new_v4());
 
@@ -127,6 +134,31 @@ impl CalendarEvent {
             created_at: Utc::now(),
             updated_at: Utc::now(),
         })
+    }
+}
+
+/// Convert DatePerhapsTime to DateTime<Utc>
+fn date_perhaps_time_to_utc(dpt: DatePerhapsTime) -> Option<DateTime<Utc>> {
+    match dpt {
+        DatePerhapsTime::DateTime(cal_dt) => {
+            // Handle different CalendarDateTime variants
+            match cal_dt {
+                CalendarDateTime::Utc(dt) => Some(dt),
+                CalendarDateTime::Floating(naive) => {
+                    // For floating time, assume UTC
+                    Some(Utc.from_utc_datetime(&naive))
+                }
+                CalendarDateTime::WithTimezone { date_time, .. } => {
+                    // For timezone-aware, convert to UTC (assuming UTC if tz parsing fails)
+                    Some(Utc.from_utc_datetime(&date_time))
+                }
+            }
+        }
+        DatePerhapsTime::Date(date) => {
+            // For date-only, use midnight UTC
+            let naive = NaiveDateTime::new(date, chrono::NaiveTime::from_hms_opt(0, 0, 0)?);
+            Some(Utc.from_utc_datetime(&naive))
+        }
     }
 }
 
@@ -165,11 +197,16 @@ pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
 #[derive(Default)]
 pub struct CalendarEngine {
     events: Vec<CalendarEvent>,
+    #[allow(dead_code)]
+    conn: Option<Pool<ConnectionManager<PgConnection>>>,
 }
 
 impl CalendarEngine {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(conn: Pool<ConnectionManager<PgConnection>>) -> Self {
+        Self {
+            events: Vec::new(),
+            conn: Some(conn),
+        }
     }
 
     pub fn create_event(&mut self, input: CalendarEventInput) -> CalendarEvent {
@@ -261,7 +298,6 @@ impl CalendarEngine {
         count
     }
 }
-
 
 pub async fn list_events(
     State(_state): State<Arc<AppState>>,
@@ -402,10 +438,7 @@ pub async fn update_event(
     Ok(Json(event.clone()))
 }
 
-pub async fn delete_event(
-    State(_state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-) -> StatusCode {
+pub async fn delete_event(State(_state): State<Arc<AppState>>, Path(id): Path<Uuid>) -> StatusCode {
     let calendar_state = get_calendar_state();
     let mut events = calendar_state.events.write().await;
 
@@ -438,16 +471,21 @@ pub async fn import_ical(
 
 /// New event form (HTMX HTML response)
 pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
-    axum::response::Html(r#"
+    axum::response::Html(
+        r#"
         <div class="event-form-content">
             <p>Create a new event using the form on the right panel.</p>
         </div>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }
 
 /// New calendar form (HTMX HTML response)
-pub async fn new_calendar_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
-    axum::response::Html(r#"
+pub async fn new_calendar_form(
+    State(_state): State<Arc<AppState>>,
+) -> axum::response::Html<String> {
+    axum::response::Html(r##"
         <form class="calendar-form" hx-post="/api/calendar/calendars" hx-swap="none">
             <div class="form-group">
                 <label>Calendar Name</label>
@@ -468,7 +506,33 @@ pub async fn new_calendar_form(State(_state): State<Arc<AppState>>) -> axum::res
                 <button type="submit" class="btn-primary">Create Calendar</button>
             </div>
         </form>
-    "#.to_string())
+    "##.to_string())
+}
+
+/// Start the reminder job that checks for upcoming events and sends notifications
+pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
+    info!("Starting calendar reminder job");
+
+    loop {
+        // Check every minute for upcoming reminders
+        tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+
+        let now = Utc::now();
+        for event in &engine.events {
+            if let Some(reminder_minutes) = event.reminder_minutes {
+                let reminder_time =
+                    event.start_time - chrono::Duration::minutes(reminder_minutes as i64);
+                // Check if we're within the reminder window (within 1 minute)
+                if now >= reminder_time && now < reminder_time + chrono::Duration::minutes(1) {
+                    info!(
+                        "Reminder: Event '{}' starts in {} minutes",
+                        event.title, reminder_minutes
+                    );
+                    // TODO: Send actual notification via configured channels
+                }
+            }
+        }
+    }
 }
 
 /// Configure calendar API routes

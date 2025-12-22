@@ -124,7 +124,7 @@ impl ScriptService {
         add_member_keyword(state.clone(), user.clone(), &mut engine);
 
         // Register dynamic bot management keywords (ADD BOT, REMOVE BOT)
-        register_bot_keywords(state.clone(), user.clone(), &mut engine);
+        register_bot_keywords(&state, &user, &mut engine);
 
         // Register model routing keywords (USE MODEL, SET MODEL ROUTING, etc.)
         register_model_routing_keywords(state.clone(), user.clone(), &mut engine);

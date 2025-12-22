@@ -5,283 +5,299 @@
 
 ---
 
-## Build Rules - IMPORTANT
+## ZERO TOLERANCE POLICY
 
-**Always use debug builds during development and testing:**
+**This project has the strictest code quality requirements possible:**
+
+```toml
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+unwrap_used = "warn"
+expect_used = "warn"
+panic = "warn"
+todo = "warn"
+```
+
+**EVERY SINGLE WARNING MUST BE FIXED. NO EXCEPTIONS.**
+
+---
+
+## ABSOLUTE PROHIBITIONS
+
+```
+❌ NEVER use #![allow()] or #[allow()] in source code to silence warnings
+❌ NEVER use _ prefix for unused variables - DELETE the variable or USE it
+❌ NEVER use .unwrap() - use ? or proper error handling
+❌ NEVER use .expect() - use ? or proper error handling  
+❌ NEVER use panic!() or unreachable!() - handle all cases
+❌ NEVER use todo!() or unimplemented!() - write real code
+❌ NEVER leave unused imports - DELETE them
+❌ NEVER leave dead code - DELETE it or IMPLEMENT it
+❌ NEVER use approximate constants (3.14159) - use std::f64::consts::PI
+❌ NEVER silence clippy in code - FIX THE CODE or configure in Cargo.toml
+❌ NEVER add comments explaining what code does - code must be self-documenting
+❌ NEVER use CDN links - all assets must be local
+```
+
+---
+
+## CARGO.TOML LINT EXCEPTIONS
+
+When a clippy lint has **technical false positives** that cannot be fixed in code,
+disable it in `Cargo.toml` with a comment explaining why:
+
+```toml
+[lints.clippy]
+# Disabled: has false positives for functions with mut self, heap types (Vec, String)
+missing_const_for_fn = "allow"
+# Disabled: Tauri commands require owned types (Window) that cannot be passed by reference
+needless_pass_by_value = "allow"
+# Disabled: transitive dependencies we cannot control
+multiple_crate_versions = "allow"
+```
+
+**Approved exceptions:**
+- `missing_const_for_fn` - false positives for `mut self`, heap types
+- `needless_pass_by_value` - Tauri/framework requirements
+- `multiple_crate_versions` - transitive dependencies
+- `future_not_send` - when async traits require non-Send futures
+
+---
+
+## MANDATORY CODE PATTERNS
+
+### Error Handling - Use `?` Operator
+
+```rust
+// ❌ WRONG
+let value = something.unwrap();
+let value = something.expect("msg");
+
+// ✅ CORRECT
+let value = something?;
+let value = something.ok_or_else(|| Error::NotFound)?;
+```
+
+### Option Handling - Use Combinators
+
+```rust
+// ❌ WRONG
+if let Some(x) = opt {
+    x
+} else {
+    default
+}
+
+// ✅ CORRECT
+opt.unwrap_or(default)
+opt.unwrap_or_else(|| compute_default())
+opt.map_or(default, |x| transform(x))
+```
+
+### Match Arms - Must Be Different
+
+```rust
+// ❌ WRONG - identical arms
+match x {
+    A => do_thing(),
+    B => do_thing(),
+    C => other(),
+}
+
+// ✅ CORRECT - combine identical arms
+match x {
+    A | B => do_thing(),
+    C => other(),
+}
+```
+
+### Self Usage in Impl Blocks
+
+```rust
+// ❌ WRONG
+impl MyStruct {
+    fn new() -> MyStruct { MyStruct { } }
+}
+
+// ✅ CORRECT
+impl MyStruct {
+    fn new() -> Self { Self { } }
+}
+```
+
+### Format Strings - Inline Variables
+
+```rust
+// ❌ WRONG
+format!("Hello {}", name)
+log::info!("Processing {}", id);
+
+// ✅ CORRECT
+format!("Hello {name}")
+log::info!("Processing {id}");
+```
+
+### Display vs ToString
+
+```rust
+// ❌ WRONG
+impl ToString for MyType {
+    fn to_string(&self) -> String { }
+}
+
+// ✅ CORRECT
+impl std::fmt::Display for MyType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result { }
+}
+```
+
+### Derive Eq with PartialEq
+
+```rust
+// ❌ WRONG
+#[derive(PartialEq)]
+struct MyStruct { }
+
+// ✅ CORRECT
+#[derive(PartialEq, Eq)]
+struct MyStruct { }
+```
+
+### Must Use Attributes
+
+```rust
+// ❌ WRONG - pure function without #[must_use]
+pub fn calculate() -> i32 { }
+
+// ✅ CORRECT
+#[must_use]
+pub fn calculate() -> i32 { }
+```
+
+### Const Functions
+
+```rust
+// ❌ WRONG - could be const but isn't
+pub fn default_value() -> i32 { 42 }
+
+// ✅ CORRECT
+pub const fn default_value() -> i32 { 42 }
+```
+
+### Pass by Reference
+
+```rust
+// ❌ WRONG - needless pass by value
+fn process(data: String) { println!("{data}"); }
+
+// ✅ CORRECT
+fn process(data: &str) { println!("{data}"); }
+```
+
+### Clone Only When Needed
+
+```rust
+// ❌ WRONG - redundant clone
+let x = value.clone();
+use_value(&x);
+
+// ✅ CORRECT
+use_value(&value);
+```
+
+### Mathematical Constants
+
+```rust
+// ❌ WRONG
+let pi = 3.14159;
+let e = 2.71828;
+
+// ✅ CORRECT
+use std::f64::consts::{PI, E};
+let pi = PI;
+let e = E;
+```
+
+### Async Functions
+
+```rust
+// ❌ WRONG - async without await
+async fn process() { sync_operation(); }
+
+// ✅ CORRECT - remove async if no await needed
+fn process() { sync_operation(); }
+```
+
+---
+
+## Build Rules
 
 ```bash
-# CORRECT - debug build (fast compilation)
+# Development - ALWAYS debug build
 cargo build
 cargo check
 
-# WRONG - do NOT use release builds unless explicitly requested
-# cargo build --release
-```
-
-Debug builds compile much faster and are sufficient for testing functionality.
-Only use `--release` when building final binaries for deployment.
-
----
-
-## Weekly Maintenance - EVERY MONDAY
-
-### Package Review Checklist
-
-**Every Monday, review the following:**
-
-1. **Dependency Updates**
-   ```bash
-   cargo outdated
-   cargo audit
-   ```
-
-2. **Package Consolidation Opportunities**
-   - Check if new crates can replace custom code
-   - Look for crates that combine multiple dependencies
-   - Review `Cargo.toml` for redundant dependencies
-
-3. **Code Reduction Candidates**
-   - Custom implementations that now have crate equivalents
-   - Boilerplate that can be replaced with derive macros
-   - Manual serialization that `serde` can handle
-
-4. **Security Updates**
-   ```bash
-   cargo audit fix
-   ```
-
-### Packages to Watch
-
-| Area | Potential Packages | Purpose |
-|------|-------------------|---------|
-| Validation | `validator` | Replace manual validation |
-| Date/Time | `chrono`, `time` | Consolidate time handling |
-| Email | `lettre` | Simplify email sending |
-| File Watching | `notify` | Replace polling with events |
-| Background Jobs | `tokio-cron-scheduler` | Simplify scheduling |
-
----
-
-## Version Management - CRITICAL
-
-**Current version is 6.1.0 - DO NOT CHANGE without explicit approval!**
-
-```bash
-# Check current version
-grep "^version" Cargo.toml
-```
-
-### Rules
-
-1. **Version is 6.1.0 across ALL workspace crates**
-2. **NEVER change version without explicit user approval**
-3. **All migrations use 6.1.0_* prefix**
-4. **Migration folder naming: `6.1.0_{feature_name}/`**
-
----
-
-## Database Standards - CRITICAL
-
-### TABLES AND INDEXES ONLY
-
-**NEVER create in migrations:**
-- ❌ Views (`CREATE VIEW`)
-- ❌ Triggers (`CREATE TRIGGER`)
-- ❌ Functions (`CREATE FUNCTION`)
-- ❌ Stored Procedures
-
-**ALWAYS use:**
-- ✅ Tables (`CREATE TABLE IF NOT EXISTS`)
-- ✅ Indexes (`CREATE INDEX IF NOT EXISTS`)
-- ✅ Constraints (inline in table definitions)
-
-### Why?
-- Diesel ORM compatibility
-- Simpler rollbacks
-- Better portability
-- Easier testing
-
-### JSON Storage Pattern
-
-Use TEXT columns with `_json` suffix instead of JSONB:
-```sql
--- CORRECT
-members_json TEXT DEFAULT '[]'
-
--- WRONG
-members JSONB DEFAULT '[]'::jsonb
+# NEVER use release unless deploying
+# cargo build --release  # NO!
 ```
 
 ---
 
-## Official Icons - MANDATORY
+## Version Management
 
-**NEVER generate icons with LLM. ALWAYS use official SVG icons from assets.**
-
-Icons are stored in two locations (kept in sync):
-- `botui/ui/suite/assets/icons/` - Runtime icons for UI
-- `botbook/src/assets/icons/` - Documentation icons
-
-### Available Icons
-
-| Icon | File | Usage |
-|------|------|-------|
-| Logo | `gb-logo.svg` | Main GB branding |
-| Bot | `gb-bot.svg` | Bot/assistant representation |
-| Analytics | `gb-analytics.svg` | Charts, metrics, dashboards |
-| Calendar | `gb-calendar.svg` | Scheduling, events |
-| Chat | `gb-chat.svg` | Conversations, messaging |
-| Compliance | `gb-compliance.svg` | Security, auditing |
-| Designer | `gb-designer.svg` | Workflow automation |
-| Drive | `gb-drive.svg` | File storage, documents |
-| Mail | `gb-mail.svg` | Email functionality |
-| Meet | `gb-meet.svg` | Video conferencing |
-| Paper | `gb-paper.svg` | Document editing |
-| Research | `gb-research.svg` | Search, investigation |
-| Sources | `gb-sources.svg` | Knowledge bases |
-| Tasks | `gb-tasks.svg` | Task management |
-
-### Icon Guidelines
-
-- All icons use `stroke="currentColor"` for CSS theming
-- ViewBox: `0 0 24 24`
-- Stroke width: `1.5`
-- Rounded line caps and joins
-
-**DO NOT:**
-- Generate new icons with AI/LLM
-- Use emoji or unicode symbols as icons
-- Use external icon libraries
-- Create inline SVG content
+**Version is 6.1.0 - NEVER CHANGE without explicit approval**
 
 ---
 
-## Project Overview
+## Database Standards
 
-botserver is the core backend for General Bots - an open-source conversational AI platform built in Rust. It provides:
-
-- **Bootstrap System**: Auto-installs PostgreSQL, MinIO, Redis, LLM servers
-- **Package Manager**: Manages bot deployments and service lifecycle
-- **BASIC Interpreter**: Executes conversation scripts via Rhai
-- **Multi-Channel Support**: Web, WhatsApp, Teams, Email
-- **Knowledge Base**: Document ingestion with vector search
-
-### Workspace Structure
+**TABLES AND INDEXES ONLY:**
 
 ```
-botserver/     # Main server (this project)
-botlib/        # Shared library - types, utilities, HTTP client
-botui/         # Web/Desktop UI (Axum + Tauri)
-botapp/        # Desktop app wrapper (Tauri)
-botbook/       # Documentation (mdBook)
-botmodels/     # Data models visualization
-botplugin/     # Browser extension
+✅ CREATE TABLE IF NOT EXISTS
+✅ CREATE INDEX IF NOT EXISTS
+✅ Inline constraints
+
+❌ CREATE VIEW
+❌ CREATE TRIGGER  
+❌ CREATE FUNCTION
+❌ Stored Procedures
 ```
 
----
-
-## Database Migrations
-
-### Creating New Migrations
-
-```bash
-# 1. Version is always 6.1.0
-# 2. List existing migrations
-ls -la migrations/
-
-# 3. Create new migration folder
-mkdir migrations/6.1.0_my_feature
-
-# 4. Create up.sql and down.sql (TABLES AND INDEXES ONLY)
-```
-
-### Migration Structure
-
-```
-migrations/
-├── 6.0.0_initial_schema/
-├── 6.0.1_bot_memories/
-├── ...
-├── 6.1.0_enterprise_features/
-│   ├── up.sql
-│   └── down.sql
-└── 6.1.0_next_feature/        # YOUR NEW MIGRATION
-    ├── up.sql
-    └── down.sql
-```
-
-### Migration Best Practices
-
-- Use `IF NOT EXISTS` for all CREATE TABLE statements
-- Use `IF EXISTS` for all DROP statements in down.sql
-- Always create indexes for foreign keys
-- **NO triggers** - handle updated_at in application code
-- **NO views** - use queries in application code
-- **NO functions** - use application logic
-- Use TEXT with `_json` suffix for JSON data (not JSONB)
-
----
-
-## LLM Workflow Strategy
-
-### Two Types of LLM Work
-
-1. **Execution Mode (Fazer)**
-   - Pre-annotate phrases and send for execution
-   - Focus on automation freedom
-   - Less concerned with code details
-   - Primary concern: Is the LLM destroying something?
-   - Trust but verify output doesn't break existing functionality
-
-2. **Review Mode (Conferir)**
-   - Read generated code with full attention
-   - Line-by-line verification
-   - Check for correctness, security, performance
-   - Validate against requirements
-
-### Development Process
-
-1. **One requirement at a time** with sequential commits
-2. **Start with docs** - explain user behavior before coding
-3. **Design first** - spend time on architecture
-4. **On unresolved error** - stop and consult with web search enabled
-
-### LLM Fallback Strategy (After 3 attempts / 10 minutes)
-
-1. DeepSeek-V3-0324 (good architect, reliable)
-2. gpt-5-chat (slower but thorough)
-3. gpt-oss-120b (final validation)
-4. Claude Web (for complex debugging, unit tests, UI)
+**JSON Columns:** Use TEXT with `_json` suffix, not JSONB
 
 ---
 
 ## Code Generation Rules
 
-### CRITICAL REQUIREMENTS
-
 ```
 - KISS, NO TALK, SECURED ENTERPRISE GRADE THREAD SAFE CODE ONLY
-- Use rustc 1.90.0 (1159e78c4 2025-09-14)
-- No placeholders, never comment/uncomment code, no explanations
+- Use rustc 1.90.0+
+- No placeholders, no explanations, no comments
 - All code must be complete, professional, production-ready
 - REMOVE ALL COMMENTS FROM GENERATED CODE
 - Always include full updated code files - never partial
 - Only return files that have actual changes
-- DO NOT WRITE ERROR HANDLING CODE - LET IT CRASH
-- Return 0 warnings - review unused imports!
-- NO DEAD CODE - implement real functionality, never use _ for unused
+- Return 0 warnings - FIX ALL CLIPPY WARNINGS
+- NO DEAD CODE - implement real functionality
 ```
 
-### Documentation Rules
+---
+
+## Documentation Rules
 
 ```
-- Rust code examples ONLY in docs/reference/architecture.md (gbapp chapter)
+- Rust code examples ONLY in docs/reference/architecture.md
 - All other docs: BASIC, bash, JSON, SQL, YAML only
-- Scan for ALL_CAPS.md files created at wrong places - delete or integrate to docs/
 - Keep only README.md and PROMPT.md at project root level
 ```
 
-### Frontend Rules
+---
+
+## Frontend Rules
 
 ```
 - Use HTMX to minimize JavaScript - delegate logic to Rust server
@@ -290,237 +306,47 @@ migrations/
 - Endpoints return HTML fragments, not JSON (for HTMX)
 ```
 
-### Rust Patterns
+---
+
+## Rust Patterns
 
 ```rust
-// Use rand::rng() instead of rand::thread_rng()
+// Random number generation
 let mut rng = rand::rng();
 
-// Use diesel for database (NOT sqlx)
+// Database - ONLY diesel, never sqlx
 use diesel::prelude::*;
 
-// All config from AppConfig - no hardcoded values
+// Config from AppConfig - no hardcoded values
 let url = config.drive.endpoint.clone();
 
-// Logging (all-in-one-line, unique messages)
-info!("Processing request id={} user={}", req_id, user_id);
+// Logging - all-in-one-line, unique messages, inline vars
+info!("Processing request id={id} user={user_id}");
 ```
 
-### Dependency Management
+---
+
+## Dependencies
 
 ```
 - Use diesel - remove any sqlx references
-- After adding to Cargo.toml: cargo audit must show 0 warnings
+- After adding to Cargo.toml: cargo audit must show 0 vulnerabilities
 - If audit fails, find alternative library
-- Minimize redundancy - check existing libs before adding new ones
-- Review src/ to identify reusable patterns and libraries
-```
-
-### botserver Specifics
-
-```
-- Sessions MUST be retrieved by id when session_id is present
-- Never suggest installing software - bootstrap/package_manager handles it
-- Configuration stored in .gbot/config and database bot_configuration table
-- Pay attention to shared::utils and shared::models for reuse
+- Minimize redundancy - check existing libs before adding
 ```
 
 ---
 
-## Documentation Validation
-
-### Chapter Validation Process
-
-For each documentation chapter:
-
-1. Read the chapter instructions step by step
-2. Check if source code accomplishes each instruction
-3. Verify paths exist and are correct
-4. Ensure 100% alignment between docs and implementation
-5. Fix either docs or code to match
-
-### Documentation Structure
+## Key Files
 
 ```
-docs/
-├── api/                    # API documentation (no Rust code)
-├── guides/                 # How-to guides (no Rust code)
-└── reference/
-    ├── architecture.md     # ONLY place for Rust code examples
-    ├── basic-language.md   # BASIC only
-    └── configuration.md    # Config examples only
-```
-
----
-
-## Adding New Features
-
-### Adding a Rhai Keyword
-
-```rust
-pub fn my_keyword(state: &AppState, engine: &mut Engine) {
-    let db = state.db_custom.clone();
-    
-    engine.register_custom_syntax(
-        ["MY", "KEYWORD", "$expr$"],
-        true,
-        {
-            let db = db.clone();
-            move |context, inputs| {
-                let value = context.eval_expression_tree(&inputs[0])?;
-                let binding = db.as_ref().unwrap();
-                let fut = execute_my_keyword(binding, value);
-                
-                let result = tokio::task::block_in_place(||
-                    tokio::runtime::Handle::current().block_on(fut))
-                    .map_err(|e| format!("DB error: {}", e))?;
-                    
-                Ok(Dynamic::from(result))
-            }
-        }
-    ).unwrap();
-}
-
-pub async fn execute_my_keyword(
-    pool: &PgPool,
-    value: String,
-) -> Result<Value, Box<dyn std::error::Error>> {
-    info!("Executing my_keyword value={}", value);
-    
-    use diesel::prelude::*;
-    let result = diesel::insert_into(my_table::table)
-        .values(&NewRecord { value })
-        .execute(pool)?;
-        
-    Ok(json!({ "rows_affected": result }))
-}
-```
-
-### Adding a Data Model
-
-```rust
-use chrono::{DateTime, Utc};
-use diesel::prelude::*;
-use serde::{Deserialize, Serialize};
-use uuid::Uuid;
-
-#[derive(Debug, Queryable, Selectable, Insertable, Serialize, Deserialize)]
-#[diesel(table_name = crate::schema::users)]
-#[diesel(check_for_backend(diesel::pg::Pg))]
-pub struct User {
-    pub id: Uuid,
-    pub status: i16,
-    pub email: String,
-    pub age: Option<i16>,
-    pub metadata: Vec<u8>,
-    pub created_at: DateTime<Utc>,
-}
-```
-
-### Adding a Service/Endpoint (HTMX Pattern)
-
-```rust
-use axum::{routing::get, Router, extract::State, response::Html};
-use askama::Template;
-
-#[derive(Template)]
-#[template(path = "partials/items.html")]
-struct ItemsTemplate {
-    items: Vec<Item>,
-}
-
-pub fn configure() -> Router<AppState> {
-    Router::new()
-        .route("/api/items", get(list_handler))
-}
-
-async fn list_handler(
-    State(state): State<Arc<AppState>>,
-) -> Html<String> {
-    let conn = state.conn.get().unwrap();
-    let items = items::table.load::<Item>(&conn).unwrap();
-    let template = ItemsTemplate { items };
-    Html(template.render().unwrap())
-}
-```
-
----
-
-## Final Steps Before Commit
-
-```bash
-# Check for warnings
-cargo check 2>&1 | grep warning
-
-# Audit dependencies (must be 0 warnings)
-cargo audit
-
-# Build release
-cargo build --release
-
-# Run tests
-cargo test
-
-# Verify no dead code with _ prefixes
-grep -r "let _" src/ --include="*.rs"
-
-# Verify version is 6.1.0
-grep "^version" Cargo.toml | grep "6.1.0"
-
-# Verify no views/triggers/functions in migrations
-grep -r "CREATE VIEW\|CREATE TRIGGER\|CREATE FUNCTION" migrations/
-```
-
-### Pre-Commit Checklist
-
-1. Version is 6.1.0 in all workspace Cargo.toml files
-2. No views, triggers, or functions in migrations
-3. All JSON columns use TEXT with `_json` suffix
-
----
-
-## Output Format
-
-### Shell Script Format
-
-```sh
-#!/bin/bash
-
-cat > src/module/file.rs << 'EOF'
-use std::io;
-
-pub fn my_function() -> Result<(), io::Error> {
-    Ok(())
-}
-EOF
-```
-
-### Rules
-
-- Only return MODIFIED files
-- Never return unchanged files
-- Use `cat > path << 'EOF'` format
-- Include complete file content
-- No partial snippets
-
----
-
-## Key Files Reference
-
-```
-src/main.rs              # Entry point, bootstrap, Axum server
-src/lib.rs               # Module exports, feature gates
-src/core/
-  bootstrap/mod.rs       # Auto-install services
-  session/mod.rs         # Session management
-  bot/mod.rs             # Bot orchestration
-  config/mod.rs          # Configuration management
-  package_manager/       # Service lifecycle
-src/basic/               # BASIC/Rhai interpreter
-src/shared/
-  state.rs               # AppState definition
-  utils.rs               # Utility functions
-  models.rs              # Database models
+src/main.rs              # Entry point
+src/lib.rs               # Module exports
+src/basic/               # BASIC language keywords
+src/core/                # Core functionality
+src/shared/state.rs      # AppState definition
+src/shared/utils.rs      # Utility functions
+src/shared/models.rs     # Database models
 ```
 
 ---
@@ -530,7 +356,7 @@ src/shared/
 | Library | Version | Purpose |
 |---------|---------|---------|
 | axum | 0.7.5 | Web framework |
-| diesel | 2.1 | PostgreSQL ORM (NOT sqlx) |
+| diesel | 2.1 | PostgreSQL ORM |
 | tokio | 1.41 | Async runtime |
 | rhai | git | BASIC scripting |
 | reqwest | 0.12 | HTTP client |
@@ -541,138 +367,58 @@ src/shared/
 
 ## Remember
 
-- **Two LLM modes**: Execution (fazer) vs Review (conferir)
-- **Rust code**: Only in architecture.md documentation
-- **HTMX**: Minimize JS, delegate to server
-- **Local assets**: No CDN, all vendor files local
-- **Dead code**: Never use _ prefix, implement real code
-- **cargo audit**: Must pass with 0 warnings
+- **ZERO WARNINGS** - Every clippy warning must be fixed
+- **NO ALLOW IN CODE** - Never use #[allow()] in source files
+- **CARGO.TOML EXCEPTIONS OK** - Disable lints with false positives in Cargo.toml with comment
+- **NO DEAD CODE** - Delete unused code, never prefix with _
+- **NO UNWRAP/EXPECT** - Use ? operator or proper error handling
+- **NO APPROXIMATE CONSTANTS** - Use std::f64::consts
+- **INLINE FORMAT ARGS** - format!("{name}") not format!("{}", name)
+- **USE SELF** - In impl blocks, use Self not the type name
+- **DERIVE EQ** - Always derive Eq with PartialEq
+- **DISPLAY NOT TOSTRING** - Implement Display, not ToString
+- **USE DIAGNOSTICS** - Use IDE diagnostics tool, never call cargo clippy directly
+- **PASS BY REF** - Don't clone unnecessarily
+- **CONST FN** - Make functions const when possible
+- **MUST USE** - Add #[must_use] to pure functions
 - **diesel**: No sqlx references
 - **Sessions**: Always retrieve by ID when present
 - **Config**: Never hardcode values, use AppConfig
 - **Bootstrap**: Never suggest manual installation
-- **Warnings**: Target zero warnings before commit
-- **Version**: Always 6.1.0 - do not change without approval
-- **Migrations**: TABLES AND INDEXES ONLY - no views, triggers, functions
-- **Stalwart**: Use Stalwart IMAP/JMAP API for email features (sieve, filters, etc.)
-- **JSON**: Use TEXT columns with `_json` suffix, not JSONB
+- **Version**: Always 6.1.0 - do not change
+- **Migrations**: TABLES AND INDEXES ONLY
+- **JSON**: Use TEXT columns with `_json` suffix
+- **Session Continuation**: When running out of context, create detailed summary: (1) what was done, (2) what remains, (3) specific files and line numbers, (4) exact next steps.
 
 ---
 
 ## Monitor Keywords (ON EMAIL, ON CHANGE)
 
-These keywords register event-driven monitors similar to `SET SCHEDULER`, but triggered by external events.
-
-### ON EMAIL - Email Monitoring
-
-Triggers a script when an email arrives at the specified address.
+### ON EMAIL
 
 ```basic
-' Basic usage - trigger on any email to address
 ON EMAIL "support@company.com"
     email = GET LAST "email_received_events"
-    TALK "New email from " + email.from_address + ": " + email.subject
-END ON
-
-' With FROM filter - only trigger for specific sender
-ON EMAIL "orders@company.com" FROM "supplier@vendor.com"
-    ' Process supplier orders
-END ON
-
-' With SUBJECT filter - only trigger for matching subjects
-ON EMAIL "alerts@company.com" SUBJECT "URGENT"
-    ' Handle urgent alerts
+    TALK "New email from " + email.from_address
 END ON
 ```
 
-**Database Tables:**
-- `email_monitors` - Configuration for email monitoring
-- `email_received_events` - Log of received emails to process
-
-**TriggerKind:** `EmailReceived = 5`
-
-### ON CHANGE - Folder Monitoring
-
-Triggers a script when files change in cloud storage folders (GDrive, OneDrive, Dropbox) or local filesystem.
-
-**Uses same `account://` syntax as COPY, MOVE, and other file operations.**
+### ON CHANGE
 
 ```basic
-' Using account:// syntax (recommended) - auto-detects provider from email
-ON CHANGE "account://user@gmail.com/Documents/invoices"
-    file = GET LAST "folder_change_events"
-    TALK "File changed: " + file.file_name + " (" + file.event_type + ")"
-END ON
-
-' OneDrive via account://
-ON CHANGE "account://user@outlook.com/Business/contracts"
-    ' Process OneDrive changes
-END ON
-
-' Direct provider syntax (without account)
-ON CHANGE "gdrive:///shared/reports"
-    ' Process Google Drive changes (requires USE ACCOUNT first)
-END ON
-
-ON CHANGE "onedrive:///documents"
-    ' Process OneDrive changes
-END ON
-
-ON CHANGE "dropbox:///team/assets"
-    ' Process Dropbox changes
-END ON
-
-' Local filesystem monitoring
-ON CHANGE "/var/uploads/incoming"
-    ' Process local filesystem changes
-END ON
-
-' With specific event types filter
-ON CHANGE "account://user@gmail.com/uploads" EVENTS "create, modify"
-    ' Only trigger on create and modify, ignore delete
-END ON
-
-' Watch for deletions only
-ON CHANGE "gdrive:///archive" EVENTS "delete"
-    ' Log when files are removed from archive
+ON CHANGE "gdrive://myaccount/folder"
+    files = GET LAST "folder_change_events"
+    FOR EACH file IN files
+        TALK "File changed: " + file.name
+    NEXT
 END ON
 ```
 
-**Path Syntax:**
-- `account://email@domain.com/path` - Uses connected account (auto-detects provider)
-- `gdrive:///path` - Google Drive direct
-- `onedrive:///path` - OneDrive direct
-- `dropbox:///path` - Dropbox direct
-- `/local/path` - Local filesystem
-
-**Provider Auto-Detection (from email):**
-- `@gmail.com`, `@google.com` → Google Drive
-- `@outlook.com`, `@hotmail.com`, `@live.com` → OneDrive
-- Other emails → Default to Google Drive
-
-**Event Types:**
-- `create` - New file created
-- `modify` - File content changed
-- `delete` - File deleted
-- `rename` - File renamed
-- `move` - File moved to different folder
-
-**Database Tables:**
-- `folder_monitors` - Configuration for folder monitoring
-- `folder_change_events` - Log of detected changes to process
-
-**TriggerKind:** `FolderChange = 6`
-
-### TriggerKind Enum Values
-
-```rust
-pub enum TriggerKind {
-    Scheduled = 0,      // SET SCHEDULER
-    TableUpdate = 1,    // ON UPDATE OF "table"
-    TableInsert = 2,    // ON INSERT OF "table"
-    TableDelete = 3,    // ON DELETE OF "table"
-    Webhook = 4,        // WEBHOOK
-    EmailReceived = 5,  // ON EMAIL
-    FolderChange = 6,   // ON CHANGE
-}
-```
+**TriggerKind Enum:**
+- Scheduled = 0
+- TableUpdate = 1
+- TableInsert = 2
+- TableDelete = 3
+- Webhook = 4
+- EmailReceived = 5
+- FolderChange = 6

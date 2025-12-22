@@ -1179,6 +1179,7 @@ dependencies = [
  "urlencoding",
  "uuid",
  "vaultrs",
+ "walkdir",
  "webpki-roots 0.25.4",
  "x509-parser",
  "zip 2.4.2",
