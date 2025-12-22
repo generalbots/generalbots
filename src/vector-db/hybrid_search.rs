@@ -202,7 +202,6 @@ pub struct BM25Index {
     enabled: bool,
 }
 
-#[cfg(not(feature = "vectordb"))]
 impl BM25Index {
     pub fn new() -> Self {
         Self {
@@ -350,7 +349,6 @@ pub struct BM25Stats {
     pub avg_doc_len: f32,
     pub enabled: bool,
 }
-
 
 /// Document entry in the store
 #[derive(Debug, Clone)]
@@ -757,7 +755,6 @@ pub struct HybridSearchStats {
     pub config: HybridSearchConfig,
 }
 
-
 /// Query decomposition for complex questions
 pub struct QueryDecomposer {
     llm_endpoint: String,
@@ -840,7 +837,6 @@ impl QueryDecomposer {
         synthesis
     }
 }
-
 
 #[cfg(test)]
 mod tests {

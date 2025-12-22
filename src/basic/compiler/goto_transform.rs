@@ -29,7 +29,7 @@
 
 use log::{trace, warn};
 use std::collections::HashSet;
-
+ 
 /// Represents a labeled block of code
 #[derive(Debug, Clone)]
 struct LabeledBlock {

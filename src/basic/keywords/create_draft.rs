@@ -3,8 +3,8 @@ use crate::shared::state::AppState;
 use rhai::Dynamic;
 use rhai::Engine;
 
-pub fn create_draft_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
-    let state_clone = _state.clone();
+pub fn create_draft_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
+    let state_clone = state.clone();
     engine
         .register_custom_syntax(
             &["CREATE_DRAFT", "$expr$", ",", "$expr$", ",", "$expr$"],
@@ -17,11 +17,11 @@ pub fn create_draft_keyword(_state: &AppState, _user: UserSession, engine: &mut 
                 let fut = execute_create_draft(&state_clone, &to, &subject, &reply_text);
                 let result =
                     tokio::task::block_in_place(|| tokio::runtime::Handle::current().block_on(fut))
-                        .map_err(|e| format!("Draft creation error: {}", e))?;
+                        .map_err(|e| format!("Draft creation error: {e}"))?;
                 Ok(Dynamic::from(result))
             },
         )
-        .unwrap();
+        .ok();
 }
 
 async fn execute_create_draft(
@@ -36,37 +36,36 @@ async fn execute_create_draft(
 
         let config = state.config.as_ref().ok_or("No email config")?;
 
-        // Fetch any previous emails to this recipient for threading
         let previous_email = fetch_latest_sent_to(&config.email, to)
             .await
             .unwrap_or_default();
 
         let email_body = if !previous_email.is_empty() {
-            // Create a threaded reply
             let email_separator = "<br><hr><br>";
             let formatted_reply = reply_text.replace("FIX", "Fixed");
-            let formatted_old = previous_email.replace("\n", "<br>");
-            format!("{}{}{}", formatted_reply, email_separator, formatted_old)
+            let formatted_old = previous_email.replace('\n', "<br>");
+            format!("{formatted_reply}{email_separator}{formatted_old}")
         } else {
             reply_text.to_string()
         };
 
         let draft_request = SaveDraftRequest {
+            account_id: String::new(),
             to: to.to_string(),
-            subject: subject.to_string(),
             cc: None,
+            bcc: None,
+            subject: subject.to_string(),
             body: email_body,
         };
 
         save_email_draft(&config.email, &draft_request)
             .await
-            .map(|_| "Draft saved successfully".to_string())
+            .map(|()| "Draft saved successfully".to_string())
             .map_err(|e| e.to_string())
     }
 
     #[cfg(not(feature = "email"))]
     {
-        // Store draft in database when email feature is disabled
         use chrono::Utc;
         use diesel::prelude::*;
         use uuid::Uuid;
@@ -92,7 +91,7 @@ async fn execute_create_draft(
             .execute(&mut db_conn)
             .map_err(|e| e.to_string())?;
 
-            Ok::<_, String>(format!("Draft saved with ID: {}", draft_id))
+            Ok::<_, String>(format!("Draft saved with ID: {draft_id}"))
         })
         .await
         .map_err(|e| e.to_string())?

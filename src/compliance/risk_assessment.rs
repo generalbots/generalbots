@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 /// Risk category enumeration
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RiskCategory {
     Security,
     Compliance,
@@ -22,7 +22,7 @@ pub enum RiskCategory {
 }
 
 /// Risk likelihood levels
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Likelihood {
     Rare,
     Unlikely,
@@ -32,7 +32,7 @@ pub enum Likelihood {
 }
 
 /// Risk impact levels
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Impact {
     Negligible,
     Minor,
@@ -42,7 +42,7 @@ pub enum Impact {
 }
 
 /// Risk level based on likelihood and impact
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum RiskLevel {
     Low,
     Medium,
@@ -51,7 +51,7 @@ pub enum RiskLevel {
 }
 
 /// Risk status
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RiskStatus {
     Identified,
     Assessed,
@@ -263,11 +263,7 @@ impl RiskAssessmentService {
     }
 
     /// Add vulnerability to risk assessment
-    pub fn add_vulnerability(
-        &mut self,
-        risk_id: Uuid,
-        vulnerability: Vulnerability,
-    ) -> Result<()> {
+    pub fn add_vulnerability(&mut self, risk_id: Uuid, vulnerability: Vulnerability) -> Result<()> {
         let assessment = self
             .assessments
             .get_mut(&risk_id)
@@ -340,9 +336,9 @@ impl RiskAssessmentService {
             }
         }
 
-        assessment.risk_level =
-            self.risk_matrix
-                .calculate_risk_level(&assessment.likelihood, &assessment.impact);
+        assessment.risk_level = self
+            .risk_matrix
+            .calculate_risk_level(&assessment.likelihood, &assessment.impact);
 
         Ok(())
     }
@@ -489,24 +485,42 @@ impl Default for RiskMatrix {
         matrix.insert((Likelihood::Unlikely, Impact::Minor), RiskLevel::Low);
         matrix.insert((Likelihood::Unlikely, Impact::Moderate), RiskLevel::Medium);
         matrix.insert((Likelihood::Unlikely, Impact::Major), RiskLevel::High);
-        matrix.insert((Likelihood::Unlikely, Impact::Catastrophic), RiskLevel::High);
+        matrix.insert(
+            (Likelihood::Unlikely, Impact::Catastrophic),
+            RiskLevel::High,
+        );
 
         matrix.insert((Likelihood::Possible, Impact::Negligible), RiskLevel::Low);
         matrix.insert((Likelihood::Possible, Impact::Minor), RiskLevel::Medium);
         matrix.insert((Likelihood::Possible, Impact::Moderate), RiskLevel::Medium);
         matrix.insert((Likelihood::Possible, Impact::Major), RiskLevel::High);
-        matrix.insert((Likelihood::Possible, Impact::Catastrophic), RiskLevel::Critical);
+        matrix.insert(
+            (Likelihood::Possible, Impact::Catastrophic),
+            RiskLevel::Critical,
+        );
 
         matrix.insert((Likelihood::Likely, Impact::Negligible), RiskLevel::Medium);
         matrix.insert((Likelihood::Likely, Impact::Minor), RiskLevel::Medium);
         matrix.insert((Likelihood::Likely, Impact::Moderate), RiskLevel::High);
         matrix.insert((Likelihood::Likely, Impact::Major), RiskLevel::Critical);
-        matrix.insert((Likelihood::Likely, Impact::Catastrophic), RiskLevel::Critical);
+        matrix.insert(
+            (Likelihood::Likely, Impact::Catastrophic),
+            RiskLevel::Critical,
+        );
 
-        matrix.insert((Likelihood::AlmostCertain, Impact::Negligible), RiskLevel::Medium);
+        matrix.insert(
+            (Likelihood::AlmostCertain, Impact::Negligible),
+            RiskLevel::Medium,
+        );
         matrix.insert((Likelihood::AlmostCertain, Impact::Minor), RiskLevel::High);
-        matrix.insert((Likelihood::AlmostCertain, Impact::Moderate), RiskLevel::High);
-        matrix.insert((Likelihood::AlmostCertain, Impact::Major), RiskLevel::Critical);
+        matrix.insert(
+            (Likelihood::AlmostCertain, Impact::Moderate),
+            RiskLevel::High,
+        );
+        matrix.insert(
+            (Likelihood::AlmostCertain, Impact::Major),
+            RiskLevel::Critical,
+        );
         matrix.insert(
             (Likelihood::AlmostCertain, Impact::Catastrophic),
             RiskLevel::Critical,

@@ -186,10 +186,11 @@ DROP TABLE IF EXISTS calendar_shares;
 DROP TABLE IF EXISTS calendar_resource_bookings;
 DROP TABLE IF EXISTS calendar_resources;
 
--- Drop task tables
+-- Drop task tables (order matters due to foreign keys)
 DROP TABLE IF EXISTS task_recurrence;
 DROP TABLE IF EXISTS task_time_entries;
 DROP TABLE IF EXISTS task_dependencies;
+DROP TABLE IF EXISTS tasks;
 
 -- Drop collaboration tables
 DROP TABLE IF EXISTS document_presence;

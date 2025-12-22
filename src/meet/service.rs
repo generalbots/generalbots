@@ -3,6 +3,7 @@ use crate::shared::state::AppState;
 use anyhow::Result;
 use async_trait::async_trait;
 use axum::extract::ws::{Message, WebSocket};
+use botlib::MessageType;
 use futures::{SinkExt, StreamExt};
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
@@ -416,7 +417,7 @@ impl MeetingService {
                 session_id: room_id.to_string(),
                 channel: "meeting".to_string(),
                 content: text.to_string(),
-                message_type: 0,
+                message_type: MessageType::USER,
                 media_url: None,
                 timestamp: chrono::Utc::now(),
                 context_name: None,
@@ -481,7 +482,7 @@ impl MeetingService {
             session_id: message.session_id,
             channel: "meeting".to_string(),
             content: format!("Processing: {}", message.content),
-            message_type: 1,
+            message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
             suggestions: Vec::new(),

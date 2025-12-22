@@ -17,11 +17,11 @@
 //! whatsapp-business-account-id,your_business_account_id
 //! ```
 
+use crate::bot::BotOrchestrator;
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
-use crate::core::bot::orchestrator::BotOrchestrator;
 use crate::shared::models::{BotResponse, UserMessage, UserSession};
-use crate::shared::state::AppState;
+use crate::shared::state::{AppState, AttendantNotification};
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -29,6 +29,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use botlib::MessageType;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
@@ -40,22 +41,6 @@ use uuid::Uuid;
 
 /// WebSocket broadcast channel for attendant notifications
 pub type AttendantBroadcast = broadcast::Sender<AttendantNotification>;
-
-/// Notification sent to attendants via WebSocket
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct AttendantNotification {
-    #[serde(rename = "type")]
-    pub notification_type: String,
-    pub session_id: String,
-    pub user_id: String,
-    pub user_name: Option<String>,
-    pub user_phone: Option<String>,
-    pub channel: String,
-    pub content: String,
-    pub timestamp: String,
-    pub assigned_to: Option<String>,
-    pub priority: i32,
-}
 
 /// WhatsApp webhook verification query parameters
 #[derive(Debug, Deserialize)]
@@ -327,11 +312,13 @@ async fn process_incoming_message(
                 user_id: phone.clone(),
                 channel: "whatsapp".to_string(),
                 content: response,
-                message_type: crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+                message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
                 context_name: None,
+                context_length: 0,
+                context_max_length: 0,
             };
             if let Err(e) = adapter.send_message(bot_response).await {
                 error!("Failed to send attendant command response: {}", e);
@@ -374,17 +361,29 @@ async fn process_attendant_command(
     // Get current session the attendant is handling (if any)
     let current_session = get_attendant_active_session(state, phone).await;
 
-    // Process the command using llm_assist module
-    match crate::attendance::llm_assist::process_attendant_command(
-        state,
-        phone,
-        content,
-        current_session,
-    )
-    .await
+    // Process the command using llm_assist module (only if attendance feature is enabled)
+    #[cfg(feature = "attendance")]
     {
-        Ok(response) => Some(response),
-        Err(e) => Some(format!("❌ Error: {}", e)),
+        match crate::attendance::llm_assist::process_attendant_command(
+            state,
+            phone,
+            content,
+            current_session,
+        )
+        .await
+        {
+            Ok(response) => return Some(response),
+            Err(e) => return Some(format!("❌ Error: {}", e)),
+        }
+    }
+
+    #[cfg(not(feature = "attendance"))]
+    {
+        let _ = current_session; // Suppress unused warning
+        Some(format!(
+            "Attendance module not enabled. Message: {}",
+            content
+        ))
     }
 }
 
@@ -568,7 +567,7 @@ async fn find_or_create_session(
             // Check if session is recent (within 24 hours)
             let age = Utc::now() - session.updated_at;
             if age.num_hours() < 24 {
-                return Ok((session, false));
+                return Ok::<(UserSession, bool), String>((session, false));
             }
         }
 
@@ -597,7 +596,7 @@ async fn find_or_create_session(
             .first(&mut db_conn)
             .map_err(|e| format!("Load session error: {}", e))?;
 
-        Ok((new_session, true))
+        Ok::<(UserSession, bool), String>((new_session, true))
     })
     .await
     .map_err(|e| format!("Task error: {}", e))??;
@@ -623,9 +622,15 @@ async fn route_to_bot(
     info!("Routing WhatsApp message to bot for session {}", session.id);
 
     let user_message = UserMessage {
-        session_id: session.id.to_string(),
-        content: content.to_string(),
+        bot_id: session.bot_id.to_string(),
         user_id: session.user_id.to_string(),
+        session_id: session.id.to_string(),
+        channel: "whatsapp".to_string(),
+        content: content.to_string(),
+        message_type: MessageType::USER,
+        media_url: None,
+        timestamp: Utc::now(),
+        context_name: None,
     };
 
     // Get WhatsApp adapter for sending responses
@@ -645,6 +650,7 @@ async fn route_to_bot(
         .unwrap_or("")
         .to_string();
 
+    let phone_for_error = phone.clone(); // Clone for use in error handling after move
     let adapter_for_send = WhatsAppAdapter::new(state.conn.clone(), session.bot_id);
 
     tokio::spawn(async move {
@@ -662,26 +668,25 @@ async fn route_to_bot(
         }
     });
 
-    // Process message
-    if let Err(e) = orchestrator
-        .process_message(user_message, Some(tx), is_new)
-        .await
-    {
+    // Process message using stream_response
+    if let Err(e) = orchestrator.stream_response(user_message, tx).await {
         error!("Bot processing error: {}", e);
 
         // Send error message back
         let error_response = BotResponse {
             bot_id: session.bot_id.to_string(),
             session_id: session.id.to_string(),
-            user_id: phone.clone(),
+            user_id: phone_for_error.clone(),
             channel: "whatsapp".to_string(),
             content: "Sorry, I encountered an error processing your message. Please try again."
                 .to_string(),
-            message_type: crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+            message_type: MessageType::BOT_RESPONSE,
             stream_token: None,
             is_complete: true,
             suggestions: vec![],
             context_name: None,
+            context_length: 0,
+            context_max_length: 0,
         };
 
         if let Err(e) = adapter.send_message(error_response).await {
@@ -759,6 +764,7 @@ async fn save_message_to_history(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let conn = state.conn.clone();
     let session_id = session.id;
+    let user_id = session.user_id; // Get the actual user_id from the session
     let content_clone = content.to_string();
     let sender_clone = sender.to_string();
 
@@ -771,8 +777,11 @@ async fn save_message_to_history(
             .values((
                 message_history::id.eq(Uuid::new_v4()),
                 message_history::session_id.eq(session_id),
-                message_history::role.eq(sender_clone),
-                message_history::content.eq(content_clone),
+                message_history::user_id.eq(user_id), // User associated with the message (has mobile field)
+                message_history::role.eq(if sender_clone == "user" { 1 } else { 2 }),
+                message_history::content_encrypted.eq(content_clone),
+                message_history::message_type.eq(1),
+                message_history::message_index.eq(0i64),
                 message_history::created_at.eq(diesel::dsl::now),
             ))
             .execute(&mut db_conn)
@@ -853,11 +862,13 @@ pub async fn send_message(
         user_id: request.to.clone(),
         channel: "whatsapp".to_string(),
         content: request.message.clone(),
-        message_type: crate::shared::models::message_types::MessageType::EXTERNAL,
+        message_type: MessageType::EXTERNAL,
         stream_token: None,
         is_complete: true,
         suggestions: vec![],
         context_name: None,
+        context_length: 0,
+        context_max_length: 0,
     };
 
     match adapter.send_message(response).await {
@@ -975,11 +986,13 @@ pub async fn attendant_respond(
                 user_id: recipient.to_string(),
                 channel: "whatsapp".to_string(),
                 content: request.message.clone(),
-                message_type: crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+                message_type: MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
                 context_name: None,
+                context_length: 0,
+                context_max_length: 0,
             };
 
             match adapter.send_message(response).await {
@@ -1033,15 +1046,15 @@ pub async fn attendant_respond(
 async fn get_verify_token(_state: &Arc<AppState>) -> String {
     // Get verify token from Vault - stored at gbo/whatsapp
     use crate::core::secrets::SecretsManager;
-    
-    match SecretsManager::new() {
+
+    match SecretsManager::from_env() {
         Ok(secrets) => {
-            match secrets.get("gbo/whatsapp", "verify_token").await {
+            match secrets.get_value("gbo/whatsapp", "verify_token").await {
                 Ok(token) => token,
-                Err(_) => "webhook_verify".to_string() // Default for initial setup
+                Err(_) => "webhook_verify".to_string(), // Default for initial setup
             }
         }
-        Err(_) => "webhook_verify".to_string() // Default if Vault not configured
+        Err(_) => "webhook_verify".to_string(), // Default if Vault not configured
     }
 }
 

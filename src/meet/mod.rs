@@ -32,15 +32,15 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/meet/participants", get(all_participants))
         .route("/api/meet/scheduled", get(scheduled_meetings))
         .route(
-            ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
+            &ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
             get(get_room),
         )
         .route(
-            ApiUrls::MEET_JOIN.replace(":id", "{room_id}"),
+            &ApiUrls::MEET_JOIN.replace(":id", "{room_id}"),
             post(join_room),
         )
         .route(
-            ApiUrls::MEET_TRANSCRIPTION.replace(":id", "{room_id}"),
+            &ApiUrls::MEET_TRANSCRIPTION.replace(":id", "{room_id}"),
             post(start_transcription),
         )
         .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))

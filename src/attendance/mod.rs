@@ -65,6 +65,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
+use botlib::MessageType;
 use chrono::Utc;
 use diesel::prelude::*;
 use futures::{SinkExt, StreamExt};
@@ -228,11 +229,13 @@ pub async fn attendant_respond(
                 user_id: recipient.to_string(),
                 channel: "whatsapp".to_string(),
                 content: request.message.clone(),
-                message_type: crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+                message_type: botlib::MessageType::BOT_RESPONSE,
                 stream_token: None,
                 is_complete: true,
                 suggestions: vec![],
                 context_name: None,
+                context_length: 0,
+                context_max_length: 0,
             };
 
             match adapter.send_message(response).await {
@@ -274,11 +277,13 @@ pub async fn attendant_respond(
                     user_id: session.user_id.to_string(),
                     channel: channel.to_string(),
                     content: request.message.clone(),
-                    message_type: crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+                    message_type: botlib::MessageType::BOT_RESPONSE,
                     stream_token: None,
                     is_complete: true,
                     suggestions: vec![],
                     context_name: None,
+                context_length: 0,
+                context_max_length: 0,
                 };
                 tx.send(response).await.is_ok()
             } else {
@@ -333,8 +338,11 @@ async fn save_message_to_history(
             .values((
                 message_history::id.eq(Uuid::new_v4()),
                 message_history::session_id.eq(session_id),
-                message_history::role.eq(sender_clone),
-                message_history::content.eq(content_clone),
+                message_history::user_id.eq(session_id),
+                message_history::role.eq(if sender_clone == "user" { 1 } else { 2 }),
+                message_history::content_encrypted.eq(content_clone),
+                message_history::message_type.eq(1),
+                message_history::message_index.eq(0i64),
                 message_history::created_at.eq(diesel::dsl::now),
             ))
             .execute(&mut db_conn)
@@ -626,12 +634,13 @@ async fn handle_attendant_message(
                                     user_id: phone.to_string(),
                                     channel: "whatsapp".to_string(),
                                     content: content.to_string(),
-                                    message_type:
-                                        crate::shared::models::message_types::MessageType::BOT_RESPONSE,
+                                    message_type: botlib::MessageType::BOT_RESPONSE,
                                     stream_token: None,
                                     is_complete: true,
                                     suggestions: vec![],
                                     context_name: None,
+                context_length: 0,
+                context_max_length: 0,
                                 };
                                 let _ = adapter.send_message(response).await;
                             }

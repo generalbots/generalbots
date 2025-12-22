@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
+use tokio::fs;
 
 use uuid::Uuid;
 
@@ -87,7 +88,7 @@ impl UserEmailVectorDB {
         if !exists {
             // Create collection for email embeddings (1536 dimensions for OpenAI embeddings)
             client
-                .create_collection(&CreateCollection {
+                .create_collection(CreateCollection {
                     collection_name: self.collection_name.clone(),
                     vectors_config: Some(VectorsConfig {
                         config: Some(Config::Params(VectorParams {
@@ -329,7 +330,7 @@ impl UserEmailVectorDB {
 
         // Recreate empty collection
         client
-            .create_collection(&CreateCollection {
+            .create_collection(CreateCollection {
                 collection_name: self.collection_name.clone(),
                 vectors_config: Some(VectorsConfig {
                     config: Some(Config::Params(VectorParams {

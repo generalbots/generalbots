@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 pub fn set_user_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(&["SET", "USER", "$expr$"], true, move |context, inputs| {
@@ -21,21 +21,20 @@ pub fn set_user_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                         futures::executor::block_on(state_for_spawn.session_manager.lock());
 
                     if let Err(e) = session_manager.update_user_id(user_clone_spawn.id, user_id) {
-                        error!("Failed to update user ID in session: {}", e);
+                        error!("Failed to update user ID in session: {e}");
                     } else {
                         trace!(
-                            "Updated session {} to user ID: {}",
-                            user_clone_spawn.id,
-                            user_id
+                            "Updated session {} to user ID: {user_id}",
+                            user_clone_spawn.id
                         );
                     }
                 }
                 Err(e) => {
-                    trace!("Invalid user ID format: {}", e);
+                    trace!("Invalid user ID format: {e}");
                 }
             }
 
             Ok(Dynamic::UNIT)
         })
-        .unwrap();
+        .ok();
 }

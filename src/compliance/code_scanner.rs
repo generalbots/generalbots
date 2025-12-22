@@ -390,7 +390,8 @@ impl CodeScanner {
             .to_string_lossy()
             .to_string();
 
-        let bot_id = format!("{:x}", md5::compute(&bot_name));
+        let bot_id =
+            uuid::Uuid::new_v5(&uuid::Uuid::NAMESPACE_OID, bot_name.as_bytes()).to_string();
 
         let mut issues = Vec::new();
         let mut stats = ScanStats::default();

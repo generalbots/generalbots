@@ -6,12 +6,13 @@ use axum::{
     Json,
 };
 use axum::{
-    routing::{get, post},
+    routing::{delete, get, post},
     Router,
 };
 use base64::{engine::general_purpose, Engine as _};
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
+use diesel::sql_types::{Bool, Integer, Nullable, Text, Timestamptz, Uuid as DieselUuid};
 use imap::types::Seq;
 use lettre::{transport::smtp::authentication::Credentials, Message, SmtpTransport, Transport};
 use log::{debug, info, warn};
@@ -19,6 +20,68 @@ use mailparse::{parse_mail, MailHeaderMap};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
+
+// ===== QueryableByName Structs for Raw SQL Queries =====
+
+/// For querying email account basic info (id, email, display_name, is_primary)
+#[derive(Debug, QueryableByName)]
+pub struct EmailAccountBasicRow {
+    #[diesel(sql_type = DieselUuid)]
+    pub id: Uuid,
+    #[diesel(sql_type = Text)]
+    pub email: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub display_name: Option<String>,
+    #[diesel(sql_type = Bool)]
+    pub is_primary: bool,
+}
+
+/// For querying IMAP credentials
+#[derive(Debug, QueryableByName)]
+pub struct ImapCredentialsRow {
+    #[diesel(sql_type = Text)]
+    pub imap_server: String,
+    #[diesel(sql_type = Integer)]
+    pub imap_port: i32,
+    #[diesel(sql_type = Text)]
+    pub username: String,
+    #[diesel(sql_type = Text)]
+    pub password_encrypted: String,
+}
+
+/// For querying SMTP credentials (for sending)
+#[derive(Debug, QueryableByName)]
+pub struct SmtpCredentialsRow {
+    #[diesel(sql_type = Text)]
+    pub email: String,
+    #[diesel(sql_type = Text)]
+    pub display_name: String,
+    #[diesel(sql_type = Integer)]
+    pub smtp_port: i32,
+    #[diesel(sql_type = Text)]
+    pub smtp_server: String,
+    #[diesel(sql_type = Text)]
+    pub username: String,
+    #[diesel(sql_type = Text)]
+    pub password_encrypted: String,
+}
+
+/// For querying email search results
+#[derive(Debug, QueryableByName)]
+pub struct EmailSearchRow {
+    #[diesel(sql_type = Text)]
+    pub id: String,
+    #[diesel(sql_type = Text)]
+    pub subject: String,
+    #[diesel(sql_type = Text)]
+    pub from_address: String,
+    #[diesel(sql_type = Text)]
+    pub to_addresses: String,
+    #[diesel(sql_type = Nullable<Text>)]
+    pub body_text: Option<String>,
+    #[diesel(sql_type = Timestamptz)]
+    pub received_at: DateTime<Utc>,
+}
 
 pub mod stalwart_client;
 pub mod stalwart_sync;
@@ -43,30 +106,36 @@ pub fn configure() -> Router<Arc<AppState>> {
             post(add_email_account),
         )
         .route(
-            ApiUrls::EMAIL_ACCOUNT_BY_ID.replace(":id", "{account_id}"),
+            &ApiUrls::EMAIL_ACCOUNT_BY_ID.replace(":id", "{account_id}"),
             axum::routing::delete(delete_email_account),
         )
         .route(ApiUrls::EMAIL_LIST, post(list_emails))
         .route(ApiUrls::EMAIL_SEND, post(send_email))
         .route(ApiUrls::EMAIL_DRAFT, post(save_draft))
         .route(
-            ApiUrls::EMAIL_FOLDERS.replace(":account_id", "{account_id}"),
+            &ApiUrls::EMAIL_FOLDERS.replace(":account_id", "{account_id}"),
             get(list_folders),
         )
         .route(ApiUrls::EMAIL_LATEST, get(get_latest_email))
         .route(
-            ApiUrls::EMAIL_GET.replace(":campaign_id", "{campaign_id}"),
+            &ApiUrls::EMAIL_GET.replace(":campaign_id", "{campaign_id}"),
             get(get_email),
         )
         .route(
-            ApiUrls::EMAIL_CLICK
+            &ApiUrls::EMAIL_CLICK
                 .replace(":campaign_id", "{campaign_id}")
                 .replace(":email", "{email}"),
             post(track_click),
         )
         // Email read tracking endpoints
-        .route("/api/email/tracking/pixel/{tracking_id}", get(serve_tracking_pixel))
-        .route("/api/email/tracking/status/{tracking_id}", get(get_tracking_status))
+        .route(
+            "/api/email/tracking/pixel/{tracking_id}",
+            get(serve_tracking_pixel),
+        )
+        .route(
+            "/api/email/tracking/status/{tracking_id}",
+            get(get_tracking_status),
+        )
         .route("/api/email/tracking/list", get(list_sent_emails_tracking))
         .route("/api/email/tracking/stats", get(get_tracking_stats))
         // UI HTMX endpoints (return HTML fragments)
@@ -328,13 +397,22 @@ pub async fn add_email_account(
     Json(request): Json<EmailAccountRequest>,
 ) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
     // Get user_id from session
-    let user_id = match extract_user_from_session(&state).await {
+    let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
     };
 
     let account_id = Uuid::new_v4();
     let encrypted_password = encrypt_password(&request.password);
+
+    // Clone fields for response before moving into spawn_blocking
+    let resp_email = request.email.clone();
+    let resp_display_name = request.display_name.clone();
+    let resp_imap_server = request.imap_server.clone();
+    let resp_imap_port = request.imap_port;
+    let resp_smtp_server = request.smtp_server.clone();
+    let resp_smtp_port = request.smtp_port;
+    let resp_is_primary = request.is_primary;
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
@@ -343,7 +421,7 @@ pub async fn add_email_account(
 
         // If this is primary, unset other primary accounts
         if request.is_primary {
-            diesel::update(user_email_accounts.filter(user_id.eq(&user_id)))
+            diesel::update(user_email_accounts.filter(user_id.eq(&current_user_id)))
                 .set(is_primary.eq(false))
                 .execute(&mut db_conn)
                 .ok();
@@ -355,7 +433,7 @@ pub async fn add_email_account(
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)"
         )
         .bind::<diesel::sql_types::Uuid, _>(account_id)
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
+        .bind::<diesel::sql_types::Uuid, _>(current_user_id)
         .bind::<diesel::sql_types::Text, _>(&request.email)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(request.display_name.as_ref())
         .bind::<diesel::sql_types::Text, _>(&request.imap_server)
@@ -379,13 +457,13 @@ pub async fn add_email_account(
         success: true,
         data: Some(EmailAccountResponse {
             id: account_id.to_string(),
-            email: request.email,
-            display_name: request.display_name,
-            imap_server: request.imap_server,
-            imap_port: request.imap_port,
-            smtp_server: request.smtp_server,
-            smtp_port: request.smtp_port,
-            is_primary: request.is_primary,
+            email: resp_email,
+            display_name: resp_display_name,
+            imap_server: resp_imap_server,
+            imap_port: resp_imap_port,
+            smtp_server: resp_smtp_server,
+            smtp_port: resp_smtp_port,
+            is_primary: resp_is_primary,
             is_active: true,
             created_at: chrono::Utc::now().to_rfc3339(),
         }),
@@ -394,9 +472,7 @@ pub async fn add_email_account(
 }
 
 /// List email accounts - HTMX HTML response for UI
-pub async fn list_email_accounts_htmx(
-    State(state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     // Get user_id from session
     let user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
@@ -417,7 +493,7 @@ pub async fn list_email_accounts_htmx(
             "SELECT id, email, display_name, is_primary FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC"
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .load::<(Uuid, String, Option<String>, bool)>(&mut db_conn)
+        .load::<EmailAccountBasicRow>(&mut db_conn)
         .map_err(|e| format!("Query failed: {}", e))
     })
     .await
@@ -434,15 +510,22 @@ pub async fn list_email_accounts_htmx(
     }
 
     let mut html = String::new();
-    for (id, email, display_name, is_primary) in accounts {
-        let name = display_name.unwrap_or_else(|| email.clone());
-        let primary_badge = if is_primary { r#"<span class="badge">Primary</span>"# } else { "" };
+    for account in accounts {
+        let name = account
+            .display_name
+            .clone()
+            .unwrap_or_else(|| account.email.clone());
+        let primary_badge = if account.is_primary {
+            r##"<span class="badge">Primary</span>"##
+        } else {
+            ""
+        };
         html.push_str(&format!(
-            r#"<div class="account-item" data-account-id="{}">
+            r##"<div class="account-item" data-account-id="{}">
                 <span>{}</span>
                 {}
-            </div>"#,
-            id, name, primary_badge
+            </div>"##,
+            account.id, name, primary_badge
         ));
     }
 
@@ -454,22 +537,46 @@ pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
     // Get user_id from session
-    let user_id = match extract_user_from_session(&state).await {
+    let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
     };
 
     let conn = state.conn.clone();
     let accounts = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        use crate::shared::models::schema::user_email_accounts::dsl::*;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let results: Vec<(Uuid, String, Option<String>, String, i32, String, i32, bool, bool, chrono::DateTime<chrono::Utc>)> =
-            diesel::sql_query(
-                "SELECT id, email, display_name, imap_server, imap_port, smtp_server, smtp_port, is_primary, is_active, created_at
-                FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC, created_at DESC"
-            )
-            .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .load(&mut db_conn)
+        let results = user_email_accounts
+            .filter(user_id.eq(current_user_id))
+            .filter(is_active.eq(true))
+            .order((is_primary.desc(), created_at.desc()))
+            .select((
+                id,
+                email,
+                display_name,
+                imap_server,
+                imap_port,
+                smtp_server,
+                smtp_port,
+                is_primary,
+                is_active,
+                created_at,
+            ))
+            .load::<(
+                Uuid,
+                String,
+                Option<String>,
+                String,
+                i32,
+                String,
+                i32,
+                bool,
+                bool,
+                chrono::DateTime<chrono::Utc>,
+            )>(&mut db_conn)
             .map_err(|e| format!("Query failed: {}", e))?;
 
         Ok::<_, String>(results)
@@ -482,28 +589,28 @@ pub async fn list_email_accounts(
         .into_iter()
         .map(
             |(
-                id,
-                email,
-                display_name,
-                imap_server,
-                imap_port,
-                smtp_server,
-                smtp_port,
-                is_primary,
-                is_active,
-                created_at,
+                acc_id,
+                acc_email,
+                acc_display_name,
+                acc_imap_server,
+                acc_imap_port,
+                acc_smtp_server,
+                acc_smtp_port,
+                acc_is_primary,
+                acc_is_active,
+                acc_created_at,
             )| {
                 EmailAccountResponse {
-                    id: id.to_string(),
-                    email,
-                    display_name,
-                    imap_server,
-                    imap_port: imap_port as u16,
-                    smtp_server,
-                    smtp_port: smtp_port as u16,
-                    is_primary,
-                    is_active,
-                    created_at: created_at.to_rfc3339(),
+                    id: acc_id.to_string(),
+                    email: acc_email,
+                    display_name: acc_display_name,
+                    imap_server: acc_imap_server,
+                    imap_port: acc_imap_port as u16,
+                    smtp_server: acc_smtp_server,
+                    smtp_port: acc_smtp_port as u16,
+                    is_primary: acc_is_primary,
+                    is_active: acc_is_active,
+                    created_at: acc_created_at.to_rfc3339(),
                 }
             },
         )
@@ -561,7 +668,7 @@ pub async fn list_emails(
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
 
-        let result: (String, i32, String, String) = diesel::sql_query(
+        let result: ImapCredentialsRow = diesel::sql_query(
             "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
         )
         .bind::<diesel::sql_types::Uuid, _>(account_uuid)
@@ -574,17 +681,16 @@ pub async fn list_emails(
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
     .map_err(EmailError)?;
 
-    let (imap_server, imap_port, username, encrypted_password) = account_info;
+    let (imap_server, imap_port, username, encrypted_password) = (
+        account_info.imap_server,
+        account_info.imap_port,
+        account_info.username,
+        account_info.password_encrypted,
+    );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
-    // Connect to IMAP
-    let tls = native_tls::TlsConnector::builder()
-        .build()
-        .map_err(|e| EmailError(format!("Failed to create TLS connector: {:?}", e)))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
-        .native_tls(&tls)
-        .map_err(|e| EmailError(format!("Failed to create IMAP client: {:?}", e)))?
         .connect()
         .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
 
@@ -708,7 +814,7 @@ pub async fn send_email(
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let result: (String, String, i32, String, String, String) = diesel::sql_query(
+        let result: SmtpCredentialsRow = diesel::sql_query(
             "SELECT email, display_name, smtp_port, smtp_server, username, password_encrypted
             FROM user_email_accounts WHERE id = $1 AND is_active = true",
         )
@@ -722,8 +828,14 @@ pub async fn send_email(
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
     .map_err(EmailError)?;
 
-    let (from_email, display_name, smtp_port, smtp_server, username, encrypted_password) =
-        account_info;
+    let (from_email, display_name, smtp_port, smtp_server, username, encrypted_password) = (
+        account_info.email,
+        account_info.display_name,
+        account_info.smtp_port,
+        account_info.smtp_server,
+        account_info.username,
+        account_info.password_encrypted,
+    );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
     let from_addr = if display_name.is_empty() {
@@ -809,7 +921,10 @@ pub async fn send_email(
         .await;
     }
 
-    info!("Email sent successfully from account {} with tracking_id {}", account_uuid, tracking_id);
+    info!(
+        "Email sent successfully from account {} with tracking_id {}",
+        account_uuid, tracking_id
+    );
 
     Ok(Json(ApiResponse {
         success: true,
@@ -878,7 +993,7 @@ pub async fn list_folders(
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
 
-        let result: (String, i32, String, String) = diesel::sql_query(
+        let result: ImapCredentialsRow = diesel::sql_query(
             "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
         )
         .bind::<diesel::sql_types::Uuid, _>(account_uuid)
@@ -891,19 +1006,19 @@ pub async fn list_folders(
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
     .map_err(EmailError)?;
 
-    let (imap_server, imap_port, username, encrypted_password) = account_info;
+    let (imap_server, imap_port, username, encrypted_password) = (
+        account_info.imap_server,
+        account_info.imap_port,
+        account_info.username,
+        account_info.password_encrypted,
+    );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
     // Connect and list folders
-    let tls = native_tls::TlsConnector::builder()
-        .build()
-        .map_err(|e| EmailError(format!("TLS error: {:?}", e)))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
-        .native_tls(&tls)
-        .map_err(|e| EmailError(format!("Failed to create IMAP client: {:?}", e)))?
         .connect()
-        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
+        .map_err(|e| format!("Failed to connect to IMAP: {:?}", e))?;
 
     let mut session = client
         .login(&username, &password)
@@ -966,9 +1081,9 @@ pub async fn save_click(
 
 /// 1x1 transparent GIF pixel bytes
 const TRACKING_PIXEL: [u8; 43] = [
-    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF,
-    0xFF, 0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00,
-    0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
+    0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
+    0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
+    0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
 ];
 
 /// Check if email-read-pixel is enabled in config
@@ -983,12 +1098,16 @@ async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) 
 }
 
 /// Inject tracking pixel into HTML email body
-async fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppState>) -> String {
+async fn inject_tracking_pixel(
+    html_body: &str,
+    tracking_id: &str,
+    state: &Arc<AppState>,
+) -> String {
     // Get base URL from config or use default
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
         .get_config(&Uuid::nil(), "server-url", Some("http://localhost:8080"))
-        .unwrap_or_else(|| "http://localhost:8080".to_string());
+        .unwrap_or_else(|_| "http://localhost:8080".to_string());
 
     let pixel_url = format!("{}/api/email/tracking/pixel/{}", base_url, tracking_id);
     let pixel_html = format!(
@@ -998,7 +1117,8 @@ async fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<A
 
     // Insert pixel before closing </body> tag, or at the end if no body tag
     if html_body.to_lowercase().contains("</body>") {
-        html_body.replace("</body>", &format!("{}</body>", pixel_html))
+        html_body
+            .replace("</body>", &format!("{}</body>", pixel_html))
             .replace("</BODY>", &format!("{}</BODY>", pixel_html))
     } else {
         format!("{}{}", html_body, pixel_html)
@@ -1017,7 +1137,9 @@ fn save_email_tracking_record(
     bcc: Option<&str>,
     subject: &str,
 ) -> Result<(), String> {
-    let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+    let mut db_conn = conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
 
     let id = Uuid::new_v4();
     let now = Utc::now();
@@ -1080,7 +1202,10 @@ pub async fn serve_tracking_pixel(
         })
         .await;
 
-        info!("Email read tracked: tracking_id={}, ip={:?}", tracking_id, client_ip);
+        info!(
+            "Email read tracked: tracking_id={}, ip={:?}",
+            tracking_id, client_ip
+        );
     } else {
         warn!("Invalid tracking ID received: {}", tracking_id);
     }
@@ -1091,7 +1216,10 @@ pub async fn serve_tracking_pixel(
         StatusCode::OK,
         [
             ("content-type", "image/gif"),
-            ("cache-control", "no-store, no-cache, must-revalidate, max-age=0"),
+            (
+                "cache-control",
+                "no-store, no-cache, must-revalidate, max-age=0",
+            ),
             ("pragma", "no-cache"),
             ("expires", "0"),
         ],
@@ -1106,7 +1234,9 @@ fn update_email_read_status(
     client_ip: Option<String>,
     user_agent: Option<String>,
 ) -> Result<(), String> {
-    let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+    let mut db_conn = conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
     let now = Utc::now();
 
     // Update tracking record - increment read count, set first/last read info
@@ -1120,7 +1250,7 @@ fn update_email_read_status(
                last_read_ip = $3,
                user_agent = COALESCE(user_agent, $4),
                updated_at = $2
-           WHERE tracking_id = $1"#
+           WHERE tracking_id = $1"#,
     )
     .bind::<diesel::sql_types::Uuid, _>(tracking_id)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
@@ -1138,16 +1268,14 @@ pub async fn get_tracking_status(
     Path(tracking_id): Path<String>,
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<TrackingStatusResponse>>, EmailError> {
-    let tracking_uuid = Uuid::parse_str(&tracking_id)
-        .map_err(|_| EmailError("Invalid tracking ID".to_string()))?;
+    let tracking_uuid =
+        Uuid::parse_str(&tracking_id).map_err(|_| EmailError("Invalid tracking ID".to_string()))?;
 
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        get_tracking_record(conn, tracking_uuid)
-    })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(EmailError)?;
+    let result = tokio::task::spawn_blocking(move || get_tracking_record(conn, tracking_uuid))
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+        .map_err(EmailError)?;
 
     Ok(Json(ApiResponse {
         success: true,
@@ -1161,7 +1289,9 @@ fn get_tracking_record(
     conn: crate::shared::utils::DbPool,
     tracking_id: Uuid,
 ) -> Result<TrackingStatusResponse, String> {
-    let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+    let mut db_conn = conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
 
     #[derive(QueryableByName)]
     struct TrackingRow {
@@ -1183,7 +1313,7 @@ fn get_tracking_record(
 
     let row: TrackingRow = diesel::sql_query(
         r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
-           FROM sent_email_tracking WHERE tracking_id = $1"#
+           FROM sent_email_tracking WHERE tracking_id = $1"#,
     )
     .bind::<diesel::sql_types::Uuid, _>(tracking_id)
     .get_result(&mut db_conn)
@@ -1206,12 +1336,10 @@ pub async fn list_sent_emails_tracking(
     Query(query): Query<ListTrackingQuery>,
 ) -> Result<Json<ApiResponse<Vec<TrackingStatusResponse>>>, EmailError> {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        list_tracking_records(conn, query)
-    })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(EmailError)?;
+    let result = tokio::task::spawn_blocking(move || list_tracking_records(conn, query))
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+        .map_err(EmailError)?;
 
     Ok(Json(ApiResponse {
         success: true,
@@ -1225,7 +1353,9 @@ fn list_tracking_records(
     conn: crate::shared::utils::DbPool,
     query: ListTrackingQuery,
 ) -> Result<Vec<TrackingStatusResponse>, String> {
-    let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+    let mut db_conn = conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
 
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
@@ -1292,12 +1422,10 @@ pub async fn get_tracking_stats(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<TrackingStatsResponse>>, EmailError> {
     let conn = state.conn.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        calculate_tracking_stats(conn)
-    })
-    .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(EmailError)?;
+    let result = tokio::task::spawn_blocking(move || calculate_tracking_stats(conn))
+        .await
+        .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+        .map_err(EmailError)?;
 
     Ok(Json(ApiResponse {
         success: true,
@@ -1310,7 +1438,9 @@ pub async fn get_tracking_stats(
 fn calculate_tracking_stats(
     conn: crate::shared::utils::DbPool,
 ) -> Result<TrackingStatsResponse, String> {
-    let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+    let mut db_conn = conn
+        .get()
+        .map_err(|e| format!("DB connection error: {}", e))?;
 
     #[derive(QueryableByName)]
     struct StatsRow {
@@ -1423,15 +1553,8 @@ impl EmailService {
 
 // Helper functions for draft system
 pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
-    use native_tls::TlsConnector;
-
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1449,7 +1572,7 @@ pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<Stri
         .search(&search_query)
         .map_err(|e| format!("Search failed: {}", e))?;
 
-    if let Some(last_id) = message_ids.last() {
+    if let Some(&last_id) = message_ids.iter().max() {
         let messages = session
             .fetch(last_id.to_string(), "BODY[TEXT]")
             .map_err(|e| format!("Fetch failed: {}", e))?;
@@ -1470,15 +1593,9 @@ pub async fn save_email_draft(
     draft: &SaveDraftRequest,
 ) -> Result<(), String> {
     use chrono::Utc;
-    use native_tls::TlsConnector;
 
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1505,7 +1622,7 @@ pub async fn save_email_draft(
          Content-Type: text/html; charset=UTF-8\r\n\
          \r\n\
          {}",
-        date, config.from, draft.to, cc_header, draft.subject, message_id, draft.text
+        date, config.from, draft.to, cc_header, draft.subject, message_id, draft.body
     );
 
     // Try to save to Drafts folder, fall back to INBOX if not available
@@ -1519,6 +1636,7 @@ pub async fn save_email_draft(
 
     session
         .append(&folder, email_content.as_bytes())
+        .finish()
         .map_err(|e| format!("Append draft failed: {}", e))?;
 
     session.logout().ok();
@@ -1528,16 +1646,12 @@ pub async fn save_email_draft(
 
 // ===== Helper Functions for IMAP Operations =====
 
-async fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<Vec<EmailSummary>, String> {
-    use native_tls::TlsConnector;
-
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+async fn fetch_emails_from_folder(
+    config: &EmailConfig,
+    folder: &str,
+) -> Result<Vec<EmailSummary>, String> {
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1553,9 +1667,12 @@ async fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<
         _ => "INBOX",
     };
 
-    session.select(folder_name).map_err(|e| format!("Select folder failed: {}", e))?;
+    session
+        .select(folder_name)
+        .map_err(|e| format!("Select folder failed: {}", e))?;
 
-    let messages = session.fetch("1:20", "(FLAGS RFC822.HEADER)")
+    let messages = session
+        .fetch("1:20", "(FLAGS RFC822.HEADER)")
         .map_err(|e| format!("Fetch failed: {}", e))?;
 
     let mut emails = Vec::new();
@@ -1569,12 +1686,13 @@ async fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<
                 let flags = message.flags();
                 let unread = !flags.iter().any(|f| matches!(f, imap::types::Flag::Seen));
 
+                let preview = subject.chars().take(100).collect();
                 emails.push(EmailSummary {
                     id: message.message.to_string(),
                     from,
                     subject,
                     date,
-                    preview: subject.chars().take(100).collect(),
+                    preview,
                     unread,
                 });
             }
@@ -1585,17 +1703,13 @@ async fn fetch_emails_from_folder(config: &EmailConfig, folder: &str) -> Result<
     Ok(emails)
 }
 
-async fn get_folder_counts(config: &EmailConfig) -> Result<std::collections::HashMap<String, usize>, String> {
-    use native_tls::TlsConnector;
+async fn get_folder_counts(
+    config: &EmailConfig,
+) -> Result<std::collections::HashMap<String, usize>, String> {
     use std::collections::HashMap;
 
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1616,15 +1730,8 @@ async fn get_folder_counts(config: &EmailConfig) -> Result<std::collections::Has
 }
 
 async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
-    use native_tls::TlsConnector;
-
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1632,21 +1739,29 @@ async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailConten
         .login(&config.username, &config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
 
-    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+    session
+        .select("INBOX")
+        .map_err(|e| format!("Select failed: {}", e))?;
 
-    let messages = session.fetch(id, "RFC822")
+    let messages = session
+        .fetch(id, "RFC822")
         .map_err(|e| format!("Fetch failed: {}", e))?;
 
     if let Some(message) = messages.iter().next() {
         if let Some(body) = message.body() {
             let parsed = parse_mail(body).map_err(|e| format!("Parse failed: {}", e))?;
 
-            let subject = parsed.headers.get_first_value("Subject").unwrap_or_default();
+            let subject = parsed
+                .headers
+                .get_first_value("Subject")
+                .unwrap_or_default();
             let from = parsed.headers.get_first_value("From").unwrap_or_default();
             let to = parsed.headers.get_first_value("To").unwrap_or_default();
             let date = parsed.headers.get_first_value("Date").unwrap_or_default();
 
-            let body_text = parsed.subparts.iter()
+            let body_text = parsed
+                .subparts
+                .iter()
                 .find_map(|p| p.get_body().ok())
                 .or_else(|| parsed.get_body().ok())
                 .unwrap_or_default();
@@ -1668,15 +1783,8 @@ async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailConten
 }
 
 async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
-    use native_tls::TlsConnector;
-
-    let tls = TlsConnector::builder()
-        .build()
-        .map_err(|e| format!("TLS error: {}", e))?;
-
+    // Connect to IMAP (imap 3.0 handles TLS internally)
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
-        .native_tls(&tls)
-        .map_err(|e| format!("IMAP client error: {}", e))?
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1684,13 +1792,18 @@ async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), Strin
         .login(&config.username, &config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
 
-    session.select("INBOX").map_err(|e| format!("Select failed: {}", e))?;
+    session
+        .select("INBOX")
+        .map_err(|e| format!("Select failed: {}", e))?;
 
     // Mark as deleted and expunge
-    session.store(id, "+FLAGS (\\Deleted)")
+    session
+        .store(id, "+FLAGS (\\Deleted)")
         .map_err(|e| format!("Store failed: {}", e))?;
 
-    session.expunge().map_err(|e| format!("Expunge failed: {}", e))?;
+    session
+        .expunge()
+        .map_err(|e| format!("Expunge failed: {}", e))?;
 
     session.logout().ok();
     Ok(())
@@ -1725,21 +1838,22 @@ pub async fn list_emails_htmx(
     let folder = params.get("folder").unwrap_or(&"inbox".to_string()).clone();
 
     // Get user's email accounts
-    let user_id = extract_user_from_session(&state).await
+    let user_id = extract_user_from_session(&state)
+        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     // Get first email account for the user
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query(
-            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<EmailAccountRow>(&mut db_conn)
-        .optional()
-        .map_err(|e| format!("Failed to get email account: {}", e))
+        diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<EmailAccountRow>(&mut db_conn)
+            .optional()
+            .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
@@ -1750,7 +1864,8 @@ pub async fn list_emails_htmx(
             r#"<div class="empty-state">
                 <h3>No email account configured</h3>
                 <p>Please add an email account first</p>
-            </div>"#.to_string()
+            </div>"#
+                .to_string(),
         ));
     };
 
@@ -1759,8 +1874,10 @@ pub async fn list_emails_htmx(
         username: account.username.clone(),
         password: account.password.clone(),
         server: account.imap_server.clone(),
-        port: account.imap_port as u32,
+        port: account.imap_port as u16,
         from: account.email.clone(),
+        smtp_server: account.smtp_server.clone(),
+        smtp_port: account.smtp_port as u16,
     };
 
     let emails = fetch_emails_from_folder(&config, &folder)
@@ -1771,7 +1888,7 @@ pub async fn list_emails_htmx(
     for (idx, email) in emails.iter().enumerate() {
         let unread_class = if email.unread { "unread" } else { "" };
         html.push_str(&format!(
-            r#"<div class="mail-item {}"
+            r##"<div class="mail-item {}"
                  hx-get="/api/email/{}"
                  hx-target="#mail-content"
                  hx-swap="innerHTML">
@@ -1781,22 +1898,17 @@ pub async fn list_emails_htmx(
                 </div>
                 <div class="mail-subject">{}</div>
                 <div class="mail-preview">{}</div>
-            </div>"#,
-            unread_class,
-            email.id,
-            email.from,
-            email.date,
-            email.subject,
-            email.preview
+            </div>"##,
+            unread_class, email.id, email.from, email.date, email.subject, email.preview
         ));
     }
 
     if html.is_empty() {
         html = format!(
-            r#"<div class="empty-state">
+            r##"<div class="empty-state">
                 <h3>No emails in {}</h3>
                 <p>This folder is empty</p>
-            </div>"#,
+            </div>"##,
             folder
         );
     }
@@ -1809,20 +1921,21 @@ pub async fn list_folders_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
     // Get user's first email account
-    let user_id = extract_user_from_session(&state).await
+    let user_id = extract_user_from_session(&state)
+        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query(
-            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<EmailAccountRow>(&mut db_conn)
-        .optional()
-        .map_err(|e| format!("Failed to get email account: {}", e))
+        diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<EmailAccountRow>(&mut db_conn)
+            .optional()
+            .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
@@ -1830,7 +1943,7 @@ pub async fn list_folders_htmx(
 
     if account.is_none() {
         return Ok(axum::response::Html(
-            r#"<div class="nav-item">No account configured</div>"#.to_string()
+            r#"<div class="nav-item">No account configured</div>"#.to_string(),
         ));
     }
 
@@ -1838,11 +1951,13 @@ pub async fn list_folders_htmx(
 
     // Get folder list with counts using IMAP
     let config = EmailConfig {
-        username: account.username,
-        password: account.password,
-        server: account.imap_server,
-        port: account.imap_port as u32,
-        from: account.email,
+        username: account.username.clone(),
+        password: account.password.clone(),
+        server: account.imap_server.clone(),
+        port: account.imap_port as u16,
+        from: account.email.clone(),
+        smtp_server: account.smtp_server.clone(),
+        smtp_port: account.smtp_port as u16,
     };
 
     let folder_counts = get_folder_counts(&config).await.unwrap_or_default();
@@ -1854,23 +1969,38 @@ pub async fn list_folders_htmx(
         ("drafts", "", folder_counts.get("Drafts").unwrap_or(&0)),
         ("trash", "", folder_counts.get("Trash").unwrap_or(&0)),
     ] {
-        let active = if *folder_name == "inbox" { "active" } else { "" };
+        let active = if *folder_name == "inbox" {
+            "active"
+        } else {
+            ""
+        };
         let count_badge = if **count > 0 {
-            format!(r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#, count)
+            format!(
+                r##"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"##,
+                count
+            )
         } else {
             String::new()
         };
 
         html.push_str(&format!(
-            r#"<div class="nav-item {}"
+            r##"<div class="nav-item {}"
                  hx-get="/api/email/list?folder={}"
                  hx-target="#mail-list"
                  hx-swap="innerHTML">
                 <span>{}</span> {}
                 {}
-            </div>"#,
-            active, folder_name, icon,
-            folder_name.chars().next().unwrap().to_uppercase().collect::<String>() + &folder_name[1..],
+            </div>"##,
+            active,
+            folder_name,
+            icon,
+            folder_name
+                .chars()
+                .next()
+                .unwrap()
+                .to_uppercase()
+                .collect::<String>()
+                + &folder_name[1..],
             count_badge
         ));
     }
@@ -1882,7 +2012,7 @@ pub async fn list_folders_htmx(
 pub async fn compose_email_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
-    let html = r#"
+    let html = r##"
         <div class="mail-content-view">
             <h2>Compose New Email</h2>
             <form class="compose-form"
@@ -1909,7 +2039,7 @@ pub async fn compose_email_htmx(
                 </div>
             </form>
         </div>
-    "#;
+    "##;
 
     Ok(axum::response::Html(html))
 }
@@ -1920,20 +2050,21 @@ pub async fn get_email_content_htmx(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
     // Get user's email account
-    let user_id = extract_user_from_session(&state).await
+    let user_id = extract_user_from_session(&state)
+        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query(
-            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<EmailAccountRow>(&mut db_conn)
-        .optional()
-        .map_err(|e| format!("Failed to get email account: {}", e))
+        diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<EmailAccountRow>(&mut db_conn)
+            .optional()
+            .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
@@ -1941,19 +2072,22 @@ pub async fn get_email_content_htmx(
 
     let Some(account) = account else {
         return Ok(axum::response::Html(
-            r#"<div class="mail-content-view">
+            r##"<div class="mail-content-view">
                 <p>No email account configured</p>
-            </div>"#.to_string()
+            </div>"##
+                .to_string(),
         ));
     };
 
     // Fetch email content using IMAP
     let config = EmailConfig {
-        username: account.username,
-        password: account.password,
-        server: account.imap_server,
-        port: account.imap_port as u32,
+        username: account.username.clone(),
+        password: account.password.clone(),
+        server: account.imap_server.clone(),
+        port: account.imap_port as u16,
         from: account.email.clone(),
+        smtp_server: account.smtp_server.clone(),
+        smtp_port: account.smtp_port as u16,
     };
 
     let email_content = fetch_email_by_id(&config, &id)
@@ -1961,7 +2095,7 @@ pub async fn get_email_content_htmx(
         .map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
 
     let html = format!(
-        r#"
+        r##"
         <div class="mail-content-view">
             <div class="mail-actions">
                 <button hx-get="/api/email/compose?reply_to={}"
@@ -1987,8 +2121,10 @@ pub async fn get_email_content_htmx(
                 {}
             </div>
         </div>
-        "#,
-        id, id, id,
+        "##,
+        id,
+        id,
+        id,
         email_content.subject,
         email_content.from,
         email_content.to,
@@ -2005,20 +2141,21 @@ pub async fn delete_email_htmx(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
     // Get user's email account
-    let user_id = extract_user_from_session(&state).await
+    let user_id = extract_user_from_session(&state)
+        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query(
-            "SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1"
-        )
-        .bind::<diesel::sql_types::Uuid, _>(user_id)
-        .get_result::<EmailAccountRow>(&mut db_conn)
-        .optional()
-        .map_err(|e| format!("Failed to get email account: {}", e))
+        diesel::sql_query("SELECT * FROM email_accounts WHERE user_id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(user_id)
+            .get_result::<EmailAccountRow>(&mut db_conn)
+            .optional()
+            .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
     .map_err(|e| EmailError(format!("Task join error: {}", e)))?
@@ -2026,11 +2163,13 @@ pub async fn delete_email_htmx(
 
     if let Some(account) = account {
         let config = EmailConfig {
-            username: account.username,
-            password: account.password,
-            server: account.imap_server,
-            port: account.imap_port as u32,
-            from: account.email,
+            username: account.username.clone(),
+            password: account.password.clone(),
+            server: account.imap_server.clone(),
+            port: account.imap_port as u16,
+            from: account.email.clone(),
+            smtp_server: account.smtp_server.clone(),
+            smtp_port: account.smtp_port as u16,
         };
 
         // Move email to trash folder using IMAP
@@ -2091,7 +2230,10 @@ pub async fn track_click(
     State(state): State<Arc<AppState>>,
     Path((campaign_id, email)): Path<(String, String)>,
 ) -> Result<Json<ApiResponse<()>>, EmailError> {
-    info!("Tracking click for campaign {} email {}", campaign_id, email);
+    info!(
+        "Tracking click for campaign {} email {}",
+        campaign_id, email
+    );
 
     Ok(Json(ApiResponse {
         success: true,
@@ -2137,11 +2279,10 @@ struct EmailAccountRow {
 // ===== HTMX UI Endpoint Handlers =====
 
 /// List email labels (HTMX HTML response)
-pub async fn list_labels_htmx(
-    State(_state): State<Arc<AppState>>,
-) -> impl IntoResponse {
+pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     // Return default labels as HTML for HTMX
-    axum::response::Html(r#"
+    axum::response::Html(
+        r#"
         <div class="label-item" style="--label-color: #ef4444;">
             <span class="label-dot" style="background: #ef4444;"></span>
             <span>Important</span>
@@ -2158,14 +2299,15 @@ pub async fn list_labels_htmx(
             <span class="label-dot" style="background: #f59e0b;"></span>
             <span>Finance</span>
         </div>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }
 
 /// List email templates (HTMX HTML response)
-pub async fn list_templates_htmx(
-    State(_state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    axum::response::Html(r#"
+pub async fn list_templates_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    axum::response::Html(
+        r#"
         <div class="template-item" onclick="useTemplate('welcome')">
             <h4>Welcome Email</h4>
             <p>Standard welcome message for new contacts</p>
@@ -2181,14 +2323,15 @@ pub async fn list_templates_htmx(
         <p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">
             Click a template to use it
         </p>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }
 
 /// List email signatures (HTMX HTML response)
-pub async fn list_signatures_htmx(
-    State(_state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    axum::response::Html(r#"
+pub async fn list_signatures_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    axum::response::Html(
+        r#"
         <div class="signature-item" onclick="useSignature('default')">
             <h4>Default Signature</h4>
             <p class="text-sm text-gray">Best regards,<br>Your Name</p>
@@ -2200,14 +2343,15 @@ pub async fn list_signatures_htmx(
         <p class="text-sm text-gray" style="margin-top: 1rem; text-align: center;">
             Click a signature to insert it
         </p>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }
 
 /// List email rules (HTMX HTML response)
-pub async fn list_rules_htmx(
-    State(_state): State<Arc<AppState>>,
-) -> impl IntoResponse {
-    axum::response::Html(r#"
+pub async fn list_rules_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
+    axum::response::Html(
+        r#"
         <div class="rule-item">
             <div class="rule-header">
                 <span class="rule-name">Auto-archive newsletters</span>
@@ -2231,7 +2375,9 @@ pub async fn list_rules_htmx(
         <button class="btn-secondary" style="width: 100%; margin-top: 1rem;">
             + Add New Rule
         </button>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }
 
 /// Search emails (HTMX HTML response)
@@ -2242,23 +2388,29 @@ pub async fn search_emails_htmx(
     let query = params.get("q").map(|s| s.as_str()).unwrap_or("");
 
     if query.is_empty() {
-        return axum::response::Html(r#"
+        return axum::response::Html(
+            r#"
             <div class="empty-state">
                 <p>Enter a search term to find emails</p>
             </div>
-        "#.to_string());
+        "#
+            .to_string(),
+        );
     }
 
     let search_term = format!("%{}%", query.to_lowercase());
 
-    let conn = match state.conn.get() {
+    let mut conn = match state.conn.get() {
         Ok(c) => c,
         Err(_) => {
-            return axum::response::Html(r#"
+            return axum::response::Html(
+                r#"
                 <div class="empty-state error">
                     <p>Database connection error</p>
                 </div>
-            "#.to_string());
+            "#
+                .to_string(),
+            );
         }
     };
 
@@ -2272,20 +2424,20 @@ pub async fn search_emails_htmx(
          LIMIT 50"
     );
 
-    let results: Vec<(String, String, String, String, Option<String>, DateTime<Utc>)> =
-        match diesel::sql_query(&search_query)
-            .bind::<diesel::sql_types::Text, _>(&search_term)
-            .load(&conn)
-        {
-            Ok(r) => r.into_iter().map(|row: (String, String, String, String, Option<String>, DateTime<Utc>)| row).collect(),
-            Err(e) => {
-                warn!("Email search query failed: {}", e);
-                Vec::new()
-            }
-        };
+    let results: Vec<EmailSearchRow> = match diesel::sql_query(&search_query)
+        .bind::<diesel::sql_types::Text, _>(&search_term)
+        .load::<EmailSearchRow>(&mut conn)
+    {
+        Ok(r) => r,
+        Err(e) => {
+            warn!("Email search query failed: {}", e);
+            Vec::new()
+        }
+    };
 
     if results.is_empty() {
-        return axum::response::Html(format!(r#"
+        return axum::response::Html(format!(
+            r##"
             <div class="empty-state">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -2294,29 +2446,36 @@ pub async fn search_emails_htmx(
                 <h3>No results for "{}"</h3>
                 <p>Try different keywords or check your spelling.</p>
             </div>
-        "#, query));
+        "##,
+            query
+        ));
     }
 
-    let mut html = String::from(r#"<div class="search-results">"#);
-    html.push_str(&format!(r#"<div class="search-header"><span>Found {} result(s) for "{}"</span></div>"#, results.len(), query));
+    let mut html = String::from(r##"<div class="search-results">"##);
+    html.push_str(&format!(
+        r##"<div class="search-header"><span>Found {} result(s) for "{}"</span></div>"##,
+        results.len(),
+        query
+    ));
 
-    for (id, subject, from, _to, body, date) in results {
-        let preview = body
+    for row in results {
+        let preview = row
+            .body_text
             .as_deref()
             .unwrap_or("")
             .chars()
             .take(100)
             .collect::<String>();
-        let formatted_date = date.format("%b %d, %Y").to_string();
+        let formatted_date = row.received_at.format("%b %d, %Y").to_string();
 
-        html.push_str(&format!(r#"
+        html.push_str(&format!(r##"
             <div class="email-item" hx-get="/ui/mail/view/{}" hx-target="#email-content" hx-swap="innerHTML">
                 <div class="email-sender">{}</div>
                 <div class="email-subject">{}</div>
                 <div class="email-preview">{}</div>
                 <div class="email-date">{}</div>
             </div>
-        "#, id, from, subject, preview, formatted_date));
+        "##, row.id, row.from_address, row.subject, preview, formatted_date));
     }
 
     html.push_str("</div>");
@@ -2331,9 +2490,12 @@ pub async fn save_auto_responder(
     info!("Saving auto-responder settings: {:?}", form);
 
     // In production, save to database
-    axum::response::Html(r#"
+    axum::response::Html(
+        r#"
         <div class="notification success">
             Auto-responder settings saved successfully!
         </div>
-    "#.to_string())
+    "#
+        .to_string(),
+    )
 }

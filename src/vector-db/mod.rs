@@ -39,12 +39,6 @@ pub use hybrid_search::{
     SearchMethod, SearchResult,
 };
 
-// Tantivy BM25 index (when vectordb feature enabled)
-#[cfg(feature = "vectordb")]
-pub use hybrid_search::TantivyBM25Index;
-
-// Fallback BM25 index (when vectordb feature NOT enabled)
-#[cfg(not(feature = "vectordb"))]
 pub use hybrid_search::BM25Index;
 
 pub use vectordb_indexer::{IndexingStats, IndexingStatus, VectorDBIndexer};

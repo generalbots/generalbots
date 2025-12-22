@@ -39,8 +39,15 @@ impl UserWorkspace {
             .join(self.bot_id.to_string())
             .join(self.user_id.to_string())
     }
-}
 
+    fn email_vectordb(&self) -> String {
+        format!("email_{}_{}", self.bot_id, self.user_id)
+    }
+
+    fn drive_vectordb(&self) -> String {
+        format!("drive_{}_{}", self.bot_id, self.user_id)
+    }
+}
 
 /// Indexing job status
 #[derive(Debug, Clone, PartialEq)]
@@ -455,11 +462,11 @@ impl VectorDBIndexer {
         user_id: Uuid,
         account_id: &str,
     ) -> Result<Vec<EmailDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
         let account_id = account_id.to_string();
 
         let results = tokio::task::spawn_blocking(move || {
-            let conn = pool.get()?;
+            let mut conn = pool.get()?;
 
             let query = r#"
                 SELECT e.id, e.message_id, e.subject, e.from_address, e.to_addresses,
@@ -486,7 +493,17 @@ impl VectorDBIndexer {
             )> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
                 .bind::<diesel::sql_types::Text, _>(&account_id)
-                .load(&conn)
+                .load::<(
+                    Uuid,
+                    String,
+                    String,
+                    String,
+                    String,
+                    Option<String>,
+                    Option<String>,
+                    DateTime<Utc>,
+                    String,
+                )>(&mut conn)
                 .unwrap_or_default();
 
             let emails: Vec<EmailDocument> = rows
@@ -505,18 +522,16 @@ impl VectorDBIndexer {
                     )| {
                         EmailDocument {
                             id: id.to_string(),
-                            message_id,
-                            subject,
-                            from_address: from,
-                            to_addresses: to.split(',').map(|s| s.trim().to_string()).collect(),
-                            cc_addresses: Vec::new(),
-                            body_text: body_text.unwrap_or_default(),
-                            body_html,
-                            received_at,
-                            folder,
-                            labels: Vec::new(),
-                            has_attachments: false,
                             account_id: account_id.clone(),
+                            from_email: from.clone(),
+                            from_name: from,
+                            to_email: to,
+                            subject,
+                            body_text: body_text.unwrap_or_default(),
+                            date: received_at,
+                            folder,
+                            has_attachments: false,
+                            thread_id: None,
                         }
                     },
                 )
@@ -533,10 +548,10 @@ impl VectorDBIndexer {
         &self,
         user_id: Uuid,
     ) -> Result<Vec<FileDocument>, Box<dyn std::error::Error + Send + Sync>> {
-        let pool = self.pool.clone();
+        let pool = self.db_pool.clone();
 
         let results = tokio::task::spawn_blocking(move || {
-            let conn = pool.get()?;
+            let mut conn = pool.get()?;
 
             let query = r#"
                 SELECT f.id, f.file_path, f.file_name, f.file_type, f.file_size,
@@ -562,7 +577,7 @@ impl VectorDBIndexer {
                 DateTime<Utc>,
             )> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
-                .load(&conn)
+                .load::<(Uuid, String, String, i64, DateTime<Utc>)>(&mut conn)
                 .unwrap_or_default();
 
             let files: Vec<FileDocument> = rows
