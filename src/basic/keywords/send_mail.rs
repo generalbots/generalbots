@@ -290,7 +290,7 @@ async fn execute_send_mail(
     {
         use crate::email::EmailService;
 
-        let email_service = EmailService::new(Arc::new(state.as_ref().clone()));
+        let email_service = EmailService::new(Arc::new(state.clone()));
 
         if let Ok(_) = email_service
             .send_email(

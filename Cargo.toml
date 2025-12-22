@@ -235,6 +235,7 @@ rss = "2.0"
 
 # HTML parsing/web scraping
 scraper = "0.25"
+walkdir = "2.5.0"
 
 [dev-dependencies]
 mockito = "1.7.0"
@@ -257,6 +258,12 @@ unwrap_used = "warn"
 expect_used = "warn"
 panic = "warn"
 todo = "warn"
+# Disabled: has false positives for functions with mut self, heap types (Vec, String)
+missing_const_for_fn = "allow"
+# Disabled: transitive dependencies we cannot control
+multiple_crate_versions = "allow"
+# Disabled: many keyword functions need owned types for Rhai integration
+needless_pass_by_value = "allow"
 
 [profile.release]
 lto = true

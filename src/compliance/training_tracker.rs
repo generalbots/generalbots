@@ -23,7 +23,7 @@ pub enum TrainingType {
 }
 
 /// Training status
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TrainingStatus {
     NotStarted,
     InProgress,
@@ -152,7 +152,8 @@ impl TrainingTracker {
             max_attempts: 3,
         };
 
-        self.courses.insert(security_awareness.id, security_awareness);
+        self.courses
+            .insert(security_awareness.id, security_awareness);
 
         let data_protection = TrainingCourse {
             id: Uuid::new_v4(),
@@ -213,11 +214,7 @@ impl TrainingTracker {
 
         self.assignments.insert(assignment.id, assignment.clone());
 
-        log::info!(
-            "Assigned training '{}' to user {}",
-            course.title,
-            user_id
-        );
+        log::info!("Assigned training '{}' to user {}", course.title, user_id);
 
         Ok(assignment)
     }
@@ -298,7 +295,10 @@ impl TrainingTracker {
                 course_id: course.id,
                 issued_date: end_time,
                 expiry_date: end_time + Duration::days(course.validity_days),
-                certificate_number: format!("CERT-{}", Uuid::new_v4().to_string()[..8].to_uppercase()),
+                certificate_number: format!(
+                    "CERT-{}",
+                    Uuid::new_v4().to_string()[..8].to_uppercase()
+                ),
                 verification_code: Uuid::new_v4().to_string(),
             };
 
@@ -331,9 +331,11 @@ impl TrainingTracker {
         let mut upcoming_trainings = vec![];
 
         for course in self.courses.values() {
-            if course.required_for_roles.iter().any(|r| {
-                user_roles.contains(r) || r == "all"
-            }) {
+            if course
+                .required_for_roles
+                .iter()
+                .any(|r| user_roles.contains(r) || r == "all")
+            {
                 required_trainings.push(course.id);
 
                 // Check if user has completed this training
@@ -401,18 +403,14 @@ impl TrainingTracker {
         let overdue_count = self
             .assignments
             .values()
-            .filter(|a| {
-                a.status != TrainingStatus::Completed
-                    && a.due_date < Utc::now()
-            })
+            .filter(|a| a.status != TrainingStatus::Completed && a.due_date < Utc::now())
             .count();
 
         let expiring_soon = self
             .certificates
             .values()
             .filter(|c| {
-                c.expiry_date > Utc::now()
-                    && c.expiry_date < Utc::now() + Duration::days(30)
+                c.expiry_date > Utc::now() && c.expiry_date < Utc::now() + Duration::days(30)
             })
             .count();
 
@@ -460,10 +458,7 @@ impl TrainingTracker {
     pub fn get_overdue_trainings(&self) -> Vec<TrainingAssignment> {
         self.assignments
             .values()
-            .filter(|a| {
-                a.status != TrainingStatus::Completed
-                    && a.due_date < Utc::now()
-            })
+            .filter(|a| a.status != TrainingStatus::Completed && a.due_date < Utc::now())
             .cloned()
             .collect()
     }
@@ -473,9 +468,7 @@ impl TrainingTracker {
         let cutoff = Utc::now() + Duration::days(days_ahead);
         self.certificates
             .values()
-            .filter(|c| {
-                c.expiry_date > Utc::now() && c.expiry_date <= cutoff
-            })
+            .filter(|c| c.expiry_date > Utc::now() && c.expiry_date <= cutoff)
             .cloned()
             .collect()
     }

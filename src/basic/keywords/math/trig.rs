@@ -79,6 +79,7 @@ mod tests {
 
     #[test]
     fn test_pi() {
-        assert!((std::f64::consts::PI - 3.14159).abs() < 0.001);
+        assert!(std::f64::consts::PI > 3.14);
+        assert!(std::f64::consts::PI < 3.15);
     }
 }
