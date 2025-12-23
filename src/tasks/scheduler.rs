@@ -101,14 +101,14 @@ impl TaskScheduler {
         tokio::spawn(async move {
             let mut handlers = registry.write().await;
 
-            // Database cleanup task
+
             handlers.insert(
                 "database_cleanup".to_string(),
                 Arc::new(move |_state: Arc<AppState>, _payload: serde_json::Value| {
                     Box::pin(async move {
-                        // Database cleanup - simplified for in-memory
 
-                        // Clean old sessions - simplified for in-memory
+
+
                         info!("Database cleanup task executed");
 
                         Ok(serde_json::json!({
@@ -120,7 +120,7 @@ impl TaskScheduler {
                 }),
             );
 
-            // Cache cleanup task
+
             handlers.insert(
                 "cache_cleanup".to_string(),
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
@@ -139,7 +139,7 @@ impl TaskScheduler {
                 }),
             );
 
-            // Backup task
+
             handlers.insert(
                 "backup".to_string(),
                 Arc::new(move |state: Arc<AppState>, payload: serde_json::Value| {
@@ -157,7 +157,7 @@ impl TaskScheduler {
                                     .arg(&backup_file)
                                     .output()?;
 
-                                // Upload to S3 if configured
+
                                 if state.s3_client.is_some() {
                                     let s3 = state.s3_client.as_ref().unwrap();
                                     let body = tokio::fs::read(&backup_file).await?;
@@ -196,7 +196,7 @@ impl TaskScheduler {
                 }),
             );
 
-            // Report generation task
+
             handlers.insert(
                 "generate_report".to_string(),
                 Arc::new(move |_state: Arc<AppState>, payload: serde_json::Value| {
@@ -229,7 +229,7 @@ impl TaskScheduler {
                 }),
             );
 
-            // Health check task
+
             handlers.insert(
                 "health_check".to_string(),
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
@@ -240,17 +240,17 @@ impl TaskScheduler {
                             "timestamp": Utc::now()
                         });
 
-                        // Check database
+
                         let db_ok = state.conn.get().is_ok();
                         health["database"] = serde_json::json!(db_ok);
 
-                        // Check cache
+
                         if let Some(cache) = &state.cache {
                             let cache_ok = cache.get_connection().is_ok();
                             health["cache"] = serde_json::json!(cache_ok);
                         }
 
-                        // Check S3
+
                         if let Some(s3) = &state.s3_client {
                             let s3_ok = s3.list_buckets().send().await.is_ok();
                             health["storage"] = serde_json::json!(s3_ok);
@@ -351,7 +351,7 @@ impl TaskScheduler {
             let execution_id = Uuid::new_v4();
             let started_at = Utc::now();
 
-            // Create execution record
+
             let _execution = TaskExecution {
                 id: execution_id,
                 scheduled_task_id: task_id,
@@ -363,11 +363,11 @@ impl TaskScheduler {
                 duration_ms: None,
             };
 
-            // Store in memory (would be database in production)
-            // let mut executions = task_executions.write().await;
-            // executions.push(execution);
 
-            // Execute the task
+
+
+
+
             let result = {
                 let handlers = registry.read().await;
                 if let Some(handler) = handlers.get(&task.task_type) {
@@ -388,25 +388,25 @@ impl TaskScheduler {
             let completed_at = Utc::now();
             let _duration_ms = (completed_at - started_at).num_milliseconds();
 
-            // Update execution record in memory
+
             match result {
                 Ok(_result) => {
-                    // Update task
+
                     let schedule = Schedule::from_str(&task.cron_expression).ok();
                     let _next_run = schedule
                         .and_then(|s| s.upcoming(chrono::Local).take(1).next())
                         .map(|dt| dt.with_timezone(&Utc))
                         .unwrap_or_else(|| Utc::now() + Duration::hours(1));
 
-                    // Update task in memory
-                    // Would update database in production
+
+
                     info!("Task {} completed successfully", task.name);
                 }
                 Err(e) => {
                     let error_msg = format!("Task failed: {}", e);
                     error!("{}", error_msg);
 
-                    // Handle retries
+
                     task.retry_count += 1;
                     if task.retry_count < task.max_retries {
                         let _retry_delay =
@@ -424,12 +424,12 @@ impl TaskScheduler {
                 }
             }
 
-            // Remove from running tasks
+
             let mut running = running_tasks.write().await;
             running.remove(&task_id);
         });
 
-        // Track running task
+
         let mut running = self.running_tasks.write().await;
         running.insert(task_id, handle);
     }
@@ -445,7 +445,7 @@ impl TaskScheduler {
             info!("Stopped task: {}", task_id);
         }
 
-        // Update in memory
+
         let mut tasks = self.scheduled_tasks.write().await;
         if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {
             task.enabled = false;

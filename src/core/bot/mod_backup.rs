@@ -513,7 +513,7 @@ pub async fn send_warning_handler(
     let orchestrator = BotOrchestrator::new(state);
     info!("Orchestrator created for warning");
 
-    // Use orchestrator to log state
+
     if let Ok(sessions) = orchestrator.get_user_sessions(Uuid::nil()).await {
         info!("Current active sessions: {}", sessions.len());
     }

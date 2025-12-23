@@ -1,12 +1,12 @@
-//! Paper Module - AI-Powered Document Editor
-//!
-//! Provides document creation, editing, and AI-assisted writing features.
-//! Documents are stored in the user's .gbusers folder within .gbdrive:
-//!   {bot}.gbai/{bot}.gbdrive/users/{user_email_or_phone}/papers/
-//!
-//! Storage structure:
-//!   papers/current/     - Working documents (auto-saved drafts)
-//!   papers/named/{name}/ - Explicitly saved documents with metadata
+
+
+
+
+
+
+
+
+
 
 #[cfg(feature = "llm")]
 use crate::llm::OpenAIClient;
@@ -45,7 +45,7 @@ pub struct DocumentMetadata {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub word_count: usize,
-    pub storage_type: String, // "current" or "named"
+    pub storage_type: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -90,7 +90,7 @@ pub struct UserRow {
 
 pub fn configure_paper_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // Document CRUD - match frontend hx-* endpoints
+
         .route("/api/paper/new", post(handle_new_document))
         .route("/api/paper/list", get(handle_list_documents))
         .route("/api/paper/search", get(handle_search_documents))
@@ -98,7 +98,7 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route("/api/paper/autosave", post(handle_autosave))
         .route("/api/paper/{id}", get(handle_get_document))
         .route("/api/paper/{id}/delete", post(handle_delete_document))
-        // Templates
+
         .route("/api/paper/template/blank", post(handle_template_blank))
         .route("/api/paper/template/meeting", post(handle_template_meeting))
         .route("/api/paper/template/todo", post(handle_template_todo))
@@ -106,14 +106,14 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
             "/api/paper/template/research",
             post(handle_template_research),
         )
-        // AI features
+
         .route("/api/paper/ai/summarize", post(handle_ai_summarize))
         .route("/api/paper/ai/expand", post(handle_ai_expand))
         .route("/api/paper/ai/improve", post(handle_ai_improve))
         .route("/api/paper/ai/simplify", post(handle_ai_simplify))
         .route("/api/paper/ai/translate", post(handle_ai_translate))
         .route("/api/paper/ai/custom", post(handle_ai_custom))
-        // Export
+
         .route("/api/paper/export/pdf", get(handle_export_pdf))
         .route("/api/paper/export/docx", get(handle_export_docx))
         .route("/api/paper/export/md", get(handle_export_md))
@@ -121,15 +121,15 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route("/api/paper/export/txt", get(handle_export_txt))
 }
 
-// Authentication & User Identity
 
-/// Extract user identity from session/headers
-/// Returns (user_id, user_identifier) where identifier is email or phone
+
+
+
 async fn get_current_user(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<(Uuid, String), String> {
-    // Try to get session ID from cookie or header
+
     let session_id = headers
         .get("x-session-id")
         .and_then(|v| v.to_str().ok())
@@ -151,7 +151,7 @@ async fn get_current_user(
             let result = tokio::task::spawn_blocking(move || {
                 let mut db_conn = conn.get().map_err(|e| e.to_string())?;
 
-                // Get user_id from session
+
                 let user_id: Option<Uuid> =
                     diesel::sql_query("SELECT user_id FROM user_sessions WHERE id = $1")
                         .bind::<diesel::sql_types::Uuid, _>(session_uuid)
@@ -161,7 +161,7 @@ async fn get_current_user(
                         .map(|r| r.user_id);
 
                 if let Some(uid) = user_id {
-                    // Get user email
+
                     let user: Option<UserRow> =
                         diesel::sql_query("SELECT id, email, username FROM users WHERE id = $1")
                             .bind::<diesel::sql_types::Uuid, _>(uid)
@@ -182,12 +182,12 @@ async fn get_current_user(
         }
     }
 
-    // Fallback: create/get anonymous user for development
+
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| e.to_string())?;
 
-        // Check for existing anonymous user or create one
+
         let anon_email = "anonymous@local";
         let user: Option<UserRow> = diesel::sql_query(
             "SELECT id, email, username FROM users WHERE email = $1",
@@ -227,19 +227,19 @@ struct UserIdRow {
     user_id: Uuid,
 }
 
-// Storage Functions (.gbusers integration)
 
-/// Get the user's paper storage path
-/// Format: {bucket}/users/{user_identifier}/papers/
+
+
+
 fn get_user_papers_path(user_identifier: &str) -> String {
-    // Sanitize the user identifier for filesystem/S3 compatibility
+
     let safe_id = user_identifier
         .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
         .to_lowercase();
     format!("users/{}/papers", safe_id)
 }
 
-/// Save document to user's .gbdrive storage
+
 async fn save_document_to_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -253,7 +253,7 @@ async fn save_document_to_drive(
     let base_path = get_user_papers_path(user_identifier);
     let storage_type = if is_named { "named" } else { "current" };
 
-    // For named documents, create a folder structure
+
     let (doc_path, metadata_path) = if is_named {
         let safe_title = title
             .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
@@ -275,7 +275,7 @@ async fn save_document_to_drive(
         )
     };
 
-    // Save document content
+
     s3_client
         .put_object()
         .bucket(&state.bucket_name)
@@ -286,7 +286,7 @@ async fn save_document_to_drive(
         .await
         .map_err(|e| format!("Failed to save document: {}", e))?;
 
-    // Save metadata for named documents
+
     if let Some(meta_path) = metadata_path {
         let metadata = serde_json::json!({
             "id": doc_id,
@@ -310,7 +310,7 @@ async fn save_document_to_drive(
     Ok(doc_path)
 }
 
-/// Load document from user's .gbdrive storage
+
 async fn load_document_from_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -320,7 +320,7 @@ async fn load_document_from_drive(
 
     let base_path = get_user_papers_path(user_identifier);
 
-    // Try current folder first
+
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
 
     match s3_client
@@ -339,7 +339,7 @@ async fn load_document_from_drive(
                 .into_bytes();
             let content = String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())?;
 
-            // Extract title from first line if it's a heading
+
             let title = content
                 .lines()
                 .next()
@@ -358,16 +358,16 @@ async fn load_document_from_drive(
             }));
         }
         Err(_) => {
-            // Document not found in current, will search named folders
+
         }
     }
 
-    // Search in named folders (would need to list and search)
-    // For now, return None if not in current
+
+
     Ok(None)
 }
 
-/// List documents from user's .gbdrive storage
+
 async fn list_documents_from_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -377,7 +377,7 @@ async fn list_documents_from_drive(
     let base_path = get_user_papers_path(user_identifier);
     let mut documents = Vec::new();
 
-    // List current documents
+
     let current_prefix = format!("{}/current/", base_path);
     if let Ok(result) = s3_client
         .list_objects_v2()
@@ -414,7 +414,7 @@ async fn list_documents_from_drive(
         }
     }
 
-    // List named documents
+
     let named_prefix = format!("{}/named/", base_path);
     if let Ok(result) = s3_client
         .list_objects_v2()
@@ -430,7 +430,7 @@ async fn list_documents_from_drive(
                     .trim_start_matches(&named_prefix)
                     .trim_end_matches('/');
 
-                // Try to load metadata
+
                 let meta_key = format!("{}metadata.json", folder);
                 if let Ok(meta_result) = s3_client
                     .get_object()
@@ -468,7 +468,7 @@ async fn list_documents_from_drive(
                     }
                 }
 
-                // Fallback if no metadata
+
                 documents.push(DocumentMetadata {
                     id: folder_name.to_string(),
                     title: folder_name.to_string(),
@@ -482,13 +482,13 @@ async fn list_documents_from_drive(
         }
     }
 
-    // Sort by updated_at descending
+
     documents.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
 
     Ok(documents)
 }
 
-/// Delete document from user's .gbdrive storage
+
 async fn delete_document_from_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -498,7 +498,7 @@ async fn delete_document_from_drive(
 
     let base_path = get_user_papers_path(user_identifier);
 
-    // Try to delete from current
+
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
     let _ = s3_client
         .delete_object()
@@ -507,7 +507,7 @@ async fn delete_document_from_drive(
         .send()
         .await;
 
-    // Also try to delete named folder if it exists
+
     let named_prefix = format!("{}/named/{}/", base_path, doc_id);
     if let Ok(result) = s3_client
         .list_objects_v2()
@@ -532,7 +532,7 @@ async fn delete_document_from_drive(
 }
 
 
-/// Call LLM for AI-powered text operations
+
 #[cfg(feature = "llm")]
 async fn call_llm(
     state: &Arc<AppState>,
@@ -547,7 +547,7 @@ async fn call_llm(
         &[("user".to_string(), user_content.to_string())],
     );
 
-    // Get LLM config from database via ConfigManager
+
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
@@ -567,7 +567,7 @@ async fn call_llm(
     _system_prompt: &str,
     user_content: &str,
 ) -> Result<String, String> {
-    // Fallback when LLM feature is not enabled
+
     Ok(format!(
         "[LLM not available] Processing: {}...",
         &user_content[..50.min(user_content.len())]
@@ -575,7 +575,7 @@ async fn call_llm(
 }
 
 
-/// POST /api/paper/new - Create a new document
+
 pub async fn handle_new_document(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -592,12 +592,12 @@ pub async fn handle_new_document(
     let title = "Untitled".to_string();
     let content = String::new();
 
-    // Save to .gbdrive
+
     if let Err(e) =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await
     {
         log::error!("Failed to save new document: {}", e);
-        // Continue anyway, document will be in memory
+
     }
 
     let mut html = String::new();
@@ -605,12 +605,12 @@ pub async fn handle_new_document(
     html.push_str(&html_escape(&doc_id));
     html.push_str("\">");
 
-    // Document list item
+
     html.push_str(&format_document_list_item(
         &doc_id, &title, "just now", true,
     ));
 
-    // Trigger loading the new document
+
     html.push_str("<script>");
     html.push_str("htmx.trigger('#paper-list', 'refresh');");
     html.push_str("htmx.ajax('GET', '/api/paper/");
@@ -623,7 +623,7 @@ pub async fn handle_new_document(
     Html(html)
 }
 
-/// GET /api/paper/list - List user's documents
+
 pub async fn handle_list_documents(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -673,7 +673,7 @@ pub async fn handle_list_documents(
     Html(html)
 }
 
-/// GET /api/paper/search - Search documents
+
 pub async fn handle_search_documents(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -723,7 +723,7 @@ pub async fn handle_search_documents(
     Html(html)
 }
 
-/// GET /api/paper/{id} - Get document content
+
 pub async fn handle_get_document(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -747,7 +747,7 @@ pub async fn handle_get_document(
     }
 }
 
-/// POST /api/paper/save - Save document
+
 pub async fn handle_save_document(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -792,7 +792,7 @@ pub async fn handle_save_document(
     }
 }
 
-/// POST /api/paper/autosave - Auto-save document
+
 pub async fn handle_autosave(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -802,7 +802,7 @@ pub async fn handle_autosave(
         Ok(u) => u,
         Err(e) => {
             log::error!("Auth error: {}", e);
-            return Html(String::new()); // Silent fail for autosave
+            return Html(String::new());
         }
     };
 
@@ -810,7 +810,7 @@ pub async fn handle_autosave(
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
     let content = payload.content.unwrap_or_default();
 
-    // Auto-save always goes to current folder
+
     if let Err(e) =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await
     {
@@ -820,7 +820,7 @@ pub async fn handle_autosave(
     Html("<span class=\"autosave-indicator\">Auto-saved</span>".to_string())
 }
 
-/// POST /api/paper/{id}/delete - Delete document
+
 pub async fn handle_delete_document(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -847,7 +847,7 @@ pub async fn handle_delete_document(
 }
 
 
-/// POST /api/paper/template/blank - Create blank document
+
 pub async fn handle_template_blank(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -855,7 +855,7 @@ pub async fn handle_template_blank(
     handle_new_document(State(state), headers).await
 }
 
-/// POST /api/paper/template/meeting - Create meeting notes template
+
 pub async fn handle_template_meeting(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -887,7 +887,7 @@ pub async fn handle_template_meeting(
     Html(format_document_content(&title, &content))
 }
 
-/// POST /api/paper/template/todo - Create to-do list template
+
 pub async fn handle_template_todo(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -916,7 +916,7 @@ pub async fn handle_template_todo(
     Html(format_document_content(&title, &content))
 }
 
-/// POST /api/paper/template/research - Create research notes template
+
 pub async fn handle_template_research(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -949,7 +949,7 @@ pub async fn handle_template_research(
 }
 
 
-/// POST /api/paper/ai/summarize - Summarize selected text
+
 pub async fn handle_ai_summarize(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -966,7 +966,7 @@ pub async fn handle_ai_summarize(
         Ok(summary) => Html(format_ai_response(&summary)),
         Err(e) => {
             log::error!("LLM summarize error: {}", e);
-            // Fallback to simple summary
+
             let word_count = text.split_whitespace().count();
             let summary = format!(
                 "Summary of {} words: {}...",
@@ -978,7 +978,7 @@ pub async fn handle_ai_summarize(
     }
 }
 
-/// POST /api/paper/ai/expand - Expand selected text
+
 pub async fn handle_ai_expand(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1004,7 +1004,7 @@ pub async fn handle_ai_expand(
     }
 }
 
-/// POST /api/paper/ai/improve - Improve selected text
+
 pub async fn handle_ai_improve(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1026,7 +1026,7 @@ pub async fn handle_ai_improve(
     }
 }
 
-/// POST /api/paper/ai/simplify - Simplify selected text
+
 pub async fn handle_ai_simplify(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1051,7 +1051,7 @@ pub async fn handle_ai_simplify(
     }
 }
 
-/// POST /api/paper/ai/translate - Translate selected text
+
 pub async fn handle_ai_translate(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1095,7 +1095,7 @@ pub async fn handle_ai_translate(
     }
 }
 
-/// POST /api/paper/ai/custom - Custom AI command
+
 pub async fn handle_ai_custom(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1128,7 +1128,7 @@ pub async fn handle_ai_custom(
 }
 
 
-/// GET /api/paper/export/pdf - Export as PDF
+
 pub async fn handle_export_pdf(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1141,8 +1141,8 @@ pub async fn handle_export_pdf(
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(_doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-            // In production, generate PDF and save to exports folder
-            // For now, show a message
+
+
             return Html("<script>alert('PDF export started. The file will be saved to your exports folder.');</script>".to_string());
         }
     }
@@ -1150,7 +1150,7 @@ pub async fn handle_export_pdf(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-/// GET /api/paper/export/docx - Export as Word
+
 pub async fn handle_export_docx(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1170,7 +1170,7 @@ pub async fn handle_export_docx(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-/// GET /api/paper/export/md - Export as Markdown
+
 pub async fn handle_export_md(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1183,7 +1183,7 @@ pub async fn handle_export_md(
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-            // Save to exports folder
+
             let export_path = format!(
                 "users/{}/exports/{}.md",
                 user_identifier
@@ -1213,7 +1213,7 @@ pub async fn handle_export_md(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-/// GET /api/paper/export/html - Export as HTML
+
 pub async fn handle_export_html(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1226,14 +1226,14 @@ pub async fn handle_export_html(
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-            // Convert markdown to basic HTML
+
             let html_content = format!(
                 "<!DOCTYPE html>\n<html>\n<head>\n<title>{}</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<article>\n{}\n</article>\n</body>\n</html>",
                 html_escape(&doc.title),
                 markdown_to_html(&doc.content)
             );
 
-            // Save to exports folder
+
             let export_path = format!(
                 "users/{}/exports/{}.html",
                 user_identifier
@@ -1263,7 +1263,7 @@ pub async fn handle_export_html(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-/// GET /api/paper/export/txt - Export as plain text
+
 pub async fn handle_export_txt(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -1276,10 +1276,10 @@ pub async fn handle_export_txt(
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-            // Strip markdown formatting
+
             let plain_text = strip_markdown(&doc.content);
 
-            // Save to exports folder
+
             let export_path = format!(
                 "users/{}/exports/{}.txt",
                 user_identifier
@@ -1350,7 +1350,7 @@ fn format_document_content(title: &str, content: &str) -> String {
     if content.is_empty() {
         html.push_str("<p data-placeholder=\"Start writing...\"></p>");
     } else {
-        // Convert markdown to basic HTML for display
+
         html.push_str(&markdown_to_html(content));
     }
     html.push_str("</div>");
@@ -1420,7 +1420,7 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-/// Simple markdown to HTML converter for display
+
 fn markdown_to_html(markdown: &str) -> String {
     let mut html = String::new();
     let mut in_list = false;
@@ -1429,7 +1429,7 @@ fn markdown_to_html(markdown: &str) -> String {
     for line in markdown.lines() {
         let trimmed = line.trim();
 
-        // Code blocks
+
         if trimmed.starts_with("```") {
             if in_code_block {
                 html.push_str("</code></pre>");
@@ -1447,7 +1447,7 @@ fn markdown_to_html(markdown: &str) -> String {
             continue;
         }
 
-        // Headers
+
         if trimmed.starts_with("# ") {
             html.push_str("<h1>");
             html.push_str(&html_escape(&trimmed[2..]));
@@ -1461,7 +1461,7 @@ fn markdown_to_html(markdown: &str) -> String {
             html.push_str(&html_escape(&trimmed[4..]));
             html.push_str("</h3>");
         }
-        // Lists
+
         else if trimmed.starts_with("- [ ] ") {
             if !in_list {
                 html.push_str("<ul class=\"todo-list\">");
@@ -1495,7 +1495,7 @@ fn markdown_to_html(markdown: &str) -> String {
             html.push_str(&html_escape(&trimmed[2..]));
             html.push_str("</li>");
         }
-        // Numbered lists
+
         else if trimmed
             .chars()
             .next()
@@ -1513,7 +1513,7 @@ fn markdown_to_html(markdown: &str) -> String {
                 html.push_str("</li>");
             }
         }
-        // Empty line closes list
+
         else if trimmed.is_empty() {
             if in_list {
                 html.push_str("</ul>");
@@ -1521,7 +1521,7 @@ fn markdown_to_html(markdown: &str) -> String {
             }
             html.push_str("<br>");
         }
-        // Bold and italic inline formatting
+
         else {
             if in_list {
                 html.push_str("</ul>");
@@ -1544,17 +1544,17 @@ fn markdown_to_html(markdown: &str) -> String {
     html
 }
 
-/// Format inline markdown (bold, italic, code)
+
 fn format_inline_markdown(text: &str) -> String {
     let escaped = html_escape(text);
 
-    // Bold: **text** or __text__
+
     let re_bold = escaped.replace("**", "<b>").replace("__", "<b>");
 
-    // Italic: *text* or _text_
+
     let re_italic = re_bold.replace("*", "<i>").replace("_", "<i>");
 
-    // Inline code: `code`
+
     let mut result = String::new();
     let mut in_code = false;
     for ch in re_italic.chars() {
@@ -1573,19 +1573,19 @@ fn format_inline_markdown(text: &str) -> String {
     result
 }
 
-/// Strip markdown formatting from text
+
 fn strip_markdown(markdown: &str) -> String {
     let mut result = String::new();
 
     for line in markdown.lines() {
         let trimmed = line.trim();
 
-        // Skip code block markers
+
         if trimmed.starts_with("```") {
             continue;
         }
 
-        // Strip header markers
+
         let content = if trimmed.starts_with("### ") {
             &trimmed[4..]
         } else if trimmed.starts_with("## ") {
@@ -1604,7 +1604,7 @@ fn strip_markdown(markdown: &str) -> String {
             trimmed
         };
 
-        // Strip bold/italic markers
+
         let clean = content
             .replace("**", "")
             .replace("__", "")

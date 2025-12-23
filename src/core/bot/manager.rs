@@ -1,10 +1,10 @@
-//! Bot Manager Module
-//!
-//! Manages bot lifecycle including:
-//! - Creating new bots from templates
-//! - MinIO bucket creation (folder = bucket)
-//! - Security/access assignment
-//! - Custom UI routing (/botname/gbui)
+
+
+
+
+
+
+
 
 use crate::core::shared::schema::organizations;
 use crate::shared::platform_name;
@@ -19,53 +19,53 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-/// Bot configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotConfig {
-    /// Unique bot ID
+
     pub id: Uuid,
 
-    /// Bot name (used in URLs: /botname)
+
     pub name: String,
 
-    /// Display name
+
     pub display_name: String,
 
-    /// Organization ID
+
     pub org_id: Uuid,
 
-    /// Organization slug
+
     pub org_slug: String,
 
-    /// Template used to create this bot
+
     pub template: Option<String>,
 
-    /// Bot status
+
     pub status: BotStatus,
 
-    /// MinIO bucket name
+
     pub bucket: String,
 
-    /// Custom UI path (optional)
+
     pub custom_ui: Option<String>,
 
-    /// Bot settings
+
     pub settings: BotSettings,
 
-    /// Access control
+
     pub access: BotAccess,
 
-    /// Creation timestamp
+
     pub created_at: DateTime<Utc>,
 
-    /// Last updated timestamp
+
     pub updated_at: DateTime<Utc>,
 
-    /// Created by user ID
+
     pub created_by: Uuid,
 }
 
-/// Bot status
+
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum BotStatus {
     Active,
@@ -87,51 +87,51 @@ impl std::fmt::Display for BotStatus {
     }
 }
 
-/// Bot settings
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BotSettings {
-    /// Default LLM model
+
     pub llm_model: Option<String>,
 
-    /// Knowledge bases enabled
+
     pub knowledge_bases: Vec<String>,
 
-    /// Enabled channels
+
     pub channels: Vec<String>,
 
-    /// Webhook endpoints
+
     pub webhooks: Vec<String>,
 
-    /// Schedule definitions
+
     pub schedules: Vec<String>,
 
-    /// Custom variables
+
     pub variables: HashMap<String, String>,
 }
 
-/// Bot access control
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct BotAccess {
-    /// Admin users (full access)
+
     pub admins: Vec<Uuid>,
 
-    /// Editor users (can edit scripts)
+
     pub editors: Vec<Uuid>,
 
-    /// Viewer users (read-only)
+
     pub viewers: Vec<Uuid>,
 
-    /// Public access enabled
+
     pub is_public: bool,
 
-    /// Allowed domains (for embedding)
+
     pub allowed_domains: Vec<String>,
 
-    /// API key for external access
+
     pub api_key: Option<String>,
 }
 
-/// Available bot templates
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotTemplate {
     pub name: String,
@@ -142,60 +142,60 @@ pub struct BotTemplate {
     pub preview_image: Option<String>,
 }
 
-/// Template file
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TemplateFile {
     pub path: String,
     pub content: String,
 }
 
-/// Bot creation request
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreateBotRequest {
-    /// Bot name (will be used in URLs)
+
     pub name: String,
 
-    /// Display name
+
     pub display_name: Option<String>,
 
-    /// Organization ID
+
     pub org_id: Uuid,
 
-    /// Template to use (optional)
+
     pub template: Option<String>,
 
-    /// Creator user ID
+
     pub created_by: Uuid,
 
-    /// Initial settings
+
     pub settings: Option<BotSettings>,
 
-    /// Custom UI name (optional)
+
     pub custom_ui: Option<String>,
 }
 
-/// Bot Manager
+
 pub struct BotManager {
-    /// MinIO client for bucket operations
+
     minio_endpoint: String,
     minio_access_key: String,
     minio_secret_key: String,
 
-    /// Database connection string
+
     database_url: String,
 
-    /// Templates directory
+
     templates_dir: PathBuf,
 
-    /// Cached bots
+
     bots_cache: Arc<RwLock<HashMap<Uuid, BotConfig>>>,
 
-    /// Available templates
+
     templates: Arc<RwLock<HashMap<String, BotTemplate>>>,
 }
 
 impl BotManager {
-    /// Create a new BotManager
+
     pub fn new(
         minio_endpoint: &str,
         minio_access_key: &str,
@@ -214,22 +214,22 @@ impl BotManager {
         }
     }
 
-    /// Initialize manager and load templates
+
     pub async fn init(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Initializing Bot Manager...");
 
-        // Load available templates
+
         self.load_templates().await?;
 
         info!("Bot Manager initialized");
         Ok(())
     }
 
-    /// Load templates from templates directory
+
     async fn load_templates(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut templates = self.templates.write().await;
 
-        // Built-in templates
+
         let builtin_templates = vec![
             BotTemplate {
                 name: "default".to_string(),
@@ -452,7 +452,7 @@ END IF
             templates.insert(template.name.clone(), template);
         }
 
-        // Load templates from filesystem
+
         if self.templates_dir.exists() {
             if let Ok(entries) = std::fs::read_dir(&self.templates_dir) {
                 for entry in entries.flatten() {
@@ -461,7 +461,7 @@ END IF
                         if let Some(name) = path.file_stem().and_then(|s| s.to_str()) {
                             if !templates.contains_key(name) {
                                 debug!("Found template directory: {}", name);
-                                // Load template from filesystem directory
+
                                 if let Some(template) =
                                     self.load_template_from_directory(&path, name)
                                 {
@@ -479,9 +479,9 @@ END IF
         Ok(())
     }
 
-    /// Load a template from a filesystem directory
+
     fn load_template_from_directory(&self, path: &PathBuf, name: &str) -> Option<BotTemplate> {
-        // Check for template metadata file
+
         let metadata_path = path.join("template.toml");
         let description = if metadata_path.exists() {
             std::fs::read_to_string(&metadata_path)
@@ -497,7 +497,7 @@ END IF
             format!("Template loaded from {}", name)
         };
 
-        // Check for dialogs
+
         let dialog_dir = path.join(format!("{}.gbdialog", name));
         let dialogs = if dialog_dir.exists() {
             std::fs::read_dir(&dialog_dir)
@@ -521,7 +521,7 @@ END IF
             Vec::new()
         };
 
-        // Check for preview image
+
         let preview_image = ["preview.png", "preview.jpg", "preview.svg"]
             .iter()
             .map(|f| path.join(f))
@@ -537,7 +537,7 @@ END IF
         })
     }
 
-    /// Look up organization slug from database
+
     fn get_org_slug_from_db(&self, conn: &DbPool, org_id: Uuid) -> String {
         let mut db_conn = match conn.get() {
             Ok(c) => c,
@@ -569,7 +569,7 @@ END IF
         }
     }
 
-    /// Create a new bot
+
     pub async fn create_bot(
         &self,
         request: CreateBotRequest,
@@ -577,22 +577,22 @@ END IF
     ) -> Result<BotConfig, Box<dyn std::error::Error + Send + Sync>> {
         info!("Creating bot: {} for org: {}", request.name, request.org_id);
 
-        // Validate bot name
+
         let bot_name = self.sanitize_bot_name(&request.name);
         if bot_name.is_empty() {
             return Err("Invalid bot name".into());
         }
 
-        // Get org slug from database
+
         let org_slug = self.get_org_slug_from_db(conn, request.org_id);
 
-        // Generate bucket name: org_botname
+
         let bucket_name = format!("{}_{}", org_slug, bot_name);
 
-        // Create MinIO bucket
+
         self.create_minio_bucket(&bucket_name).await?;
 
-        // Create bot configuration
+
         let bot_id = Uuid::new_v4();
         let now = Utc::now();
 
@@ -616,23 +616,23 @@ END IF
             created_by: request.created_by,
         };
 
-        // Apply template if specified
+
         if let Some(template_name) = &request.template {
             self.apply_template(&bucket_name, template_name, &bot_name)
                 .await?;
         } else {
-            // Create default directory structure
+
             self.create_default_structure(&bucket_name, &bot_name)
                 .await?;
         }
 
-        // Cache the bot
+
         {
             let mut cache = self.bots_cache.write().await;
             cache.insert(bot_id, bot_config.clone());
         }
 
-        // Update status to active
+
         let mut bot_config = bot_config;
         bot_config.status = BotStatus::Active;
 
@@ -641,7 +641,7 @@ END IF
         Ok(bot_config)
     }
 
-    /// Sanitize bot name for use in URLs and buckets
+
     fn sanitize_bot_name(&self, name: &str) -> String {
         name.to_lowercase()
             .chars()
@@ -651,15 +651,15 @@ END IF
             .to_string()
     }
 
-    /// Create MinIO bucket for bot
+
     async fn create_minio_bucket(
         &self,
         bucket_name: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Creating MinIO bucket: {}", bucket_name);
 
-        // Use mc command to create bucket
-        // In production, use the AWS S3 SDK or minio-rs
+
+
         let output = tokio::process::Command::new("mc")
             .args(["mb", &format!("local/{}", bucket_name), "--ignore-existing"])
             .output()
@@ -678,17 +678,17 @@ END IF
             }
             Err(e) => {
                 error!("Failed to create bucket: {}", e);
-                // Don't fail - bucket might be created via other means
+
             }
         }
 
-        // Set bucket policy (optional - make specific paths public if needed)
-        // mc admin policy attach local/ readwrite --user botuser
+
+
 
         Ok(())
     }
 
-    /// Create MinIO user for bot admin access
+
     pub async fn create_bot_user(
         &self,
         username: &str,
@@ -697,14 +697,14 @@ END IF
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Creating MinIO user: {} for bucket: {}", username, bucket);
 
-        // Create user
-        // mc admin user add local/ username password
+
+
         let _ = tokio::process::Command::new("mc")
             .args(["admin", "user", "add", "local/", username, password])
             .output()
             .await;
 
-        // Create policy for bucket access
+
         let policy = serde_json::json!({
             "Version": "2012-10-17",
             "Statement": [
@@ -724,12 +724,12 @@ END IF
             ]
         });
 
-        // Write policy to temp file
+
         let policy_path = format!("/tmp/policy_{}.json", bucket);
         std::fs::write(&policy_path, policy.to_string())?;
 
-        // Create and attach policy
-        // mc admin policy create local/ policyname policy.json
+
+
         let policy_name = format!("policy_{}", bucket);
         let _ = tokio::process::Command::new("mc")
             .args([
@@ -743,8 +743,8 @@ END IF
             .output()
             .await;
 
-        // Attach policy to user
-        // mc admin policy attach local/ policyname --user username
+
+
         let _ = tokio::process::Command::new("mc")
             .args([
                 "admin",
@@ -758,14 +758,14 @@ END IF
             .output()
             .await;
 
-        // Clean up temp file
+
         let _ = std::fs::remove_file(&policy_path);
 
         info!("User created with bucket access: {}", username);
         Ok(())
     }
 
-    /// Apply template to bot bucket
+
     async fn apply_template(
         &self,
         bucket: &str,
@@ -783,13 +783,13 @@ END IF
             .ok_or_else(|| format!("Template not found: {}", template_name))?;
 
         for file in &template.files {
-            // Replace template variables
+
             let content = file
                 .content
                 .replace("{{botname}}", bot_name)
                 .replace("{{platform}}", platform_name());
 
-            // Upload file to MinIO
+
             self.upload_file(bucket, &file.path, content.as_bytes())
                 .await?;
         }
@@ -802,7 +802,7 @@ END IF
         Ok(())
     }
 
-    /// Create default directory structure for bot
+
     async fn create_default_structure(
         &self,
         bucket: &str,
@@ -810,7 +810,7 @@ END IF
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Creating default structure in bucket: {}", bucket);
 
-        // Create directory markers (empty files with trailing /)
+
         let dirs = [
             format!("{}.gbdialog/", bot_name),
             format!("{}.gbkb/", bot_name),
@@ -825,7 +825,7 @@ END IF
             self.upload_file(bucket, dir, b"").await?;
         }
 
-        // Create default config
+
         let config = serde_json::json!({
             "name": bot_name,
             "version": "1.0.0",
@@ -840,7 +840,7 @@ END IF
         )
         .await?;
 
-        // Create default start script
+
         let start_script = format!(
             r#"REM {} - Start Script
 TALK "Hello! I'm {}. How can I help you?"
@@ -862,7 +862,7 @@ TALK response
         Ok(())
     }
 
-    /// Upload file to MinIO bucket
+
     async fn upload_file(
         &self,
         bucket: &str,
@@ -871,17 +871,17 @@ TALK response
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         debug!("Uploading to {}/{}", bucket, path);
 
-        // Write to temp file
+
         let temp_path = format!("/tmp/upload_{}", Uuid::new_v4());
         std::fs::write(&temp_path, content)?;
 
-        // Use mc to upload
+
         let result = tokio::process::Command::new("mc")
             .args(["cp", &temp_path, &format!("local/{}/{}", bucket, path)])
             .output()
             .await;
 
-        // Clean up
+
         let _ = std::fs::remove_file(&temp_path);
 
         match result {
@@ -893,7 +893,7 @@ TALK response
             }
             Err(e) => {
                 warn!("Upload failed (mc not available): {}", e);
-                // Fallback: write directly to filesystem if mc not available
+
                 let fs_path = format!("./botserver-stack/minio/{}/{}", bucket, path);
                 if let Some(parent) = std::path::Path::new(&fs_path).parent() {
                     std::fs::create_dir_all(parent)?;
@@ -905,19 +905,19 @@ TALK response
         Ok(())
     }
 
-    /// Get available templates
+
     pub async fn get_templates(&self) -> Vec<BotTemplate> {
         let templates = self.templates.read().await;
         templates.values().cloned().collect()
     }
 
-    /// Get bot by ID
+
     pub async fn get_bot(&self, bot_id: Uuid) -> Option<BotConfig> {
         let cache = self.bots_cache.read().await;
         cache.get(&bot_id).cloned()
     }
 
-    /// Get bot by name and org
+
     pub async fn get_bot_by_name(&self, org_slug: &str, bot_name: &str) -> Option<BotConfig> {
         let cache = self.bots_cache.read().await;
         cache
@@ -926,7 +926,7 @@ TALK response
             .cloned()
     }
 
-    /// List bots for organization
+
     pub async fn list_bots(&self, org_id: Uuid) -> Vec<BotConfig> {
         let cache = self.bots_cache.read().await;
         cache
@@ -936,7 +936,7 @@ TALK response
             .collect()
     }
 
-    /// Delete bot
+
     pub async fn delete_bot(
         &self,
         bot_id: Uuid,
@@ -945,7 +945,7 @@ TALK response
 
         info!("Deleting bot: {} ({})", bot.name, bot_id);
 
-        // Delete bucket contents
+
         let _ = tokio::process::Command::new("mc")
             .args([
                 "rm",
@@ -956,13 +956,13 @@ TALK response
             .output()
             .await;
 
-        // Delete bucket
+
         let _ = tokio::process::Command::new("mc")
             .args(["rb", &format!("local/{}", bot.bucket)])
             .output()
             .await;
 
-        // Remove from cache
+
         {
             let mut cache = self.bots_cache.write().await;
             cache.remove(&bot_id);
@@ -972,12 +972,12 @@ TALK response
         Ok(())
     }
 
-    /// Get URL for bot
+
     pub fn get_bot_url(&self, bot: &BotConfig, base_url: &str) -> String {
         format!("{}/{}", base_url.trim_end_matches('/'), bot.name)
     }
 
-    /// Get custom UI URL for bot
+
     pub fn get_custom_ui_url(&self, bot: &BotConfig, base_url: &str) -> Option<String> {
         bot.custom_ui.as_ref().map(|ui| {
             format!(
@@ -990,19 +990,19 @@ TALK response
     }
 }
 
-/// Bot routing configuration for web server
+
 #[derive(Debug, Clone)]
 pub struct BotRoute {
-    /// Bot name (used in URL path)
+
     pub name: String,
 
-    /// Organization slug
+
     pub org_slug: String,
 
-    /// Full bucket path
+
     pub bucket: String,
 
-    /// Custom UI path (if any)
+
     pub custom_ui: Option<String>,
 }
 

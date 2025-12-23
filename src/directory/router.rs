@@ -10,18 +10,18 @@ use crate::shared::state::AppState;
 use super::groups;
 use super::users;
 
-/// Configure all authentication, user management, group management routes
-/// File management is handled by the existing /api/files routes in crate::api::files
+
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        // ============================================================================
-        // User Management & Authentication
-        // ============================================================================
+
+
+
         .route("/users/create", post(users::create_user))
         .route("/users/{user_id}/update", put(users::update_user))
         .route("/users/{user_id}/delete", delete(users::delete_user))
         .route("/users/list", get(users::list_users))
-        .route("/users/search", get(users::list_users)) // Uses query params
+        .route("/users/search", get(users::list_users))
         .route("/users/{user_id}/profile", get(users::get_user_profile))
         .route("/users/{user_id}/profile/update", put(users::update_user))
         .route("/users/{user_id}/settings", get(users::get_user_profile))
@@ -50,14 +50,14 @@ pub fn configure() -> Router<Arc<AppState>> {
             "/users/{user_id}/notifications/preferences/update",
             get(users::get_user_profile),
         )
-        // ============================================================================
-        // Groups & Organizations
-        // ============================================================================
+
+
+
         .route("/groups/create", post(groups::create_group))
         .route("/groups/{group_id}/update", put(groups::update_group))
         .route("/groups/{group_id}/delete", delete(groups::delete_group))
         .route("/groups/list", get(groups::list_groups))
-        .route("/groups/search", get(groups::list_groups)) // Uses query params
+        .route("/groups/search", get(groups::list_groups))
         .route("/groups/{group_id}/members", get(groups::get_group_members))
         .route(
             "/groups/{group_id}/members/add",

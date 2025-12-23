@@ -46,12 +46,12 @@ pub struct ServiceStatusResponse {
     pub git: bool,
 }
 
-/// POST /api/users/provision - Create user with full provisioning across all services
+
 pub async fn provision_user_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CreateUserRequest>,
 ) -> impl IntoResponse {
-    // Convert request to UserAccount
+
     let mut account = UserAccount {
         username: request.username.clone(),
         email: request.email,
@@ -62,7 +62,7 @@ pub async fn provision_user_handler(
         bots: Vec::new(),
     };
 
-    // Convert bot access requests
+
     for bot_req in request.bots {
         let role = match bot_req.role.to_lowercase().as_str() {
             "admin" => UserRole::Admin,
@@ -78,7 +78,7 @@ pub async fn provision_user_handler(
         });
     }
 
-    // Get provisioning service
+
     let s3_client = state.s3_client.clone().map(Arc::new);
     let base_url = state
         .config
@@ -88,7 +88,7 @@ pub async fn provision_user_handler(
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
 
-    // Provision the user
+
     match provisioning.provision_user(&account).await {
         Ok(_) => (
             StatusCode::CREATED,
@@ -109,7 +109,7 @@ pub async fn provision_user_handler(
     }
 }
 
-/// DELETE /api/users/:id/deprovision - Delete user and remove from all services
+
 pub async fn deprovision_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -143,7 +143,7 @@ pub async fn deprovision_user_handler(
     }
 }
 
-/// GET /api/users/:id - Get user information
+
 pub async fn get_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -199,7 +199,7 @@ pub async fn get_user_handler(
     }
 }
 
-/// GET /api/users - List all users
+
 pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     use crate::shared::models::schema::users;
     use diesel::prelude::*;
@@ -248,7 +248,7 @@ pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl Into
     }
 }
 
-/// GET /api/services/status - Check all integrated services status
+
 pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let mut status = ServiceStatusResponse {
         directory: false,
@@ -258,17 +258,17 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         git: false,
     };
 
-    // Check database
+
     status.database = state.conn.get().is_ok();
 
-    // Check S3/MinIO
+
     if let Some(s3_client) = &state.s3_client {
         if let Ok(result) = s3_client.list_buckets().send().await {
             status.drive = result.buckets.is_some();
         }
     }
 
-    // Check Directory (Zitadel)
+
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(2))
@@ -279,12 +279,12 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         status.directory = response.status().is_success();
     }
 
-    // Check Email (Stalwart)
+
     if let Ok(response) = client.get("https://localhost:8025/health").send().await {
         status.email = response.status().is_success();
     }
 
-    // Check Git (Forgejo)
+
     if let Ok(response) = client
         .get("https://localhost:3000/api/v1/version")
         .send()
@@ -296,14 +296,14 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
     (StatusCode::OK, Json(status))
 }
 
-/// Configure user and provisioning routes
+
 pub fn configure_user_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // User management
+
         .route(ApiUrls::USERS, get(list_users_handler))
         .route(ApiUrls::USER_BY_ID, get(get_user_handler))
         .route(ApiUrls::USER_PROVISION, post(provision_user_handler))
         .route(ApiUrls::USER_DEPROVISION, delete(deprovision_user_handler))
-        // Service status
+
         .route(ApiUrls::SERVICES_STATUS, get(check_services_status))
 }

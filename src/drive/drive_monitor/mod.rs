@@ -45,14 +45,14 @@ impl DriveMonitor {
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Starting DriveMonitor for bot {}", self.bot_id);
 
-        // Set processing flag
+
         self.is_processing
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
-        // Initialize file states from storage
+
         self.check_for_changes().await?;
 
-        // Start periodic sync
+
         let self_clone = Arc::new(self.clone());
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(Duration::from_secs(30));
@@ -76,11 +76,11 @@ impl DriveMonitor {
     pub async fn stop_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Stopping DriveMonitor for bot {}", self.bot_id);
 
-        // Clear processing flag
+
         self.is_processing
             .store(false, std::sync::atomic::Ordering::SeqCst);
 
-        // Clear file states
+
         self.file_states.write().await.clear();
 
         info!("DriveMonitor stopped for bot {}", self.bot_id);
@@ -96,7 +96,7 @@ impl DriveMonitor {
             loop {
                 tick.tick().await;
 
-                // Check if we're already processing to prevent reentrancy
+
                 if self.is_processing.load(Ordering::Acquire) {
                     log::warn!(
                         "Drive monitor is still processing previous changes, skipping this tick"
@@ -104,15 +104,15 @@ impl DriveMonitor {
                     continue;
                 }
 
-                // Set processing flag
+
                 self.is_processing.store(true, Ordering::Release);
 
-                // Process changes
+
                 if let Err(e) = self.check_for_changes().await {
                     log::error!("Error checking for drive changes: {}", e);
                 }
 
-                // Clear processing flag
+
                 self.is_processing.store(false, Ordering::Release);
             }
         })
@@ -442,7 +442,7 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         let mut continuation_token = None;
 
-        // Add progress tracking for large file sets
+
         let mut files_processed = 0;
         let mut files_to_process = Vec::new();
         let mut pdf_files_found = 0;
@@ -473,7 +473,7 @@ impl DriveMonitor {
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
 
-                // Skip directories
+
                 if path.ends_with('/') {
                     continue;
                 }
@@ -492,7 +492,7 @@ impl DriveMonitor {
 
         let mut file_states = self.file_states.write().await;
 
-        // Check for new or modified files
+
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
             let is_modified = file_states
@@ -501,7 +501,7 @@ impl DriveMonitor {
                 .unwrap_or(false);
 
             if is_new || is_modified {
-                // Track PDF files for document processing verification
+
                 if path.to_lowercase().ends_with(".pdf") {
                     pdf_files_found += 1;
                     info!(
@@ -517,11 +517,11 @@ impl DriveMonitor {
                     );
                 }
 
-                // Queue file for batch processing instead of immediate download
+
                 files_to_process.push(path.clone());
                 files_processed += 1;
 
-                // Process in batches of 10 to avoid overwhelming the system
+
                 if files_to_process.len() >= 10 {
                     for file_path in files_to_process.drain(..) {
                         if let Err(e) = self.download_gbkb_file(client, &file_path).await {
@@ -529,11 +529,11 @@ impl DriveMonitor {
                         }
                     }
 
-                    // Add small delay between batches to prevent system overload
+
                     tokio::time::sleep(Duration::from_millis(100)).await;
                 }
 
-                // Extract KB name from path (e.g., "mybot.gbkb/docs/file.pdf" -> "docs")
+
                 let path_parts: Vec<&str> = path.split('/').collect();
                 if path_parts.len() >= 2 {
                     let kb_name = path_parts[1];
@@ -543,7 +543,7 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-                    // Trigger indexing - this will use DocumentProcessor to extract text
+
                     info!(
                         "Triggering KB indexing for folder: {:?} (PDF text extraction enabled)",
                         kb_folder_path
@@ -572,14 +572,14 @@ impl DriveMonitor {
             }
         }
 
-        // Check for deleted files first
+
         let paths_to_remove: Vec<String> = file_states
             .keys()
             .filter(|path| path.starts_with(&gbkb_prefix) && !current_files.contains_key(*path))
             .cloned()
             .collect();
 
-        // Process remaining files in the queue
+
         for file_path in files_to_process {
             if let Err(e) = self.download_gbkb_file(client, &file_path).await {
                 log::error!("Failed to download .gbkb file {}: {}", file_path, e);
@@ -593,7 +593,7 @@ impl DriveMonitor {
             );
         }
 
-        // Update file states after checking for deletions
+
         for (path, state) in current_files {
             file_states.insert(path, state);
         }
@@ -602,15 +602,15 @@ impl DriveMonitor {
             info!("Detected deletion in .gbkb: {}", path);
             file_states.remove(&path);
 
-            // Extract KB name and trigger cleanup
+
             let path_parts: Vec<&str> = path.split('/').collect();
             if path_parts.len() >= 2 {
                 let kb_name = path_parts[1];
 
-                // Check if entire KB folder was deleted
+
                 let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
                 if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
-                    // No more files in this KB, clear the collection
+
                     if let Err(e) = self.kb_manager.clear_kb(bot_name, kb_name).await {
                         log::error!("Failed to clear KB {}: {}", kb_name, e);
                     }
@@ -633,17 +633,17 @@ impl DriveMonitor {
 
         let local_path = self.work_root.join(bot_name).join(file_path);
 
-        // Log file type for tracking document processing
+
         if file_path.to_lowercase().ends_with(".pdf") {
             debug!("Downloading PDF file for text extraction: {}", file_path);
         }
 
-        // Create parent directories
+
         if let Some(parent) = local_path.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
 
-        // Download file
+
         let response = client
             .get_object()
             .bucket(&self.bucket_name)

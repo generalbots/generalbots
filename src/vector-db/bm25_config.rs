@@ -1,54 +1,54 @@
-//! BM25 Configuration for Tantivy-based sparse retrieval
-//!
-//! This module provides configuration for BM25 text search powered by Tantivy.
-//! Tantivy is a full-text search engine library (like Lucene) that implements
-//! the BM25 ranking algorithm.
-//!
-//! # Config.csv Parameters
-//!
-//! | Parameter | Default | Description |
-//! |-----------|---------|-------------|
-//! | `bm25-enabled` | `true` | Enable/disable BM25 sparse search |
-//! | `bm25-k1` | `1.2` | Term frequency saturation (0.5-3.0 typical) |
-//! | `bm25-b` | `0.75` | Document length normalization (0.0-1.0) |
-//! | `bm25-stemming` | `true` | Apply stemming to terms |
-//! | `bm25-stopwords` | `true` | Filter common stopwords |
-//!
-//! # Example config.csv
-//!
-//! ```csv
-//! bm25-enabled,true
-//! bm25-k1,1.2
-//! bm25-b,0.75
-//! bm25-stemming,true
-//! bm25-stopwords,true
-//! ```
-//!
-//! # Switching BM25 On/Off
-//!
-//! To **disable** BM25 sparse search (use only dense/embedding search):
-//! ```csv
-//! bm25-enabled,false
-//! ```
-//!
-//! To **enable** BM25 with custom tuning:
-//! ```csv
-//! bm25-enabled,true
-//! bm25-k1,1.5
-//! bm25-b,0.5
-//! ```
-//!
-//! # How It Works
-//!
-//! When `bm25-enabled=true`:
-//! - Hybrid search uses BOTH BM25 (keyword) + Qdrant (embedding) results
-//! - Results are merged using Reciprocal Rank Fusion (RRF)
-//! - Good for queries where exact keyword matches matter
-//!
-//! When `bm25-enabled=false`:
-//! - Only dense (embedding) search via Qdrant is used
-//! - Faster but may miss exact keyword matches
-//! - Better for semantic/conceptual queries
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use diesel::prelude::*;
 use log::{debug, warn};
@@ -57,33 +57,33 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-/// Configuration for BM25 sparse retrieval (powered by Tantivy)
-///
-/// BM25 (Best Matching 25) is a ranking function used for information retrieval.
-/// This configuration controls the Tantivy-based BM25 implementation.
+
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Bm25Config {
-    /// Whether BM25 sparse search is enabled
-    /// When false, only dense (embedding) search is used
+
+
     pub enabled: bool,
 
-    /// Term frequency saturation parameter (typically 1.2-2.0)
-    /// - Higher values: more weight to term frequency
-    /// - Lower values: diminishing returns for repeated terms
-    /// - Tantivy default: 1.2
+
+
+
+
     pub k1: f32,
 
-    /// Document length normalization parameter (0.0-1.0)
-    /// - 0.0: no length normalization
-    /// - 1.0: full length normalization (penalizes long documents)
-    /// - Tantivy default: 0.75
+
+
+
+
     pub b: f32,
 
-    /// Whether to apply stemming to terms before indexing/searching
-    /// Stemming reduces words to their root form (e.g., "running" → "run")
+
+
     pub stemming: bool,
 
-    /// Whether to filter out common stopwords (e.g., "the", "a", "is")
+
     pub stopwords: bool,
 }
 
@@ -100,9 +100,9 @@ impl Default for Bm25Config {
 }
 
 impl Bm25Config {
-    /// Load BM25 configuration from bot_configuration table
-    ///
-    /// Reads parameters: `bm25-enabled`, `bm25-k1`, `bm25-b`, `bm25-stemming`, `bm25-stopwords`
+
+
+
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -156,12 +156,12 @@ impl Bm25Config {
             }
         }
 
-        // Validate and clamp values
+
         config.validate();
         config
     }
 
-    /// Create config with BM25 disabled (dense-only search)
+
     pub fn disabled() -> Self {
         Self {
             enabled: false,
@@ -169,7 +169,7 @@ impl Bm25Config {
         }
     }
 
-    /// Create config with custom k1 and b parameters
+
     pub fn with_params(k1: f32, b: f32) -> Self {
         let mut config = Self {
             k1,
@@ -180,9 +180,9 @@ impl Bm25Config {
         config
     }
 
-    /// Validate and clamp configuration values to sensible ranges
+
     fn validate(&mut self) {
-        // k1 should be positive, typically between 0.5 and 3.0
+
         if self.k1 < 0.0 {
             warn!("BM25 k1 cannot be negative, setting to default 1.2");
             self.k1 = 1.2;
@@ -191,7 +191,7 @@ impl Bm25Config {
             self.k1 = 10.0;
         }
 
-        // b should be between 0.0 and 1.0
+
         if self.b < 0.0 {
             warn!("BM25 b cannot be negative, setting to 0.0");
             self.b = 0.0;
@@ -201,17 +201,17 @@ impl Bm25Config {
         }
     }
 
-    /// Check if BM25 should be used in hybrid search
+
     pub fn is_enabled(&self) -> bool {
         self.enabled
     }
 
-    /// Check if text preprocessing is enabled
+
     pub fn has_preprocessing(&self) -> bool {
         self.stemming || self.stopwords
     }
 
-    /// Get a description of the current configuration
+
     pub fn describe(&self) -> String {
         if self.enabled {
             format!(
@@ -224,8 +224,8 @@ impl Bm25Config {
     }
 }
 
-/// Common English stopwords for filtering
-/// Used when `bm25-stopwords=true`
+
+
 pub const DEFAULT_STOPWORDS: &[&str] = &[
     "a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "has", "he",
     "in", "is", "it", "its", "of", "on", "or", "that", "the", "to", "was", "were",
@@ -239,7 +239,7 @@ pub const DEFAULT_STOPWORDS: &[&str] = &[
     "after", "before", "between", "under", "again", "further", "once",
 ];
 
-/// Check if a word is a common stopword
+
 pub fn is_stopword(word: &str) -> bool {
     DEFAULT_STOPWORDS.contains(&word.to_lowercase().as_str())
 }

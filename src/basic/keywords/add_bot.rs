@@ -1,14 +1,14 @@
-//! ADD BOT keyword for multi-agent conversations
-//!
-//! Enables multiple bots to participate in a conversation based on triggers.
-//!
-//! Syntax:
-//! - ADD BOT "name" WITH TRIGGER "keyword1, keyword2"
-//! - ADD BOT "name" WITH TOOLS "tool1, tool2"
-//! - ADD BOT "name" WITH SCHEDULE "cron_expression"
-//! - REMOVE BOT "name"
-//! - LIST BOTS
-//! - SET BOT PRIORITY "name", priority
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;

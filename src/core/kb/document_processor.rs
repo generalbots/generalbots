@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use std::path::Path;
 use tokio::io::AsyncReadExt;
 
-/// Supported document formats for knowledge base
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DocumentFormat {
     PDF,
@@ -22,7 +22,7 @@ pub enum DocumentFormat {
 }
 
 impl DocumentFormat {
-    /// Detect format from file extension
+
     pub fn from_extension(path: &Path) -> Option<Self> {
         let ext = path.extension()?.to_str()?.to_lowercase();
         match ext.as_str() {
@@ -41,25 +41,25 @@ impl DocumentFormat {
         }
     }
 
-    /// Get maximum file size for this format (in bytes)
+
     pub fn max_size(&self) -> usize {
         match self {
-            Self::PDF => 500 * 1024 * 1024,  // 500MB
-            Self::DOCX => 100 * 1024 * 1024, // 100MB
-            Self::XLSX => 100 * 1024 * 1024, // 100MB
-            Self::PPTX => 200 * 1024 * 1024, // 200MB
-            Self::TXT => 100 * 1024 * 1024,  // 100MB
-            Self::MD => 10 * 1024 * 1024,    // 10MB
-            Self::HTML => 50 * 1024 * 1024,  // 50MB
-            Self::RTF => 50 * 1024 * 1024,   // 50MB
-            Self::CSV => 1024 * 1024 * 1024, // 1GB
-            Self::JSON => 100 * 1024 * 1024, // 100MB
-            Self::XML => 100 * 1024 * 1024,  // 100MB
+            Self::PDF => 500 * 1024 * 1024,
+            Self::DOCX => 100 * 1024 * 1024,
+            Self::XLSX => 100 * 1024 * 1024,
+            Self::PPTX => 200 * 1024 * 1024,
+            Self::TXT => 100 * 1024 * 1024,
+            Self::MD => 10 * 1024 * 1024,
+            Self::HTML => 50 * 1024 * 1024,
+            Self::RTF => 50 * 1024 * 1024,
+            Self::CSV => 1024 * 1024 * 1024,
+            Self::JSON => 100 * 1024 * 1024,
+            Self::XML => 100 * 1024 * 1024,
         }
     }
 }
 
-/// Document metadata extracted during processing
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DocumentMetadata {
     pub title: Option<String>,
@@ -71,14 +71,14 @@ pub struct DocumentMetadata {
     pub language: Option<String>,
 }
 
-/// A text chunk ready for embedding
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TextChunk {
     pub content: String,
     pub metadata: ChunkMetadata,
 }
 
-/// Metadata for a text chunk
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChunkMetadata {
     pub document_path: String,
@@ -90,7 +90,7 @@ pub struct ChunkMetadata {
     pub page_number: Option<usize>,
 }
 
-/// Main document processor for knowledge base
+
 #[derive(Debug)]
 pub struct DocumentProcessor {
     chunk_size: usize,
@@ -100,8 +100,8 @@ pub struct DocumentProcessor {
 impl Default for DocumentProcessor {
     fn default() -> Self {
         Self {
-            chunk_size: 1000,   // 1000 characters as per docs
-            chunk_overlap: 200, // 200 character overlap as per docs
+            chunk_size: 1000,
+            chunk_overlap: 200,
         }
     }
 }
@@ -114,32 +114,32 @@ impl DocumentProcessor {
         }
     }
 
-    /// Get the chunk size
+
     pub fn chunk_size(&self) -> usize {
         self.chunk_size
     }
 
-    /// Get the chunk overlap
+
     pub fn chunk_overlap(&self) -> usize {
         self.chunk_overlap
     }
 
-    /// Process a document file and return extracted text chunks
+
     pub async fn process_document(&self, file_path: &Path) -> Result<Vec<TextChunk>> {
-        // Check if file exists
+
         if !file_path.exists() {
             return Err(anyhow::anyhow!("File not found: {:?}", file_path));
         }
 
-        // Get file size
+
         let metadata = tokio::fs::metadata(file_path).await?;
         let file_size = metadata.len() as usize;
 
-        // Detect format
+
         let format = DocumentFormat::from_extension(file_path)
             .ok_or_else(|| anyhow::anyhow!("Unsupported file format: {:?}", file_path))?;
 
-        // Check file size
+
         if file_size > format.max_size() {
             return Err(anyhow::anyhow!(
                 "File too large: {} bytes (max: {} bytes)",
@@ -153,13 +153,13 @@ impl DocumentProcessor {
             file_path, format, file_size
         );
 
-        // Extract text based on format
+
         let text = self.extract_text(file_path, format).await?;
 
-        // Clean and normalize text
+
         let cleaned_text = self.clean_text(&text);
 
-        // Generate chunks
+
         let chunks = self.create_chunks(&cleaned_text, file_path);
 
         info!(
@@ -171,11 +171,11 @@ impl DocumentProcessor {
         Ok(chunks)
     }
 
-    /// Extract text from document based on format
+
     async fn extract_text(&self, file_path: &Path, format: DocumentFormat) -> Result<String> {
         match format {
             DocumentFormat::TXT | DocumentFormat::MD => {
-                // Direct text file reading
+
                 let mut file = tokio::fs::File::open(file_path).await?;
                 let mut contents = String::new();
                 file.read_to_string(&mut contents).await?;
@@ -196,9 +196,9 @@ impl DocumentProcessor {
         }
     }
 
-    /// Extract text from PDF files
+
     async fn extract_pdf_text(&self, file_path: &Path) -> Result<String> {
-        // Try system pdftotext first (fastest and most reliable)
+
         let output = tokio::process::Command::new("pdftotext")
             .arg("-layout")
             .arg(file_path)
@@ -221,7 +221,7 @@ impl DocumentProcessor {
         }
     }
 
-    /// Extract PDF using rust library (fallback)
+
     async fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
         use pdf_extract::extract_text;
 
@@ -232,19 +232,19 @@ impl DocumentProcessor {
             }
             Err(e) => {
                 warn!("PDF library extraction failed: {}", e);
-                // Last resort: try to get any text we can
+
                 self.extract_pdf_basic(file_path).await
             }
         }
     }
 
-    /// Basic PDF extraction using rust library (minimal approach)
+
     async fn extract_pdf_basic(&self, file_path: &Path) -> Result<String> {
-        // Try using pdf-extract as final fallback
+
         match pdf_extract::extract_text(file_path) {
             Ok(text) if !text.is_empty() => Ok(text),
             _ => {
-                // Last resort: return error message
+
                 Err(anyhow::anyhow!(
                     "Could not extract text from PDF. Please ensure pdftotext is installed."
                 ))
@@ -252,10 +252,10 @@ impl DocumentProcessor {
         }
     }
 
-    /// Extract text from DOCX files
+
     async fn extract_docx_text(&self, file_path: &Path) -> Result<String> {
-        // Use docx-rs or similar crate
-        // For now, use pandoc as fallback
+
+
         let output = tokio::process::Command::new("pandoc")
             .arg("-f")
             .arg("docx")
@@ -276,11 +276,11 @@ impl DocumentProcessor {
         }
     }
 
-    /// Extract text from HTML files
+
     async fn extract_html_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
 
-        // Simple HTML tag removal (production should use html parser)
+
         let text = contents
             .split('<')
             .flat_map(|s| s.split('>').skip(1))
@@ -290,11 +290,11 @@ impl DocumentProcessor {
         Ok(text)
     }
 
-    /// Extract text from CSV files
+
     async fn extract_csv_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
 
-        // Convert CSV rows to text
+
         let mut text = String::new();
         for line in contents.lines() {
             text.push_str(line);
@@ -304,11 +304,11 @@ impl DocumentProcessor {
         Ok(text)
     }
 
-    /// Extract text from JSON files
+
     async fn extract_json_text(&self, file_path: &Path) -> Result<String> {
         let contents = tokio::fs::read_to_string(file_path).await?;
 
-        // Parse JSON and extract all string values
+
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(&contents) {
             Ok(self.extract_json_strings(&json))
         } else {
@@ -316,7 +316,7 @@ impl DocumentProcessor {
         }
     }
 
-    /// Recursively extract string values from JSON
+
     fn extract_json_strings(&self, value: &serde_json::Value) -> String {
         let mut result = String::new();
 
@@ -341,22 +341,22 @@ impl DocumentProcessor {
         result
     }
 
-    /// Fallback text extraction for unsupported formats
+
     async fn fallback_text_extraction(&self, file_path: &Path) -> Result<String> {
-        // Try to read as UTF-8 text
+
         match tokio::fs::read_to_string(file_path).await {
             Ok(contents) => Ok(contents),
             Err(_) => {
-                // If not UTF-8, try with lossy conversion
+
                 let bytes = tokio::fs::read(file_path).await?;
                 Ok(String::from_utf8_lossy(&bytes).to_string())
             }
         }
     }
 
-    /// Clean and normalize extracted text
+
     fn clean_text(&self, text: &str) -> String {
-        // Remove multiple spaces and normalize whitespace
+
         let cleaned = text
             .lines()
             .map(|line| line.trim())
@@ -364,7 +364,7 @@ impl DocumentProcessor {
             .collect::<Vec<_>>()
             .join("\n");
 
-        // Remove control characters
+
         cleaned
             .chars()
             .filter(|c| !c.is_control() || c.is_whitespace())
@@ -374,7 +374,7 @@ impl DocumentProcessor {
             .join(" ")
     }
 
-    /// Create overlapping chunks from text
+
     fn create_chunks(&self, text: &str, file_path: &Path) -> Vec<TextChunk> {
         let mut chunks = Vec::new();
         let chars: Vec<char> = text.chars().collect();
@@ -387,7 +387,7 @@ impl DocumentProcessor {
         let mut start = 0;
         let mut chunk_index = 0;
 
-        // Calculate total number of chunks for metadata
+
         let step_size = self.chunk_size.saturating_sub(self.chunk_overlap);
         let total_chunks = if step_size > 0 {
             (total_chars + step_size - 1) / step_size
@@ -398,10 +398,10 @@ impl DocumentProcessor {
         while start < total_chars {
             let end = std::cmp::min(start + self.chunk_size, total_chars);
 
-            // Find word boundary for clean cuts
+
             let mut chunk_end = end;
             if end < total_chars {
-                // Look for word boundary
+
                 for i in (start..end).rev() {
                     if chars[i].is_whitespace() {
                         chunk_end = i + 1;
@@ -424,20 +424,20 @@ impl DocumentProcessor {
                     total_chunks,
                     start_char: start,
                     end_char: chunk_end,
-                    page_number: None, // Would be set for PDFs with page info
+                    page_number: None,
                 },
             });
 
             chunk_index += 1;
 
-            // Move forward by chunk_size - overlap
+
             start = if chunk_end >= self.chunk_overlap {
                 chunk_end - self.chunk_overlap
             } else {
                 chunk_end
             };
 
-            // Prevent infinite loop
+
             if start >= total_chars {
                 break;
             }
@@ -446,7 +446,7 @@ impl DocumentProcessor {
         chunks
     }
 
-    /// Process all documents in a knowledge base folder
+
     pub async fn process_kb_folder(
         &self,
         kb_path: &Path,
@@ -462,7 +462,7 @@ impl DocumentProcessor {
 
         info!("Processing knowledge base folder: {:?}", kb_path);
 
-        // Recursively process all files
+
         self.process_directory_recursive(kb_path, &mut results)
             .await?;
 
@@ -471,7 +471,7 @@ impl DocumentProcessor {
         Ok(results)
     }
 
-    /// Recursively process directory
+
     fn process_directory_recursive<'a>(
         &'a self,
         dir: &'a Path,
@@ -485,10 +485,10 @@ impl DocumentProcessor {
                 let metadata = entry.metadata().await?;
 
                 if metadata.is_dir() {
-                    // Recurse into subdirectory
+
                     self.process_directory_recursive(&path, results).await?;
                 } else if metadata.is_file() {
-                    // Check if this is a supported format
+
                     if DocumentFormat::from_extension(&path).is_some() {
                         match self.process_document(&path).await {
                             Ok(chunks) => {

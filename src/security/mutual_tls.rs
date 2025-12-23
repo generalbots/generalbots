@@ -1,25 +1,25 @@
-//! Mutual TLS (mTLS) Module
-//!
-//! This module provides mutual TLS authentication for service-to-service communication.
-//! It enables secure connections between BotServer and its dependent services like
-//! PostgreSQL, Qdrant, LiveKit, Forgejo, and Directory services.
+
+
+
+
+
 
 use std::path::Path;
 use tracing::{debug, info};
 
-/// Services module containing mTLS configuration functions for each service
+
 pub mod services {
     use super::*;
 
-    /// Configure mTLS for PostgreSQL connections
-    ///
-    /// # Arguments
-    /// * `ca_cert_path` - Path to the CA certificate
-    /// * `client_cert_path` - Path to the client certificate
-    /// * `client_key_path` - Path to the client private key
-    ///
-    /// # Returns
-    /// Result containing the SSL mode string or an error
+
+
+
+
+
+
+
+
+
     pub fn configure_postgres_mtls(
         ca_cert_path: Option<&Path>,
         client_cert_path: Option<&Path>,
@@ -60,15 +60,15 @@ pub mod services {
         }
     }
 
-    /// Configure mTLS for Qdrant vector database connections
-    ///
-    /// # Arguments
-    /// * `ca_cert_path` - Path to the CA certificate
-    /// * `client_cert_path` - Path to the client certificate
-    /// * `client_key_path` - Path to the client private key
-    ///
-    /// # Returns
-    /// Result containing the mTLS configuration or an error
+
+
+
+
+
+
+
+
+
     pub fn configure_qdrant_mtls(
         ca_cert_path: Option<&Path>,
         client_cert_path: Option<&Path>,
@@ -99,15 +99,15 @@ pub mod services {
         }
     }
 
-    /// Configure mTLS for LiveKit media server connections
-    ///
-    /// # Arguments
-    /// * `ca_cert_path` - Path to the CA certificate
-    /// * `client_cert_path` - Path to the client certificate
-    /// * `client_key_path` - Path to the client private key
-    ///
-    /// # Returns
-    /// Result containing the mTLS configuration or an error
+
+
+
+
+
+
+
+
+
     pub fn configure_livekit_mtls(
         ca_cert_path: Option<&Path>,
         client_cert_path: Option<&Path>,
@@ -138,15 +138,15 @@ pub mod services {
         }
     }
 
-    /// Configure mTLS for Forgejo git server connections
-    ///
-    /// # Arguments
-    /// * `ca_cert_path` - Path to the CA certificate
-    /// * `client_cert_path` - Path to the client certificate
-    /// * `client_key_path` - Path to the client private key
-    ///
-    /// # Returns
-    /// Result containing the mTLS configuration or an error
+
+
+
+
+
+
+
+
+
     pub fn configure_forgejo_mtls(
         ca_cert_path: Option<&Path>,
         client_cert_path: Option<&Path>,
@@ -177,15 +177,15 @@ pub mod services {
         }
     }
 
-    /// Configure mTLS for Directory service (LDAP/AD) connections
-    ///
-    /// # Arguments
-    /// * `ca_cert_path` - Path to the CA certificate
-    /// * `client_cert_path` - Path to the client certificate
-    /// * `client_key_path` - Path to the client private key
-    ///
-    /// # Returns
-    /// Result containing the mTLS configuration or an error
+
+
+
+
+
+
+
+
+
     pub fn configure_directory_mtls(
         ca_cert_path: Option<&Path>,
         client_cert_path: Option<&Path>,
@@ -217,21 +217,21 @@ pub mod services {
     }
 }
 
-/// mTLS configuration structure
+
 #[derive(Debug, Clone, Default)]
 pub struct MtlsConfig {
-    /// Whether mTLS is enabled
+
     pub enabled: bool,
-    /// CA certificate PEM content
+
     pub ca_cert: Option<String>,
-    /// Client certificate PEM content
+
     pub client_cert: Option<String>,
-    /// Client private key PEM content
+
     pub client_key: Option<String>,
 }
 
 impl MtlsConfig {
-    /// Create a new mTLS configuration
+
     pub fn new(
         ca_cert: Option<String>,
         client_cert: Option<String>,
@@ -246,7 +246,7 @@ impl MtlsConfig {
         }
     }
 
-    /// Check if mTLS is properly configured
+
     pub fn is_configured(&self) -> bool {
         self.enabled
             && self.ca_cert.is_some()
@@ -255,7 +255,7 @@ impl MtlsConfig {
     }
 }
 
-/// mTLS error types
+
 #[derive(Debug, thiserror::Error)]
 pub enum MtlsError {
     #[error("Certificate not found: {0}")]
@@ -277,35 +277,35 @@ pub enum MtlsError {
     TlsConfigError(String),
 }
 
-/// mTLS Manager for handling mutual TLS connections
+
 #[derive(Debug)]
 pub struct MtlsManager {
     config: MtlsConfig,
 }
 
 impl MtlsManager {
-    /// Create a new mTLS manager
+
     pub fn new(config: MtlsConfig) -> Self {
         Self { config }
     }
 
-    /// Get the current configuration
+
     pub fn config(&self) -> &MtlsConfig {
         &self.config
     }
 
-    /// Check if mTLS is enabled
+
     pub fn is_enabled(&self) -> bool {
         self.config.enabled
     }
 
-    /// Validate the mTLS configuration
+
     pub fn validate(&self) -> Result<(), MtlsError> {
         if !self.config.enabled {
             return Ok(());
         }
 
-        // Validate CA certificate
+
         if let Some(ref ca) = self.config.ca_cert {
             if !ca.contains("-----BEGIN CERTIFICATE-----") {
                 return Err(MtlsError::InvalidCertificate(
@@ -314,7 +314,7 @@ impl MtlsManager {
             }
         }
 
-        // Validate client certificate
+
         if let Some(ref cert) = self.config.client_cert {
             if !cert.contains("-----BEGIN CERTIFICATE-----") {
                 return Err(MtlsError::InvalidCertificate(
@@ -323,7 +323,7 @@ impl MtlsManager {
             }
         }
 
-        // Validate client key
+
         if let Some(ref key) = self.config.client_key {
             if !key.contains("-----BEGIN") || !key.contains("PRIVATE KEY-----") {
                 return Err(MtlsError::InvalidKey(

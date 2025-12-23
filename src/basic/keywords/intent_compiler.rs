@@ -1,35 +1,35 @@
-//! Intent Compiler - LLM to BASIC Program Translator
-//!
-//! This module provides the core "Intent Compiler" functionality that translates
-//! natural language requests into executable BASIC programs using the General Bots
-//! keyword system.
-//!
-//! # Architecture
-//!
-//! ```text
-//! User Intent → Intent Analysis → Plan Generation → BASIC Program → Execution
-//!      ↓              ↓                 ↓                ↓             ↓
-//!  "Make CRM"   Extract entities   Generate steps   CREATE_TASK    Run with
-//!               & requirements     with keywords    SET var        safety checks
-//! ```
-//!
-//! # Example
-//!
-//! ```basic
-//! ' Generated from: "Make a financial CRM for Deloitte"
-//! PLAN_START "Financial CRM for Deloitte"
-//!   STEP 1, "Create database schema", HIGH
-//!   STEP 2, "Setup user authentication", HIGH
-//!   STEP 3, "Create client management module", MEDIUM
-//!   STEP 4, "Create financial tracking module", MEDIUM
-//!   STEP 5, "Create reporting dashboard", LOW
-//! PLAN_END
-//!
-//! REQUIRE_APPROVAL "create-database", "Creating database will cost ~$50/month"
-//! IF approved THEN
-//!   RUN_PYTHON "create_schema.py"
-//! END IF
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -40,66 +40,66 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-// CORE DATA STRUCTURES
 
-/// Represents a compiled intent - the result of LLM analysis
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledIntent {
-    /// Unique identifier for this compiled intent
+
     pub id: String,
-    /// Original user intent/request
+
     pub original_intent: String,
-    /// Extracted entities from the intent
+
     pub entities: IntentEntities,
-    /// Generated execution plan
+
     pub plan: ExecutionPlan,
-    /// Generated BASIC program
+
     pub basic_program: String,
-    /// Confidence score (0.0 - 1.0)
+
     pub confidence: f64,
-    /// Alternative interpretations if ambiguous
+
     pub alternatives: Vec<AlternativeInterpretation>,
-    /// Risk assessment
+
     pub risk_assessment: RiskAssessment,
-    /// Estimated resources needed
+
     pub resource_estimate: ResourceEstimate,
-    /// Timestamp of compilation
+
     pub compiled_at: DateTime<Utc>,
-    /// Session that requested this compilation
+
     pub session_id: String,
-    /// Bot that will execute this
+
     pub bot_id: String,
 }
 
-/// Entities extracted from the user's intent
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct IntentEntities {
-    /// Primary action (create, update, delete, analyze, etc.)
+
     pub action: String,
-    /// Target object/system (CRM, website, report, etc.)
+
     pub target: String,
-    /// Domain/industry (financial, healthcare, retail, etc.)
+
     pub domain: Option<String>,
-    /// Client/company name if mentioned
+
     pub client: Option<String>,
-    /// Specific features requested
+
     pub features: Vec<String>,
-    /// Constraints mentioned (budget, timeline, etc.)
+
     pub constraints: Vec<Constraint>,
-    /// Technologies/tools mentioned
+
     pub technologies: Vec<String>,
-    /// Data sources mentioned
+
     pub data_sources: Vec<String>,
-    /// Integrations needed
+
     pub integrations: Vec<String>,
 }
 
-/// A constraint on the task
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraint {
     pub constraint_type: ConstraintType,
     pub value: String,
-    pub is_hard: bool, // Hard constraint = must be met, soft = preferred
+    pub is_hard: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -114,47 +114,47 @@ pub enum ConstraintType {
     Custom(String),
 }
 
-/// Execution plan generated from the intent
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionPlan {
     pub id: String,
     pub name: String,
     pub description: String,
     pub steps: Vec<PlanStep>,
-    pub dependencies: HashMap<String, Vec<String>>, // step_id -> depends_on[]
+    pub dependencies: HashMap<String, Vec<String>>,
     pub estimated_duration_minutes: i32,
     pub requires_approval: bool,
     pub approval_levels: Vec<ApprovalLevel>,
     pub rollback_plan: Option<String>,
 }
 
-/// A single step in the execution plan
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanStep {
     pub id: String,
     pub order: i32,
     pub name: String,
     pub description: String,
-    pub keywords: Vec<String>, // BASIC keywords this step will use
-    pub basic_code: String,    // Generated BASIC code for this step
+    pub keywords: Vec<String>,
+    pub basic_code: String,
     pub priority: StepPriority,
     pub risk_level: RiskLevel,
     pub estimated_minutes: i32,
     pub requires_approval: bool,
     pub can_rollback: bool,
     pub dependencies: Vec<String>,
-    pub outputs: Vec<String>,     // Variables/resources this step produces
-    pub mcp_servers: Vec<String>, // MCP servers this step needs
-    pub api_calls: Vec<ApiCallSpec>, // External APIs this step calls
+    pub outputs: Vec<String>,
+    pub mcp_servers: Vec<String>,
+    pub api_calls: Vec<ApiCallSpec>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum StepPriority {
-    Critical, // Must complete for any success
-    High,     // Important for core functionality
-    Medium,   // Adds significant value
-    Low,      // Nice to have
-    Optional, // Can be skipped if needed
+    Critical,
+    High,
+    Medium,
+    Low,
+    Optional,
 }
 
 impl Default for StepPriority {
@@ -165,11 +165,11 @@ impl Default for StepPriority {
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum RiskLevel {
-    None,     // No risk, reversible
-    Low,      // Minor impact if fails
-    Medium,   // Moderate impact, recoverable
-    High,     // Significant impact, difficult recovery
-    Critical, // Severe impact, may not be recoverable
+    None,
+    Low,
+    Medium,
+    High,
+    Critical,
 }
 
 impl Default for RiskLevel {
@@ -178,7 +178,7 @@ impl Default for RiskLevel {
     }
 }
 
-/// API call specification for external integrations
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiCallSpec {
     pub name: String,
@@ -233,11 +233,11 @@ impl Default for RetryConfig {
     }
 }
 
-/// Approval level for human-in-the-loop
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalLevel {
     pub level: i32,
-    pub approver: String, // Role or specific user
+    pub approver: String,
     pub reason: String,
     pub timeout_minutes: i32,
     pub default_action: DefaultApprovalAction,
@@ -257,7 +257,7 @@ impl Default for DefaultApprovalAction {
     }
 }
 
-/// Alternative interpretation when intent is ambiguous
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlternativeInterpretation {
     pub id: String,
@@ -270,7 +270,7 @@ pub struct AlternativeInterpretation {
     pub estimated_time_hours: Option<f64>,
 }
 
-/// Risk assessment for the compiled intent
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskAssessment {
     pub overall_risk: RiskLevel,
@@ -285,7 +285,7 @@ pub struct IdentifiedRisk {
     pub id: String,
     pub category: RiskCategory,
     pub description: String,
-    pub probability: f64, // 0.0 - 1.0
+    pub probability: f64,
     pub impact: RiskLevel,
     pub affected_steps: Vec<String>,
 }
@@ -307,11 +307,11 @@ pub enum RiskCategory {
 pub struct RiskMitigation {
     pub risk_id: String,
     pub strategy: String,
-    pub basic_code: Option<String>, // BASIC code to implement mitigation
+    pub basic_code: Option<String>,
     pub fallback_plan: Option<String>,
 }
 
-/// Resource estimate for the task
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceEstimate {
     pub compute_hours: f64,
@@ -339,36 +339,36 @@ impl Default for ResourceEstimate {
     }
 }
 
-// INTENT COMPILER ENGINE
 
-/// The main Intent Compiler engine
+
+
 pub struct IntentCompiler {
     _state: Arc<AppState>,
     config: IntentCompilerConfig,
 }
 
-/// Configuration for the Intent Compiler
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntentCompilerConfig {
-    /// Enable/disable the compiler
+
     pub enabled: bool,
-    /// LLM model to use for compilation
+
     pub model: String,
-    /// Temperature for LLM (creativity vs determinism)
+
     pub temperature: f64,
-    /// Maximum tokens for LLM response
+
     pub max_tokens: i32,
-    /// Auto-execute low-risk tasks
+
     pub auto_execute_low_risk: bool,
-    /// Always require approval for these risk levels
+
     pub require_approval_above: RiskLevel,
-    /// Enable simulation before execution
+
     pub simulate_before_execute: bool,
-    /// Maximum steps in a generated plan
+
     pub max_plan_steps: i32,
-    /// Available keywords for code generation
+
     pub available_keywords: Vec<String>,
-    /// Available MCP servers
+
     pub available_mcp_servers: Vec<String>,
 }
 
@@ -377,7 +377,7 @@ impl Default for IntentCompilerConfig {
         IntentCompilerConfig {
             enabled: true,
             model: "gpt-4".to_string(),
-            temperature: 0.3, // Lower for more deterministic output
+            temperature: 0.3,
             max_tokens: 4000,
             auto_execute_low_risk: false,
             require_approval_above: RiskLevel::Medium,
@@ -412,7 +412,7 @@ impl IntentCompiler {
         }
     }
 
-    /// Main compilation method - translates intent to executable BASIC program
+
     pub async fn compile(
         &self,
         intent: &str,
@@ -424,28 +424,28 @@ impl IntentCompiler {
             &intent[..intent.len().min(100)]
         );
 
-        // Step 1: Analyze the intent using LLM
+
         let entities = self.extract_entities(intent).await?;
         trace!("Extracted entities: {:?}", entities);
 
-        // Step 2: Generate execution plan
+
         let plan = self.generate_plan(intent, &entities).await?;
         trace!("Generated plan with {} steps", plan.steps.len());
 
-        // Step 3: Generate BASIC program from plan
+
         let basic_program = self.generate_basic_program(&plan, &entities).await?;
         trace!(
             "Generated BASIC program: {} lines",
             basic_program.lines().count()
         );
 
-        // Step 4: Assess risks
+
         let risk_assessment = self.assess_risks(&plan).await?;
 
-        // Step 5: Estimate resources
+
         let resource_estimate = self.estimate_resources(&plan).await?;
 
-        // Step 6: Check for ambiguity and generate alternatives if needed
+
         let (confidence, alternatives) = self.check_ambiguity(intent, &entities, &plan).await?;
 
         let compiled = CompiledIntent {
@@ -463,13 +463,13 @@ impl IntentCompiler {
             bot_id: session.bot_id.to_string(),
         };
 
-        // Store the compiled intent
+
         self.store_compiled_intent(&compiled).await?;
 
         Ok(compiled)
     }
 
-    /// Extract entities from the user's intent using LLM
+
     async fn extract_entities(
         &self,
         intent: &str,
@@ -511,7 +511,7 @@ Respond ONLY with valid JSON, no explanation."#,
         Ok(entities)
     }
 
-    /// Generate an execution plan from the analyzed intent
+
     async fn generate_plan(
         &self,
         intent: &str,
@@ -620,7 +620,7 @@ Respond ONLY with valid JSON."#,
                 name: s.name,
                 description: s.description,
                 keywords: s.keywords,
-                basic_code: String::new(), // Will be generated later
+                basic_code: String::new(),
                 priority: match s.priority.as_deref() {
                     Some("CRITICAL") => StepPriority::Critical,
                     Some("HIGH") => StepPriority::High,
@@ -647,13 +647,13 @@ Respond ONLY with valid JSON."#,
             })
             .collect();
 
-        // Build dependency map
+
         let mut dependencies: HashMap<String, Vec<String>> = HashMap::new();
         for step in &steps {
             dependencies.insert(step.id.clone(), step.dependencies.clone());
         }
 
-        // Determine approval levels based on risk
+
         let approval_levels = self.determine_approval_levels(&steps);
 
         Ok(ExecutionPlan {
@@ -669,7 +669,7 @@ Respond ONLY with valid JSON."#,
         })
     }
 
-    /// Generate BASIC program code from the execution plan
+
     async fn generate_basic_program(
         &self,
         plan: &ExecutionPlan,
@@ -677,7 +677,7 @@ Respond ONLY with valid JSON."#,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut program = String::new();
 
-        // Header comment
+
         program.push_str(&format!(
             "' =============================================================================\n"
         ));
@@ -692,13 +692,13 @@ Respond ONLY with valid JSON."#,
             "' =============================================================================\n\n"
         ));
 
-        // Plan declaration
+
         program.push_str(&format!(
             "PLAN_START \"{}\", \"{}\"\n",
             plan.name, plan.description
         ));
 
-        // Declare steps
+
         for step in &plan.steps {
             let priority_str = match step.priority {
                 StepPriority::Critical => "CRITICAL",
@@ -714,7 +714,7 @@ Respond ONLY with valid JSON."#,
         }
         program.push_str("PLAN_END\n\n");
 
-        // Initialize variables
+
         program.push_str("' Initialize context variables\n");
         program.push_str(&format!("SET action = \"{}\"\n", entities.action));
         program.push_str(&format!("SET target = \"{}\"\n", entities.target));
@@ -726,7 +726,7 @@ Respond ONLY with valid JSON."#,
         }
         program.push_str("\n");
 
-        // Set context for LLM operations
+
         program.push_str("' Set LLM context\n");
         program.push_str(&format!(
             "SET CONTEXT \"Task: {} {} for {}\"\n\n",
@@ -735,7 +735,7 @@ Respond ONLY with valid JSON."#,
             entities.client.as_deref().unwrap_or("general use")
         ));
 
-        // Generate code for each step
+
         for step in &plan.steps {
             program.push_str(&format!(
                 "' -----------------------------------------------------------------------------\n"
@@ -750,13 +750,13 @@ Respond ONLY with valid JSON."#,
                 "' -----------------------------------------------------------------------------\n"
             ));
 
-            // Generate step code
+
             let step_code = self.generate_step_code(step, entities).await?;
             program.push_str(&step_code);
             program.push_str("\n");
         }
 
-        // Completion
+
         program.push_str("' Task completed\n");
         program.push_str("TALK \"Task completed successfully!\"\n");
         program.push_str(&format!(
@@ -767,7 +767,7 @@ Respond ONLY with valid JSON."#,
         Ok(program)
     }
 
-    /// Generate BASIC code for a single step
+
     async fn generate_step_code(
         &self,
         step: &PlanStep,
@@ -775,7 +775,7 @@ Respond ONLY with valid JSON."#,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut code = String::new();
 
-        // Add approval check if needed
+
         if step.requires_approval {
             code.push_str(&format!(
                 "REQUIRE_APPROVAL \"step-{}\", \"{}\"\n",
@@ -790,7 +790,7 @@ Respond ONLY with valid JSON."#,
             code.push_str("END IF\n\n");
         }
 
-        // Add simulation check for high-risk steps
+
         if matches!(step.risk_level, RiskLevel::High | RiskLevel::Critical) {
             code.push_str(&format!(
                 "simulation_result = SIMULATE_IMPACT \"step-{}\"\n",
@@ -805,13 +805,13 @@ Respond ONLY with valid JSON."#,
             code.push_str("END IF\n\n");
         }
 
-        // Audit log start
+
         code.push_str(&format!(
             "AUDIT_LOG \"step-start\", \"step-{}\", \"{}\"\n",
             step.order, step.name
         ));
 
-        // Generate code based on keywords
+
         for keyword in &step.keywords {
             match keyword.to_uppercase().as_str() {
                 "CREATE_TASK" => {
@@ -870,24 +870,24 @@ Respond ONLY with valid JSON."#,
                     ));
                 }
                 _ => {
-                    // Generic keyword usage
+
                     code.push_str(&format!("' Using keyword: {}\n", keyword));
                 }
             }
         }
 
-        // Mark outputs
+
         for output in &step.outputs {
             code.push_str(&format!("SET output_{} = result_{}\n", output, step.order));
         }
 
-        // Audit log end
+
         code.push_str(&format!(
             "AUDIT_LOG \"step-end\", \"step-{}\", \"complete\"\n",
             step.order
         ));
 
-        // Add step end label for GOTO
+
         code.push_str(&format!("step_{}_end:\n\n", step.order));
 
         Ok(code)

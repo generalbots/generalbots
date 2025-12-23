@@ -12,7 +12,7 @@ use std::sync::Arc;
 pub mod compiler;
 pub mod keywords;
 
-/// Helper struct for loading param config from database
+
 #[derive(QueryableByName)]
 struct ParamConfigRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -82,7 +82,7 @@ impl ScriptService {
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
 
-        // Core keywords
+
         create_draft_keyword(&state, user.clone(), &mut engine);
         set_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
@@ -115,7 +115,7 @@ impl ScriptService {
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
 
-        // Register the 6 new power keywords
+
         remember_keyword(state.clone(), user.clone(), &mut engine);
         book_keyword(state.clone(), user.clone(), &mut engine);
         send_mail_keyword(state.clone(), user.clone(), &mut engine);
@@ -123,113 +123,113 @@ impl ScriptService {
         create_task_keyword(state.clone(), user.clone(), &mut engine);
         add_member_keyword(state.clone(), user.clone(), &mut engine);
 
-        // Register dynamic bot management keywords (ADD BOT, REMOVE BOT)
+
         register_bot_keywords(&state, &user, &mut engine);
 
-        // Register model routing keywords (USE MODEL, SET MODEL ROUTING, etc.)
+
         register_model_routing_keywords(state.clone(), user.clone(), &mut engine);
 
-        // Register universal messaging keywords
+
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
             user.clone(),
             &mut engine,
         );
 
-        // Register multimodal keywords (IMAGE, VIDEO, AUDIO, SEE)
-        // These connect to botmodels for image/video/audio generation and vision/captioning
+
+
         register_multimodal_keywords(state.clone(), user.clone(), &mut engine);
 
-        // Register string functions (INSTR, IS_NUMERIC, LEN, LEFT, RIGHT, MID, etc.)
+
         register_string_functions(state.clone(), user.clone(), &mut engine);
 
-        // Register SWITCH/CASE helper functions
+
         switch_keyword(&state, user.clone(), &mut engine);
 
-        // ========================================================================
-        // NEW KEYWORDS for office.gbai - Compete with n8n
-        // ========================================================================
 
-        // HTTP Operations: POST, PUT, PATCH, DELETE_HTTP, SET_HEADER, GRAPHQL, SOAP
+
+
+
+
         register_http_operations(state.clone(), user.clone(), &mut engine);
 
-        // Data Operations: SAVE, INSERT, UPDATE, DELETE, MERGE, FILL, MAP, FILTER,
-        // AGGREGATE, JOIN, PIVOT, GROUP_BY
+
+
         register_data_operations(state.clone(), user.clone(), &mut engine);
 
-        // File Operations: READ, WRITE, DELETE_FILE, COPY, MOVE, LIST,
-        // COMPRESS, EXTRACT, UPLOAD, DOWNLOAD, GENERATE_PDF, MERGE_PDF
+
+
         register_file_operations(state.clone(), user.clone(), &mut engine);
 
-        // Webhook keyword for event-driven automation
+
         webhook_keyword(&state, user.clone(), &mut engine);
 
-        // ========================================================================
-        // NEW KEYWORDS: Social Media, Marketing, CRM
-        // ========================================================================
 
-        // Social Media: POST TO (Instagram, Facebook, LinkedIn, Twitter)
-        // GET METRICS, scheduled posting
+
+
+
+
+
         register_social_media_keywords(state.clone(), user.clone(), &mut engine);
 
-        // SEND TEMPLATE: Multi-channel templated messaging (email, WhatsApp, SMS)
+
         register_send_template_keywords(state.clone(), user.clone(), &mut engine);
 
-        // ON FORM SUBMIT: Webhook-based form handling for landing pages
+
         on_form_submit_keyword(state.clone(), user.clone(), &mut engine);
 
-        // Lead Scoring: SCORE LEAD, GET LEAD SCORE, QUALIFY LEAD, AI SCORE LEAD
+
         register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
 
-        // ========================================================================
-        // CRM & HUMAN HANDOFF
-        // ========================================================================
 
-        // TRANSFER TO HUMAN: Bot-to-human handoff for hybrid support workflows
-        // Supports transfer by name/alias, department, priority, and context
+
+
+
+
+
         register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
 
-        // ========================================================================
-        // AI-POWERED TOOLS: TRANSLATE, OCR, SENTIMENT, CLASSIFY
-        // ========================================================================
+
+
+
         register_ai_tools_keywords(state.clone(), user.clone(), &mut engine);
 
-        // ========================================================================
-        // WEB DATA: RSS, SCRAPE, SCRAPE_ALL, SCRAPE_TABLE, SCRAPE_LINKS, SCRAPE_IMAGES
-        // ========================================================================
+
+
+
         register_web_data_keywords(state.clone(), user.clone(), &mut engine);
 
-        // ========================================================================
-        // SMS: SEND_SMS phone, message - Send SMS via Twilio, AWS SNS, Vonage, etc.
-        // ========================================================================
+
+
+
         register_sms_keywords(state.clone(), user.clone(), &mut engine);
 
-        // ========================================================================
-        // CORE BASIC FUNCTIONS: Math, Date/Time, Validation, Arrays, Error Handling
-        // ========================================================================
 
-        // Math: ABS, ROUND, INT, MAX, MIN, MOD, RANDOM, SGN, SQR, LOG, EXP, SIN, COS, TAN
-        // Date/Time: NOW, TODAY, YEAR, MONTH, DAY, HOUR, MINUTE, SECOND, DATEADD, DATEDIFF
-        // Validation: VAL, STR, ISNULL, ISEMPTY, ISDATE, TYPEOF
-        // Arrays: ARRAY, UBOUND, SORT, UNIQUE, CONTAINS, PUSH, POP, REVERSE, SLICE, BATCH, CHUNK
-        // Error Handling: THROW, ERROR, IS_ERROR, ASSERT
+
+
+
+
+
+
+
+
         register_core_functions(state.clone(), user, &mut engine);
 
         ScriptService { engine, scope }
     }
 
-    /// Inject param-* configuration variables from config.csv into the script scope
-    /// Variables are made available without the "param-" prefix and normalized to lowercase
+
+
     pub fn inject_config_variables(&mut self, config_vars: HashMap<String, String>) {
         for (key, value) in config_vars {
-            // Remove "param-" prefix if present and normalize to lowercase
+
             let var_name = if key.starts_with("param-") {
                 key.strip_prefix("param-").unwrap_or(&key).to_lowercase()
             } else {
                 key.to_lowercase()
             };
 
-            // Try to parse as number, otherwise use as string
+
             if let Ok(int_val) = value.parse::<i64>() {
                 self.scope.push(&var_name, int_val);
             } else if let Ok(float_val) = value.parse::<f64>() {
@@ -244,10 +244,10 @@ impl ScriptService {
         }
     }
 
-    /// Load and inject param-* variables from bot configuration
+
     pub fn load_bot_config_params(&mut self, state: &AppState, bot_id: uuid::Uuid) {
         if let Ok(mut conn) = state.conn.get() {
-            // Query all config entries for this bot that start with "param-"
+
             let result = diesel::sql_query(
                 "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = $1 AND config_key LIKE 'param-%'"
             )
@@ -264,10 +264,10 @@ impl ScriptService {
         }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {
-        // First, preprocess SWITCH/CASE blocks
+
         let script = preprocess_switch(script);
 
-        // Make variables case-insensitive by normalizing to lowercase
+
         let script = Self::normalize_variables_to_lowercase(&script);
 
         let mut result = String::new();
@@ -312,7 +312,7 @@ impl ScriptService {
             }
             result.push_str(&" ".repeat(current_indent));
             let basic_commands = [
-                // Core commands
+
                 "SET",
                 "CREATE",
                 "PRINT",
@@ -352,7 +352,7 @@ impl ScriptService {
                 "INSTR",
                 "IS_NUMERIC",
                 "IS NUMERIC",
-                // HTTP Operations
+
                 "POST",
                 "PUT",
                 "PATCH",
@@ -361,7 +361,7 @@ impl ScriptService {
                 "CLEAR HEADERS",
                 "GRAPHQL",
                 "SOAP",
-                // Data Operations
+
                 "SAVE",
                 "INSERT",
                 "UPDATE",
@@ -374,7 +374,7 @@ impl ScriptService {
                 "JOIN",
                 "PIVOT",
                 "GROUP BY",
-                // File Operations
+
                 "READ",
                 "WRITE",
                 "COPY",
@@ -386,9 +386,9 @@ impl ScriptService {
                 "DOWNLOAD",
                 "GENERATE PDF",
                 "MERGE PDF",
-                // Webhook
+
                 "WEBHOOK",
-                // Social Media
+
                 "POST TO",
                 "POST TO INSTAGRAM",
                 "POST TO FACEBOOK",
@@ -399,25 +399,25 @@ impl ScriptService {
                 "GET LINKEDIN METRICS",
                 "GET TWITTER METRICS",
                 "DELETE POST",
-                // Template & Messaging
+
                 "SEND MAIL",
                 "SEND TEMPLATE",
                 "CREATE TEMPLATE",
                 "GET TEMPLATE",
-                // Error Handling
+
                 "ON ERROR RESUME NEXT",
                 "ON ERROR GOTO",
                 "CLEAR ERROR",
                 "ERROR MESSAGE",
-                // Form Handling
+
                 "ON FORM SUBMIT",
-                // Lead Scoring
+
                 "SCORE LEAD",
                 "GET LEAD SCORE",
                 "QUALIFY LEAD",
                 "UPDATE LEAD SCORE",
                 "AI SCORE LEAD",
-                // Math Functions
+
                 "ABS",
                 "ROUND",
                 "INT",
@@ -440,7 +440,7 @@ impl ScriptService {
                 "TAN",
                 "SUM",
                 "AVG",
-                // Date/Time Functions
+
                 "NOW",
                 "TODAY",
                 "DATE",
@@ -456,7 +456,7 @@ impl ScriptService {
                 "DATEDIFF",
                 "FORMAT_DATE",
                 "ISDATE",
-                // Validation Functions
+
                 "VAL",
                 "STR",
                 "CINT",
@@ -471,7 +471,7 @@ impl ScriptService {
                 "ISNUMBER",
                 "NVL",
                 "IIF",
-                // Array Functions
+
                 "ARRAY",
                 "UBOUND",
                 "LBOUND",
@@ -489,7 +489,7 @@ impl ScriptService {
                 "CONCAT",
                 "FLATTEN",
                 "RANGE",
-                // Error Handling
+
                 "THROW",
                 "ERROR",
                 "IS_ERROR",
@@ -530,15 +530,15 @@ impl ScriptService {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
     }
 
-    /// Normalize variable names to lowercase for case-insensitive BASIC semantics
-    /// This transforms variable assignments and references to use lowercase names
-    /// while preserving string literals, keywords, and comments
+
+
+
     fn normalize_variables_to_lowercase(script: &str) -> String {
         use regex::Regex;
 
         let mut result = String::new();
 
-        // Keywords that should remain uppercase (BASIC commands)
+
         let keywords = [
             "SET",
             "CREATE",
@@ -766,20 +766,20 @@ impl ScriptService {
             "REQUIRED",
         ];
 
-        // Regex to match identifiers (variable names)
+
         let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
 
         for line in script.lines() {
             let trimmed = line.trim();
 
-            // Skip comments entirely
+
             if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
                 result.push_str(line);
                 result.push('\n');
                 continue;
             }
 
-            // Process line character by character to handle strings properly
+
             let mut processed_line = String::new();
             let mut chars = line.chars().peekable();
             let mut in_string = false;
@@ -792,14 +792,14 @@ impl ScriptService {
                     if c == string_char {
                         in_string = false;
                     } else if c == '\\' {
-                        // Handle escape sequences
+
                         if let Some(&next) = chars.peek() {
                             processed_line.push(next);
                             chars.next();
                         }
                     }
                 } else if c == '"' || c == '\'' {
-                    // Flush current word before string
+
                     if !current_word.is_empty() {
                         processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
                         current_word.clear();
@@ -810,7 +810,7 @@ impl ScriptService {
                 } else if c.is_alphanumeric() || c == '_' {
                     current_word.push(c);
                 } else {
-                    // Flush current word
+
                     if !current_word.is_empty() {
                         processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
                         current_word.clear();
@@ -819,7 +819,7 @@ impl ScriptService {
                 }
             }
 
-            // Flush any remaining word
+
             if !current_word.is_empty() {
                 processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
             }
@@ -831,13 +831,13 @@ impl ScriptService {
         result
     }
 
-    /// Normalize a single word - convert to lowercase if it's a variable (not a keyword)
+
     fn normalize_word(word: &str, keywords: &[&str]) -> String {
         let upper = word.to_uppercase();
 
-        // Check if it's a keyword (case-insensitive)
+
         if keywords.contains(&upper.as_str()) {
-            // Return the keyword in uppercase for consistency
+
             upper
         } else if word
             .chars()
@@ -845,10 +845,10 @@ impl ScriptService {
             .map(|c| c.is_ascii_digit())
             .unwrap_or(false)
         {
-            // It's a number, keep as-is
+
             word.to_string()
         } else {
-            // It's a variable - normalize to lowercase
+
             word.to_lowercase()
         }
     }

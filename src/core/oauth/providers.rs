@@ -1,33 +1,33 @@
-//! OAuth2 Provider Configurations
-//!
-//! This module contains the configuration for each OAuth2 provider including:
-//! - Authorization URLs
-//! - Token exchange URLs
-//! - User info endpoints
-//! - Required scopes
+
+
+
+
+
+
+
 
 use super::{OAuthConfig, OAuthProvider, OAuthTokenResponse, OAuthUserInfo};
 use anyhow::{anyhow, Result};
 use reqwest::Client;
 use std::collections::HashMap;
 
-/// Provider-specific OAuth2 endpoints and configuration
+
 #[derive(Debug, Clone)]
 pub struct ProviderEndpoints {
-    /// Authorization URL (where user is redirected to login)
+
     pub auth_url: &'static str,
-    /// Token exchange URL
+
     pub token_url: &'static str,
-    /// User info endpoint URL
+
     pub userinfo_url: &'static str,
-    /// Required scopes for basic user info
+
     pub scopes: &'static [&'static str],
-    /// Whether to use Basic auth for token exchange
+
     pub use_basic_auth: bool,
 }
 
 impl OAuthProvider {
-    /// Get the endpoints configuration for this provider
+
     pub fn endpoints(&self) -> ProviderEndpoints {
         match self {
             OAuthProvider::Google => ProviderEndpoints {
@@ -75,7 +75,7 @@ impl OAuthProvider {
         }
     }
 
-    /// Build the authorization URL for this provider
+
     pub fn build_auth_url(&self, config: &OAuthConfig, state: &str) -> String {
         let endpoints = self.endpoints();
         let scopes = endpoints.scopes.join(" ");
@@ -88,14 +88,14 @@ impl OAuthProvider {
             ("scope", &scopes),
         ];
 
-        // Provider-specific parameters
+
         match self {
             OAuthProvider::Google => {
                 params.push(("access_type", "offline"));
                 params.push(("prompt", "consent"));
             }
             OAuthProvider::Discord => {
-                // Discord uses space-separated scopes in the URL
+
             }
             OAuthProvider::Reddit => {
                 params.push(("duration", "temporary"));
@@ -108,7 +108,7 @@ impl OAuthProvider {
                 params.push(("response_mode", "query"));
             }
             OAuthProvider::Facebook => {
-                // Facebook uses comma-separated scopes, but also accepts space
+
             }
         }
 
@@ -121,7 +121,7 @@ impl OAuthProvider {
         format!("{}?{}", endpoints.auth_url, query)
     }
 
-    /// Exchange authorization code for access token
+
     pub async fn exchange_code(
         &self,
         config: &OAuthConfig,
@@ -136,7 +136,7 @@ impl OAuthProvider {
         params.insert("redirect_uri", config.redirect_uri.as_str());
         params.insert("client_id", config.client_id.as_str());
 
-        // Twitter requires code_verifier for PKCE
+
         if matches!(self, OAuthProvider::Twitter) {
             params.insert("code_verifier", "challenge");
         }
@@ -149,7 +149,7 @@ impl OAuthProvider {
             params.insert("client_secret", config.client_secret.as_str());
         }
 
-        // Reddit requires a custom User-Agent
+
         if matches!(self, OAuthProvider::Reddit) {
             request = request.header("User-Agent", "BotServer/1.0");
         }
@@ -173,7 +173,7 @@ impl OAuthProvider {
         Ok(token)
     }
 
-    /// Fetch user info from the provider
+
     pub async fn fetch_user_info(
         &self,
         access_token: &str,
@@ -183,7 +183,7 @@ impl OAuthProvider {
 
         let mut request = client.get(endpoints.userinfo_url);
 
-        // Provider-specific headers and query params
+
         match self {
             OAuthProvider::Reddit => {
                 request = request
@@ -221,13 +221,13 @@ impl OAuthProvider {
             .await
             .map_err(|e| anyhow!("Failed to parse user info: {}", e))?;
 
-        // Parse provider-specific response into common format
+
         let user_info = self.parse_user_info(&raw)?;
 
         Ok(user_info)
     }
 
-    /// Parse provider-specific user info response into common format
+
     fn parse_user_info(&self, raw: &serde_json::Value) -> Result<OAuthUserInfo> {
         match self {
             OAuthProvider::Google => Ok(OAuthUserInfo {
@@ -255,7 +255,7 @@ impl OAuthProvider {
             OAuthProvider::Reddit => Ok(OAuthUserInfo {
                 provider_id: raw["id"].as_str().unwrap_or_default().to_string(),
                 provider: *self,
-                email: None, // Reddit doesn't provide email with basic scope
+                email: None,
                 name: raw["name"].as_str().map(String::from),
                 avatar_url: raw["icon_img"]
                     .as_str()
@@ -267,7 +267,7 @@ impl OAuthProvider {
                 Ok(OAuthUserInfo {
                     provider_id: data["id"].as_str().unwrap_or_default().to_string(),
                     provider: *self,
-                    email: None, // Twitter requires elevated access for email
+                    email: None,
                     name: data["name"].as_str().map(String::from),
                     avatar_url: data["profile_image_url"].as_str().map(String::from),
                     raw: Some(raw.clone()),
@@ -281,7 +281,7 @@ impl OAuthProvider {
                     .or_else(|| raw["userPrincipalName"].as_str())
                     .map(String::from),
                 name: raw["displayName"].as_str().map(String::from),
-                avatar_url: None, // Microsoft Graph requires separate endpoint for photo
+                avatar_url: None,
                 raw: Some(raw.clone()),
             }),
             OAuthProvider::Facebook => Ok(OAuthUserInfo {
@@ -296,7 +296,7 @@ impl OAuthProvider {
     }
 }
 
-/// Load OAuth configuration from bot config
+
 pub fn load_oauth_config(
     provider: OAuthProvider,
     bot_config: &HashMap<String, String>,
@@ -318,7 +318,7 @@ pub fn load_oauth_config(
         .get(&format!("{}-client-secret", prefix))?
         .clone();
 
-    // Use configured redirect URI or build default
+
     let redirect_uri = bot_config
         .get(&format!("{}-redirect-uri", prefix))
         .cloned()
@@ -343,7 +343,7 @@ pub fn load_oauth_config(
     })
 }
 
-/// Get all enabled OAuth providers from config
+
 pub fn get_enabled_providers(
     bot_config: &HashMap<String, String>,
     base_url: &str,

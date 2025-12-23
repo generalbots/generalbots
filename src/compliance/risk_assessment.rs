@@ -1,7 +1,7 @@
-//! Risk Assessment Module
-//!
-//! Provides comprehensive risk assessment and management capabilities
-//! for identifying, evaluating, and mitigating security risks.
+
+
+
+
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Risk category enumeration
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RiskCategory {
     Security,
@@ -21,7 +21,7 @@ pub enum RiskCategory {
     Legal,
 }
 
-/// Risk likelihood levels
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Likelihood {
     Rare,
@@ -31,7 +31,7 @@ pub enum Likelihood {
     AlmostCertain,
 }
 
-/// Risk impact levels
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum Impact {
     Negligible,
@@ -41,7 +41,7 @@ pub enum Impact {
     Catastrophic,
 }
 
-/// Risk level based on likelihood and impact
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum RiskLevel {
     Low,
@@ -50,7 +50,7 @@ pub enum RiskLevel {
     Critical,
 }
 
-/// Risk status
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum RiskStatus {
     Identified,
@@ -61,7 +61,7 @@ pub enum RiskStatus {
     Closed,
 }
 
-/// Risk assessment
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskAssessment {
     pub id: Uuid,
@@ -82,7 +82,7 @@ pub struct RiskAssessment {
     pub residual_risk: Option<RiskLevel>,
 }
 
-/// Vulnerability definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vulnerability {
     pub id: Uuid,
@@ -94,7 +94,7 @@ pub struct Vulnerability {
     pub patched: bool,
 }
 
-/// Threat definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Threat {
     pub id: Uuid,
@@ -105,7 +105,7 @@ pub struct Threat {
     pub tactics: Vec<String>,
 }
 
-/// Control measure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Control {
     pub id: Uuid,
@@ -117,7 +117,7 @@ pub struct Control {
     pub cost: f64,
 }
 
-/// Control type
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ControlType {
     Preventive,
@@ -126,7 +126,7 @@ pub enum ControlType {
     Compensating,
 }
 
-/// Control effectiveness
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Effectiveness {
     Ineffective,
@@ -135,7 +135,7 @@ pub enum Effectiveness {
     HighlyEffective,
 }
 
-/// Implementation status
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ImplementationStatus {
     Planned,
@@ -144,7 +144,7 @@ pub enum ImplementationStatus {
     Verified,
 }
 
-/// Risk mitigation plan
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MitigationPlan {
     pub id: Uuid,
@@ -157,7 +157,7 @@ pub struct MitigationPlan {
     pub approval_status: ApprovalStatus,
 }
 
-/// Mitigation strategy
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MitigationStrategy {
     Avoid,
@@ -166,7 +166,7 @@ pub enum MitigationStrategy {
     Accept,
 }
 
-/// Mitigation action
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MitigationAction {
     pub id: Uuid,
@@ -176,7 +176,7 @@ pub struct MitigationAction {
     pub completed: bool,
 }
 
-/// Approval status
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ApprovalStatus {
     Pending,
@@ -184,7 +184,7 @@ pub enum ApprovalStatus {
     Rejected,
 }
 
-/// Risk assessment service
+
 #[derive(Debug, Clone)]
 pub struct RiskAssessmentService {
     assessments: HashMap<Uuid, RiskAssessment>,
@@ -193,7 +193,7 @@ pub struct RiskAssessmentService {
 }
 
 impl RiskAssessmentService {
-    /// Create new risk assessment service
+
     pub fn new() -> Self {
         Self {
             assessments: HashMap::new(),
@@ -202,7 +202,7 @@ impl RiskAssessmentService {
         }
     }
 
-    /// Create a new risk assessment
+
     pub fn create_assessment(
         &mut self,
         title: String,
@@ -235,7 +235,7 @@ impl RiskAssessmentService {
         Ok(assessment)
     }
 
-    /// Assess risk level
+
     pub fn assess_risk(
         &mut self,
         risk_id: Uuid,
@@ -262,7 +262,7 @@ impl RiskAssessmentService {
         Ok(assessment.risk_level.clone())
     }
 
-    /// Add vulnerability to risk assessment
+
     pub fn add_vulnerability(&mut self, risk_id: Uuid, vulnerability: Vulnerability) -> Result<()> {
         let assessment = self
             .assessments
@@ -275,7 +275,7 @@ impl RiskAssessmentService {
         Ok(())
     }
 
-    /// Add threat to risk assessment
+
     pub fn add_threat(&mut self, risk_id: Uuid, threat: Threat) -> Result<()> {
         let assessment = self
             .assessments
@@ -288,7 +288,7 @@ impl RiskAssessmentService {
         Ok(())
     }
 
-    /// Add control to risk assessment
+
     pub fn add_control(&mut self, risk_id: Uuid, control: Control) -> Result<()> {
         let assessment = self
             .assessments
@@ -301,14 +301,14 @@ impl RiskAssessmentService {
         Ok(())
     }
 
-    /// Recalculate risk level based on vulnerabilities and threats
+
     fn recalculate_risk_level(&mut self, risk_id: Uuid) -> Result<()> {
         let assessment = self
             .assessments
             .get_mut(&risk_id)
             .ok_or_else(|| anyhow!("Risk assessment not found"))?;
 
-        // Adjust likelihood based on threats
+
         if !assessment.threats.is_empty() {
             let max_threat_likelihood = assessment
                 .threats
@@ -323,7 +323,7 @@ impl RiskAssessmentService {
             }
         }
 
-        // Adjust impact based on vulnerabilities
+
         if !assessment.vulnerabilities.is_empty() {
             let critical_vulns = assessment
                 .vulnerabilities
@@ -343,7 +343,7 @@ impl RiskAssessmentService {
         Ok(())
     }
 
-    /// Calculate residual risk after controls
+
     fn calculate_residual_risk(&mut self, risk_id: Uuid) -> Result<()> {
         let assessment = self
             .assessments
@@ -355,7 +355,7 @@ impl RiskAssessmentService {
             return Ok(());
         }
 
-        // Calculate effectiveness of controls
+
         let effective_controls = assessment
             .controls
             .iter()
@@ -379,7 +379,7 @@ impl RiskAssessmentService {
         Ok(())
     }
 
-    /// Create mitigation plan
+
     pub fn create_mitigation_plan(
         &mut self,
         risk_id: Uuid,
@@ -409,7 +409,7 @@ impl RiskAssessmentService {
         Ok(plan)
     }
 
-    /// Get high-risk assessments
+
     pub fn get_high_risk_assessments(&self) -> Vec<RiskAssessment> {
         self.assessments
             .values()
@@ -418,7 +418,7 @@ impl RiskAssessmentService {
             .collect()
     }
 
-    /// Get risk dashboard
+
     pub fn get_risk_dashboard(&self) -> RiskDashboard {
         let total_risks = self.assessments.len();
         let mut risks_by_level = HashMap::new();
@@ -454,14 +454,14 @@ impl RiskAssessmentService {
     }
 }
 
-/// Risk matrix for calculating risk levels
+
 #[derive(Debug, Clone)]
 pub struct RiskMatrix {
     matrix: HashMap<(Likelihood, Impact), RiskLevel>,
 }
 
 impl RiskMatrix {
-    /// Calculate risk level based on likelihood and impact
+
     pub fn calculate_risk_level(&self, likelihood: &Likelihood, impact: &Impact) -> RiskLevel {
         self.matrix
             .get(&(likelihood.clone(), impact.clone()))
@@ -474,7 +474,7 @@ impl Default for RiskMatrix {
     fn default() -> Self {
         let mut matrix = HashMap::new();
 
-        // Define risk matrix
+
         matrix.insert((Likelihood::Rare, Impact::Negligible), RiskLevel::Low);
         matrix.insert((Likelihood::Rare, Impact::Minor), RiskLevel::Low);
         matrix.insert((Likelihood::Rare, Impact::Moderate), RiskLevel::Low);
@@ -530,7 +530,7 @@ impl Default for RiskMatrix {
     }
 }
 
-/// Risk dashboard
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskDashboard {
     pub total_risks: usize,

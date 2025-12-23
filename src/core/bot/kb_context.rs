@@ -8,7 +8,7 @@ use uuid::Uuid;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::utils::DbPool;
 
-/// Represents an active KB association for a session
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionKbAssociation {
     pub kb_name: String,
@@ -17,7 +17,7 @@ pub struct SessionKbAssociation {
     pub is_active: bool,
 }
 
-/// KB context that will be injected into the LLM prompt
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbContext {
     pub kb_name: String,
@@ -25,7 +25,7 @@ pub struct KbContext {
     pub total_tokens: usize,
 }
 
-/// Individual search result from a KB
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbSearchResult {
     pub content: String,
@@ -34,7 +34,7 @@ pub struct KbSearchResult {
     pub chunk_tokens: usize,
 }
 
-/// Manager for KB context retrieval and injection
+
 #[derive(Debug)]
 pub struct KbContextManager {
     kb_manager: Arc<KnowledgeBaseManager>,
@@ -42,7 +42,7 @@ pub struct KbContextManager {
 }
 
 impl KbContextManager {
-    /// Create a new KB context manager
+
     pub fn new(kb_manager: Arc<KnowledgeBaseManager>, db_pool: DbPool) -> Self {
         Self {
             kb_manager,
@@ -50,11 +50,11 @@ impl KbContextManager {
         }
     }
 
-    /// Get all active KB associations for a session
+
     pub async fn get_active_kbs(&self, session_id: Uuid) -> Result<Vec<SessionKbAssociation>> {
         let mut conn = self.db_pool.get()?;
 
-        // Query for active KB associations
+
         let query = diesel::sql_query(
             "SELECT kb_name, qdrant_collection, kb_folder_path, is_active
              FROM session_kb_associations
@@ -87,7 +87,7 @@ impl KbContextManager {
             .collect())
     }
 
-    /// Search all active KBs for relevant context
+
     pub async fn search_active_kbs(
         &self,
         session_id: Uuid,
@@ -141,7 +141,7 @@ impl KbContextManager {
                 }
                 Err(e) => {
                     error!("Failed to search KB '{}': {}", kb_assoc.kb_name, e);
-                    // Continue with other KBs even if one fails
+
                 }
             }
         }
@@ -149,7 +149,7 @@ impl KbContextManager {
         Ok(kb_contexts)
     }
 
-    /// Search a single KB for relevant context
+
     async fn search_single_kb(
         &self,
         bot_name: &str,
@@ -160,7 +160,7 @@ impl KbContextManager {
     ) -> Result<KbContext> {
         debug!("Searching KB '{}' with query: {}", kb_name, query);
 
-        // Use the KnowledgeBaseManager to search
+
         let search_results = self
             .kb_manager
             .search(bot_name, kb_name, query, max_results)
@@ -172,7 +172,7 @@ impl KbContextManager {
         for result in search_results {
             let tokens = estimate_tokens(&result.content);
 
-            // Check if adding this result would exceed token limit
+
             if total_tokens + tokens > max_tokens {
                 debug!(
                     "Skipping result due to token limit ({} + {} > {})",
@@ -190,7 +190,7 @@ impl KbContextManager {
 
             total_tokens += tokens;
 
-            // Only include high-relevance results (score > 0.7)
+
             if result.score < 0.7 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
                 break;
@@ -204,7 +204,7 @@ impl KbContextManager {
         })
     }
 
-    /// Build context string from KB search results for LLM injection
+
     pub fn build_context_string(&self, kb_contexts: &[KbContext]) -> String {
         if kb_contexts.is_empty() {
             return String::new();
@@ -240,7 +240,7 @@ impl KbContextManager {
         context_parts.join("\n")
     }
 
-    /// Get active tools for a session (similar to KBs)
+
     pub async fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
         let mut conn = self.db_pool.get()?;
 
@@ -262,14 +262,14 @@ impl KbContextManager {
     }
 }
 
-/// Estimate token count for a string (rough approximation)
+
 fn estimate_tokens(text: &str) -> usize {
-    // Rough estimate: 1 token per 4 characters
-    // This is a simplified heuristic; real tokenization would be more accurate
+
+
     text.len() / 4
 }
 
-/// Integration helper for injecting KB context into LLM messages
+
 pub async fn inject_kb_context(
     kb_manager: Arc<KnowledgeBaseManager>,
     db_pool: DbPool,
@@ -281,13 +281,13 @@ pub async fn inject_kb_context(
 ) -> Result<()> {
     let context_manager = KbContextManager::new(kb_manager, db_pool);
 
-    // Search active KBs
+
     let kb_contexts = context_manager
         .search_active_kbs(
             session_id,
             bot_name,
             user_query,
-            5, // max 5 results per KB
+            5,
             max_context_tokens,
         )
         .await?;
@@ -297,7 +297,7 @@ pub async fn inject_kb_context(
         return Ok(());
     }
 
-    // Build context string
+
     let context_string = context_manager.build_context_string(&kb_contexts);
 
     if context_string.is_empty() {
@@ -310,20 +310,20 @@ pub async fn inject_kb_context(
         session_id
     );
 
-    // Inject context into messages
-    // The context is added as a system message or appended to the existing system prompt
+
+
     if let Some(messages_array) = messages.as_array_mut() {
-        // Find or create system message
+
         let system_msg_idx = messages_array.iter().position(|m| m["role"] == "system");
 
         if let Some(idx) = system_msg_idx {
-            // Append to existing system message
+
             if let Some(content) = messages_array[idx]["content"].as_str() {
                 let new_content = format!("{}\n{}", content, context_string);
                 messages_array[idx]["content"] = serde_json::Value::String(new_content);
             }
         } else {
-            // Insert as first message
+
             messages_array.insert(
                 0,
                 serde_json::json!({

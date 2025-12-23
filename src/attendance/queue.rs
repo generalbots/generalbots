@@ -1,7 +1,7 @@
-//! Queue Management API for Attendant System
-//!
-//! Handles conversation queues, attendant assignment, and real-time updates.
-//! Reads attendant data from attendant.csv in bot's .gbai folder.
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -103,15 +103,15 @@ pub struct QueueFilters {
     pub assigned_to: Option<Uuid>,
 }
 
-/// Check if CRM/transfer is enabled in config.csv
-/// Supports both `crm-enabled = true` and legacy `transfer = true`
+
+
 async fn is_transfer_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("config.csv");
 
     if !config_path.exists() {
-        // Try alternate path without UUID prefix
+
         let alt_path = PathBuf::from(work_path).join("config.csv");
         if alt_path.exists() {
             return check_config_for_crm_enabled(&alt_path);
@@ -123,20 +123,20 @@ async fn is_transfer_enabled(bot_id: Uuid, work_path: &str) -> bool {
     check_config_for_crm_enabled(&config_path)
 }
 
-/// Helper to check config file for CRM/transfer settings
+
 fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
     match std::fs::read_to_string(config_path) {
         Ok(content) => {
             for line in content.lines() {
                 let line_lower = line.to_lowercase();
-                // Check for crm-enabled = true or crm_enabled = true (primary)
+
                 if (line_lower.contains("crm-enabled") || line_lower.contains("crm_enabled"))
                     && line_lower.contains("true")
                 {
                     info!("CRM enabled via crm-enabled setting");
                     return true;
                 }
-                // Also support legacy transfer = true for backward compatibility
+
                 if line_lower.contains("transfer") && line_lower.contains("true") {
                     info!("CRM enabled via legacy transfer setting");
                     return true;
@@ -151,7 +151,7 @@ fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
     }
 }
 
-/// Read attendants from attendant.csv
+
 async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV> {
     let attendant_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
@@ -167,7 +167,7 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
             let mut attendants = Vec::new();
             let mut lines = content.lines();
 
-            // Skip header
+
             lines.next();
 
             for line in lines {
@@ -214,8 +214,8 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
     }
 }
 
-/// Find an attendant by any identifier (email, phone, teams, google, name, or alias)
-/// This allows routing conversations to attendants via any channel
+
+
 pub async fn find_attendant_by_identifier(
     bot_id: Uuid,
     work_path: &str,
@@ -225,7 +225,7 @@ pub async fn find_attendant_by_identifier(
     let identifier_lower = identifier.to_lowercase().trim().to_string();
 
     for att in attendants {
-        // Check direct matches on all identifier fields
+
         if att.id.to_lowercase() == identifier_lower {
             return Some(att);
         }
@@ -233,7 +233,7 @@ pub async fn find_attendant_by_identifier(
             return Some(att);
         }
         if let Some(ref phone) = att.phone {
-            // Normalize phone (remove spaces, dashes, etc.)
+
             let phone_normalized = phone
                 .chars()
                 .filter(|c| c.is_numeric() || *c == '+')
@@ -261,7 +261,7 @@ pub async fn find_attendant_by_identifier(
                 return Some(att);
             }
         }
-        // Check aliases (semicolon-separated)
+
         if let Some(ref aliases) = att.aliases {
             for alias in aliases.split(';') {
                 if alias.trim().to_lowercase() == identifier_lower {
@@ -274,7 +274,7 @@ pub async fn find_attendant_by_identifier(
     None
 }
 
-/// Find attendants by channel preference (whatsapp, web, teams, all)
+
 pub async fn find_attendants_by_channel(
     bot_id: Uuid,
     work_path: &str,
@@ -291,7 +291,7 @@ pub async fn find_attendants_by_channel(
         .collect()
 }
 
-/// Find attendants by department
+
 pub async fn find_attendants_by_department(
     bot_id: Uuid,
     work_path: &str,
@@ -311,8 +311,8 @@ pub async fn find_attendants_by_department(
         .collect()
 }
 
-/// GET /api/queue/list
-/// Get all conversations in queue (only if bot has transfer=true)
+
+
 pub async fn list_queue(
     State(state): State<Arc<AppState>>,
     Query(filters): Query<QueueFilters>,
@@ -329,7 +329,7 @@ pub async fn list_queue(
             use crate::shared::models::schema::user_sessions;
             use crate::shared::models::schema::users;
 
-            // Build query - get recent sessions with user info
+
             let sessions_data: Vec<UserSession> = user_sessions::table
                 .order(user_sessions::created_at.desc())
                 .limit(50)
@@ -339,7 +339,7 @@ pub async fn list_queue(
             let mut queue_items = Vec::new();
 
             for session_data in sessions_data {
-                // Get user info separately
+
                 let user_info: Option<(String, String)> = users::table
                     .filter(users::id.eq(session_data.user_id))
                     .select((users::username, users::email))
@@ -407,8 +407,8 @@ pub async fn list_queue(
     }
 }
 
-/// GET /api/queue/attendants?bot_id={bot_id}
-/// Get all attendants from attendant.csv for a bot
+
+
 pub async fn list_attendants(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -419,7 +419,7 @@ pub async fn list_attendants(
     let bot_id = match Uuid::parse_str(&bot_id_str) {
         Ok(id) => id,
         Err(_) => {
-            // Get default bot
+
             let conn = state.conn.clone();
             let result = tokio::task::spawn_blocking(move || {
                 let mut db_conn = conn.get().ok()?;
@@ -442,14 +442,14 @@ pub async fn list_attendants(
         }
     };
 
-    // Check if transfer is enabled
+
     let work_path = "./work";
     if !is_transfer_enabled(bot_id, work_path).await {
         warn!("Transfer not enabled for bot {}", bot_id);
         return (StatusCode::OK, Json(vec![] as Vec<AttendantStats>));
     }
 
-    // Read attendants from CSV
+
     let attendant_csvs = read_attendants_csv(bot_id, work_path).await;
 
     let attendants: Vec<AttendantStats> = attendant_csvs
@@ -470,8 +470,8 @@ pub async fn list_attendants(
     (StatusCode::OK, Json(attendants))
 }
 
-/// POST /api/queue/assign
-/// Assign conversation to attendant (stores in session context_data)
+
+
 pub async fn assign_conversation(
     State(state): State<Arc<AppState>>,
     Json(request): Json<AssignRequest>,
@@ -481,7 +481,7 @@ pub async fn assign_conversation(
         request.session_id, request.attendant_id
     );
 
-    // Store assignment in session context_data
+
     let result = tokio::task::spawn_blocking({
         let conn = state.conn.clone();
         let session_id = request.session_id;
@@ -494,13 +494,13 @@ pub async fn assign_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-            // Get current session
+
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-            // Update context_data with assignment
+
             let mut ctx = session.context_data.clone();
             ctx["assigned_to"] = serde_json::json!(attendant_id.to_string());
             ctx["assigned_at"] = serde_json::json!(Utc::now().to_rfc3339());
@@ -549,8 +549,8 @@ pub async fn assign_conversation(
     }
 }
 
-/// POST /api/queue/transfer
-/// Transfer conversation between attendants
+
+
 pub async fn transfer_conversation(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TransferRequest>,
@@ -573,13 +573,13 @@ pub async fn transfer_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-            // Get current session
+
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-            // Update context_data with transfer info
+
             let mut ctx = session.context_data.clone();
             ctx["assigned_to"] = serde_json::json!(to_attendant.to_string());
             ctx["transferred_at"] = serde_json::json!(Utc::now().to_rfc3339());
@@ -633,8 +633,8 @@ pub async fn transfer_conversation(
     }
 }
 
-/// POST /api/queue/resolve
-/// Mark conversation as resolved
+
+
 pub async fn resolve_conversation(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
@@ -657,13 +657,13 @@ pub async fn resolve_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-            // Get current session
+
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-            // Update context_data to mark as resolved
+
             let mut ctx = session.context_data.clone();
             ctx["status"] = serde_json::json!("resolved");
             ctx["resolved_at"] = serde_json::json!(Utc::now().to_rfc3339());
@@ -714,8 +714,8 @@ pub async fn resolve_conversation(
     }
 }
 
-/// GET /api/queue/insights/{session_id}
-/// Get bot insights for a conversation
+
+
 pub async fn get_insights(
     State(state): State<Arc<AppState>>,
     Path(session_id): Path<Uuid>,
@@ -731,7 +731,7 @@ pub async fn get_insights(
 
             use crate::shared::models::schema::message_history;
 
-            // Get recent messages
+
             let messages: Vec<(String, i32)> = message_history::table
                 .filter(message_history::session_id.eq(session_id))
                 .select((message_history::content_encrypted, message_history::role))
@@ -740,10 +740,10 @@ pub async fn get_insights(
                 .load(&mut db_conn)
                 .map_err(|e| format!("Failed to load messages: {}", e))?;
 
-            // Analyze sentiment and intent (simplified)
+
             let user_messages: Vec<String> = messages
                 .iter()
-                .filter(|(_, r)| *r == 0) // User messages
+                .filter(|(_, r)| *r == 0)
                 .map(|(c, _)| c.clone())
                 .collect();
 

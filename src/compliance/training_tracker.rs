@@ -1,7 +1,7 @@
-//! Training Tracker Module
-//!
-//! Provides comprehensive security training tracking and compliance
-//! management for ensuring all personnel meet training requirements.
+
+
+
+
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Training type enumeration
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TrainingType {
     SecurityAwareness,
@@ -22,7 +22,7 @@ pub enum TrainingType {
     EmergencyProcedures,
 }
 
-/// Training status
+
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TrainingStatus {
     NotStarted,
@@ -33,7 +33,7 @@ pub enum TrainingStatus {
     Exempted,
 }
 
-/// Training priority
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TrainingPriority {
     Low,
@@ -42,7 +42,7 @@ pub enum TrainingPriority {
     Critical,
 }
 
-/// Training course definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingCourse {
     pub id: Uuid,
@@ -59,7 +59,7 @@ pub struct TrainingCourse {
     pub max_attempts: u32,
 }
 
-/// Training assignment
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingAssignment {
     pub id: Uuid,
@@ -75,7 +75,7 @@ pub struct TrainingAssignment {
     pub notes: Option<String>,
 }
 
-/// Training attempt record
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingAttempt {
     pub id: Uuid,
@@ -87,7 +87,7 @@ pub struct TrainingAttempt {
     pub time_spent_minutes: Option<u32>,
 }
 
-/// Training certificate
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingCertificate {
     pub id: Uuid,
@@ -99,7 +99,7 @@ pub struct TrainingCertificate {
     pub verification_code: String,
 }
 
-/// Training compliance status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceStatus {
     pub user_id: Uuid,
@@ -111,7 +111,7 @@ pub struct ComplianceStatus {
     pub compliance_percentage: f64,
 }
 
-/// Training tracker service
+
 #[derive(Debug, Clone)]
 pub struct TrainingTracker {
     courses: HashMap<Uuid, TrainingCourse>,
@@ -121,7 +121,7 @@ pub struct TrainingTracker {
 }
 
 impl TrainingTracker {
-    /// Create new training tracker
+
     pub fn new() -> Self {
         let mut tracker = Self {
             courses: HashMap::new(),
@@ -130,12 +130,12 @@ impl TrainingTracker {
             user_roles: HashMap::new(),
         };
 
-        // Initialize with default courses
+
         tracker.initialize_default_courses();
         tracker
     }
 
-    /// Initialize default training courses
+
     fn initialize_default_courses(&mut self) {
         let security_awareness = TrainingCourse {
             id: Uuid::new_v4(),
@@ -173,7 +173,7 @@ impl TrainingTracker {
         self.courses.insert(data_protection.id, data_protection);
     }
 
-    /// Create a training course
+
     pub fn create_course(&mut self, course: TrainingCourse) -> Result<()> {
         if self.courses.contains_key(&course.id) {
             return Err(anyhow!("Course already exists"));
@@ -184,7 +184,7 @@ impl TrainingTracker {
         Ok(())
     }
 
-    /// Assign training to user
+
     pub fn assign_training(
         &mut self,
         user_id: Uuid,
@@ -219,7 +219,7 @@ impl TrainingTracker {
         Ok(assignment)
     }
 
-    /// Start training attempt
+
     pub fn start_training(&mut self, assignment_id: Uuid) -> Result<TrainingAttempt> {
         let assignment = self
             .assignments
@@ -251,14 +251,14 @@ impl TrainingTracker {
         Ok(attempt)
     }
 
-    /// Complete training attempt
+
     pub fn complete_training(
         &mut self,
         assignment_id: Uuid,
         attempt_id: Uuid,
         score: u32,
     ) -> Result<bool> {
-        // Get course info first
+
         let (course_id, passing_score, validity_days, max_attempts, course_title) = {
             let assignment = self
                 .assignments
@@ -287,7 +287,7 @@ impl TrainingTracker {
         let time_spent = (end_time - start_time).num_minutes() as u32;
         let passed = score >= passing_score;
 
-        // Update attempt
+
         assignment.attempts[attempt_idx].end_time = Some(end_time);
         assignment.attempts[attempt_idx].score = Some(score);
         assignment.attempts[attempt_idx].time_spent_minutes = Some(time_spent);
@@ -301,7 +301,7 @@ impl TrainingTracker {
             assignment.completion_date = Some(end_time);
             assignment.expiry_date = Some(end_time + Duration::days(validity_days));
 
-            // Issue certificate
+
             let certificate = TrainingCertificate {
                 id: Uuid::new_v4(),
                 user_id,
@@ -330,7 +330,7 @@ impl TrainingTracker {
         Ok(passed)
     }
 
-    /// Get user compliance status
+
     pub fn get_compliance_status(&self, user_id: Uuid) -> ComplianceStatus {
         let user_roles = self
             .user_roles
@@ -351,7 +351,7 @@ impl TrainingTracker {
             {
                 required_trainings.push(course.id);
 
-                // Check if user has completed this training
+
                 let assignment = self
                     .assignments
                     .values()
@@ -400,7 +400,7 @@ impl TrainingTracker {
         }
     }
 
-    /// Get training report
+
     pub fn get_training_report(&self) -> TrainingReport {
         let total_courses = self.courses.len();
         let total_assignments = self.assignments.len();
@@ -441,7 +441,7 @@ impl TrainingTracker {
         }
     }
 
-    /// Calculate average training score
+
     fn calculate_average_score(&self) -> f64 {
         let mut total_score = 0;
         let mut count = 0;
@@ -462,12 +462,12 @@ impl TrainingTracker {
         }
     }
 
-    /// Set user roles
+
     pub fn set_user_roles(&mut self, user_id: Uuid, roles: Vec<String>) {
         self.user_roles.insert(user_id, roles);
     }
 
-    /// Get overdue trainings
+
     pub fn get_overdue_trainings(&self) -> Vec<TrainingAssignment> {
         self.assignments
             .values()
@@ -476,7 +476,7 @@ impl TrainingTracker {
             .collect()
     }
 
-    /// Get expiring certificates
+
     pub fn get_expiring_certificates(&self, days_ahead: i64) -> Vec<TrainingCertificate> {
         let cutoff = Utc::now() + Duration::days(days_ahead);
         self.certificates
@@ -487,7 +487,7 @@ impl TrainingTracker {
     }
 }
 
-/// Training report
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingReport {
     pub generated_at: DateTime<Utc>,

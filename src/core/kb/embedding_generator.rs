@@ -8,18 +8,18 @@ use tokio::sync::Semaphore;
 
 use super::document_processor::TextChunk;
 
-/// Embedding model configuration
+
 #[derive(Debug, Clone)]
 pub struct EmbeddingConfig {
-    /// URL for the embedding service (e.g., http://localhost:8082)
+
     pub embedding_url: String,
-    /// Model name/path for embeddings (e.g., bge-small-en-v1.5)
+
     pub embedding_model: String,
-    /// Dimension of embeddings (e.g., 384, 768, 1536)
+
     pub dimensions: usize,
-    /// Maximum batch size for embedding generation
+
     pub batch_size: usize,
-    /// Request timeout in seconds
+
     pub timeout_seconds: u64,
 }
 
@@ -28,7 +28,7 @@ impl Default for EmbeddingConfig {
         Self {
             embedding_url: "http://localhost:8082".to_string(),
             embedding_model: "bge-small-en-v1.5".to_string(),
-            dimensions: 384, // Default for bge-small
+            dimensions: 384,
             batch_size: 32,
             timeout_seconds: 30,
         }
@@ -36,14 +36,14 @@ impl Default for EmbeddingConfig {
 }
 
 impl EmbeddingConfig {
-    /// Create config from environment or config.csv values
+
     pub fn from_env() -> Self {
-        // Use defaults - can be configured via config.csv if needed
+
         let embedding_url = "http://localhost:8082".to_string();
 
         let embedding_model = "bge-small-en-v1.5".to_string();
 
-        // Detect dimensions based on model name
+
         let dimensions = Self::detect_dimensions(&embedding_model);
 
         Self {
@@ -55,7 +55,7 @@ impl EmbeddingConfig {
         }
     }
 
-    /// Detect embedding dimensions based on model name
+
     fn detect_dimensions(model: &str) -> usize {
         if model.contains("small") || model.contains("MiniLM") {
             384
@@ -64,19 +64,19 @@ impl EmbeddingConfig {
         } else if model.contains("large") || model.contains("ada") {
             1536
         } else {
-            384 // Default
+            384
         }
     }
 }
 
-/// Request payload for embedding generation
+
 #[derive(Debug, Serialize)]
 struct EmbeddingRequest {
     input: Vec<String>,
     model: String,
 }
 
-/// Response from embedding service
+
 #[derive(Debug, Deserialize)]
 struct EmbeddingResponse {
     data: Vec<EmbeddingData>,
@@ -96,7 +96,7 @@ struct EmbeddingUsage {
     total_tokens: usize,
 }
 
-/// Generated embedding with metadata
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Embedding {
     pub vector: Vec<f32>,
@@ -105,7 +105,7 @@ pub struct Embedding {
     pub tokens_used: Option<usize>,
 }
 
-/// Knowledge base embedding generator
+
 pub struct KbEmbeddingGenerator {
     config: EmbeddingConfig,
     client: Client,
@@ -129,7 +129,7 @@ impl KbEmbeddingGenerator {
             .build()
             .expect("Failed to create HTTP client");
 
-        // Limit concurrent requests
+
         let semaphore = Arc::new(Semaphore::new(4));
 
         Self {
@@ -139,7 +139,7 @@ impl KbEmbeddingGenerator {
         }
     }
 
-    /// Generate embeddings for text chunks
+
     pub async fn generate_embeddings(
         &self,
         chunks: &[TextChunk],
@@ -152,11 +152,11 @@ impl KbEmbeddingGenerator {
 
         let mut results = Vec::new();
 
-        // Process in batches
+
         for batch in chunks.chunks(self.config.batch_size) {
             let batch_embeddings = self.generate_batch_embeddings(batch).await?;
 
-            // Pair chunks with their embeddings
+
             for (chunk, embedding) in batch.iter().zip(batch_embeddings.iter()) {
                 results.push((chunk.clone(), embedding.clone()));
             }
@@ -167,7 +167,7 @@ impl KbEmbeddingGenerator {
         Ok(results)
     }
 
-    /// Generate embeddings for a batch of chunks
+
     async fn generate_batch_embeddings(&self, chunks: &[TextChunk]) -> Result<Vec<Embedding>> {
         let _permit = self.semaphore.acquire().await?;
 
@@ -175,7 +175,7 @@ impl KbEmbeddingGenerator {
 
         debug!("Generating embeddings for batch of {} texts", texts.len());
 
-        // Try local embedding service first
+
         match self.generate_local_embeddings(&texts).await {
             Ok(embeddings) => Ok(embeddings),
             Err(e) => {
@@ -185,7 +185,7 @@ impl KbEmbeddingGenerator {
         }
     }
 
-    /// Generate embeddings using local service
+
     async fn generate_local_embeddings(&self, texts: &[String]) -> Result<Vec<Embedding>> {
         let request = EmbeddingRequest {
             input: texts.to_vec(),
@@ -228,15 +228,15 @@ impl KbEmbeddingGenerator {
         Ok(embeddings)
     }
 
-    /// Generate embeddings using OpenAI API (fallback)
+
     async fn generate_openai_embeddings(&self, _texts: &[String]) -> Result<Vec<Embedding>> {
-        // OpenAI embeddings disabled - use local embedding service instead
+
         Err(anyhow::anyhow!(
             "OpenAI embeddings not configured - use local embedding service"
         ))
     }
 
-    /// Generate embedding for a single text
+
     pub async fn generate_single_embedding(&self, text: &str) -> Result<Embedding> {
         let embeddings = self
             .generate_batch_embeddings(&[TextChunk {
@@ -260,7 +260,7 @@ impl KbEmbeddingGenerator {
     }
 }
 
-/// Generic embedding generator for other uses (email, etc.)
+
 pub struct EmbeddingGenerator {
     kb_generator: KbEmbeddingGenerator,
 }
@@ -285,14 +285,14 @@ impl EmbeddingGenerator {
         }
     }
 
-    /// Generate embedding for arbitrary text
+
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let embedding = self.kb_generator.generate_single_embedding(text).await?;
         Ok(embedding.vector)
     }
 }
 
-/// Email-specific embedding generator (for compatibility)
+
 pub struct EmailEmbeddingGenerator {
     generator: EmbeddingGenerator,
 }
@@ -312,7 +312,7 @@ impl EmailEmbeddingGenerator {
         }
     }
 
-    /// Generate embedding for email content
+
     pub async fn generate_embedding(&self, email: &impl EmailLike) -> Result<Vec<f32>> {
         let text = format!(
             "Subject: {}\nFrom: {}\nTo: {}\n\n{}",
@@ -325,13 +325,13 @@ impl EmailEmbeddingGenerator {
         self.generator.generate_text_embedding(&text).await
     }
 
-    /// Generate embedding for text
+
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
         self.generator.generate_text_embedding(text).await
     }
 }
 
-/// Trait for email-like objects
+
 pub trait EmailLike {
     fn subject(&self) -> &str;
     fn from(&self) -> &str;
@@ -339,7 +339,7 @@ pub trait EmailLike {
     fn body(&self) -> &str;
 }
 
-/// Simple email struct for testing
+
 #[derive(Debug)]
 pub struct SimpleEmail {
     pub id: String,

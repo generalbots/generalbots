@@ -322,7 +322,7 @@ impl SessionManager {
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
 
-        // Try to query sessions, return empty vec if database error
+
         let sessions = if uid == Uuid::nil() {
             user_sessions
                 .order(created_at.desc())
@@ -355,12 +355,12 @@ impl SessionManager {
         Ok(())
     }
 
-    /// Get count of active sessions (for analytics)
+
     pub fn active_count(&self) -> usize {
         self.sessions.len()
     }
 
-    /// Get total count of sessions from database
+
     pub fn total_count(&mut self) -> usize {
         use crate::shared::models::user_sessions::dsl::*;
         user_sessions
@@ -369,7 +369,7 @@ impl SessionManager {
             .unwrap_or(0) as usize
     }
 
-    /// Get sessions created in the last N hours
+
     pub fn recent_sessions(
         &mut self,
         hours: i64,
@@ -383,7 +383,7 @@ impl SessionManager {
         Ok(sessions)
     }
 
-    /// Get session statistics for analytics
+
     pub fn get_statistics(&mut self) -> Result<serde_json::Value, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
 
@@ -410,20 +410,20 @@ impl SessionManager {
 
 /* Axum handlers */
 
-/// Create a new session (anonymous user)
+
 pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-    // Always create a session, even without database
+
     let temp_session_id = Uuid::new_v4();
 
-    // Try to create in database if available
+
     if state.conn.get().is_ok() {
-        // Using a fixed anonymous user ID for simplicity
+
         let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let bot_id = Uuid::nil();
 
         let _session_result = {
             let mut sm = state.session_manager.lock().await;
-            // Try to create, but don't fail if database has issues
+
             match sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {
                 Ok(Some(session)) => {
                     return (
@@ -436,13 +436,13 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
                     );
                 }
                 _ => {
-                    // Fall through to temporary session
+
                 }
             }
         };
     }
 
-    // Return temporary session if database is unavailable or has errors
+
     (
         StatusCode::OK,
         Json(serde_json::json!({
@@ -454,15 +454,15 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
     )
 }
 
-/// Get list of sessions for the anonymous user
+
 pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-    // Return empty array if database is not ready or has issues
+
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
 
-    // Try to get a fresh connection from the pool
+
     let conn_result = state.conn.get();
     if conn_result.is_err() {
-        // Database not available, return empty sessions array
+
         return (StatusCode::OK, Json(serde_json::json!([])));
     }
 
@@ -470,14 +470,14 @@ pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl In
     match orchestrator.get_user_sessions(user_id).await {
         Ok(sessions) => (StatusCode::OK, Json(serde_json::json!(sessions))),
         Err(_) => {
-            // On any error, return empty array instead of error message
-            // This allows the UI to continue functioning
+
+
             (StatusCode::OK, Json(serde_json::json!([])))
         }
     }
 }
 
-/// Start a session (mark as waiting for input)
+
 pub async fn start_session(
     Extension(state): Extension<Arc<AppState>>,
     Path(session_id): Path<String>,
@@ -510,7 +510,7 @@ pub async fn start_session(
     }
 }
 
-/// Get conversation history for a session
+
 pub async fn get_session_history(
     Extension(state): Extension<Arc<AppState>>,
     Path(session_id): Path<String>,

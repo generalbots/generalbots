@@ -1,7 +1,7 @@
-//! KB Statistics Keywords
-//!
-//! Provides keywords for querying Qdrant vector database statistics.
-//! Used for monitoring and managing knowledge base collections.
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -10,7 +10,7 @@ use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-/// Statistics for a single collection
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionStats {
     pub name: String,
@@ -23,7 +23,7 @@ pub struct CollectionStats {
     pub status: String,
 }
 
-/// Aggregated statistics across collections
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KBStatistics {
     pub total_collections: u64,
@@ -36,12 +36,12 @@ pub struct KBStatistics {
     pub collections: Vec<CollectionStats>,
 }
 
-/// Register KB STATISTICS keyword
+
 pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // KB STATISTICS - Get overall statistics
+
     engine.register_fn("KB STATISTICS", move || -> Dynamic {
         let state = Arc::clone(&state_clone);
         let user = user_clone.clone();
@@ -77,7 +77,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         }
     });
 
-    // KB COLLECTION STATS collection_name - Get stats for specific collection
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -121,7 +121,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         },
     );
 
-    // KB DOCUMENTS COUNT - Get total document count for bot
+
     let state_clone3 = Arc::clone(&state);
     let user_clone3 = user.clone();
 
@@ -148,7 +148,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         result.unwrap_or(0)
     });
 
-    // KB DOCUMENTS ADDED SINCE days - Get count of documents added since N days ago
+
     let state_clone4 = Arc::clone(&state);
     let user_clone4 = user.clone();
 
@@ -176,7 +176,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         result.unwrap_or(0)
     });
 
-    // KB LIST COLLECTIONS - List all collections for bot
+
     let state_clone5 = Arc::clone(&state);
     let user_clone5 = user.clone();
 
@@ -212,7 +212,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         }
     });
 
-    // KB STORAGE SIZE - Get total storage size in MB
+
     let state_clone6 = Arc::clone(&state);
     let user_clone6 = user.clone();
 
@@ -240,7 +240,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     });
 }
 
-/// Get comprehensive KB statistics
+
 async fn get_kb_statistics(
     state: &AppState,
     user: &UserSession,
@@ -251,7 +251,7 @@ async fn get_kb_statistics(
         .danger_accept_invalid_certs(true)
         .build()?;
 
-    // Get list of collections
+
     let collections_response = client
         .get(format!("{}/collections", qdrant_url))
         .send()
@@ -282,7 +282,7 @@ async fn get_kb_statistics(
         }
     }
 
-    // Get documents added in last week and month from database
+
     let documents_added_last_week =
         get_documents_added_since(state, user, 7).await.unwrap_or(0) as u64;
     let documents_added_last_month = get_documents_added_since(state, user, 30)
@@ -301,7 +301,7 @@ async fn get_kb_statistics(
     })
 }
 
-/// Get statistics for a specific collection
+
 async fn get_collection_statistics(
     _state: &AppState,
     collection_name: &str,
@@ -332,7 +332,7 @@ async fn get_collection_statistics(
     })
 }
 
-/// Get total document count for a bot
+
 async fn get_documents_count(
     state: &AppState,
     user: &UserSession,
@@ -358,7 +358,7 @@ async fn get_documents_count(
     Ok(result.count)
 }
 
-/// Get count of documents added since N days ago
+
 async fn get_documents_added_since(
     state: &AppState,
     user: &UserSession,
@@ -389,7 +389,7 @@ async fn get_documents_added_since(
     Ok(result.count)
 }
 
-/// List all collections for a bot
+
 async fn list_collections(
     _state: &AppState,
     user: &UserSession,
@@ -417,7 +417,7 @@ async fn list_collections(
     Ok(collections)
 }
 
-/// Get total storage size in MB for a bot's collections
+
 async fn get_storage_size(
     state: &AppState,
     user: &UserSession,

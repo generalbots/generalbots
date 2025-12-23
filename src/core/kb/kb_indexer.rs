@@ -8,7 +8,7 @@ use uuid::Uuid;
 use super::document_processor::{DocumentProcessor, TextChunk};
 use super::embedding_generator::{Embedding, EmbeddingConfig, KbEmbeddingGenerator};
 
-/// Qdrant client configuration
+
 #[derive(Debug, Clone)]
 pub struct QdrantConfig {
     pub url: String,
@@ -26,7 +26,7 @@ impl Default for QdrantConfig {
     }
 }
 
-/// Point structure for Qdrant
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct QdrantPoint {
     pub id: String,
@@ -34,7 +34,7 @@ pub struct QdrantPoint {
     pub payload: HashMap<String, serde_json::Value>,
 }
 
-/// Collection configuration for Qdrant
+
 #[derive(Debug, Serialize)]
 pub struct CollectionConfig {
     pub vectors: VectorConfig,
@@ -48,7 +48,7 @@ pub struct VectorConfig {
     pub distance: String,
 }
 
-/// Search request structure
+
 #[derive(Debug, Serialize)]
 pub struct SearchRequest {
     pub vector: Vec<f32>,
@@ -58,7 +58,7 @@ pub struct SearchRequest {
     pub filter: Option<serde_json::Value>,
 }
 
-/// Knowledge Base Indexer for Qdrant
+
 pub struct KbIndexer {
     document_processor: DocumentProcessor,
     embedding_generator: KbEmbeddingGenerator,
@@ -95,7 +95,7 @@ impl KbIndexer {
         }
     }
 
-    /// Index a knowledge base folder
+
     pub async fn index_kb_folder(
         &self,
         bot_name: &str,
@@ -104,13 +104,13 @@ impl KbIndexer {
     ) -> Result<IndexingResult> {
         info!("Indexing KB folder: {} for bot {}", kb_name, bot_name);
 
-        // Create collection name
+
         let collection_name = format!("{}_{}", bot_name, kb_name);
 
-        // Ensure collection exists
+
         self.ensure_collection_exists(&collection_name).await?;
 
-        // Process all documents in the folder
+
         let documents = self.document_processor.process_kb_folder(kb_path).await?;
 
         let mut total_chunks = 0;
@@ -127,23 +127,23 @@ impl KbIndexer {
                 chunks.len()
             );
 
-            // Generate embeddings for chunks
+
             let embeddings = self
                 .embedding_generator
                 .generate_embeddings(&chunks)
                 .await?;
 
-            // Create points for Qdrant
+
             let points = self.create_qdrant_points(&doc_path, embeddings)?;
 
-            // Upsert points to collection
+
             self.upsert_points(&collection_name, points).await?;
 
             total_chunks += chunks.len();
             indexed_documents += 1;
         }
 
-        // Update collection info in database
+
         self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)
             .await?;
 
@@ -154,9 +154,9 @@ impl KbIndexer {
         })
     }
 
-    /// Ensure Qdrant collection exists
+
     async fn ensure_collection_exists(&self, collection_name: &str) -> Result<()> {
-        // Check if collection exists
+
         let check_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
 
         let response = self.http_client.get(&check_url).send().await?;
@@ -166,12 +166,12 @@ impl KbIndexer {
             return Ok(());
         }
 
-        // Create collection
+
         info!("Creating collection: {}", collection_name);
 
         let config = CollectionConfig {
             vectors: VectorConfig {
-                size: 384, // Default for bge-small, should be configurable
+                size: 384,
                 distance: "Cosine".to_string(),
             },
             replication_factor: 1,
@@ -195,15 +195,15 @@ impl KbIndexer {
             ));
         }
 
-        // Create indexes for better performance
+
         self.create_collection_indexes(collection_name).await?;
 
         Ok(())
     }
 
-    /// Create indexes for collection
+
     async fn create_collection_indexes(&self, collection_name: &str) -> Result<()> {
-        // Create HNSW index for vector search
+
         let index_config = serde_json::json!({
             "hnsw_config": {
                 "m": 16,
@@ -231,7 +231,7 @@ impl KbIndexer {
         Ok(())
     }
 
-    /// Create Qdrant points from chunks and embeddings
+
     fn create_qdrant_points(
         &self,
         doc_path: &str,
@@ -285,13 +285,13 @@ impl KbIndexer {
         Ok(points)
     }
 
-    /// Upsert points to Qdrant collection
+
     async fn upsert_points(&self, collection_name: &str, points: Vec<QdrantPoint>) -> Result<()> {
         if points.is_empty() {
             return Ok(());
         }
 
-        let batch_size = 100; // Qdrant recommended batch size
+        let batch_size = 100;
 
         for batch in points.chunks(batch_size) {
             let upsert_request = serde_json::json!({
@@ -325,7 +325,7 @@ impl KbIndexer {
         Ok(())
     }
 
-    /// Update collection metadata in database
+
     async fn update_collection_metadata(
         &self,
         collection_name: &str,
@@ -333,8 +333,8 @@ impl KbIndexer {
         kb_name: &str,
         document_count: usize,
     ) -> Result<()> {
-        // This would update the kb_collections table
-        // For now, just log the information
+
+
         info!(
             "Updated collection {} metadata: bot={}, kb={}, docs={}",
             collection_name, bot_name, kb_name, document_count
@@ -343,25 +343,25 @@ impl KbIndexer {
         Ok(())
     }
 
-    /// Search for similar chunks in a collection
+
     pub async fn search(
         &self,
         collection_name: &str,
         query: &str,
         limit: usize,
     ) -> Result<Vec<SearchResult>> {
-        // Generate embedding for query
+
         let embedding = self
             .embedding_generator
             .generate_single_embedding(query)
             .await?;
 
-        // Create search request
+
         let search_request = SearchRequest {
             vector: embedding.vector,
             limit,
             with_payload: true,
-            score_threshold: Some(0.5), // Minimum similarity threshold
+            score_threshold: Some(0.5),
             filter: None,
         };
 
@@ -416,7 +416,7 @@ impl KbIndexer {
         Ok(results)
     }
 
-    /// Delete a collection
+
     pub async fn delete_collection(&self, collection_name: &str) -> Result<()> {
         let delete_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
 
@@ -433,7 +433,7 @@ impl KbIndexer {
         Ok(())
     }
 
-    /// Get collection information and statistics from Qdrant
+
     pub async fn get_collection_info(&self, collection_name: &str) -> Result<CollectionInfo> {
         let info_url = format!("{}/collections/{}", self.qdrant_config.url, collection_name);
 
@@ -442,7 +442,7 @@ impl KbIndexer {
         if !response.status().is_success() {
             let status = response.status();
             if status.as_u16() == 404 {
-                // Collection doesn't exist, return empty stats
+
                 return Ok(CollectionInfo {
                     name: collection_name.to_string(),
                     points_count: 0,
@@ -461,7 +461,7 @@ impl KbIndexer {
 
         let response_json: serde_json::Value = response.json().await?;
 
-        // Parse Qdrant response structure
+
         let result = &response_json["result"];
 
         let points_count = result["points_count"].as_u64().unwrap_or(0) as usize;
@@ -490,7 +490,7 @@ impl KbIndexer {
     }
 }
 
-/// Collection information from Qdrant
+
 #[derive(Debug, Clone)]
 pub struct CollectionInfo {
     pub name: String,
@@ -501,7 +501,7 @@ pub struct CollectionInfo {
     pub status: String,
 }
 
-/// Result of indexing operation
+
 #[derive(Debug)]
 pub struct IndexingResult {
     pub collection_name: String,
@@ -509,7 +509,7 @@ pub struct IndexingResult {
     pub chunks_indexed: usize,
 }
 
-/// Search result from vector database
+
 #[derive(Debug, Clone)]
 pub struct SearchResult {
     pub content: String,
@@ -518,7 +518,7 @@ pub struct SearchResult {
     pub metadata: serde_json::Map<String, serde_json::Value>,
 }
 
-/// Monitor for .gbkb folder changes and trigger indexing
+
 #[derive(Debug)]
 pub struct KbFolderMonitor {
     indexer: KbIndexer,
@@ -533,9 +533,9 @@ impl KbFolderMonitor {
         Self { indexer, work_root }
     }
 
-    /// Process a .gbkb folder that was detected by drive monitor
+
     pub async fn process_gbkb_folder(&self, bot_name: &str, kb_folder: &Path) -> Result<()> {
-        // Extract KB name from folder path
+
         let kb_name = kb_folder
             .file_name()
             .and_then(|n| n.to_str())
@@ -543,14 +543,14 @@ impl KbFolderMonitor {
 
         info!("Processing .gbkb folder: {} for bot {}", kb_name, bot_name);
 
-        // Build local work path
+
         let local_path = self
             .work_root
             .join(bot_name)
             .join(format!("{}.gbkb", bot_name))
             .join(kb_name);
 
-        // Index the folder
+
         let result = self
             .indexer
             .index_kb_folder(bot_name, kb_name, &local_path)

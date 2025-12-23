@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use std::time::Duration;
 use tokio::time::sleep;
 
-/// Website crawl configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebsiteCrawlConfig {
     pub url: String,
@@ -18,7 +18,7 @@ pub struct WebsiteCrawlConfig {
 }
 
 impl WebsiteCrawlConfig {
-    /// Parse expiration policy and calculate next crawl time
+
     pub fn calculate_next_crawl(&mut self) {
         let now = chrono::Utc::now();
         self.last_crawled = Some(now);
@@ -36,7 +36,7 @@ impl WebsiteCrawlConfig {
             "6m" => chrono::Duration::days(180),
             "1y" | "365d" => chrono::Duration::days(365),
             custom => {
-                // Simple parsing for custom format like "2h", "5d", etc.
+
                 if custom.ends_with('h') {
                     if let Ok(hours) = custom[..custom.len() - 1].parse::<i64>() {
                         chrono::Duration::hours(hours)
@@ -68,7 +68,7 @@ impl WebsiteCrawlConfig {
                         chrono::Duration::days(1)
                     }
                 } else {
-                    chrono::Duration::days(1) // Default to daily if unparseable
+                    chrono::Duration::days(1)
                 }
             }
         };
@@ -76,16 +76,16 @@ impl WebsiteCrawlConfig {
         self.next_crawl = Some(now + duration);
     }
 
-    /// Check if website needs recrawling
+
     pub fn needs_crawl(&self) -> bool {
         match self.next_crawl {
             Some(next) => chrono::Utc::now() >= next,
-            None => true, // Never crawled
+            None => true,
         }
     }
 }
 
-/// Website content for indexing
+
 #[derive(Debug, Clone)]
 pub struct WebPage {
     pub url: String,
@@ -95,7 +95,7 @@ pub struct WebPage {
     pub crawled_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Web crawler for website content
+
 #[derive(Debug)]
 pub struct WebCrawler {
     client: reqwest::Client,
@@ -120,11 +120,11 @@ impl WebCrawler {
         }
     }
 
-    /// Crawl website starting from configured URL
+
     pub async fn crawl(&mut self) -> Result<Vec<WebPage>> {
         info!("Starting crawl of website: {}", self.config.url);
 
-        // Start crawling from root URL
+
         self.crawl_recursive(&self.config.url.clone(), 0).await?;
 
         info!(
@@ -136,9 +136,9 @@ impl WebCrawler {
         Ok(self.pages.clone())
     }
 
-    /// Recursive crawling with depth control
+
     async fn crawl_recursive(&mut self, url: &str, depth: usize) -> Result<()> {
-        // Check depth limit
+
         if depth > self.config.max_depth {
             trace!(
                 "Reached max depth {} for URL: {}",
@@ -148,35 +148,35 @@ impl WebCrawler {
             return Ok(());
         }
 
-        // Check page limit
+
         if self.pages.len() >= self.config.max_pages {
             trace!("Reached max pages limit: {}", self.config.max_pages);
             return Ok(());
         }
 
-        // Check if already visited
+
         if self.visited_urls.contains(url) {
             return Ok(());
         }
 
-        // Mark as visited
+
         self.visited_urls.insert(url.to_string());
 
-        // Add crawl delay to be polite
+
         if !self.visited_urls.is_empty() {
             sleep(Duration::from_millis(self.config.crawl_delay_ms)).await;
         }
 
-        // Fetch page
+
         let response = match self.client.get(url).send().await {
             Ok(resp) => resp,
             Err(e) => {
                 warn!("Failed to fetch {}: {}", url, e);
-                return Ok(()); // Continue crawling other pages
+                return Ok(());
             }
         };
 
-        // Check if HTML
+
         let content_type = response
             .headers()
             .get("content-type")
@@ -188,7 +188,7 @@ impl WebCrawler {
             return Ok(());
         }
 
-        // Get page content
+
         let html_text = match response.text().await {
             Ok(text) => text,
             Err(e) => {
@@ -197,15 +197,15 @@ impl WebCrawler {
             }
         };
 
-        // Extract page content
+
         let page = self.extract_page_content(&html_text, url);
         self.pages.push(page);
 
-        // Extract and crawl links if not at max depth
+
         if depth < self.config.max_depth {
             let links = self.extract_links(&html_text, url);
             for link in links {
-                // Only crawl same domain
+
                 if self.is_same_domain(url, &link) {
                     Box::pin(self.crawl_recursive(&link, depth + 1)).await?;
                 }
@@ -215,12 +215,12 @@ impl WebCrawler {
         Ok(())
     }
 
-    /// Extract text content from HTML
+
     fn extract_page_content(&self, html: &str, url: &str) -> WebPage {
-        // Simple HTML tag removal
+
         let mut text = html.to_string();
 
-        // Remove script and style tags with their content
+
         while let Some(start) = text.find("<script") {
             if let Some(end) = text.find("</script>") {
                 text.replace_range(start..=end + 8, " ");
@@ -237,7 +237,7 @@ impl WebCrawler {
             }
         }
 
-        // Extract title if present
+
         let title = if let Some(title_start) = text.find("<title>") {
             if let Some(title_end) = text.find("</title>") {
                 Some(text[title_start + 7..title_end].to_string())
@@ -248,7 +248,7 @@ impl WebCrawler {
             None
         };
 
-        // Remove all remaining HTML tags
+
         while let Some(start) = text.find('<') {
             if let Some(end) = text.find('>') {
                 if end > start {
@@ -261,7 +261,7 @@ impl WebCrawler {
             }
         }
 
-        // Clean up whitespace
+
         let content = text.split_whitespace().collect::<Vec<_>>().join(" ");
 
         WebPage {
@@ -273,36 +273,36 @@ impl WebCrawler {
         }
     }
 
-    /// Extract links from HTML
+
     fn extract_links(&self, html: &str, base_url: &str) -> Vec<String> {
         let mut links = Vec::new();
         let mut search_pos = 0;
 
-        // Simple href extraction
+
         while let Some(href_pos) = html[search_pos..].find("href=\"") {
             let href_start = search_pos + href_pos + 6;
             if let Some(href_end) = html[href_start..].find('"') {
                 let href = &html[href_start..href_start + href_end];
 
-                // Skip anchors, javascript, mailto, etc.
+
                 if !href.starts_with('#')
                     && !href.starts_with("javascript:")
                     && !href.starts_with("mailto:")
                     && !href.starts_with("tel:")
                 {
-                    // Convert relative URLs to absolute
+
                     let absolute_url =
                         if href.starts_with("http://") || href.starts_with("https://") {
                             href.to_string()
                         } else if href.starts_with('/') {
-                            // Get base domain from base_url
+
                             if let Some(domain_end) = base_url[8..].find('/') {
                                 format!("{}{}", &base_url[..8 + domain_end], href)
                             } else {
                                 format!("{}{}", base_url, href)
                             }
                         } else {
-                            // Relative to current page
+
                             if let Some(last_slash) = base_url.rfind('/') {
                                 format!("{}/{}", &base_url[..last_slash], href)
                             } else {
@@ -321,14 +321,14 @@ impl WebCrawler {
         links
     }
 
-    /// Check if two URLs are from the same domain
+
     fn is_same_domain(&self, url1: &str, url2: &str) -> bool {
         let domain1 = self.extract_domain(url1);
         let domain2 = self.extract_domain(url2);
         domain1 == domain2
     }
 
-    /// Extract domain from URL
+
     fn extract_domain(&self, url: &str) -> String {
         let without_protocol = if url.starts_with("https://") {
             &url[8..]

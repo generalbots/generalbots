@@ -6,8 +6,8 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Registers user memory keywords for cross-session memory persistence.
-/// Unlike bot memory, user memory persists across all sessions and bots for a specific user.
+
+
 pub fn register_user_memory_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     set_user_memory_keyword(state.clone(), user.clone(), engine);
     get_user_memory_keyword(state.clone(), user.clone(), engine);
@@ -16,8 +16,8 @@ pub fn register_user_memory_keywords(state: Arc<AppState>, user: UserSession, en
     clear_user_memory_keyword(state.clone(), user.clone(), engine);
 }
 
-/// SET USER MEMORY key, value
-/// Stores a key-value pair that persists across all sessions for this user
+
+
 pub fn set_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -60,8 +60,8 @@ pub fn set_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .expect("Failed to register SET USER MEMORY syntax");
 }
 
-/// GET USER MEMORY("key")
-/// Retrieves a value from user's cross-session memory
+
+
 pub fn get_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -78,8 +78,8 @@ pub fn get_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: 
     });
 }
 
-/// REMEMBER USER FACT "fact about user"
-/// Stores a learned fact about the user for future reference
+
+
 pub fn remember_user_fact_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -114,8 +114,8 @@ pub fn remember_user_fact_keyword(state: Arc<AppState>, user: UserSession, engin
         .expect("Failed to register REMEMBER USER FACT syntax");
 }
 
-/// GET USER FACTS()
-/// Retrieves all learned facts about the user
+
+
 pub fn get_user_facts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -136,8 +136,8 @@ pub fn get_user_facts_keyword(state: Arc<AppState>, user: UserSession, engine: &
     });
 }
 
-/// CLEAR USER MEMORY
-/// Clears all user memory (preferences and facts)
+
+
 pub fn clear_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -160,9 +160,9 @@ pub fn clear_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register CLEAR USER MEMORY syntax");
 }
 
-// Database Operations
 
-/// Async function to set user memory
+
+
 async fn set_user_memory_async(
     state: &AppState,
     user_id: Uuid,
@@ -178,7 +178,7 @@ async fn set_user_memory_async(
     let now = chrono::Utc::now();
     let new_id = Uuid::new_v4();
 
-    // Use raw SQL for upsert since we need to handle the user_memories table
+
     diesel::sql_query(
         "INSERT INTO user_memories (id, user_id, key, value, memory_type, created_at, updated_at) \
          VALUES ($1, $2, $3, $4, $5, $6, $7) \
@@ -200,7 +200,7 @@ async fn set_user_memory_async(
     Ok(())
 }
 
-/// Sync function to get user memory (for use in registered functions)
+
 fn get_user_memory_sync(
     conn: &mut diesel::PgConnection,
     user_id: Uuid,
@@ -224,7 +224,7 @@ fn get_user_memory_sync(
     Ok(result.map(|r| r.value).unwrap_or_default())
 }
 
-/// Async function to add a user fact
+
 async fn add_user_fact_async(
     state: &AppState,
     user_id: Uuid,
@@ -255,7 +255,7 @@ async fn add_user_fact_async(
     Ok(())
 }
 
-/// Sync function to get all user facts
+
 fn get_user_facts_sync(
     conn: &mut diesel::PgConnection,
     user_id: Uuid,
@@ -276,7 +276,7 @@ fn get_user_facts_sync(
     Ok(results.into_iter().map(|r| r.value).collect())
 }
 
-/// Async function to clear all user memory
+
 async fn clear_user_memory_async(state: &AppState, user_id: Uuid) -> Result<(), String> {
     let mut conn = state
         .conn
@@ -291,4 +291,4 @@ async fn clear_user_memory_async(state: &AppState, user_id: Uuid) -> Result<(), 
     Ok(())
 }
 
-// Tests
+

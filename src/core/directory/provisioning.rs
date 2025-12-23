@@ -7,10 +7,10 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Database pool type alias
+
 pub type DbPool = Pool<ConnectionManager<PgConnection>>;
 
-/// User provisioning service that creates accounts across all integrated services
+
 pub struct UserProvisioningService {
     db_pool: DbPool,
     s3_client: Option<Arc<S3Client>>,
@@ -61,17 +61,17 @@ impl UserProvisioningService {
         }
     }
 
-    /// Get the base URL for the directory service
+
     pub fn get_base_url(&self) -> &str {
         &self.base_url
     }
 
-    /// Build a user profile URL
+
     pub fn build_profile_url(&self, username: &str) -> String {
         format!("{}/users/{}/profile", self.base_url, username)
     }
 
-    /// Create a new user across all services
+
     pub async fn provision_user(&self, account: &UserAccount) -> Result<()> {
         log::info!(
             "Provisioning user: {} via directory at {}",
@@ -79,23 +79,23 @@ impl UserProvisioningService {
             self.base_url
         );
 
-        // 1. Create user in database using existing user management
+
         let user_id = self.create_database_user(account).await?;
 
-        // 2. Create home directories in S3 for each bot using existing drive API
+
         for bot_access in &account.bots {
             self.create_s3_home(account, bot_access).await?;
         }
 
-        // 3. Create email account using existing email API
+
         if let Err(e) = self.setup_email_account(account).await {
             log::warn!("Email account creation failed: {}", e);
         }
 
-        // 4. Setup OAuth linking in configuration
+
         self.setup_oauth_config(&user_id, account).await?;
 
-        // Log profile URL for reference
+
         let profile_url = self.build_profile_url(&account.username);
         log::info!(
             "User {} provisioned successfully. Profile: {}",
@@ -151,7 +151,7 @@ impl UserProvisioningService {
         let bucket_name = format!("{}.gbdrive", bot_access.bot_name);
         let home_path = format!("home/{}/", account.username);
 
-        // Ensure bucket exists
+
         match s3_client.head_bucket().bucket(&bucket_name).send().await {
             Err(_) => {
                 s3_client
@@ -163,7 +163,7 @@ impl UserProvisioningService {
             Ok(_) => {}
         }
 
-        // Create user home directory marker
+
         s3_client
             .put_object()
             .bucket(&bucket_name)
@@ -172,7 +172,7 @@ impl UserProvisioningService {
             .send()
             .await?;
 
-        // Create default folders
+
         for folder in &["documents", "projects", "shared"] {
             let folder_key = format!("{}{}/", home_path, folder);
             s3_client
@@ -196,13 +196,13 @@ impl UserProvisioningService {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 
-        // Store email configuration in database
+
         let mut conn = self
             .db_pool
             .get()
             .map_err(|e| anyhow::anyhow!("Failed to get database connection: {}", e))?;
 
-        // Create a UUID for the user_id since the column expects UUID
+
         let user_uuid = Uuid::new_v4();
         diesel::insert_into(user_email_accounts::table)
             .values((
@@ -226,7 +226,7 @@ impl UserProvisioningService {
         use crate::shared::models::schema::bot_configuration;
         use diesel::prelude::*;
 
-        // Store OAuth configuration for services
+
         let services = vec![
             ("oauth-drive-enabled", "true"),
             ("oauth-email-enabled", "true"),
@@ -259,11 +259,11 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    /// Remove user from all services
+
     pub async fn deprovision_user(&self, username: &str) -> Result<()> {
         log::info!("Deprovisioning user: {}", username);
 
-        // Remove user data from all services
+
         self.remove_s3_data(username).await?;
         self.remove_email_config(username).await?;
         self.remove_user_from_db(username).await?;
@@ -286,7 +286,7 @@ impl UserProvisioningService {
     }
 
     async fn remove_s3_data(&self, username: &str) -> Result<()> {
-        // List all buckets and remove user home directories
+
         if let Some(s3_client) = &self.s3_client {
             let buckets_result = s3_client.list_buckets().send().await?;
 
@@ -296,7 +296,7 @@ impl UserProvisioningService {
                         if name.ends_with(".gbdrive") {
                             let prefix = format!("home/{}/", username);
 
-                            // List and delete all objects with this prefix
+
                             let objects = s3_client
                                 .list_objects_v2()
                                 .bucket(&name)

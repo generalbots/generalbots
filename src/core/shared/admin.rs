@@ -1,7 +1,7 @@
-//! System Administration & Management Module
-//!
-//! Provides comprehensive system administration, monitoring, configuration,
-//! and maintenance operations.
+
+
+
+
 
 use axum::{
     extract::{Query, State},
@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
-// ===== Request/Response Structures =====
+
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigUpdateRequest {
@@ -201,9 +201,9 @@ pub struct SuccessResponse {
     pub message: Option<String>,
 }
 
-// ===== API Handlers =====
 
-/// GET /admin/system/status - Get overall system status
+
+
 pub async fn get_system_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemStatusResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -269,7 +269,7 @@ pub async fn get_system_status(
     Ok(Json(status))
 }
 
-/// GET /admin/system/metrics - Get system performance metrics
+
 pub async fn get_system_metrics(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemMetricsResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -291,7 +291,7 @@ pub async fn get_system_metrics(
     Ok(Json(metrics))
 }
 
-/// GET /admin/logs/view - View system logs
+
 pub async fn view_logs(
     State(_state): State<Arc<AppState>>,
     Query(_params): Query<LogQuery>,
@@ -342,7 +342,7 @@ pub async fn view_logs(
     Ok(Json(logs))
 }
 
-/// POST /admin/logs/export - Export system logs
+
 pub async fn export_logs(
     State(_state): State<Arc<AppState>>,
     Query(_params): Query<LogQuery>,
@@ -353,7 +353,7 @@ pub async fn export_logs(
     }))
 }
 
-/// GET /admin/config - Get system configuration
+
 pub async fn get_config(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<ConfigResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -396,7 +396,7 @@ pub async fn get_config(
     Ok(Json(config))
 }
 
-/// PUT /admin/config/update - Update system configuration
+
 pub async fn update_config(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<ConfigUpdateRequest>,
@@ -410,7 +410,7 @@ pub async fn update_config(
     }))
 }
 
-/// POST /admin/maintenance/schedule - Schedule maintenance window
+
 pub async fn schedule_maintenance(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<MaintenanceScheduleRequest>,
@@ -429,7 +429,7 @@ pub async fn schedule_maintenance(
     Ok(Json(maintenance))
 }
 
-/// POST /admin/backup/create - Create system backup
+
 pub async fn create_backup(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<BackupRequest>,
@@ -450,7 +450,7 @@ pub async fn create_backup(
     Ok(Json(backup))
 }
 
-/// POST /admin/backup/restore - Restore from backup
+
 pub async fn restore_backup(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<RestoreRequest>,
@@ -461,7 +461,7 @@ pub async fn restore_backup(
     }))
 }
 
-/// GET /admin/backups - List available backups
+
 pub async fn list_backups(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BackupResponse>>, (StatusCode, Json<serde_json::Value>)> {
@@ -491,7 +491,7 @@ pub async fn list_backups(
     Ok(Json(backups))
 }
 
-/// POST /admin/users/manage - Manage user accounts
+
 pub async fn manage_users(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<UserManagementRequest>,
@@ -510,7 +510,7 @@ pub async fn manage_users(
     }))
 }
 
-/// GET /admin/roles - Get all roles
+
 pub async fn get_roles(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
@@ -541,7 +541,7 @@ pub async fn get_roles(
     Ok(Json(roles))
 }
 
-/// POST /admin/roles/manage - Create or update role
+
 pub async fn manage_roles(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<RoleManagementRequest>,
@@ -552,7 +552,7 @@ pub async fn manage_roles(
     }))
 }
 
-/// GET /admin/quotas - Get all quotas
+
 pub async fn get_quotas(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<QuotaResponse>>, (StatusCode, Json<serde_json::Value>)> {
@@ -580,7 +580,7 @@ pub async fn get_quotas(
     Ok(Json(quotas))
 }
 
-/// POST /admin/quotas/manage - Set or update quotas
+
 pub async fn manage_quotas(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<QuotaManagementRequest>,
@@ -591,7 +591,7 @@ pub async fn manage_quotas(
     }))
 }
 
-/// GET /admin/licenses - Get license information
+
 pub async fn get_licenses(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<LicenseResponse>>, (StatusCode, Json<serde_json::Value>)> {
@@ -616,7 +616,7 @@ pub async fn get_licenses(
     Ok(Json(licenses))
 }
 
-/// POST /admin/licenses/manage - Add or update license
+
 pub async fn manage_licenses(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<LicenseManagementRequest>,

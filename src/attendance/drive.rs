@@ -1,5 +1,5 @@
-//! Drive integration module for attendance system
-//! Handles file storage and synchronization for attendance records
+
+
 
 use anyhow::{anyhow, Result};
 use aws_sdk_s3::primitives::ByteStream;
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tokio::fs;
 
-/// Drive configuration for attendance storage
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttendanceDriveConfig {
     pub bucket_name: String,
@@ -29,7 +29,7 @@ impl Default for AttendanceDriveConfig {
     }
 }
 
-/// Drive service for attendance data
+
 #[derive(Debug, Clone)]
 pub struct AttendanceDriveService {
     config: AttendanceDriveConfig,
@@ -37,7 +37,7 @@ pub struct AttendanceDriveService {
 }
 
 impl AttendanceDriveService {
-    /// Create new attendance drive service
+
     pub async fn new(config: AttendanceDriveConfig) -> Result<Self> {
         let sdk_config = if let Some(region) = &config.region {
             aws_config::from_env()
@@ -53,17 +53,17 @@ impl AttendanceDriveService {
         Ok(Self { config, client })
     }
 
-    /// Create new service with existing S3 client
+
     pub fn with_client(config: AttendanceDriveConfig, client: Client) -> Self {
         Self { config, client }
     }
 
-    /// Get the full S3 key for a record
+
     fn get_record_key(&self, record_id: &str) -> String {
         format!("{}{}", self.config.prefix, record_id)
     }
 
-    /// Upload attendance record to drive
+
     pub async fn upload_record(&self, record_id: &str, data: Vec<u8>) -> Result<()> {
         let key = self.get_record_key(record_id);
 
@@ -90,7 +90,7 @@ impl AttendanceDriveService {
         Ok(())
     }
 
-    /// Download attendance record from drive
+
     pub async fn download_record(&self, record_id: &str) -> Result<Vec<u8>> {
         let key = self.get_record_key(record_id);
 
@@ -120,7 +120,7 @@ impl AttendanceDriveService {
         Ok(data.into_bytes().to_vec())
     }
 
-    /// List attendance records in drive
+
     pub async fn list_records(&self, prefix: Option<&str>) -> Result<Vec<String>> {
         let list_prefix = if let Some(p) = prefix {
             format!("{}{}", self.config.prefix, p)
@@ -157,7 +157,7 @@ impl AttendanceDriveService {
             if let Some(contents) = result.contents {
                 for obj in contents {
                     if let Some(key) = obj.key {
-                        // Remove prefix to get record ID
+
                         if let Some(record_id) = key.strip_prefix(&self.config.prefix) {
                             records.push(record_id.to_string());
                         }
@@ -176,7 +176,7 @@ impl AttendanceDriveService {
         Ok(records)
     }
 
-    /// Delete attendance record from drive
+
     pub async fn delete_record(&self, record_id: &str) -> Result<()> {
         let key = self.get_record_key(record_id);
 
@@ -199,7 +199,7 @@ impl AttendanceDriveService {
         Ok(())
     }
 
-    /// Batch delete multiple attendance records
+
     pub async fn delete_records(&self, record_ids: &[String]) -> Result<()> {
         if record_ids.is_empty() {
             return Ok(());
@@ -211,7 +211,7 @@ impl AttendanceDriveService {
             self.config.bucket_name
         );
 
-        // S3 batch delete is limited to 1000 objects per request
+
         for chunk in record_ids.chunks(1000) {
             let objects: Vec<_> = chunk
                 .iter()
@@ -244,7 +244,7 @@ impl AttendanceDriveService {
         Ok(())
     }
 
-    /// Check if an attendance record exists
+
     pub async fn record_exists(&self, record_id: &str) -> Result<bool> {
         let key = self.get_record_key(record_id);
 
@@ -270,7 +270,7 @@ impl AttendanceDriveService {
         }
     }
 
-    /// Sync local attendance records with drive
+
     pub async fn sync_records(&self, local_path: PathBuf) -> Result<SyncResult> {
         if !self.config.sync_enabled {
             log::debug!("Attendance drive sync is disabled");
@@ -315,14 +315,14 @@ impl AttendanceDriveService {
                 }
             };
 
-            // Check if record already exists in S3
+
             if self.record_exists(&file_name).await? {
                 log::debug!("Record {} already exists in drive, skipping", file_name);
                 skipped += 1;
                 continue;
             }
 
-            // Read file and upload
+
             match fs::read(&path).await {
                 Ok(data) => match self.upload_record(&file_name, data).await {
                     Ok(_) => {
@@ -357,7 +357,7 @@ impl AttendanceDriveService {
         Ok(result)
     }
 
-    /// Get metadata for an attendance record
+
     pub async fn get_record_metadata(&self, record_id: &str) -> Result<RecordMetadata> {
         let key = self.get_record_key(record_id);
 
@@ -382,7 +382,7 @@ impl AttendanceDriveService {
     }
 }
 
-/// Result of sync operation
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SyncResult {
     pub uploaded: usize,
@@ -390,7 +390,7 @@ pub struct SyncResult {
     pub skipped: usize,
 }
 
-/// Metadata for an attendance record
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordMetadata {
     pub size: usize,

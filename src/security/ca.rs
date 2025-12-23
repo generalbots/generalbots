@@ -1,7 +1,7 @@
-//! Internal Certificate Authority (CA) Management
-//!
-//! This module provides functionality for managing an internal CA
-//! with support for external CA integration.
+
+
+
+
 
 use anyhow::Result;
 use rcgen::{
@@ -13,52 +13,52 @@ use std::path::PathBuf;
 use time::{Duration, OffsetDateTime};
 use tracing::{debug, info, warn};
 
-/// CA Configuration
+
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CaConfig {
-    /// CA root certificate path
+
     pub ca_cert_path: PathBuf,
 
-    /// CA private key path
+
     pub ca_key_path: PathBuf,
 
-    /// Intermediate CA certificate path (optional)
+
     pub intermediate_cert_path: Option<PathBuf>,
 
-    /// Intermediate CA key path (optional)
+
     pub intermediate_key_path: Option<PathBuf>,
 
-    /// Certificate validity period in days
+
     pub validity_days: i64,
 
-    /// Key size in bits (2048, 3072, 4096)
+
     pub key_size: usize,
 
-    /// Organization name for certificates
+
     pub organization: String,
 
-    /// Country code (e.g., "US", "BR")
+
     pub country: String,
 
-    /// State or province
+
     pub state: String,
 
-    /// Locality/City
+
     pub locality: String,
 
-    /// Enable external CA integration
+
     pub external_ca_enabled: bool,
 
-    /// External CA API endpoint
+
     pub external_ca_url: Option<String>,
 
-    /// External CA API key
+
     pub external_ca_api_key: Option<String>,
 
-    /// Certificate revocation list (CRL) path
+
     pub crl_path: Option<PathBuf>,
 
-    /// OCSP responder URL
+
     pub ocsp_url: Option<String>,
 }
 
@@ -84,7 +84,7 @@ impl Default for CaConfig {
     }
 }
 
-/// Certificate Authority Manager
+
 pub struct CaManager {
     config: CaConfig,
     ca_params: Option<CertificateParams>,
@@ -104,7 +104,7 @@ impl std::fmt::Debug for CaManager {
 }
 
 impl CaManager {
-    /// Create a new CA manager
+
     pub fn new(config: CaConfig) -> Result<Self> {
         let mut manager = Self {
             config,
@@ -114,23 +114,23 @@ impl CaManager {
             intermediate_key: None,
         };
 
-        // Load existing CA if available
+
         manager.load_ca()?;
 
         Ok(manager)
     }
 
-    /// Initialize a new Certificate Authority
+
     pub fn init_ca(&mut self) -> Result<()> {
         info!("Initializing new Certificate Authority");
 
-        // Create CA directory structure
+
         self.create_ca_directories()?;
 
-        // Generate root CA
+
         self.generate_root_ca()?;
 
-        // Generate intermediate CA if configured
+
         if self.config.intermediate_cert_path.is_some() {
             self.generate_intermediate_ca()?;
         }
@@ -139,7 +139,7 @@ impl CaManager {
         Ok(())
     }
 
-    /// Load existing CA certificates
+
     fn load_ca(&mut self) -> Result<()> {
         if self.config.ca_cert_path.exists() && self.config.ca_key_path.exists() {
             debug!("Loading existing CA from {:?}", self.config.ca_cert_path);
@@ -147,7 +147,7 @@ impl CaManager {
             let key_pem = fs::read_to_string(&self.config.ca_key_path)?;
             let key_pair = KeyPair::from_pem(&key_pem)?;
 
-            // Create CA params
+
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
 
@@ -160,7 +160,7 @@ impl CaManager {
             self.ca_params = Some(params);
             self.ca_key = Some(key_pair);
 
-            // Load intermediate CA if exists
+
             if let (Some(cert_path), Some(key_path)) = (
                 &self.config.intermediate_cert_path,
                 &self.config.intermediate_key_path,
@@ -169,7 +169,7 @@ impl CaManager {
                     let key_pem = fs::read_to_string(key_path)?;
                     let key_pair = KeyPair::from_pem(&key_pem)?;
 
-                    // Create intermediate CA params
+
                     let mut params = CertificateParams::default();
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
 
@@ -192,14 +192,14 @@ impl CaManager {
         Ok(())
     }
 
-    /// Generate root CA certificate
+
     fn generate_root_ca(&mut self) -> Result<()> {
         let mut params = CertificateParams::default();
 
-        // Set as CA certificate
+
         params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
 
-        // Set distinguished name
+
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
         dn.push(DnType::StateOrProvinceName, &self.config.state);
@@ -208,18 +208,18 @@ impl CaManager {
         dn.push(DnType::CommonName, "BotServer Root CA");
         params.distinguished_name = dn;
 
-        // Set validity period
+
         params.not_before = OffsetDateTime::now_utc();
         params.not_after =
             OffsetDateTime::now_utc() + Duration::days(self.config.validity_days * 2);
 
-        // Generate key pair
+
         let key_pair = KeyPair::generate()?;
 
-        // Create self-signed certificate
+
         let cert = params.self_signed(&key_pair)?;
 
-        // Save to disk
+
         fs::write(&self.config.ca_cert_path, cert.pem())?;
         fs::write(&self.config.ca_key_path, key_pair.serialize_pem())?;
 
@@ -230,7 +230,7 @@ impl CaManager {
         Ok(())
     }
 
-    /// Generate intermediate CA certificate
+
     fn generate_intermediate_ca(&mut self) -> Result<()> {
         let ca_params = self
             .ca_params
@@ -243,10 +243,10 @@ impl CaManager {
 
         let mut params = CertificateParams::default();
 
-        // Set as intermediate CA
+
         params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
 
-        // Set distinguished name
+
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
         dn.push(DnType::StateOrProvinceName, &self.config.state);
@@ -255,20 +255,20 @@ impl CaManager {
         dn.push(DnType::CommonName, "BotServer Intermediate CA");
         params.distinguished_name = dn;
 
-        // Set validity period (shorter than root)
+
         params.not_before = OffsetDateTime::now_utc();
         params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days);
 
-        // Generate key pair
+
         let key_pair = KeyPair::generate()?;
 
-        // Create issuer from root CA
+
         let issuer = Issuer::from_params(ca_params, ca_key);
 
-        // Create certificate signed by root CA
+
         let cert = params.signed_by(&key_pair, &issuer)?;
 
-        // Save to disk
+
         if let (Some(cert_path), Some(key_path)) = (
             &self.config.intermediate_cert_path,
             &self.config.intermediate_key_path,
@@ -284,7 +284,7 @@ impl CaManager {
         Ok(())
     }
 
-    /// Issue a new certificate for a service
+
     pub fn issue_certificate(
         &self,
         common_name: &str,
@@ -302,7 +302,7 @@ impl CaManager {
 
         let mut params = CertificateParams::default();
 
-        // Set distinguished name
+
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
         dn.push(DnType::StateOrProvinceName, &self.config.state);
@@ -311,7 +311,7 @@ impl CaManager {
         dn.push(DnType::CommonName, common_name);
         params.distinguished_name = dn;
 
-        // Add Subject Alternative Names
+
         for san in san_names {
             if san.parse::<std::net::IpAddr>().is_ok() {
                 params
@@ -324,24 +324,24 @@ impl CaManager {
             }
         }
 
-        // Set validity period
+
         params.not_before = OffsetDateTime::now_utc();
         params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days);
 
-        // Set key usage based on certificate type
+
         if is_client {
             params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ClientAuth];
         } else {
             params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
         }
 
-        // Generate key pair
+
         let key_pair = KeyPair::generate()?;
 
-        // Create issuer from signing CA
+
         let issuer = Issuer::from_params(signing_params, signing_key);
 
-        // Create and sign certificate
+
         let cert = params.signed_by(&key_pair, &issuer)?;
         let cert_pem = cert.pem();
         let key_pem = key_pair.serialize_pem();
@@ -349,8 +349,8 @@ impl CaManager {
         Ok((cert_pem, key_pem))
     }
 
-    /// Issue certificates for all services
-    /// Using component names: tables (postgres), drive (minio), cache (redis), vectordb (qdrant)
+
+
     pub fn issue_service_certificates(&self) -> Result<()> {
         let services = vec![
             ("api", vec!["localhost", "api", "127.0.0.1"]),
@@ -372,7 +372,7 @@ impl CaManager {
         Ok(())
     }
 
-    /// Issue certificate for a specific service
+
     pub fn issue_service_certificate(
         &self,
         service_name: &str,
@@ -381,7 +381,7 @@ impl CaManager {
         let cert_dir = PathBuf::from(format!("certs/{}", service_name));
         fs::create_dir_all(&cert_dir)?;
 
-        // Issue server certificate
+
         let (cert_pem, key_pem) = self.issue_certificate(
             &format!("{}.botserver.local", service_name),
             san_names.iter().map(|s| s.to_string()).collect(),
@@ -391,7 +391,7 @@ impl CaManager {
         fs::write(cert_dir.join("server.crt"), cert_pem)?;
         fs::write(cert_dir.join("server.key"), key_pem)?;
 
-        // Issue client certificate for mTLS
+
         let (client_cert_pem, client_key_pem) = self.issue_certificate(
             &format!("{}-client.botserver.local", service_name),
             vec![format!("{}-client", service_name)],
@@ -401,7 +401,7 @@ impl CaManager {
         fs::write(cert_dir.join("client.crt"), client_cert_pem)?;
         fs::write(cert_dir.join("client.key"), client_key_pem)?;
 
-        // Copy CA certificate for verification
+
         if let Ok(ca_cert) = fs::read_to_string(&self.config.ca_cert_path) {
             fs::write(cert_dir.join("ca.crt"), ca_cert)?;
         }
@@ -410,8 +410,8 @@ impl CaManager {
         Ok(())
     }
 
-    /// Create CA directory structure
-    /// Using component names: tables, drive, cache, vectordb
+
+
     fn create_ca_directories(&self) -> Result<()> {
         let ca_dir = self
             .config
@@ -554,7 +554,7 @@ impl CaManager {
     }
 }
 
-/// Certificate request information
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CertificateRequest {
     pub common_name: String,
@@ -564,7 +564,7 @@ pub struct CertificateRequest {
     pub key_size: Option<usize>,
 }
 
-/// Certificate response
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CertificateResponse {
     pub certificate: String,

@@ -9,7 +9,7 @@ pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // Register with spaces: CLEAR TOOLS
+
     engine
         .register_custom_syntax(&["CLEAR", "TOOLS"], false, move |_context, _inputs| {
             trace!(

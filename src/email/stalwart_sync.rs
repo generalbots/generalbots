@@ -1,23 +1,23 @@
-//! Stalwart Sync Service
-//!
-//! This module provides synchronization between General Bots database tables and
-//! Stalwart Mail Server. It handles bi-directional sync for:
-//!
-//! - Distribution Lists (sync with Stalwart principals)
-//! - Auto-Responders (sync with Stalwart Sieve scripts)
-//! - Email Rules/Filters (sync with Stalwart Sieve scripts)
-//! - Shared Mailboxes (sync with Stalwart group principals)
-//!
-//! # Version: 6.1.0
-//!
-//! # Architecture
-//!
-//! The sync service follows a "write-through" pattern:
-//! 1. Create/Update in Stalwart first (source of truth for email delivery)
-//! 2. Store reference ID in our database (for UI and caching)
-//! 3. On delete, remove from both systems
-//!
-//! This ensures email functionality remains intact even if our DB has issues.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use super::stalwart_client::{
     AccountUpdate, AutoResponderConfig, EmailRule, RuleAction, RuleCondition, StalwartClient,
@@ -29,10 +29,10 @@ use std::sync::Arc;
 use tracing::{info, warn};
 use uuid::Uuid;
 
-// Data Transfer Objects (matching 6.1.0_enterprise_suite migration)
-// These are simplified DTOs for the sync layer - not direct ORM mappings
 
-/// Distribution list DTO
+
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DistributionListDto {
     pub id: Uuid,
@@ -48,7 +48,7 @@ pub struct DistributionListDto {
     pub updated_at: DateTime<Utc>,
 }
 
-/// New distribution list for creation
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewDistributionList {
     pub bot_id: Uuid,
@@ -59,7 +59,7 @@ pub struct NewDistributionList {
     pub members: Vec<String>,
 }
 
-/// Auto-responder DTO
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutoResponderDto {
     pub id: Uuid,
@@ -77,7 +77,7 @@ pub struct AutoResponderDto {
     pub stalwart_sieve_id: Option<String>,
 }
 
-/// New auto-responder for creation
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewAutoResponder {
     pub bot_id: Uuid,
@@ -90,7 +90,7 @@ pub struct NewAutoResponder {
     pub only_contacts: bool,
 }
 
-/// Email rule DTO
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailRuleDto {
     pub id: Uuid,
@@ -105,7 +105,7 @@ pub struct EmailRuleDto {
     pub stalwart_sieve_id: Option<String>,
 }
 
-/// New email rule for creation
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct NewEmailRule {
     pub bot_id: Uuid,
@@ -117,7 +117,7 @@ pub struct NewEmailRule {
     pub stop_processing: bool,
 }
 
-/// Shared mailbox DTO
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharedMailboxDto {
     pub id: Uuid,
@@ -129,7 +129,7 @@ pub struct SharedMailboxDto {
     pub is_active: bool,
 }
 
-/// Shared mailbox member DTO
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SharedMailboxMemberDto {
     pub id: Uuid,
@@ -139,38 +139,38 @@ pub struct SharedMailboxMemberDto {
     pub added_at: DateTime<Utc>,
 }
 
-// Sync Service
 
-/// Service for synchronizing data between General Bots and Stalwart
-///
-/// This service handles the synchronization logic between our database
-/// and Stalwart Mail Server. It requires a database pool and Stalwart client.
-///
-/// Note: Database operations should be implemented by the caller using this
-/// service - this keeps the sync logic separate from ORM details.
+
+
+
+
+
+
+
+
 pub struct StalwartSyncService {
     stalwart: Arc<StalwartClient>,
 }
 
 impl StalwartSyncService {
-    /// Create a new sync service
+
     pub fn new(stalwart_client: Arc<StalwartClient>) -> Self {
         Self {
             stalwart: stalwart_client,
         }
     }
 
-    /// Get reference to the Stalwart client
+
     pub fn stalwart(&self) -> &StalwartClient {
         &self.stalwart
     }
 
-    // ========================================================================
-    // Distribution Lists
-    // ========================================================================
 
-    /// Create a distribution list in Stalwart
-    /// Returns the Stalwart principal ID to store in database
+
+
+
+
+
     pub async fn create_distribution_list_in_stalwart(
         &self,
         list: &NewDistributionList,
@@ -194,7 +194,7 @@ impl StalwartSyncService {
         Ok(stalwart_id.to_string())
     }
 
-    /// Update a distribution list in Stalwart
+
     pub async fn update_distribution_list_in_stalwart(
         &self,
         stalwart_id: &str,
@@ -208,7 +208,7 @@ impl StalwartSyncService {
         }
 
         if let Some(m) = members {
-            // Clear and re-add members
+
             updates.push(AccountUpdate::clear("members"));
             for member in m {
                 updates.push(AccountUpdate::add_item("members", member.clone()));
@@ -226,7 +226,7 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    /// Delete a distribution list from Stalwart
+
     pub async fn delete_distribution_list_from_stalwart(&self, stalwart_id: &str) -> Result<()> {
         self.stalwart
             .delete_account(stalwart_id)
@@ -237,12 +237,12 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    // ========================================================================
-    // Auto-Responders
-    // ========================================================================
 
-    /// Create/update an auto-responder in Stalwart via Sieve script
-    /// Returns the Sieve script ID to store in database
+
+
+
+
+
     pub async fn set_auto_responder_in_stalwart(
         &self,
         account_id: &str,
@@ -274,7 +274,7 @@ impl StalwartSyncService {
         Ok(sieve_id)
     }
 
-    /// Disable an auto-responder in Stalwart
+
     pub async fn disable_auto_responder_in_stalwart(&self, account_id: &str) -> Result<()> {
         self.stalwart
             .disable_auto_responder(account_id)
@@ -285,12 +285,12 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    // ========================================================================
-    // Email Rules/Filters
-    // ========================================================================
 
-    /// Create/update an email rule in Stalwart via Sieve script
-    /// Returns the Sieve script ID to store in database
+
+
+
+
+
     pub async fn set_email_rule_in_stalwart(
         &self,
         account_id: &str,
@@ -322,7 +322,7 @@ impl StalwartSyncService {
         Ok(sieve_id)
     }
 
-    /// Delete an email rule from Stalwart
+
     pub async fn delete_email_rule_from_stalwart(
         &self,
         account_id: &str,
@@ -337,12 +337,12 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    // ========================================================================
-    // Shared Mailboxes
-    // ========================================================================
 
-    /// Create a shared mailbox in Stalwart
-    /// Returns the Stalwart account ID to store in database
+
+
+
+
+
     pub async fn create_shared_mailbox_in_stalwart(
         &self,
         name: &str,
@@ -365,7 +365,7 @@ impl StalwartSyncService {
         Ok(stalwart_id.to_string())
     }
 
-    /// Add a member to a shared mailbox in Stalwart
+
     pub async fn add_shared_mailbox_member_in_stalwart(
         &self,
         stalwart_id: &str,
@@ -383,7 +383,7 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    /// Remove a member from a shared mailbox in Stalwart
+
     pub async fn remove_shared_mailbox_member_in_stalwart(
         &self,
         stalwart_id: &str,
@@ -401,7 +401,7 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    /// Delete a shared mailbox from Stalwart
+
     pub async fn delete_shared_mailbox_from_stalwart(&self, stalwart_id: &str) -> Result<()> {
         self.stalwart
             .delete_account(stalwart_id)
@@ -412,12 +412,12 @@ impl StalwartSyncService {
         Ok(())
     }
 
-    // ========================================================================
-    // Bulk Sync Operations
-    // ========================================================================
 
-    /// Sync a distribution list to Stalwart (for recovery/migration)
-    /// Returns the Stalwart principal ID
+
+
+
+
+
     pub async fn sync_distribution_list_to_stalwart(
         &self,
         name: &str,
@@ -446,10 +446,10 @@ impl StalwartSyncService {
         }
     }
 
-    /// Verify Stalwart connectivity
+
     pub async fn health_check(&self) -> Result<bool> {
         self.stalwart.health_check().await
     }
 }
 
-// Tests
+

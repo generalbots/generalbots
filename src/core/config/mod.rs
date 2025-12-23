@@ -45,8 +45,8 @@ pub struct EmailConfig {
     pub smtp_port: u16,
 }
 
-/// Custom database configuration for BASIC keywords (MariaDB, MySQL, etc.)
-/// Loaded from config.csv parameters: custom-server, custom-port, custom-database, custom-username, custom-password
+
+
 #[derive(Clone, Debug, Default)]
 pub struct CustomDatabaseConfig {
     pub server: String,
@@ -57,7 +57,7 @@ pub struct CustomDatabaseConfig {
 }
 
 impl CustomDatabaseConfig {
-    /// Load custom database configuration from bot-level config.csv parameters
+
     pub fn from_bot_config(
         pool: &DbPool,
         target_bot_id: &Uuid,
@@ -71,7 +71,7 @@ impl CustomDatabaseConfig {
             )
         })?;
 
-        // Check if custom database is configured
+
         let database: Option<String> = bot_configuration
             .filter(bot_id.eq(target_bot_id))
             .filter(config_key.eq("custom-database"))
@@ -82,7 +82,7 @@ impl CustomDatabaseConfig {
 
         let database = match database {
             Some(db) => db,
-            None => return Ok(None), // No custom database configured
+            None => return Ok(None),
         };
 
         let server: String = bot_configuration
@@ -128,7 +128,7 @@ impl CustomDatabaseConfig {
         }))
     }
 
-    /// Build a connection string for MariaDB/MySQL
+
     pub fn connection_string(&self) -> String {
         format!(
             "mysql://{}:{}@{}:{}/{}",
@@ -136,15 +136,15 @@ impl CustomDatabaseConfig {
         )
     }
 
-    /// Check if the configuration is valid (has required fields)
+
     pub fn is_valid(&self) -> bool {
         !self.database.is_empty() && !self.server.is_empty()
     }
 }
 
 impl EmailConfig {
-    /// Load email configuration from bot-level config.csv parameters
-    /// Parameters: email-from, email-server, email-port, email-user, email-pass
+
+
     pub fn from_bot_config(
         pool: &DbPool,
         target_bot_id: &Uuid,
@@ -156,7 +156,7 @@ impl EmailConfig {
             )
         })?;
 
-        // Helper to get config value
+
         fn get_config_value(
             conn: &mut diesel::r2d2::PooledConnection<
                 diesel::r2d2::ConnectionManager<diesel::PgConnection>,
@@ -193,7 +193,7 @@ impl EmailConfig {
                 .unwrap_or(default)
         }
 
-        // Support both old ENV-style and new config.csv style parameter names
+
         let new_smtp_server = get_config_value(&mut conn, target_bot_id, "email-server", "");
         let smtp_server = if !new_smtp_server.is_empty() {
             new_smtp_server
@@ -265,7 +265,7 @@ impl AppConfig {
             )
         })?;
 
-        // Load all config values into a HashMap for efficient lookup
+
         let config_map: HashMap<String, String> = bot_configuration
             .select((config_key, config_value))
             .load::<(String, String)>(&mut conn)
@@ -273,7 +273,7 @@ impl AppConfig {
             .into_iter()
             .collect();
 
-        // Helper functions that use the pre-loaded config_map
+
         let get_str = |key: &str, default: &str| -> String {
             config_map
                 .get(key)
@@ -289,8 +289,8 @@ impl AppConfig {
         };
         let drive = DriveConfig {
             server: crate::core::urls::InternalUrls::DRIVE.to_string(),
-            access_key: String::new(), // Retrieved from Directory service
-            secret_key: String::new(), // Retrieved from Directory service
+            access_key: String::new(),
+            secret_key: String::new(),
         };
         let email = EmailConfig {
             server: get_str("EMAIL_IMAP_SERVER", "imap.gmail.com"),
@@ -320,8 +320,8 @@ impl AppConfig {
     pub fn from_env() -> Result<Self, anyhow::Error> {
         let minio = DriveConfig {
             server: crate::core::urls::InternalUrls::DRIVE.to_string(),
-            access_key: String::new(), // Retrieved from Directory service
-            secret_key: String::new(), // Retrieved from Directory service
+            access_key: String::new(),
+            secret_key: String::new(),
         };
         let email = EmailConfig {
             server: "imap.gmail.com".to_string(),
@@ -340,8 +340,8 @@ impl AppConfig {
                 port: 8080,
                 base_url: "http://localhost:8080".to_string(),
             },
-            // Use default site_path - no database access needed for env-based config
-            // This allows from_env() to work during bootstrap before Vault/DB are ready
+
+
             site_path: "./botserver-stack/sites".to_string(),
             data_dir: "./botserver-stack/data".to_string(),
         })

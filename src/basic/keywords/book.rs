@@ -4,11 +4,11 @@ use chrono::{DateTime, Duration, Timelike, Utc};
 use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
-// use serde_json::json;  // Commented out - unused import
+
 use std::sync::Arc;
 use uuid::Uuid;
 
-// Calendar types - would be from crate::calendar when feature is enabled
+
 #[derive(Debug)]
 pub struct CalendarEngine {
     _db: crate::shared::utils::DbPool,
@@ -78,7 +78,7 @@ impl CalendarEngine {
     }
 }
 
-/// Register BOOK keyword in BASIC for calendar appointments
+
 pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -156,7 +156,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         )
         .unwrap();
 
-    // Register BOOK MEETING for more complex meetings
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -185,7 +185,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let state_for_task = Arc::clone(&state_clone2);
                 let user_for_task = user_clone2.clone();
 
-                // Use tokio's block_in_place to run async code in sync context
+
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async move {
                         execute_book_meeting(
@@ -209,7 +209,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         )
         .unwrap();
 
-    // Register CHECK_AVAILABILITY keyword
+
     let state_clone3 = Arc::clone(&state);
     let user_clone3 = user.clone();
 
@@ -235,7 +235,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let user_for_task = user_clone3.clone();
                 let date_str = date_str.clone();
 
-                // Use tokio's block_in_place to run async code in sync context
+
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async move {
                         check_availability(
@@ -269,14 +269,14 @@ async fn execute_book(
     duration_minutes: i64,
     location: &str,
 ) -> Result<String, String> {
-    // Parse start time
+
     let start_time = parse_time_string(start_time_str)?;
     let end_time = start_time + Duration::minutes(duration_minutes);
 
-    // Get or create calendar engine
+
     let calendar_engine = get_calendar_engine(state).await?;
 
-    // Check for conflicts
+
     let conflicts = calendar_engine
         .check_conflicts(start_time, end_time, &user.user_id.to_string())
         .await
@@ -289,7 +289,7 @@ async fn execute_book(
         ));
     }
 
-    // Create calendar event
+
     let event = CalendarEvent {
         id: Uuid::new_v4(),
         title: title.to_string(),
@@ -303,20 +303,20 @@ async fn execute_book(
         },
         organizer: user.user_id.to_string(),
         attendees: vec![user.user_id.to_string()],
-        reminder_minutes: Some(15), // Default 15-minute reminder
+        reminder_minutes: Some(15),
         recurrence_rule: None,
         status: EventStatus::Confirmed,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
 
-    // Create the event
+
     let created_event = calendar_engine
         .create_event(event)
         .await
         .map_err(|e| format!("Failed to create appointment: {}", e))?;
 
-    // Log the booking
+
     log_booking(state, user, &created_event.id.to_string(), title).await?;
 
     info!(
@@ -338,7 +338,7 @@ async fn execute_book_meeting(
     meeting_json: String,
     attendees: Vec<String>,
 ) -> Result<String, String> {
-    // Parse meeting details from JSON
+
     let meeting_data: serde_json::Value = serde_json::from_str(&meeting_json)
         .map_err(|e| format!("Invalid meeting details: {}", e))?;
 
@@ -356,10 +356,10 @@ async fn execute_book_meeting(
     let start_time = parse_time_string(start_time_str)?;
     let end_time = start_time + Duration::minutes(duration_minutes);
 
-    // Get or create calendar engine
+
     let calendar_engine = get_calendar_engine(state).await?;
 
-    // Check conflicts for all attendees
+
     for attendee in &attendees {
         let conflicts = calendar_engine
             .check_conflicts(start_time, end_time, attendee)
@@ -371,12 +371,12 @@ async fn execute_book_meeting(
         }
     }
 
-    // Create recurrence rule if needed
+
     let recurrence_rule = if recurring {
         Some(RecurrenceRule {
             frequency: "WEEKLY".to_string(),
             interval: 1,
-            count: Some(10), // Default to 10 occurrences
+            count: Some(10),
             until: None,
             by_day: None,
         })
@@ -384,7 +384,7 @@ async fn execute_book_meeting(
         None
     };
 
-    // Create calendar event
+
     let event = CalendarEvent {
         id: Uuid::new_v4(),
         title: title.to_string(),
@@ -398,20 +398,20 @@ async fn execute_book_meeting(
         },
         organizer: user.user_id.to_string(),
         attendees: attendees.clone(),
-        reminder_minutes: Some(30), // 30-minute reminder for meetings
+        reminder_minutes: Some(30),
         recurrence_rule,
         status: EventStatus::Confirmed,
         created_at: Utc::now(),
         updated_at: Utc::now(),
     };
 
-    // Create the meeting
+
     let created_event = calendar_engine
         .create_event(event)
         .await
         .map_err(|e| format!("Failed to create meeting: {}", e))?;
 
-    // Send invites to attendees (would integrate with email system)
+
     for attendee in &attendees {
         send_meeting_invite(state, &created_event, attendee).await?;
     }
@@ -441,23 +441,23 @@ async fn check_availability(
     let date = parse_date_string(date_str)?;
     let calendar_engine = get_calendar_engine(state).await?;
 
-    // Define business hours (9 AM to 5 PM)
+
     let business_start = date.with_hour(9).unwrap().with_minute(0).unwrap();
     let business_end = date.with_hour(17).unwrap().with_minute(0).unwrap();
 
-    // Get all events for the day
+
     let events = calendar_engine
         .get_events_range(business_start, business_end)
         .await
         .map_err(|e| format!("Failed to get events: {}", e))?;
 
-    // Find available slots
+
     let mut available_slots = Vec::new();
     let mut current_time = business_start;
     let slot_duration = Duration::minutes(duration_minutes);
 
     for event in &events {
-        // Check if there's a gap before this event
+
         if current_time + slot_duration <= event.start_time {
             available_slots.push(format!(
                 "{} - {}",
@@ -468,7 +468,7 @@ async fn check_availability(
         current_time = event.end_time;
     }
 
-    // Check if there's time after the last event
+
     if current_time + slot_duration <= business_end {
         available_slots.push(format!(
             "{} - {}",
@@ -489,7 +489,7 @@ async fn check_availability(
 }
 
 fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
-    // Try different date formats
+
     let formats = vec![
         "%Y-%m-%d %H:%M",
         "%Y-%m-%d %H:%M:%S",
@@ -504,7 +504,7 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
         }
     }
 
-    // Try parsing relative times like "tomorrow at 3pm"
+
     if time_str.contains("tomorrow") {
         let tomorrow = Utc::now() + Duration::days(1);
         if let Some(hour) = extract_hour_from_string(time_str) {
@@ -518,7 +518,7 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
         }
     }
 
-    // Try parsing relative times like "in 2 hours"
+
     if time_str.starts_with("in ") {
         if let Ok(hours) = time_str
             .trim_start_matches("in ")
@@ -534,14 +534,14 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
 }
 
 fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
-    // Handle special cases
+
     if date_str == "today" {
         return Ok(Utc::now());
     } else if date_str == "tomorrow" {
         return Ok(Utc::now() + Duration::days(1));
     }
 
-    // Try standard date formats
+
     let formats = vec!["%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y"];
 
     for format in formats {
@@ -554,7 +554,7 @@ fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
 }
 
 fn extract_hour_from_string(s: &str) -> Option<u32> {
-    // Extract hour from strings like "3pm", "15:00", "3 PM"
+
     let s = s.to_lowercase();
 
     if s.contains("pm") {
@@ -597,8 +597,8 @@ async fn log_booking(
 }
 
 async fn get_calendar_engine(state: &AppState) -> Result<Arc<CalendarEngine>, String> {
-    // Get or create calendar engine from app state
-    // This would normally be initialized at startup
+
+
     let calendar_engine = Arc::new(CalendarEngine::new(state.conn.clone()));
     Ok(calendar_engine)
 }
@@ -608,7 +608,7 @@ async fn send_meeting_invite(
     event: &CalendarEvent,
     attendee: &str,
 ) -> Result<(), String> {
-    // This would integrate with the email system to send calendar invites
+
     info!(
         "Would send meeting invite for '{}' to {}",
         event.title, attendee

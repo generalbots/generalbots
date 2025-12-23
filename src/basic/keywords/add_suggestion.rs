@@ -1,15 +1,15 @@
-//! ADD SUGGESTION Keyword
-//!
-//! Provides suggestions/quick replies in conversations.
-//! Suggestions can:
-//! - Point to KB contexts (existing behavior)
-//! - Start tools with optional parameters
-//! - When clicked, tools without params will prompt for params first
-//!
-//! Syntax:
-//! - ADD SUGGESTION "context" AS "button text" - Points to KB context
-//! - ADD SUGGESTION TOOL "tool_name" AS "button text" - Starts a tool
-//! - ADD SUGGESTION TOOL "tool_name" WITH param1, param2 AS "button text" - Tool with params
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -18,13 +18,13 @@ use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
 
-/// Suggestion types
+
 #[derive(Debug, Clone)]
 pub enum SuggestionType {
-    /// Points to a KB context - when clicked, selects that context
+
     Context(String),
-    /// Starts a tool - when clicked, invokes the tool
-    /// If tool has required params and none provided, will prompt user first
+
+
     Tool {
         name: String,
         params: Option<Vec<String>>,
@@ -38,7 +38,7 @@ pub fn clear_suggestions_keyword(
 ) {
     let cache = state.cache.clone();
 
-    // Register with spaces: CLEAR SUGGESTIONS
+
     engine
         .register_custom_syntax(&["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
@@ -84,8 +84,8 @@ pub fn add_suggestion_keyword(
     let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
 
-    // Register: ADD SUGGESTION "context" AS "text"
-    // Points to KB context - when clicked, selects that context for queries
+
+
     engine
         .register_custom_syntax(
             &["ADD", "SUGGESTION", "$expr$", "AS", "$expr$"],
@@ -101,8 +101,8 @@ pub fn add_suggestion_keyword(
         )
         .unwrap();
 
-    // Register: ADD SUGGESTION TOOL "tool_name" AS "text"
-    // Starts a tool - if tool requires params, will prompt user first
+
+
     engine
         .register_custom_syntax(
             &["ADD", "SUGGESTION", "TOOL", "$expr$", "AS", "$expr$"],
@@ -124,8 +124,8 @@ pub fn add_suggestion_keyword(
         )
         .unwrap();
 
-    // Register: ADD SUGGESTION TOOL "tool_name" WITH params AS "text"
-    // Starts a tool with pre-filled parameters
+
+
     engine
         .register_custom_syntax(
             &[
@@ -144,7 +144,7 @@ pub fn add_suggestion_keyword(
                 let params_value = context.eval_expression_tree(&inputs[1])?;
                 let button_text = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                // Parse params - can be array or comma-separated string
+
                 let params = if params_value.is_array() {
                     params_value
                         .cast::<rhai::Array>()
@@ -173,7 +173,7 @@ pub fn add_suggestion_keyword(
         .unwrap();
 }
 
-/// Add a context-based suggestion (points to KB)
+
 fn add_context_suggestion(
     cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
@@ -183,7 +183,7 @@ fn add_context_suggestion(
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
 
-        // Suggestion JSON includes type for client to handle appropriately
+
         let suggestion = json!({
             "type": "context",
             "context": context_name,
@@ -216,7 +216,7 @@ fn add_context_suggestion(
                     length
                 );
 
-                // Set context state
+
                 let active_key = format!(
                     "active_context:{}:{}",
                     user_session.user_id, user_session.id
@@ -237,10 +237,10 @@ fn add_context_suggestion(
     Ok(())
 }
 
-/// Add a tool-based suggestion
-/// When clicked:
-/// - If params provided, executes tool immediately with those params
-/// - If no params and tool has required params, prompts user for them first
+
+
+
+
 fn add_tool_suggestion(
     cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
@@ -251,7 +251,7 @@ fn add_tool_suggestion(
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
 
-        // Suggestion JSON for tool invocation
+
         let suggestion = json!({
             "type": "tool",
             "tool": tool_name,
@@ -260,8 +260,8 @@ fn add_tool_suggestion(
                 "type": "invoke_tool",
                 "tool": tool_name,
                 "params": params,
-                // If params is None, client should check tool schema
-                // and prompt for required params before invoking
+
+
                 "prompt_for_params": params.is_none()
             }
         });

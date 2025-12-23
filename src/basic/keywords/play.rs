@@ -1,15 +1,15 @@
-//! PLAY keyword for content projector/player
-//!
-//! Opens a modal/projector to display various content types.
-//!
-//! Syntax:
-//! - PLAY "video.mp4"
-//! - PLAY "image.png"
-//! - PLAY "presentation.pptx"
-//! - PLAY "document.pdf"
-//! - PLAY "code.rs"
-//! - PLAY url
-//! - PLAY file WITH OPTIONS "autoplay,loop,fullscreen"
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -21,7 +21,7 @@ use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Content types that can be played
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ContentType {
     Video,
@@ -39,36 +39,36 @@ pub enum ContentType {
 }
 
 impl ContentType {
-    /// Detect content type from file extension
+
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
-            // Video
+
             "mp4" | "webm" | "ogg" | "mov" | "avi" | "mkv" | "m4v" => ContentType::Video,
-            // Audio
+
             "mp3" | "wav" | "flac" | "aac" | "m4a" | "wma" => ContentType::Audio,
-            // Images
+
             "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "ico" => ContentType::Image,
-            // Presentations
+
             "pptx" | "ppt" | "odp" | "key" => ContentType::Presentation,
-            // Documents
+
             "docx" | "doc" | "odt" | "rtf" => ContentType::Document,
-            // Spreadsheets
+
             "xlsx" | "xls" | "csv" | "ods" => ContentType::Spreadsheet,
-            // PDF
+
             "pdf" => ContentType::Pdf,
-            // Code
+
             "rs" | "py" | "js" | "ts" | "java" | "c" | "cpp" | "h" | "go" | "rb" | "php"
             | "swift" | "kt" | "scala" | "r" | "sql" | "sh" | "bash" | "zsh" | "ps1" | "yaml"
             | "yml" | "toml" | "json" | "xml" | "bas" | "basic" => ContentType::Code,
-            // Markdown
+
             "md" | "markdown" => ContentType::Markdown,
-            // HTML
+
             "html" | "htm" => ContentType::Html,
             _ => ContentType::Unknown,
         }
     }
 
-    /// Detect content type from MIME type
+
     pub fn from_mime(mime: &str) -> Self {
         if mime.starts_with("video/") {
             ContentType::Video
@@ -97,7 +97,7 @@ impl ContentType {
         }
     }
 
-    /// Get the player component name for this content type
+
     pub fn player_component(&self) -> &'static str {
         match self {
             ContentType::Video => "video-player",
@@ -116,7 +116,7 @@ impl ContentType {
     }
 }
 
-/// Play options
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlayOptions {
     pub autoplay: bool,
@@ -137,10 +137,10 @@ pub struct PlayOptions {
 }
 
 impl PlayOptions {
-    /// Parse options from a comma-separated string
+
     pub fn from_string(options_str: &str) -> Self {
         let mut opts = PlayOptions::default();
-        opts.controls = true; // Default to showing controls
+        opts.controls = true;
 
         for opt in options_str.split(',').map(|s| s.trim().to_lowercase()) {
             match opt.as_str() {
@@ -151,7 +151,7 @@ impl PlayOptions {
                 "nocontrols" => opts.controls = false,
                 "linenumbers" => opts.line_numbers = Some(true),
                 _ => {
-                    // Handle key=value options
+
                     if let Some((key, value)) = opt.split_once('=') {
                         match key {
                             "start" => opts.start_time = value.parse().ok(),
@@ -177,7 +177,7 @@ impl PlayOptions {
     }
 }
 
-/// Play content request
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayContent {
     pub id: Uuid,
@@ -189,7 +189,7 @@ pub struct PlayContent {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Response sent to UI to trigger player
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayResponse {
     pub player_id: Uuid,
@@ -201,7 +201,7 @@ pub struct PlayResponse {
     pub metadata: HashMap<String, String>,
 }
 
-/// Register the PLAY keyword
+
 pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     if let Err(e) = play_simple_keyword(state.clone(), user.clone(), engine) {
         log::error!("Failed to register PLAY keyword: {}", e);
@@ -220,7 +220,7 @@ pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
     }
 }
 
-/// PLAY "source"
+
 fn play_simple_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -269,7 +269,7 @@ fn play_simple_keyword(
     Ok(())
 }
 
-/// PLAY "source" WITH OPTIONS "options"
+
 fn play_with_options_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -334,7 +334,7 @@ fn play_with_options_keyword(
     Ok(())
 }
 
-/// STOP - Stop current playback
+
 fn stop_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -373,7 +373,7 @@ fn stop_keyword(
     Ok(())
 }
 
-/// PAUSE - Pause current playback
+
 fn pause_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -413,7 +413,7 @@ fn pause_keyword(
     Ok(())
 }
 
-/// RESUME - Resume paused playback
+
 fn resume_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -453,34 +453,34 @@ fn resume_keyword(
     Ok(())
 }
 
-// Core Functions
 
-/// Execute the PLAY command
+
+
 async fn execute_play(
     state: &AppState,
     session_id: Uuid,
     source: &str,
     options: PlayOptions,
 ) -> Result<PlayResponse, String> {
-    // Detect content type
+
     let content_type = detect_content_type(source);
 
-    // Resolve source URL
+
     let source_url = resolve_source_url(state, session_id, source).await?;
 
-    // Get metadata
+
     let metadata = get_content_metadata(state, &source_url, &content_type).await?;
 
-    // Create player ID
+
     let player_id = Uuid::new_v4();
 
-    // Get title from source or metadata
+
     let title = metadata
         .get("title")
         .cloned()
         .unwrap_or_else(|| extract_title_from_source(source));
 
-    // Build response
+
     let response = PlayResponse {
         player_id,
         content_type: content_type.clone(),
@@ -491,7 +491,7 @@ async fn execute_play(
         metadata,
     };
 
-    // Send to client via WebSocket
+
     send_play_to_client(state, session_id, &response).await?;
 
     info!(
@@ -502,11 +502,11 @@ async fn execute_play(
     Ok(response)
 }
 
-/// Detect content type from source
+
 fn detect_content_type(source: &str) -> ContentType {
-    // Check if it's a URL
+
     if source.starts_with("http://") || source.starts_with("https://") {
-        // Check for known video platforms
+
         if source.contains("youtube.com")
             || source.contains("youtu.be")
             || source.contains("vimeo.com")
@@ -514,7 +514,7 @@ fn detect_content_type(source: &str) -> ContentType {
             return ContentType::Video;
         }
 
-        // Check for known image hosts
+
         if source.contains("imgur.com")
             || source.contains("unsplash.com")
             || source.contains("pexels.com")
@@ -522,18 +522,18 @@ fn detect_content_type(source: &str) -> ContentType {
             return ContentType::Image;
         }
 
-        // Try to detect from URL path extension
+
         if let Some(path) = source.split('?').next() {
             if let Some(ext) = Path::new(path).extension() {
                 return ContentType::from_extension(&ext.to_string_lossy());
             }
         }
 
-        // Default to iframe for unknown URLs
+
         return ContentType::Iframe;
     }
 
-    // Local file - detect from extension
+
     if let Some(ext) = Path::new(source).extension() {
         return ContentType::from_extension(&ext.to_string_lossy());
     }
@@ -541,20 +541,20 @@ fn detect_content_type(source: &str) -> ContentType {
     ContentType::Unknown
 }
 
-/// Resolve source to a URL
+
 async fn resolve_source_url(
     _state: &AppState,
     session_id: Uuid,
     source: &str,
 ) -> Result<String, String> {
-    // If already a URL, return as-is
+
     if source.starts_with("http://") || source.starts_with("https://") {
         return Ok(source.to_string());
     }
 
-    // Check if it's a drive path
+
     if source.starts_with("/") || source.contains(".gbdrive") {
-        // Resolve from drive
+
         let file_url = format!(
             "/api/drive/file/{}?session={}",
             urlencoding::encode(source),
@@ -563,7 +563,7 @@ async fn resolve_source_url(
         return Ok(file_url);
     }
 
-    // Check if it's a relative path in current bot's folder
+
     let file_url = format!(
         "/api/drive/file/{}?session={}",
         urlencoding::encode(source),
@@ -573,7 +573,7 @@ async fn resolve_source_url(
     Ok(file_url)
 }
 
-/// Get content metadata
+
 async fn get_content_metadata(
     _state: &AppState,
     source_url: &str,
@@ -584,7 +584,7 @@ async fn get_content_metadata(
     metadata.insert("source".to_string(), source_url.to_string());
     metadata.insert("type".to_string(), format!("{:?}", content_type));
 
-    // Add type-specific metadata
+
     match content_type {
         ContentType::Video => {
             metadata.insert("player".to_string(), "html5".to_string());
@@ -613,9 +613,9 @@ async fn get_content_metadata(
     Ok(metadata)
 }
 
-/// Extract title from source path/URL
+
 fn extract_title_from_source(source: &str) -> String {
-    // Extract filename from path or URL
+
     let path = source.split('?').next().unwrap_or(source);
 
     Path::new(path)
@@ -624,7 +624,7 @@ fn extract_title_from_source(source: &str) -> String {
         .unwrap_or_else(|| "Untitled".to_string())
 }
 
-/// Send play command to client via WebSocket
+
 async fn send_play_to_client(
     state: &AppState,
     session_id: Uuid,
@@ -638,7 +638,7 @@ async fn send_play_to_client(
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
 
-    // Send via web adapter
+
     let bot_response = crate::shared::models::BotResponse {
         bot_id: String::new(),
         user_id: String::new(),
@@ -663,7 +663,7 @@ async fn send_play_to_client(
     Ok(())
 }
 
-/// Send player command (stop/pause/resume) to client
+
 async fn send_player_command(
     state: &AppState,
     session_id: Uuid,
@@ -677,7 +677,7 @@ async fn send_player_command(
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
 
-    // Use web adapter to send message
+
     let _ = state
         .web_adapter
         .send_message_to_session(

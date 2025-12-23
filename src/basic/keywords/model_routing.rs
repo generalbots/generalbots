@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Model routing configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelConfig {
     pub name: String,
@@ -19,13 +19,13 @@ pub struct ModelConfig {
     pub temperature: Option<f32>,
 }
 
-/// Routing strategy for automatic model selection
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum RoutingStrategy {
-    Manual,       // User explicitly specifies model
-    Auto,         // Route based on query analysis
-    LoadBalanced, // Distribute across available models
-    Fallback,     // Try models in order until success
+    Manual,
+    Auto,
+    LoadBalanced,
+    Fallback,
 }
 
 impl Default for RoutingStrategy {
@@ -34,7 +34,7 @@ impl Default for RoutingStrategy {
     }
 }
 
-/// Model router for managing multiple LLM configurations
+
 #[derive(Debug, Clone)]
 pub struct ModelRouter {
     pub models: HashMap<String, ModelConfig>,
@@ -51,8 +51,8 @@ impl ModelRouter {
         }
     }
 
-    /// Load models from config.csv llm-models property
-    /// Format: llm-models,default;fast;quality;code
+
+
     pub fn from_config(config_models: &str, bot_id: Uuid, state: &AppState) -> Self {
         let mut router = Self::new();
 
@@ -64,8 +64,8 @@ impl ModelRouter {
                 continue;
             }
 
-            // Try to load model config from bot configuration
-            // Looking for: llm-model-{name}, llm-url-{name}, llm-key-{name}
+
+
             if let Ok(mut conn) = state.conn.get() {
                 let model_config = load_model_config(&mut conn, bot_id, name);
                 if let Some(config) = model_config {
@@ -74,7 +74,7 @@ impl ModelRouter {
             }
         }
 
-        // Set first model as default if available
+
         if let Some(first_name) = config_models.split(';').next() {
             router.default_model = first_name.trim().to_string();
         }
@@ -82,17 +82,17 @@ impl ModelRouter {
         router
     }
 
-    /// Get model configuration by name
+
     pub fn get_model(&self, name: &str) -> Option<&ModelConfig> {
         self.models.get(name)
     }
 
-    /// Get the default model configuration
+
     pub fn get_default(&self) -> Option<&ModelConfig> {
         self.models.get(&self.default_model)
     }
 
-    /// Route a query to the optimal model based on strategy
+
     pub fn route_query(&self, query: &str) -> &str {
         match self.routing_strategy {
             RoutingStrategy::Auto => self.auto_route(query),
@@ -102,11 +102,11 @@ impl ModelRouter {
         }
     }
 
-    /// Automatic routing based on query analysis
+
     fn auto_route(&self, query: &str) -> &str {
         let query_lower = query.to_lowercase();
 
-        // Code-related queries
+
         if query_lower.contains("code")
             || query_lower.contains("program")
             || query_lower.contains("function")
@@ -119,7 +119,7 @@ impl ModelRouter {
             }
         }
 
-        // Complex reasoning queries
+
         if query_lower.contains("analyze")
             || query_lower.contains("explain")
             || query_lower.contains("compare")
@@ -131,7 +131,7 @@ impl ModelRouter {
             }
         }
 
-        // Simple/fast queries
+
         if query.len() < 100
             || query_lower.contains("what is")
             || query_lower.contains("define")
@@ -145,14 +145,14 @@ impl ModelRouter {
         &self.default_model
     }
 
-    /// Simple round-robin load balancing
+
     fn load_balanced_route(&self) -> &str {
-        // For simplicity, return default - a full implementation would track usage
+
         &self.default_model
     }
 }
 
-/// Load model configuration from database
+
 fn load_model_config(
     conn: &mut diesel::PgConnection,
     bot_id: Uuid,
@@ -166,7 +166,7 @@ fn load_model_config(
         config_value: String,
     }
 
-    // Query for model-specific config
+
     let suffix = if model_name == "default" {
         "".to_string()
     } else {
@@ -216,7 +216,7 @@ fn load_model_config(
     })
 }
 
-/// Registers model routing keywords
+
 pub fn register_model_routing_keywords(
     state: Arc<AppState>,
     user: UserSession,
@@ -228,8 +228,8 @@ pub fn register_model_routing_keywords(
     list_models_keyword(state.clone(), user.clone(), engine);
 }
 
-/// USE MODEL "model_name"
-/// Switch the LLM model for the current conversation
+
+
 pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -277,8 +277,8 @@ pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         .expect("Failed to register USE MODEL syntax");
 }
 
-/// SET MODEL ROUTING "strategy"
-/// Set the model routing strategy: "manual", "auto", "load-balanced", "fallback"
+
+
 pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -336,8 +336,8 @@ pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register SET MODEL ROUTING syntax");
 }
 
-/// GET CURRENT MODEL()
-/// Returns the name of the currently active model for this session
+
+
 pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -354,8 +354,8 @@ pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine
     });
 }
 
-/// LIST MODELS()
-/// Returns an array of available model names
+
+
 pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -375,9 +375,9 @@ pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     });
 }
 
-// Database Operations
 
-/// Set the model for a session
+
+
 async fn set_session_model(
     state: &AppState,
     session_id: Uuid,
@@ -390,7 +390,7 @@ async fn set_session_model(
 
     let now = chrono::Utc::now();
 
-    // Update or insert session model preference
+
     diesel::sql_query(
         "INSERT INTO session_preferences (session_id, preference_key, preference_value, updated_at) \
          VALUES ($1, 'current_model', $2, $3) \
@@ -409,7 +409,7 @@ async fn set_session_model(
     Ok(format!("Now using model: {}", model_name))
 }
 
-/// Set the routing strategy for a session
+
 async fn set_session_routing_strategy(
     state: &AppState,
     session_id: Uuid,
@@ -449,7 +449,7 @@ async fn set_session_routing_strategy(
     Ok(format!("Model routing set to: {}", strategy_str))
 }
 
-/// Get the current model for a session (sync version)
+
 fn get_session_model_sync(
     conn: &mut diesel::PgConnection,
     session_id: Uuid,
@@ -474,7 +474,7 @@ fn get_session_model_sync(
         .unwrap_or_else(|| "default".to_string()))
 }
 
-/// List available models for a bot (sync version)
+
 fn list_available_models_sync(
     conn: &mut diesel::PgConnection,
     bot_id: Uuid,
@@ -485,7 +485,7 @@ fn list_available_models_sync(
         config_value: String,
     }
 
-    // Get llm-models config
+
     let result: Option<ConfigRow> = diesel::sql_query(
         "SELECT config_value FROM bot_configuration \
          WHERE bot_id = $1 AND config_key = 'llm-models' LIMIT 1",
@@ -503,12 +503,12 @@ fn list_available_models_sync(
             .filter(|s| !s.is_empty())
             .collect())
     } else {
-        // Return default model if no models configured
+
         Ok(vec!["default".to_string()])
     }
 }
 
-/// Get the current model name for a session (public helper)
+
 pub fn get_session_model(state: &AppState, session_id: Uuid) -> String {
     if let Ok(mut conn) = state.conn.get() {
         get_session_model_sync(&mut conn, session_id).unwrap_or_else(|_| "default".to_string())
@@ -517,7 +517,7 @@ pub fn get_session_model(state: &AppState, session_id: Uuid) -> String {
     }
 }
 
-/// Get the routing strategy for a session
+
 pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> RoutingStrategy {
     if let Ok(mut conn) = state.conn.get() {
         #[derive(QueryableByName)]
@@ -551,4 +551,4 @@ pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> Routi
     }
 }
 
-// Tests
+

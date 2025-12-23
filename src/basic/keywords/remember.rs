@@ -28,10 +28,10 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     user_clone.user_id
                 );
 
-                // Parse duration
+
                 let expiry = parse_duration(&duration_str)?;
 
-                // Convert value to JSON
+
                 let json_value = if value.is_string() {
                     json!(value.to_string())
                 } else if value.is_int() {
@@ -41,7 +41,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 } else if value.is_bool() {
                     json!(value.as_bool().unwrap_or(false))
                 } else if value.is_array() {
-                    // Convert Rhai array to JSON array
+
                     let arr = value.cast::<rhai::Array>();
                     let json_arr: Vec<serde_json::Value> = arr
                         .iter()
@@ -55,7 +55,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                         .collect();
                     json!(json_arr)
                 } else if value.is_map() {
-                    // Convert Rhai map to JSON object
+
                     json!(value.to_string())
                 } else {
                     json!(value.to_string())
@@ -119,7 +119,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         )
         .unwrap();
 
-    // Register RECALL keyword to retrieve memories
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -157,7 +157,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
 
             match rx.recv_timeout(std::time::Duration::from_secs(5)) {
                 Ok(Ok(value)) => {
-                    // Convert JSON value back to Dynamic
+
                     if value.is_string() {
                         Ok(Dynamic::from(value.as_str().unwrap_or("").to_string()))
                     } else if value.is_number() {
@@ -199,10 +199,10 @@ fn parse_duration(
         return Ok(None);
     }
 
-    // Parse patterns like "30 days", "1 hour", "5 minutes", etc.
+
     let parts: Vec<&str> = duration_lower.split_whitespace().collect();
     if parts.len() != 2 {
-        // Try parsing as a number of days
+
         if let Ok(days) = duration_str.parse::<i64>() {
             return Ok(Some(Utc::now() + Duration::days(days)));
         }
@@ -219,7 +219,7 @@ fn parse_duration(
         ))
     })?;
 
-    let unit = parts[1].trim_end_matches('s'); // Remove trailing 's' if present
+    let unit = parts[1].trim_end_matches('s');
 
     let duration = match unit {
         "second" => Duration::seconds(amount),
@@ -227,8 +227,8 @@ fn parse_duration(
         "hour" => Duration::hours(amount),
         "day" => Duration::days(amount),
         "week" => Duration::weeks(amount),
-        "month" => Duration::days(amount * 30), // Approximate
-        "year" => Duration::days(amount * 365), // Approximate
+        "month" => Duration::days(amount * 30),
+        "year" => Duration::days(amount * 365),
         _ => {
             return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
                 format!("Invalid duration unit: {}", unit).into(),
@@ -249,7 +249,7 @@ async fn store_memory(
 ) -> Result<(), String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    // Create memory record
+
     let memory_id = Uuid::new_v4().to_string();
     let user_id = user.user_id.to_string();
     let bot_id = user.bot_id.to_string();
@@ -257,7 +257,7 @@ async fn store_memory(
     let created_at = Utc::now().to_rfc3339();
     let expires_at = expiry.map(|e| e.to_rfc3339());
 
-    // Use raw SQL for flexibility (you might want to create a proper schema later)
+
     let query = diesel::sql_query(
         "INSERT INTO bot_memories (id, user_id, bot_id, session_id, key, value, created_at, expires_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
@@ -293,7 +293,7 @@ async fn retrieve_memory(
     let bot_id = user.bot_id.to_string();
     let now = Utc::now().to_rfc3339();
 
-    // Query memory, checking expiry
+
     let query = diesel::sql_query(
         "SELECT value FROM bot_memories
          WHERE user_id = $1 AND bot_id = $2 AND key = $3

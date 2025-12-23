@@ -71,7 +71,7 @@ impl PackageManager {
                 .await?;
         }
         if !component.data_download_list.is_empty() {
-            // Initialize cache for data files (models, etc.)
+
             let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
             let cache = DownloadCache::new(cache_base).ok();
 
@@ -83,18 +83,18 @@ impl PackageManager {
                     .join(&component.name)
                     .join(&filename);
 
-                // Check if already exists at destination
+
                 if output_path.exists() {
                     info!("Data file already exists: {:?}", output_path);
                     continue;
                 }
 
-                // Ensure data directory exists
+
                 if let Some(parent) = output_path.parent() {
                     std::fs::create_dir_all(parent)?;
                 }
 
-                // Check cache first
+
                 if let Some(ref c) = cache {
                     if let Some(cached_path) = c.get_cached_path(&filename) {
                         info!("Using cached data file: {:?}", cached_path);
@@ -103,7 +103,7 @@ impl PackageManager {
                     }
                 }
 
-                // Download to cache if available, otherwise directly to destination
+
                 let download_target = if let Some(ref c) = cache {
                     c.get_cache_path(&filename)
                 } else {
@@ -114,7 +114,7 @@ impl PackageManager {
                 println!("Downloading {}", url);
                 utils::download_file(url, download_target.to_str().unwrap()).await?;
 
-                // Copy from cache to destination if we downloaded to cache
+
                 if cache.is_some() && download_target != output_path {
                     std::fs::copy(&download_target, &output_path)?;
                     info!("Copied cached file to: {:?}", output_path);
@@ -127,10 +127,10 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-        // Ensure LXD is initialized (runs silently if already initialized)
+
         let _ = Command::new("lxd").args(&["init", "--auto"]).output();
 
-        // Try multiple image sources in case one is unavailable
+
         let images = [
             "ubuntu:24.04",
             "ubuntu:22.04",
@@ -160,7 +160,7 @@ impl PackageManager {
             } else {
                 last_error = String::from_utf8_lossy(&output.stderr).to_string();
                 warn!("Failed to create container with {}: {}", image, last_error);
-                // Clean up any partial container before trying next image
+
                 let _ = Command::new("lxc")
                     .args(&["delete", &container_name, "--force"])
                     .output();
@@ -176,7 +176,7 @@ impl PackageManager {
         std::thread::sleep(std::time::Duration::from_secs(15));
         self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
 
-        // Configure DNS (some containers don't have proper DNS resolution)
+
         self.exec_in_container(
             &container_name,
             "echo 'nameserver 8.8.8.8' > /etc/resolv.conf",
@@ -186,7 +186,7 @@ impl PackageManager {
             "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf",
         )?;
 
-        // Install base packages required for all containers (wget for downloads, unzip for .zip files, curl for health checks)
+
         self.exec_in_container(&container_name, "apt-get update -qq")?;
         self.exec_in_container(
             &container_name,
@@ -247,15 +247,15 @@ impl PackageManager {
         }
         self.setup_port_forwarding(&container_name, &component.ports)?;
 
-        // Get container IP
+
         let container_ip = self.get_container_ip(&container_name)?;
 
-        // For Vault, initialize and create config files automatically
+
         if component.name == "vault" {
             self.initialize_vault(&container_name, &container_ip)?;
         }
 
-        // Generate connection info based on component type
+
         let (connection_info, env_vars) =
             self.generate_connection_info(&component.name, &container_ip, &component.ports);
 
@@ -275,21 +275,21 @@ impl PackageManager {
         })
     }
 
-    /// Get the IP address of a container
+
     fn get_container_ip(&self, container_name: &str) -> Result<String> {
-        // Wait a moment for network to be ready
+
         std::thread::sleep(std::time::Duration::from_secs(2));
 
-        // Try lxc list with network info
+
         let output = Command::new("lxc")
             .args(&["list", container_name, "-c", "4", "--format", "csv"])
             .output()?;
 
         if output.status.success() {
             let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            // Parse IP from output like "10.16.164.168 (eth0)" or just "10.16.164.168"
+
             if !ip_output.is_empty() {
-                // Extract just the IP address (first part before space or parenthesis)
+
                 let ip = ip_output
                     .split(|c| c == ' ' || c == '(')
                     .next()
@@ -301,7 +301,7 @@ impl PackageManager {
             }
         }
 
-        // Fallback: try lxc exec to get IP from inside container
+
         let output = Command::new("lxc")
             .args(&["exec", container_name, "--", "hostname", "-I"])
             .output()?;
@@ -318,15 +318,15 @@ impl PackageManager {
         Ok("unknown".to_string())
     }
 
-    /// Initialize Vault, get unseal keys and root token, create .env and secrets files
+
     fn initialize_vault(&self, container_name: &str, ip: &str) -> Result<()> {
         info!("Initializing Vault...");
 
-        // Wait for Vault to be ready
+
         std::thread::sleep(std::time::Duration::from_secs(5));
 
-        // Initialize Vault and capture output
-        // Note: VAULT_ADDR must be set inside the container, not on host
+
+
         let output = Command::new("lxc")
             .args(&[
                 "exec",
@@ -340,7 +340,7 @@ impl PackageManager {
 
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            // Check if already initialized
+
             if stderr.contains("already initialized") {
                 warn!("Vault already initialized, skipping file generation");
                 return Ok(());
@@ -350,7 +350,7 @@ impl PackageManager {
 
         let init_output = String::from_utf8_lossy(&output.stdout);
 
-        // Parse JSON output
+
         let init_json: serde_json::Value =
             serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
 
@@ -361,12 +361,12 @@ impl PackageManager {
             .as_str()
             .context("No root token in output")?;
 
-        // Write vault-unseal-keys file in working directory
+
         let unseal_keys_file = PathBuf::from("vault-unseal-keys");
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
-                // Only need 3 keys for threshold
+
                 unseal_content.push_str(&format!(
                     "VAULT_UNSEAL_KEY_{}={}\n",
                     i + 1,
@@ -376,7 +376,7 @@ impl PackageManager {
         }
         std::fs::write(&unseal_keys_file, &unseal_content)?;
 
-        // Set permissions to 600 (owner read/write only)
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -385,7 +385,7 @@ impl PackageManager {
 
         info!("Created {}", unseal_keys_file.display());
 
-        // Check if .env exists, create or append
+
         let env_file = PathBuf::from(".env");
         let env_content = format!(
             "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=vault-unseal-keys\n",
@@ -393,11 +393,11 @@ impl PackageManager {
         );
 
         if env_file.exists() {
-            // Read existing content
+
             let existing = std::fs::read_to_string(&env_file)?;
-            // Check if VAULT_ADDR already exists
+
             if !existing.contains("VAULT_ADDR=") {
-                // Append to existing file
+
                 let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
                 use std::io::Write;
                 file.write_all(env_content.as_bytes())?;
@@ -406,13 +406,13 @@ impl PackageManager {
                 warn!(".env already contains VAULT_ADDR, not overwriting");
             }
         } else {
-            // Create new .env file
+
             std::fs::write(&env_file, env_content.trim_start())?;
             info!("Created .env with Vault config");
         }
 
-        // Unseal Vault with the first 3 keys
-        // Note: VAULT_ADDR must be set inside the container, not on host
+
+
         for i in 0..3 {
             if let Some(key) = unseal_keys.get(i) {
                 let key_str = key.as_str().unwrap_or("");
@@ -434,8 +434,8 @@ impl PackageManager {
         Ok(())
     }
 
-    /// Generate connection info and env vars based on component type
-    /// Only Vault returns .env vars - all others return Vault storage commands
+
+
     fn generate_connection_info(
         &self,
         component: &str,
@@ -445,7 +445,7 @@ impl PackageManager {
         let env_vars = HashMap::new();
         let connection_info = match component {
             "vault" => {
-                // Vault config files are auto-generated, just show confirmation
+
                 format!(
                     r#"Vault Server:
   URL: http://{}:8200
@@ -740,15 +740,15 @@ Store credentials in Vault:
         let bin_path = self.base_path.join("bin").join(component);
         std::fs::create_dir_all(&bin_path)?;
 
-        // Initialize cache - use parent of base_path (botserver root) for cache
+
         let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
         let cache = DownloadCache::new(cache_base).unwrap_or_else(|e| {
             warn!("Failed to initialize download cache: {}", e);
-            // Create a fallback cache in base_path
+
             DownloadCache::new(&self.base_path).expect("Failed to create fallback cache")
         });
 
-        // Check cache first
+
         let cache_result = cache.resolve_component_url(component, url);
 
         let source_file = match cache_result {
@@ -763,7 +763,7 @@ Store credentials in Vault:
                 info!("Downloading {} from {}", component, download_url);
                 println!("Downloading {}", download_url);
 
-                // Download to cache directory
+
                 self.download_with_reqwest(&download_url, &cache_path, component)
                     .await?;
 
@@ -772,7 +772,7 @@ Store credentials in Vault:
             }
         };
 
-        // Now extract/install from the source file (either cached or freshly downloaded)
+
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
         Ok(())
     }
@@ -785,7 +785,7 @@ Store credentials in Vault:
         const MAX_RETRIES: u32 = 3;
         const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
 
-        // Ensure parent directory exists
+
         if let Some(parent) = target_file.parent() {
             std::fs::create_dir_all(parent)?;
         }
@@ -869,8 +869,8 @@ Store credentials in Vault:
                     self.install_binary(temp_file, bin_path, name)?;
                 } else {
                     let final_path = bin_path.join(temp_file.file_name().unwrap());
-                    // Copy instead of rename if source is in cache directory
-                    // This preserves cached files for offline installation
+
+
                     if temp_file.to_string_lossy().contains("botserver-installers") {
                         std::fs::copy(temp_file, &final_path)?;
                     } else {
@@ -893,8 +893,8 @@ Store credentials in Vault:
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-        // Only delete if NOT in the cache directory (botserver-installers)
-        // Cached files should be preserved for offline installation
+
+
         if !temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::remove_file(temp_file)?;
         }
@@ -912,7 +912,7 @@ Store credentials in Vault:
             ));
         }
 
-        // Make all extracted files executable (especially important for binaries like Vault)
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -922,7 +922,7 @@ Store credentials in Vault:
                     if path.is_file() {
                         if let Ok(metadata) = std::fs::metadata(&path) {
                             let mut perms = metadata.permissions();
-                            // Only make executable if it looks like a binary (no extension or common binary extensions)
+
                             let ext = path.extension().and_then(|e| e.to_str()).unwrap_or("");
                             if ext.is_empty() || ext == "sh" || ext == "bash" {
                                 perms.set_mode(0o755);
@@ -935,8 +935,8 @@ Store credentials in Vault:
             }
         }
 
-        // Only delete if NOT in the cache directory (botserver-installers)
-        // Cached files should be preserved for offline installation
+
+
         if !temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::remove_file(temp_file)?;
         }
@@ -949,8 +949,8 @@ Store credentials in Vault:
         name: &str,
     ) -> Result<()> {
         let final_path = bin_path.join(name);
-        // Copy instead of rename if source is in cache directory
-        // This preserves cached files for offline installation
+
+
         if temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::copy(temp_file, &final_path)?;
         } else {
@@ -980,8 +980,8 @@ Store credentials in Vault:
         } else {
             PathBuf::from("/opt/gbo/data")
         };
-        // CONF_PATH should be the base conf directory, not component-specific
-        // Commands that need component subdirs include them explicitly (e.g., {{CONF_PATH}}/directory/zitadel.yaml)
+
+
         let conf_path = if target == "local" {
             self.base_path.join("conf")
         } else {
@@ -993,15 +993,15 @@ Store credentials in Vault:
             PathBuf::from("/opt/gbo/logs")
         };
 
-        // Get DB password from Vault for commands that need it (e.g., PostgreSQL initdb)
+
         let db_password = match get_database_url_sync() {
             Ok(url) => {
                 let (_, password, _, _, _) = parse_database_url(&url);
                 password
             }
             Err(_) => {
-                // Vault not available yet - this is OK during early bootstrap
-                // Commands that don't need DB_PASSWORD will still work
+
+
                 trace!("Vault not available for DB_PASSWORD, using empty string");
                 String::new()
             }
@@ -1124,8 +1124,8 @@ Store credentials in Vault:
         exec_cmd: &str,
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
-        // Try to get DB password from Vault, but don't fail if Vault isn't available yet
-        // (e.g., when installing Vault itself or other components that don't need DB)
+
+
         let db_password = match get_database_url_sync() {
             Ok(url) => {
                 let (_, password, _, _, _) = parse_database_url(&url);

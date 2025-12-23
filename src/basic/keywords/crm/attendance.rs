@@ -1,66 +1,66 @@
-//! CRM Attendance Keywords
-//!
-//! Provides BASIC keywords for queue management, LLM-assisted attendant features,
-//! and customer journey tracking. These keywords enable flexible CRM automation
-//! directly from BASIC scripts.
-//!
-//! ## Queue Management Keywords
-//!
-//! - `GET QUEUE` - Get current queue status and items
-//! - `NEXT IN QUEUE` - Get next waiting conversation
-//! - `ASSIGN CONVERSATION` - Assign conversation to attendant
-//! - `RESOLVE CONVERSATION` - Mark conversation as resolved
-//! - `SET PRIORITY` - Change conversation priority
-//!
-//! ## Attendant Keywords
-//!
-//! - `GET ATTENDANTS` - List available attendants
-//! - `SET ATTENDANT STATUS` - Change attendant status
-//! - `GET ATTENDANT STATS` - Get performance metrics
-//!
-//! ## LLM Assist Keywords
-//!
-//! - `GET TIPS` - Generate AI tips for conversation
-//! - `POLISH MESSAGE` - Improve message with AI
-//! - `GET SMART REPLIES` - Get AI reply suggestions
-//! - `GET SUMMARY` - Get conversation summary
-//! - `ANALYZE SENTIMENT` - Analyze customer sentiment
-//!
-//! ## Customer Journey Keywords
-//!
-//! - `TAG CONVERSATION` - Add tags to conversation
-//! - `ADD NOTE` - Add internal note
-//! - `GET CUSTOMER HISTORY` - Get previous interactions
-//!
-//! ## Example Usage
-//!
-//! ```basic
-//! ' Check queue and assign next conversation
-//! queue = GET QUEUE
-//! TALK "Queue has " + queue.waiting + " waiting"
-//!
-//! IF queue.waiting > 0 THEN
-//!     next_conv = NEXT IN QUEUE
-//!     ASSIGN CONVERSATION next_conv.session_id, "att-001"
-//! END IF
-//!
-//! ' Use LLM assist
-//! tips = GET TIPS session_id, customer_message
-//! FOR EACH tip IN tips
-//!     TALK tip.content
-//! NEXT
-//!
-//! ' Polish before sending
-//! polished = POLISH MESSAGE "thx for ur msg ill help u now"
-//! SEND polished.text TO customer
-//!
-//! ' Analyze sentiment
-//! sentiment = ANALYZE SENTIMENT session_id, message
-//! IF sentiment.escalation_risk = "high" THEN
-//!     SET PRIORITY session_id, "urgent"
-//!     TRANSFER TO HUMAN "support", "urgent", "High escalation risk"
-//! END IF
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -72,32 +72,32 @@ use rhai::{Array, Dynamic, Engine, Map};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// Registration
 
-/// Register all CRM attendance keywords
+
+
 pub fn register_attendance_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     debug!("Registering CRM attendance keywords...");
 
-    // Queue Management
+
     register_get_queue(state.clone(), user.clone(), engine);
     register_next_in_queue(state.clone(), user.clone(), engine);
     register_assign_conversation(state.clone(), user.clone(), engine);
     register_resolve_conversation(state.clone(), user.clone(), engine);
     register_set_priority(state.clone(), user.clone(), engine);
 
-    // Attendant Management
+
     register_get_attendants(state.clone(), user.clone(), engine);
     register_set_attendant_status(state.clone(), user.clone(), engine);
     register_get_attendant_stats(state.clone(), user.clone(), engine);
 
-    // LLM Assist
+
     register_get_tips(state.clone(), user.clone(), engine);
     register_polish_message(state.clone(), user.clone(), engine);
     register_get_smart_replies(state.clone(), user.clone(), engine);
     register_get_summary(state.clone(), user.clone(), engine);
     register_analyze_sentiment(state.clone(), user.clone(), engine);
 
-    // Customer Journey
+
     register_tag_conversation(state.clone(), user.clone(), engine);
     register_add_note(state.clone(), user.clone(), engine);
     register_get_customer_history(state.clone(), user.clone(), engine);
@@ -105,26 +105,26 @@ pub fn register_attendance_keywords(state: Arc<AppState>, user: UserSession, eng
     debug!("CRM attendance keywords registered successfully");
 }
 
-// Queue Management Keywords
 
-/// GET QUEUE - Get current queue status
-///
-/// Returns queue statistics and optionally filtered items.
-///
-/// ```basic
-/// ' Get queue stats
-/// queue = GET QUEUE
-/// TALK "Waiting: " + queue.waiting + ", Active: " + queue.active
-///
-/// ' Get queue with filter
-/// queue = GET QUEUE "channel=whatsapp"
-/// queue = GET QUEUE "department=sales"
-/// queue = GET QUEUE "priority=high"
-/// ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 fn register_get_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
-    // GET QUEUE
+
     engine.register_fn("get_queue", move || -> Dynamic {
         get_queue_impl(&state_clone, None)
     });
@@ -134,7 +134,7 @@ fn register_get_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
         get_queue_impl(&state_clone2, Some(filter.to_string()))
     });
 
-    // Also register as GET_QUEUE for compatibility
+
     let state_clone3 = state.clone();
     engine
         .register_custom_syntax(&["GET", "QUEUE"], false, move |_context, _inputs| {
@@ -169,7 +169,7 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
 
         use crate::shared::models::schema::user_sessions;
 
-        // Build query
+
         let mut query = user_sessions::table
             .filter(
                 user_sessions::context_data
@@ -178,7 +178,7 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
             )
             .into_boxed();
 
-        // Apply filters
+
         if let Some(ref filter_str) = filter {
             if filter_str.contains("channel=") {
                 let channel = filter_str.replace("channel=", "");
@@ -188,7 +188,7 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
                         .eq(channel),
                 );
             }
-            // Add more filters as needed
+
         }
 
         let sessions: Vec<UserSession> = match query.load(&mut db_conn) {
@@ -199,7 +199,7 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
             }
         };
 
-        // Calculate stats
+
         let mut waiting = 0;
         let mut assigned = 0;
         let mut active = 0;
@@ -229,10 +229,10 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
         result.insert("active".into(), Dynamic::from(active));
         result.insert("resolved".into(), Dynamic::from(resolved));
 
-        // Add items array
+
         let items: Array = sessions
             .iter()
-            .take(20) // Limit to 20 items
+            .take(20)
             .map(|s| {
                 let mut item = Map::new();
                 item.insert("session_id".into(), Dynamic::from(s.id.to_string()));
@@ -290,15 +290,15 @@ pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic 
     result
 }
 
-/// NEXT IN QUEUE - Get next waiting conversation
-///
-/// ```basic
-/// next = NEXT IN QUEUE
-/// IF next.success THEN
-///     TALK "Next customer: " + next.name
-///     ASSIGN CONVERSATION next.session_id, attendant_id
-/// END IF
-/// ```
+
+
+
+
+
+
+
+
+
 fn register_next_in_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -325,7 +325,7 @@ pub fn next_in_queue_impl(state: &Arc<AppState>) -> Dynamic {
 
         use crate::shared::models::schema::user_sessions;
 
-        // Find next waiting session (ordered by priority and time)
+
         let session: Option<UserSession> = user_sessions::table
             .filter(
                 user_sessions::context_data
@@ -394,12 +394,12 @@ pub fn next_in_queue_impl(state: &Arc<AppState>) -> Dynamic {
     result
 }
 
-/// ASSIGN CONVERSATION - Assign conversation to attendant
-///
-/// ```basic
-/// result = ASSIGN CONVERSATION session_id, attendant_id
-/// result = ASSIGN CONVERSATION session_id, "att-001"
-/// ```
+
+
+
+
+
+
 fn register_assign_conversation(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -448,14 +448,14 @@ pub fn assign_conversation_impl(
 
         use crate::shared::models::schema::user_sessions;
 
-        // Get current session
+
         let session: UserSession = match user_sessions::table.find(session_uuid).first(&mut db_conn)
         {
             Ok(s) => s,
             Err(_) => return create_error_result("Session not found"),
         };
 
-        // Update context
+
         let mut ctx = session.context_data.clone();
         ctx["assigned_to"] = serde_json::json!(attendant);
         ctx["assigned_at"] = serde_json::json!(Utc::now().to_rfc3339());
@@ -482,12 +482,12 @@ pub fn assign_conversation_impl(
     result
 }
 
-/// RESOLVE CONVERSATION - Mark conversation as resolved
-///
-/// ```basic
-/// RESOLVE CONVERSATION session_id
-/// RESOLVE CONVERSATION session_id, "Issue fixed"
-/// ```
+
+
+
+
+
+
 fn register_resolve_conversation(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -579,13 +579,13 @@ pub fn resolve_conversation_impl(
     result
 }
 
-/// SET PRIORITY - Change conversation priority
-///
-/// ```basic
-/// SET PRIORITY session_id, "high"
-/// SET PRIORITY session_id, "urgent"
-/// SET PRIORITY session_id, 3  ' numeric (1=low, 2=normal, 3=high, 4=urgent)
-/// ```
+
+
+
+
+
+
+
 fn register_set_priority(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -621,7 +621,7 @@ pub fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dyna
         Err(_) => return create_error_result("Invalid session ID"),
     };
 
-    // Convert priority to numeric
+
     let priority_num: i64 = if priority.is_int() {
         priority.as_int().unwrap_or(2)
     } else {
@@ -671,19 +671,19 @@ pub fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dyna
     result
 }
 
-// Attendant Management Keywords
 
-/// GET ATTENDANTS - List available attendants
-///
-/// ```basic
-/// attendants = GET ATTENDANTS
-/// FOR EACH att IN attendants.items
-///     TALK att.name + " - " + att.status
-/// NEXT
-///
-/// ' Filter by status
-/// online = GET ATTENDANTS "online"
-/// ```
+
+
+
+
+
+
+
+
+
+
+
+
 fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -712,12 +712,12 @@ fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mu
 }
 
 pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>) -> Dynamic {
-    // Read from attendant.csv
+
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
 
     let mut attendants = Vec::new();
 
-    // Scan for attendant.csv files
+
     if let Ok(entries) = std::fs::read_dir(&work_path) {
         for entry in entries.flatten() {
             let path = entry.path();
@@ -736,7 +736,7 @@ pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>
                                     "preferences".into(),
                                     Dynamic::from(parts[3].to_string()),
                                 );
-                                att.insert("status".into(), Dynamic::from("online".to_string())); // Default
+                                att.insert("status".into(), Dynamic::from("online".to_string()));
                                 if parts.len() >= 5 {
                                     att.insert(
                                         "department".into(),
@@ -752,7 +752,7 @@ pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>
         }
     }
 
-    // Apply filter
+
     if let Some(filter) = status_filter {
         attendants.retain(|att| {
             if let Some(map) = att.clone().try_cast::<Map>() {
@@ -772,12 +772,12 @@ pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>
     Dynamic::from(result)
 }
 
-/// SET ATTENDANT STATUS - Change attendant status
-///
-/// ```basic
-/// SET ATTENDANT STATUS "att-001", "busy"
-/// SET ATTENDANT STATUS attendant_id, "away"
-/// ```
+
+
+
+
+
+
 fn register_set_attendant_status(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -820,12 +820,12 @@ fn register_set_attendant_status(state: Arc<AppState>, _user: UserSession, engin
         .unwrap();
 }
 
-/// GET ATTENDANT STATS - Get performance metrics
-///
-/// ```basic
-/// stats = GET ATTENDANT STATS "att-001"
-/// TALK "Resolved: " + stats.resolved_today
-/// ```
+
+
+
+
+
+
 fn register_get_attendant_stats(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -853,7 +853,7 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
 
         use crate::shared::models::schema::user_sessions;
 
-        // Count resolved conversations today
+
         let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
 
         let resolved_today: i64 = user_sessions::table
@@ -872,7 +872,7 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
             .get_result(&mut db_conn)
             .unwrap_or(0);
 
-        // Count active conversations
+
         let active: i64 = user_sessions::table
             .filter(
                 user_sessions::context_data
@@ -901,16 +901,16 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
     result
 }
 
-// LLM Assist Keywords
 
-/// GET TIPS - Generate AI tips for conversation
-///
-/// ```basic
-/// tips = GET TIPS session_id, customer_message
-/// FOR EACH tip IN tips.items
-///     TALK tip.type + ": " + tip.content
-/// NEXT
-/// ```
+
+
+
+
+
+
+
+
+
 fn register_get_tips(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -943,7 +943,7 @@ pub fn create_fallback_tips(message: &str) -> Dynamic {
     let msg_lower = message.to_lowercase();
     let mut tips = Vec::new();
 
-    // Urgent detection
+
     if msg_lower.contains("urgent") || msg_lower.contains("asap") || msg_lower.contains("emergency")
     {
         let mut tip = Map::new();
@@ -956,7 +956,7 @@ pub fn create_fallback_tips(message: &str) -> Dynamic {
         tips.push(Dynamic::from(tip));
     }
 
-    // Question detection
+
     if message.contains('?') {
         let mut tip = Map::new();
         tip.insert("type".into(), Dynamic::from("intent"));
@@ -968,7 +968,7 @@ pub fn create_fallback_tips(message: &str) -> Dynamic {
         tips.push(Dynamic::from(tip));
     }
 
-    // Problem detection
+
     if msg_lower.contains("problem")
         || msg_lower.contains("issue")
         || msg_lower.contains("not working")
@@ -983,7 +983,7 @@ pub fn create_fallback_tips(message: &str) -> Dynamic {
         tips.push(Dynamic::from(tip));
     }
 
-    // Default tip
+
     if tips.is_empty() {
         let mut tip = Map::new();
         tip.insert("type".into(), Dynamic::from("general"));
@@ -1001,15 +1001,15 @@ pub fn create_fallback_tips(message: &str) -> Dynamic {
     Dynamic::from(result)
 }
 
-/// POLISH MESSAGE - Improve message with AI
-///
-/// ```basic
-/// polished = POLISH MESSAGE "thx for contacting us, ill help u"
-/// TALK polished.text
-///
-/// ' With tone
-/// polished = POLISH MESSAGE message, "empathetic"
-/// ```
+
+
+
+
+
+
+
+
+
 fn register_polish_message(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1044,10 +1044,10 @@ fn register_polish_message(state: Arc<AppState>, _user: UserSession, engine: &mu
 }
 
 pub fn polish_message_impl(_state: &Arc<AppState>, message: &str, _tone: &str) -> Dynamic {
-    // Simple polishing without LLM (fallback)
+
     let mut polished = message.to_string();
 
-    // Basic improvements
+
     polished = polished
         .replace("thx", "Thank you")
         .replace("u ", "you ")
@@ -1060,12 +1060,12 @@ pub fn polish_message_impl(_state: &Arc<AppState>, message: &str, _tone: &str) -
         .replace("im ", "I'm ")
         .replace("ive ", "I've ");
 
-    // Capitalize first letter
+
     if let Some(first_char) = polished.chars().next() {
         polished = first_char.to_uppercase().to_string() + &polished[1..];
     }
 
-    // Ensure ending punctuation
+
     if !polished.ends_with('.') && !polished.ends_with('!') && !polished.ends_with('?') {
         polished.push('.');
     }
@@ -1078,14 +1078,14 @@ pub fn polish_message_impl(_state: &Arc<AppState>, message: &str, _tone: &str) -
     Dynamic::from(result)
 }
 
-/// GET SMART REPLIES - Get AI reply suggestions
-///
-/// ```basic
-/// replies = GET SMART REPLIES session_id
-/// FOR EACH reply IN replies.items
-///     TALK reply.tone + ": " + reply.text
-/// NEXT
-/// ```
+
+
+
+
+
+
+
+
 fn register_get_smart_replies(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1107,7 +1107,7 @@ fn register_get_smart_replies(state: Arc<AppState>, _user: UserSession, engine: 
 }
 
 pub fn get_smart_replies_impl(_state: &Arc<AppState>, _session_id: &str) -> Dynamic {
-    // Return default replies (fallback without LLM)
+
     let mut replies = Vec::new();
 
     let mut reply1 = Map::new();
@@ -1143,13 +1143,13 @@ pub fn get_smart_replies_impl(_state: &Arc<AppState>, _session_id: &str) -> Dyna
     Dynamic::from(result)
 }
 
-/// GET SUMMARY - Get conversation summary
-///
-/// ```basic
-/// summary = GET SUMMARY session_id
-/// TALK "Brief: " + summary.brief
-/// TALK "Key points: " + summary.key_points
-/// ```
+
+
+
+
+
+
+
 fn register_get_summary(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1185,7 +1185,7 @@ pub fn get_summary_impl(state: &Arc<AppState>, session_id: &str) -> Dynamic {
 
         use crate::shared::models::schema::message_history;
 
-        // Get message count
+
         let message_count: i64 = message_history::table
             .filter(message_history::session_id.eq(session_uuid))
             .count()
@@ -1210,14 +1210,14 @@ pub fn get_summary_impl(state: &Arc<AppState>, session_id: &str) -> Dynamic {
     result
 }
 
-/// ANALYZE SENTIMENT - Analyze customer sentiment
-///
-/// ```basic
-/// sentiment = ANALYZE SENTIMENT session_id, message
-/// IF sentiment.escalation_risk = "high" THEN
-///     SET PRIORITY session_id, "urgent"
-/// END IF
-/// ```
+
+
+
+
+
+
+
+
 fn register_analyze_sentiment(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1243,7 +1243,7 @@ fn register_analyze_sentiment(state: Arc<AppState>, _user: UserSession, engine: 
 }
 
 pub fn analyze_sentiment_impl(_state: &Arc<AppState>, _session_id: &str, message: &str) -> Dynamic {
-    // Keyword-based sentiment analysis (fallback without LLM)
+
     let msg_lower = message.to_lowercase();
 
     let positive_words = [
@@ -1323,14 +1323,14 @@ pub fn analyze_sentiment_impl(_state: &Arc<AppState>, _session_id: &str, message
     Dynamic::from(result)
 }
 
-// Customer Journey Keywords
 
-/// TAG CONVERSATION - Add tags to conversation
-///
-/// ```basic
-/// TAG CONVERSATION session_id, "billing"
-/// TAG CONVERSATION session_id, "vip", "urgent"
-/// ```
+
+
+
+
+
+
+
 fn register_tag_conversation(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1379,7 +1379,7 @@ pub fn tag_conversation_impl(state: &Arc<AppState>, session_id: &str, tags: Vec<
 
         let mut ctx = session.context_data.clone();
 
-        // Get existing tags or create empty array
+
         let mut existing_tags: Vec<String> = ctx
             .get("tags")
             .and_then(|v| v.as_array())
@@ -1390,7 +1390,7 @@ pub fn tag_conversation_impl(state: &Arc<AppState>, session_id: &str, tags: Vec<
             })
             .unwrap_or_default();
 
-        // Add new tags
+
         for tag in tags_clone {
             if !existing_tags.contains(&tag) {
                 existing_tags.push(tag);
@@ -1426,12 +1426,12 @@ pub fn tag_conversation_impl(state: &Arc<AppState>, session_id: &str, tags: Vec<
     result
 }
 
-/// ADD NOTE - Add internal note to conversation
-///
-/// ```basic
-/// ADD NOTE session_id, "Customer is a VIP - handle with care"
-/// ADD NOTE session_id, note_text, attendant_id
-/// ```
+
+
+
+
+
+
 fn register_add_note(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1483,14 +1483,14 @@ pub fn add_note_impl(
 
         let mut ctx = session.context_data.clone();
 
-        // Get existing notes or create empty array
+
         let mut notes: Vec<serde_json::Value> = ctx
             .get("notes")
             .and_then(|v| v.as_array())
             .cloned()
             .unwrap_or_default();
 
-        // Add new note
+
         notes.push(serde_json::json!({
             "text": note_clone,
             "author": author_clone.unwrap_or_else(|| "system".to_string()),
@@ -1518,15 +1518,15 @@ pub fn add_note_impl(
     result
 }
 
-/// GET CUSTOMER HISTORY - Get previous interactions
-///
-/// ```basic
-/// history = GET CUSTOMER HISTORY user_id
-/// TALK "Previous sessions: " + history.session_count
-/// FOR EACH session IN history.sessions
-///     TALK session.channel + " - " + session.resolved_at
-/// NEXT
-/// ```
+
+
+
+
+
+
+
+
+
 fn register_get_customer_history(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
 
@@ -1612,7 +1612,7 @@ pub fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynami
     result
 }
 
-// Helper Functions
+
 
 pub fn create_error_result(message: &str) -> Dynamic {
     let mut result = Map::new();
@@ -1621,4 +1621,4 @@ pub fn create_error_result(message: &str) -> Dynamic {
     Dynamic::from(result)
 }
 
-// Tests
+

@@ -8,7 +8,7 @@ use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
-    // Register with spaces: USE TOOL "toolname"
+
     engine
         .register_custom_syntax(&["USE", "TOOL", "$expr$"], false, move |context, inputs| {
             let tool_path = context.eval_expression_tree(&inputs[0])?;

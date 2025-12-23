@@ -4,56 +4,56 @@ use log::trace;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-/// Parses natural language schedule expressions into cron format.
-/// Uses a fast rule-based parser - no LLM or external dependencies needed.
-///
-/// # Supported Patterns
-///
-/// ## Time Intervals
-/// - "every minute" -> "* * * * *"
-/// - "every 5 minutes" -> "*/5 * * * *"
-/// - "every hour" -> "0 * * * *"
-/// - "every 2 hours" -> "0 */2 * * *"
-/// - "every day" / "daily" -> "0 0 * * *"
-/// - "every week" / "weekly" -> "0 0 * * 0"
-/// - "every month" / "monthly" -> "0 0 1 * *"
-///
-/// ## Specific Times
-/// - "at 9am" -> "0 9 * * *"
-/// - "at 9:30am" -> "30 9 * * *"
-/// - "at 14:00" -> "0 14 * * *"
-/// - "at midnight" -> "0 0 * * *"
-/// - "at noon" -> "0 12 * * *"
-///
-/// ## Day-specific
-/// - "every monday" -> "0 0 * * 1"
-/// - "every monday at 9am" -> "0 9 * * 1"
-/// - "weekdays" / "every weekday" -> "0 0 * * 1-5"
-/// - "weekends" -> "0 0 * * 0,6"
-/// - "weekdays at 8am" -> "0 8 * * 1-5"
-///
-/// ## Combined
-/// - "every day at 9am" -> "0 9 * * *"
-/// - "every hour from 9 to 17" -> "0 9-17 * * *"
-/// - "every 30 minutes during business hours" -> "*/30 9-17 * * 1-5"
-///
-/// ## Raw Cron (fallback)
-/// - Any 5-part cron expression is passed through: "0 */2 * * *"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
     let input = input.trim().to_lowercase();
 
-    // If it looks like a cron expression (5 space-separated parts), pass through
+
     let parts: Vec<&str> = input.split_whitespace().collect();
     if parts.len() == 5 && is_cron_expression(&parts) {
         return Ok(input);
     }
 
-    // Parse natural language
+
     parse_natural_language(&input)
 }
 
 fn is_cron_expression(parts: &[&str]) -> bool {
-    // Check if all parts look like valid cron fields
+
     parts.iter().all(|part| {
         part.chars()
             .all(|c| c.is_ascii_digit() || c == '*' || c == '/' || c == '-' || c == ',')
@@ -61,7 +61,7 @@ fn is_cron_expression(parts: &[&str]) -> bool {
 }
 
 fn parse_natural_language(input: &str) -> Result<String, String> {
-    // Normalize input
+
     let input = input
         .replace("every ", "every_")
         .replace(" at ", "_at_")
@@ -71,27 +71,27 @@ fn parse_natural_language(input: &str) -> Result<String, String> {
 
     let input = input.trim();
 
-    // Simple interval patterns
+
     if let Some(cron) = parse_simple_interval(input) {
         return Ok(cron);
     }
 
-    // Time-specific patterns
+
     if let Some(cron) = parse_at_time(input) {
         return Ok(cron);
     }
 
-    // Day-specific patterns
+
     if let Some(cron) = parse_day_pattern(input) {
         return Ok(cron);
     }
 
-    // Combined patterns
+
     if let Some(cron) = parse_combined_pattern(input) {
         return Ok(cron);
     }
 
-    // Business hours patterns
+
     if let Some(cron) = parse_business_hours(input) {
         return Ok(cron);
     }
@@ -104,12 +104,12 @@ fn parse_natural_language(input: &str) -> Result<String, String> {
 }
 
 fn parse_simple_interval(input: &str) -> Option<String> {
-    // every_minute
+
     if input == "every_minute" || input == "every_1_minute" {
         return Some("* * * * *".to_string());
     }
 
-    // every_N_minutes
+
     if let Some(rest) = input.strip_prefix("every_") {
         if let Some(num_str) = rest.strip_suffix("_minutes") {
             if let Ok(n) = num_str.parse::<u32>() {
@@ -119,12 +119,12 @@ fn parse_simple_interval(input: &str) -> Option<String> {
             }
         }
 
-        // every_hour
+
         if rest == "hour" || rest == "1_hour" {
             return Some("0 * * * *".to_string());
         }
 
-        // every_N_hours
+
         if let Some(num_str) = rest.strip_suffix("_hours") {
             if let Ok(n) = num_str.parse::<u32>() {
                 if n > 0 && n <= 23 {
@@ -133,28 +133,28 @@ fn parse_simple_interval(input: &str) -> Option<String> {
             }
         }
 
-        // every_day / daily
+
         if rest == "day" {
             return Some("0 0 * * *".to_string());
         }
 
-        // every_week / weekly
+
         if rest == "week" {
             return Some("0 0 * * 0".to_string());
         }
 
-        // every_month / monthly
+
         if rest == "month" {
             return Some("0 0 1 * *".to_string());
         }
 
-        // every_year / yearly
+
         if rest == "year" {
             return Some("0 0 1 1 *".to_string());
         }
     }
 
-    // Aliases
+
     match input {
         "daily" => Some("0 0 * * *".to_string()),
         "weekly" => Some("0 0 * * 0".to_string()),
@@ -166,7 +166,7 @@ fn parse_simple_interval(input: &str) -> Option<String> {
 }
 
 fn parse_at_time(input: &str) -> Option<String> {
-    // Handle "_at_TIME" patterns
+
     let time_str = if input.starts_with("_at_") {
         &input[4..]
     } else if input.starts_with("at_") {
@@ -179,17 +179,17 @@ fn parse_at_time(input: &str) -> Option<String> {
 }
 
 fn parse_time_to_cron(time_str: &str, _hour_default: &str, dow: &str) -> Option<String> {
-    // midnight
+
     if time_str == "midnight" {
         return Some(format!("0 0 * * {}", dow));
     }
 
-    // noon
+
     if time_str == "noon" {
         return Some(format!("0 12 * * {}", dow));
     }
 
-    // Parse time like "9am", "9:30am", "14:00", "9:30pm"
+
     let (hour, minute) = parse_time_value(time_str)?;
 
     Some(format!("{} {} * * {}", minute, hour, dow))
@@ -198,7 +198,7 @@ fn parse_time_to_cron(time_str: &str, _hour_default: &str, dow: &str) -> Option<
 fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
     let time_str = time_str.trim();
 
-    // Check for am/pm
+
     let (time_part, is_pm) = if time_str.ends_with("am") {
         (&time_str[..time_str.len() - 2], false)
     } else if time_str.ends_with("pm") {
@@ -207,7 +207,7 @@ fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
         (time_str, false)
     };
 
-    // Parse hour:minute or just hour
+
     let (hour, minute) = if time_part.contains(':') {
         let parts: Vec<&str> = time_part.split(':').collect();
         if parts.len() != 2 {
@@ -221,12 +221,12 @@ fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
         (h, 0)
     };
 
-    // Validate
+
     if minute > 59 {
         return None;
     }
 
-    // Convert to 24-hour if needed
+
     let hour = if is_pm && hour < 12 {
         hour + 12
     } else if !is_pm && hour == 12 && time_str.ends_with("am") {
@@ -245,23 +245,23 @@ fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
 fn parse_day_pattern(input: &str) -> Option<String> {
     let dow = get_day_of_week(input)?;
 
-    // Check for "_at_TIME" suffix
+
     if let Some(at_pos) = input.find("_at_") {
         let time_str = &input[at_pos + 4..];
         return parse_time_to_cron(time_str, "0", &dow.to_string());
     }
 
-    // Just the day, default to midnight
+
     Some(format!("0 0 * * {}", dow))
 }
 
 fn get_day_of_week(input: &str) -> Option<String> {
     let input_lower = input.to_lowercase();
 
-    // Handle "every_DAYNAME" patterns
+
     let day_part = input_lower.strip_prefix("every_").unwrap_or(&input_lower);
 
-    // Remove any "_at_..." suffix for day matching
+
     let day_part = if let Some(at_pos) = day_part.find("_at_") {
         &day_part[..at_pos]
     } else {
@@ -283,13 +283,13 @@ fn get_day_of_week(input: &str) -> Option<String> {
 }
 
 fn parse_combined_pattern(input: &str) -> Option<String> {
-    // every_day_at_TIME
+
     if input.starts_with("every_day_at_") {
         let time_str = &input[13..];
         return parse_time_to_cron(time_str, "0", "*");
     }
 
-    // every_weekday_at_TIME
+
     if input.starts_with("every_weekday_at_") || input.starts_with("weekdays_at_") {
         let time_str = if input.starts_with("every_weekday_at_") {
             &input[17..]
@@ -299,7 +299,7 @@ fn parse_combined_pattern(input: &str) -> Option<String> {
         return parse_time_to_cron(time_str, "0", "1-5");
     }
 
-    // every_weekend_at_TIME / weekends_at_TIME
+
     if input.starts_with("every_weekend_at_") || input.starts_with("weekends_at_") {
         let time_str = if input.starts_with("every_weekend_at_") {
             &input[17..]
@@ -309,7 +309,7 @@ fn parse_combined_pattern(input: &str) -> Option<String> {
         return parse_time_to_cron(time_str, "0", "0,6");
     }
 
-    // every_hour_from_X_to_Y (e.g., "every_hour_from_9_to_17")
+
     if input.starts_with("every_hour_from_") {
         let rest = &input[16..];
         if let Some(to_pos) = rest.find("_to_") {
@@ -325,13 +325,13 @@ fn parse_combined_pattern(input: &str) -> Option<String> {
 }
 
 fn parse_business_hours(input: &str) -> Option<String> {
-    // business_hours or during_business_hours
-    if input.contains("business_hours") || input.contains("business hours") {
-        // Default business hours: 9-17, weekdays
 
-        // Check for interval prefix
+    if input.contains("business_hours") || input.contains("business hours") {
+
+
+
         if input.starts_with("every_") {
-            // every_N_minutes_during_business_hours
+
             if let Some(rest) = input.strip_prefix("every_") {
                 if let Some(minutes_pos) = rest.find("_minutes") {
                     let num_str = &rest[..minutes_pos];
@@ -342,14 +342,14 @@ fn parse_business_hours(input: &str) -> Option<String> {
                     }
                 }
 
-                // every_hour_during_business_hours
+
                 if rest.starts_with("hour") {
                     return Some("0 9-17 * * 1-5".to_string());
                 }
             }
         }
 
-        // Just "business hours" or "during business hours"
+
         return Some("0 9-17 * * 1-5".to_string());
     }
 
@@ -362,7 +362,7 @@ pub fn execute_set_schedule(
     script_name: &str,
     bot_uuid: Uuid,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-    // Parse natural language to cron if needed
+
     let cron = parse_natural_schedule(cron_or_natural)?;
 
     trace!(

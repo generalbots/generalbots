@@ -1,7 +1,7 @@
-//! CREATE SITE keyword implementation
-//!
-//! Stores app source files in .gbdrive/apps/{app_name}/ (MinIO/S3)
-//! then syncs to site_path for serving via HTTP.
+
+
+
+
 
 use crate::llm::LLMProvider;
 use crate::shared::models::UserSession;
@@ -16,7 +16,7 @@ use std::io::Read;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-/// Register the CREATE SITE keyword
+
 pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
     let user_clone = user.clone();
@@ -58,12 +58,12 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
         .unwrap();
 }
 
-/// Create a new site/app
-///
-/// 1. Load templates from template_dir
-/// 2. Generate HTML via LLM
-/// 3. Store in .gbdrive/apps/{alias}/ (S3/MinIO)
-/// 4. Sync to site_path/{alias}/ for HTTP serving
+
+
+
+
+
+
 async fn create_site(
     config: crate::config::AppConfig,
     s3: Option<std::sync::Arc<aws_sdk_s3::Client>>,
@@ -83,20 +83,20 @@ async fn create_site(
         alias_str, template_dir_str
     );
 
-    // 1. Load templates
+
     let base_path = PathBuf::from(&config.site_path);
     let template_path = base_path.join(&template_dir_str);
 
     let combined_content = load_templates(&template_path)?;
 
-    // 2. Generate HTML via LLM
+
     let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
-    // 3. Store in .gbdrive/apps/{alias}/ (S3/MinIO)
+
     let drive_path = format!("apps/{}", alias_str);
     store_to_drive(&s3, &bucket, &bot_id, &drive_path, &generated_html).await?;
 
-    // 4. Sync to site_path for HTTP serving
+
     let serve_path = base_path.join(&alias_str);
     sync_to_serve_path(&serve_path, &generated_html, &template_path).await?;
 
@@ -108,7 +108,7 @@ async fn create_site(
     Ok(format!("/apps/{}", alias_str))
 }
 
-/// Load all HTML templates from a directory
+
 fn load_templates(template_path: &PathBuf) -> Result<String, Box<dyn Error + Send + Sync>> {
     let mut combined_content = String::new();
 
@@ -141,7 +141,7 @@ fn load_templates(template_path: &PathBuf) -> Result<String, Box<dyn Error + Sen
     Ok(combined_content)
 }
 
-/// Generate HTML from templates and prompt using LLM
+
 async fn generate_html_from_prompt(
     llm: Option<Arc<dyn LLMProvider>>,
     templates: &str,
@@ -209,7 +209,7 @@ OUTPUT: Complete index.html file only, no explanations."#,
     Ok(html)
 }
 
-/// Extract HTML content from LLM response (removes markdown code blocks if present)
+
 fn extract_html_from_response(response: &str) -> String {
     let trimmed = response.trim();
 
@@ -234,7 +234,7 @@ fn extract_html_from_response(response: &str) -> String {
     trimmed.to_string()
 }
 
-/// Generate placeholder HTML (until LLM integration is complete)
+
 fn generate_placeholder_html(prompt: &str) -> String {
     format!(
         r##"<!DOCTYPE html>
@@ -278,7 +278,7 @@ fn generate_placeholder_html(prompt: &str) -> String {
     )
 }
 
-/// Store app files to .gbdrive (S3/MinIO)
+
 async fn store_to_drive(
     s3: &Option<std::sync::Arc<aws_sdk_s3::Client>>,
     bucket: &str,
@@ -304,7 +304,7 @@ async fn store_to_drive(
         .await
         .map_err(|e| format!("Failed to store to drive: {}", e))?;
 
-    // Also store schema.json for table definitions
+
     let schema_key = format!("{}.gbdrive/{}/schema.json", bot_id, drive_path);
     let schema = r#"{"tables": {}, "version": 1}"#;
 
@@ -321,23 +321,23 @@ async fn store_to_drive(
     Ok(())
 }
 
-/// Sync app files to serve path for HTTP serving
+
 async fn sync_to_serve_path(
     serve_path: &PathBuf,
     html_content: &str,
     template_path: &PathBuf,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    // Create app directory
+
     fs::create_dir_all(serve_path).map_err(|e| format!("Failed to create serve path: {}", e))?;
 
-    // Write index.html
+
     let index_path = serve_path.join("index.html");
     fs::write(&index_path, html_content)
         .map_err(|e| format!("Failed to write index.html: {}", e))?;
 
     info!("Written: {:?}", index_path);
 
-    // Copy _assets from template
+
     let template_assets = template_path.join("_assets");
     let serve_assets = serve_path.join("_assets");
 
@@ -345,26 +345,26 @@ async fn sync_to_serve_path(
         copy_dir_recursive(&template_assets, &serve_assets)?;
         info!("Copied assets to: {:?}", serve_assets);
     } else {
-        // Create default assets
+
         fs::create_dir_all(&serve_assets)
             .map_err(|e| format!("Failed to create assets dir: {}", e))?;
 
-        // Write minimal htmx
+
         let htmx_path = serve_assets.join("htmx.min.js");
         if !htmx_path.exists() {
-            // In production, this would copy from a known location
+
             fs::write(&htmx_path, "/* HTMX - include from CDN or bundle */")
                 .map_err(|e| format!("Failed to write htmx: {}", e))?;
         }
 
-        // Write minimal styles
+
         let styles_path = serve_assets.join("styles.css");
         if !styles_path.exists() {
             fs::write(&styles_path, DEFAULT_STYLES)
                 .map_err(|e| format!("Failed to write styles: {}", e))?;
         }
 
-        // Write app.js
+
         let app_js_path = serve_assets.join("app.js");
         if !app_js_path.exists() {
             fs::write(&app_js_path, DEFAULT_APP_JS)
@@ -372,7 +372,7 @@ async fn sync_to_serve_path(
         }
     }
 
-    // Write schema.json
+
     let schema_path = serve_path.join("schema.json");
     fs::write(&schema_path, r#"{"tables": {}, "version": 1}"#)
         .map_err(|e| format!("Failed to write schema.json: {}", e))?;
@@ -380,7 +380,7 @@ async fn sync_to_serve_path(
     Ok(())
 }
 
-/// Recursively copy a directory
+
 fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), Box<dyn Error + Send + Sync>> {
     fs::create_dir_all(dst).map_err(|e| format!("Failed to create dir {:?}: {}", dst, e))?;
 
@@ -400,7 +400,7 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), Box<dyn Error 
     Ok(())
 }
 
-/// Default CSS styles for generated apps
+
 const DEFAULT_STYLES: &str = r#"
 :root {
     --primary: #0ea5e9;
@@ -496,9 +496,9 @@ th, td {
 }
 "#;
 
-/// Default JavaScript for generated apps
+
 const DEFAULT_APP_JS: &str = r#"
-// Toast notifications
+
 function toast(message, type = 'info') {
     const el = document.createElement('div');
     el.className = 'toast toast-' + type;
@@ -508,7 +508,7 @@ function toast(message, type = 'info') {
     setTimeout(() => el.remove(), 3000);
 }
 
-// HTMX event handlers
+
 document.body.addEventListener('htmx:afterSwap', function(e) {
     console.log('Data updated:', e.detail.target.id);
 });
@@ -517,7 +517,7 @@ document.body.addEventListener('htmx:responseError', function(e) {
     toast('Error: ' + (e.detail.xhr.responseText || 'Request failed'), 'error');
 });
 
-// Modal helpers
+
 function openModal(id) {
     document.getElementById(id)?.classList.add('active');
 }

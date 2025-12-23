@@ -1,16 +1,16 @@
-//! Drive Module - S3-based File Storage
-//!
-//! Provides file management operations using S3 as backend storage.
-//! Supports bot storage and provides REST API endpoints for desktop frontend.
-//!
-//! API Endpoints:
-//! - GET /files/list - List files and folders
-//! - POST /files/read - Read file content
-//! - POST /files/write - Write file content
-//! - POST /files/delete - Delete file/folder
-//! - POST /files/create-folder - Create new folder
-//! - GET /files/versions - List file versions
-//! - POST /files/restore - Restore file to specific version
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #[cfg(feature = "console")]
 use crate::console::file_tree::FileTree;
@@ -24,17 +24,17 @@ use axum::{
 };
 
 use serde::{Deserialize, Serialize};
-// use serde_json::json; // Unused import
+
 use std::sync::Arc;
 
 pub mod document_processing;
 pub mod drive_monitor;
 pub mod vectordb;
 
-// Note: Most functions are defined locally in this module
-// The file module functions are not imported as they're either private or redefined here
 
-// ===== Request/Response Structures =====
+
+
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileItem {
@@ -141,11 +141,11 @@ pub struct ShareResponse {
     pub expires_at: Option<String>,
 }
 
-/// Sync status for desktop file synchronization
-///
-/// Desktop-only: These endpoints coordinate with the rclone process
-/// running on the user's machine via the Tauri desktop app (botapp).
-/// Web-only users see stub responses as sync requires local filesystem access.
+
+
+
+
+
 #[derive(Debug, Serialize)]
 pub struct SyncStatus {
     pub status: String,
@@ -156,7 +156,7 @@ pub struct SyncStatus {
     pub message: Option<String>,
 }
 
-// ===== File Versioning Structures =====
+
 
 #[derive(Debug, Deserialize)]
 pub struct VersionsQuery {
@@ -194,13 +194,13 @@ pub struct RestoreResponse {
     pub new_version_id: Option<String>,
 }
 
-// ===== API Configuration =====
 
-/// Configure drive API routes
+
+
 #[allow(unused)]
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        // Basic file operations
+
         .route("/files/list", get(list_files))
         .route("/files/read", post(read_file))
         .route("/files/write", post(write_file))
@@ -209,30 +209,30 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/files/delete", post(delete_file))
         .route("/files/upload", post(upload_file_to_drive))
         .route("/files/download", post(download_file))
-        // File management
+
         .route("/files/copy", post(copy_file))
         .route("/files/move", post(move_file))
         .route("/files/createFolder", post(create_folder))
         .route("/files/create-folder", post(create_folder))
         .route("/files/dirFolder", post(list_folder_contents))
-        // Search and discovery
+
         .route("/files/search", get(search_files))
         .route("/files/recent", get(recent_files))
         .route("/files/favorite", get(list_favorites))
-        // Sharing and permissions
+
         .route("/files/shareFolder", post(share_folder))
         .route("/files/shared", get(list_shared))
         .route("/files/permissions", get(get_permissions))
-        // Storage management
+
         .route("/files/quota", get(get_quota))
-        // Sync operations
+
         .route("/files/sync/status", get(sync_status))
         .route("/files/sync/start", post(start_sync))
         .route("/files/sync/stop", post(stop_sync))
-        // File versioning
+
         .route("/files/versions", get(list_versions))
         .route("/files/restore", post(restore_version))
-        // Document processing
+
         .route("/docs/merge", post(document_processing::merge_documents))
         .route("/docs/convert", post(document_processing::convert_document))
         .route("/docs/fill", post(document_processing::fill_document))
@@ -240,14 +240,14 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/docs/import", post(document_processing::import_document))
 }
 
-// ===== API Handlers =====
 
-/// GET /files/list - List files and folders in S3 bucket
+
+
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
-    // Use FileTree for hierarchical navigation when console feature is enabled
+
     #[cfg(feature = "console")]
     let result = {
         let mut tree = FileTree::new(state.clone());
@@ -261,13 +261,13 @@ pub async fn list_files(
             tree.load_root().await.ok();
         }
 
-        // Convert FileTree items to FileItem format
+
         Ok::<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)>(vec![])
     };
 
     #[cfg(not(feature = "console"))]
     let result: Result<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)> = {
-        // Fallback implementation without FileTree
+
         let s3_client = state.drive.as_ref().ok_or_else(|| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -294,7 +294,7 @@ pub async fn list_files(
                     Json(serde_json::json!({"error": e.to_string()})),
                 )
             })? {
-                // Add directories
+
                 if let Some(prefixes) = result.common_prefixes {
                     for prefix in prefixes {
                         if let Some(dir) = prefix.prefix {
@@ -316,7 +316,7 @@ pub async fn list_files(
                     }
                 }
 
-                // Add files
+
                 if let Some(contents) = result.contents {
                     for object in contents {
                         if let Some(key) = object.key {
@@ -397,7 +397,7 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
     items
 }
 
-/// POST /files/read - Read file content from S3
+
 pub async fn read_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReadRequest>,
@@ -444,7 +444,7 @@ pub async fn read_file(
     Ok(Json(ReadResponse { content }))
 }
 
-/// POST /files/write - Write file content to S3
+
 pub async fn write_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
@@ -476,7 +476,7 @@ pub async fn write_file(
     }))
 }
 
-/// POST /files/delete - Delete file or folder from S3
+
 pub async fn delete_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<DeleteRequest>,
@@ -488,7 +488,7 @@ pub async fn delete_file(
         )
     })?;
 
-    // If path ends with /, it's a folder - delete all objects with this prefix
+
     if req.path.ends_with('/') {
         let result = s3_client
             .list_objects_v2()
@@ -540,7 +540,7 @@ pub async fn delete_file(
     }))
 }
 
-/// POST /files/create-folder - Create new folder in S3
+
 pub async fn create_folder(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateFolderRequest>,
@@ -552,7 +552,7 @@ pub async fn create_folder(
         )
     })?;
 
-    // S3 doesn't have real folders, create an empty object with trailing /
+
     let folder_path = if req.path.is_empty() || req.path == "/" {
         format!("{}/", req.name)
     } else {
@@ -579,9 +579,9 @@ pub async fn create_folder(
     }))
 }
 
-// ===== Helper Functions =====
 
-/// Get appropriate icon for file based on extension
+
+
 fn get_file_icon(path: &str) -> String {
     if path.ends_with(".bas") {
         "".to_string()
@@ -606,9 +606,9 @@ fn get_file_icon(path: &str) -> String {
     }
 }
 
-// ===== Extended File Operations =====
 
-/// POST /files/copy - Copy file or folder within S3
+
+
 pub async fn copy_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CopyRequest>,
@@ -642,7 +642,7 @@ pub async fn copy_file(
     }))
 }
 
-/// POST /files/move - Move file or folder within S3
+
 pub async fn move_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<MoveRequest>,
@@ -691,7 +691,7 @@ pub async fn move_file(
     }))
 }
 
-/// POST /files/upload - Upload file to S3
+
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
@@ -699,7 +699,7 @@ pub async fn upload_file_to_drive(
     write_file(State(state), Json(req)).await
 }
 
-/// POST /files/download - Download file from S3
+
 pub async fn download_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<DownloadRequest>,
@@ -714,7 +714,7 @@ pub async fn download_file(
     .await
 }
 
-/// POST /files/dirFolder - List folder contents
+
 pub async fn list_folder_contents(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReadRequest>,
@@ -729,7 +729,7 @@ pub async fn list_folder_contents(
     .await
 }
 
-/// GET /files/search - Search for files
+
 pub async fn search_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
@@ -806,7 +806,7 @@ pub async fn search_files(
     Ok(Json(all_items))
 }
 
-/// GET /files/recent - Get recently modified files
+
 pub async fn recent_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
@@ -868,14 +868,14 @@ pub async fn recent_files(
     Ok(Json(all_items))
 }
 
-/// GET /files/favorite - List favorite files
+
 pub async fn list_favorites(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
-/// POST /files/shareFolder - Share folder with users
+
 pub async fn share_folder(
     State(_state): State<Arc<AppState>>,
     Json(_req): Json<ShareRequest>,
@@ -895,14 +895,14 @@ pub async fn share_folder(
     }))
 }
 
-/// GET /files/shared - List shared files and folders
+
 pub async fn list_shared(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
 
-/// GET /files/permissions - Get file/folder permissions
+
 pub async fn get_permissions(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<ReadRequest>,
@@ -920,7 +920,7 @@ pub async fn get_permissions(
     })))
 }
 
-/// GET /files/quota - Get storage quota information
+
 pub async fn get_quota(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<QuotaResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -977,16 +977,16 @@ pub async fn get_quota(
     }))
 }
 
-/// GET /files/sync/status - Get sync status
-///
-/// Desktop-only feature: File synchronization uses rclone running locally
-/// on the user's machine. The Tauri desktop app (botapp) manages the rclone
-/// process and reports status back through this endpoint.
-///
-/// For web-only users, this returns a stub response indicating sync
-/// is not available (requires desktop app with local filesystem access).
-///
-/// Desktop app implementation: botapp/src/desktop/sync.rs
+
+
+
+
+
+
+
+
+
+
 pub async fn sync_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SyncStatus>, (StatusCode, Json<serde_json::Value>)> {
@@ -1002,15 +1002,15 @@ pub async fn sync_status(
     }))
 }
 
-/// POST /files/sync/start - Start file synchronization
-///
-/// Desktop-only feature: Triggers rclone sync on the user's local machine.
-/// The actual sync is performed by the Tauri desktop app which spawns
-/// and manages the rclone subprocess.
-///
-/// Web users receive a response indicating this feature requires the desktop app.
-///
-/// Desktop app implementation: botapp/src/desktop/sync.rs
+
+
+
+
+
+
+
+
+
 pub async fn start_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1020,14 +1020,14 @@ pub async fn start_sync(
     }))
 }
 
-/// POST /files/sync/stop - Stop file synchronization
-///
-/// Desktop-only feature: Stops the rclone process on the user's local machine.
-/// The Tauri desktop app handles graceful termination of the sync process.
-///
-/// Web users receive a response indicating this feature requires the desktop app.
-///
-/// Desktop app implementation: botapp/src/desktop/sync.rs
+
+
+
+
+
+
+
+
 pub async fn stop_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1037,16 +1037,16 @@ pub async fn stop_sync(
     }))
 }
 
-// ===== File Versioning API =====
 
-/// GET /files/versions - List all versions of a file
-///
-/// SeaweedFS/S3 supports object versioning. This endpoint lists all versions
-/// of a specific file, allowing users to restore previous versions.
-///
-/// Query parameters:
-/// - path: The file path to get versions for
-/// - bucket: Optional bucket name (defaults to bot's bucket)
+
+
+
+
+
+
+
+
+
 pub async fn list_versions(
     State(state): State<Arc<AppState>>,
     Query(params): Query<VersionsQuery>,
@@ -1054,7 +1054,7 @@ pub async fn list_versions(
     let bucket = params.bucket.unwrap_or_else(|| "default".to_string());
     let path = params.path;
 
-    // Get S3 client from state
+
     let s3_client = state.s3_client.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -1062,7 +1062,7 @@ pub async fn list_versions(
         )
     })?;
 
-    // List object versions using S3 API
+
     let versions_result = s3_client
         .list_object_versions()
         .bucket(&bucket)
@@ -1078,7 +1078,7 @@ pub async fn list_versions(
 
     let mut versions: Vec<FileVersion> = Vec::new();
 
-    // Process version list
+
     for version in versions_result.versions() {
         if version.key().unwrap_or_default() == path {
             versions.push(FileVersion {
@@ -1094,7 +1094,7 @@ pub async fn list_versions(
         }
     }
 
-    // Sort by modified date, newest first
+
     versions.sort_by(|a, b| b.modified.cmp(&a.modified));
 
     Ok(Json(VersionsResponse {
@@ -1103,15 +1103,15 @@ pub async fn list_versions(
     }))
 }
 
-/// POST /files/restore - Restore a file to a specific version
-///
-/// Restores a file to a previous version by copying the old version
-/// to become the new current version. The previous versions are preserved.
-///
-/// Request body:
-/// - path: The file path to restore
-/// - version_id: The version ID to restore to
-/// - bucket: Optional bucket name (defaults to bot's bucket)
+
+
+
+
+
+
+
+
+
 pub async fn restore_version(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<RestoreRequest>,
@@ -1120,7 +1120,7 @@ pub async fn restore_version(
     let path = payload.path;
     let version_id = payload.version_id;
 
-    // Get S3 client from state
+
     let s3_client = state.s3_client.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
@@ -1128,8 +1128,8 @@ pub async fn restore_version(
         )
     })?;
 
-    // Copy the specific version to itself, making it the latest version
-    // S3 copy with version-id copies that version as a new object
+
+
     let copy_source = format!("{}/{}?versionId={}", bucket, path, version_id);
 
     let copy_result = s3_client

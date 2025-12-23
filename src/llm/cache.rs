@@ -13,26 +13,26 @@ use super::LLMProvider;
 use crate::config::ConfigManager;
 use crate::shared::utils::{estimate_token_count, DbPool};
 
-/// Configuration for semantic caching
+
 #[derive(Clone, Debug)]
 
 pub struct CacheConfig {
-    /// TTL for cache entries in seconds
+
     pub ttl: u64,
-    /// Whether to use semantic similarity matching
+
     pub semantic_matching: bool,
-    /// Similarity threshold for semantic matching (0.0 to 1.0)
+
     pub similarity_threshold: f32,
-    /// Maximum number of cache entries to check for similarity
+
     pub max_similarity_checks: usize,
-    /// Cache key prefix
+
     pub key_prefix: String,
 }
 
 impl Default for CacheConfig {
     fn default() -> Self {
         Self {
-            ttl: 3600, // 1 hour default
+            ttl: 3600,
             semantic_matching: true,
             similarity_threshold: 0.95,
             max_similarity_checks: 100,
@@ -41,28 +41,28 @@ impl Default for CacheConfig {
     }
 }
 
-/// Cached LLM response with metadata
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 
 pub struct CachedResponse {
-    /// The actual response text
+
     pub response: String,
-    /// The original prompt
+
     pub prompt: String,
-    /// The messages/context used
+
     pub messages: Value,
-    /// The model used
+
     pub model: String,
-    /// Timestamp when cached
+
     pub timestamp: u64,
-    /// Number of times this cache entry was hit
+
     pub hit_count: u32,
-    /// Optional embedding vector for semantic similarity
+
     pub embedding: Option<Vec<f32>>,
 }
 
-/// LLM provider wrapper with caching capabilities
-// Manual Debug implementation needed for trait objects
+
+
 
 impl std::fmt::Debug for CachedLLMProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -76,19 +76,19 @@ impl std::fmt::Debug for CachedLLMProvider {
 }
 
 pub struct CachedLLMProvider {
-    /// The underlying LLM provider
+
     provider: Arc<dyn LLMProvider>,
-    /// Redis client for caching
+
     cache: Arc<redis::Client>,
-    /// Cache configuration
+
     config: CacheConfig,
-    /// Optional embedding service for semantic matching
+
     embedding_service: Option<Arc<dyn EmbeddingService>>,
-    /// Database connection pool for config
+
     db_pool: Option<DbPool>,
 }
 
-/// Trait for embedding services
+
 #[async_trait]
 
 pub trait EmbeddingService: Send + Sync {
@@ -143,7 +143,7 @@ impl CachedLLMProvider {
         }
     }
 
-    /// Generate a cache key from prompt and context
+
     fn generate_cache_key(&self, prompt: &str, messages: &Value, model: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(prompt.as_bytes());
@@ -153,24 +153,24 @@ impl CachedLLMProvider {
         format!("{}:{}:{}", self.config.key_prefix, model, hex::encode(hash))
     }
 
-    /// Check if caching is enabled based on config
+
     async fn is_cache_enabled(&self, bot_id: &str) -> bool {
-        // First check if we have a DB pool to read config
+
         if let Some(ref db_pool) = self.db_pool {
-            // Parse bot_id as UUID
+
             let bot_uuid = match Uuid::parse_str(bot_id) {
                 Ok(uuid) => uuid,
                 Err(_) => {
-                    // If not a valid UUID, check for default bot
+
                     if bot_id == "default" {
                         Uuid::nil()
                     } else {
-                        return self.config.semantic_matching; // Fall back to global config
+                        return self.config.semantic_matching;
                     }
                 }
             };
 
-            // Get config from database
+
             let config_manager = ConfigManager::new(db_pool.clone());
             let cache_enabled = config_manager
                 .get_config(&bot_uuid, "llm-cache", Some("true"))
@@ -179,7 +179,7 @@ impl CachedLLMProvider {
             return cache_enabled.to_lowercase() == "true";
         }
 
-        // Fallback: check Redis for bot-specific cache config
+
         let mut conn = match self.cache.get_multiplexed_async_connection().await {
             Ok(conn) => conn,
             Err(e) => {
@@ -191,11 +191,11 @@ impl CachedLLMProvider {
         let config_key = format!("bot_config:{}:llm-cache", bot_id);
         match conn.get::<_, String>(config_key).await {
             Ok(value) => value.to_lowercase() == "true",
-            Err(_) => self.config.semantic_matching, // Default to global config
+            Err(_) => self.config.semantic_matching,
         }
     }
 
-    /// Get cache configuration for a specific bot
+
     async fn get_bot_cache_config(&self, bot_id: &str) -> CacheConfig {
         if let Some(ref db_pool) = self.db_pool {
             let bot_uuid = match Uuid::parse_str(bot_id) {
@@ -211,7 +211,7 @@ impl CachedLLMProvider {
 
             let config_manager = ConfigManager::new(db_pool.clone());
 
-            // Read all cache-related configs
+
             let ttl = config_manager
                 .get_config(
                     &bot_uuid,
@@ -250,7 +250,7 @@ impl CachedLLMProvider {
         }
     }
 
-    /// Try to get a cached response
+
 
     async fn get_cached_response(
         &self,
@@ -266,7 +266,7 @@ impl CachedLLMProvider {
             }
         };
 
-        // Extract actual messages if wrapped
+
         let actual_messages = if messages.get("messages").is_some() {
             messages.get("messages").unwrap_or(messages)
         } else {
@@ -274,10 +274,10 @@ impl CachedLLMProvider {
         };
 
         let cache_key = self.generate_cache_key(prompt, actual_messages, model);
-        // Try exact match first
+
         if let Ok(cached_json) = conn.get::<_, String>(&cache_key).await {
             if let Ok(mut cached) = serde_json::from_str::<CachedResponse>(&cached_json) {
-                // Update hit count
+
                 cached.hit_count += 1;
                 let _ = conn
                     .set_ex::<_, _, ()>(
@@ -295,7 +295,7 @@ impl CachedLLMProvider {
             }
         }
 
-        // Try semantic similarity if enabled
+
         if self.config.semantic_matching && self.embedding_service.is_some() {
             if let Some(similar) = self.find_similar_cached(prompt, messages, model).await {
                 info!(
@@ -313,7 +313,7 @@ impl CachedLLMProvider {
         None
     }
 
-    /// Find semantically similar cached responses
+
 
     async fn find_similar_cached(
         &self,
@@ -323,17 +323,17 @@ impl CachedLLMProvider {
     ) -> Option<CachedResponse> {
         let embedding_service = self.embedding_service.as_ref()?;
 
-        // Extract actual messages if wrapped
+
         let actual_messages = if messages.get("messages").is_some() {
             messages.get("messages").unwrap_or(messages)
         } else {
             messages
         };
 
-        // Combine prompt with messages for more accurate matching
+
         let combined_context = format!("{}\n{}", prompt, actual_messages.to_string());
 
-        // Get embedding for current prompt
+
         let prompt_embedding = match embedding_service.get_embedding(&combined_context).await {
             Ok(emb) => emb,
             Err(e) => {
@@ -350,7 +350,7 @@ impl CachedLLMProvider {
             }
         };
 
-        // Get recent cache keys for this model
+
         let pattern = format!("{}:{}:*", self.config.key_prefix, model);
         let keys: Vec<String> = match conn.keys(pattern).await {
             Ok(k) => k,
@@ -383,7 +383,7 @@ impl CachedLLMProvider {
 
         if let Some((mut cached, similarity)) = best_match {
             debug!("Found semantic match with similarity: {}", similarity);
-            // Update hit count
+
             cached.hit_count += 1;
             let cache_key =
                 self.generate_cache_key(&cached.prompt, &cached.messages, &cached.model);
@@ -400,9 +400,9 @@ impl CachedLLMProvider {
         None
     }
 
-    /// Store a response in cache
+
     async fn cache_response(&self, prompt: &str, messages: &Value, model: &str, response: &str) {
-        // Extract actual messages if wrapped
+
         let actual_messages = if messages.get("messages").is_some() {
             messages.get("messages").unwrap_or(messages)
         } else {
@@ -419,9 +419,9 @@ impl CachedLLMProvider {
             }
         };
 
-        // Get embedding if service is available
+
         let embedding = if let Some(ref service) = self.embedding_service {
-            // Combine prompt with messages for embedding
+
             let combined_context = format!("{}\n{}", prompt, actual_messages.to_string());
             service.get_embedding(&combined_context).await.ok()
         } else {
@@ -461,7 +461,7 @@ impl CachedLLMProvider {
         }
     }
 
-    /// Get cache statistics
+
 
     pub async fn get_cache_stats(
         &self,
@@ -494,7 +494,7 @@ impl CachedLLMProvider {
         })
     }
 
-    /// Clear cache for a specific model or all models
+
 
     pub async fn clear_cache(
         &self,
@@ -520,7 +520,7 @@ impl CachedLLMProvider {
     }
 }
 
-/// Cache statistics
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 
 pub struct CacheStats {
@@ -539,28 +539,28 @@ impl LLMProvider for CachedLLMProvider {
         model: &str,
         key: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // Extract bot_id from messages if available
+
         let bot_id = messages
             .get("bot_id")
             .and_then(|v| v.as_str())
             .unwrap_or("default");
 
-        // Check if cache is enabled for this bot
+
         if !self.is_cache_enabled(bot_id).await {
             trace!("Cache disabled for bot {}, bypassing", bot_id);
             return self.provider.generate(prompt, messages, model, key).await;
         }
 
-        // Get bot-specific cache configuration
+
         let bot_cache_config = self.get_bot_cache_config(bot_id).await;
 
-        // First try exact match from cache
+
         if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
             info!("Cache hit (exact match) for bot {}", bot_id);
             return Ok(cached.response);
         }
 
-        // Then try semantic similarity match if enabled
+
         if bot_cache_config.semantic_matching && self.embedding_service.is_some() {
             if let Some(cached) = self.find_similar_cached(prompt, messages, model).await {
                 info!(
@@ -571,11 +571,11 @@ impl LLMProvider for CachedLLMProvider {
             }
         }
 
-        // Generate new response
+
         debug!("Cache miss for bot {}, generating new response", bot_id);
         let response = self.provider.generate(prompt, messages, model, key).await?;
 
-        // Cache the response
+
         self.cache_response(prompt, messages, model, &response)
             .await;
 
@@ -590,8 +590,8 @@ impl LLMProvider for CachedLLMProvider {
         model: &str,
         key: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // Check if cache is enabled
-        let bot_id = "default"; // This should be passed from context
+
+        let bot_id = "default";
         if !self.is_cache_enabled(bot_id).await {
             trace!("Cache disabled for streaming, bypassing");
             return self
@@ -600,9 +600,9 @@ impl LLMProvider for CachedLLMProvider {
                 .await;
         }
 
-        // Try to get from cache
+
         if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
-            // Stream the cached response
+
             for chunk in cached.response.chars().collect::<Vec<_>>().chunks(50) {
                 let chunk_str: String = chunk.iter().collect();
                 if tx.send(chunk_str).await.is_err() {
@@ -613,12 +613,12 @@ impl LLMProvider for CachedLLMProvider {
             return Ok(());
         }
 
-        // For streaming, we need to buffer the response to cache it
+
         let (buffer_tx, mut buffer_rx) = mpsc::channel::<String>(100);
         let tx_clone = tx.clone();
         let mut full_response = String::new();
 
-        // Forward stream and buffer
+
         let forward_task = tokio::spawn(async move {
             while let Some(chunk) = buffer_rx.recv().await {
                 full_response.push_str(&chunk);
@@ -629,12 +629,12 @@ impl LLMProvider for CachedLLMProvider {
             full_response
         });
 
-        // Generate stream
+
         self.provider
             .generate_stream(prompt, messages, buffer_tx, model, key)
             .await?;
 
-        // Get the full response and cache it
+
         let full_response = forward_task.await?;
         self.cache_response(prompt, messages, model, &full_response)
             .await;
@@ -650,8 +650,8 @@ impl LLMProvider for CachedLLMProvider {
     }
 }
 
-/// Basic embedding service implementation using local embeddings
-// Manual Debug implementation needed for trait objects
+
+
 
 #[derive(Debug)]
 
@@ -669,7 +669,7 @@ impl LocalEmbeddingService {
     }
 }
 
-/// Helper function to enable semantic cache for a specific bot
+
 
 #[async_trait]
 impl EmbeddingService for LocalEmbeddingService {
@@ -699,7 +699,7 @@ impl EmbeddingService for LocalEmbeddingService {
     }
 
     async fn compute_similarity(&self, embedding1: &[f32], embedding2: &[f32]) -> f32 {
-        // Cosine similarity
+
         if embedding1.len() != embedding2.len() {
             return 0.0;
         }

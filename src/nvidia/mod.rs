@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::collections::HashMap;
 use sysinfo::System;
-/// System performance metrics
+
 #[derive(Debug, Default)]
 pub struct SystemMetrics {
     pub gpu_usage: Option<f32>,

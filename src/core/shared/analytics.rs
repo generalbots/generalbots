@@ -130,7 +130,7 @@ pub struct DataSet {
 pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
     let mut conn = state.conn.get().unwrap();
 
-    // Direct SQL queries instead of using schema
+
     #[derive(QueryableByName)]
     struct CountResult {
         #[diesel(sql_type = diesel::sql_types::BigInt)]
@@ -156,7 +156,7 @@ pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppSta
         .map(|r| r.count)
         .unwrap_or(0);
 
-    // Query storage from kb_documents table for actual data size
+
     #[derive(QueryableByName)]
     struct SizeResult {
         #[diesel(sql_type = diesel::sql_types::BigInt)]
@@ -285,7 +285,7 @@ pub async fn get_dashboard(
 
     let mut charts = Vec::new();
 
-    // API calls chart
+
     let now = Utc::now();
     let mut api_labels = Vec::new();
     let mut api_data = Vec::new();
@@ -308,7 +308,7 @@ pub async fn get_dashboard(
         }],
     });
 
-    // User activity chart
+
     let mut activity_labels = Vec::new();
     let mut activity_data = Vec::new();
 

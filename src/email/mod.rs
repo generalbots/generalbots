@@ -21,9 +21,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// ===== QueryableByName Structs for Raw SQL Queries =====
 
-/// For querying email account basic info (id, email, display_name, is_primary)
+
+
 #[derive(Debug, QueryableByName)]
 pub struct EmailAccountBasicRow {
     #[diesel(sql_type = DieselUuid)]
@@ -36,7 +36,7 @@ pub struct EmailAccountBasicRow {
     pub is_primary: bool,
 }
 
-/// For querying IMAP credentials
+
 #[derive(Debug, QueryableByName)]
 pub struct ImapCredentialsRow {
     #[diesel(sql_type = Text)]
@@ -49,7 +49,7 @@ pub struct ImapCredentialsRow {
     pub password_encrypted: String,
 }
 
-/// For querying SMTP credentials (for sending)
+
 #[derive(Debug, QueryableByName)]
 pub struct SmtpCredentialsRow {
     #[diesel(sql_type = Text)]
@@ -66,7 +66,7 @@ pub struct SmtpCredentialsRow {
     pub password_encrypted: String,
 }
 
-/// For querying email search results
+
 #[derive(Debug, QueryableByName)]
 pub struct EmailSearchRow {
     #[diesel(sql_type = Text)]
@@ -87,19 +87,19 @@ pub mod stalwart_client;
 pub mod stalwart_sync;
 pub mod vectordb;
 
-// Helper function to extract user from session
+
 async fn extract_user_from_session(state: &Arc<AppState>) -> Result<Uuid, String> {
-    // For now, return a default user ID - in production this would check session/token
-    // This should be replaced with proper session management
+
+
     Ok(Uuid::new_v4())
 }
 
-// ===== Router Configuration =====
 
-/// Configure email API routes
+
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-        // JSON API endpoints for services
+
         .route(ApiUrls::EMAIL_ACCOUNTS, get(list_email_accounts))
         .route(
             &format!("{}/add", ApiUrls::EMAIL_ACCOUNTS),
@@ -127,7 +127,7 @@ pub fn configure() -> Router<Arc<AppState>> {
                 .replace(":email", "{email}"),
             post(track_click),
         )
-        // Email read tracking endpoints
+
         .route(
             "/api/email/tracking/pixel/{tracking_id}",
             get(serve_tracking_pixel),
@@ -138,7 +138,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
         .route("/api/email/tracking/list", get(list_sent_emails_tracking))
         .route("/api/email/tracking/stats", get(get_tracking_stats))
-        // UI HTMX endpoints (return HTML fragments)
+
         .route("/ui/email/accounts", get(list_email_accounts_htmx))
         .route("/ui/email/list", get(list_emails_htmx))
         .route("/ui/email/folders", get(list_folders_htmx))
@@ -153,7 +153,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/ui/email/auto-responder", post(save_auto_responder))
 }
 
-// Export SaveDraftRequest for other modules
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDraftRequest {
     pub account_id: String,
@@ -164,9 +164,9 @@ pub struct SaveDraftRequest {
     pub body: String,
 }
 
-// ===== Email Tracking Structures =====
 
-/// Sent email tracking record
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SentEmailTracking {
     pub id: String,
@@ -187,7 +187,7 @@ pub struct SentEmailTracking {
     pub is_read: bool,
 }
 
-/// Tracking status response for UI
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackingStatusResponse {
     pub tracking_id: String,
@@ -199,22 +199,22 @@ pub struct TrackingStatusResponse {
     pub read_count: i32,
 }
 
-/// Query params for tracking pixel
+
 #[derive(Debug, Deserialize)]
 pub struct TrackingPixelQuery {
-    pub t: Option<String>, // Additional tracking token
+    pub t: Option<String>,
 }
 
-/// Query params for listing tracked emails
+
 #[derive(Debug, Deserialize)]
 pub struct ListTrackingQuery {
     pub account_id: Option<String>,
     pub limit: Option<i64>,
     pub offset: Option<i64>,
-    pub filter: Option<String>, // "all", "read", "unread"
+    pub filter: Option<String>,
 }
 
-/// Tracking statistics response
+
 #[derive(Debug, Serialize)]
 pub struct TrackingStatsResponse {
     pub total_sent: i64,
@@ -223,7 +223,7 @@ pub struct TrackingStatsResponse {
     pub avg_time_to_read_hours: Option<f64>,
 }
 
-// ===== Request/Response Structures =====
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EmailAccountRequest {
@@ -332,7 +332,7 @@ pub struct ApiResponse<T> {
     pub message: Option<String>,
 }
 
-// ===== Error Handling =====
+
 
 struct EmailError(String);
 
@@ -348,7 +348,7 @@ impl From<String> for EmailError {
     }
 }
 
-// ===== Helper Functions =====
+
 
 fn parse_from_field(from: &str) -> (String, String) {
     if let Some(start) = from.find('<') {
@@ -362,11 +362,11 @@ fn parse_from_field(from: &str) -> (String, String) {
 }
 
 fn format_email_time(date_str: &str) -> String {
-    // Simple time formatting - in production, use proper date parsing
+
     if date_str.is_empty() {
         return "Unknown".to_string();
     }
-    // Return simplified version for now
+
     date_str
         .split_whitespace()
         .take(4)
@@ -375,13 +375,13 @@ fn format_email_time(date_str: &str) -> String {
 }
 
 fn encrypt_password(password: &str) -> String {
-    // In production, use proper encryption like AES-256
-    // For now, base64 encode (THIS IS NOT SECURE - USE PROPER ENCRYPTION)
+
+
     general_purpose::STANDARD.encode(password.as_bytes())
 }
 
 fn decrypt_password(encrypted: &str) -> Result<String, String> {
-    // In production, use proper decryption
+
     general_purpose::STANDARD
         .decode(encrypted)
         .map_err(|e| format!("Decryption failed: {}", e))
@@ -390,13 +390,13 @@ fn decrypt_password(encrypted: &str) -> Result<String, String> {
         })
 }
 
-// ===== Account Management Endpoints =====
+
 
 pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
     Json(request): Json<EmailAccountRequest>,
 ) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
-    // Get user_id from session
+
     let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
@@ -405,7 +405,7 @@ pub async fn add_email_account(
     let account_id = Uuid::new_v4();
     let encrypted_password = encrypt_password(&request.password);
 
-    // Clone fields for response before moving into spawn_blocking
+
     let resp_email = request.email.clone();
     let resp_display_name = request.display_name.clone();
     let resp_imap_server = request.imap_server.clone();
@@ -419,7 +419,7 @@ pub async fn add_email_account(
         use crate::shared::models::schema::user_email_accounts::dsl::*;
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
 
-        // If this is primary, unset other primary accounts
+
         if request.is_primary {
             diesel::update(user_email_accounts.filter(user_id.eq(&current_user_id)))
                 .set(is_primary.eq(false))
@@ -471,9 +471,9 @@ pub async fn add_email_account(
     }))
 }
 
-/// List email accounts - HTMX HTML response for UI
+
 pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    // Get user_id from session
+
     let user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => {
@@ -532,11 +532,11 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
     axum::response::Html(html)
 }
 
-/// List email accounts - JSON API for services
+
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
-    // Get user_id from session
+
     let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
@@ -654,7 +654,7 @@ pub async fn delete_email_account(
     }))
 }
 
-// ===== Email Operations =====
+
 
 pub async fn list_emails(
     State(state): State<Arc<AppState>>,
@@ -663,7 +663,7 @@ pub async fn list_emails(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    // Get account credentials from database
+
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
@@ -689,7 +689,7 @@ pub async fn list_emails(
     );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
         .connect()
         .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
@@ -784,7 +784,7 @@ pub async fn list_emails(
                 },
                 date: format_email_time(&date),
                 time: format_email_time(&date),
-                read: false, // IMAP flags checked during fetch
+                read: false,
                 folder: folder.clone(),
                 has_attachments,
             });
@@ -807,7 +807,7 @@ pub async fn send_email(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    // Get account credentials
+
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn
@@ -844,18 +844,18 @@ pub async fn send_email(
         format!("{} <{}>", display_name, from_email)
     };
 
-    // Check if email-read-pixel is enabled in bot config
+
     let pixel_enabled = is_tracking_pixel_enabled(&state, None).await;
     let tracking_id = Uuid::new_v4();
 
-    // Build email body with tracking pixel if enabled
+
     let final_body = if pixel_enabled && request.is_html {
         inject_tracking_pixel(&request.body, &tracking_id.to_string(), &state).await
     } else {
         request.body.clone()
     };
 
-    // Build email
+
     let mut email_builder = Message::builder()
         .from(
             from_addr
@@ -885,7 +885,7 @@ pub async fn send_email(
         .body(final_body)
         .map_err(|e| EmailError(format!("Failed to build email: {}", e)))?;
 
-    // Send email
+
     let creds = Credentials::new(username, password);
     let mailer = SmtpTransport::relay(&smtp_server)
         .map_err(|e| EmailError(format!("Failed to create SMTP transport: {}", e)))?
@@ -897,7 +897,7 @@ pub async fn send_email(
         .send(&email)
         .map_err(|e| EmailError(format!("Failed to send email: {}", e)))?;
 
-    // Save tracking record if pixel tracking is enabled
+
     if pixel_enabled {
         let conn = state.conn.clone();
         let to_email = request.to.clone();
@@ -910,7 +910,7 @@ pub async fn send_email(
                 conn,
                 tracking_id,
                 account_uuid,
-                Uuid::nil(), // bot_id - would come from session in production
+                Uuid::nil(),
                 &from_email,
                 &to_email,
                 cc_clone.as_deref(),
@@ -940,7 +940,7 @@ pub async fn save_draft(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    // Get user_id from session
+
     let user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
@@ -988,7 +988,7 @@ pub async fn list_folders(
     let account_uuid =
         Uuid::parse_str(&account_id).map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    // Get account credentials
+
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
@@ -1014,8 +1014,8 @@ pub async fn list_folders(
     );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
-    // Connect and list folders
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
+
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
         .connect()
         .map_err(|e| format!("Failed to connect to IMAP: {:?}", e))?;
@@ -1033,7 +1033,7 @@ pub async fn list_folders(
         .map(|f| FolderInfo {
             name: f.name().to_string(),
             path: f.name().to_string(),
-            unread_count: 0, // Counts are fetched separately via IMAP STATUS
+            unread_count: 0,
             total_count: 0,
         })
         .collect();
@@ -1047,7 +1047,7 @@ pub async fn list_folders(
     }))
 }
 
-// ===== Legacy endpoints for backward compatibility =====
+
 
 pub async fn get_latest_email_from(
     State(_state): State<Arc<AppState>>,
@@ -1077,16 +1077,16 @@ pub async fn save_click(
     (StatusCode::OK, [("content-type", "image/gif")], pixel)
 }
 
-// ===== Email Read Tracking Functions =====
 
-/// 1x1 transparent GIF pixel bytes
+
+
 const TRACKING_PIXEL: [u8; 43] = [
     0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
     0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
 ];
 
-/// Check if email-read-pixel is enabled in config
+
 async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> bool {
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let bot_id = bot_id.unwrap_or(Uuid::nil());
@@ -1097,13 +1097,13 @@ async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) 
         .unwrap_or(false)
 }
 
-/// Inject tracking pixel into HTML email body
+
 async fn inject_tracking_pixel(
     html_body: &str,
     tracking_id: &str,
     state: &Arc<AppState>,
 ) -> String {
-    // Get base URL from config or use default
+
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
         .get_config(&Uuid::nil(), "server-url", Some("http://localhost:8080"))
@@ -1115,7 +1115,7 @@ async fn inject_tracking_pixel(
         pixel_url
     );
 
-    // Insert pixel before closing </body> tag, or at the end if no body tag
+
     if html_body.to_lowercase().contains("</body>") {
         html_body
             .replace("</body>", &format!("{}</body>", pixel_html))
@@ -1125,7 +1125,7 @@ async fn inject_tracking_pixel(
     }
 }
 
-/// Save email tracking record to database
+
 fn save_email_tracking_record(
     conn: crate::shared::utils::DbPool,
     tracking_id: Uuid,
@@ -1166,14 +1166,14 @@ fn save_email_tracking_record(
     Ok(())
 }
 
-/// Serve tracking pixel and record email open
+
 pub async fn serve_tracking_pixel(
     Path(tracking_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(_query): Query<TrackingPixelQuery>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-    // Extract client info from headers
+
     let client_ip = headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
@@ -1190,13 +1190,13 @@ pub async fn serve_tracking_pixel(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-    // Parse tracking ID
+
     if let Ok(tracking_uuid) = Uuid::parse_str(&tracking_id) {
         let conn = state.conn.clone();
         let ip_clone = client_ip.clone();
         let ua_clone = user_agent.clone();
 
-        // Update tracking record asynchronously
+
         let _ = tokio::task::spawn_blocking(move || {
             update_email_read_status(conn, tracking_uuid, ip_clone, ua_clone)
         })
@@ -1210,8 +1210,8 @@ pub async fn serve_tracking_pixel(
         warn!("Invalid tracking ID received: {}", tracking_id);
     }
 
-    // Always return the pixel, regardless of tracking success
-    // This prevents email clients from showing broken images
+
+
     (
         StatusCode::OK,
         [
@@ -1227,7 +1227,7 @@ pub async fn serve_tracking_pixel(
     )
 }
 
-/// Update email read status in database
+
 fn update_email_read_status(
     conn: crate::shared::utils::DbPool,
     tracking_id: Uuid,
@@ -1239,7 +1239,7 @@ fn update_email_read_status(
         .map_err(|e| format!("DB connection error: {}", e))?;
     let now = Utc::now();
 
-    // Update tracking record - increment read count, set first/last read info
+
     diesel::sql_query(
         r#"UPDATE sent_email_tracking
            SET
@@ -1263,7 +1263,7 @@ fn update_email_read_status(
     Ok(())
 }
 
-/// Get tracking status for a specific email
+
 pub async fn get_tracking_status(
     Path(tracking_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -1284,7 +1284,7 @@ pub async fn get_tracking_status(
     }))
 }
 
-/// Get tracking record from database
+
 fn get_tracking_record(
     conn: crate::shared::utils::DbPool,
     tracking_id: Uuid,
@@ -1330,7 +1330,7 @@ fn get_tracking_record(
     })
 }
 
-/// List sent emails with tracking status
+
 pub async fn list_sent_emails_tracking(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListTrackingQuery>,
@@ -1348,7 +1348,7 @@ pub async fn list_sent_emails_tracking(
     }))
 }
 
-/// List tracking records from database
+
 fn list_tracking_records(
     conn: crate::shared::utils::DbPool,
     query: ListTrackingQuery,
@@ -1378,7 +1378,7 @@ fn list_tracking_records(
         read_count: i32,
     }
 
-    // Build query based on filter
+
     let base_query = match query.filter.as_deref() {
         Some("read") => {
             r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
@@ -1417,7 +1417,7 @@ fn list_tracking_records(
         .collect())
 }
 
-/// Get tracking statistics
+
 pub async fn get_tracking_stats(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<TrackingStatsResponse>>, EmailError> {
@@ -1434,7 +1434,7 @@ pub async fn get_tracking_stats(
     }))
 }
 
-/// Calculate tracking statistics from database
+
 fn calculate_tracking_stats(
     conn: crate::shared::utils::DbPool,
 ) -> Result<TrackingStatsResponse, String> {
@@ -1484,7 +1484,7 @@ pub async fn get_emails(
     "No emails tracked".to_string()
 }
 
-// ===== EmailService for compatibility with keyword system =====
+
 
 pub struct EmailService {
     state: Arc<AppState>,
@@ -1545,15 +1545,15 @@ impl EmailService {
         attachment: Vec<u8>,
         filename: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // For now, just send without attachment
-        // Full implementation would use lettre's multipart support
+
+
         self.send_email(to, subject, body, None).await
     }
 }
 
-// Helper functions for draft system
+
 pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1566,7 +1566,7 @@ pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<Stri
         .select("INBOX")
         .map_err(|e| format!("Select INBOX failed: {}", e))?;
 
-    // Search for emails to this recipient
+
     let search_query = format!("TO \"{}\"", to);
     let message_ids = session
         .search(&search_query)
@@ -1594,7 +1594,7 @@ pub async fn save_email_draft(
 ) -> Result<(), String> {
     use chrono::Utc;
 
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1603,7 +1603,7 @@ pub async fn save_email_draft(
         .login(&config.username, &config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
 
-    // Create draft email in RFC822 format
+
     let date = Utc::now().to_rfc2822();
     let message_id = format!("<{}.{}@botserver>", Uuid::new_v4(), config.server);
     let cc_header = if let Some(cc) = &draft.cc {
@@ -1625,7 +1625,7 @@ pub async fn save_email_draft(
         date, config.from, draft.to, cc_header, draft.subject, message_id, draft.body
     );
 
-    // Try to save to Drafts folder, fall back to INBOX if not available
+
     let folder = session
         .list(None, Some("Drafts"))
         .map_err(|e| format!("List folders failed: {}", e))?
@@ -1644,13 +1644,13 @@ pub async fn save_email_draft(
     Ok(())
 }
 
-// ===== Helper Functions for IMAP Operations =====
+
 
 async fn fetch_emails_from_folder(
     config: &EmailConfig,
     folder: &str,
 ) -> Result<Vec<EmailSummary>, String> {
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1708,7 +1708,7 @@ async fn get_folder_counts(
 ) -> Result<std::collections::HashMap<String, usize>, String> {
     use std::collections::HashMap;
 
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1730,7 +1730,7 @@ async fn get_folder_counts(
 }
 
 async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1783,7 +1783,7 @@ async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailConten
 }
 
 async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
-    // Connect to IMAP (imap 3.0 handles TLS internally)
+
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1796,7 +1796,7 @@ async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), Strin
         .select("INBOX")
         .map_err(|e| format!("Select failed: {}", e))?;
 
-    // Mark as deleted and expunge
+
     session
         .store(id, "+FLAGS (\\Deleted)")
         .map_err(|e| format!("Store failed: {}", e))?;
@@ -1828,21 +1828,21 @@ struct EmailContent {
     body: String,
 }
 
-// ===== HTMX-Specific Handlers =====
 
-/// List emails with HTMX HTML response
+
+
 pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl IntoResponse, EmailError> {
     let folder = params.get("folder").unwrap_or(&"inbox".to_string()).clone();
 
-    // Get user's email accounts
+
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
-    // Get first email account for the user
+
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn
@@ -1869,7 +1869,7 @@ pub async fn list_emails_htmx(
         ));
     };
 
-    // Fetch emails using IMAP
+
     let config = EmailConfig {
         username: account.username.clone(),
         password: account.password.clone(),
@@ -1916,11 +1916,11 @@ pub async fn list_emails_htmx(
     Ok(axum::response::Html(html))
 }
 
-/// List folders with HTMX HTML response
+
 pub async fn list_folders_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
-    // Get user's first email account
+
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -1949,7 +1949,7 @@ pub async fn list_folders_htmx(
 
     let account = account.unwrap();
 
-    // Get folder list with counts using IMAP
+
     let config = EmailConfig {
         username: account.username.clone(),
         password: account.password.clone(),
@@ -2008,7 +2008,7 @@ pub async fn list_folders_htmx(
     Ok(axum::response::Html(html))
 }
 
-/// Compose email form with HTMX
+
 pub async fn compose_email_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
@@ -2044,12 +2044,12 @@ pub async fn compose_email_htmx(
     Ok(axum::response::Html(html))
 }
 
-/// Get email content with HTMX HTML response
+
 pub async fn get_email_content_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
-    // Get user's email account
+
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -2079,7 +2079,7 @@ pub async fn get_email_content_htmx(
         ));
     };
 
-    // Fetch email content using IMAP
+
     let config = EmailConfig {
         username: account.username.clone(),
         password: account.password.clone(),
@@ -2135,12 +2135,12 @@ pub async fn get_email_content_htmx(
     Ok(axum::response::Html(html))
 }
 
-/// Delete email with HTMX response
+
 pub async fn delete_email_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
-    // Get user's email account
+
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -2172,7 +2172,7 @@ pub async fn delete_email_htmx(
             smtp_port: account.smtp_port as u16,
         };
 
-        // Move email to trash folder using IMAP
+
         move_email_to_trash(&config, &id)
             .await
             .map_err(|e| EmailError(format!("Failed to delete email: {}", e)))?;
@@ -2180,15 +2180,15 @@ pub async fn delete_email_htmx(
 
     info!("Email {} moved to trash", id);
 
-    // Return updated email list
+
     list_emails_htmx(State(state), Query(std::collections::HashMap::new())).await
 }
 
-/// Get latest email
+
 pub async fn get_latest_email(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
-    // Mock implementation - replace with actual logic
+
     Ok(Json(ApiResponse {
         success: true,
         data: Some(EmailData {
@@ -2204,12 +2204,12 @@ pub async fn get_latest_email(
     }))
 }
 
-/// Get email by ID
+
 pub async fn get_email(
     State(state): State<Arc<AppState>>,
     Path(campaign_id): Path<String>,
 ) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
-    // Mock implementation - replace with actual logic
+
     Ok(Json(ApiResponse {
         success: true,
         data: Some(EmailData {
@@ -2225,7 +2225,7 @@ pub async fn get_email(
     }))
 }
 
-/// Track email click
+
 pub async fn track_click(
     State(state): State<Arc<AppState>>,
     Path((campaign_id, email)): Path<(String, String)>,
@@ -2253,7 +2253,7 @@ pub struct EmailData {
     pub unread: bool,
 }
 
-// Database row struct for email accounts
+
 #[derive(Debug, QueryableByName)]
 struct EmailAccountRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
@@ -2276,11 +2276,11 @@ struct EmailAccountRow {
     pub smtp_port: i32,
 }
 
-// ===== HTMX UI Endpoint Handlers =====
 
-/// List email labels (HTMX HTML response)
+
+
 pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    // Return default labels as HTML for HTMX
+
     axum::response::Html(
         r#"
         <div class="label-item" style="--label-color: #ef4444;">
@@ -2304,7 +2304,7 @@ pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoR
     )
 }
 
-/// List email templates (HTMX HTML response)
+
 pub async fn list_templates_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
         r#"
@@ -2328,7 +2328,7 @@ pub async fn list_templates_htmx(State(_state): State<Arc<AppState>>) -> impl In
     )
 }
 
-/// List email signatures (HTMX HTML response)
+
 pub async fn list_signatures_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
         r#"
@@ -2348,7 +2348,7 @@ pub async fn list_signatures_htmx(State(_state): State<Arc<AppState>>) -> impl I
     )
 }
 
-/// List email rules (HTMX HTML response)
+
 pub async fn list_rules_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
         r#"
@@ -2380,7 +2380,7 @@ pub async fn list_rules_htmx(State(_state): State<Arc<AppState>>) -> impl IntoRe
     )
 }
 
-/// Search emails (HTMX HTML response)
+
 pub async fn search_emails_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
@@ -2482,14 +2482,14 @@ pub async fn search_emails_htmx(
     axum::response::Html(html)
 }
 
-/// Save auto-responder settings
+
 pub async fn save_auto_responder(
     State(_state): State<Arc<AppState>>,
     axum::Form(form): axum::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     info!("Saving auto-responder settings: {:?}", form);
 
-    // In production, save to database
+
     axum::response::Html(
         r#"
         <div class="notification success">

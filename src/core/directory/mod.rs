@@ -10,7 +10,7 @@ use std::sync::Arc;
 
 pub use provisioning::{BotAccess, UserAccount, UserProvisioningService, UserRole};
 
-/// Directory service configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DirectoryConfig {
     pub url: String,
@@ -30,7 +30,7 @@ impl Default for DirectoryConfig {
     }
 }
 
-/// Main directory service interface
+
 pub struct DirectoryService {
     config: DirectoryConfig,
     provisioning: Arc<UserProvisioningService>,
@@ -74,22 +74,22 @@ impl DirectoryService {
         Arc::clone(&self.provisioning)
     }
 
-    /// Get the directory service URL
+
     pub fn get_url(&self) -> &str {
         &self.config.url
     }
 
-    /// Check if OAuth is enabled
+
     pub fn is_oauth_enabled(&self) -> bool {
         self.config.oauth_enabled
     }
 
-    /// Get the project ID
+
     pub fn get_project_id(&self) -> &str {
         &self.config.project_id
     }
 
-    /// Get the full configuration (for admin purposes)
+
     pub fn get_config(&self) -> &DirectoryConfig {
         &self.config
     }

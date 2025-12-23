@@ -7,7 +7,7 @@ use std::time::Duration;
 use tokio::fs;
 use tokio::time::sleep;
 
-/// Directory (Zitadel) auto-setup manager
+
 #[derive(Debug)]
 pub struct DirectorySetup {
     base_url: String,
@@ -17,21 +17,21 @@ pub struct DirectorySetup {
 }
 
 impl DirectorySetup {
-    /// Set the admin token
+
     pub fn set_admin_token(&mut self, token: String) {
         self.admin_token = Some(token);
     }
 
-    /// Get or initialize admin token
+
     pub async fn ensure_admin_token(&mut self) -> Result<()> {
         if self.admin_token.is_none() {
-            // Token should be provided via configuration, not hardcoded
+
             return Err(anyhow::anyhow!("Admin token must be configured"));
         }
         Ok(())
     }
 
-    /// Generate a secure random password
+
     fn generate_secure_password(&self) -> String {
         use rand::distr::Alphanumeric;
         use rand::Rng;
@@ -86,7 +86,7 @@ impl DirectorySetup {
         }
     }
 
-    /// Wait for directory service to be ready
+
     pub async fn wait_for_ready(&self, max_attempts: u32) -> Result<()> {
         log::info!("Waiting for Directory service to be ready...");
 
@@ -115,35 +115,35 @@ impl DirectorySetup {
         anyhow::bail!("Directory service did not become ready in time")
     }
 
-    /// Initialize directory with default configuration
+
     pub async fn initialize(&mut self) -> Result<DirectoryConfig> {
         log::info!(" Initializing Directory (Zitadel) with defaults...");
 
-        // Check if already initialized
+
         if let Ok(existing_config) = self.load_existing_config().await {
             log::info!("Directory already initialized, using existing config");
             return Ok(existing_config);
         }
 
-        // Wait for service to be ready
+
         self.wait_for_ready(30).await?;
 
-        // Get initial admin token (from Zitadel setup)
+
         self.ensure_admin_token().await?;
 
-        // Create default organization
+
         let org = self.create_default_organization().await?;
         log::info!(" Created default organization: {}", org.name);
 
-        // Create default user
+
         let user = self.create_default_user(&org.id).await?;
         log::info!(" Created default user: {}", user.username);
 
-        // Create OAuth2 application for BotServer
+
         let (project_id, client_id, client_secret) = self.create_oauth_application(&org.id).await?;
         log::info!(" Created OAuth2 application");
 
-        // Grant user admin permissions
+
         self.grant_user_permissions(&org.id, &user.id).await?;
         log::info!(" Granted admin permissions to default user");
 
@@ -157,7 +157,7 @@ impl DirectorySetup {
             client_secret,
         };
 
-        // Save configuration
+
         self.save_config_internal(&config).await?;
         log::info!(" Saved Directory configuration");
 
@@ -172,9 +172,9 @@ impl DirectorySetup {
         Ok(config)
     }
 
-    /// Create an organization
+
     pub async fn create_organization(&mut self, name: &str, description: &str) -> Result<String> {
-        // Ensure we have admin token
+
         self.ensure_admin_token().await?;
 
         let response = self
@@ -197,7 +197,7 @@ impl DirectorySetup {
         Ok(result["id"].as_str().unwrap_or("").to_string())
     }
 
-    /// Create default organization
+
     async fn create_default_organization(&self) -> Result<DefaultOrganization> {
         let org_name = "BotServer".to_string();
 
@@ -225,7 +225,7 @@ impl DirectorySetup {
         })
     }
 
-    /// Create a user in an organization
+
     pub async fn create_user(
         &mut self,
         org_id: &str,
@@ -236,7 +236,7 @@ impl DirectorySetup {
         last_name: &str,
         is_admin: bool,
     ) -> Result<DefaultUser> {
-        // Ensure we have admin token
+
         self.ensure_admin_token().await?;
 
         let response = self
@@ -278,7 +278,7 @@ impl DirectorySetup {
             last_name: last_name.to_string(),
         };
 
-        // Grant admin permissions if requested
+
         if is_admin {
             self.grant_user_permissions(org_id, &user.id).await?;
         }
@@ -286,9 +286,9 @@ impl DirectorySetup {
         Ok(user)
     }
 
-    /// Create default user in organization
+
     async fn create_default_user(&self, org_id: &str) -> Result<DefaultUser> {
-        // Generate secure credentials
+
         let username = format!(
             "admin_{}",
             uuid::Uuid::new_v4()
@@ -340,7 +340,7 @@ impl DirectorySetup {
         })
     }
 
-    /// Create OAuth2 application for BotServer
+
     pub async fn create_oauth_application(
         &self,
         _org_id: &str,
@@ -348,7 +348,7 @@ impl DirectorySetup {
         let app_name = "BotServer";
         let redirect_uri = "http://localhost:8080/auth/callback".to_string();
 
-        // Create project
+
         let project_response = self
             .client
             .post(format!("{}/management/v1/projects", self.base_url))
@@ -362,7 +362,7 @@ impl DirectorySetup {
         let project_result: serde_json::Value = project_response.json().await?;
         let project_id = project_result["id"].as_str().unwrap_or("").to_string();
 
-        // Create OIDC application
+
         let app_response = self.client
             .post(format!("{}/management/v1/projects/{}/apps/oidc", self.base_url, project_id))
             .bearer_auth(self.admin_token.as_ref().unwrap())
@@ -388,9 +388,9 @@ impl DirectorySetup {
         Ok((project_id, client_id, client_secret))
     }
 
-    /// Grant admin permissions to user
+
     pub async fn grant_user_permissions(&self, org_id: &str, user_id: &str) -> Result<()> {
-        // Grant ORG_OWNER role
+
         let _response = self
             .client
             .post(format!(
@@ -408,7 +408,7 @@ impl DirectorySetup {
         Ok(())
     }
 
-    /// Save configuration to file
+
     pub async fn save_config(
         &mut self,
         org_id: String,
@@ -417,7 +417,7 @@ impl DirectorySetup {
         client_id: String,
         client_secret: String,
     ) -> Result<DirectoryConfig> {
-        // Get or create admin token
+
         self.ensure_admin_token().await?;
 
         let config = DirectoryConfig {
@@ -429,12 +429,12 @@ impl DirectorySetup {
             },
             default_user: admin_user,
             admin_token: self.admin_token.clone().unwrap_or_default(),
-            project_id: String::new(), // This will be set if OAuth app is created
+            project_id: String::new(),
             client_id,
             client_secret,
         };
 
-        // Save to file
+
         let json = serde_json::to_string_pretty(&config)?;
         fs::write(&self.config_path, json).await?;
 
@@ -442,27 +442,27 @@ impl DirectorySetup {
         Ok(config)
     }
 
-    /// Internal save configuration to file
+
     async fn save_config_internal(&self, config: &DirectoryConfig) -> Result<()> {
         let json = serde_json::to_string_pretty(config)?;
         fs::write(&self.config_path, json).await?;
         Ok(())
     }
 
-    /// Load existing configuration
+
     async fn load_existing_config(&self) -> Result<DirectoryConfig> {
         let content = fs::read_to_string(&self.config_path).await?;
         let config: DirectoryConfig = serde_json::from_str(&content)?;
         Ok(config)
     }
 
-    /// Get stored configuration
+
     pub async fn get_config(&self) -> Result<DirectoryConfig> {
         self.load_existing_config().await
     }
 }
 
-/// Generate Zitadel configuration file
+
 pub async fn generate_directory_config(config_path: PathBuf, _db_path: PathBuf) -> Result<()> {
     let yaml_config = format!(
         r"

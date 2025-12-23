@@ -28,13 +28,13 @@
 |                                                                             |
 \*****************************************************************************/
 
-//! LLM-based macro keywords for intelligent operations
-//!
-//! These keywords use the LLM to perform complex operations:
-//! - CALCULATE formula, variables -> evaluates complex formulas/logic using LLM
-//! - VALIDATE data, rules -> validates data against rules using LLM
-//! - TRANSLATE text, language -> translates text to target language
-//! - SUMMARIZE text -> summarizes long text
+
+
+
+
+
+
+
 
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
@@ -45,7 +45,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-/// Register all LLM macro keywords
+
 pub fn register_llm_macros(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_calculate_keyword(state.clone(), user.clone(), engine);
     register_validate_keyword(state.clone(), user.clone(), engine);
@@ -53,7 +53,7 @@ pub fn register_llm_macros(state: Arc<AppState>, user: UserSession, engine: &mut
     register_summarize_keyword(state, user, engine);
 }
 
-/// Shared function to call LLM with a prompt
+
 async fn call_llm(
     state: &AppState,
     prompt: &str,
@@ -75,7 +75,7 @@ async fn call_llm(
     Ok(processed)
 }
 
-/// Helper to run LLM call in a thread with timeout
+
 fn run_llm_with_timeout(
     state: Arc<AppState>,
     prompt: String,
@@ -117,8 +117,8 @@ fn run_llm_with_timeout(
     }
 }
 
-/// CALCULATE formula, variables
-/// Uses LLM to evaluate complex formulas, business logic, or calculations
+
+
 pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -198,8 +198,8 @@ fn parse_calculate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResu
     Ok(Dynamic::from(trimmed.to_string()))
 }
 
-/// VALIDATE data, rules
-/// Uses LLM to validate data against rules
+
+
 pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -306,8 +306,8 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
     Ok(Dynamic::from(map))
 }
 
-/// TRANSLATE text, language
-/// Uses LLM to translate text to target language
+
+
 pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -348,8 +348,8 @@ Translation:"#,
     )
 }
 
-/// SUMMARIZE text
-/// Uses LLM to summarize long text
+
+
 pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 

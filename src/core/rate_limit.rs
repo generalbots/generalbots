@@ -1,7 +1,7 @@
-//! Rate Limiting Module
-//!
-//! Provides API rate limiting using the governor library.
-//! Supports per-IP and per-user rate limiting with configurable limits.
+
+
+
+
 
 use axum::{
     extract::{ConnectInfo, Request, State},
@@ -18,10 +18,10 @@ use governor::{
 use std::{collections::HashMap, net::SocketAddr, num::NonZeroU32, sync::Arc};
 use tokio::sync::RwLock;
 
-/// Rate limiter type alias
+
 type Limiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>;
 
-/// Per-key rate limiter for IP-based or user-based limiting
+
 pub struct KeyedRateLimiter {
     limiters: RwLock<HashMap<String, Arc<Limiter>>>,
     quota: Quota,
@@ -29,7 +29,7 @@ pub struct KeyedRateLimiter {
 }
 
 impl KeyedRateLimiter {
-    /// Create a new keyed rate limiter
+
     pub fn new(requests_per_second: u32, burst_size: u32) -> Self {
         let quota =
             Quota::per_second(NonZeroU32::new(requests_per_second).unwrap_or(NonZeroU32::MIN))
@@ -42,7 +42,7 @@ impl KeyedRateLimiter {
         }
     }
 
-    /// Check if a key is rate limited
+
     pub async fn check(&self, key: &str) -> bool {
         let limiter = {
             let limiters = self.limiters.read().await;
@@ -54,7 +54,7 @@ impl KeyedRateLimiter {
             None => {
                 let mut limiters = self.limiters.write().await;
 
-                // Cleanup old limiters if threshold exceeded
+
                 if limiters.len() > self.cleanup_threshold {
                     limiters.clear();
                 }
@@ -68,7 +68,7 @@ impl KeyedRateLimiter {
         limiter.check().is_ok()
     }
 
-    /// Get remaining quota for a key
+
     pub async fn remaining(&self, key: &str) -> Option<u32> {
         let limiters = self.limiters.read().await;
         limiters.get(key).map(|l| l.check().map(|_| 1).unwrap_or(0))
@@ -83,22 +83,22 @@ impl std::fmt::Debug for KeyedRateLimiter {
     }
 }
 
-/// Rate limit configuration
+
 #[derive(Debug, Clone)]
 pub struct RateLimitConfig {
-    /// Requests per second for API endpoints
+
     pub api_rps: u32,
-    /// Burst size for API endpoints
+
     pub api_burst: u32,
-    /// Requests per second for auth endpoints (stricter)
+
     pub auth_rps: u32,
-    /// Burst size for auth endpoints
+
     pub auth_burst: u32,
-    /// Requests per second for LLM endpoints (most restrictive)
+
     pub llm_rps: u32,
-    /// Burst size for LLM endpoints
+
     pub llm_burst: u32,
-    /// Enable rate limiting
+
     pub enabled: bool,
 }
 
@@ -116,7 +116,7 @@ impl Default for RateLimitConfig {
     }
 }
 
-/// Rate limit state shared across requests
+
 #[derive(Debug)]
 pub struct RateLimitState {
     pub config: RateLimitConfig,
@@ -169,9 +169,9 @@ impl RateLimitState {
     }
 }
 
-/// Extract client IP from request
+
 fn get_client_ip(req: &Request) -> String {
-    // Try X-Forwarded-For header first (for reverse proxies)
+
     if let Some(forwarded) = req.headers().get("x-forwarded-for") {
         if let Ok(value) = forwarded.to_str() {
             if let Some(ip) = value.split(',').next() {
@@ -180,21 +180,21 @@ fn get_client_ip(req: &Request) -> String {
         }
     }
 
-    // Try X-Real-IP header
+
     if let Some(real_ip) = req.headers().get("x-real-ip") {
         if let Ok(value) = real_ip.to_str() {
             return value.to_string();
         }
     }
 
-    // Fall back to connection info
+
     req.extensions()
         .get::<ConnectInfo<SocketAddr>>()
         .map(|ci| ci.0.ip().to_string())
         .unwrap_or_else(|| "unknown".to_string())
 }
 
-/// Determine which limiter to use based on path
+
 fn get_limiter_type(path: &str) -> LimiterType {
     if path.contains("/auth") || path.contains("/login") || path.contains("/token") {
         LimiterType::Auth
@@ -212,7 +212,7 @@ enum LimiterType {
     Llm,
 }
 
-/// Rate limiting middleware
+
 pub async fn rate_limit_middleware(
     State(state): State<Arc<RateLimitState>>,
     req: Request,
@@ -239,7 +239,7 @@ pub async fn rate_limit_middleware(
     }
 }
 
-/// Generate rate limit exceeded response
+
 fn rate_limit_response(limiter_type: LimiterType) -> Response {
     let (retry_after, message) = match limiter_type {
         LimiterType::Api => (1, "API rate limit exceeded"),
@@ -270,7 +270,7 @@ fn rate_limit_response(limiter_type: LimiterType) -> Response {
         .into_response()
 }
 
-/// Create rate limit state for use with axum middleware
+
 pub fn create_rate_limit_state(config: RateLimitConfig) -> Arc<RateLimitState> {
     Arc::new(RateLimitState::new(config))
 }

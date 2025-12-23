@@ -1,12 +1,12 @@
-//! Startup Wizard Module
-//!
-//! Interactive wizard for first-run configuration or --wizard flag.
-//! Guides users through:
-//! - LLM provider selection
-//! - Component installation choices
-//! - Admin user setup
-//! - Organization configuration
-//! - Bot template selection
+
+
+
+
+
+
+
+
+
 
 use crate::shared::platform_name;
 use crate::shared::BOTSERVER_VERSION;
@@ -21,38 +21,38 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-/// Wizard configuration result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WizardConfig {
-    /// Selected LLM provider
+
     pub llm_provider: LlmProvider,
 
-    /// LLM API key (if applicable)
+
     pub llm_api_key: Option<String>,
 
-    /// Local model path (if using local LLM)
+
     pub local_model_path: Option<String>,
 
-    /// Components to install
+
     pub components: Vec<ComponentChoice>,
 
-    /// Admin user configuration
+
     pub admin: AdminConfig,
 
-    /// Organization configuration
+
     pub organization: OrgConfig,
 
-    /// Selected bot template
+
     pub template: Option<String>,
 
-    /// Installation mode
+
     pub install_mode: InstallMode,
 
-    /// Data directory
+
     pub data_dir: PathBuf,
 }
 
-/// LLM Provider options
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum LlmProvider {
     Claude,
@@ -74,18 +74,18 @@ impl std::fmt::Display for LlmProvider {
     }
 }
 
-/// Component installation choices
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComponentChoice {
-    Drive,     // MinIO storage
-    Email,     // Email server
-    Meet,      // Video meetings (LiveKit)
-    Tables,    // PostgreSQL
-    Cache,     // Redis
-    VectorDb,  // pgvector
-    Proxy,     // Caddy reverse proxy
-    Directory, // LDAP/SSO
-    BotModels, // AI models server
+    Drive,
+    Email,
+    Meet,
+    Tables,
+    Cache,
+    VectorDb,
+    Proxy,
+    Directory,
+    BotModels,
 }
 
 impl std::fmt::Display for ComponentChoice {
@@ -104,7 +104,7 @@ impl std::fmt::Display for ComponentChoice {
     }
 }
 
-/// Admin user configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AdminConfig {
     pub username: String,
@@ -113,7 +113,7 @@ pub struct AdminConfig {
     pub display_name: String,
 }
 
-/// Organization configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OrgConfig {
     pub name: String,
@@ -121,7 +121,7 @@ pub struct OrgConfig {
     pub domain: Option<String>,
 }
 
-/// Installation mode
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum InstallMode {
     Development,
@@ -149,7 +149,7 @@ impl Default for WizardConfig {
     }
 }
 
-/// Startup Wizard
+
 #[derive(Debug)]
 pub struct StartupWizard {
     config: WizardConfig,
@@ -166,12 +166,12 @@ impl StartupWizard {
         }
     }
 
-    /// Run the interactive wizard
+
     pub fn run(&mut self) -> io::Result<WizardConfig> {
         terminal::enable_raw_mode()?;
         let mut stdout = io::stdout();
 
-        // Clear screen and show welcome
+
         execute!(
             stdout,
             terminal::Clear(ClearType::All),
@@ -181,31 +181,31 @@ impl StartupWizard {
         self.show_welcome(&mut stdout)?;
         self.wait_for_enter()?;
 
-        // Step 1: Installation Mode
+
         self.current_step = 1;
         self.step_install_mode(&mut stdout)?;
 
-        // Step 2: LLM Provider
+
         self.current_step = 2;
         self.step_llm_provider(&mut stdout)?;
 
-        // Step 3: Components
+
         self.current_step = 3;
         self.step_components(&mut stdout)?;
 
-        // Step 4: Organization
+
         self.current_step = 4;
         self.step_organization(&mut stdout)?;
 
-        // Step 5: Admin User
+
         self.current_step = 5;
         self.step_admin_user(&mut stdout)?;
 
-        // Step 6: Template Selection
+
         self.current_step = 6;
         self.step_template(&mut stdout)?;
 
-        // Step 7: Summary & Confirm
+
         self.current_step = 7;
         self.step_summary(&mut stdout)?;
 
@@ -288,7 +288,7 @@ impl StartupWizard {
             cursor::MoveTo(0, 0)
         )?;
 
-        // Progress bar
+
         let progress = format!("Step {}/{}: {}", self.current_step, self.total_steps, title);
         let bar_width = 50;
         let filled = (self.current_step * bar_width) / self.total_steps;
@@ -396,7 +396,7 @@ impl StartupWizard {
         let selected = self.select_option(stdout, &options, 0)?;
         self.config.llm_provider = options[selected].2.clone();
 
-        // Ask for API key if needed
+
         if self.config.llm_provider != LlmProvider::Local
             && self.config.llm_provider != LlmProvider::None
         {
@@ -456,15 +456,15 @@ impl StartupWizard {
         )?;
 
         let components = vec![
-            (ComponentChoice::Tables, true, false), // required, can't toggle
-            (ComponentChoice::Cache, true, false),  // required, can't toggle
-            (ComponentChoice::Drive, true, true),   // default on
-            (ComponentChoice::VectorDb, true, true), // default on
-            (ComponentChoice::Email, false, true),  // default off
-            (ComponentChoice::Meet, false, true),   // default off
-            (ComponentChoice::Proxy, true, true),   // default on
-            (ComponentChoice::Directory, false, true), // default off
-            (ComponentChoice::BotModels, false, true), // default off
+            (ComponentChoice::Tables, true, false),
+            (ComponentChoice::Cache, true, false),
+            (ComponentChoice::Drive, true, true),
+            (ComponentChoice::VectorDb, true, true),
+            (ComponentChoice::Email, false, true),
+            (ComponentChoice::Meet, false, true),
+            (ComponentChoice::Proxy, true, true),
+            (ComponentChoice::Directory, false, true),
+            (ComponentChoice::BotModels, false, true),
         ];
 
         let selected = self.multi_select(stdout, &components)?;
@@ -485,7 +485,7 @@ impl StartupWizard {
         io::stdin().read_line(&mut org_name)?;
         self.config.organization.name = org_name.trim().to_string();
 
-        // Generate slug from name
+
         self.config.organization.slug = self
             .config
             .organization
@@ -557,7 +557,7 @@ impl StartupWizard {
         execute!(stdout, cursor::MoveTo(2, 13), Print("Admin password: "))?;
         stdout.flush()?;
 
-        // Read password (in production, use rpassword for hidden input)
+
         let mut password = String::new();
         io::stdin().read_line(&mut password)?;
         self.config.admin.password = password.trim().to_string();
@@ -765,7 +765,7 @@ impl StartupWizard {
     fn multi_select(
         &self,
         stdout: &mut io::Stdout,
-        options: &[(ComponentChoice, bool, bool)], // (component, selected, can_toggle)
+        options: &[(ComponentChoice, bool, bool)],
     ) -> io::Result<Vec<ComponentChoice>> {
         let mut selected: Vec<bool> = options.iter().map(|(_, s, _)| *s).collect();
         let mut cursor = 0;
@@ -824,7 +824,7 @@ impl StartupWizard {
                     }
                     KeyCode::Char(' ') => {
                         if options[cursor].2 {
-                            // can_toggle
+
                             selected[cursor] = !selected[cursor];
                         }
                     }
@@ -857,7 +857,7 @@ impl StartupWizard {
     }
 }
 
-/// Save wizard configuration to file
+
 pub fn save_wizard_config(config: &WizardConfig, path: &str) -> io::Result<()> {
     let content = toml::to_string_pretty(config)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
@@ -865,7 +865,7 @@ pub fn save_wizard_config(config: &WizardConfig, path: &str) -> io::Result<()> {
     Ok(())
 }
 
-/// Load wizard configuration from file
+
 pub fn load_wizard_config(path: &str) -> io::Result<WizardConfig> {
     let content = std::fs::read_to_string(path)?;
     let config: WizardConfig =
@@ -873,32 +873,32 @@ pub fn load_wizard_config(path: &str) -> io::Result<WizardConfig> {
     Ok(config)
 }
 
-/// Check if wizard should run (no botserver-stack exists)
+
 pub fn should_run_wizard() -> bool {
     !std::path::Path::new("./botserver-stack").exists()
         && !std::path::Path::new("/opt/gbo").exists()
 }
 
-/// Apply wizard configuration - create directories, config files, etc.
+
 pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
     use std::fs;
 
-    // Create data directory
+
     fs::create_dir_all(&config.data_dir)?;
 
-    // Create subdirectories
+
     let subdirs = ["bots", "logs", "cache", "uploads", "config"];
     for subdir in &subdirs {
         fs::create_dir_all(config.data_dir.join(subdir))?;
     }
 
-    // Save configuration
+
     save_wizard_config(
         config,
         &config.data_dir.join("config/wizard.toml").to_string_lossy(),
     )?;
 
-    // Create .env file
+
     let mut env_content = String::new();
     env_content.push_str(&format!(
         "# Generated by {} Setup Wizard\n\n",

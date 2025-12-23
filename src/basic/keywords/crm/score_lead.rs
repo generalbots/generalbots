@@ -1,11 +1,11 @@
-//! Lead Scoring Functions for CRM Integration
-//!
-//! Provides BASIC keywords for lead scoring and qualification:
-//! - SCORE LEAD - Calculate lead score based on criteria
-//! - GET LEAD SCORE - Retrieve stored lead score
-//! - QUALIFY LEAD - Check if lead meets qualification threshold
-//! - UPDATE LEAD SCORE - Manually adjust lead score
-//! - AI SCORE LEAD - LLM-enhanced lead scoring
+
+
+
+
+
+
+
+
 
 use crate::core::shared::schema::bot_memories;
 use crate::shared::models::UserSession;
@@ -17,11 +17,11 @@ use rhai::{Dynamic, Engine, Map};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// SCORE LEAD - Calculate lead score based on provided criteria
+
 pub fn score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user_clone = user.clone();
 
-    // SCORE LEAD with lead data only (uses default scoring)
+
     engine.register_fn("SCORE LEAD", move |lead_data: Map| -> i64 {
         trace!(
             "SCORE LEAD called for user {} with data: {:?}",
@@ -41,7 +41,7 @@ pub fn score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &mut
         calculate_lead_score(&lead_data, None)
     });
 
-    // SCORE LEAD with custom scoring rules
+
     let user_clone3 = user.clone();
     engine.register_fn(
         "SCORE LEAD",
@@ -57,12 +57,12 @@ pub fn score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &mut
     debug!("Registered SCORE LEAD keyword");
 }
 
-/// GET LEAD SCORE - Retrieve stored lead score from database
+
 pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user_clone = user.clone();
     let state_for_db = state.clone();
 
-    // GET LEAD SCORE - returns numeric score
+
     engine.register_fn("GET LEAD SCORE", move |lead_id: &str| -> i64 {
         trace!(
             "GET LEAD SCORE called for lead {} by user {}",
@@ -85,7 +85,7 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let user_clone2 = user.clone();
     let state_for_db2 = state.clone();
 
-    // get lead score lowercase
+
     engine.register_fn("get lead score", move |lead_id: &str| -> i64 {
         trace!(
             "get lead score called for lead {} by user {}",
@@ -99,7 +99,7 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let user_clone3 = user.clone();
     let state_for_db3 = state.clone();
 
-    // GET LEAD SCORE with "full" option - returns map with score details
+
     engine.register_fn(
         "GET LEAD SCORE",
         move |lead_id: &str, _option: &str| -> Map {
@@ -116,7 +116,7 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 result.insert("score".into(), Dynamic::from(score));
                 result.insert("qualified".into(), Dynamic::from(score >= 70));
 
-                // Calculate breakdown
+
                 let breakdown_score = (score as f64 * 0.3) as i64;
                 result.insert("engagement_score".into(), Dynamic::from(breakdown_score));
                 result.insert(
@@ -139,12 +139,12 @@ pub fn get_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &
     debug!("Registered GET LEAD SCORE keyword");
 }
 
-/// QUALIFY LEAD - Check if lead meets qualification threshold
+
 pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user_clone = user.clone();
     let state_for_db = state.clone();
 
-    // QUALIFY LEAD with default threshold (70)
+
     engine.register_fn("QUALIFY LEAD", move |lead_id: &str| -> bool {
         trace!(
             "QUALIFY LEAD called for lead {} by user {}",
@@ -168,7 +168,7 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     let user_clone2 = user.clone();
     let state_for_db2 = state.clone();
 
-    // qualify lead lowercase
+
     engine.register_fn("qualify lead", move |lead_id: &str| -> bool {
         trace!(
             "qualify lead called for lead {} by user {}",
@@ -181,7 +181,7 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     let user_clone3 = user.clone();
     let state_for_db3 = state.clone();
 
-    // QUALIFY LEAD with custom threshold
+
     engine.register_fn(
         "QUALIFY LEAD",
         move |lead_id: &str, threshold: i64| -> bool {
@@ -208,7 +208,7 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     let user_clone4 = user.clone();
     let state_for_db4 = state.clone();
 
-    // IS QUALIFIED alias
+
     engine.register_fn(
         "IS QUALIFIED",
         move |lead_id: &str, threshold: i64| -> bool {
@@ -225,12 +225,12 @@ pub fn qualify_lead_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     debug!("Registered QUALIFY LEAD keyword");
 }
 
-/// UPDATE_LEAD_SCORE - Manually adjust lead score
+
 pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user_clone = user.clone();
     let state_for_db = state.clone();
 
-    // UPDATE LEAD SCORE with adjustment
+
     engine.register_fn(
         "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64| -> i64 {
@@ -263,7 +263,7 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
     let user_clone2 = user.clone();
     let state_for_db2 = state.clone();
 
-    // update lead score lowercase
+
     engine.register_fn(
         "update lead score",
         move |lead_id: &str, adjustment: i64| -> i64 {
@@ -290,7 +290,7 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
     let user_clone3 = user.clone();
     let state_for_db3 = state.clone();
 
-    // UPDATE LEAD SCORE with reason (audit trail)
+
     engine.register_fn(
         "UPDATE LEAD SCORE",
         move |lead_id: &str, adjustment: i64, reason: &str| -> i64 {
@@ -320,7 +320,7 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
     let user_clone4 = user.clone();
     let state_for_db4 = state.clone();
 
-    // SET LEAD SCORE - set absolute score
+
     engine.register_fn("SET LEAD SCORE", move |lead_id: &str, score: i64| -> i64 {
         trace!(
             "SET LEAD SCORE called for lead {} with score {} by user {}",
@@ -338,7 +338,7 @@ pub fn update_lead_score_keyword(state: Arc<AppState>, user: UserSession, engine
     debug!("Registered UPDATE LEAD SCORE keyword");
 }
 
-/// AI_SCORE_LEAD - LLM-enhanced lead scoring
+
 pub fn ai_score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let user_clone = user.clone();
 
@@ -425,11 +425,11 @@ pub fn ai_score_lead_keyword(_state: Arc<AppState>, user: UserSession, engine: &
     debug!("Registered AI SCORE LEAD keyword");
 }
 
-/// Calculate lead score based on lead data and optional custom rules
+
 fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
     let mut score: i64 = 0;
 
-    // Job title bonus
+
     if let Some(title) = lead_data.get("job_title") {
         let title_lower = title.to_string().to_lowercase();
         match title_lower.as_str() {
@@ -441,7 +441,7 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
         }
     }
 
-    // Company size bonus
+
     if let Some(size_val) = lead_data.get("company_size") {
         if let Ok(size) = size_val.as_int() {
             if size > 1000 {
@@ -456,18 +456,18 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
         }
     }
 
-    // Email domain bonus
+
     if let Some(email_val) = lead_data.get("email") {
         let email = email_val.to_string();
         if email.contains("@") {
             score += 10;
             if !email.ends_with("@gmail.com") && !email.ends_with("@yahoo.com") {
-                score += 10; // Corporate email
+                score += 10;
             }
         }
     }
 
-    // Budget signal
+
     if let Some(budget_val) = lead_data.get("budget") {
         if let Ok(budget) = budget_val.as_int() {
             if budget > 100_000 {
@@ -482,7 +482,7 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
         }
     }
 
-    // Industry bonus
+
     if let Some(industry_val) = lead_data.get("industry") {
         let industry_lower = industry_val.to_string().to_lowercase();
         if industry_lower.contains("tech") || industry_lower.contains("software") {
@@ -494,7 +494,7 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
         }
     }
 
-    // Apply custom rules if provided
+
     if let Some(rules) = custom_rules {
         if let Some(weight_val) = rules.get("weight") {
             if let Ok(weight_multiplier) = weight_val.as_int() {
@@ -508,11 +508,11 @@ fn calculate_lead_score(lead_data: &Map, custom_rules: Option<&Map>) -> i64 {
         }
     }
 
-    // Clamp score between 0 and 100
+
     score.max(0).min(100)
 }
 
-/// Determine priority based on score
+
 fn determine_priority(score: i64) -> String {
     match score {
         90..=100 => "CRITICAL".to_string(),
@@ -523,7 +523,7 @@ fn determine_priority(score: i64) -> String {
     }
 }
 
-/// Get recommendation based on score
+
 fn get_recommendation(score: i64) -> String {
     match score {
         90..=100 => "Contact immediately - Schedule meeting within 24 hours".to_string(),
@@ -534,7 +534,7 @@ fn get_recommendation(score: i64) -> String {
     }
 }
 
-/// Get suggested action based on score
+
 fn get_suggested_action(score: i64) -> String {
     match score {
         90..=100 => "Call and schedule demo".to_string(),
@@ -545,8 +545,8 @@ fn get_suggested_action(score: i64) -> String {
     }
 }
 
-/// Get lead score from database using bot_memories table
-/// Key format: "lead_score:{lead_id}"
+
+
 fn get_lead_score_from_db(state: &Arc<AppState>, lead_id: &str) -> Option<i64> {
     let memory_key = format!("lead_score:{}", lead_id);
 
@@ -561,8 +561,8 @@ fn get_lead_score_from_db(state: &Arc<AppState>, lead_id: &str) -> Option<i64> {
         }
     };
 
-    // Query bot_memories table for the lead score
-    // We use a default bot_id (nil UUID) for system-wide lead scores
+
+
     let result = bot_memories::table
         .filter(bot_memories::key.eq(&memory_key))
         .select(bot_memories::value)
@@ -597,8 +597,8 @@ fn get_lead_score_from_db(state: &Arc<AppState>, lead_id: &str) -> Option<i64> {
     }
 }
 
-/// Update lead score in database using bot_memories table
-/// Key format: "lead_score:{lead_id}"
+
+
 fn update_lead_score_in_db(state: &Arc<AppState>, lead_id: &str, score: i64) {
     let memory_key = format!("lead_score:{}", lead_id);
     let score_value = score.to_string();
@@ -615,7 +615,7 @@ fn update_lead_score_in_db(state: &Arc<AppState>, lead_id: &str, score: i64) {
         }
     };
 
-    // Check if record exists
+
     let existing = bot_memories::table
         .filter(bot_memories::key.eq(&memory_key))
         .select(bot_memories::id)
@@ -624,7 +624,7 @@ fn update_lead_score_in_db(state: &Arc<AppState>, lead_id: &str, score: i64) {
 
     match existing {
         Ok(Some(existing_id)) => {
-            // Update existing record
+
             let update_result = diesel::update(bot_memories::table.find(existing_id))
                 .set((
                     bot_memories::value.eq(&score_value),
@@ -642,7 +642,7 @@ fn update_lead_score_in_db(state: &Arc<AppState>, lead_id: &str, score: i64) {
             }
         }
         Ok(None) => {
-            // Insert new record with nil bot_id for system-wide scores
+
             let new_id = Uuid::new_v4();
             let bot_id = Uuid::nil();
 

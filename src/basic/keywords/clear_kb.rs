@@ -12,20 +12,20 @@ struct CountResult {
     count: i64,
 }
 
-/// Register CLEAR KB keyword
-/// Removes one or all Knowledge Bases from the current session's context
-/// Usage:
-///   CLEAR KB "kbname"  - Remove specific KB
-///   CLEAR KB           - Remove all KBs
+
+
+
+
+
 pub fn register_clear_kb_keyword(
     engine: &mut Engine,
     state: Arc<AppState>,
     session: Arc<UserSession>,
 ) -> Result<(), Box<EvalAltResult>> {
-    // CLEAR KB with argument - remove specific KB
+
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
-    // Register with spaces: CLEAR KB "kbname"
+
     engine.register_custom_syntax(&["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
@@ -60,10 +60,10 @@ pub fn register_clear_kb_keyword(
         }
     })?;
 
-    // CLEAR KB without argument - remove all KBs
+
     let state_clone2 = Arc::clone(&state);
     let session_clone2 = Arc::clone(&session);
-    // Register with spaces: CLEAR KB (no argument)
+
     engine.register_custom_syntax(&["CLEAR", "KB"], true, move |_context, _inputs| {
         info!(
             "CLEAR KB (all) keyword executed - Session: {}",
@@ -77,7 +77,7 @@ pub fn register_clear_kb_keyword(
 
         match result {
             Ok(Ok(count)) => {
-                // Get the remaining active KB count
+
                 let remaining_count =
                     get_active_kb_count(&state_clone2.conn, session_clone2.id).unwrap_or(0);
                 info!(
@@ -100,7 +100,7 @@ pub fn register_clear_kb_keyword(
     Ok(())
 }
 
-/// Clear a specific KB from session
+
 fn clear_specific_kb(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -110,7 +110,7 @@ fn clear_specific_kb(
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
-    // Mark KB as inactive (soft delete)
+
     let rows_affected = diesel::sql_query(
         "UPDATE session_kb_associations
          SET is_active = false
@@ -121,7 +121,7 @@ fn clear_specific_kb(
     .execute(&mut conn)
     .map_err(|e| format!("Failed to clear KB: {}", e))?;
 
-    // Get the remaining active KB count after clearing
+
     let remaining_count = get_active_kb_count(&conn_pool, session_id).unwrap_or(0);
 
     if rows_affected == 0 {
@@ -139,7 +139,7 @@ fn clear_specific_kb(
     Ok(())
 }
 
-/// Clear all KBs from session
+
 fn clear_all_kbs(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -148,7 +148,7 @@ fn clear_all_kbs(
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
-    // Mark all KBs as inactive
+
     let rows_affected = diesel::sql_query(
         "UPDATE session_kb_associations
          SET is_active = false
@@ -170,7 +170,7 @@ fn clear_all_kbs(
     Ok(rows_affected)
 }
 
-/// Get count of active KBs for a session
+
 pub fn get_active_kb_count(
     conn_pool: &crate::shared::utils::DbPool,
     session_id: Uuid,

@@ -1,15 +1,15 @@
-//! Multimedia Message Handling Module
-//!
-//! This module provides support for handling various multimedia message types including
-//! images, videos, audio, documents, and web search results.
-//!
-//! Key features:
-//! - Multiple media type support (images, videos, audio, documents)
-//! - Media upload and download handling
-//! - Thumbnail generation
-//! - Web search integration
-//! - Storage abstraction for S3-compatible backends
-//! - URL processing and validation
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserMessage};
@@ -90,10 +90,10 @@ pub struct MediaUploadResponse {
     pub thumbnail_url: Option<String>,
 }
 
-/// Trait for handling multimedia messages
+
 #[async_trait]
 pub trait MultimediaHandler: Send + Sync {
-    /// Process an incoming multimedia message
+
     async fn process_multimedia(
         &self,
         message: MultimediaMessage,
@@ -101,20 +101,20 @@ pub trait MultimediaHandler: Send + Sync {
         session_id: &str,
     ) -> Result<BotResponse>;
 
-    /// Upload media file to storage
+
     async fn upload_media(&self, request: MediaUploadRequest) -> Result<MediaUploadResponse>;
 
-    /// Download media file from URL
+
     async fn download_media(&self, url: &str) -> Result<Vec<u8>>;
 
-    /// Perform web search
+
     async fn web_search(&self, query: &str, max_results: usize) -> Result<Vec<SearchResult>>;
 
-    /// Generate thumbnail for video/image
+
     async fn generate_thumbnail(&self, media_url: &str) -> Result<String>;
 }
 
-/// Default implementation for multimedia handling
+
 #[derive(Debug)]
 pub struct DefaultMultimediaHandler {
     storage_client: Option<aws_sdk_s3::Client>,
@@ -148,7 +148,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
     ) -> Result<BotResponse> {
         match message {
             MultimediaMessage::Text { content } => {
-                // Process as regular text message
+
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
                     user_id: user_id.to_string(),
@@ -165,7 +165,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 })
             }
             MultimediaMessage::Image { url, caption, .. } => {
-                // Process image with optional caption
+
                 log::debug!("Processing image from URL: {}", url);
                 let response_content = format!(
                     "I see you've shared an image from {}{}. {}",
@@ -198,7 +198,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 duration,
                 ..
             } => {
-                // Process video
+
                 log::debug!("Processing video from URL: {}", url);
                 let response_content = format!(
                     "You've shared a video from {}{}{}. Processing video content...",
@@ -226,7 +226,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 })
             }
             MultimediaMessage::WebSearch { query, .. } => {
-                // Perform web search
+
                 let results = self.web_search(&query, 5).await?;
                 let response_content = if results.is_empty() {
                     format!("No results found for: {}", query)
@@ -288,7 +288,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 })
             }
             _ => {
-                // Handle other message types
+
                 Ok(BotResponse {
                     bot_id: "default".to_string(),
                     user_id: user_id.to_string(),
@@ -315,7 +315,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
         );
 
         if let Some(client) = &self.storage_client {
-            // Upload to S3
+
             client
                 .put_object()
                 .bucket("botserver-media")
@@ -333,7 +333,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
                 thumbnail_url: None,
             })
         } else {
-            // Fallback to local storage
+
             let local_path = format!("./media/{}", key);
             std::fs::create_dir_all(std::path::Path::new(&local_path).parent().unwrap())?;
             std::fs::write(&local_path, request.data)?;
@@ -359,8 +359,8 @@ impl MultimediaHandler for DefaultMultimediaHandler {
     }
 
     async fn web_search(&self, query: &str, max_results: usize) -> Result<Vec<SearchResult>> {
-        // Implement web search using a search API (e.g., Bing, Google, DuckDuckGo)
-        // For now, return mock results
+
+
         let mock_results = vec![
             SearchResult {
                 title: format!("Result 1 for: {}", query),
@@ -380,22 +380,22 @@ impl MultimediaHandler for DefaultMultimediaHandler {
     }
 
     async fn generate_thumbnail(&self, media_url: &str) -> Result<String> {
-        // Generate thumbnail using image/video processing libraries
-        // For now, return the same URL
+
+
         Ok(media_url.to_string())
     }
 }
 
-/// Extension trait for UserMessage to support multimedia
+
 pub trait UserMessageMultimedia {
     fn to_multimedia(&self) -> MultimediaMessage;
 }
 
 impl UserMessageMultimedia for UserMessage {
     fn to_multimedia(&self) -> MultimediaMessage {
-        // Parse message content to determine type
+
         if self.content.starts_with("http") {
-            // Check if it's an image/video URL
+
             if self.content.contains(".jpg")
                 || self.content.contains(".png")
                 || self.content.contains(".gif")
@@ -448,7 +448,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-/// Upload media file
+
 pub async fn upload_media_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<MediaUploadRequest>,
@@ -464,14 +464,14 @@ pub async fn upload_media_handler(
     }
 }
 
-/// Download media file by ID
+
 pub async fn download_media_handler(
     State(state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
 
-    // Construct URL from media_id (this would be stored in DB in production)
+
     let url = format!("https://storage.botserver.com/media/{}", media_id);
 
     match handler.download_media(&url).await {
@@ -490,14 +490,14 @@ pub async fn download_media_handler(
     }
 }
 
-/// Generate thumbnail for media
+
 pub async fn generate_thumbnail_handler(
     State(state): State<Arc<AppState>>,
     Path(media_id): Path<String>,
 ) -> impl IntoResponse {
     let handler = DefaultMultimediaHandler::new(state.drive.clone(), None);
 
-    // Construct URL from media_id
+
     let url = format!("https://storage.botserver.com/media/{}", media_id);
 
     match handler.generate_thumbnail(&url).await {
@@ -515,7 +515,7 @@ pub async fn generate_thumbnail_handler(
     }
 }
 
-/// Perform web search
+
 pub async fn web_search_handler(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,

@@ -1,19 +1,19 @@
-//! SEND TEMPLATE - Multi-channel templated messaging
-//!
-//! Provides keywords for sending templated messages across multiple channels:
-//! - Email
-//! - WhatsApp
-//! - SMS
-//! - Telegram
-//! - Push notifications
-//!
-//! BASIC Syntax:
-//!   SEND TEMPLATE "template_name" TO "recipient" VIA "channel"
-//!   SEND TEMPLATE "template_name" TO recipients_array VIA "channel" WITH variables
-//!
-//! Examples:
-//!   SEND TEMPLATE "welcome" TO "user@example.com" VIA "email"
-//!   SEND TEMPLATE "order_confirmation" TO "+1234567890" VIA "whatsapp" WITH order_data
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -21,16 +21,16 @@ use log::{debug, info, trace};
 use rhai::{Array, Dynamic, Engine, Map};
 use std::sync::Arc;
 
-/// SEND_TEMPLATE - Send a templated message to a recipient
-///
-/// BASIC Syntax:
-///   result = SEND_TEMPLATE("template_name", "recipient", "channel")
-///   result = SEND_TEMPLATE("template_name", "recipient", "channel", variables)
+
+
+
+
+
 pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // SEND_TEMPLATE with 3 arguments (template, recipient, channel)
+
     engine.register_fn(
         "SEND_TEMPLATE",
         move |template: &str, recipient: &str, channel: &str| -> Map {
@@ -49,7 +49,7 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // send_template lowercase
+
     engine.register_fn(
         "send_template",
         move |template: &str, recipient: &str, channel: &str| -> Map {
@@ -68,7 +68,7 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
-    // SEND_TEMPLATE with 4 arguments (template, recipient, channel, variables)
+
     engine.register_fn(
         "SEND_TEMPLATE",
         move |template: &str, recipient: &str, channel: &str, variables: Map| -> Map {
@@ -87,16 +87,16 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     debug!("Registered SEND_TEMPLATE keyword");
 }
 
-/// SEND_TEMPLATE_TO - Send templated message to multiple recipients
-///
-/// BASIC Syntax:
-///   result = SEND_TEMPLATE_TO("template_name", recipients_array, "channel")
-///   result = SEND_TEMPLATE_TO("template_name", recipients_array, "channel", variables)
+
+
+
+
+
 pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // SEND_TEMPLATE_TO with array of recipients
+
     engine.register_fn(
         "SEND_TEMPLATE_TO",
         move |template: &str, recipients: Array, channel: &str| -> Map {
@@ -115,7 +115,7 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // SEND_TEMPLATE_TO with variables
+
     engine.register_fn(
         "SEND_TEMPLATE_TO",
         move |template: &str, recipients: Array, channel: &str, variables: Map| -> Map {
@@ -131,7 +131,7 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
         },
     );
 
-    // BULK_SEND alias
+
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
@@ -153,16 +153,16 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
     debug!("Registered SEND_TEMPLATE_TO keyword");
 }
 
-/// CREATE_TEMPLATE - Create or update a message template
-///
-/// BASIC Syntax:
-///   CREATE_TEMPLATE "template_name", "channel", "content"
-///   CREATE_TEMPLATE "template_name", "channel", "subject", "content"
+
+
+
+
+
 pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // CREATE_TEMPLATE with name, channel, content
+
     engine.register_fn(
         "CREATE_TEMPLATE",
         move |name: &str, channel: &str, content: &str| -> Map {
@@ -180,7 +180,7 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // CREATE_TEMPLATE with name, channel, subject, content (for email)
+
     engine.register_fn(
         "CREATE_TEMPLATE",
         move |name: &str, channel: &str, subject: &str, content: &str| -> Map {
@@ -195,7 +195,7 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
         },
     );
 
-    // create_template lowercase
+
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
@@ -216,16 +216,16 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
     debug!("Registered CREATE_TEMPLATE keyword");
 }
 
-/// GET_TEMPLATE - Retrieve a message template
-///
-/// BASIC Syntax:
-///   template = GET_TEMPLATE("template_name")
-///   template = GET_TEMPLATE("template_name", "channel")
+
+
+
+
+
 pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
 
-    // GET_TEMPLATE by name
+
     engine.register_fn("GET_TEMPLATE", move |name: &str| -> Map {
         trace!(
             "GET_TEMPLATE called: name={} by user {}",
@@ -239,7 +239,7 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     let _state_clone2 = state.clone();
     let user_clone2 = user.clone();
 
-    // GET_TEMPLATE by name and channel
+
     engine.register_fn("GET_TEMPLATE", move |name: &str, channel: &str| -> Map {
         trace!(
             "GET_TEMPLATE called: name={}, channel={} by user {}",
@@ -251,7 +251,7 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         get_message_template(name, Some(channel))
     });
 
-    // get_template lowercase
+
     let _state_clone3 = state.clone();
     let user_clone3 = user.clone();
 
@@ -265,7 +265,7 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         get_message_template(name, None)
     });
 
-    // LIST_TEMPLATES - list all templates
+
     let _state_clone4 = state.clone();
     let user_clone4 = user.clone();
 
@@ -284,7 +284,7 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     debug!("Registered GET_TEMPLATE keyword");
 }
 
-/// Send a single templated message
+
 fn send_template_message(
     template: &str,
     recipient: &str,
@@ -293,7 +293,7 @@ fn send_template_message(
 ) -> Map {
     let mut result = Map::new();
 
-    // Validate channel
+
     let valid_channels = ["email", "whatsapp", "sms", "telegram", "push"];
     let channel_lower = channel.to_lowercase();
 
@@ -309,14 +309,14 @@ fn send_template_message(
         return result;
     }
 
-    // Validate recipient based on channel
+
     let recipient_valid = match channel_lower.as_str() {
         "email" => recipient.contains('@'),
         "whatsapp" | "sms" => {
             recipient.starts_with('+') || recipient.chars().all(|c| c.is_numeric())
         }
         "telegram" => !recipient.is_empty(),
-        "push" => !recipient.is_empty(), // Device token
+        "push" => !recipient.is_empty(),
         _ => false,
     };
 
@@ -341,7 +341,7 @@ fn send_template_message(
         template, recipient, channel
     );
 
-    // Build success response
+
     result.insert("success".into(), Dynamic::from(true));
     result.insert("template".into(), Dynamic::from(template.to_string()));
     result.insert("recipient".into(), Dynamic::from(recipient.to_string()));
@@ -356,7 +356,7 @@ fn send_template_message(
     result
 }
 
-/// Send templated message to multiple recipients
+
 fn send_template_batch(
     template: &str,
     recipients: &Array,
@@ -401,11 +401,11 @@ fn send_template_batch(
     result
 }
 
-/// Create a message template
+
 fn create_message_template(name: &str, channel: &str, subject: Option<&str>, content: &str) -> Map {
     let mut result = Map::new();
 
-    // Validate template name
+
     if name.is_empty() {
         result.insert("success".into(), Dynamic::from(false));
         result.insert(
@@ -415,7 +415,7 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
         return result;
     }
 
-    // Validate content
+
     if content.is_empty() {
         result.insert("success".into(), Dynamic::from(false));
         result.insert(
@@ -440,14 +440,14 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
         result.insert("subject".into(), Dynamic::from(subj.to_string()));
     }
 
-    // Extract variables from content ({{variable_name}} format)
+
     let variables = extract_template_variables(content);
     result.insert("variables".into(), Dynamic::from(variables));
 
     result
 }
 
-/// Get a message template
+
 fn get_message_template(name: &str, channel: Option<&str>) -> Map {
     let mut result = Map::new();
 
@@ -461,7 +461,7 @@ fn get_message_template(name: &str, channel: Option<&str>) -> Map {
         result.insert("channel".into(), Dynamic::from(ch.to_string()));
     }
 
-    // Placeholder content
+
     result.insert(
         "content".into(),
         Dynamic::from(format!("Template '{}' content placeholder", name)),
@@ -470,7 +470,7 @@ fn get_message_template(name: &str, channel: Option<&str>) -> Map {
     result
 }
 
-/// Extract variable names from template content
+
 fn extract_template_variables(content: &str) -> Array {
     let mut variables = Array::new();
     let mut in_variable = false;
@@ -500,7 +500,7 @@ fn extract_template_variables(content: &str) -> Array {
     variables
 }
 
-/// Generate a unique message ID
+
 fn generate_message_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 

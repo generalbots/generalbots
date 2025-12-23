@@ -81,14 +81,14 @@ pub mod weather;
 pub mod web_data;
 pub mod webhook;
 
-// Re-export key types for convenience
+
 pub use auto_task::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
 pub use intent_compiler::{CompiledIntent, ExecutionPlan, IntentCompiler, PlanStep};
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};
 pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerConfig};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 
-// Re-export API handlers for route configuration
+
 pub use autotask_api::{
     cancel_task_handler, compile_intent_handler, execute_plan_handler, get_approvals_handler,
     get_decisions_handler, get_stats_handler, list_tasks_handler, pause_task_handler,
@@ -96,23 +96,23 @@ pub use autotask_api::{
     submit_decision_handler,
 };
 
-/// Configure Auto Task API routes
+
 pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared::state::AppState>> {
     use axum::routing::{get, post};
 
     axum::Router::new()
-        // Intent compilation
+
         .route("/api/autotask/compile", post(compile_intent_handler))
-        // Plan execution
+
         .route("/api/autotask/execute", post(execute_plan_handler))
         .route(
             "/api/autotask/simulate/:plan_id",
             post(simulate_plan_handler),
         )
-        // Task listing and stats
+
         .route("/api/autotask/list", get(list_tasks_handler))
         .route("/api/autotask/stats", get(get_stats_handler))
-        // Task actions
+
         .route("/api/autotask/:task_id/pause", post(pause_task_handler))
         .route("/api/autotask/:task_id/resume", post(resume_task_handler))
         .route("/api/autotask/:task_id/cancel", post(cancel_task_handler))
@@ -120,7 +120,7 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
             "/api/autotask/:task_id/simulate",
             post(simulate_task_handler),
         )
-        // Decisions
+
         .route(
             "/api/autotask/:task_id/decisions",
             get(get_decisions_handler),
@@ -129,7 +129,7 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
             "/api/autotask/:task_id/decide",
             post(submit_decision_handler),
         )
-        // Approvals
+
         .route(
             "/api/autotask/:task_id/approvals",
             get(get_approvals_handler),
@@ -140,31 +140,31 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         )
 }
 
-/// List of all available BASIC keywords for the Intent Compiler
+
 pub fn get_all_keywords() -> Vec<String> {
     vec![
-        // Bot/Multi-Agent
+
         "ADD BOT".to_string(),
         "BOT REFLECTION".to_string(),
         "BROADCAST TO BOTS".to_string(),
         "DELEGATE TO BOT".to_string(),
         "TRANSFER CONVERSATION".to_string(),
-        // Communication
+
         "ADD MEMBER".to_string(),
         "CREATE DRAFT".to_string(),
         "SEND MAIL".to_string(),
         "SEND TEMPLATE".to_string(),
         "SMS".to_string(),
-        // UI
+
         "ADD SUGGESTION".to_string(),
         "CLEAR SUGGESTIONS".to_string(),
-        // Tools
+
         "ADD TOOL".to_string(),
         "CLEAR TOOLS".to_string(),
         "CREATE SITE".to_string(),
         "CREATE TASK".to_string(),
         "USE TOOL".to_string(),
-        // Data Operations
+
         "AGGREGATE".to_string(),
         "DELETE".to_string(),
         "FILL".to_string(),
@@ -181,7 +181,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "SAVE".to_string(),
         "SAVE FROM UNSTRUCTURED".to_string(),
         "UPDATE".to_string(),
-        // Files
+
         "COMPRESS".to_string(),
         "COPY".to_string(),
         "DELETE FILE".to_string(),
@@ -194,7 +194,7 @@ pub fn get_all_keywords() -> Vec<String> {
         "READ".to_string(),
         "UPLOAD".to_string(),
         "WRITE".to_string(),
-        // HTTP
+
         "CLEAR HEADERS".to_string(),
         "DELETE HTTP".to_string(),
         "GET".to_string(),
@@ -204,17 +204,17 @@ pub fn get_all_keywords() -> Vec<String> {
         "PUT".to_string(),
         "SET HEADER".to_string(),
         "SOAP".to_string(),
-        // Control Flow
+
         "EXIT FOR".to_string(),
         "FOR EACH".to_string(),
         "IF".to_string(),
         "SWITCH".to_string(),
         "WAIT".to_string(),
         "WHILE".to_string(),
-        // Variables
+
         "GET".to_string(),
         "SET".to_string(),
-        // Memory
+
         "GET BOT MEMORY".to_string(),
         "GET USER MEMORY".to_string(),
         "REMEMBER".to_string(),
@@ -223,61 +223,61 @@ pub fn get_all_keywords() -> Vec<String> {
         "SET USER FACT".to_string(),
         "SET USER MEMORY".to_string(),
         "USER FACTS".to_string(),
-        // Knowledge
+
         "CLEAR KB".to_string(),
         "USE KB".to_string(),
         "USE ACCOUNT".to_string(),
         "USE WEBSITE".to_string(),
-        // AI/LLM
+
         "LLM".to_string(),
         "SET CONTEXT".to_string(),
         "USE MODEL".to_string(),
-        // Code Execution
+
         "RUN BASH".to_string(),
         "RUN JAVASCRIPT".to_string(),
         "RUN PYTHON".to_string(),
-        // Dialog
+
         "HEAR".to_string(),
         "TALK".to_string(),
-        // Events
+
         "ON".to_string(),
         "ON EMAIL".to_string(),
         "ON CHANGE".to_string(),
         "SET SCHEDULE".to_string(),
         "WEBHOOK".to_string(),
-        // Session
+
         "SET USER".to_string(),
-        // Special
+
         "BOOK".to_string(),
         "WEATHER".to_string(),
-        // Debug
+
         "PRINT".to_string(),
-        // String Functions
+
         "FORMAT".to_string(),
         "INSTR".to_string(),
         "IS NUMERIC".to_string(),
-        // Safety & Approval (NEW)
+
         "REQUIRE APPROVAL".to_string(),
         "SIMULATE IMPACT".to_string(),
         "CHECK CONSTRAINTS".to_string(),
         "AUDIT LOG".to_string(),
-        // Auto Task (NEW)
+
         "PLAN START".to_string(),
         "PLAN END".to_string(),
         "STEP".to_string(),
         "AUTO TASK".to_string(),
-        // MCP Integration (NEW)
+
         "USE MCP".to_string(),
         "MCP LIST TOOLS".to_string(),
         "MCP INVOKE".to_string(),
-        // Decision Framework (NEW)
+
         "OPTION A OR B".to_string(),
         "DECIDE".to_string(),
         "ESCALATE".to_string(),
     ]
 }
 
-/// Keyword categories for documentation and UI
+
 pub fn get_keyword_categories() -> std::collections::HashMap<String, Vec<String>> {
     let mut categories = std::collections::HashMap::new();
 

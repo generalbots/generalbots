@@ -1,16 +1,16 @@
-//! Sources Module
-//!
-//! Manages all source types for bots including:
-//! - Repositories (GitHub, GitLab, Bitbucket)
-//! - Apps (HTMX apps created with CREATE SITE)
-//! - Prompts (System prompts and templates)
-//! - Templates (Bot packages .gbai)
-//! - MCP Servers (Model Context Protocol servers from mcp.csv)
-//! - LLM Tools (Available tools for LLM invocation)
-//! - Models (Configured AI models)
-//!
-//! MCP servers are configured via `mcp.csv` in the bot's `.gbai` folder,
-//! making their tools available to Tasks just like BASIC keywords.
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 pub mod mcp;
 
@@ -27,7 +27,7 @@ use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-// Request/Response Types
+
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
@@ -163,16 +163,16 @@ pub struct AppInfo {
 
 pub fn configure_sources_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // Tab endpoints - HTMX content
+
         .route("/api/sources/prompts", get(handle_prompts))
         .route("/api/sources/templates", get(handle_templates))
         .route("/api/sources/news", get(handle_news))
         .route("/api/sources/mcp-servers", get(handle_mcp_servers))
         .route("/api/sources/llm-tools", get(handle_llm_tools))
         .route("/api/sources/models", get(handle_models))
-        // Search
+
         .route("/api/sources/search", get(handle_search))
-        // Repositories API
+
         .route("/api/sources/repositories", get(handle_list_repositories))
         .route(
             "/api/sources/repositories/:id/connect",
@@ -182,9 +182,9 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
             "/api/sources/repositories/:id/disconnect",
             post(handle_disconnect_repository),
         )
-        // Apps API
+
         .route("/api/sources/apps", get(handle_list_apps))
-        // MCP Server Management API
+
         .route("/api/sources/mcp", get(handle_list_mcp_servers_json))
         .route("/api/sources/mcp", post(handle_add_mcp_server))
         .route("/api/sources/mcp/:name", get(handle_get_mcp_server))
@@ -205,14 +205,14 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
         .route("/api/sources/mcp/:name/test", post(handle_test_mcp_server))
         .route("/api/sources/mcp/scan", post(handle_scan_mcp_directory))
         .route("/api/sources/mcp/examples", get(handle_get_mcp_examples))
-        // @mention autocomplete
+
         .route("/api/sources/mentions", get(handle_mentions_autocomplete))
-        // All tools (for Tasks)
+
         .route("/api/sources/tools", get(handle_list_all_tools))
 }
 
 
-/// GET /api/sources/mcp - List all MCP servers (JSON API)
+
 pub async fn handle_list_mcp_servers_json(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -246,7 +246,7 @@ pub async fn handle_list_mcp_servers_json(
     Json(ApiResponse::success(servers))
 }
 
-/// POST /api/sources/mcp - Add a new MCP server
+
 pub async fn handle_add_mcp_server(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -257,7 +257,7 @@ pub async fn handle_add_mcp_server(
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
-    // Convert request to CSV row
+
     let (conn_type, command, args) = match &request.connection {
         McpConnectionRequest::Stdio { command, args } => {
             ("stdio".to_string(), command.clone(), args.join(" "))
@@ -314,7 +314,7 @@ pub async fn handle_add_mcp_server(
     }
 }
 
-/// GET /api/sources/mcp/:name - Get a specific MCP server
+
 pub async fn handle_get_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -355,7 +355,7 @@ pub async fn handle_get_mcp_server(
     }
 }
 
-/// PUT /api/sources/mcp/:name - Update an MCP server
+
 pub async fn handle_update_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -367,10 +367,10 @@ pub async fn handle_update_mcp_server(
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
-    // Remove old entry first
+
     let _ = loader.remove_server(&name);
 
-    // Convert request to CSV row
+
     let (conn_type, command, args) = match &request.connection {
         McpConnectionRequest::Stdio { command, args } => {
             ("stdio".to_string(), command.clone(), args.join(" "))
@@ -416,7 +416,7 @@ pub async fn handle_update_mcp_server(
     }
 }
 
-/// DELETE /api/sources/mcp/:name - Delete an MCP server
+
 pub async fn handle_delete_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -452,7 +452,7 @@ pub async fn handle_delete_mcp_server(
     }
 }
 
-/// POST /api/sources/mcp/:name/enable - Enable an MCP server
+
 pub async fn handle_enable_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -464,7 +464,7 @@ pub async fn handle_enable_mcp_server(
     )))
 }
 
-/// POST /api/sources/mcp/:name/disable - Disable an MCP server
+
 pub async fn handle_disable_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -476,7 +476,7 @@ pub async fn handle_disable_mcp_server(
     )))
 }
 
-/// GET /api/sources/mcp/:name/tools - List tools from a specific MCP server
+
 pub async fn handle_list_mcp_server_tools(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -514,7 +514,7 @@ pub async fn handle_list_mcp_server_tools(
     }
 }
 
-/// POST /api/sources/mcp/:name/test - Test MCP server connection
+
 pub async fn handle_test_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -543,7 +543,7 @@ pub async fn handle_test_mcp_server(
     }
 }
 
-/// POST /api/sources/mcp/scan - Scan .gbmcp directory for servers
+
 pub async fn handle_scan_mcp_directory(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -571,15 +571,15 @@ pub async fn handle_scan_mcp_directory(
     })))
 }
 
-/// GET /api/sources/mcp/examples - Get example MCP server configurations
+
 pub async fn handle_get_mcp_examples(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let examples = generate_example_configs();
     Json(ApiResponse::success(examples))
 }
 
-// Tools Handler (for Tasks)
 
-/// GET /api/sources/tools - List all available tools (BASIC keywords + MCP tools)
+
+
 pub async fn handle_list_all_tools(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -589,7 +589,7 @@ pub async fn handle_list_all_tools(
 
     let mut all_tools: Vec<McpToolResponse> = Vec::new();
 
-    // Add BASIC keywords as tools
+
     let keywords = crate::basic::keywords::get_all_keywords();
     for keyword in keywords {
         all_tools.push(McpToolResponse {
@@ -602,7 +602,7 @@ pub async fn handle_list_all_tools(
         });
     }
 
-    // Add MCP tools from mcp.csv
+
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();
 
@@ -627,9 +627,9 @@ pub async fn handle_list_all_tools(
     Json(ApiResponse::success(all_tools))
 }
 
-// @Mention Autocomplete
 
-/// GET /api/sources/mentions?q=search - Autocomplete for @mentions
+
+
 pub async fn handle_mentions_autocomplete(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
@@ -648,7 +648,7 @@ pub async fn handle_mentions_autocomplete(
 
     let mut mentions: Vec<MentionItem> = Vec::new();
 
-    // Add repositories
+
     let repos = vec![
         ("botserver", "Main bot server", "repo"),
         ("botui", "User interface", "repo"),
@@ -668,7 +668,7 @@ pub async fn handle_mentions_autocomplete(
         }
     }
 
-    // Add apps
+
     let apps = vec![
         ("crm", "Customer management app", "app"),
         ("dashboard", "Analytics dashboard", "app"),
@@ -686,7 +686,7 @@ pub async fn handle_mentions_autocomplete(
         }
     }
 
-    // Add MCP servers
+
     let bot_id = "default".to_string();
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
     let loader = McpCsvLoader::new(&work_path, &bot_id);
@@ -709,7 +709,7 @@ pub async fn handle_mentions_autocomplete(
 }
 
 
-/// GET /api/sources/repositories - List connected repositories
+
 pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let repos: Vec<RepositoryInfo> = vec![RepositoryInfo {
         id: "1".to_string(),
@@ -727,7 +727,7 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
     Json(ApiResponse::success(repos))
 }
 
-/// POST /api/sources/repositories/:id/connect - Connect a repository
+
 pub async fn handle_connect_repository(
     State(_state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -735,7 +735,7 @@ pub async fn handle_connect_repository(
     Json(ApiResponse::success(format!("Repository {} connected", id)))
 }
 
-/// POST /api/sources/repositories/:id/disconnect - Disconnect a repository
+
 pub async fn handle_disconnect_repository(
     State(_state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -747,7 +747,7 @@ pub async fn handle_disconnect_repository(
 }
 
 
-/// GET /api/sources/apps - List created apps
+
 pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let apps: Vec<AppInfo> = vec![AppInfo {
         id: "1".to_string(),
@@ -763,7 +763,7 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
 }
 
 
-/// GET /api/sources/prompts - Prompts tab content
+
 pub async fn handle_prompts(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
@@ -813,7 +813,7 @@ pub async fn handle_prompts(
     Html(html)
 }
 
-/// GET /api/sources/templates - Templates tab content
+
 pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let templates = get_templates_data();
 
@@ -833,7 +833,7 @@ pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoR
     Html(html)
 }
 
-/// GET /api/sources/news - News tab content
+
 pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let news_items = vec![
         (
@@ -878,7 +878,7 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
     Html(html)
 }
 
-/// GET /api/sources/mcp-servers - MCP Servers tab content (HTMX)
+
 pub async fn handle_mcp_servers(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -942,7 +942,7 @@ pub async fn handle_mcp_servers(
     Html(html)
 }
 
-/// GET /api/sources/llm-tools - LLM Tools tab content
+
 pub async fn handle_llm_tools(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -980,7 +980,7 @@ pub async fn handle_llm_tools(
     Html(html)
 }
 
-/// GET /api/sources/models - Models tab content
+
 pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let models = vec![
         (
@@ -1034,7 +1034,7 @@ pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResp
     Html(html)
 }
 
-/// GET /api/sources/search - Search across all sources
+
 pub async fn handle_search(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,

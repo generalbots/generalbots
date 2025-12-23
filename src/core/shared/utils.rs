@@ -22,11 +22,11 @@ use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::RwLock;
 
-/// Global SecretsManager instance - initialized once, used everywhere
+
 static SECRETS_MANAGER: Lazy<Arc<RwLock<Option<SecretsManager>>>> =
     Lazy::new(|| Arc::new(RwLock::new(None)));
 
-/// Initialize the global secrets manager (call once at startup)
+
 pub async fn init_secrets_manager() -> Result<()> {
     let manager = SecretsManager::from_env()?;
     let mut guard = SECRETS_MANAGER.write().await;
@@ -34,7 +34,7 @@ pub async fn init_secrets_manager() -> Result<()> {
     Ok(())
 }
 
-/// Get database URL from Vault - NO FALLBACK
+
 pub async fn get_database_url() -> Result<String> {
     let guard = SECRETS_MANAGER.read().await;
     if let Some(ref manager) = *guard {
@@ -42,37 +42,37 @@ pub async fn get_database_url() -> Result<String> {
             return manager.get_database_url().await;
         }
     }
-    // NO FALLBACK - Vault is mandatory
+
     Err(anyhow::anyhow!(
         "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
     ))
 }
 
-/// Get database URL synchronously (blocking) for diesel connections - NO FALLBACK
+
 pub fn get_database_url_sync() -> Result<String> {
-    // Check if we're in an async runtime context
+
     if let Ok(handle) = tokio::runtime::Handle::try_current() {
-        // We're inside a tokio runtime - use block_in_place to avoid nesting
+
         let result =
             tokio::task::block_in_place(|| handle.block_on(async { get_database_url().await }));
         if let Ok(url) = result {
             return Ok(url);
         }
     } else {
-        // Not in a runtime - create a new one
+
         let rt = tokio::runtime::Runtime::new()
             .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
         if let Ok(url) = rt.block_on(async { get_database_url().await }) {
             return Ok(url);
         }
     }
-    // NO FALLBACK - Vault is mandatory
+
     Err(anyhow::anyhow!(
         "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN in .env"
     ))
 }
 
-/// Get the global SecretsManager instance
+
 pub async fn get_secrets_manager() -> Option<SecretsManager> {
     let guard = SECRETS_MANAGER.read().await;
     guard.clone()
@@ -87,9 +87,9 @@ pub async fn create_s3_operator(
         config.server.clone()
     };
 
-    // Get credentials from config, or fetch from Vault if empty
+
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
-        // Try to get from Vault
+
         let guard = SECRETS_MANAGER.read().await;
         if let Some(ref manager) = *guard {
             if manager.is_enabled() {
@@ -161,7 +161,7 @@ pub fn to_array(value: Dynamic) -> Array {
     }
 }
 
-/// Download a file from a URL with progress bar (when progress-bars feature is enabled)
+
 #[cfg(feature = "progress-bars")]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     use std::time::Duration;
@@ -202,7 +202,7 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     download_handle.await?
 }
 
-/// Download a file from a URL (without progress bar when progress-bars feature is disabled)
+
 #[cfg(not(feature = "progress-bars"))]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     use std::time::Duration;
@@ -269,7 +269,7 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
         .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
 
-/// Create database connection pool using SecretsManager (async version)
+
 pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url().await?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
@@ -307,7 +307,7 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
     )
 }
 
-/// Run database migrations
+
 pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 

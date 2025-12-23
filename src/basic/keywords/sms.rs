@@ -28,17 +28,17 @@
 |                                                                             |
 \*****************************************************************************/
 
-//! SMS keyword for sending text messages
-//!
-//! Provides BASIC keywords:
-//! - SEND_SMS phone, message -> sends SMS to phone number
-//! - SEND_SMS phone, message, provider -> sends SMS using specific provider
-//!
-//! Supported providers:
-//! - twilio (default)
-//! - aws_sns
-//! - nexmo/vonage
-//! - messagebird
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
@@ -49,7 +49,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// SMS Provider types
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum SmsProvider {
     Twilio,
@@ -59,7 +59,7 @@ pub enum SmsProvider {
     Custom(String),
 }
 
-/// SMS Priority levels
+
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SmsPriority {
     Low,
@@ -108,7 +108,7 @@ impl From<&str> for SmsProvider {
     }
 }
 
-/// SMS send result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmsSendResult {
     pub success: bool,
@@ -119,15 +119,15 @@ pub struct SmsSendResult {
     pub error: Option<String>,
 }
 
-/// Register SMS keywords
+
 pub fn register_sms_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_send_sms_keyword(state.clone(), user.clone(), engine);
     register_send_sms_with_third_arg_keyword(state.clone(), user.clone(), engine);
     register_send_sms_full_keyword(state, user, engine);
 }
 
-/// SEND_SMS phone, message
-/// Sends an SMS message using the default configured provider
+
+
 pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -211,9 +211,9 @@ pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-/// SEND_SMS phone, message, priority_or_provider
-/// Sends an SMS message with priority (low, normal, high, urgent) OR specific provider
-/// Auto-detects if third argument is a priority level or provider name
+
+
+
 pub fn register_send_sms_with_third_arg_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -231,7 +231,7 @@ pub fn register_send_sms_with_third_arg_keyword(
                 let message = context.eval_expression_tree(&inputs[1])?.to_string();
                 let third_arg = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                // Check if third argument is a priority or provider
+
                 let is_priority = matches!(
                     third_arg.to_lowercase().as_str(),
                     "low" | "normal" | "high" | "urgent" | "critical"
@@ -319,8 +319,8 @@ pub fn register_send_sms_with_third_arg_keyword(
         .unwrap();
 }
 
-/// SEND_SMS phone, message, provider, priority
-/// Sends an SMS message using a specific provider with specific priority
+
+
 pub fn register_send_sms_full_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -414,7 +414,7 @@ pub fn register_send_sms_full_keyword(
         )
         .unwrap();
 
-    // Also register the 4-argument syntax: SEND_SMS phone, message, provider, priority
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -517,7 +517,7 @@ async fn execute_send_sms(
     let config_manager = ConfigManager::new(state.conn.clone());
     let bot_id = user.bot_id;
 
-    // Get provider from config or use override
+
     let provider_name = match provider_override {
         Some(p) => p.to_string(),
         None => config_manager
@@ -527,7 +527,7 @@ async fn execute_send_sms(
 
     let provider = SmsProvider::from(provider_name.as_str());
 
-    // Get priority from override or config
+
     let priority = match priority_override {
         Some(p) => SmsPriority::from(p),
         None => {
@@ -538,10 +538,10 @@ async fn execute_send_sms(
         }
     };
 
-    // Normalize phone number
+
     let normalized_phone = normalize_phone_number(phone);
 
-    // Log priority for high/urgent messages
+
     if matches!(priority, SmsPriority::High | SmsPriority::Urgent) {
         info!(
             "High priority SMS to {}: priority={}",
@@ -549,7 +549,7 @@ async fn execute_send_sms(
         );
     }
 
-    // Send via appropriate provider (priority passed for providers that support it)
+
     let result = match provider {
         SmsProvider::Twilio => {
             send_via_twilio(state, &bot_id, &normalized_phone, message, &priority).await
@@ -602,20 +602,20 @@ async fn execute_send_sms(
 }
 
 fn normalize_phone_number(phone: &str) -> String {
-    // Remove all non-digit characters except leading +
+
     let has_plus = phone.starts_with('+');
     let digits: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
 
     if has_plus {
         format!("+{}", digits)
     } else if digits.len() == 10 {
-        // Assume US number without country code
+
         format!("+1{}", digits)
     } else if digits.len() == 11 && digits.starts_with('1') {
-        // US number with country code but no +
+
         format!("+{}", digits)
     } else {
-        // Return as-is with + prefix
+
         format!("+{}", digits)
     }
 }
@@ -647,8 +647,8 @@ async fn send_via_twilio(
         account_sid
     );
 
-    // Twilio supports priority through StatusCallback and scheduling
-    // For urgent messages, we can add priority prefix to message if configured
+
+
     let final_message = match priority {
         SmsPriority::Urgent => format!("[URGENT] {}", message),
         SmsPriority::High => format!("[HIGH] {}", message),
@@ -699,22 +699,22 @@ async fn send_via_aws_sns(
         .get_config(bot_id, "aws-region", Some("us-east-1"))
         .unwrap_or_else(|_| "us-east-1".to_string());
 
-    // Use HTTP API directly instead of AWS SDK
+
     let client = reqwest::Client::new();
     let url = format!("https://sns.{}.amazonaws.com/", region);
 
-    // Create timestamp for AWS Signature
+
     let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     let _date = &timestamp[..8];
 
-    // AWS SNS supports SMSType: Promotional or Transactional
-    // Map priority to SMS type (High/Urgent = Transactional for better delivery)
+
+
     let sms_type = match priority {
         SmsPriority::High | SmsPriority::Urgent => "Transactional",
         _ => "Promotional",
     };
 
-    // Build the request parameters
+
     let params = [
         ("Action", "Publish"),
         ("PhoneNumber", phone),
@@ -725,8 +725,8 @@ async fn send_via_aws_sns(
         ("MessageAttributes.entry.1.Value.StringValue", sms_type),
     ];
 
-    // For simplicity, using query string auth (requires proper AWS SigV4 in production)
-    // This is a simplified implementation - in production use aws-sigv4 crate
+
+
     let response = client
         .post(&url)
         .form(&params)
@@ -737,7 +737,7 @@ async fn send_via_aws_sns(
 
     if response.status().is_success() {
         let body = response.text().await?;
-        // Parse MessageId from XML response
+
         if let Some(start) = body.find("<MessageId>") {
             if let Some(end) = body.find("</MessageId>") {
                 let message_id = &body[start + 11..end];
@@ -774,9 +774,9 @@ async fn send_via_vonage(
 
     let client = reqwest::Client::new();
 
-    // Vonage supports message-class for priority (0 = flash/urgent)
+
     let message_class = match priority {
-        SmsPriority::Urgent => Some("0"), // Flash message
+        SmsPriority::Urgent => Some("0"),
         _ => None,
     };
 
@@ -840,9 +840,9 @@ async fn send_via_messagebird(
 
     let client = reqwest::Client::new();
 
-    // MessageBird supports typeDetails.class for priority
+
     let type_details = match priority {
-        SmsPriority::Urgent => Some(serde_json::json!({"class": 0})), // Flash message
+        SmsPriority::Urgent => Some(serde_json::json!({"class": 0})),
         SmsPriority::High => Some(serde_json::json!({"class": 1})),
         _ => None,
     };

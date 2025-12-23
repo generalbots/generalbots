@@ -1,7 +1,7 @@
-//! Code Scanner for BASIC Files
-//!
-//! Scans .bas files for security issues, fragile code patterns, and misconfigurations.
-//! Used by the /apicompliance endpoint to generate compliance reports.
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use regex::Regex;
@@ -10,7 +10,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
 
-/// Issue severity levels
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "lowercase")]
 pub enum IssueSeverity {
@@ -33,7 +33,7 @@ impl std::fmt::Display for IssueSeverity {
     }
 }
 
-/// Issue types for categorization
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum IssueType {
@@ -64,7 +64,7 @@ impl std::fmt::Display for IssueType {
     }
 }
 
-/// A single compliance issue found in the code
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeIssue {
     pub id: String,
@@ -80,7 +80,7 @@ pub struct CodeIssue {
     pub detected_at: DateTime<Utc>,
 }
 
-/// Scan result for a single bot
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotScanResult {
     pub bot_id: String,
@@ -91,7 +91,7 @@ pub struct BotScanResult {
     pub stats: ScanStats,
 }
 
-/// Statistics for a scan
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScanStats {
     pub critical: usize,
@@ -124,7 +124,7 @@ impl ScanStats {
     }
 }
 
-/// Full compliance scan result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceScanResult {
     pub scanned_at: DateTime<Utc>,
@@ -135,7 +135,7 @@ pub struct ComplianceScanResult {
     pub bot_results: Vec<BotScanResult>,
 }
 
-/// Pattern definition for scanning
+
 struct ScanPattern {
     regex: Regex,
     issue_type: IssueType,
@@ -146,14 +146,14 @@ struct ScanPattern {
     category: String,
 }
 
-/// Code scanner for BASIC files
+
 pub struct CodeScanner {
     patterns: Vec<ScanPattern>,
     base_path: PathBuf,
 }
 
 impl CodeScanner {
-    /// Create a new code scanner
+
     pub fn new(base_path: impl AsRef<Path>) -> Self {
         let patterns = Self::build_patterns();
         Self {
@@ -162,11 +162,11 @@ impl CodeScanner {
         }
     }
 
-    /// Build the list of patterns to scan for
+
     fn build_patterns() -> Vec<ScanPattern> {
         let mut patterns = Vec::new();
 
-        // Critical: Password/secret patterns in code
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)password\s*=\s*["'][^"']+["']"#).unwrap(),
             issue_type: IssueType::PasswordInConfig,
@@ -197,7 +197,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // High: Deprecated IF...input pattern
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)IF\s+.*\binput\b"#).unwrap(),
             issue_type: IssueType::DeprecatedIfInput,
@@ -211,7 +211,7 @@ impl CodeScanner {
             category: "Code Quality".to_string(),
         });
 
-        // Medium: Underscore in keywords
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b"#).unwrap(),
             issue_type: IssueType::UnderscoreInKeyword,
@@ -222,7 +222,7 @@ impl CodeScanner {
             category: "Naming Convention".to_string(),
         });
 
-        // Medium: POST TO INSTAGRAM with inline credentials
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+"#).unwrap(),
             issue_type: IssueType::InsecurePattern,
@@ -235,7 +235,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // Low: Direct SQL in BASIC
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+"#)
                 .unwrap(),
@@ -250,7 +250,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // Info: Eval or dynamic execution
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)\bEVAL\s*\("#).unwrap(),
             issue_type: IssueType::FragileCode,
@@ -261,7 +261,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // Check for base64 encoded secrets (potential obfuscated credentials)
+
         patterns.push(ScanPattern {
             regex: Regex::new(
                 r#"(?i)(password|secret|key|token)\s*=\s*["'][A-Za-z0-9+/=]{40,}["']"#,
@@ -276,7 +276,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // AWS credentials pattern
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)(AKIA[0-9A-Z]{16})"#).unwrap(),
             issue_type: IssueType::HardcodedSecret,
@@ -288,7 +288,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // Private key patterns
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----"#).unwrap(),
             issue_type: IssueType::HardcodedSecret,
@@ -300,7 +300,7 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-        // Connection strings with credentials
+
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@"#).unwrap(),
             issue_type: IssueType::HardcodedSecret,
@@ -314,7 +314,7 @@ impl CodeScanner {
         patterns
     }
 
-    /// Scan all bots in the base path
+
     pub async fn scan_all(
         &self,
     ) -> Result<ComplianceScanResult, Box<dyn std::error::Error + Send + Sync>> {
@@ -323,13 +323,13 @@ impl CodeScanner {
         let mut total_stats = ScanStats::default();
         let mut total_files = 0;
 
-        // Find all .gbai directories (bot packages)
+
         let templates_path = self.base_path.join("templates");
         let work_path = self.base_path.join("work");
 
         let mut bot_paths = Vec::new();
 
-        // Scan templates directory
+
         if templates_path.exists() {
             for entry in WalkDir::new(&templates_path).max_depth(3) {
                 if let Ok(entry) = entry {
@@ -344,7 +344,7 @@ impl CodeScanner {
             }
         }
 
-        // Scan work directory (deployed bots)
+
         if work_path.exists() {
             for entry in WalkDir::new(&work_path).max_depth(3) {
                 if let Ok(entry) = entry {
@@ -359,7 +359,7 @@ impl CodeScanner {
             }
         }
 
-        // Scan each bot
+
         for bot_path in &bot_paths {
             let result = self.scan_bot(bot_path).await?;
             total_files += result.files_scanned;
@@ -379,7 +379,7 @@ impl CodeScanner {
         })
     }
 
-    /// Scan a specific bot directory
+
     pub async fn scan_bot(
         &self,
         bot_path: &Path,
@@ -397,7 +397,7 @@ impl CodeScanner {
         let mut stats = ScanStats::default();
         let mut files_scanned = 0;
 
-        // Find all .bas files in the bot directory
+
         for entry in WalkDir::new(bot_path) {
             if let Ok(entry) = entry {
                 let path = entry.path();
@@ -415,7 +415,7 @@ impl CodeScanner {
             }
         }
 
-        // Check for missing Vault configuration
+
         let config_path = bot_path.join("config.csv");
         if config_path.exists() {
             let vault_configured = self.check_vault_config(&config_path).await?;
@@ -438,7 +438,7 @@ impl CodeScanner {
             }
         }
 
-        // Sort issues by severity (critical first)
+
         issues.sort_by(|a, b| b.severity.cmp(&a.severity));
 
         Ok(BotScanResult {
@@ -451,7 +451,7 @@ impl CodeScanner {
         })
     }
 
-    /// Scan a single file for issues
+
     async fn scan_file(
         &self,
         file_path: &Path,
@@ -468,7 +468,7 @@ impl CodeScanner {
         for (line_number, line) in content.lines().enumerate() {
             let line_num = line_number + 1;
 
-            // Skip comments
+
             let trimmed = line.trim();
             if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
                 continue;
@@ -476,7 +476,7 @@ impl CodeScanner {
 
             for pattern in &self.patterns {
                 if pattern.regex.is_match(line) {
-                    // Redact sensitive information in the snippet
+
                     let snippet = self.redact_sensitive(line);
 
                     let issue = CodeIssue {
@@ -500,17 +500,17 @@ impl CodeScanner {
         Ok(issues)
     }
 
-    /// Redact sensitive information in code snippets
+
     fn redact_sensitive(&self, line: &str) -> String {
         let mut result = line.to_string();
 
-        // Redact quoted strings that look like secrets
+
         let secret_pattern = Regex::new(r#"(["'])[^"']{8,}(["'])"#).unwrap();
         result = secret_pattern
             .replace_all(&result, "$1***REDACTED***$2")
             .to_string();
 
-        // Redact AWS keys
+
         let aws_pattern = Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap();
         result = aws_pattern
             .replace_all(&result, "AKIA***REDACTED***")
@@ -519,14 +519,14 @@ impl CodeScanner {
         result
     }
 
-    /// Check if Vault is configured for a bot
+
     async fn check_vault_config(
         &self,
         config_path: &Path,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let content = tokio::fs::read_to_string(config_path).await?;
 
-        // Check for Vault-related configuration
+
         let has_vault = content.to_lowercase().contains("vault_addr")
             || content.to_lowercase().contains("vault_token")
             || content.to_lowercase().contains("vault-");
@@ -534,7 +534,7 @@ impl CodeScanner {
         Ok(has_vault)
     }
 
-    /// Scan specific bots by ID
+
     pub async fn scan_bots(
         &self,
         bot_ids: &[String],
@@ -543,14 +543,14 @@ impl CodeScanner {
             return self.scan_all().await;
         }
 
-        // For specific bots, we'd need to look them up by ID
-        // For now, scan all and filter
+
+
         let mut full_result = self.scan_all().await?;
         full_result
             .bot_results
             .retain(|r| bot_ids.contains(&r.bot_id) || bot_ids.contains(&r.bot_name));
 
-        // Recalculate stats
+
         let mut new_stats = ScanStats::default();
         for bot in &full_result.bot_results {
             new_stats.merge(&bot.stats);
@@ -562,11 +562,11 @@ impl CodeScanner {
     }
 }
 
-/// Generate a compliance report in various formats
+
 pub struct ComplianceReporter;
 
 impl ComplianceReporter {
-    /// Generate HTML report
+
     pub fn to_html(result: &ComplianceScanResult) -> String {
         let mut html = String::new();
 
@@ -617,12 +617,12 @@ impl ComplianceReporter {
         html
     }
 
-    /// Generate JSON report
+
     pub fn to_json(result: &ComplianceScanResult) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(result)
     }
 
-    /// Generate CSV report
+
     pub fn to_csv(result: &ComplianceScanResult) -> String {
         let mut csv = String::new();
         csv.push_str("Severity,Type,Category,File,Line,Title,Description,Remediation\n");
@@ -650,7 +650,7 @@ impl ComplianceReporter {
     }
 }
 
-/// Escape a string for CSV output
+
 fn escape_csv(s: &str) -> String {
     if s.contains(',') || s.contains('"') || s.contains('\n') {
         format!("\"{}\"", s.replace('"', "\"\""))

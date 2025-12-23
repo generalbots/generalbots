@@ -1,40 +1,40 @@
-//! MCP Client - Model Context Protocol Server Integration
-//!
-//! This module provides the MCP (Model Context Protocol) client functionality
-//! that enables BASIC programs to call registered MCP servers for extended
-//! capabilities. It supports tool discovery, invocation, and result handling.
-//!
-//! # Architecture
-//!
-//! ```text
-//! BASIC Program → USE_MCP → MCP Client → MCP Server → Execute Tool → Return Result
-//!       ↓            ↓           ↓            ↓             ↓            ↓
-//!   USE_MCP      Resolve     Connect     Invoke tool    Process     Return to
-//!   "server"     server      & auth      with params    result      BASIC
-//! ```
-//!
-//! # Supported MCP Servers
-//!
-//! - Database Server: PostgreSQL, MySQL, SQLite connections
-//! - Filesystem Server: Local and cloud file access
-//! - Web Server: HTTP/REST API integrations
-//! - Email Server: SMTP/IMAP email handling
-//! - Slack Server: Slack workspace integration
-//! - Analytics Server: Data processing and reporting
-//! - Custom Servers: User-defined MCP servers
-//!
-//! # Example BASIC Usage
-//!
-//! ```basic
-//! ' Use MCP server to query database
-//! result = USE_MCP "database", "query", {"sql": "SELECT * FROM users"}
-//!
-//! ' Use MCP server to send Slack message
-//! USE_MCP "slack", "send_message", {"channel": "#general", "text": "Hello!"}
-//!
-//! ' List available tools from a server
-//! tools = MCP_LIST_TOOLS "filesystem"
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -46,42 +46,42 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-// MCP DATA STRUCTURES
 
-/// Represents a registered MCP server
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
-    /// Unique server identifier
+
     pub id: String,
-    /// Server name (used in BASIC as identifier)
+
     pub name: String,
-    /// Server description
+
     pub description: String,
-    /// Server type/category
+
     pub server_type: McpServerType,
-    /// Connection configuration
+
     pub connection: McpConnection,
-    /// Authentication configuration
+
     pub auth: McpAuth,
-    /// Available tools on this server
+
     pub tools: Vec<McpTool>,
-    /// Server capabilities
+
     pub capabilities: McpCapabilities,
-    /// Server status
+
     pub status: McpServerStatus,
-    /// Bot ID that owns this server config
+
     pub bot_id: String,
-    /// Creation timestamp
+
     pub created_at: DateTime<Utc>,
-    /// Last updated timestamp
+
     pub updated_at: DateTime<Utc>,
-    /// Last health check timestamp
+
     pub last_health_check: Option<DateTime<Utc>>,
-    /// Health check status
+
     pub health_status: HealthStatus,
 }
 
-/// MCP server types
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum McpServerType {
     Database,
@@ -139,24 +139,24 @@ impl std::fmt::Display for McpServerType {
     }
 }
 
-/// MCP connection configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpConnection {
-    /// Connection type
+
     pub connection_type: ConnectionType,
-    /// Server URL or path
+
     pub url: String,
-    /// Connection port (if applicable)
+
     pub port: Option<u16>,
-    /// Connection timeout in seconds
+
     pub timeout_seconds: i32,
-    /// Maximum retries
+
     pub max_retries: i32,
-    /// Retry backoff in milliseconds
+
     pub retry_backoff_ms: i32,
-    /// Keep-alive settings
+
     pub keep_alive: bool,
-    /// SSL/TLS configuration
+
     pub tls_config: Option<TlsConfig>,
 }
 
@@ -175,20 +175,20 @@ impl Default for McpConnection {
     }
 }
 
-/// Connection type for MCP server
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ConnectionType {
-    /// HTTP/HTTPS connection
+
     Http,
-    /// WebSocket connection
+
     WebSocket,
-    /// gRPC connection
+
     Grpc,
-    /// Unix socket
+
     UnixSocket,
-    /// Standard IO (for local processes)
+
     Stdio,
-    /// TCP socket
+
     Tcp,
 }
 
@@ -198,7 +198,7 @@ impl Default for ConnectionType {
     }
 }
 
-/// TLS configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
     pub enabled: bool,
@@ -208,12 +208,12 @@ pub struct TlsConfig {
     pub client_key_path: Option<String>,
 }
 
-/// MCP authentication configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpAuth {
-    /// Authentication type
+
     pub auth_type: McpAuthType,
-    /// Credentials (stored securely, reference only)
+
     pub credentials: McpCredentials,
 }
 
@@ -226,7 +226,7 @@ impl Default for McpAuth {
     }
 }
 
-/// Authentication types
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum McpAuthType {
     None,
@@ -244,13 +244,13 @@ impl Default for McpAuthType {
     }
 }
 
-/// Credentials storage (references, not actual secrets)
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum McpCredentials {
     None,
     ApiKey {
         header_name: String,
-        key_ref: String, // Reference to secret storage
+        key_ref: String,
     },
     Bearer {
         token_ref: String,
@@ -278,39 +278,39 @@ impl Default for McpCredentials {
     }
 }
 
-/// MCP tool definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpTool {
-    /// Tool name
+
     pub name: String,
-    /// Tool description
+
     pub description: String,
-    /// Input schema (JSON Schema)
+
     pub input_schema: serde_json::Value,
-    /// Output schema (JSON Schema)
+
     pub output_schema: Option<serde_json::Value>,
-    /// Required permissions
+
     pub required_permissions: Vec<String>,
-    /// Risk level of this tool
+
     pub risk_level: ToolRiskLevel,
-    /// Whether this tool modifies data
+
     pub is_destructive: bool,
-    /// Whether this tool requires approval
+
     pub requires_approval: bool,
-    /// Rate limit (calls per minute)
+
     pub rate_limit: Option<i32>,
-    /// Timeout for this specific tool
+
     pub timeout_seconds: Option<i32>,
 }
 
-/// Tool risk level
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ToolRiskLevel {
-    Safe,     // Read-only, no side effects
-    Low,      // Minor side effects, easily reversible
-    Medium,   // Moderate side effects, reversible with effort
-    High,     // Significant side effects, difficult to reverse
-    Critical, // Irreversible actions, requires approval
+    Safe,
+    Low,
+    Medium,
+    High,
+    Critical,
 }
 
 impl Default for ToolRiskLevel {
@@ -319,26 +319,26 @@ impl Default for ToolRiskLevel {
     }
 }
 
-/// MCP server capabilities
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpCapabilities {
-    /// Supports tool listing
+
     pub tools: bool,
-    /// Supports resource listing
+
     pub resources: bool,
-    /// Supports prompts
+
     pub prompts: bool,
-    /// Supports logging
+
     pub logging: bool,
-    /// Supports streaming responses
+
     pub streaming: bool,
-    /// Supports cancellation
+
     pub cancellation: bool,
-    /// Custom capabilities
+
     pub custom: HashMap<String, bool>,
 }
 
-/// MCP server status
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum McpServerStatus {
     Active,
@@ -355,7 +355,7 @@ impl Default for McpServerStatus {
     }
 }
 
-/// Health check status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {
     pub healthy: bool,
@@ -377,26 +377,26 @@ impl Default for HealthStatus {
     }
 }
 
-// MCP REQUEST/RESPONSE
 
-/// MCP tool invocation request
+
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequest {
-    /// Request ID for tracking
+
     pub id: String,
-    /// Target server name
+
     pub server: String,
-    /// Tool to invoke
+
     pub tool: String,
-    /// Tool arguments
+
     pub arguments: serde_json::Value,
-    /// Request context
+
     pub context: McpRequestContext,
-    /// Timeout override
+
     pub timeout_seconds: Option<i32>,
 }
 
-/// Request context
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequestContext {
     pub session_id: String,
@@ -407,22 +407,22 @@ pub struct McpRequestContext {
     pub correlation_id: Option<String>,
 }
 
-/// MCP tool invocation response
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpResponse {
-    /// Response ID (matches request ID)
+
     pub id: String,
-    /// Whether the invocation succeeded
+
     pub success: bool,
-    /// Result data
+
     pub result: Option<serde_json::Value>,
-    /// Error information
+
     pub error: Option<McpError>,
-    /// Execution metadata
+
     pub metadata: McpResponseMetadata,
 }
 
-/// MCP error
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpError {
     pub code: String,
@@ -431,7 +431,7 @@ pub struct McpError {
     pub retryable: bool,
 }
 
-/// Response metadata
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpResponseMetadata {
     pub duration_ms: i64,
@@ -440,9 +440,9 @@ pub struct McpResponseMetadata {
     pub rate_limit_reset: Option<DateTime<Utc>>,
 }
 
-// MCP CLIENT
 
-/// The MCP Client for managing server connections and tool invocations
+
+
 pub struct McpClient {
     state: Arc<AppState>,
     config: McpClientConfig,
@@ -450,26 +450,26 @@ pub struct McpClient {
     http_client: reqwest::Client,
 }
 
-/// MCP Client configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpClientConfig {
-    /// Enable/disable MCP functionality
+
     pub enabled: bool,
-    /// Default timeout for all requests
+
     pub default_timeout_seconds: i32,
-    /// Maximum concurrent requests
+
     pub max_concurrent_requests: i32,
-    /// Enable request caching
+
     pub cache_enabled: bool,
-    /// Cache TTL in seconds
+
     pub cache_ttl_seconds: i32,
-    /// Enable audit logging
+
     pub audit_enabled: bool,
-    /// Health check interval in seconds
+
     pub health_check_interval_seconds: i32,
-    /// Auto-retry failed requests
+
     pub auto_retry: bool,
-    /// Circuit breaker threshold
+
     pub circuit_breaker_threshold: i32,
 }
 
@@ -499,7 +499,7 @@ impl std::fmt::Debug for McpClient {
 }
 
 impl McpClient {
-    /// Create a new MCP client
+
     pub fn new(state: Arc<AppState>) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
@@ -514,7 +514,7 @@ impl McpClient {
         }
     }
 
-    /// Create a new MCP client with custom configuration
+
     pub fn with_config(state: Arc<AppState>, config: McpClientConfig) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.default_timeout_seconds as u64))
@@ -529,7 +529,7 @@ impl McpClient {
         }
     }
 
-    /// Load servers from database for a bot
+
     pub async fn load_servers(
         &mut self,
         bot_id: &Uuid,
@@ -600,7 +600,7 @@ impl McpClient {
         Ok(())
     }
 
-    /// Register a new MCP server
+
     pub async fn register_server(
         &mut self,
         server: McpServer,
@@ -643,17 +643,17 @@ impl McpClient {
         Ok(())
     }
 
-    /// Get a server by name
+
     pub fn get_server(&self, name: &str) -> Option<&McpServer> {
         self.servers.get(name)
     }
 
-    /// List all registered servers
+
     pub fn list_servers(&self) -> Vec<&McpServer> {
         self.servers.values().collect()
     }
 
-    /// List tools from a specific server
+
     pub async fn list_tools(
         &self,
         server_name: &str,
@@ -663,7 +663,7 @@ impl McpClient {
             .get(server_name)
             .ok_or_else(|| format!("MCP server '{}' not found", server_name))?;
 
-        // For HTTP-based servers, call the tools/list endpoint
+
         if server.connection.connection_type == ConnectionType::Http {
             let url = format!("{}/tools/list", server.connection.url);
             let response = self
@@ -681,24 +681,24 @@ impl McpClient {
             }
         }
 
-        // Return cached tools if available
+
         Ok(server.tools.clone())
     }
 
-    /// Invoke a tool on an MCP server
+
     pub async fn invoke_tool(
         &self,
         request: McpRequest,
     ) -> Result<McpResponse, Box<dyn std::error::Error + Send + Sync>> {
         let start_time = std::time::Instant::now();
 
-        // Get server
+
         let server = self
             .servers
             .get(&request.server)
             .ok_or_else(|| format!("MCP server '{}' not found", request.server))?;
 
-        // Check server status
+
         if server.status != McpServerStatus::Active {
             return Ok(McpResponse {
                 id: request.id,
@@ -722,7 +722,7 @@ impl McpClient {
             });
         }
 
-        // Audit the request
+
         if self.config.audit_enabled {
             info!(
                 "MCP request: server={} tool={}",
@@ -730,7 +730,7 @@ impl McpClient {
             );
         }
 
-        // Execute based on connection type
+
         let result = match server.connection.connection_type {
             ConnectionType::Http => self.invoke_http(server, &request).await,
             ConnectionType::Stdio => self.invoke_stdio(server, &request).await,
@@ -747,7 +747,7 @@ impl McpClient {
             Ok(mut response) => {
                 response.metadata.duration_ms = duration_ms;
 
-                // Audit log the response
+
                 if self.config.audit_enabled {
                     info!(
                         "MCP response: id={} success={}",
@@ -776,7 +776,7 @@ impl McpClient {
                     },
                 };
 
-                // Audit log the error
+
                 if self.config.audit_enabled {
                     info!(
                         "MCP error response: id={} error={:?}",
@@ -789,7 +789,7 @@ impl McpClient {
         }
     }
 
-    /// Invoke tool via HTTP
+
     async fn invoke_http(
         &self,
         server: &McpServer,
@@ -812,7 +812,7 @@ impl McpClient {
             .json(&body)
             .timeout(Duration::from_secs(timeout as u64));
 
-        // Add authentication headers
+
         http_request = self.add_auth_headers(http_request, &server.auth);
 
         let response = http_request.send().await?;
@@ -854,7 +854,7 @@ impl McpClient {
         }
     }
 
-    /// Invoke tool via stdio (local process)
+
     async fn invoke_stdio(
         &self,
         server: &McpServer,
@@ -916,7 +916,7 @@ impl McpClient {
         }
     }
 
-    /// Add authentication headers to request
+
     fn add_auth_headers(
         &self,
         mut request: reqwest::RequestBuilder,
@@ -927,7 +927,7 @@ impl McpClient {
                 header_name,
                 key_ref,
             } => {
-                // In production, resolve key_ref from secret storage
+
                 request = request.header(header_name.as_str(), key_ref.as_str());
             }
             McpCredentials::Bearer { token_ref } => {
@@ -944,7 +944,7 @@ impl McpClient {
         request
     }
 
-    /// Perform health check on a server
+
     pub async fn health_check(
         &mut self,
         server_name: &str,

@@ -102,7 +102,7 @@ impl BasicCompiler {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {e}"))?;
 
-        // Process TABLE...END TABLE definitions (creates tables on external DBs)
+
         if let Err(e) =
             process_table_definitions(Arc::clone(&self.state), self.bot_id, &source_content)
         {
@@ -316,8 +316,8 @@ impl BasicCompiler {
         let bot_uuid = bot_id;
         let mut result = String::new();
 
-        // Transform GOTO/labels into state machine if present
-        // WARNING: GOTO is supported but event-driven ON patterns are recommended
+
+
         let source = if goto_transform::has_goto_constructs(source) {
             trace!("GOTO constructs detected, transforming to state machine");
             goto_transform::transform_goto(source)
@@ -357,10 +357,10 @@ impl BasicCompiler {
             {
                 continue;
             }
-            // Keywords now use spaces directly in Rhai registration
-            // Only normalize keywords that still need it for special preprocessing
-            // Keywords now use spaces directly in Rhai registration
-            // Only normalize keywords that need underscores for Rhai parsing
+
+
+
+
             let normalized = trimmed
                 .replace("FOR EACH", "FOR_EACH")
                 .replace("EXIT FOR", "EXIT_FOR")
@@ -386,7 +386,7 @@ impl BasicCompiler {
                 }
                 continue;
             }
-            // Handle WEBHOOK preprocessing - register webhook endpoint
+
             if normalized.starts_with("WEBHOOK") {
                 _has_webhook = true;
                 let parts: Vec<&str> = normalized.split('"').collect();

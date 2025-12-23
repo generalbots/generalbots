@@ -66,12 +66,12 @@ impl DynamicDnsService {
     }
 
     pub async fn register_hostname(&self, hostname: &str, ip: IpAddr) -> Result<()> {
-        // Validate hostname
+
         if !self.is_valid_hostname(hostname) {
             return Err(anyhow::anyhow!("Invalid hostname format"));
         }
 
-        // Check rate limiting
+
         if !self.check_rate_limit(&ip).await {
             return Err(anyhow::anyhow!("Rate limit exceeded for IP"));
         }
@@ -87,13 +87,13 @@ impl DynamicDnsService {
             ttl: self.config.ttl_seconds,
         };
 
-        // Update in-memory store
+
         {
             let mut entries = self.entries.write().await;
             entries.insert(hostname.to_string(), entry.clone());
         }
 
-        // Track by IP for rate limiting
+
         {
             let mut by_ip = self.entries_by_ip.write().await;
             by_ip
@@ -101,7 +101,7 @@ impl DynamicDnsService {
                 .or_insert_with(Vec::new)
                 .push(hostname.to_string());
 
-            // Limit entries per IP
+
             if let Some(ip_entries) = by_ip.get_mut(&ip) {
                 if ip_entries.len() > self.config.max_entries_per_ip {
                     let removed = ip_entries.remove(0);
@@ -111,7 +111,7 @@ impl DynamicDnsService {
             }
         }
 
-        // Update zone file
+
         self.update_zone_file().await?;
 
         log::info!("Registered hostname {} -> {}", full_hostname, ip);
@@ -122,7 +122,7 @@ impl DynamicDnsService {
         let mut entries = self.entries.write().await;
 
         if let Some(entry) = entries.remove(hostname) {
-            // Remove from IP tracking
+
             let mut by_ip = self.entries_by_ip.write().await;
             if let Some(ip_entries) = by_ip.get_mut(&entry.ip) {
                 ip_entries.retain(|h| h != hostname);
@@ -202,7 +202,7 @@ impl DynamicDnsService {
         ));
         zone_content.push_str("ns1     IN      A       127.0.0.1\n\n");
 
-        // Static entries
+
         zone_content.push_str("; Static service entries\n");
         zone_content.push_str("api     IN      A       127.0.0.1\n");
         zone_content.push_str("auth    IN      A       127.0.0.1\n");
@@ -210,7 +210,7 @@ impl DynamicDnsService {
         zone_content.push_str("mail    IN      A       127.0.0.1\n");
         zone_content.push_str("meet    IN      A       127.0.0.1\n\n");
 
-        // Dynamic entries
+
         if !entries.is_empty() {
             zone_content.push_str("; Dynamic entries\n");
             for (hostname, entry) in entries.iter() {
@@ -260,7 +260,7 @@ impl DynamicDnsService {
     }
 }
 
-// API handlers for dynamic DNS
+
 use axum::{
     extract::{Query, State},
     http::StatusCode,

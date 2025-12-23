@@ -1,13 +1,13 @@
-//! SLICE function for extracting portions of arrays
-//!
-//! BASIC Syntax:
-//!   result = SLICE(array, start)           ' From start to end
-//!   result = SLICE(array, start, end)      ' From start to end (exclusive)
-//!
-//! Examples:
-//!   arr = [1, 2, 3, 4, 5]
-//!   part = SLICE(arr, 2)        ' Returns [3, 4, 5] (0-based index)
-//!   part = SLICE(arr, 1, 3)     ' Returns [2, 3] (indices 1 and 2)
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -15,9 +15,9 @@ use log::debug;
 use rhai::{Array, Dynamic, Engine};
 use std::sync::Arc;
 
-/// Register the SLICE keyword for array slicing
+
 pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    // SLICE with start only (from start to end)
+
     engine.register_fn("SLICE", |arr: Array, start: i64| -> Array {
         slice_array(&arr, start, None)
     });
@@ -26,7 +26,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, start, None)
     });
 
-    // SLICE with start and end
+
     engine.register_fn("SLICE", |arr: Array, start: i64, end: i64| -> Array {
         slice_array(&arr, start, Some(end))
     });
@@ -35,12 +35,12 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, start, Some(end))
     });
 
-    // SUBARRAY alias
+
     engine.register_fn("SUBARRAY", |arr: Array, start: i64, end: i64| -> Array {
         slice_array(&arr, start, Some(end))
     });
 
-    // MID for arrays (similar to MID$ for strings)
+
     engine.register_fn(
         "MID_ARRAY",
         |arr: Array, start: i64, length: i64| -> Array {
@@ -49,7 +49,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         },
     );
 
-    // TAKE - take first n elements
+
     engine.register_fn("TAKE", |arr: Array, count: i64| -> Array {
         slice_array(&arr, 0, Some(count))
     });
@@ -58,7 +58,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, 0, Some(count))
     });
 
-    // DROP - drop first n elements
+
     engine.register_fn("DROP", |arr: Array, count: i64| -> Array {
         slice_array(&arr, count, None)
     });
@@ -67,7 +67,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, count, None)
     });
 
-    // HEAD - first element
+
     engine.register_fn("HEAD", |arr: Array| -> Dynamic {
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -76,7 +76,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
 
-    // TAIL - all elements except first
+
     engine.register_fn("TAIL", |arr: Array| -> Array {
         if arr.len() <= 1 {
             Array::new()
@@ -93,7 +93,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         }
     });
 
-    // INIT - all elements except last
+
     engine.register_fn("INIT", |arr: Array| -> Array {
         if arr.is_empty() {
             Array::new()
@@ -102,7 +102,7 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         }
     });
 
-    // LAST_ELEM - last element
+
     engine.register_fn("LAST", |arr: Array| -> Dynamic {
         arr.last().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -110,11 +110,11 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
     debug!("Registered SLICE keyword");
 }
 
-/// Helper function to slice an array
+
 fn slice_array(arr: &Array, start: i64, end: Option<i64>) -> Array {
     let len = arr.len() as i64;
 
-    // Handle negative indices (count from end)
+
     let start_idx = if start < 0 {
         (len + start).max(0) as usize
     } else {

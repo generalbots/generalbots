@@ -47,7 +47,7 @@ use std::sync::Arc;
 use tar::Archive;
 use zip::{write::FileOptions, ZipArchive, ZipWriter};
 
-/// Register all file operation keywords
+
 pub fn register_file_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_read_keyword(state.clone(), user.clone(), engine);
     register_write_keyword(state.clone(), user.clone(), engine);
@@ -63,8 +63,8 @@ pub fn register_file_operations(state: Arc<AppState>, user: UserSession, engine:
     register_merge_pdf_keyword(state.clone(), user.clone(), engine);
 }
 
-/// READ "path"
-/// Reads content from a file in .gbdrive
+
+
 pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -122,8 +122,8 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-/// WRITE "path", data
-/// Writes content to a file in .gbdrive
+
+
 pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -192,15 +192,15 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
         .unwrap();
 }
 
-/// DELETE FILE "path" / DELETE_FILE "path"
-/// Deletes a file from .gbdrive
+
+
 pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
-    // DELETE FILE (space-separated - preferred)
+
     engine
         .register_custom_syntax(
             &["DELETE", "FILE", "$expr$"],
@@ -257,7 +257,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
         )
         .unwrap();
 
-    // DELETE FILE (spaces - primary syntax)
+
     engine
         .register_custom_syntax(
             &["DELETE", "FILE", "$expr$"],
@@ -315,8 +315,8 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
         .unwrap();
 }
 
-/// COPY "source", "destination"
-/// Copies a file within .gbdrive
+
+
 pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -386,8 +386,8 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-/// MOVE "source", "destination"
-/// Moves/renames a file within .gbdrive
+
+
 pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -457,8 +457,8 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-/// LIST "path"
-/// Lists contents of a directory in .gbdrive
+
+
 pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -519,8 +519,8 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-/// COMPRESS files, "archive.zip"
-/// Creates a ZIP archive from files
+
+
 pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -539,7 +539,7 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
                 let user_for_task = user_clone.clone();
                 let archive_clone = archive_name.clone();
 
-                // Convert files to Vec<String>
+
                 let file_list: Vec<String> = if files.is_array() {
                     files
                         .clone()
@@ -602,8 +602,8 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-/// EXTRACT "archive.zip", "destination/"
-/// Extracts an archive to a destination folder
+
+
 pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -676,8 +676,8 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
         .unwrap();
 }
 
-/// UPLOAD file, "destination_path"
-/// Uploads a file to .gbdrive storage
+
+
 pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -742,8 +742,8 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .unwrap();
 }
 
-/// DOWNLOAD "url", "local_path"
-/// Downloads a file from URL to local path
+
+
 pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -813,15 +813,15 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-/// GENERATE_PDF template, data, "output.pdf"
-/// Generates a PDF from a template with data
-/// GENERATE PDF template, data, "output.pdf"
-/// Generates a PDF from a template with data
+
+
+
+
 pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // GENERATE PDF template, data, output
+
     engine
         .register_custom_syntax(
             &["GENERATE", "PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
@@ -895,13 +895,13 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
         .unwrap();
 }
 
-/// MERGE PDF files, "merged.pdf"
-/// Merges multiple PDF files into one
+
+
 pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // MERGE PDF files, output
+
     engine
         .register_custom_syntax(
             &["MERGE", "PDF", "$expr$", ",", "$expr$"],
@@ -916,7 +916,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                 let user_for_task = user_clone.clone();
                 let output_clone = output.clone();
 
-                // Convert files to Vec<String>
+
                 let file_list: Vec<String> = if files.is_array() {
                     files
                         .clone()
@@ -984,9 +984,9 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
         .unwrap();
 }
 
-// Implementation Functions
 
-/// Read file content from .gbdrive
+
+
 async fn execute_read(
     state: &AppState,
     user: &UserSession,
@@ -1024,7 +1024,7 @@ async fn execute_read(
     Ok(content)
 }
 
-/// Write content to file in .gbdrive
+
 async fn execute_write(
     state: &AppState,
     user: &UserSession,
@@ -1060,7 +1060,7 @@ async fn execute_write(
     Ok(())
 }
 
-/// Delete file from .gbdrive
+
 async fn execute_delete_file(
     state: &AppState,
     user: &UserSession,
@@ -1094,7 +1094,7 @@ async fn execute_delete_file(
     Ok(())
 }
 
-/// Copy file within .gbdrive
+
 async fn execute_copy(
     state: &AppState,
     user: &UserSession,
@@ -1313,24 +1313,24 @@ async fn write_to_local(
     Ok(())
 }
 
-/// Move/rename file within .gbdrive
+
 async fn execute_move(
     state: &AppState,
     user: &UserSession,
     source: &str,
     destination: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    // Copy first
+
     execute_copy(state, user, source, destination).await?;
 
-    // Then delete source
+
     execute_delete_file(state, user, source).await?;
 
     trace!("MOVE successful: {} -> {}", source, destination);
     Ok(())
 }
 
-/// List directory contents in .gbdrive
+
 async fn execute_list(
     state: &AppState,
     user: &UserSession,
@@ -1376,7 +1376,7 @@ async fn execute_list(
     Ok(files)
 }
 
-/// Create ZIP archive from files
+
 async fn execute_compress(
     state: &AppState,
     user: &UserSession,
@@ -1394,7 +1394,7 @@ async fn execute_compress(
             })?
     };
 
-    // Create temporary file for the archive
+
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive_name);
     let file = File::create(&archive_path)?;
@@ -1415,7 +1415,7 @@ async fn execute_compress(
 
     zip.finish()?;
 
-    // Upload the archive to .gbdrive
+
     let archive_content = fs::read(&archive_path)?;
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
     let bucket_name = format!("{}.gbai", bot_name);
@@ -1430,14 +1430,14 @@ async fn execute_compress(
         .await
         .map_err(|e| format!("S3 put failed: {}", e))?;
 
-    // Clean up temp file
+
     fs::remove_file(&archive_path).ok();
 
     trace!("COMPRESS successful: {}", archive_name);
     Ok(archive_name.to_string())
 }
 
-/// Extract archive to destination
+
 async fn execute_extract(
     state: &AppState,
     user: &UserSession,
@@ -1460,7 +1460,7 @@ async fn execute_extract(
     let bucket_name = format!("{}.gbai", bot_name);
     let archive_key = format!("{}.gbdrive/{}", bot_name, archive);
 
-    // Download the archive
+
     let response = client
         .get_object()
         .bucket(&bucket_name)
@@ -1471,14 +1471,14 @@ async fn execute_extract(
 
     let data = response.body.collect().await?.into_bytes();
 
-    // Create temp file for extraction
+
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive);
     fs::write(&archive_path, &data)?;
 
     let mut extracted_files = Vec::new();
 
-    // Extract based on file type
+
     if archive.ends_with(".zip") {
         let file = File::open(&archive_path)?;
         let mut zip = ZipArchive::new(file)?;
@@ -1492,7 +1492,7 @@ async fn execute_extract(
 
             let dest_path = format!("{}/{}", destination.trim_end_matches('/'), file_name);
 
-            // Upload extracted file
+
             let dest_key = format!("{}.gbdrive/{}", bot_name, dest_path);
             client
                 .put_object()
@@ -1519,7 +1519,7 @@ async fn execute_extract(
 
             let dest_path = format!("{}/{}", destination.trim_end_matches('/'), file_name);
 
-            // Upload extracted file
+
             let dest_key = format!("{}.gbdrive/{}", bot_name, dest_path);
             client
                 .put_object()
@@ -1534,20 +1534,20 @@ async fn execute_extract(
         }
     }
 
-    // Clean up temp file
+
     fs::remove_file(&archive_path).ok();
 
     trace!("EXTRACT successful: {} files", extracted_files.len());
     Ok(extracted_files)
 }
 
-/// File data structure for uploads
+
 struct FileData {
     content: Vec<u8>,
     filename: String,
 }
 
-/// Upload file to .gbdrive
+
 async fn execute_upload(
     state: &AppState,
     user: &UserSession,
@@ -1570,7 +1570,7 @@ async fn execute_upload(
     let bucket_name = format!("{}.gbai", bot_name);
     let key = format!("{}.gbdrive/{}", bot_name, destination);
 
-    // Use filename for Content-Disposition metadata
+
     let content_disposition = format!("attachment; filename=\"{}\"", file_data.filename);
 
     trace!(
@@ -1600,7 +1600,7 @@ async fn execute_upload(
     Ok(url)
 }
 
-/// Download file from URL
+
 async fn execute_download(
     state: &AppState,
     user: &UserSession,
@@ -1616,20 +1616,20 @@ async fn execute_download(
 
     let content = response.bytes().await?;
 
-    // Save to .gbdrive
+
     execute_write(state, user, local_path, &String::from_utf8_lossy(&content)).await?;
 
     trace!("DOWNLOAD successful: {} -> {}", url, local_path);
     Ok(local_path.to_string())
 }
 
-/// PDF generation result
+
 struct PdfResult {
     url: String,
     local_name: String,
 }
 
-/// Generate PDF from template
+
 async fn execute_generate_pdf(
     state: &AppState,
     user: &UserSession,
@@ -1637,10 +1637,10 @@ async fn execute_generate_pdf(
     data: Value,
     output: &str,
 ) -> Result<PdfResult, Box<dyn Error + Send + Sync>> {
-    // Read template
+
     let template_content = execute_read(state, user, template).await?;
 
-    // Simple template replacement
+
     let mut html_content = template_content;
     if let Value::Object(obj) = &data {
         for (key, value) in obj {
@@ -1653,14 +1653,14 @@ async fn execute_generate_pdf(
         }
     }
 
-    // For now, we save as HTML with instructions
-    // In production, use a proper PDF generation library like wkhtmltopdf or headless Chrome
+
+
     let pdf_content = format!(
         "<!-- PDF Content Generated from Template: {} -->\n{}",
         template, html_content
     );
 
-    // Save the output
+
     execute_write(state, user, output, &pdf_content).await?;
 
     let bot_name: String = {
@@ -1679,7 +1679,7 @@ async fn execute_generate_pdf(
     })
 }
 
-/// Merge multiple PDFs
+
 async fn execute_merge_pdf(
     state: &AppState,
     user: &UserSession,
@@ -1693,7 +1693,7 @@ async fn execute_merge_pdf(
         merged_content.push_str(&format!("\n<!-- From: {} -->\n{}\n", file, content));
     }
 
-    // Save merged content
+
     execute_write(state, user, output, &merged_content).await?;
 
     let bot_name: String = {
@@ -1716,9 +1716,9 @@ async fn execute_merge_pdf(
     })
 }
 
-// Helper Functions
 
-/// Convert Dynamic to JSON Value
+
+
 fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
         Value::Null
@@ -1751,7 +1751,7 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
     }
 }
 
-/// Convert Dynamic to FileData
+
 fn dynamic_to_file_data(value: &Dynamic) -> FileData {
     if value.is_map() {
         let map = value.clone().try_cast::<Map>().unwrap_or_default();

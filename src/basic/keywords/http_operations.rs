@@ -40,11 +40,11 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 thread_local! {
-    // Thread-local storage for HTTP headers
+
     static HTTP_HEADERS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
 }
 
-/// Register all HTTP operation keywords
+
 pub fn register_http_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_post_keyword(state.clone(), user.clone(), engine);
     register_put_keyword(state.clone(), user.clone(), engine);
@@ -56,8 +56,8 @@ pub fn register_http_operations(state: Arc<AppState>, user: UserSession, engine:
     register_clear_headers_keyword(state.clone(), user.clone(), engine);
 }
 
-/// POST "url", data
-/// Sends an HTTP POST request with JSON body
+
+
 pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
@@ -118,8 +118,8 @@ pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-/// PUT "url", data
-/// Sends an HTTP PUT request with JSON body
+
+
 pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
@@ -180,8 +180,8 @@ pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &m
         .unwrap();
 }
 
-/// PATCH "url", data
-/// Sends an HTTP PATCH request with JSON body
+
+
 pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
@@ -242,17 +242,17 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
         .unwrap();
 }
 
-/// DELETE "url"
-/// Sends an HTTP DELETE request
-/// DELETE HTTP "url" - Backwards compatibility alias
-/// Note: Prefer using just DELETE "url" which auto-detects HTTP URLs
+
+
+
+
 pub fn register_delete_http_keyword(
     _state: Arc<AppState>,
     _user: UserSession,
     engine: &mut Engine,
 ) {
-    // DELETE HTTP "url" - kept for backwards compatibility
-    // The unified DELETE in data_operations.rs handles this automatically now
+
+
     engine
         .register_custom_syntax(
             &["DELETE", "HTTP", "$expr$"],
@@ -307,15 +307,15 @@ pub fn register_delete_http_keyword(
         .unwrap();
 }
 
-/// SET HEADER "name", "value"
-/// Sets an HTTP header for subsequent requests
+
+
 pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    // Use a shared state for headers that persists across calls
+
     let headers: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let headers_clone = Arc::clone(&headers);
     let headers_clone2 = Arc::clone(&headers);
 
-    // SET HEADER (space-separated - preferred)
+
     engine
         .register_custom_syntax(
             &["SET", "HEADER", "$expr$", ",", "$expr$"],
@@ -326,12 +326,12 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
 
                 trace!("SET HEADER: {} = {}", name, value);
 
-                // Store in thread-local storage
+
                 HTTP_HEADERS.with(|h| {
                     h.borrow_mut().insert(name.clone(), value.clone());
                 });
 
-                // Also store in shared state
+
                 if let Ok(mut h) = headers_clone.lock() {
                     h.insert(name, value);
                 }
@@ -341,7 +341,7 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
         )
         .unwrap();
 
-    // SET_HEADER (underscore - backwards compatibility)
+
     engine
         .register_custom_syntax(
             &["SET_HEADER", "$expr$", ",", "$expr$"],
@@ -352,12 +352,12 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
 
                 trace!("SET_HEADER: {} = {}", name, value);
 
-                // Store in thread-local storage
+
                 HTTP_HEADERS.with(|h| {
                     h.borrow_mut().insert(name.clone(), value.clone());
                 });
 
-                // Also store in shared state
+
                 if let Ok(mut h) = headers_clone2.lock() {
                     h.insert(name, value);
                 }
@@ -368,14 +368,14 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
         .unwrap();
 }
 
-/// CLEAR HEADERS
-/// Clears all previously set HTTP headers
+
+
 pub fn register_clear_headers_keyword(
     _state: Arc<AppState>,
     _user: UserSession,
     engine: &mut Engine,
 ) {
-    // CLEAR HEADERS (space-separated - preferred)
+
     engine
         .register_custom_syntax(&["CLEAR", "HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR HEADERS");
@@ -388,7 +388,7 @@ pub fn register_clear_headers_keyword(
         })
         .unwrap();
 
-    // CLEAR_HEADERS (underscore - backwards compatibility)
+
     engine
         .register_custom_syntax(&["CLEAR_HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR_HEADERS");
@@ -402,8 +402,8 @@ pub fn register_clear_headers_keyword(
         .unwrap();
 }
 
-/// GRAPHQL "endpoint", "query", variables
-/// Executes a GraphQL query
+
+
 pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
@@ -465,8 +465,8 @@ pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine
         .unwrap();
 }
 
-/// SOAP "wsdl", "operation", params
-/// Executes a SOAP API call
+
+
 pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let _state_clone = Arc::clone(&state);
 
@@ -528,7 +528,7 @@ pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-/// Execute an HTTP request with the specified method
+
 async fn execute_http_request(
     method: Method,
     url: &str,
@@ -544,10 +544,10 @@ async fn execute_http_request(
             e
         })?;
 
-    // Build headers
+
     let mut headers = HeaderMap::new();
 
-    // Add stored headers from thread-local storage
+
     HTTP_HEADERS.with(|h| {
         for (name, value) in h.borrow().iter() {
             if let (Ok(header_name), Ok(header_value)) = (
@@ -559,7 +559,7 @@ async fn execute_http_request(
         }
     });
 
-    // Add custom headers if provided
+
     if let Some(custom) = custom_headers {
         for (name, value) in custom {
             if let (Ok(header_name), Ok(header_value)) = (
@@ -571,7 +571,7 @@ async fn execute_http_request(
         }
     }
 
-    // Set default content type for requests with body
+
     if body.is_some() && !headers.contains_key("content-type") {
         headers.insert(
             reqwest::header::CONTENT_TYPE,
@@ -599,7 +599,7 @@ async fn execute_http_request(
 
     let body_text = response.text().await.unwrap_or_default();
 
-    // Try to parse as JSON, fall back to text
+
     let body_value: Value = serde_json::from_str(&body_text).unwrap_or(Value::String(body_text));
 
     trace!(
@@ -617,7 +617,7 @@ async fn execute_http_request(
     }))
 }
 
-/// Execute a GraphQL query
+
 async fn execute_graphql(
     endpoint: &str,
     query: &str,
@@ -631,13 +631,13 @@ async fn execute_graphql(
     execute_http_request(Method::POST, endpoint, Some(graphql_body), None).await
 }
 
-/// Execute a SOAP request
+
 async fn execute_soap(
     endpoint: &str,
     operation: &str,
     params: Value,
 ) -> Result<Value, Box<dyn Error + Send + Sync>> {
-    // Build SOAP envelope
+
     let soap_body = build_soap_envelope(operation, &params);
 
     let mut headers = HashMap::new();
@@ -680,7 +680,7 @@ async fn execute_soap(
     let status = response.status();
     let body_text = response.text().await.unwrap_or_default();
 
-    // Parse SOAP response (basic XML to JSON conversion)
+
     let parsed_response = parse_soap_response(&body_text);
 
     trace!(
@@ -695,7 +695,7 @@ async fn execute_soap(
     }))
 }
 
-/// Build a SOAP envelope from operation and parameters
+
 fn build_soap_envelope(operation: &str, params: &Value) -> String {
     let mut params_xml = String::new();
 
@@ -725,9 +725,9 @@ fn build_soap_envelope(operation: &str, params: &Value) -> String {
     )
 }
 
-/// Parse SOAP response XML to JSON (basic implementation)
+
 fn parse_soap_response(xml: &str) -> Value {
-    // Basic XML parsing - extracts content between Body tags
+
     if let Some(body_start) = xml.find("<soap:Body>") {
         if let Some(body_end) = xml.find("</soap:Body>") {
             let body_content = &xml[body_start + 11..body_end];
@@ -738,7 +738,7 @@ fn parse_soap_response(xml: &str) -> Value {
         }
     }
 
-    // Also check for SOAP 1.2 format
+
     if let Some(body_start) = xml.find("<soap12:Body>") {
         if let Some(body_end) = xml.find("</soap12:Body>") {
             let body_content = &xml[body_start + 13..body_end];
@@ -755,7 +755,7 @@ fn parse_soap_response(xml: &str) -> Value {
     })
 }
 
-/// Convert Rhai Dynamic to JSON Value
+
 fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
         Value::Null
@@ -788,7 +788,7 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
     }
 }
 
-/// Convert JSON Value to Rhai Dynamic
+
 fn json_to_dynamic(value: &Value) -> Dynamic {
     match value {
         Value::Null => Dynamic::UNIT,

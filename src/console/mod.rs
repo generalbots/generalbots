@@ -101,8 +101,8 @@ impl XtreeUI {
         execute!(stdout, EnterAlternateScreen)?;
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
-        // Initialize UI logger to capture logs for the log panel
-        // This works because env_logger is not initialized when console UI is enabled
+
+
         if let Err(e) = init_logger(self.log_panel.clone()) {
             eprintln!("Warning: Could not initialize UI logger: {}", e);
         }
@@ -123,12 +123,12 @@ impl XtreeUI {
         let mut last_blink = std::time::Instant::now();
         let rt = tokio::runtime::Runtime::new()?;
         loop {
-            // Poll for AppState updates from the main thread
+
             if self.app_state.is_none() {
                 if let Some(ref state_rx) = self.state_channel {
                     if let Ok(mut rx) = state_rx.try_lock() {
                         if let Ok(app_state) = rx.try_recv() {
-                            // Initialize all panels with the new state
+
                             self.file_tree = Some(FileTree::new(app_state.clone()));
                             self.status_panel = Some(StatusPanel::new(app_state.clone()));
                             self.chat_panel = Some(ChatPanel::new(app_state.clone()));
@@ -136,7 +136,7 @@ impl XtreeUI {
                             self.active_panel = ActivePanel::FileTree;
                             self.bootstrap_status = "Ready".to_string();
 
-                            // Log that we received the state
+
                             if let Ok(mut log_panel) = self.log_panel.lock() {
                                 log_panel.add_log("AppState received - UI fully initialized");
                             }
@@ -408,7 +408,7 @@ impl XtreeUI {
         title_bg: Color,
         title_fg: Color,
     ) {
-        // Same layout as the real UI - header, content, logs
+
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -418,7 +418,7 @@ impl XtreeUI {
             ])
             .split(f.area());
 
-        // Render header with GENERAL BOTS title
+
         let header_block = Block::default().style(Style::default().bg(title_bg));
         f.render_widget(header_block, main_chunks[0]);
 
@@ -442,7 +442,7 @@ impl XtreeUI {
             },
         );
 
-        // Content area - same 3 columns as real UI
+
         let content_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
@@ -452,7 +452,7 @@ impl XtreeUI {
             ])
             .split(main_chunks[1]);
 
-        // Left panel - FILE EXPLORER (loading)
+
         let file_block = Block::default()
             .title(Span::styled(
                 " FILE EXPLORER ",
@@ -466,7 +466,7 @@ impl XtreeUI {
             .style(Style::default().fg(Color::DarkGray));
         f.render_widget(file_text, content_chunks[0]);
 
-        // Middle panel - STATUS (loading with bootstrap info)
+
         let middle_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -490,14 +490,14 @@ impl XtreeUI {
             .style(Style::default().fg(text));
         f.render_widget(status_para, middle_chunks[0]);
 
-        // Empty space below status (will be editor later)
+
         let empty_block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::DarkGray))
             .style(Style::default().bg(bg));
         f.render_widget(empty_block, middle_chunks[1]);
 
-        // Right panel - CHAT (loading)
+
         let chat_block = Block::default()
             .title(Span::styled(
                 " CHAT ",
@@ -511,7 +511,7 @@ impl XtreeUI {
             .style(Style::default().fg(Color::DarkGray));
         f.render_widget(chat_text, content_chunks[2]);
 
-        // Bottom panel - LOGS (showing bootstrap progress)
+
         let logs_block = Block::default()
             .title(Span::styled(
                 " SYSTEM LOGS ",
@@ -521,7 +521,7 @@ impl XtreeUI {
             .border_style(Style::default().fg(border))
             .style(Style::default().bg(bg));
 
-        // Calculate visible lines for log panel (area height minus borders)
+
         let logs_visible_lines = main_chunks[2].height.saturating_sub(2) as usize;
         let logs_content = if let Ok(panel) = self.log_panel.lock() {
             panel.render(logs_visible_lines)
@@ -550,7 +550,7 @@ impl XtreeUI {
         if let Some(file_tree) = &self.file_tree {
             let items = file_tree.render_items();
             let selected = file_tree.selected_index();
-            // Use convert_tree_to_items to get detailed file metadata
+
             let _file_items = convert_tree_to_items(file_tree);
             let list_items: Vec<ListItem> = items
                 .iter()
@@ -696,7 +696,7 @@ impl XtreeUI {
         title_bg: Color,
         title_fg: Color,
     ) {
-        // Calculate visible lines (area height minus borders)
+
         let visible_lines = area.height.saturating_sub(2) as usize;
 
         let log_panel = self.log_panel.try_lock();
@@ -729,7 +729,7 @@ impl XtreeUI {
             Style::default().fg(title_fg).bg(title_bg)
         };
 
-        // Build title with scroll indicators
+
         let scroll_indicator = if can_scroll_up && can_scroll_down {
             " [^v] "
         } else if can_scroll_up {
@@ -888,7 +888,7 @@ impl XtreeUI {
                 }
                 KeyCode::Down | KeyCode::Char('j') => {
                     if let Ok(mut panel) = self.log_panel.lock() {
-                        panel.scroll_down(1, 10); // approximate visible lines
+                        panel.scroll_down(1, 10);
                     }
                 }
                 KeyCode::PageUp => {
