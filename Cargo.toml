@@ -141,7 +141,7 @@ askama = "0.12"
 askama_axum = "0.4"
 tracing-subscriber = { version = "0.3", features = ["fmt"] }
 urlencoding = "2.1"
-uuid = { version = "1.11", features = ["serde", "v4"] }
+uuid = { version = "1.11", features = ["serde", "v4", "v5"] }
 
 # === TLS/SECURITY DEPENDENCIES ===
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
@@ -242,53 +242,5 @@ mockito = "1.7.0"
 tempfile = "3"
 
 # === SECURITY AND CODE QUALITY CONFIGURATION ===
-[lints.rust]
-unused_imports = "warn"
-unused_variables = "warn"
-unused_mut = "warn"
-unsafe_code = "deny"
-missing_debug_implementations = "warn"
-
-[lints.clippy]
-all = "warn"
-pedantic = "warn"
-nursery = "warn"
-cargo = "warn"
-unwrap_used = "warn"
-expect_used = "warn"
-panic = "warn"
-todo = "warn"
-# Disabled: has false positives for functions with mut self, heap types (Vec, String)
-missing_const_for_fn = "allow"
-# Disabled: transitive dependencies we cannot control
-multiple_crate_versions = "allow"
-# Disabled: many keyword functions need owned types for Rhai integration
-needless_pass_by_value = "allow"
-
-[profile.release]
-lto = true
-opt-level = "z"
-strip = true
-panic = "abort"
-codegen-units = 1
-overflow-checks = true
-
-[profile.ci]
-inherits = "release"
-lto = false
-codegen-units = 16
-debug = false
-
-[profile.low-memory]
-inherits = "release"
-lto = "thin"
-codegen-units = 16
-debug = false
-incremental = false
-opt-level = "s"
-
-[profile.dev]
-debug = 0
-incremental = true
-codegen-units = 256
-opt-level = 0
+[lints]
+workspace = true

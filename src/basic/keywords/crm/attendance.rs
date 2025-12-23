@@ -155,7 +155,7 @@ fn register_get_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
         .unwrap();
 }
 
-fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic {
+pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic {
     let conn = state.conn.clone();
 
     let result = std::thread::spawn(move || {
@@ -314,7 +314,7 @@ fn register_next_in_queue(state: Arc<AppState>, _user: UserSession, engine: &mut
     });
 }
 
-fn next_in_queue_impl(state: &Arc<AppState>) -> Dynamic {
+pub fn next_in_queue_impl(state: &Arc<AppState>) -> Dynamic {
     let conn = state.conn.clone();
 
     let result = std::thread::spawn(move || {
@@ -428,7 +428,7 @@ fn register_assign_conversation(state: Arc<AppState>, _user: UserSession, engine
     );
 }
 
-fn assign_conversation_impl(
+pub fn assign_conversation_impl(
     state: &Arc<AppState>,
     session_id: &str,
     attendant_id: &str,
@@ -525,7 +525,7 @@ fn register_resolve_conversation(state: Arc<AppState>, _user: UserSession, engin
     });
 }
 
-fn resolve_conversation_impl(
+pub fn resolve_conversation_impl(
     state: &Arc<AppState>,
     session_id: &str,
     reason: Option<String>,
@@ -614,7 +614,7 @@ fn register_set_priority(state: Arc<AppState>, _user: UserSession, engine: &mut 
     );
 }
 
-fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dynamic) -> Dynamic {
+pub fn set_priority_impl(state: &Arc<AppState>, session_id: &str, priority: Dynamic) -> Dynamic {
     let conn = state.conn.clone();
     let session_uuid = match Uuid::parse_str(session_id) {
         Ok(u) => u,
@@ -711,7 +711,7 @@ fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mu
     });
 }
 
-fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>) -> Dynamic {
+pub fn get_attendants_impl(_state: &Arc<AppState>, status_filter: Option<String>) -> Dynamic {
     // Read from attendant.csv
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
 
@@ -841,7 +841,7 @@ fn register_get_attendant_stats(state: Arc<AppState>, _user: UserSession, engine
         .unwrap();
 }
 
-fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dynamic {
+pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dynamic {
     let conn = state.conn.clone();
     let att_id = attendant_id.to_string();
 
@@ -935,11 +935,11 @@ fn register_get_tips(state: Arc<AppState>, _user: UserSession, engine: &mut Engi
     );
 }
 
-fn get_tips_impl(_state: &Arc<AppState>, _session_id: &str, message: &str) -> Dynamic {
+pub fn get_tips_impl(_state: &Arc<AppState>, _session_id: &str, message: &str) -> Dynamic {
     create_fallback_tips(message)
 }
 
-fn create_fallback_tips(message: &str) -> Dynamic {
+pub fn create_fallback_tips(message: &str) -> Dynamic {
     let msg_lower = message.to_lowercase();
     let mut tips = Vec::new();
 
@@ -1043,7 +1043,7 @@ fn register_polish_message(state: Arc<AppState>, _user: UserSession, engine: &mu
     });
 }
 
-fn polish_message_impl(_state: &Arc<AppState>, message: &str, _tone: &str) -> Dynamic {
+pub fn polish_message_impl(_state: &Arc<AppState>, message: &str, _tone: &str) -> Dynamic {
     // Simple polishing without LLM (fallback)
     let mut polished = message.to_string();
 
@@ -1106,7 +1106,7 @@ fn register_get_smart_replies(state: Arc<AppState>, _user: UserSession, engine: 
     });
 }
 
-fn get_smart_replies_impl(_state: &Arc<AppState>, _session_id: &str) -> Dynamic {
+pub fn get_smart_replies_impl(_state: &Arc<AppState>, _session_id: &str) -> Dynamic {
     // Return default replies (fallback without LLM)
     let mut replies = Vec::new();
 
@@ -1170,7 +1170,7 @@ fn register_get_summary(state: Arc<AppState>, _user: UserSession, engine: &mut E
     });
 }
 
-fn get_summary_impl(state: &Arc<AppState>, session_id: &str) -> Dynamic {
+pub fn get_summary_impl(state: &Arc<AppState>, session_id: &str) -> Dynamic {
     let conn = state.conn.clone();
     let session_uuid = match Uuid::parse_str(session_id) {
         Ok(u) => u,
@@ -1242,7 +1242,7 @@ fn register_analyze_sentiment(state: Arc<AppState>, _user: UserSession, engine: 
     );
 }
 
-fn analyze_sentiment_impl(_state: &Arc<AppState>, _session_id: &str, message: &str) -> Dynamic {
+pub fn analyze_sentiment_impl(_state: &Arc<AppState>, _session_id: &str, message: &str) -> Dynamic {
     // Keyword-based sentiment analysis (fallback without LLM)
     let msg_lower = message.to_lowercase();
 
@@ -1355,7 +1355,7 @@ fn register_tag_conversation(state: Arc<AppState>, _user: UserSession, engine: &
     );
 }
 
-fn tag_conversation_impl(state: &Arc<AppState>, session_id: &str, tags: Vec<String>) -> Dynamic {
+pub fn tag_conversation_impl(state: &Arc<AppState>, session_id: &str, tags: Vec<String>) -> Dynamic {
     let conn = state.conn.clone();
     let session_uuid = match Uuid::parse_str(session_id) {
         Ok(u) => u,
@@ -1453,7 +1453,7 @@ fn register_add_note(state: Arc<AppState>, _user: UserSession, engine: &mut Engi
     });
 }
 
-fn add_note_impl(
+pub fn add_note_impl(
     state: &Arc<AppState>,
     session_id: &str,
     note: &str,
@@ -1547,7 +1547,7 @@ fn register_get_customer_history(state: Arc<AppState>, _user: UserSession, engin
     });
 }
 
-fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynamic {
+pub fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynamic {
     let conn = state.conn.clone();
     let user_uuid = match Uuid::parse_str(user_id) {
         Ok(u) => u,
@@ -1614,7 +1614,7 @@ fn get_customer_history_impl(state: &Arc<AppState>, user_id: &str) -> Dynamic {
 
 // Helper Functions
 
-fn create_error_result(message: &str) -> Dynamic {
+pub fn create_error_result(message: &str) -> Dynamic {
     let mut result = Map::new();
     result.insert("success".into(), Dynamic::from(false));
     result.insert("error".into(), Dynamic::from(message.to_string()));
@@ -1622,137 +1622,3 @@ fn create_error_result(message: &str) -> Dynamic {
 }
 
 // Tests
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_fallback_tips_urgent() {
-        let tips = create_fallback_tips("This is URGENT! Help now!");
-        let result = tips.try_cast::<Map>().unwrap();
-        assert!(result.get("success").unwrap().as_bool().unwrap());
-    }
-
-    #[test]
-    fn test_fallback_tips_question() {
-        let tips = create_fallback_tips("Can you help me with this?");
-        let result = tips.try_cast::<Map>().unwrap();
-        assert!(result.get("success").unwrap().as_bool().unwrap());
-    }
-
-    #[test]
-    fn test_polish_message() {
-        let polished = polish_text("thx 4 ur msg", "professional");
-        assert!(polished.contains("thx") == false);
-        assert!(polished.contains("your"));
-    }
-
-    #[test]
-    fn test_polish_message_capitalization() {
-        let polished = polish_text("hello there", "professional");
-        assert!(polished.starts_with('H'));
-        assert!(polished.ends_with('.'));
-    }
-
-    fn polish_text(message: &str, _tone: &str) -> String {
-        let mut polished = message.to_string();
-        polished = polished
-            .replace("thx", "Thank you")
-            .replace("u ", "you ")
-            .replace(" u", " you")
-            .replace("ur ", "your ")
-            .replace("ill ", "I'll ")
-            .replace("dont ", "don't ")
-            .replace("cant ", "can't ")
-            .replace("wont ", "won't ")
-            .replace("im ", "I'm ")
-            .replace("ive ", "I've ");
-        if let Some(first_char) = polished.chars().next() {
-            polished = first_char.to_uppercase().to_string() + &polished[1..];
-        }
-        if !polished.ends_with('.') && !polished.ends_with('!') && !polished.ends_with('?') {
-            polished.push('.');
-        }
-        polished
-    }
-
-    #[test]
-    fn test_sentiment_positive() {
-        let result = analyze_text_sentiment("Thank you so much! This is great!");
-        assert_eq!(result, "positive");
-    }
-
-    #[test]
-    fn test_sentiment_negative() {
-        let result = analyze_text_sentiment("This is terrible! I'm so frustrated!");
-        assert_eq!(result, "negative");
-    }
-
-    #[test]
-    fn test_sentiment_neutral() {
-        let result = analyze_text_sentiment("The meeting is at 3pm.");
-        assert_eq!(result, "neutral");
-    }
-
-    fn analyze_text_sentiment(message: &str) -> &'static str {
-        let msg_lower = message.to_lowercase();
-        let positive_words = [
-            "thank",
-            "great",
-            "perfect",
-            "awesome",
-            "excellent",
-            "good",
-            "happy",
-            "love",
-        ];
-        let negative_words = [
-            "angry",
-            "frustrated",
-            "terrible",
-            "awful",
-            "horrible",
-            "hate",
-            "disappointed",
-            "problem",
-            "issue",
-        ];
-        let positive_count = positive_words
-            .iter()
-            .filter(|w| msg_lower.contains(*w))
-            .count();
-        let negative_count = negative_words
-            .iter()
-            .filter(|w| msg_lower.contains(*w))
-            .count();
-        if positive_count > negative_count {
-            "positive"
-        } else if negative_count > positive_count {
-            "negative"
-        } else {
-            "neutral"
-        }
-    }
-
-    #[test]
-    fn test_smart_replies_count() {
-        let replies = generate_smart_replies();
-        assert_eq!(replies.len(), 3);
-    }
-
-    #[test]
-    fn test_smart_replies_content() {
-        let replies = generate_smart_replies();
-        assert!(replies.iter().any(|r| r.contains("Thank you")));
-        assert!(replies.iter().any(|r| r.contains("understand")));
-    }
-
-    fn generate_smart_replies() -> Vec<String> {
-        vec![
-            "Thank you for reaching out! I'd be happy to help you with that.".to_string(),
-            "I understand your concern. Let me look into this for you right away.".to_string(),
-            "Is there anything else I can help you with today?".to_string(),
-        ]
-    }
-}

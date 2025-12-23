@@ -573,28 +573,3 @@ pub struct CertificateResponse {
     pub expires_at: String,
     pub serial_number: String,
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use tempfile::TempDir;
-
-    #[test]
-    fn test_ca_config_default() {
-        let config = CaConfig::default();
-        assert_eq!(config.validity_days, 365);
-        assert_eq!(config.key_size, 4096);
-        assert!(!config.external_ca_enabled);
-    }
-
-    #[test]
-    fn test_ca_manager_creation() {
-        let temp_dir = TempDir::new().unwrap();
-        let mut config = CaConfig::default();
-        config.ca_cert_path = temp_dir.path().join("ca.crt");
-        config.ca_key_path = temp_dir.path().join("ca.key");
-
-        let manager = CaManager::new(config);
-        assert!(manager.is_ok());
-    }
-}

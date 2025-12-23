@@ -142,7 +142,7 @@ pub fn isdate_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut E
     debug!("Registered ISDATE keyword");
 }
 
-fn format_date_impl(date_str: &str, format: &str) -> String {
+pub fn format_date_impl(date_str: &str, format: &str) -> String {
     if let Some(datetime) = parse_datetime(date_str) {
         let chrono_format = format
             .replace("YYYY", "%Y")
@@ -164,36 +164,5 @@ fn format_date_impl(date_str: &str, format: &str) -> String {
         datetime.format(&chrono_format).to_string()
     } else {
         date_str.to_string()
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_parse_date() {
-        let date = parse_date("2025-01-22");
-        assert!(date.is_some());
-        let d = date.unwrap();
-        assert_eq!(d.year(), 2025);
-        assert_eq!(d.month(), 1);
-        assert_eq!(d.day(), 22);
-    }
-
-    #[test]
-    fn test_parse_datetime() {
-        let dt = parse_datetime("2025-01-22 14:30:45");
-        assert!(dt.is_some());
-        let d = dt.unwrap();
-        assert_eq!(d.hour(), 14);
-        assert_eq!(d.minute(), 30);
-        assert_eq!(d.second(), 45);
-    }
-
-    #[test]
-    fn test_invalid_date() {
-        let date = parse_date("invalid");
-        assert!(date.is_none());
     }
 }

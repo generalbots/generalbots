@@ -258,43 +258,56 @@ impl TrainingTracker {
         attempt_id: Uuid,
         score: u32,
     ) -> Result<bool> {
+        // Get course info first
+        let (course_id, passing_score, validity_days, max_attempts, course_title) = {
+            let assignment = self
+                .assignments
+                .get(&assignment_id)
+                .ok_or_else(|| anyhow!("Assignment not found"))?;
+            let course = self
+                .courses
+                .get(&assignment.course_id)
+                .ok_or_else(|| anyhow!("Course not found"))?;
+            (course.id, course.passing_score, course.validity_days, course.max_attempts, course.title.clone())
+        };
+
         let assignment = self
             .assignments
             .get_mut(&assignment_id)
             .ok_or_else(|| anyhow!("Assignment not found"))?;
 
-        let course = self
-            .courses
-            .get(&assignment.course_id)
-            .ok_or_else(|| anyhow!("Course not found"))?
-            .clone();
-
-        let attempt = assignment
+        let attempt_idx = assignment
             .attempts
-            .iter_mut()
-            .find(|a| a.id == attempt_id)
+            .iter()
+            .position(|a| a.id == attempt_id)
             .ok_or_else(|| anyhow!("Attempt not found"))?;
 
         let end_time = Utc::now();
-        let time_spent = (end_time - attempt.start_time).num_minutes() as u32;
+        let start_time = assignment.attempts[attempt_idx].start_time;
+        let time_spent = (end_time - start_time).num_minutes() as u32;
+        let passed = score >= passing_score;
 
-        attempt.end_time = Some(end_time);
-        attempt.score = Some(score);
-        attempt.time_spent_minutes = Some(time_spent);
-        attempt.passed = score >= course.passing_score;
+        // Update attempt
+        assignment.attempts[attempt_idx].end_time = Some(end_time);
+        assignment.attempts[attempt_idx].score = Some(score);
+        assignment.attempts[attempt_idx].time_spent_minutes = Some(time_spent);
+        assignment.attempts[attempt_idx].passed = passed;
 
-        if attempt.passed {
+        let user_id = assignment.user_id;
+        let attempts_count = assignment.attempts.len();
+
+        if passed {
             assignment.status = TrainingStatus::Completed;
             assignment.completion_date = Some(end_time);
-            assignment.expiry_date = Some(end_time + Duration::days(course.validity_days));
+            assignment.expiry_date = Some(end_time + Duration::days(validity_days));
 
             // Issue certificate
             let certificate = TrainingCertificate {
                 id: Uuid::new_v4(),
-                user_id: assignment.user_id,
-                course_id: course.id,
+                user_id,
+                course_id,
                 issued_date: end_time,
-                expiry_date: end_time + Duration::days(course.validity_days),
+                expiry_date: end_time + Duration::days(validity_days),
                 certificate_number: format!(
                     "CERT-{}",
                     Uuid::new_v4().to_string()[..8].to_uppercase()
@@ -306,15 +319,15 @@ impl TrainingTracker {
 
             log::info!(
                 "User {} completed training '{}' with score {}",
-                assignment.user_id,
-                course.title,
+                user_id,
+                course_title,
                 score
             );
-        } else if assignment.attempts.len() >= course.max_attempts as usize {
+        } else if attempts_count >= max_attempts as usize {
             assignment.status = TrainingStatus::Failed;
         }
 
-        Ok(attempt.passed)
+        Ok(passed)
     }
 
     /// Get user compliance status

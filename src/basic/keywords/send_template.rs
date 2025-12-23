@@ -112,13 +112,3 @@ pub fn register_send_template_keywords(
 
     debug!("Send template keywords registered successfully");
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_module_structure() {
-        // This test verifies the module compiles correctly
-        // Actual function tests are in the messaging/send_template.rs module
-        assert!(true);
-    }
-}

@@ -124,13 +124,3 @@ pub fn register_core_functions(state: Arc<AppState>, user: UserSession, engine: 
 
     debug!("All core BASIC functions registered successfully");
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_module_structure() {
-        // This test verifies the module compiles correctly
-        // Actual function tests are in their respective submodules
-        assert!(true);
-    }
-}

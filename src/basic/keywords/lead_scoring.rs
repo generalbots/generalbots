@@ -87,13 +87,3 @@ pub fn register_lead_scoring_keywords(
 
     debug!("Lead scoring keywords registered successfully");
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_module_structure() {
-        // This test verifies the module compiles correctly
-        // Actual function tests are in the crm/score_lead.rs module
-        assert!(true);
-    }
-}

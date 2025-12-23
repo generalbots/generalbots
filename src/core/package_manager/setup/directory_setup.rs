@@ -496,17 +496,3 @@ TLS:
     fs::write(config_path, yaml_config).await?;
     Ok(())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_directory_setup_creation() {
-        let setup = DirectorySetup::new(
-            "http://localhost:8080".to_string(),
-            PathBuf::from("/tmp/directory_config.json"),
-        );
-        assert_eq!(setup.base_url, "http://localhost:8080");
-    }
-}

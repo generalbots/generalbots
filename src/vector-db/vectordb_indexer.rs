@@ -1,5 +1,6 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
+use diesel::RunQueryDsl;
 use log::{error, info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -70,7 +71,6 @@ pub struct IndexingStats {
 }
 
 /// User indexing job
-#[derive(Debug)]
 struct UserIndexingJob {
     user_id: Uuid,
     bot_id: Uuid,
@@ -238,7 +238,7 @@ impl VectorDBIndexer {
         // Initialize vector DBs if needed
         if job.email_db.is_none() {
             let mut email_db =
-                UserEmailVectorDB::new(user_id, bot_id, job.workspace.email_vectordb());
+                UserEmailVectorDB::new(user_id, bot_id, job.workspace.email_vectordb().into());
             if let Err(e) = email_db.initialize(&self.qdrant_url).await {
                 warn!(
                     "Failed to initialize email vector DB for user {}: {}",
@@ -251,7 +251,7 @@ impl VectorDBIndexer {
 
         if job.drive_db.is_none() {
             let mut drive_db =
-                UserDriveVectorDB::new(user_id, bot_id, job.workspace.drive_vectordb());
+                UserDriveVectorDB::new(user_id, bot_id, job.workspace.drive_vectordb().into());
             if let Err(e) = drive_db.initialize(&self.qdrant_url).await {
                 warn!(
                     "Failed to initialize drive vector DB for user {}: {}",
@@ -436,20 +436,19 @@ impl VectorDBIndexer {
 
             let mut db_conn = conn.get()?;
 
+            #[derive(diesel::QueryableByName)]
+            struct AccountIdRow {
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                id: String,
+            }
+
             let results: Vec<String> = diesel::sql_query(
                 "SELECT id::text FROM user_email_accounts WHERE user_id = $1 AND is_active = true",
             )
             .bind::<diesel::sql_types::Uuid, _>(user_id)
-            .load(&mut db_conn)?
+            .load::<AccountIdRow>(&mut db_conn)?
             .into_iter()
-            .filter_map(|row: diesel::QueryableByName<diesel::pg::Pg>| {
-                use diesel::sql_types::Text;
-                let id: Result<String, _> = <String as diesel::deserialize::FromSql<
-                    Text,
-                    diesel::pg::Pg,
-                >>::from_sql(row.get("id").ok()?);
-                id.ok()
-            })
+            .map(|row| row.id)
             .collect();
 
             Ok::<_, anyhow::Error>(results)
@@ -466,7 +465,30 @@ impl VectorDBIndexer {
         let account_id = account_id.to_string();
 
         let results = tokio::task::spawn_blocking(move || {
+            use diesel::prelude::*;
             let mut conn = pool.get()?;
+
+            #[derive(diesel::QueryableByName)]
+            struct EmailRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                message_id: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                subject: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                from_address: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                to_addresses: String,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+                body_text: Option<String>,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+                body_html: Option<String>,
+                #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+                received_at: DateTime<Utc>,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                folder: String,
+            }
 
             let query = r#"
                 SELECT e.id, e.message_id, e.subject, e.from_address, e.to_addresses,
@@ -480,61 +502,29 @@ impl VectorDBIndexer {
                 LIMIT 100
             "#;
 
-            let rows: Vec<(
-                Uuid,
-                String,
-                String,
-                String,
-                String,
-                Option<String>,
-                Option<String>,
-                DateTime<Utc>,
-                String,
-            )> = diesel::sql_query(query)
+            let rows: Vec<EmailRow> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
                 .bind::<diesel::sql_types::Text, _>(&account_id)
-                .load::<(
-                    Uuid,
-                    String,
-                    String,
-                    String,
-                    String,
-                    Option<String>,
-                    Option<String>,
-                    DateTime<Utc>,
-                    String,
-                )>(&mut conn)
+                .load(&mut conn)
                 .unwrap_or_default();
 
             let emails: Vec<EmailDocument> = rows
                 .into_iter()
-                .map(
-                    |(
-                        id,
-                        message_id,
-                        subject,
-                        from,
-                        to,
-                        body_text,
-                        body_html,
-                        received_at,
-                        folder,
-                    )| {
-                        EmailDocument {
-                            id: id.to_string(),
-                            account_id: account_id.clone(),
-                            from_email: from.clone(),
-                            from_name: from,
-                            to_email: to,
-                            subject,
-                            body_text: body_text.unwrap_or_default(),
-                            date: received_at,
-                            folder,
-                            has_attachments: false,
-                            thread_id: None,
-                        }
-                    },
-                )
+                .map(|row| {
+                    EmailDocument {
+                        id: row.id.to_string(),
+                        account_id: account_id.clone(),
+                        from_email: row.from_address.clone(),
+                        from_name: row.from_address,
+                        to_email: row.to_addresses,
+                        subject: row.subject,
+                        body_text: row.body_text.unwrap_or_default(),
+                        date: row.received_at,
+                        folder: row.folder,
+                        has_attachments: false,
+                        thread_id: None,
+                    }
+                })
                 .collect();
 
             Ok::<_, anyhow::Error>(emails)
@@ -551,7 +541,30 @@ impl VectorDBIndexer {
         let pool = self.db_pool.clone();
 
         let results = tokio::task::spawn_blocking(move || {
+            use diesel::prelude::*;
             let mut conn = pool.get()?;
+
+            #[derive(diesel::QueryableByName)]
+            struct FileRow {
+                #[diesel(sql_type = diesel::sql_types::Uuid)]
+                id: Uuid,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                file_path: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                file_name: String,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                file_type: String,
+                #[diesel(sql_type = diesel::sql_types::BigInt)]
+                file_size: i64,
+                #[diesel(sql_type = diesel::sql_types::Text)]
+                bucket: String,
+                #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+                mime_type: Option<String>,
+                #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+                created_at: DateTime<Utc>,
+                #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+                modified_at: DateTime<Utc>,
+            }
 
             let query = r#"
                 SELECT f.id, f.file_path, f.file_name, f.file_type, f.file_size,
@@ -565,52 +578,30 @@ impl VectorDBIndexer {
                 LIMIT 100
             "#;
 
-            let rows: Vec<(
-                Uuid,
-                String,
-                String,
-                String,
-                i64,
-                String,
-                Option<String>,
-                DateTime<Utc>,
-                DateTime<Utc>,
-            )> = diesel::sql_query(query)
+            let rows: Vec<FileRow> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
-                .load::<(Uuid, String, String, i64, DateTime<Utc>)>(&mut conn)
+                .load(&mut conn)
                 .unwrap_or_default();
 
             let files: Vec<FileDocument> = rows
                 .into_iter()
-                .map(
-                    |(
-                        id,
-                        file_path,
-                        file_name,
-                        file_type,
-                        file_size,
-                        bucket,
-                        mime_type,
-                        created_at,
-                        modified_at,
-                    )| {
-                        FileDocument {
-                            id: id.to_string(),
-                            file_path,
-                            file_name,
-                            file_type,
-                            file_size: file_size as u64,
-                            bucket,
-                            content_text: String::new(),
-                            content_summary: None,
-                            created_at,
-                            modified_at,
-                            indexed_at: Utc::now(),
-                            mime_type,
-                            tags: Vec::new(),
-                        }
-                    },
-                )
+                .map(|row| {
+                    FileDocument {
+                        id: row.id.to_string(),
+                        file_path: row.file_path,
+                        file_name: row.file_name,
+                        file_type: row.file_type,
+                        file_size: row.file_size as u64,
+                        bucket: row.bucket,
+                        content_text: String::new(),
+                        content_summary: None,
+                        created_at: row.created_at,
+                        modified_at: row.modified_at,
+                        indexed_at: Utc::now(),
+                        mime_type: row.mime_type,
+                        tags: Vec::new(),
+                    }
+                })
                 .collect();
 
             Ok::<_, anyhow::Error>(files)
@@ -680,25 +671,5 @@ impl VectorDBIndexer {
     pub async fn trigger_user_indexing(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
         info!(" Triggering immediate indexing for user {}", user_id);
         self.index_user_data(user_id, bot_id).await
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_indexing_stats_creation() {
-        let stats = IndexingStats {
-            emails_indexed: 10,
-            files_indexed: 5,
-            emails_pending: 2,
-            files_pending: 3,
-            last_run: Some(Utc::now()),
-            errors: 0,
-        };
-
-        assert_eq!(stats.emails_indexed, 10);
-        assert_eq!(stats.files_indexed, 5);
     }
 }
