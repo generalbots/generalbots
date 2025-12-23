@@ -1,49 +1,49 @@
-//! Knowledge Graph - Entity Relationship Management
-//!
-//! This module provides knowledge graph capabilities for tracking relationships
-//! between entities mentioned in conversations. It enables:
-//!
-//! - Entity extraction from text
-//! - Relationship mapping between entities
-//! - Graph queries for complex questions
-//! - Integration with RAG for context enrichment
-//!
-//! ## BASIC Keywords
-//!
-//! ```basic
-//! ' Extract entities from text
-//! EXTRACT ENTITIES FROM text INTO KNOWLEDGE GRAPH
-//!
-//! ' Query the knowledge graph
-//! results = QUERY GRAPH "people who work on Project Alpha"
-//!
-//! ' Add entity manually
-//! ADD ENTITY "John Smith" TYPE "person" WITH {"department": "Sales"}
-//!
-//! ' Add relationship
-//! ADD RELATIONSHIP "John Smith" -> "works_on" -> "Project Alpha"
-//!
-//! ' Get entity details
-//! entity = GET ENTITY "John Smith"
-//!
-//! ' Find related entities
-//! related = GET RELATED "Project Alpha" BY "works_on"
-//!
-//! ' Delete entity
-//! DELETE ENTITY "John Smith"
-//! ```
-//!
-//! ## Config.csv Properties
-//!
-//! ```csv
-//! name,value
-//! knowledge-graph-enabled,true
-//! knowledge-graph-backend,postgresql
-//! knowledge-graph-extract-entities,true
-//! knowledge-graph-extraction-model,quality
-//! knowledge-graph-max-entities,10000
-//! knowledge-graph-max-relationships,50000
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
@@ -52,32 +52,32 @@ use std::collections::HashMap;
 use tracing::info;
 use uuid::Uuid;
 
-/// Entity in the knowledge graph
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgEntity {
-    /// Unique identifier
+
     pub id: Uuid,
-    /// Bot ID this entity belongs to
+
     pub bot_id: Uuid,
-    /// Entity type (person, organization, project, product, etc.)
+
     pub entity_type: String,
-    /// Entity name (canonical form)
+
     pub entity_name: String,
-    /// Alternative names/aliases
+
     pub aliases: Vec<String>,
-    /// Entity properties
+
     pub properties: serde_json::Value,
-    /// Confidence score (0-1) if extracted automatically
+
     pub confidence: f64,
-    /// Source of the entity (manual, extracted, imported)
+
     pub source: EntitySource,
-    /// When the entity was created
+
     pub created_at: DateTime<Utc>,
-    /// When the entity was last updated
+
     pub updated_at: DateTime<Utc>,
 }
 
-/// Source of entity creation
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum EntitySource {
@@ -93,120 +93,120 @@ impl Default for EntitySource {
     }
 }
 
-/// Relationship between two entities
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgRelationship {
-    /// Unique identifier
+
     pub id: Uuid,
-    /// Bot ID this relationship belongs to
+
     pub bot_id: Uuid,
-    /// Source entity ID
+
     pub from_entity_id: Uuid,
-    /// Target entity ID
+
     pub to_entity_id: Uuid,
-    /// Relationship type (works_on, reports_to, owns, etc.)
+
     pub relationship_type: String,
-    /// Relationship properties (strength, since, etc.)
+
     pub properties: serde_json::Value,
-    /// Confidence score (0-1) if extracted automatically
+
     pub confidence: f64,
-    /// Whether this is a bidirectional relationship
+
     pub bidirectional: bool,
-    /// Source of the relationship
+
     pub source: EntitySource,
-    /// When the relationship was created
+
     pub created_at: DateTime<Utc>,
 }
 
-/// Entity extraction result from text
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedEntity {
-    /// Entity name as found in text
+
     pub name: String,
-    /// Normalized/canonical name
+
     pub canonical_name: String,
-    /// Entity type
+
     pub entity_type: String,
-    /// Start position in text
+
     pub start_pos: usize,
-    /// End position in text
+
     pub end_pos: usize,
-    /// Confidence score
+
     pub confidence: f64,
-    /// Additional properties extracted
+
     pub properties: serde_json::Value,
 }
 
-/// Extracted relationship from text
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedRelationship {
-    /// Source entity name
+
     pub from_entity: String,
-    /// Target entity name
+
     pub to_entity: String,
-    /// Relationship type
+
     pub relationship_type: String,
-    /// Confidence score
+
     pub confidence: f64,
-    /// Supporting text snippet
+
     pub evidence: String,
 }
 
-/// Knowledge graph extraction result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionResult {
-    /// Extracted entities
+
     pub entities: Vec<ExtractedEntity>,
-    /// Extracted relationships
+
     pub relationships: Vec<ExtractedRelationship>,
-    /// Processing metadata
+
     pub metadata: ExtractionMetadata,
 }
 
-/// Metadata about the extraction process
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionMetadata {
-    /// Model used for extraction
+
     pub model: String,
-    /// Processing time in milliseconds
+
     pub processing_time_ms: u64,
-    /// Number of tokens processed
+
     pub tokens_processed: usize,
-    /// Source text length
+
     pub text_length: usize,
 }
 
-/// Query result from the knowledge graph
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQueryResult {
-    /// Matching entities
+
     pub entities: Vec<KgEntity>,
-    /// Relationships between matched entities
+
     pub relationships: Vec<KgRelationship>,
-    /// Query explanation
+
     pub explanation: String,
-    /// Confidence in the result
+
     pub confidence: f64,
 }
 
-/// Configuration for knowledge graph
+
 #[derive(Debug, Clone)]
 pub struct KnowledgeGraphConfig {
-    /// Whether knowledge graph is enabled
+
     pub enabled: bool,
-    /// Backend storage (postgresql, neo4j, etc.)
+
     pub backend: String,
-    /// Whether to auto-extract entities from conversations
+
     pub extract_entities: bool,
-    /// Model to use for entity extraction
+
     pub extraction_model: String,
-    /// Maximum entities per bot
+
     pub max_entities: usize,
-    /// Maximum relationships per bot
+
     pub max_relationships: usize,
-    /// Minimum confidence threshold for extraction
+
     pub min_confidence: f64,
-    /// Entity types to extract
+
     pub entity_types: Vec<String>,
 }
 
@@ -233,19 +233,19 @@ impl Default for KnowledgeGraphConfig {
     }
 }
 
-/// Knowledge Graph Manager
+
 #[derive(Debug)]
 pub struct KnowledgeGraphManager {
     config: KnowledgeGraphConfig,
 }
 
 impl KnowledgeGraphManager {
-    /// Create a new knowledge graph manager
+
     pub fn new(config: KnowledgeGraphConfig) -> Self {
         KnowledgeGraphManager { config }
     }
 
-    /// Create from config map
+
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = KnowledgeGraphConfig {
             enabled: config_map
@@ -284,7 +284,7 @@ impl KnowledgeGraphManager {
         KnowledgeGraphManager::new(config)
     }
 
-    /// Generate entity extraction prompt
+
     pub fn generate_extraction_prompt(&self, text: &str) -> String {
         let entity_types = self.config.entity_types.join(", ");
 
@@ -320,7 +320,7 @@ Respond with valid JSON only:
         )
     }
 
-    /// Generate graph query prompt
+
     pub fn generate_query_prompt(&self, query: &str, context: &str) -> String {
         format!(
             r#"Answer this question using the knowledge graph context.
@@ -336,7 +336,7 @@ If the information is not available, say so clearly.
         )
     }
 
-    /// Parse extraction response from LLM
+
     pub fn parse_extraction_response(
         &self,
         response: &str,
@@ -395,18 +395,18 @@ If the information is not available, say so clearly.
             metadata: ExtractionMetadata {
                 model: self.config.extraction_model.clone(),
                 processing_time_ms,
-                tokens_processed: text_length / 4, // Rough estimate
+                tokens_processed: text_length / 4,
                 text_length,
             },
         })
     }
 
-    /// Check if extraction should run
+
     pub fn should_extract(&self) -> bool {
         self.config.enabled && self.config.extract_entities
     }
 
-    /// Validate entity type
+
     pub fn is_valid_entity_type(&self, entity_type: &str) -> bool {
         self.config
             .entity_types
@@ -415,16 +415,16 @@ If the information is not available, say so clearly.
     }
 }
 
-/// Extract JSON from LLM response
+
 fn extract_json(response: &str) -> Result<String, String> {
-    // Try to find JSON in code blocks first
+
     if let Some(start) = response.find("```json") {
         if let Some(end) = response[start + 7..].find("```") {
             return Ok(response[start + 7..start + 7 + end].trim().to_string());
         }
     }
 
-    // Try to find JSON in generic code blocks
+
     if let Some(start) = response.find("```") {
         let after_start = start + 3;
         let json_start = response[after_start..]
@@ -436,7 +436,7 @@ fn extract_json(response: &str) -> Result<String, String> {
         }
     }
 
-    // Try to find raw JSON
+
     if let Some(start) = response.find('{') {
         if let Some(end) = response.rfind('}') {
             if end > start {
@@ -448,7 +448,7 @@ fn extract_json(response: &str) -> Result<String, String> {
     Err("No JSON found in response".to_string())
 }
 
-/// Convert KgEntity to Rhai Dynamic
+
 impl KgEntity {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -478,7 +478,7 @@ impl KgEntity {
     }
 }
 
-/// Convert KgRelationship to Rhai Dynamic
+
 impl KgRelationship {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -507,7 +507,7 @@ impl KgRelationship {
     }
 }
 
-/// Convert JSON value to Rhai Dynamic
+
 fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     match value {
         serde_json::Value::Null => Dynamic::UNIT,
@@ -536,9 +536,9 @@ fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     }
 }
 
-/// Register knowledge graph keywords with Rhai engine
+
 pub fn register_knowledge_graph_keywords(engine: &mut Engine) {
-    // Helper functions for working with entities in scripts
+
 
     engine.register_fn("entity_name", |entity: Map| -> String {
         entity
@@ -576,7 +576,7 @@ pub fn register_knowledge_graph_keywords(engine: &mut Engine) {
     info!("Knowledge graph keywords registered");
 }
 
-/// SQL for creating knowledge graph tables
+
 pub const KNOWLEDGE_GRAPH_SCHEMA: &str = r#"
 -- Knowledge graph entities
 CREATE TABLE IF NOT EXISTS kg_entities (
@@ -627,7 +627,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_entities_name_fts ON kg_entities
     USING GIN(to_tsvector('english', entity_name));
 "#;
 
-/// SQL for knowledge graph operations
+
 pub mod sql {
     pub const INSERT_ENTITY: &str = r#"
         INSERT INTO kg_entities (
@@ -767,7 +767,7 @@ pub mod sql {
         ORDER BY count DESC
     "#;
 
-    /// Graph traversal query (find path between two entities)
+
     pub const FIND_PATH: &str = r#"
         WITH RECURSIVE path_finder AS (
             -- Base case: start from source entity
@@ -802,7 +802,7 @@ pub mod sql {
     "#;
 }
 
-/// Common relationship types
+
 pub mod relationship_types {
     pub const WORKS_ON: &str = "works_on";
     pub const REPORTS_TO: &str = "reports_to";
@@ -820,7 +820,7 @@ pub mod relationship_types {
     pub const ALIAS_OF: &str = "alias_of";
 }
 
-/// Common entity types
+
 pub mod entity_types {
     pub const PERSON: &str = "person";
     pub const ORGANIZATION: &str = "organization";

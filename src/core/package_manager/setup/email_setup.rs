@@ -5,7 +5,7 @@ use std::time::Duration;
 use tokio::fs;
 use tokio::time::sleep;
 
-/// Email (Stalwart) auto-setup manager
+
 #[derive(Debug)]
 pub struct EmailSetup {
     base_url: String,
@@ -34,7 +34,7 @@ pub struct EmailDomain {
 
 impl EmailSetup {
     pub fn new(base_url: String, config_path: PathBuf) -> Self {
-        // Generate dynamic credentials
+
         let admin_user = format!(
             "admin_{}@botserver.local",
             uuid::Uuid::new_v4()
@@ -53,7 +53,7 @@ impl EmailSetup {
         }
     }
 
-    /// Generate a secure random password
+
     fn generate_secure_password() -> String {
         use rand::distr::Alphanumeric;
         use rand::Rng;
@@ -66,12 +66,12 @@ impl EmailSetup {
             .collect()
     }
 
-    /// Wait for email service to be ready
+
     pub async fn wait_for_ready(&self, max_attempts: u32) -> Result<()> {
         log::info!("Waiting for Email service to be ready...");
 
         for attempt in 1..=max_attempts {
-            // Check SMTP port
+
             if let Ok(_) = tokio::net::TcpStream::connect("127.0.0.1:25").await {
                 log::info!("Email service is ready!");
                 return Ok(());
@@ -88,27 +88,27 @@ impl EmailSetup {
         anyhow::bail!("Email service did not become ready in time")
     }
 
-    /// Initialize email server with default configuration
+
     pub async fn initialize(
         &mut self,
         directory_config_path: Option<PathBuf>,
     ) -> Result<EmailConfig> {
         log::info!(" Initializing Email (Stalwart) server...");
 
-        // Check if already initialized
+
         if let Ok(existing_config) = self.load_existing_config().await {
             log::info!("Email already initialized, using existing config");
             return Ok(existing_config);
         }
 
-        // Wait for service to be ready
+
         self.wait_for_ready(30).await?;
 
-        // Create default domain
+
         self.create_default_domain().await?;
         log::info!(" Created default email domain: localhost");
 
-        // Set up Directory (Zitadel) integration if available
+
         let directory_integration = if let Some(dir_config_path) = directory_config_path {
             match self.setup_directory_integration(&dir_config_path).await {
                 Ok(_) => {
@@ -124,7 +124,7 @@ impl EmailSetup {
             false
         };
 
-        // Create admin account
+
         self.create_admin_account().await?;
         log::info!(" Created admin email account: {}", self.admin_user);
 
@@ -139,7 +139,7 @@ impl EmailSetup {
             directory_integration,
         };
 
-        // Save configuration
+
         self.save_config(&config).await?;
         log::info!(" Saved Email configuration");
 
@@ -151,14 +151,14 @@ impl EmailSetup {
         Ok(config)
     }
 
-    /// Create default email domain
+
     async fn create_default_domain(&self) -> Result<()> {
-        // Stalwart auto-creates domains based on config
-        // For now, ensure localhost domain exists
+
+
         Ok(())
     }
 
-    /// Create admin email account via Stalwart management API
+
     async fn create_admin_account(&self) -> Result<()> {
         log::info!("Creating admin email account via Stalwart API...");
 
@@ -166,14 +166,14 @@ impl EmailSetup {
             .timeout(Duration::from_secs(30))
             .build()?;
 
-        // Stalwart management API endpoint for account creation
+
         let api_url = format!("{}/api/account", self.base_url);
 
         let account_data = serde_json::json!({
             "name": self.admin_user,
             "secret": self.admin_pass,
             "description": "BotServer Admin Account",
-            "quota": 1073741824,  // 1GB quota
+            "quota": 1073741824,
             "type": "individual",
             "emails": [self.admin_user.clone()],
             "memberOf": ["administrators"],
@@ -196,7 +196,7 @@ impl EmailSetup {
                     );
                     Ok(())
                 } else if resp.status().as_u16() == 409 {
-                    // Account already exists
+
                     log::info!("Admin email account already exists: {}", self.admin_user);
                     Ok(())
                 } else {
@@ -207,7 +207,7 @@ impl EmailSetup {
                         status,
                         error_text
                     );
-                    // Don't fail setup if account creation fails - may be configured differently
+
                     Ok(())
                 }
             }
@@ -216,13 +216,13 @@ impl EmailSetup {
                     "Could not connect to Stalwart management API: {}. Account may need manual setup.",
                     e
                 );
-                // Don't fail setup - Stalwart may not have management API enabled
+
                 Ok(())
             }
         }
     }
 
-    /// Set up Directory (Zitadel) integration for authentication
+
     async fn setup_directory_integration(&self, directory_config_path: &PathBuf) -> Result<()> {
         let content = fs::read_to_string(directory_config_path).await?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
@@ -234,31 +234,31 @@ impl EmailSetup {
         log::info!("Setting up OIDC authentication with Directory...");
         log::info!("Issuer URL: {}", issuer_url);
 
-        // Configure Stalwart to use Zitadel for authentication
-        // This would typically be done via config file updates
+
+
         Ok(())
     }
 
-    /// Save configuration to file
+
     async fn save_config(&self, config: &EmailConfig) -> Result<()> {
         let json = serde_json::to_string_pretty(config)?;
         fs::write(&self.config_path, json).await?;
         Ok(())
     }
 
-    /// Load existing configuration
+
     async fn load_existing_config(&self) -> Result<EmailConfig> {
         let content = fs::read_to_string(&self.config_path).await?;
         let config: EmailConfig = serde_json::from_str(&content)?;
         Ok(config)
     }
 
-    /// Get stored configuration
+
     pub async fn get_config(&self) -> Result<EmailConfig> {
         self.load_existing_config().await
     }
 
-    /// Create email account for Directory user
+
     pub async fn create_user_mailbox(
         &self,
         _username: &str,
@@ -267,20 +267,20 @@ impl EmailSetup {
     ) -> Result<()> {
         log::info!("Creating mailbox for user: {}", email);
 
-        // Implement Stalwart mailbox creation
-        // This would use Stalwart's management API
+
+
 
         Ok(())
     }
 
-    /// Sync users from Directory to Email
+
     pub async fn sync_users_from_directory(&self, directory_config_path: &PathBuf) -> Result<()> {
         log::info!("Syncing users from Directory to Email...");
 
         let content = fs::read_to_string(directory_config_path).await?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
 
-        // Get default user from Directory
+
         if let Some(default_user) = dir_config.get("default_user") {
             let email = default_user["email"].as_str().unwrap_or("");
             let password = default_user["password"].as_str().unwrap_or("");
@@ -296,7 +296,7 @@ impl EmailSetup {
     }
 }
 
-/// Generate Stalwart email server configuration
+
 pub async fn generate_email_config(
     config_path: PathBuf,
     data_path: PathBuf,
@@ -352,7 +352,7 @@ store = "sqlite"
         data_path.display()
     );
 
-    // Add Directory (Zitadel) OIDC integration if enabled
+
     if directory_integration {
         config.push_str(
             r#"

@@ -151,7 +151,7 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let handler = llm_models::get_handler(&model);
 
-        // Log which handler is being used for thinking detection
+
         trace!("Using model handler for {}", model);
 
         #[cfg(feature = "nvidia")]
@@ -178,10 +178,10 @@ impl BotOrchestrator {
         while let Some(chunk) = stream_rx.recv().await {
             trace!("Received LLM chunk: {:?}", chunk);
 
-            // Accumulate chunk for analysis detection
+
             analysis_buffer.push_str(&chunk);
 
-            // Check if we're entering thinking/analysis mode
+
             if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
                 log::debug!(
@@ -189,13 +189,13 @@ impl BotOrchestrator {
                     model
                 );
 
-                // Extract content before thinking marker if any
+
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() && processed != analysis_buffer {
-                    // There was content before the thinking marker
+
                     full_response.push_str(&processed);
 
-                    // Send the pre-thinking content to user
+
                     let response = BotResponse {
                         bot_id: message.bot_id.clone(),
                         user_id: message.user_id.clone(),
@@ -216,10 +216,10 @@ impl BotOrchestrator {
                         break;
                     }
                 }
-                continue; // Skip sending thinking content
+                continue;
             }
 
-            // Check if thinking/analysis is complete
+
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
                 log::debug!(
@@ -227,12 +227,12 @@ impl BotOrchestrator {
                     model
                 );
 
-                // Process to remove thinking markers and get clean content
+
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() {
                     full_response.push_str(&processed);
 
-                    // Send the processed content
+
                     let response = BotResponse {
                         bot_id: message.bot_id.clone(),
                         user_id: message.user_id.clone(),
@@ -258,13 +258,13 @@ impl BotOrchestrator {
                 continue;
             }
 
-            // If we're in analysis mode, accumulate but don't send
+
             if in_analysis {
                 trace!("Accumulating thinking content, not sending to user");
                 continue;
             }
 
-            // Normal content - send to user
+
             if !in_analysis {
                 full_response.push_str(&chunk);
 
@@ -597,7 +597,7 @@ pub async fn send_warning_handler(
     let orchestrator = BotOrchestrator::new(state);
     info!("Orchestrator created for warning");
 
-    // Use orchestrator to log state
+
     if let Ok(sessions) = orchestrator.get_user_sessions(Uuid::nil()).await {
         info!("Current active sessions: {}", sessions.len());
     }

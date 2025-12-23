@@ -12,7 +12,7 @@ use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
-// Request/Response Types
+
 
 #[derive(Debug, Deserialize)]
 pub struct CreateGroupRequest {
@@ -89,9 +89,9 @@ pub struct ErrorResponse {
     pub details: Option<String>,
 }
 
-// Group Management Handlers
 
-/// Create a new organization/group in Zitadel
+
+
 pub async fn create_group(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateGroupRequest>,
@@ -103,7 +103,7 @@ pub async fn create_group(
         auth_service.client().clone()
     };
 
-    // Create group metadata in Zitadel
+
     let metadata_key = format!("group_{}", Uuid::new_v4());
     let metadata_value = serde_json::json!({
         "name": req.name,
@@ -113,7 +113,7 @@ pub async fn create_group(
     })
     .to_string();
 
-    // Store group metadata using Zitadel's metadata API
+
     match client
         .http_post(format!("{}/metadata/organization", client.api_url()))
         .await
@@ -155,7 +155,7 @@ pub async fn create_group(
     }
 }
 
-/// Update an existing group
+
 pub async fn update_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
@@ -168,7 +168,7 @@ pub async fn update_group(
         auth_service.client().clone()
     };
 
-    // Build update payload
+
     let mut update_data = serde_json::Map::new();
     if let Some(name) = &req.name {
         update_data.insert("name".to_string(), serde_json::json!(name));
@@ -184,7 +184,7 @@ pub async fn update_group(
         serde_json::json!(chrono::Utc::now().to_rfc3339()),
     );
 
-    // Update group metadata using Zitadel's metadata API
+
     match client
         .http_put(format!(
             "{}/metadata/organization/{}",
@@ -229,7 +229,7 @@ pub async fn update_group(
     }
 }
 
-/// Delete a group
+
 pub async fn delete_group(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
@@ -241,7 +241,7 @@ pub async fn delete_group(
         auth_service.client().clone()
     };
 
-    // Verify organization exists
+
     match client.get_organization(&group_id).await {
         Ok(_) => {
             info!("Group {} deleted/deactivated", group_id);
@@ -264,7 +264,7 @@ pub async fn delete_group(
     }
 }
 
-/// List all groups with pagination
+
 pub async fn list_groups(
     State(state): State<Arc<AppState>>,
     Query(params): Query<GroupQuery>,
@@ -279,7 +279,7 @@ pub async fn list_groups(
         auth_service.client().clone()
     };
 
-    // Fetch all group metadata from Zitadel
+
     match client
         .http_get(format!("{}/metadata/organization", client.api_url()))
         .await
@@ -360,7 +360,7 @@ pub async fn list_groups(
     }
 }
 
-/// Get members of a group
+
 pub async fn get_group_members(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
@@ -372,7 +372,7 @@ pub async fn get_group_members(
         auth_service.client().clone()
     };
 
-    // Fetch group metadata to get member list
+
     match client
         .http_get(format!(
             "{}/metadata/organization/{}",
@@ -389,12 +389,12 @@ pub async fn get_group_members(
             if let Some(value_str) = metadata.get("value").and_then(|v| v.as_str()) {
                 if let Ok(group_data) = serde_json::from_str::<serde_json::Value>(value_str) {
                     if let Some(member_ids) = group_data.get("members").and_then(|m| m.as_array()) {
-                        // Fetch details for each member
+
                         let mut members = Vec::new();
 
                         for member_id in member_ids {
                             if let Some(user_id) = member_id.as_str() {
-                                // Fetch user details from Zitadel
+
                                 if let Ok(user_response) = client
                                     .http_get(format!("{}/users/{}", client.api_url(), user_id))
                                     .await
@@ -430,7 +430,7 @@ pub async fn get_group_members(
                 }
             }
 
-            // Group exists but has no members
+
             info!("Group {} has no members", group_id);
             Ok(Json(vec![]))
         }
@@ -457,7 +457,7 @@ pub async fn get_group_members(
     }
 }
 
-/// Add a member to a group
+
 pub async fn add_group_member(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
@@ -470,7 +470,7 @@ pub async fn add_group_member(
         auth_service.client().clone()
     };
 
-    // Add member to organization in Zitadel
+
     let roles = req.roles.unwrap_or_else(|| vec!["ORG_USER".to_string()]);
 
     match client.add_org_member(&group_id, &req.user_id, roles).await {
@@ -501,7 +501,7 @@ pub async fn add_group_member(
     }
 }
 
-/// Remove a member from a group
+
 pub async fn remove_group_member(
     State(state): State<Arc<AppState>>,
     Path(group_id): Path<String>,
@@ -514,7 +514,7 @@ pub async fn remove_group_member(
         auth_service.client().clone()
     };
 
-    // Remove member from organization in Zitadel
+
     match client.remove_org_member(&group_id, &req.user_id).await {
         Ok(_) => {
             info!(

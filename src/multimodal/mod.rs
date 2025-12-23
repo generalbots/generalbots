@@ -1,5 +1,5 @@
-//! Multimodal module for botmodels integration
-//! Provides client for image, video, audio generation and vision/captioning
+
+
 
 use crate::config::ConfigManager;
 use crate::shared::state::AppState;
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Configuration for botmodels connection
+
 #[derive(Debug, Clone)]
 pub struct BotModelsConfig {
     pub enabled: bool,
@@ -62,7 +62,7 @@ impl BotModelsConfig {
     }
 }
 
-/// Image generation configuration
+
 #[derive(Debug, Clone)]
 pub struct ImageGeneratorConfig {
     pub model: String,
@@ -108,7 +108,7 @@ impl ImageGeneratorConfig {
     }
 }
 
-/// Video generation configuration
+
 #[derive(Debug, Clone)]
 pub struct VideoGeneratorConfig {
     pub model: String,
@@ -160,7 +160,7 @@ impl VideoGeneratorConfig {
     }
 }
 
-// API Request/Response types
+
 
 #[derive(Debug, Serialize)]
 pub struct ImageGenerateRequest {
@@ -226,7 +226,7 @@ pub struct SpeechToTextResponse {
     pub confidence: Option<f64>,
 }
 
-/// BotModels client for multimodal operations
+
 #[derive(Debug)]
 pub struct BotModelsClient {
     client: Client,
@@ -242,8 +242,8 @@ impl BotModelsClient {
         video_config: VideoGeneratorConfig,
     ) -> Self {
         let client = Client::builder()
-            .danger_accept_invalid_certs(true) // For self-signed certs in dev
-            .timeout(std::time::Duration::from_secs(300)) // 5 min timeout for generation
+            .danger_accept_invalid_certs(true)
+            .timeout(std::time::Duration::from_secs(300))
             .build()
             .unwrap_or_else(|_| Client::new());
 
@@ -267,7 +267,7 @@ impl BotModelsClient {
         self.config.enabled
     }
 
-    /// Generate an image from a text prompt
+
     pub async fn generate_image(
         &self,
         prompt: &str,
@@ -318,7 +318,7 @@ impl BotModelsClient {
             .into())
     }
 
-    /// Generate a video from a text prompt
+
     pub async fn generate_video(
         &self,
         prompt: &str,
@@ -368,7 +368,7 @@ impl BotModelsClient {
             .into())
     }
 
-    /// Generate audio/speech from text
+
     pub async fn generate_audio(
         &self,
         text: &str,
@@ -418,7 +418,7 @@ impl BotModelsClient {
             .into())
     }
 
-    /// Get caption/description for an image
+
     pub async fn describe_image(
         &self,
         image_url_or_path: &str,
@@ -430,7 +430,7 @@ impl BotModelsClient {
         let url = format!("{}/api/vision/describe", self.config.base_url());
         trace!("Describing image at {}: {}", url, image_url_or_path);
 
-        // If it's a URL, download the image first
+
         let image_data = if image_url_or_path.starts_with("http") {
             let response = self.client.get(image_url_or_path).send().await?;
             response.bytes().await?.to_vec()
@@ -464,7 +464,7 @@ impl BotModelsClient {
         Ok(result.description)
     }
 
-    /// Get caption/description for a video
+
     pub async fn describe_video(
         &self,
         video_url_or_path: &str,
@@ -509,7 +509,7 @@ impl BotModelsClient {
         Ok(result.description)
     }
 
-    /// Convert speech to text
+
     pub async fn speech_to_text(
         &self,
         audio_url_or_path: &str,
@@ -558,7 +558,7 @@ impl BotModelsClient {
         Ok(result.text)
     }
 
-    /// Check if botmodels server is healthy
+
     pub async fn health_check(&self) -> bool {
         if !self.config.enabled {
             return false;
@@ -571,7 +571,7 @@ impl BotModelsClient {
         }
     }
 
-    /// Download generated file to local path
+
     pub async fn download_file(
         &self,
         url: &str,
@@ -584,7 +584,7 @@ impl BotModelsClient {
     }
 }
 
-/// Ensure botmodels server is running (similar to llama.cpp startup)
+
 pub async fn ensure_botmodels_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -637,7 +637,7 @@ pub async fn ensure_botmodels_running(
         },
     );
 
-    // Check if already running
+
     if client.health_check().await {
         info!("BotModels server is already running and healthy");
         return Ok(());

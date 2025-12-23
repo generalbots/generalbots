@@ -1,6 +1,6 @@
-//! Document Processing Module
-//!
-//! Provides document manipulation operations including merge, convert, fill, export, and import.
+
+
+
 
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde::{Deserialize, Serialize};
@@ -8,7 +8,7 @@ use std::sync::Arc;
 
 use crate::shared::state::AppState;
 
-// ===== Request/Response Structures =====
+
 
 #[derive(Debug, Deserialize)]
 pub struct MergeDocumentsRequest {
@@ -60,9 +60,9 @@ pub struct DocumentResponse {
     pub metadata: Option<serde_json::Value>,
 }
 
-// ===== Document Processing Handlers =====
 
-/// POST /docs/merge - Merge multiple documents into one
+
+
 pub async fn merge_documents(
     State(state): State<Arc<AppState>>,
     Json(req): Json<MergeDocumentsRequest>,
@@ -149,7 +149,7 @@ pub async fn merge_documents(
     }))
 }
 
-/// POST /docs/convert - Convert document between formats
+
 pub async fn convert_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ConvertDocumentRequest>,
@@ -329,7 +329,7 @@ pub async fn convert_document(
     }))
 }
 
-/// POST /docs/fill - Fill document template with data
+
 pub async fn fill_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<FillDocumentRequest>,
@@ -414,7 +414,7 @@ pub async fn fill_document(
     }))
 }
 
-/// POST /docs/export - Export document in specified format
+
 pub async fn export_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ExportDocumentRequest>,
@@ -488,7 +488,7 @@ pub async fn export_document(
     }))
 }
 
-/// POST /docs/import - Import document from external source
+
 pub async fn import_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ImportDocumentRequest>,

@@ -1,11 +1,11 @@
-//! POST TO keyword for social media posting
-//!
-//! Syntax:
-//!   POST TO INSTAGRAM image, caption
-//!   POST TO FACEBOOK image, caption
-//!   POST TO LINKEDIN image, caption
-//!   POST TO TWITTER image, caption
-//!   POST TO "instagram,facebook" image, caption
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;

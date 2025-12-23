@@ -38,7 +38,7 @@ use serde_json::{json, Value};
 use std::error::Error;
 use uuid::Uuid;
 
-/// Webhook registration stored in database
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookRegistration {
     pub id: Uuid,
@@ -49,13 +49,13 @@ pub struct WebhookRegistration {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-/// Register the WEBHOOK keyword
-///
-/// WEBHOOK "order-received"
-///
-/// This creates an endpoint at /api/botname/webhook/order-received
-/// When called, it triggers the script containing the WEBHOOK declaration
-/// Request params become available as variables in the script
+
+
+
+
+
+
+
 pub fn webhook_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
 
@@ -65,16 +65,16 @@ pub fn webhook_keyword(state: &AppState, _user: UserSession, engine: &mut Engine
 
             trace!("WEBHOOK registration for endpoint: {}", endpoint);
 
-            // Note: Actual webhook registration happens during compilation/preprocessing
-            // This runtime keyword is mainly for documentation and validation
+
+
 
             Ok(Dynamic::from(format!("webhook:{}", endpoint)))
         })
         .unwrap();
 }
 
-/// Execute webhook registration during preprocessing
-/// This is called by the compiler when it finds a WEBHOOK declaration
+
+
 pub fn execute_webhook_registration(
     conn: &mut diesel::PgConnection,
     endpoint: &str,
@@ -88,7 +88,7 @@ pub fn execute_webhook_registration(
         bot_uuid
     );
 
-    // Verify bot exists
+
     use crate::shared::models::bots::dsl::bots;
     let bot_exists: bool = diesel::select(diesel::dsl::exists(
         bots.filter(crate::shared::models::bots::dsl::id.eq(bot_uuid)),
@@ -99,7 +99,7 @@ pub fn execute_webhook_registration(
         return Err(format!("Bot with id {} does not exist", bot_uuid).into());
     }
 
-    // Clean the endpoint name (remove quotes, spaces)
+
     let clean_endpoint = endpoint
         .trim()
         .trim_matches('"')
@@ -110,7 +110,7 @@ pub fn execute_webhook_registration(
         .filter(|c| c.is_ascii_alphanumeric() || *c == '-' || *c == '_')
         .collect::<String>();
 
-    // Register in system_automations table with kind = Webhook
+
     use crate::shared::models::system_automations::dsl::*;
 
     let new_automation = (
@@ -121,7 +121,7 @@ pub fn execute_webhook_registration(
         is_active.eq(true),
     );
 
-    // First try to update existing
+
     let update_result = diesel::update(system_automations)
         .filter(bot_id.eq(bot_uuid))
         .filter(kind.eq(TriggerKind::Webhook as i32))
@@ -129,7 +129,7 @@ pub fn execute_webhook_registration(
         .set((param.eq(script_name), is_active.eq(true)))
         .execute(&mut *conn)?;
 
-    // If no rows updated, insert new
+
     let result = if update_result == 0 {
         diesel::insert_into(system_automations)
             .values(&new_automation)
@@ -147,7 +147,7 @@ pub fn execute_webhook_registration(
     }))
 }
 
-/// Remove webhook registration
+
 pub fn remove_webhook_registration(
     conn: &mut diesel::PgConnection,
     endpoint: &str,
@@ -173,7 +173,7 @@ pub fn remove_webhook_registration(
     Ok(result)
 }
 
-/// Get all webhooks for a bot
+
 pub fn get_bot_webhooks(
     conn: &mut diesel::PgConnection,
     bot_uuid: Uuid,
@@ -207,7 +207,7 @@ pub fn get_bot_webhooks(
         .collect())
 }
 
-/// Find webhook script by endpoint
+
 pub fn find_webhook_script(
     conn: &mut diesel::PgConnection,
     bot_uuid: Uuid,
@@ -233,7 +233,7 @@ pub fn find_webhook_script(
     Ok(result)
 }
 
-/// Webhook request data structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookRequest {
     pub method: String,
@@ -245,7 +245,7 @@ pub struct WebhookRequest {
 }
 
 impl WebhookRequest {
-    /// Create a new webhook request
+
     pub fn new(
         method: &str,
         headers: std::collections::HashMap<String, String>,
@@ -263,7 +263,7 @@ impl WebhookRequest {
         }
     }
 
-    /// Convert to Dynamic for use in BASIC scripts
+
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = rhai::Map::new();
 
@@ -274,28 +274,28 @@ impl WebhookRequest {
             Dynamic::from(self.timestamp.to_rfc3339()),
         );
 
-        // Convert headers
+
         let mut headers_map = rhai::Map::new();
         for (k, v) in &self.headers {
             headers_map.insert(k.clone().into(), Dynamic::from(v.clone()));
         }
         map.insert("headers".into(), Dynamic::from(headers_map));
 
-        // Convert query params
+
         let mut params_map = rhai::Map::new();
         for (k, v) in &self.query_params {
             params_map.insert(k.clone().into(), Dynamic::from(v.clone()));
         }
         map.insert("params".into(), Dynamic::from(params_map));
 
-        // Convert body
+
         map.insert("body".into(), json_to_dynamic(&self.body));
 
         Dynamic::from(map)
     }
 }
 
-/// Webhook response structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebhookResponse {
     pub status: u16,
@@ -314,7 +314,7 @@ impl Default for WebhookResponse {
 }
 
 impl WebhookResponse {
-    /// Create a success response
+
     pub fn success(data: Value) -> Self {
         Self {
             status: 200,
@@ -323,7 +323,7 @@ impl WebhookResponse {
         }
     }
 
-    /// Create an error response
+
     pub fn error(status: u16, message: &str) -> Self {
         Self {
             status,
@@ -332,7 +332,7 @@ impl WebhookResponse {
         }
     }
 
-    /// Convert from Dynamic (returned by BASIC script)
+
     pub fn from_dynamic(value: &Dynamic) -> Self {
         if value.is_map() {
             let map = value.clone().try_cast::<rhai::Map>().unwrap_or_default();
@@ -370,7 +370,7 @@ impl WebhookResponse {
     }
 }
 
-/// Convert JSON Value to Rhai Dynamic
+
 fn json_to_dynamic(value: &Value) -> Dynamic {
     match value {
         Value::Null => Dynamic::UNIT,
@@ -399,7 +399,7 @@ fn json_to_dynamic(value: &Value) -> Dynamic {
     }
 }
 
-/// Convert Rhai Dynamic to JSON Value
+
 fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
         Value::Null

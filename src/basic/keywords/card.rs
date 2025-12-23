@@ -28,21 +28,21 @@
 |                                                                             |
 \*****************************************************************************/
 
-//! CARD keyword - Creates beautiful Instagram-style posts from prompts
-//!
-//! This module generates social media cards by combining AI-generated images
-//! with AI-generated text. The LLM handles both image generation and text
-//! composition, eliminating the need for local image processing.
-//!
-//! Syntax:
-//!   CARD image_prompt, text_prompt TO variable
-//!   CARD image_prompt, text_prompt, style TO variable
-//!   CARD image_prompt, text_prompt, style, count TO variable
-//!
-//! Examples:
-//!   CARD "sunset over mountains", "inspirational quote about nature" TO post
-//!   CARD "modern office", "productivity tips", "minimal" TO cards
-//!   CARD "healthy food", "nutrition facts", "vibrant", 5 TO carousel
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::basic::runtime::{BasicRuntime, BasicValue};
 use crate::llm::LLMProvider;
@@ -53,7 +53,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::Mutex;
 
-/// Card style presets for Instagram posts
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum CardStyle {
     #[default]
@@ -86,7 +86,7 @@ impl From<&str> for CardStyle {
     }
 }
 
-/// Card dimensions for different formats
+
 #[derive(Debug, Clone, Copy)]
 pub struct CardDimensions {
     pub width: u32,
@@ -120,7 +120,7 @@ impl CardDimensions {
     }
 }
 
-/// Text position configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub enum TextPosition {
     Top,
@@ -133,7 +133,7 @@ pub enum TextPosition {
     BottomRight,
 }
 
-/// Generated card result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CardResult {
     pub image_path: String,
@@ -145,7 +145,7 @@ pub struct CardResult {
     pub dimensions: (u32, u32),
 }
 
-/// Card generation configuration
+
 #[derive(Debug, Clone)]
 pub struct CardConfig {
     pub style: CardStyle,
@@ -169,8 +169,8 @@ impl Default for CardConfig {
     }
 }
 
-/// CARD keyword implementation
-/// Uses LLM for both image generation and text composition
+
+
 pub struct CardKeyword {
     llm_provider: Arc<dyn LLMProvider>,
     output_dir: String,
@@ -184,7 +184,7 @@ impl CardKeyword {
         }
     }
 
-    /// Execute CARD keyword
+
     pub async fn execute(
         &self,
         image_prompt: &str,
@@ -193,7 +193,7 @@ impl CardKeyword {
         count: Option<usize>,
     ) -> Result<Vec<CardResult>> {
         let card_style = style.map(CardStyle::from).unwrap_or_default();
-        let card_count = count.unwrap_or(1).min(10); // Max 10 cards
+        let card_count = count.unwrap_or(1).min(10);
 
         let config = CardConfig {
             style: card_style.clone(),
@@ -201,7 +201,7 @@ impl CardKeyword {
             ..Default::default()
         };
 
-        // Ensure output directory exists
+
         fs::create_dir_all(&self.output_dir)?;
 
         let mut results = Vec::with_capacity(card_count);
@@ -216,7 +216,7 @@ impl CardKeyword {
         Ok(results)
     }
 
-    /// Generate a single card
+
     async fn generate_single_card(
         &self,
         image_prompt: &str,
@@ -224,13 +224,13 @@ impl CardKeyword {
         config: &CardConfig,
         index: usize,
     ) -> Result<CardResult> {
-        // Step 1: Generate optimized text content using LLM
+
         let text_content = self.generate_text_content(text_prompt, config).await?;
 
-        // Step 2: Create enhanced prompt that includes text overlay instructions
+
         let enhanced_image_prompt = self.create_card_prompt(image_prompt, &text_content, config);
 
-        // Step 3: Generate image with text baked in via LLM image generation
+
         let image_bytes = self
             .llm_provider
             .generate_image(
@@ -240,7 +240,7 @@ impl CardKeyword {
             )
             .await?;
 
-        // Step 4: Save the image
+
         let filename = format!(
             "card_{}_{}.png",
             chrono::Utc::now().format("%Y%m%d_%H%M%S"),
@@ -248,19 +248,19 @@ impl CardKeyword {
         );
         let image_path = format!("{}/{}", self.output_dir, filename);
 
-        // Ensure parent directory exists
+
         if let Some(parent) = Path::new(&image_path).parent() {
             fs::create_dir_all(parent)?;
         }
 
         fs::write(&image_path, &image_bytes)?;
 
-        // Step 5: Generate hashtags and caption
+
         let (hashtags, caption) = self.generate_social_content(&text_content, config).await?;
 
         Ok(CardResult {
             image_path: image_path.clone(),
-            image_url: None, // Will be set after upload to storage
+            image_url: None,
             text_content,
             hashtags,
             caption,
@@ -269,7 +269,7 @@ impl CardKeyword {
         })
     }
 
-    /// Generate optimized text content for the card
+
     async fn generate_text_content(
         &self,
         text_prompt: &str,
@@ -303,10 +303,10 @@ Respond with ONLY the text content, nothing else."#,
 
         let response = self.llm_provider.complete(&prompt, None).await?;
 
-        // Clean up the response
+
         let text = response.trim().to_string();
 
-        // Ensure it's not too long
+
         if text.len() > 100 {
             Ok(text.chars().take(100).collect::<String>() + "...")
         } else {
@@ -314,7 +314,7 @@ Respond with ONLY the text content, nothing else."#,
         }
     }
 
-    /// Create an enhanced prompt for image generation that includes text overlay
+
     fn create_card_prompt(
         &self,
         image_prompt: &str,
@@ -377,7 +377,7 @@ Make the text an integral part of the design, not just overlaid."#,
         )
     }
 
-    /// Generate hashtags and caption for the post
+
     async fn generate_social_content(
         &self,
         text_content: &str,
@@ -402,7 +402,7 @@ HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
 
         let response = self.llm_provider.complete(&prompt, None).await?;
 
-        // Parse the response
+
         let mut caption = String::new();
         let mut hashtags = Vec::new();
 
@@ -430,7 +430,7 @@ HASHTAGS: tag1, tag2, tag3, tag4, tag5"#,
     }
 }
 
-/// Register CARD keyword with the BASIC runtime
+
 pub fn register_card_keyword(runtime: &mut BasicRuntime, llm_provider: Arc<dyn LLMProvider>) {
     let output_dir = runtime
         .get_config("output_dir")
@@ -460,7 +460,7 @@ pub fn register_card_keyword(runtime: &mut BasicRuntime, llm_provider: Arc<dyn L
                 .execute(&image_prompt, &text_prompt, style.as_deref(), count)
                 .await?;
 
-            // Convert results to BasicValue
+
             let result_values: Vec<BasicValue> = results
                 .into_iter()
                 .map(|r| {

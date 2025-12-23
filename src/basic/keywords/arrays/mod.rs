@@ -25,7 +25,7 @@ pub fn register_array_functions(state: Arc<AppState>, user: UserSession, engine:
 }
 
 fn register_utility_functions(engine: &mut Engine) {
-    // UBOUND - upper bound (length - 1)
+
     engine.register_fn("UBOUND", |arr: Array| -> i64 {
         if arr.is_empty() {
             -1
@@ -41,23 +41,23 @@ fn register_utility_functions(engine: &mut Engine) {
         }
     });
 
-    // LBOUND - lower bound (always 0)
+
     engine.register_fn("LBOUND", |_arr: Array| -> i64 { 0 });
     engine.register_fn("lbound", |_arr: Array| -> i64 { 0 });
 
-    // COUNT - array length
+
     engine.register_fn("COUNT", |arr: Array| -> i64 { arr.len() as i64 });
     engine.register_fn("count", |arr: Array| -> i64 { arr.len() as i64 });
 
-    // LEN for arrays (alias for COUNT)
+
     engine.register_fn("LEN", |arr: Array| -> i64 { arr.len() as i64 });
     engine.register_fn("len", |arr: Array| -> i64 { arr.len() as i64 });
 
-    // SIZE alias
+
     engine.register_fn("SIZE", |arr: Array| -> i64 { arr.len() as i64 });
     engine.register_fn("size", |arr: Array| -> i64 { arr.len() as i64 });
 
-    // REVERSE
+
     engine.register_fn("REVERSE", |arr: Array| -> Array {
         let mut reversed = arr.clone();
         reversed.reverse();
@@ -69,7 +69,7 @@ fn register_utility_functions(engine: &mut Engine) {
         reversed
     });
 
-    // JOIN - array to string
+
     engine.register_fn("JOIN", |arr: Array, separator: &str| -> String {
         arr.iter()
             .map(|item| item.to_string())
@@ -83,7 +83,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .join(separator)
     });
 
-    // JOIN with default separator (comma)
+
     engine.register_fn("JOIN", |arr: Array| -> String {
         arr.iter()
             .map(|item| item.to_string())
@@ -91,7 +91,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .join(",")
     });
 
-    // SPLIT - string to array
+
     engine.register_fn("SPLIT", |s: &str, delimiter: &str| -> Array {
         s.split(delimiter)
             .map(|part| Dynamic::from(part.to_string()))
@@ -103,7 +103,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .collect()
     });
 
-    // RANGE - create array of numbers
+
     engine.register_fn("RANGE", |start: i64, end: i64| -> Array {
         (start..=end).map(Dynamic::from).collect()
     });
@@ -111,7 +111,7 @@ fn register_utility_functions(engine: &mut Engine) {
         (start..=end).map(Dynamic::from).collect()
     });
 
-    // RANGE with step
+
     engine.register_fn("RANGE", |start: i64, end: i64, step: i64| -> Array {
         if step == 0 {
             return Array::new();
@@ -132,7 +132,7 @@ fn register_utility_functions(engine: &mut Engine) {
         result
     });
 
-    // INDEX_OF
+
     engine.register_fn("INDEX_OF", |arr: Array, value: Dynamic| -> i64 {
         let search = value.to_string();
         arr.iter()
@@ -148,7 +148,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .unwrap_or(-1)
     });
 
-    // LAST_INDEX_OF
+
     engine.register_fn("LAST_INDEX_OF", |arr: Array, value: Dynamic| -> i64 {
         let search = value.to_string();
         arr.iter()
@@ -157,7 +157,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .unwrap_or(-1)
     });
 
-    // CONCAT - combine arrays
+
     engine.register_fn("CONCAT", |arr1: Array, arr2: Array| -> Array {
         let mut result = arr1.clone();
         result.extend(arr2);
@@ -169,7 +169,7 @@ fn register_utility_functions(engine: &mut Engine) {
         result
     });
 
-    // FIRST_ELEM / FIRST
+
     engine.register_fn("FIRST_ELEM", |arr: Array| -> Dynamic {
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -180,7 +180,7 @@ fn register_utility_functions(engine: &mut Engine) {
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
 
-    // LAST_ELEM / LAST
+
     engine.register_fn("LAST_ELEM", |arr: Array| -> Dynamic {
         arr.last().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -191,7 +191,7 @@ fn register_utility_functions(engine: &mut Engine) {
         arr.last().cloned().unwrap_or(Dynamic::UNIT)
     });
 
-    // FLATTEN - flatten nested arrays (one level)
+
     engine.register_fn("FLATTEN", |arr: Array| -> Array {
         let mut result = Array::new();
         for item in arr {
@@ -219,10 +219,10 @@ fn register_utility_functions(engine: &mut Engine) {
         result
     });
 
-    // EMPTY - create empty array
+
     engine.register_fn("EMPTY_ARRAY", || -> Array { Array::new() });
 
-    // FILL - create array filled with value
+
     engine.register_fn("FILL", |value: Dynamic, count: i64| -> Array {
         (0..count).map(|_| value.clone()).collect()
     });
@@ -230,7 +230,7 @@ fn register_utility_functions(engine: &mut Engine) {
         (0..count).map(|_| value.clone()).collect()
     });
 
-    // BATCH - split array into batches of specified size
+
     engine.register_fn("BATCH", |arr: Array, batch_size: i64| -> Array {
         let size = batch_size.max(1) as usize;
         arr.chunks(size)
@@ -244,7 +244,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .collect()
     });
 
-    // CHUNK - alias for BATCH
+
     engine.register_fn("CHUNK", |arr: Array, chunk_size: i64| -> Array {
         let size = chunk_size.max(1) as usize;
         arr.chunks(size)
@@ -258,7 +258,7 @@ fn register_utility_functions(engine: &mut Engine) {
             .collect()
     });
 
-    // TAKE - take first N elements
+
     engine.register_fn("TAKE", |arr: Array, n: i64| -> Array {
         arr.into_iter().take(n.max(0) as usize).collect()
     });
@@ -266,7 +266,7 @@ fn register_utility_functions(engine: &mut Engine) {
         arr.into_iter().take(n.max(0) as usize).collect()
     });
 
-    // DROP - drop first N elements
+
     engine.register_fn("DROP", |arr: Array, n: i64| -> Array {
         arr.into_iter().skip(n.max(0) as usize).collect()
     });
@@ -274,12 +274,12 @@ fn register_utility_functions(engine: &mut Engine) {
         arr.into_iter().skip(n.max(0) as usize).collect()
     });
 
-    // HEAD - alias for TAKE
+
     engine.register_fn("HEAD", |arr: Array, n: i64| -> Array {
         arr.into_iter().take(n.max(0) as usize).collect()
     });
 
-    // TAIL - get last N elements
+
     engine.register_fn("TAIL", |arr: Array, n: i64| -> Array {
         let len = arr.len();
         let skip = len.saturating_sub(n.max(0) as usize);

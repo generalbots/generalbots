@@ -4,7 +4,7 @@ use log::debug;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
-/// TYPEOF - Returns the type of a value as a string
+
 pub fn typeof_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("TYPEOF", |value: Dynamic| -> String {
         get_type_name(&value)
@@ -21,7 +21,7 @@ pub fn typeof_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut E
     debug!("Registered TYPEOF keyword");
 }
 
-/// ISARRAY - Check if value is an array
+
 pub fn isarray_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("ISARRAY", |value: Dynamic| -> bool {
         value.is_array()
@@ -38,7 +38,7 @@ pub fn isarray_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut 
     debug!("Registered ISARRAY keyword");
 }
 
-/// ISNUMBER - Check if value is a number (int or float)
+
 pub fn isnumber_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("ISNUMBER", |value: Dynamic| -> bool {
         is_numeric(&value)
@@ -59,7 +59,7 @@ pub fn isnumber_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
     debug!("Registered ISNUMBER keyword");
 }
 
-/// ISSTRING - Check if value is a string
+
 pub fn isstring_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("ISSTRING", |value: Dynamic| -> bool {
         value.is_string()
@@ -76,7 +76,7 @@ pub fn isstring_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
     debug!("Registered ISSTRING keyword");
 }
 
-/// ISBOOL - Check if value is a boolean
+
 pub fn isbool_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("ISBOOL", |value: Dynamic| -> bool {
         value.is_bool()
@@ -97,7 +97,7 @@ pub fn isbool_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut E
     debug!("Registered ISBOOL keyword");
 }
 
-/// Helper function to get the type name of a Dynamic value
+
 fn get_type_name(value: &Dynamic) -> String {
     if value.is_unit() {
         "null".to_string()
@@ -120,13 +120,13 @@ fn get_type_name(value: &Dynamic) -> String {
     }
 }
 
-/// Helper function to check if a value is numeric
+
 fn is_numeric(value: &Dynamic) -> bool {
     if value.is_int() || value.is_float() {
         return true;
     }
 
-    // Also check if it's a string that can be parsed as a number
+
     if value.is_string() {
         if let Ok(s) = value.clone().into_string() {
             return s.trim().parse::<f64>().is_ok();

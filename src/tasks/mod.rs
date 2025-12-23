@@ -54,55 +54,55 @@ pub struct TaskUpdate {
     pub tags: Option<Vec<String>>,
 }
 
-// Database model - matches schema exactly
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Insertable)]
 #[diesel(table_name = crate::core::shared::models::schema::tasks)]
 pub struct Task {
     pub id: Uuid,
     pub title: String,
     pub description: Option<String>,
-    pub status: String,            // Changed to String to match schema
-    pub priority: String,          // Changed to String to match schema
-    pub assignee_id: Option<Uuid>, // Changed to match schema
-    pub reporter_id: Option<Uuid>, // Changed to match schema
-    pub project_id: Option<Uuid>,  // Added to match schema
+    pub status: String,
+    pub priority: String,
+    pub assignee_id: Option<Uuid>,
+    pub reporter_id: Option<Uuid>,
+    pub project_id: Option<Uuid>,
     pub due_date: Option<DateTime<Utc>>,
     pub tags: Vec<String>,
     pub dependencies: Vec<Uuid>,
-    pub estimated_hours: Option<f64>, // Changed to f64 to match Float8
-    pub actual_hours: Option<f64>,    // Changed to f64 to match Float8
-    pub progress: i32,                // Added to match schema
+    pub estimated_hours: Option<f64>,
+    pub actual_hours: Option<f64>,
+    pub progress: i32,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }
 
-// API request/response model - includes additional fields for convenience
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskResponse {
     pub id: Uuid,
     pub title: String,
     pub description: String,
-    pub assignee: Option<String>, // Converted from assignee_id
-    pub reporter: Option<String>, // Converted from reporter_id
+    pub assignee: Option<String>,
+    pub reporter: Option<String>,
     pub status: String,
     pub priority: String,
     pub due_date: Option<DateTime<Utc>>,
     pub estimated_hours: Option<f64>,
     pub actual_hours: Option<f64>,
     pub tags: Vec<String>,
-    pub parent_task_id: Option<Uuid>, // For subtask relationships
-    pub subtasks: Vec<Uuid>,          // List of subtask IDs
+    pub parent_task_id: Option<Uuid>,
+    pub subtasks: Vec<Uuid>,
     pub dependencies: Vec<Uuid>,
-    pub attachments: Vec<String>,   // File paths/URLs
-    pub comments: Vec<TaskComment>, // Embedded comments
+    pub attachments: Vec<String>,
+    pub comments: Vec<TaskComment>,
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
     pub progress: i32,
 }
 
-// Convert database Task to API TaskResponse
+
 impl From<Task> for TaskResponse {
     fn from(task: Task) -> Self {
         TaskResponse {
@@ -117,11 +117,11 @@ impl From<Task> for TaskResponse {
             estimated_hours: task.estimated_hours,
             actual_hours: task.actual_hours,
             tags: task.tags,
-            parent_task_id: None, // Would need separate query
-            subtasks: vec![],     // Would need separate query
+            parent_task_id: None,
+            subtasks: vec![],
             dependencies: task.dependencies,
-            attachments: vec![], // Would need separate query
-            comments: vec![],    // Would need separate query
+            attachments: vec![],
+            comments: vec![],
             created_at: task.created_at,
             updated_at: task.updated_at,
             completed_at: task.completed_at,
@@ -244,18 +244,18 @@ impl TaskEngine {
             completed_at: None,
         };
 
-        // Store in cache
+
         let mut cache = self.cache.write().await;
         cache.push(task.clone());
 
         Ok(task.into())
     }
 
-    // Removed duplicate update_task - using database version below
 
-    // Removed duplicate delete_task - using database version below
 
-    // Removed duplicate get_task - using database version below
+
+
+
 
     pub async fn list_tasks(
         &self,
@@ -265,7 +265,7 @@ impl TaskEngine {
 
         let mut tasks: Vec<Task> = cache.clone();
 
-        // Apply filters
+
         if let Some(status) = filters.status {
             tasks.retain(|t| t.status == status);
         }
@@ -284,10 +284,10 @@ impl TaskEngine {
             tasks.retain(|t| t.tags.contains(&tag));
         }
 
-        // Sort by creation date (newest first)
+
         tasks.sort_by(|a, b| b.created_at.cmp(&a.created_at));
 
-        // Apply limit
+
         if let Some(limit) = filters.limit {
             tasks.truncate(limit);
         }
@@ -295,7 +295,7 @@ impl TaskEngine {
         Ok(tasks.into_iter().map(|t| t.into()).collect())
     }
 
-    // Removed duplicate - using database version below
+
 
     pub async fn update_status(
         &self,
@@ -318,7 +318,7 @@ impl TaskEngine {
     }
 }
 
-// Task API handlers
+
 pub async fn handle_task_create(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateTaskRequest>,
@@ -380,7 +380,7 @@ pub async fn handle_task_get(
     }
 }
 
-// Database operations for TaskEngine
+
 impl TaskEngine {
     pub async fn create_task_with_db(
         &self,
@@ -409,14 +409,14 @@ impl TaskEngine {
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?
             .map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
 
-        // Update cache
+
         let mut cache = self.cache.write().await;
         cache.push(created_task.clone());
 
         Ok(created_task)
     }
 
-    /// Update an existing task
+
     pub async fn update_task(
         &self,
         id: Uuid,
@@ -424,12 +424,12 @@ impl TaskEngine {
     ) -> Result<Task, Box<dyn std::error::Error + Send + Sync>> {
         let updated_at = Utc::now();
 
-        // Update task in memory cache
+
         let mut cache = self.cache.write().await;
         if let Some(task) = cache.iter_mut().find(|t| t.id == id) {
             task.updated_at = updated_at;
 
-            // Apply updates
+
             if let Some(title) = updates.title {
                 task.title = title;
             }
@@ -462,22 +462,22 @@ impl TaskEngine {
         Err("Task not found".into())
     }
 
-    /// Delete a task
+
     pub async fn delete_task(
         &self,
         id: Uuid,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // First, check for dependencies
+
         let dependencies = self.get_task_dependencies(id).await?;
         if !dependencies.is_empty() {
             return Err("Cannot delete task with dependencies".into());
         }
 
-        // Delete from cache
+
         let mut cache = self.cache.write().await;
         cache.retain(|t| t.id != id);
 
-        // Refresh cache
+
         self.refresh_cache()
             .await
             .map_err(|e| -> Box<dyn std::error::Error + Send + Sync> {
@@ -489,12 +489,12 @@ impl TaskEngine {
         Ok(())
     }
 
-    /// Get tasks for a specific user
+
     pub async fn get_user_tasks(
         &self,
         user_id: Uuid,
     ) -> Result<Vec<Task>, Box<dyn std::error::Error>> {
-        // Get tasks from cache for now
+
         let cache = self.cache.read().await;
         let user_tasks: Vec<Task> = cache
             .iter()
@@ -508,7 +508,7 @@ impl TaskEngine {
         Ok(user_tasks)
     }
 
-    /// Get tasks by status
+
     pub async fn get_tasks_by_status(
         &self,
         status: TaskStatus,
@@ -524,7 +524,7 @@ impl TaskEngine {
         Ok(tasks)
     }
 
-    /// Get overdue tasks
+
     pub async fn get_overdue_tasks(
         &self,
     ) -> Result<Vec<Task>, Box<dyn std::error::Error + Send + Sync>> {
@@ -539,7 +539,7 @@ impl TaskEngine {
         Ok(tasks)
     }
 
-    /// Add a comment to a task
+
     pub async fn add_comment(
         &self,
         task_id: Uuid,
@@ -555,20 +555,20 @@ impl TaskEngine {
             updated_at: None,
         };
 
-        // Store comment in memory for now (no task_comments table yet)
-        // In production, this should be persisted to database
+
+
         log::info!("Added comment to task {}: {}", task_id, content);
 
         Ok(comment)
     }
 
-    /// Create a subtask
+
     pub async fn create_subtask(
         &self,
         parent_id: Uuid,
         subtask_data: CreateTaskRequest,
     ) -> Result<Task, Box<dyn std::error::Error + Send + Sync>> {
-        // Verify parent exists in cache
+
         {
             let cache = self.cache.read().await;
             if !cache.iter().any(|t| t.id == parent_id) {
@@ -580,7 +580,7 @@ impl TaskEngine {
             }
         }
 
-        // Create the subtask
+
         let subtask = self.create_task(subtask_data).await.map_err(
             |e| -> Box<dyn std::error::Error + Send + Sync> {
                 Box::new(std::io::Error::new(
@@ -590,7 +590,7 @@ impl TaskEngine {
             },
         )?;
 
-        // Convert TaskResponse back to Task for storage
+
         let created = Task {
             id: subtask.id,
             title: subtask.title,
@@ -620,7 +620,7 @@ impl TaskEngine {
         Ok(created)
     }
 
-    /// Get task dependencies
+
     pub async fn get_task_dependencies(
         &self,
         task_id: Uuid,
@@ -630,7 +630,7 @@ impl TaskEngine {
 
         for dep_id in task.dependencies {
             if let Ok(dep_task) = self.get_task(dep_id).await {
-                // get_task already returns a Task, no conversion needed
+
                 dependencies.push(dep_task);
             }
         }
@@ -638,7 +638,7 @@ impl TaskEngine {
         Ok(dependencies)
     }
 
-    /// Get a single task by ID
+
     pub async fn get_task(
         &self,
         id: Uuid,
@@ -652,7 +652,7 @@ impl TaskEngine {
         Ok(task)
     }
 
-    /// Get all tasks
+
     pub async fn get_all_tasks(
         &self,
     ) -> Result<Vec<Task>, Box<dyn std::error::Error + Send + Sync>> {
@@ -662,7 +662,7 @@ impl TaskEngine {
         Ok(tasks)
     }
 
-    /// Assign a task to a user
+
     pub async fn assign_task(
         &self,
         id: Uuid,
@@ -681,7 +681,7 @@ impl TaskEngine {
         Err("Task not found".into())
     }
 
-    /// Set task dependencies
+
     pub async fn set_dependencies(
         &self,
         task_id: Uuid,
@@ -692,19 +692,19 @@ impl TaskEngine {
             task.dependencies = dependency_ids;
             task.updated_at = Utc::now();
         }
-        // Get the task and return as TaskResponse
+
         let task = self.get_task(task_id).await?;
         Ok(task.into())
     }
 
-    /// Calculate task progress (percentage)
+
     pub async fn calculate_progress(
         &self,
         task_id: Uuid,
     ) -> Result<u8, Box<dyn std::error::Error + Send + Sync>> {
         let task = self.get_task(task_id).await?;
 
-        // Calculate progress based on status
+
         Ok(match task.status.as_str() {
             "todo" => 0,
             "in_progress" | "in-progress" => 50,
@@ -719,13 +719,13 @@ impl TaskEngine {
         })
     }
 
-    /// Create a task from template
+
     pub async fn create_from_template(
         &self,
         _template_id: Uuid,
         assignee_id: Option<Uuid>,
     ) -> Result<Task, Box<dyn std::error::Error + Send + Sync>> {
-        // Create a task from template (simplified)
+
 
         let template = TaskTemplate {
             id: Uuid::new_v4(),
@@ -758,7 +758,7 @@ impl TaskEngine {
             completed_at: None,
         };
 
-        // Convert Task to CreateTaskRequest for create_task
+
         let task_request = CreateTaskRequest {
             title: task.title,
             description: task.description,
@@ -779,7 +779,7 @@ impl TaskEngine {
             },
         )?;
 
-        // Create checklist items
+
         for item in template.checklist {
             let _checklist_item = ChecklistItem {
                 id: Uuid::new_v4(),
@@ -790,8 +790,8 @@ impl TaskEngine {
                 completed_at: None,
             };
 
-            // Store checklist item in memory for now (no checklist_items table yet)
-            // In production, this should be persisted to database
+
+
             log::info!(
                 "Added checklist item to task {}: {}",
                 created.id,
@@ -799,7 +799,7 @@ impl TaskEngine {
             );
         }
 
-        // Convert TaskResponse to Task
+
         let task = Task {
             id: created.id,
             title: created.title,
@@ -830,14 +830,14 @@ impl TaskEngine {
         };
         Ok(task)
     }
-    /// Send notification to assignee
+
     async fn _notify_assignee(
         &self,
         assignee: &str,
         task: &Task,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        // This would integrate with your notification system
-        // For now, just log it
+
+
         log::info!(
             "Notifying {} about new task assignment: {}",
             assignee,
@@ -846,7 +846,7 @@ impl TaskEngine {
         Ok(())
     }
 
-    /// Refresh the cache from database
+
     async fn refresh_cache(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use crate::shared::models::schema::tasks::dsl::*;
         use diesel::prelude::*;
@@ -871,17 +871,17 @@ impl TaskEngine {
         Ok(())
     }
 
-    /// Get task statistics for reporting
+
     pub async fn get_statistics(
         &self,
         user_id: Option<Uuid>,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
         use chrono::Utc;
 
-        // Get tasks from cache
+
         let cache = self.cache.read().await;
 
-        // Filter tasks based on user
+
         let task_list: Vec<Task> = if let Some(uid) = user_id {
             cache
                 .iter()
@@ -895,7 +895,7 @@ impl TaskEngine {
             cache.clone()
         };
 
-        // Calculate statistics
+
         let mut todo_count = 0;
         let mut in_progress_count = 0;
         let mut done_count = 0;
@@ -913,14 +913,14 @@ impl TaskEngine {
                 _ => {}
             }
 
-            // Check if overdue
+
             if let Some(due) = task.due_date {
                 if due < now && task.status != "done" {
                     overdue_count += 1;
                 }
             }
 
-            // Calculate completion ratio
+
             if let (Some(actual), Some(estimated)) = (task.actual_hours, task.estimated_hours) {
                 if estimated > 0.0 {
                     total_completion_ratio += actual / estimated;
@@ -946,7 +946,7 @@ impl TaskEngine {
     }
 }
 
-/// HTTP API handlers
+
 pub mod handlers {
     use super::*;
     use axum::extract::{Path as AxumPath, Query as AxumQuery, State as AxumState};
@@ -957,7 +957,7 @@ pub mod handlers {
         AxumState(engine): AxumState<Arc<TaskEngine>>,
         AxumJson(task_resp): AxumJson<TaskResponse>,
     ) -> impl IntoResponse {
-        // Convert TaskResponse to Task
+
         let task = Task {
             id: task_resp.id,
             title: task_resp.title,
@@ -994,7 +994,7 @@ pub mod handlers {
         AxumState(engine): AxumState<Arc<TaskEngine>>,
         AxumQuery(query): AxumQuery<serde_json::Value>,
     ) -> impl IntoResponse {
-        // Extract query parameters
+
         let status_filter = query
             .get("status")
             .and_then(|v| v.as_str())
@@ -1040,7 +1040,7 @@ pub mod handlers {
             }
         };
 
-        // Convert to TaskResponse
+
         let responses: Vec<TaskResponse> = tasks
             .into_iter()
             .map(|t| TaskResponse {
@@ -1075,7 +1075,7 @@ pub mod handlers {
         AxumPath(_id): AxumPath<Uuid>,
         AxumJson(_updates): AxumJson<TaskUpdate>,
     ) -> impl IntoResponse {
-        // Task update is handled by the TaskScheduler
+
         let updated = serde_json::json!({
             "message": "Task updated",
             "task_id": _id
@@ -1087,7 +1087,7 @@ pub mod handlers {
         AxumState(_engine): AxumState<Arc<TaskEngine>>,
         AxumQuery(_query): AxumQuery<serde_json::Value>,
     ) -> impl IntoResponse {
-        // Statistics are calculated from the database
+
         let stats = serde_json::json!({
             "todo_count": 0,
             "in_progress_count": 0,
@@ -1099,7 +1099,7 @@ pub mod handlers {
     }
 }
 
-// Duplicate handlers removed - using the ones defined above
+
 
 pub async fn handle_task_list(
     State(state): State<Arc<AppState>>,
@@ -1242,7 +1242,7 @@ pub async fn handle_task_set_dependencies(
     }
 }
 
-/// Configure task engine routes
+
 pub fn configure_task_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -1277,7 +1277,7 @@ pub fn configure_task_routes() -> Router<Arc<AppState>> {
         )
 }
 
-/// Configure task engine routes (legacy)
+
 pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
     use axum::routing::{get, post, put};
 
@@ -1294,9 +1294,9 @@ pub fn configure(router: Router<Arc<TaskEngine>>) -> Router<Arc<TaskEngine>> {
         )
 }
 
-// ===== HTMX-Specific Handlers =====
 
-/// List tasks with HTMX HTML response
+
+
 pub async fn handle_task_list_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
@@ -1306,7 +1306,7 @@ pub async fn handle_task_list_htmx(
         .cloned()
         .unwrap_or_else(|| "all".to_string());
 
-    // Get tasks from database
+
     let conn = state.conn.clone();
     let filter_clone = filter.clone();
 
@@ -1371,12 +1371,12 @@ pub async fn handle_task_list_htmx(
                     <button class="action-btn edit-btn"
                             data-action="edit"
                             data-task-id="{}">
-                        
+
                     </button>
                     <button class="action-btn delete-btn"
                             data-action="delete"
                             data-task-id="{}">
-                        
+
                     </button>
                 </div>
             </div>
@@ -1429,7 +1429,7 @@ pub async fn handle_task_list_htmx(
     axum::response::Html(html)
 }
 
-/// Get task statistics
+
 pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskStats> {
     let conn = state.conn.clone();
 
@@ -1483,7 +1483,7 @@ pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskS
     Json(stats)
 }
 
-/// Clear completed tasks
+
 pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -1507,11 +1507,11 @@ pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl 
 
     log::info!("Cleared completed tasks");
 
-    // Return updated task list
+
     handle_task_list_htmx(State(state), Query(std::collections::HashMap::new())).await
 }
 
-/// Patch task (for status/priority updates)
+
 pub async fn handle_task_patch(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -1593,7 +1593,7 @@ pub struct ApiResponse<T> {
     pub message: Option<String>,
 }
 
-// Database row structs
+
 #[derive(Debug, QueryableByName)]
 struct TaskRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]

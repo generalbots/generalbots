@@ -1,7 +1,7 @@
-//! Access Review Module
-//!
-//! Provides automated access review and permission auditing capabilities
-//! for compliance with security policies and regulations.
+
+
+
+
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-/// Access level enumeration
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccessLevel {
     Read,
@@ -18,7 +18,7 @@ pub enum AccessLevel {
     Owner,
 }
 
-/// Resource type enumeration
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceType {
     File,
@@ -28,7 +28,7 @@ pub enum ResourceType {
     Application,
 }
 
-/// Access permission structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessPermission {
     pub id: Uuid,
@@ -43,7 +43,7 @@ pub struct AccessPermission {
     pub is_active: bool,
 }
 
-/// Access review request
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReviewRequest {
     pub id: Uuid,
@@ -56,7 +56,7 @@ pub struct AccessReviewRequest {
     pub comments: Option<String>,
 }
 
-/// Review status
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReviewStatus {
     Pending,
@@ -66,7 +66,7 @@ pub enum ReviewStatus {
     Expired,
 }
 
-/// Access review result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReviewResult {
     pub review_id: Uuid,
@@ -78,7 +78,7 @@ pub struct AccessReviewResult {
     pub comments: String,
 }
 
-/// Access violation detection
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessViolation {
     pub id: Uuid,
@@ -90,7 +90,7 @@ pub struct AccessViolation {
     pub severity: ViolationSeverity,
 }
 
-/// Violation severity levels
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ViolationSeverity {
     Low,
@@ -99,7 +99,7 @@ pub enum ViolationSeverity {
     Critical,
 }
 
-/// Access review service
+
 #[derive(Debug, Clone)]
 pub struct AccessReviewService {
     permissions: HashMap<Uuid, Vec<AccessPermission>>,
@@ -108,7 +108,7 @@ pub struct AccessReviewService {
 }
 
 impl AccessReviewService {
-    /// Create new access review service
+
     pub fn new() -> Self {
         Self {
             permissions: HashMap::new(),
@@ -117,7 +117,7 @@ impl AccessReviewService {
         }
     }
 
-    /// Grant access permission
+
     pub fn grant_permission(
         &mut self,
         user_id: Uuid,
@@ -156,7 +156,7 @@ impl AccessReviewService {
         Ok(permission)
     }
 
-    /// Revoke access permission
+
     pub fn revoke_permission(&mut self, permission_id: Uuid, revoked_by: Uuid) -> Result<()> {
         for permissions in self.permissions.values_mut() {
             if let Some(perm) = permissions.iter_mut().find(|p| p.id == permission_id) {
@@ -173,7 +173,7 @@ impl AccessReviewService {
         Err(anyhow!("Permission not found"))
     }
 
-    /// Check if user has access
+
     pub fn check_access(
         &mut self,
         user_id: Uuid,
@@ -185,14 +185,14 @@ impl AccessReviewService {
         if let Some(permissions) = user_permissions {
             for perm in permissions {
                 if perm.resource_id == resource_id && perm.is_active {
-                    // Check expiration
+
                     if let Some(expires) = perm.expires_at {
                         if expires < Utc::now() {
                             continue;
                         }
                     }
 
-                    // Check access level
+
                     if self.has_sufficient_access(&perm.access_level, &required_level) {
                         return Ok(true);
                     }
@@ -200,7 +200,7 @@ impl AccessReviewService {
             }
         }
 
-        // Log access denial
+
         let violation = AccessViolation {
             id: Uuid::new_v4(),
             user_id,
@@ -216,7 +216,7 @@ impl AccessReviewService {
         Ok(false)
     }
 
-    /// Check if access level is sufficient
+
     fn has_sufficient_access(&self, user_level: &AccessLevel, required: &AccessLevel) -> bool {
         match required {
             AccessLevel::Read => true,
@@ -229,7 +229,7 @@ impl AccessReviewService {
         }
     }
 
-    /// Create access review request
+
     pub fn create_review_request(
         &mut self,
         user_id: Uuid,
@@ -261,7 +261,7 @@ impl AccessReviewService {
         Ok(review)
     }
 
-    /// Process access review
+
     pub fn process_review(
         &mut self,
         review_id: Uuid,
@@ -270,7 +270,7 @@ impl AccessReviewService {
         modified: Vec<(Uuid, AccessLevel)>,
         comments: String,
     ) -> Result<AccessReviewResult> {
-        // Get review info first
+
         let (reviewer_id, user_id) = {
             let review = self
                 .reviews
@@ -283,12 +283,12 @@ impl AccessReviewService {
             (review.reviewer_id, review.user_id)
         };
 
-        // Process revocations
+
         for perm_id in &revoked {
             self.revoke_permission(*perm_id, reviewer_id)?;
         }
 
-        // Process modifications
+
         for (perm_id, new_level) in &modified {
             if let Some(permissions) = self.permissions.get_mut(&user_id) {
                 if let Some(perm) = permissions.iter_mut().find(|p| p.id == *perm_id) {
@@ -297,7 +297,7 @@ impl AccessReviewService {
             }
         }
 
-        // Update review status
+
         if let Some(review) = self.reviews.get_mut(&review_id) {
             review.status = ReviewStatus::Approved;
             review.comments = Some(comments.clone());
@@ -318,7 +318,7 @@ impl AccessReviewService {
         Ok(result)
     }
 
-    /// Get expired permissions
+
     pub fn get_expired_permissions(&self) -> Vec<AccessPermission> {
         let now = Utc::now();
         let mut expired = Vec::new();
@@ -336,7 +336,7 @@ impl AccessReviewService {
         expired
     }
 
-    /// Get user permissions
+
     pub fn get_user_permissions(&self, user_id: Uuid) -> Vec<AccessPermission> {
         self.permissions
             .get(&user_id)
@@ -347,7 +347,7 @@ impl AccessReviewService {
             .collect()
     }
 
-    /// Get pending reviews
+
     pub fn get_pending_reviews(&self, reviewer_id: Option<Uuid>) -> Vec<AccessReviewRequest> {
         self.reviews
             .values()
@@ -359,7 +359,7 @@ impl AccessReviewService {
             .collect()
     }
 
-    /// Get access violations
+
     pub fn get_violations(
         &self,
         user_id: Option<Uuid>,
@@ -377,7 +377,7 @@ impl AccessReviewService {
             .collect()
     }
 
-    /// Generate access compliance report
+
     pub fn generate_compliance_report(&self) -> AccessComplianceReport {
         let total_permissions = self.permissions.values().map(|p| p.len()).sum::<usize>();
 
@@ -420,15 +420,15 @@ impl AccessReviewService {
         }
     }
 
-    /// Calculate compliance score
+
     fn calculate_compliance_score(&self) -> f64 {
         let mut score = 100.0;
 
-        // Deduct for expired permissions
+
         let expired = self.get_expired_permissions().len();
         score -= expired as f64 * 2.0;
 
-        // Deduct for overdue reviews
+
         let overdue_reviews = self
             .reviews
             .values()
@@ -436,7 +436,7 @@ impl AccessReviewService {
             .count();
         score -= overdue_reviews as f64 * 5.0;
 
-        // Deduct for violations
+
         for violation in &self.violations {
             match violation.severity {
                 ViolationSeverity::Low => score -= 1.0,
@@ -450,7 +450,7 @@ impl AccessReviewService {
     }
 }
 
-/// Access compliance report
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessComplianceReport {
     pub generated_at: DateTime<Utc>,

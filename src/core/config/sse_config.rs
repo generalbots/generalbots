@@ -1,12 +1,12 @@
-//! SSE Configuration
-//! Parameters: sse-enabled, sse-heartbeat, sse-max-connections
-//!
-//! Config.csv properties:
-//! ```csv
-//! sse-enabled,true
-//! sse-heartbeat,30
-//! sse-max-connections,1000
-//! ```
+
+
+
+
+
+
+
+
+
 
 use diesel::prelude::*;
 use log::{debug, warn};
@@ -15,14 +15,14 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-/// Configuration for Server-Sent Events (SSE)
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SseConfig {
-    /// Whether SSE is enabled for real-time updates
+
     pub enabled: bool,
-    /// Heartbeat interval in seconds to keep connections alive
+
     pub heartbeat_seconds: u32,
-    /// Maximum number of concurrent SSE connections per bot
+
     pub max_connections: u32,
 }
 
@@ -37,12 +37,12 @@ impl Default for SseConfig {
 }
 
 impl SseConfig {
-    /// Load SSE configuration from bot_configuration table
-    ///
-    /// Reads the following parameters:
-    /// - `sse-enabled`: Whether SSE is enabled (default: true)
-    /// - `sse-heartbeat`: Heartbeat interval in seconds (default: 30)
-    /// - `sse-max-connections`: Maximum concurrent connections (default: 1000)
+
+
+
+
+
+
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -88,7 +88,7 @@ impl SseConfig {
             }
         }
 
-        // Validate configuration
+
         if config.heartbeat_seconds < 5 {
             warn!(
                 "SSE heartbeat interval {} is too low, setting to minimum of 5 seconds",
@@ -105,12 +105,12 @@ impl SseConfig {
         config
     }
 
-    /// Check if more connections can be accepted
+
     pub fn can_accept_connection(&self, current_connections: u32) -> bool {
         self.enabled && current_connections < self.max_connections
     }
 
-    /// Get the heartbeat duration for SSE keep-alive
+
     pub fn heartbeat_duration(&self) -> std::time::Duration {
         std::time::Duration::from_secs(self.heartbeat_seconds as u64)
     }

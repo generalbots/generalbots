@@ -17,16 +17,16 @@ pub mod conversations;
 pub mod service;
 use service::{DefaultTranscriptionService, MeetingService};
 
-// ===== Router Configuration =====
 
-/// Configure meet API routes
+
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route(ApiUrls::VOICE_START, post(voice_start))
         .route(ApiUrls::VOICE_STOP, post(voice_stop))
         .route(ApiUrls::MEET_CREATE, post(create_meeting))
         .route(ApiUrls::MEET_ROOMS, get(list_rooms))
-        // UI-compatible endpoints
+
         .route("/api/meet/rooms", get(list_rooms_ui))
         .route("/api/meet/recent", get(recent_meetings))
         .route("/api/meet/participants", get(all_participants))
@@ -46,7 +46,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::MEET_TOKEN, post(get_meeting_token))
         .route(ApiUrls::MEET_INVITE, post(send_meeting_invites))
         .route(ApiUrls::WS_MEET, get(meeting_websocket))
-        // Conversations routes
+
         .route(
             "/conversations/create",
             post(conversations::create_conversation),
@@ -137,7 +137,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
 }
 
-// ===== Request/Response Structures =====
+
 
 #[derive(Debug, Deserialize)]
 pub struct CreateMeetingRequest {
@@ -164,7 +164,7 @@ pub struct SendInvitesRequest {
     pub emails: Vec<String>,
 }
 
-// ===== Voice/Meet Handlers =====
+
 
 pub async fn voice_start(
     State(data): State<Arc<AppState>>,
@@ -245,7 +245,7 @@ pub async fn voice_stop(
     }
 }
 
-/// Create a new meeting room
+
 pub async fn create_meeting(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<CreateMeetingRequest>,
@@ -271,7 +271,7 @@ pub async fn create_meeting(
     }
 }
 
-/// List all active meeting rooms
+
 pub async fn list_rooms(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let transcription_service = Arc::new(DefaultTranscriptionService);
     let meeting_service = MeetingService::new(state.clone(), transcription_service);
@@ -282,7 +282,7 @@ pub async fn list_rooms(State(state): State<Arc<AppState>>) -> impl IntoResponse
     (StatusCode::OK, Json(serde_json::json!(room_list)))
 }
 
-/// Get a specific meeting room
+
 pub async fn get_room(
     State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
@@ -300,7 +300,7 @@ pub async fn get_room(
     }
 }
 
-/// Join a meeting room
+
 pub async fn join_room(
     State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
@@ -327,7 +327,7 @@ pub async fn join_room(
     }
 }
 
-/// Start transcription for a meeting
+
 pub async fn start_transcription(
     State(state): State<Arc<AppState>>,
     Path(room_id): Path<String>,
@@ -353,12 +353,12 @@ pub async fn start_transcription(
     }
 }
 
-/// Get meeting token for WebRTC
+
 pub async fn get_meeting_token(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<GetTokenRequest>,
 ) -> impl IntoResponse {
-    // Generate a simple token (in production, use JWT or proper token service)
+
     let token = format!(
         "meet_token_{}_{}_{}",
         payload.room_id,
@@ -376,13 +376,13 @@ pub async fn get_meeting_token(
     )
 }
 
-/// Send meeting invites
+
 pub async fn send_meeting_invites(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<SendInvitesRequest>,
 ) -> impl IntoResponse {
     info!("Sending meeting invites for room {}", payload.room_id);
-    // In production, integrate with email service
+
     (
         StatusCode::OK,
         Json(serde_json::json!({
@@ -392,7 +392,7 @@ pub async fn send_meeting_invites(
     )
 }
 
-/// WebSocket handler for real-time meeting communication
+
 pub async fn meeting_websocket(
     ws: axum::extract::ws::WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -402,13 +402,13 @@ pub async fn meeting_websocket(
 
 async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Arc<AppState>) {
     info!("Meeting WebSocket connection established");
-    // Handle WebSocket messages for real-time meeting communication
-    // This would integrate with WebRTC signaling
+
+
 }
 
-// ===== UI-Compatible Endpoints =====
 
-/// List rooms for UI display
+
+
 pub async fn list_rooms_ui(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "rooms": [],
@@ -416,7 +416,7 @@ pub async fn list_rooms_ui(State(_state): State<Arc<AppState>>) -> Json<serde_js
     }))
 }
 
-/// Get recent meetings
+
 pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "meetings": [],
@@ -424,7 +424,7 @@ pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_
     }))
 }
 
-/// Get all participants across meetings
+
 pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "participants": [],
@@ -432,7 +432,7 @@ pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde
     }))
 }
 
-/// Get scheduled meetings
+
 pub async fn scheduled_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "meetings": [],

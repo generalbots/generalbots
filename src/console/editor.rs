@@ -82,12 +82,12 @@ impl Editor {
     fn ensure_cursor_visible(&mut self) {
         let cursor_line = self.get_cursor_line();
 
-        // Scroll up if cursor is above visible area
+
         if cursor_line < self.scroll_offset {
             self.scroll_offset = cursor_line;
         }
 
-        // Scroll down if cursor is below visible area (leave some margin)
+
         let visible = self.visible_lines.saturating_sub(3);
         if cursor_line >= self.scroll_offset + visible {
             self.scroll_offset = cursor_line.saturating_sub(visible) + 1;
@@ -231,7 +231,7 @@ impl Editor {
             if i == target_line {
                 break;
             }
-            self.cursor_pos += line_content.len() + 1; // +1 for newline
+            self.cursor_pos += line_content.len() + 1;
         }
         self.ensure_cursor_visible();
     }

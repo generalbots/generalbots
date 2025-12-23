@@ -1,21 +1,21 @@
-//! Time-Series Database Module for General Bots
-//!
-//! This module provides integration with InfluxDB 3 for storing and querying
-//! time-series metrics, analytics, and operational data.
-//!
-//! ## Features
-//! - High-performance metrics ingestion (2.5M+ points/sec)
-//! - Async/non-blocking writes with batching
-//! - Built-in query interface for analytics dashboard
-//! - LLM-powered natural language queries
-//!
-//! ## Usage
-//! ```rust,ignore
-//! use botserver::timeseries::{TimeSeriesClient, MetricPoint};
-//!
-//! let client = TimeSeriesClient::new("http://localhost:8086", "my-token", "my-org", "metrics").await?;
-//! client.write_point(MetricPoint::new("messages").field("count", 1).tag("bot", "default")).await?;
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -24,22 +24,22 @@ use std::sync::Arc;
 use tokio::sync::mpsc;
 use tokio::sync::RwLock;
 
-/// Configuration for the time-series database connection
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeSeriesConfig {
-    /// InfluxDB server URL (e.g., "http://localhost:8086")
+
     pub url: String,
-    /// Authentication token
+
     pub token: String,
-    /// Organization name
+
     pub org: String,
-    /// Default bucket for metrics
+
     pub bucket: String,
-    /// Batch size for writes (default: 1000)
+
     pub batch_size: usize,
-    /// Flush interval in milliseconds (default: 1000)
+
     pub flush_interval_ms: u64,
-    /// Enable TLS verification
+
     pub verify_tls: bool,
 }
 
@@ -57,20 +57,20 @@ impl Default for TimeSeriesConfig {
     }
 }
 
-/// Represents a single metric data point
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MetricPoint {
-    /// Measurement name (e.g., "messages", "response_time", "llm_tokens")
+
     pub measurement: String,
-    /// Tags for indexing and filtering
+
     pub tags: HashMap<String, String>,
-    /// Field values (the actual metrics)
+
     pub fields: HashMap<String, FieldValue>,
-    /// Timestamp (defaults to now if not specified)
+
     pub timestamp: Option<DateTime<Utc>>,
 }
 
-/// Field value types supported by InfluxDB
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum FieldValue {
     Float(f64),
@@ -81,7 +81,7 @@ pub enum FieldValue {
 }
 
 impl MetricPoint {
-    /// Create a new metric point with the given measurement name
+
     pub fn new(measurement: impl Into<String>) -> Self {
         Self {
             measurement: measurement.into(),
@@ -91,55 +91,55 @@ impl MetricPoint {
         }
     }
 
-    /// Add a tag to the metric point
+
     pub fn tag(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.tags.insert(key.into(), value.into());
         self
     }
 
-    /// Add a float field
+
     pub fn field_f64(mut self, key: impl Into<String>, value: f64) -> Self {
         self.fields.insert(key.into(), FieldValue::Float(value));
         self
     }
 
-    /// Add an integer field
+
     pub fn field_i64(mut self, key: impl Into<String>, value: i64) -> Self {
         self.fields.insert(key.into(), FieldValue::Integer(value));
         self
     }
 
-    /// Add an unsigned integer field
+
     pub fn field_u64(mut self, key: impl Into<String>, value: u64) -> Self {
         self.fields
             .insert(key.into(), FieldValue::UnsignedInteger(value));
         self
     }
 
-    /// Add a string field
+
     pub fn field_str(mut self, key: impl Into<String>, value: impl Into<String>) -> Self {
         self.fields
             .insert(key.into(), FieldValue::String(value.into()));
         self
     }
 
-    /// Add a boolean field
+
     pub fn field_bool(mut self, key: impl Into<String>, value: bool) -> Self {
         self.fields.insert(key.into(), FieldValue::Boolean(value));
         self
     }
 
-    /// Set the timestamp
+
     pub fn at(mut self, timestamp: DateTime<Utc>) -> Self {
         self.timestamp = Some(timestamp);
         self
     }
 
-    /// Convert to InfluxDB line protocol format
+
     pub fn to_line_protocol(&self) -> String {
         let mut line = self.measurement.clone();
 
-        // Add tags (sorted for consistency)
+
         let mut sorted_tags: Vec<_> = self.tags.iter().collect();
         sorted_tags.sort_by_key(|(k, _)| *k);
         for (key, value) in sorted_tags {
@@ -149,7 +149,7 @@ impl MetricPoint {
             line.push_str(&escape_tag_value(value));
         }
 
-        // Add fields
+
         line.push(' ');
         let mut sorted_fields: Vec<_> = self.fields.iter().collect();
         sorted_fields.sort_by_key(|(k, _)| *k);
@@ -170,7 +170,7 @@ impl MetricPoint {
             .collect();
         line.push_str(&fields_str.join(","));
 
-        // Add timestamp
+
         if let Some(ts) = self.timestamp {
             line.push(' ');
             line.push_str(&ts.timestamp_nanos_opt().unwrap_or(0).to_string());
@@ -180,40 +180,40 @@ impl MetricPoint {
     }
 }
 
-/// Escape special characters in tag keys
+
 fn escape_tag_key(s: &str) -> String {
     s.replace(',', "\\,")
         .replace('=', "\\=")
         .replace(' ', "\\ ")
 }
 
-/// Escape special characters in tag values
+
 fn escape_tag_value(s: &str) -> String {
     s.replace(',', "\\,")
         .replace('=', "\\=")
         .replace(' ', "\\ ")
 }
 
-/// Escape special characters in field keys
+
 fn escape_field_key(s: &str) -> String {
     s.replace(',', "\\,")
         .replace('=', "\\=")
         .replace(' ', "\\ ")
 }
 
-/// Escape special characters in string field values
+
 fn escape_string_value(s: &str) -> String {
     s.replace('\\', "\\\\").replace('"', "\\\"")
 }
 
-/// Query result from time-series database
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueryResult {
     pub columns: Vec<String>,
     pub rows: Vec<Vec<serde_json::Value>>,
 }
 
-/// Time-series client for InfluxDB
+
 pub struct TimeSeriesClient {
     config: TimeSeriesConfig,
     http_client: reqwest::Client,
@@ -222,7 +222,7 @@ pub struct TimeSeriesClient {
 }
 
 impl TimeSeriesClient {
-    /// Create a new time-series client
+
     pub async fn new(config: TimeSeriesConfig) -> Result<Self, TimeSeriesError> {
         let http_client = reqwest::Client::builder()
             .danger_accept_invalid_certs(!config.verify_tls)
@@ -240,7 +240,7 @@ impl TimeSeriesClient {
             write_sender,
         };
 
-        // Spawn background writer task
+
         let buffer_clone = write_buffer.clone();
         let config_clone = config.clone();
         tokio::spawn(async move {
@@ -256,7 +256,7 @@ impl TimeSeriesClient {
         Ok(client)
     }
 
-    /// Background task that batches and writes metrics
+
     async fn background_writer(
         mut receiver: mpsc::Receiver<MetricPoint>,
         buffer: Arc<RwLock<Vec<MetricPoint>>>,
@@ -294,7 +294,7 @@ impl TimeSeriesClient {
         }
     }
 
-    /// Flush points to InfluxDB
+
     async fn flush_points(
         http_client: &reqwest::Client,
         config: &TimeSeriesConfig,
@@ -337,7 +337,7 @@ impl TimeSeriesClient {
         Ok(())
     }
 
-    /// Write a single metric point (non-blocking, batched)
+
     pub async fn write_point(&self, point: MetricPoint) -> Result<(), TimeSeriesError> {
         self.write_sender
             .send(point)
@@ -345,7 +345,7 @@ impl TimeSeriesClient {
             .map_err(|e| TimeSeriesError::WriteError(e.to_string()))
     }
 
-    /// Write multiple metric points (non-blocking, batched)
+
     pub async fn write_points(&self, points: Vec<MetricPoint>) -> Result<(), TimeSeriesError> {
         for point in points {
             self.write_point(point).await?;
@@ -353,7 +353,7 @@ impl TimeSeriesClient {
         Ok(())
     }
 
-    /// Execute a Flux query
+
     pub async fn query(&self, flux_query: &str) -> Result<QueryResult, TimeSeriesError> {
         let url = format!("{}/api/v2/query?org={}", self.config.url, self.config.org);
 
@@ -385,7 +385,7 @@ impl TimeSeriesClient {
         Self::parse_csv_result(&csv_data)
     }
 
-    /// Parse CSV result from InfluxDB
+
     fn parse_csv_result(csv_data: &str) -> Result<QueryResult, TimeSeriesError> {
         let mut result = QueryResult {
             columns: Vec::new(),
@@ -394,7 +394,7 @@ impl TimeSeriesClient {
 
         let mut lines = csv_data.lines().peekable();
 
-        // Skip annotation rows and find header
+
         while let Some(line) = lines.peek() {
             if line.starts_with('#') || line.is_empty() {
                 lines.next();
@@ -403,12 +403,12 @@ impl TimeSeriesClient {
             }
         }
 
-        // Parse header
+
         if let Some(header_line) = lines.next() {
             result.columns = header_line.split(',').map(|s| s.trim().to_string()).collect();
         }
 
-        // Parse data rows
+
         for line in lines {
             if line.is_empty() || line.starts_with('#') {
                 continue;
@@ -418,7 +418,7 @@ impl TimeSeriesClient {
                 .split(',')
                 .map(|s| {
                     let trimmed = s.trim();
-                    // Try to parse as number first
+
                     if let Ok(n) = trimmed.parse::<i64>() {
                         serde_json::Value::Number(n.into())
                     } else if let Ok(n) = trimmed.parse::<f64>() {
@@ -439,7 +439,7 @@ impl TimeSeriesClient {
         Ok(result)
     }
 
-    /// Query metrics for a specific time range
+
     pub async fn query_range(
         &self,
         measurement: &str,
@@ -462,7 +462,7 @@ impl TimeSeriesClient {
         self.query(&flux).await
     }
 
-    /// Get the latest value for a measurement
+
     pub async fn query_last(&self, measurement: &str) -> Result<QueryResult, TimeSeriesError> {
         let flux = format!(
             r#"from(bucket: "{}")
@@ -475,7 +475,7 @@ impl TimeSeriesClient {
         self.query(&flux).await
     }
 
-    /// Get aggregated statistics for a measurement
+
     pub async fn query_stats(
         &self,
         measurement: &str,
@@ -501,7 +501,7 @@ impl TimeSeriesClient {
         self.query(&flux).await
     }
 
-    /// Check if InfluxDB is healthy
+
     pub async fn health_check(&self) -> Result<bool, TimeSeriesError> {
         let url = format!("{}/health", self.config.url);
 
@@ -516,11 +516,11 @@ impl TimeSeriesClient {
     }
 }
 
-/// Pre-defined metric types for General Bots
+
 pub struct Metrics;
 
 impl Metrics {
-    /// Record a message event
+
     pub fn message(bot_id: &str, channel: &str, direction: &str) -> MetricPoint {
         MetricPoint::new("messages")
             .tag("bot_id", bot_id)
@@ -530,7 +530,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record response time
+
     pub fn response_time(bot_id: &str, duration_ms: f64) -> MetricPoint {
         MetricPoint::new("response_time")
             .tag("bot_id", bot_id)
@@ -538,7 +538,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record LLM token usage
+
     pub fn llm_tokens(
         bot_id: &str,
         model: &str,
@@ -554,7 +554,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record active session count
+
     pub fn active_sessions(bot_id: &str, count: i64) -> MetricPoint {
         MetricPoint::new("active_sessions")
             .tag("bot_id", bot_id)
@@ -562,7 +562,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record an error
+
     pub fn error(bot_id: &str, error_type: &str, message: &str) -> MetricPoint {
         MetricPoint::new("errors")
             .tag("bot_id", bot_id)
@@ -572,7 +572,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record storage usage
+
     pub fn storage_usage(bot_id: &str, bytes_used: u64, file_count: u64) -> MetricPoint {
         MetricPoint::new("storage_usage")
             .tag("bot_id", bot_id)
@@ -581,7 +581,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record API request
+
     pub fn api_request(endpoint: &str, method: &str, status_code: i64, duration_ms: f64) -> MetricPoint {
         MetricPoint::new("api_requests")
             .tag("endpoint", endpoint)
@@ -592,7 +592,7 @@ impl Metrics {
             .at(Utc::now())
     }
 
-    /// Record system metrics (CPU, memory, etc.)
+
     pub fn system(cpu_percent: f64, memory_percent: f64, disk_percent: f64) -> MetricPoint {
         MetricPoint::new("system_metrics")
             .field_f64("cpu_percent", cpu_percent)
@@ -602,7 +602,7 @@ impl Metrics {
     }
 }
 
-/// Errors that can occur when working with time-series data
+
 #[derive(Debug, Clone)]
 pub enum TimeSeriesError {
     ConnectionError(String),

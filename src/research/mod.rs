@@ -57,26 +57,26 @@ pub struct CollectionRow {
 
 pub fn configure_research_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // Collections - match frontend hx-* endpoints
+
         .route("/api/research/collections", get(handle_list_collections))
         .route(
             "/api/research/collections/new",
             post(handle_create_collection),
         )
         .route("/api/research/collections/{id}", get(handle_get_collection))
-        // Search
+
         .route("/api/research/search", post(handle_search))
         .route("/api/research/recent", get(handle_recent_searches))
         .route("/api/research/trending", get(handle_trending_tags))
         .route("/api/research/prompts", get(handle_prompts))
-        // Export
+
         .route(
             "/api/research/export-citations",
             get(handle_export_citations),
         )
 }
 
-/// GET /api/research/collections - List all collections
+
 pub async fn handle_list_collections(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -156,7 +156,7 @@ fn get_default_collections() -> Vec<(String, String, String)> {
     ]
 }
 
-/// POST /api/research/collections/new - Create a new collection
+
 pub async fn handle_create_collection(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<NewCollectionRequest>,
@@ -207,7 +207,7 @@ pub async fn handle_create_collection(
     Html(html)
 }
 
-/// GET /api/research/collections/{id} - Get collection contents
+
 pub async fn handle_get_collection(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -265,7 +265,7 @@ pub async fn handle_get_collection(
     Html(html)
 }
 
-/// POST /api/research/search - Semantic search
+
 pub async fn handle_search(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SearchRequest>,
@@ -377,7 +377,7 @@ fn format_search_result(id: &str, title: &str, content: &str, source: &str) -> S
     html
 }
 
-/// GET /api/research/recent - Recent searches
+
 pub async fn handle_recent_searches(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let recent_searches = vec![
         "How to get started",
@@ -411,7 +411,7 @@ pub async fn handle_recent_searches(State(_state): State<Arc<AppState>>) -> impl
     Html(html)
 }
 
-/// GET /api/research/trending - Trending tags
+
 pub async fn handle_trending_tags(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let tags = vec![
         ("getting-started", 42),
@@ -445,7 +445,7 @@ pub async fn handle_trending_tags(State(_state): State<Arc<AppState>>) -> impl I
     Html(html)
 }
 
-/// GET /api/research/prompts - Get research prompts/suggestions
+
 pub async fn handle_prompts(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let prompts = vec![
         (
@@ -492,7 +492,7 @@ pub async fn handle_prompts(State(_state): State<Arc<AppState>>) -> impl IntoRes
     Html(html)
 }
 
-/// GET /api/research/export-citations - Export citations
+
 pub async fn handle_export_citations(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     Html("<script>alert('Citations exported. Download will begin shortly.');</script>".to_string())
 }

@@ -155,7 +155,7 @@ pub async fn auth_handler(
         match tokio::task::spawn_blocking(move || {
             let mut script_service =
                 crate::basic::ScriptService::new(state_clone.clone(), session_clone);
-            // Inject param-* config variables from bot configuration
+
             script_service.load_bot_config_params(&state_clone, bot_id);
             match script_service.compile(&auth_script) {
                 Ok(ast) => match script_service.run(&ast) {

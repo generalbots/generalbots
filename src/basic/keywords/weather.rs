@@ -30,7 +30,7 @@ pub struct ForecastDay {
     pub rain_chance: u32,
 }
 
-/// Register WEATHER keyword in BASIC
+
 pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -85,7 +85,7 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
         })
         .unwrap();
 
-    // Register FORECAST keyword for extended forecast
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -155,10 +155,10 @@ async fn get_weather(
     _user: &UserSession,
     location: &str,
 ) -> Result<String, String> {
-    // Get API key from bot config or environment
+
     let api_key = get_weather_api_key(state)?;
 
-    // Try OpenWeatherMap API first
+
     match fetch_openweathermap_current(&api_key, location).await {
         Ok(weather) => {
             info!("Weather data fetched for {}", location);
@@ -166,7 +166,7 @@ async fn get_weather(
         }
         Err(e) => {
             error!("OpenWeatherMap API failed: {}", e);
-            // Try fallback weather service
+
             fetch_fallback_weather(location).await
         }
     }
@@ -218,7 +218,7 @@ async fn fetch_openweathermap_current(
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    // Parse OpenWeatherMap response
+
     Ok(WeatherData {
         location: data["name"].as_str().unwrap_or(location).to_string(),
         temperature: data["main"]["temp"].as_f64().unwrap_or(0.0) as f32,
@@ -232,8 +232,8 @@ async fn fetch_openweathermap_current(
         wind_direction: degrees_to_compass(data["wind"]["deg"].as_f64().unwrap_or(0.0)),
         feels_like: data["main"]["feels_like"].as_f64().unwrap_or(0.0) as f32,
         pressure: data["main"]["pressure"].as_u64().unwrap_or(0) as u32,
-        visibility: data["visibility"].as_f64().unwrap_or(0.0) as f32 / 1000.0, // Convert to km
-        uv_index: None, // Would need separate API call for UV index
+        visibility: data["visibility"].as_f64().unwrap_or(0.0) as f32 / 1000.0,
+        uv_index: None,
         forecast: Vec::new(),
     })
 }
@@ -248,7 +248,7 @@ async fn fetch_openweathermap_forecast(
         "https://api.openweathermap.org/data/2.5/forecast?q={}&appid={}&units=metric&cnt={}",
         urlencoding::encode(location),
         api_key,
-        days * 8 // 8 forecasts per day (every 3 hours)
+        days * 8
     );
 
     let response = client
@@ -266,7 +266,7 @@ async fn fetch_openweathermap_forecast(
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-    // Process forecast data
+
     let mut forecast_days = Vec::new();
     let mut daily_data: std::collections::HashMap<String, (f32, f32, String, u32)> =
         std::collections::HashMap::new();
@@ -289,21 +289,21 @@ async fn fetch_openweathermap_forecast(
                 rain_chance,
             ));
 
-            // Update min/max temperatures
+
             if temp < entry.0 {
                 entry.0 = temp;
             }
             if temp > entry.1 {
                 entry.1 = temp;
             }
-            // Update rain chance to max for the day
+
             if rain_chance > entry.3 {
                 entry.3 = rain_chance;
             }
         }
     }
 
-    // Convert to forecast days
+
     for (date, (temp_low, temp_high, description, rain_chance)) in daily_data.iter() {
         forecast_days.push(ForecastDay {
             date: date.clone(),
@@ -314,7 +314,7 @@ async fn fetch_openweathermap_forecast(
         });
     }
 
-    // Sort by date
+
     forecast_days.sort_by(|a, b| a.date.cmp(&b.date));
 
     Ok(WeatherData {
@@ -322,7 +322,7 @@ async fn fetch_openweathermap_forecast(
             .as_str()
             .unwrap_or(location)
             .to_string(),
-        temperature: 0.0, // Not relevant for forecast
+        temperature: 0.0,
         temperature_unit: "°C".to_string(),
         description: "Forecast".to_string(),
         humidity: 0,
@@ -337,8 +337,8 @@ async fn fetch_openweathermap_forecast(
 }
 
 async fn fetch_fallback_weather(location: &str) -> Result<String, String> {
-    // This could use another weather API like WeatherAPI.com or NOAA
-    // For now, return a simulated response
+
+
     info!("Using fallback weather for {}", location);
 
     Ok(format!(
@@ -396,7 +396,7 @@ fn degrees_to_compass(degrees: f64) -> String {
 }
 
 fn get_weather_api_key(_state: &AppState) -> Result<String, String> {
-    // Weather API key should be configured in config.csv: weather-api-key
-    // For now, return error indicating configuration needed
+
+
     Err("Weather API key not configured. Please set 'weather-api-key' in config.csv".to_string())
 }

@@ -50,7 +50,7 @@ impl UserWorkspace {
     }
 }
 
-/// Indexing job status
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum IndexingStatus {
     Idle,
@@ -59,7 +59,7 @@ pub enum IndexingStatus {
     Failed(String),
 }
 
-/// Indexing statistics
+
 #[derive(Debug, Clone)]
 pub struct IndexingStats {
     pub emails_indexed: u64,
@@ -70,7 +70,7 @@ pub struct IndexingStats {
     pub errors: u64,
 }
 
-/// User indexing job
+
 struct UserIndexingJob {
     user_id: Uuid,
     bot_id: Uuid,
@@ -83,7 +83,7 @@ struct UserIndexingJob {
     status: IndexingStatus,
 }
 
-/// Background vector DB indexer for all users
+
 pub struct VectorDBIndexer {
     db_pool: DbPool,
     work_root: PathBuf,
@@ -96,7 +96,7 @@ pub struct VectorDBIndexer {
 }
 
 impl VectorDBIndexer {
-    /// Create new vector DB indexer
+
     pub fn new(
         db_pool: DbPool,
         work_root: PathBuf,
@@ -110,12 +110,12 @@ impl VectorDBIndexer {
             embedding_generator: Arc::new(EmailEmbeddingGenerator { llm_endpoint }),
             jobs: Arc::new(RwLock::new(HashMap::new())),
             running: Arc::new(RwLock::new(false)),
-            interval_seconds: 300, // Run every 5 minutes
-            batch_size: 10,        // Index 10 items at a time
+            interval_seconds: 300,
+            batch_size: 10,
         }
     }
 
-    /// Start the background indexing service
+
     pub async fn start(self: Arc<Self>) -> Result<()> {
         let mut running = self.running.write().await;
         if *running {
@@ -135,17 +135,17 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Stop the indexing service
+
     pub async fn stop(&self) {
         let mut running = self.running.write().await;
         *running = false;
         info!("🛑 Stopping Vector DB Indexer");
     }
 
-    /// Main indexing loop
+
     async fn run_indexing_loop(self: Arc<Self>) {
         loop {
-            // Check if still running
+
             {
                 let running = self.running.read().await;
                 if !*running {
@@ -155,7 +155,7 @@ impl VectorDBIndexer {
 
             info!(" Running vector DB indexing cycle...");
 
-            // Get all active users
+
             match self.get_active_users().await {
                 Ok(users) => {
                     info!("Found {} active users to index", users.len());
@@ -173,14 +173,14 @@ impl VectorDBIndexer {
 
             info!(" Indexing cycle complete");
 
-            // Sleep until next cycle
+
             sleep(Duration::from_secs(self.interval_seconds)).await;
         }
 
         info!("Vector DB Indexer stopped");
     }
 
-    /// Get all active users from database
+
     async fn get_active_users(&self) -> Result<Vec<(Uuid, Uuid)>> {
         let conn = self.db_pool.clone();
 
@@ -190,7 +190,7 @@ impl VectorDBIndexer {
 
             let mut db_conn = conn.get()?;
 
-            // Get unique user_id and bot_id pairs from active sessions
+
             let results: Vec<(Uuid, Uuid)> = user_sessions
                 .select((user_id, bot_id))
                 .distinct()
@@ -201,11 +201,11 @@ impl VectorDBIndexer {
         .await?
     }
 
-    /// Index data for a specific user
+
     async fn index_user_data(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
         info!("Indexing user: {} (bot: {})", user_id, bot_id);
 
-        // Get or create job for this user
+
         let mut jobs = self.jobs.write().await;
         let job = jobs.entry(user_id).or_insert_with(|| {
             let workspace = UserWorkspace::new(self.work_root.clone(), &bot_id, &user_id);
@@ -235,7 +235,7 @@ impl VectorDBIndexer {
 
         job.status = IndexingStatus::Running;
 
-        // Initialize vector DBs if needed
+
         if job.email_db.is_none() {
             let mut email_db =
                 UserEmailVectorDB::new(user_id, bot_id, job.workspace.email_vectordb().into());
@@ -264,17 +264,17 @@ impl VectorDBIndexer {
 
         drop(jobs);
 
-        // Index emails
+
         if let Err(e) = self.index_user_emails(user_id).await {
             error!("Failed to index emails for user {}: {}", user_id, e);
         }
 
-        // Index files
+
         if let Err(e) = self.index_user_files(user_id).await {
             error!("Failed to index files for user {}: {}", user_id, e);
         }
 
-        // Update job status
+
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
             job.status = IndexingStatus::Idle;
@@ -284,7 +284,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Index user's emails
+
     async fn index_user_emails(&self, user_id: Uuid) -> Result<()> {
         let jobs = self.jobs.read().await;
         let job = jobs
@@ -299,7 +299,7 @@ impl VectorDBIndexer {
             }
         };
 
-        // Get user's email accounts
+
         let accounts = self.get_user_email_accounts(user_id).await?;
 
         info!(
@@ -309,7 +309,7 @@ impl VectorDBIndexer {
         );
 
         for account_id in accounts {
-            // Get recent unindexed emails (last 100)
+
             match self.get_unindexed_emails(user_id, &account_id).await {
                 Ok(emails) => {
                     if emails.is_empty() {
@@ -322,7 +322,7 @@ impl VectorDBIndexer {
                         account_id
                     );
 
-                    // Process in batches
+
                     for chunk in emails.chunks(self.batch_size) {
                         for email in chunk {
                             match self.embedding_generator.generate_embedding(&email).await {
@@ -342,7 +342,7 @@ impl VectorDBIndexer {
                             }
                         }
 
-                        // Small delay between batches
+
                         sleep(Duration::from_millis(100)).await;
                     }
                 }
@@ -358,7 +358,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Index user's files
+
     async fn index_user_files(&self, user_id: Uuid) -> Result<()> {
         let jobs = self.jobs.read().await;
         let job = jobs
@@ -373,7 +373,7 @@ impl VectorDBIndexer {
             }
         };
 
-        // Get user's files from drive
+
         match self.get_unindexed_files(user_id).await {
             Ok(files) => {
                 if files.is_empty() {
@@ -382,16 +382,16 @@ impl VectorDBIndexer {
 
                 info!("Indexing {} files for user {}", files.len(), user_id);
 
-                // Process in batches
+
                 for chunk in files.chunks(self.batch_size) {
                     for file in chunk {
-                        // Check if file should be indexed
+
                         let mime_type = file.mime_type.as_ref().map(|s| s.as_str()).unwrap_or("");
                         if !FileContentExtractor::should_index(&mime_type, file.file_size) {
                             continue;
                         }
 
-                        // Generate embedding for file content
+
                         let text = format!(
                             "File: {}\nType: {}\n\n{}",
                             file.file_name, file.file_type, file.content_text
@@ -415,7 +415,7 @@ impl VectorDBIndexer {
                         }
                     }
 
-                    // Small delay between batches
+
                     sleep(Duration::from_millis(100)).await;
                 }
             }
@@ -427,7 +427,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Get user's email accounts
+
     async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
         let conn = self.db_pool.clone();
 
@@ -611,13 +611,13 @@ impl VectorDBIndexer {
         Ok(results)
     }
 
-    /// Get indexing statistics for a user
+
     pub async fn get_user_stats(&self, user_id: Uuid) -> Option<IndexingStats> {
         let jobs = self.jobs.read().await;
         jobs.get(&user_id).map(|job| job.stats.clone())
     }
 
-    /// Get overall indexing statistics
+
     pub async fn get_overall_stats(&self) -> IndexingStats {
         let jobs = self.jobs.read().await;
 
@@ -647,7 +647,7 @@ impl VectorDBIndexer {
         total_stats
     }
 
-    /// Pause indexing for a specific user
+
     pub async fn pause_user_indexing(&self, user_id: Uuid) -> Result<()> {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
@@ -657,7 +657,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Resume indexing for a specific user
+
     pub async fn resume_user_indexing(&self, user_id: Uuid) -> Result<()> {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
@@ -667,7 +667,7 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-    /// Trigger immediate indexing for a user
+
     pub async fn trigger_user_indexing(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
         info!(" Triggering immediate indexing for user {}", user_id);
         self.index_user_data(user_id, bot_id).await

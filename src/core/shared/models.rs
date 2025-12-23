@@ -1,25 +1,25 @@
-//! Database models and diesel-specific types
-//!
-//! This module contains diesel ORM models and database-specific types.
-//! Common API types (BotResponse, UserMessage, etc.) are now in botlib.
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-// Re-export schema for backward compatibility (crate::shared::models::schema::*)
-// This allows `use crate::shared::models::schema::table_name::dsl::*;` to work
+
+
 pub use super::schema;
 
-// Also re-export individual tables at this level for convenience
+
 pub use super::schema::{
     basic_tools,
     bot_configuration,
     bot_memories,
     bots,
     clicks,
-    // Enterprise email tables (6.1.0_enterprise_suite)
+
     distribution_lists,
     email_auto_responders,
     email_drafts,
@@ -48,11 +48,11 @@ pub use super::schema::{
     users,
 };
 
-// Re-export common types from botlib for convenience
+
 pub use botlib::message_types::MessageType;
 pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, UserMessage};
 
-/// Trigger kinds for automations
+
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum TriggerKind {
     Scheduled = 0,
@@ -79,7 +79,7 @@ impl TriggerKind {
     }
 }
 
-/// Automation database model
+
 #[derive(Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = system_automations)]
 pub struct Automation {
@@ -93,7 +93,7 @@ pub struct Automation {
     pub last_triggered: Option<DateTime<Utc>>,
 }
 
-/// User session database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = user_sessions)]
 pub struct UserSession {
@@ -107,7 +107,7 @@ pub struct UserSession {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Bot memory storage model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = bot_memories)]
 pub struct BotMemory {
@@ -119,7 +119,7 @@ pub struct BotMemory {
     pub updated_at: DateTime<Utc>,
 }
 
-/// User database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = users)]
 pub struct User {
@@ -133,7 +133,7 @@ pub struct User {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Bot database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = bots)]
 pub struct Bot {
@@ -150,7 +150,7 @@ pub struct Bot {
     pub tenant_id: Option<Uuid>,
 }
 
-/// Organization database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = organizations)]
 #[diesel(primary_key(org_id))]
@@ -161,7 +161,7 @@ pub struct Organization {
     pub created_at: DateTime<Utc>,
 }
 
-/// Message history database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = message_history)]
 pub struct MessageHistory {
@@ -175,7 +175,7 @@ pub struct MessageHistory {
     pub created_at: DateTime<Utc>,
 }
 
-/// Bot configuration database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = bot_configuration)]
 pub struct BotConfiguration {
@@ -189,7 +189,7 @@ pub struct BotConfiguration {
     pub updated_at: DateTime<Utc>,
 }
 
-/// User login token database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_login_tokens)]
 pub struct UserLoginToken {
@@ -204,7 +204,7 @@ pub struct UserLoginToken {
     pub is_active: bool,
 }
 
-/// User preferences database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_preferences)]
 pub struct UserPreference {
@@ -216,7 +216,7 @@ pub struct UserPreference {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Click tracking database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = clicks)]
 pub struct Click {
@@ -226,7 +226,7 @@ pub struct Click {
     pub updated_at: DateTime<Utc>,
 }
 
-/// Task database model
+
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = tasks)]
 pub struct Task {
@@ -249,7 +249,7 @@ pub struct Task {
     pub completed_at: Option<DateTime<Utc>>,
 }
 
-/// New task for insertion
+
 #[derive(Debug, Clone, Insertable)]
 #[diesel(table_name = tasks)]
 pub struct NewTask {

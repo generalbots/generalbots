@@ -10,7 +10,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // Register with spaces: SET BOT MEMORY key, value
+
     engine
         .register_custom_syntax(
             &["SET", "BOT", "MEMORY", "$expr$", ",", "$expr$"],
@@ -116,7 +116,7 @@ pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // Register as function: GET BOT MEMORY("key")
+
     engine.register_fn("GET BOT MEMORY", move |key_param: String| -> String {
         use crate::shared::models::bot_memories;
 

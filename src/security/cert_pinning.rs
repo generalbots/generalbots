@@ -1,29 +1,29 @@
-//! Certificate Pinning Module
-//!
-//! Provides certificate pinning functionality to prevent man-in-the-middle attacks
-//! by validating server certificates against pre-configured SHA-256 fingerprints.
-//!
-//! # Overview
-//!
-//! Certificate pinning adds an additional layer of security beyond standard TLS
-//! certificate validation. Even if an attacker obtains a valid certificate from
-//! a trusted CA, the connection will be rejected if the certificate's fingerprint
-//! doesn't match the pinned value.
-//!
-//! # Usage
-//!
-//! ```rust,ignore
-//! use botserver::security::cert_pinning::{CertPinningConfig, CertPinningManager, PinnedCert};
-//!
-//! let mut config = CertPinningConfig::default();
-//! config.add_pin(PinnedCert::new(
-//!     "api.example.com",
-//!     "sha256//AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=",
-//! ));
-//!
-//! let manager = CertPinningManager::new(config);
-//! let client = manager.create_pinned_client("api.example.com")?;
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use anyhow::{anyhow, Context, Result};
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
@@ -38,28 +38,28 @@ use std::time::Duration;
 use tracing::{debug, error, info, warn};
 use x509_parser::prelude::*;
 
-/// Configuration for certificate pinning
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CertPinningConfig {
-    /// Enable certificate pinning globally
+
     pub enabled: bool,
 
-    /// Pinned certificates by hostname
+
     pub pins: HashMap<String, Vec<PinnedCert>>,
 
-    /// Whether to fail if no pin is configured for a host
+
     pub require_pins: bool,
 
-    /// Allow backup pins (multiple pins per host for rotation)
+
     pub allow_backup_pins: bool,
 
-    /// Report-only mode (log violations but don't block)
+
     pub report_only: bool,
 
-    /// Path to store/load pin configuration
+
     pub config_path: Option<PathBuf>,
 
-    /// Pin validation cache TTL in seconds
+
     pub cache_ttl_secs: u64,
 }
 
@@ -78,12 +78,12 @@ impl Default for CertPinningConfig {
 }
 
 impl CertPinningConfig {
-    /// Create a new config with pinning enabled
+
     pub fn new() -> Self {
         Self::default()
     }
 
-    /// Create a strict config that requires pins for all hosts
+
     pub fn strict() -> Self {
         Self {
             enabled: true,
@@ -96,7 +96,7 @@ impl CertPinningConfig {
         }
     }
 
-    /// Create a report-only config for testing
+
     pub fn report_only() -> Self {
         Self {
             enabled: true,
@@ -109,28 +109,28 @@ impl CertPinningConfig {
         }
     }
 
-    /// Add a pinned certificate
+
     pub fn add_pin(&mut self, pin: PinnedCert) {
         let hostname = pin.hostname.clone();
         self.pins.entry(hostname).or_default().push(pin);
     }
 
-    /// Add multiple pins for a hostname (primary + backups)
+
     pub fn add_pins(&mut self, hostname: &str, pins: Vec<PinnedCert>) {
         self.pins.insert(hostname.to_string(), pins);
     }
 
-    /// Remove all pins for a hostname
+
     pub fn remove_pins(&mut self, hostname: &str) {
         self.pins.remove(hostname);
     }
 
-    /// Get pins for a hostname
+
     pub fn get_pins(&self, hostname: &str) -> Option<&Vec<PinnedCert>> {
         self.pins.get(hostname)
     }
 
-    /// Load configuration from file
+
     pub fn load_from_file(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)
             .with_context(|| format!("Failed to read pin config from {:?}", path))?;
@@ -142,7 +142,7 @@ impl CertPinningConfig {
         Ok(config)
     }
 
-    /// Save configuration to file
+
     pub fn save_to_file(&self, path: &Path) -> Result<()> {
         let content =
             serde_json::to_string_pretty(self).context("Failed to serialize pin configuration")?;
@@ -155,31 +155,31 @@ impl CertPinningConfig {
     }
 }
 
-/// A pinned certificate entry
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PinnedCert {
-    /// Hostname this pin applies to
+
     pub hostname: String,
 
-    /// SHA-256 fingerprint of the certificate's Subject Public Key Info (SPKI)
-    /// Format: "sha256//BASE64_ENCODED_HASH"
+
+
     pub fingerprint: String,
 
-    /// Optional human-readable description
+
     pub description: Option<String>,
 
-    /// Whether this is a backup pin
+
     pub is_backup: bool,
 
-    /// Expiration date (for pin rotation planning)
+
     pub expires_at: Option<chrono::DateTime<chrono::Utc>>,
 
-    /// Pin type (leaf certificate, intermediate, or root)
+
     pub pin_type: PinType,
 }
 
 impl PinnedCert {
-    /// Create a new pinned certificate entry
+
     pub fn new(hostname: &str, fingerprint: &str) -> Self {
         Self {
             hostname: hostname.to_string(),
@@ -191,7 +191,7 @@ impl PinnedCert {
         }
     }
 
-    /// Create a backup pin
+
     pub fn backup(hostname: &str, fingerprint: &str) -> Self {
         Self {
             hostname: hostname.to_string(),
@@ -203,25 +203,25 @@ impl PinnedCert {
         }
     }
 
-    /// Set the pin type
+
     pub fn with_type(mut self, pin_type: PinType) -> Self {
         self.pin_type = pin_type;
         self
     }
 
-    /// Set description
+
     pub fn with_description(mut self, desc: &str) -> Self {
         self.description = Some(desc.to_string());
         self
     }
 
-    /// Set expiration
+
     pub fn with_expiration(mut self, expires: chrono::DateTime<chrono::Utc>) -> Self {
         self.expires_at = Some(expires);
         self
     }
 
-    /// Extract the raw hash bytes from the fingerprint
+
     pub fn get_hash_bytes(&self) -> Result<Vec<u8>> {
         let hash_str = self
             .fingerprint
@@ -233,7 +233,7 @@ impl PinnedCert {
             .context("Failed to decode base64 fingerprint")
     }
 
-    /// Verify if a certificate matches this pin
+
     pub fn verify(&self, cert_der: &[u8]) -> Result<bool> {
         let expected_hash = self.get_hash_bytes()?;
         let actual_hash = compute_spki_fingerprint(cert_der)?;
@@ -242,14 +242,14 @@ impl PinnedCert {
     }
 }
 
-/// Type of certificate being pinned
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PinType {
-    /// Pin the leaf/end-entity certificate
+
     Leaf,
-    /// Pin an intermediate CA certificate
+
     Intermediate,
-    /// Pin the root CA certificate
+
     Root,
 }
 
@@ -259,30 +259,30 @@ impl Default for PinType {
     }
 }
 
-/// Result of a pin validation
+
 #[derive(Debug, Clone)]
 pub struct PinValidationResult {
-    /// Whether the pin validation passed
+
     pub valid: bool,
 
-    /// The hostname that was validated
+
     pub hostname: String,
 
-    /// Which pin matched (if any)
+
     pub matched_pin: Option<String>,
 
-    /// The actual fingerprint of the certificate
+
     pub actual_fingerprint: String,
 
-    /// Error message if validation failed
+
     pub error: Option<String>,
 
-    /// Whether this was a backup pin match
+
     pub backup_match: bool,
 }
 
 impl PinValidationResult {
-    /// Create a successful validation result
+
     pub fn success(hostname: &str, fingerprint: &str, backup: bool) -> Self {
         Self {
             valid: true,
@@ -294,7 +294,7 @@ impl PinValidationResult {
         }
     }
 
-    /// Create a failed validation result
+
     pub fn failure(hostname: &str, actual: &str, error: &str) -> Self {
         Self {
             valid: false,
@@ -307,7 +307,7 @@ impl PinValidationResult {
     }
 }
 
-/// Certificate Pinning Manager
+
 #[derive(Debug)]
 pub struct CertPinningManager {
     config: Arc<RwLock<CertPinningConfig>>,
@@ -315,7 +315,7 @@ pub struct CertPinningManager {
 }
 
 impl CertPinningManager {
-    /// Create a new certificate pinning manager
+
     pub fn new(config: CertPinningConfig) -> Self {
         Self {
             config: Arc::new(RwLock::new(config)),
@@ -323,17 +323,17 @@ impl CertPinningManager {
         }
     }
 
-    /// Create with default configuration
+
     pub fn default_manager() -> Self {
         Self::new(CertPinningConfig::default())
     }
 
-    /// Check if pinning is enabled
+
     pub fn is_enabled(&self) -> bool {
         self.config.read().unwrap().enabled
     }
 
-    /// Add a pin dynamically
+
     pub fn add_pin(&self, pin: PinnedCert) -> Result<()> {
         let mut config = self
             .config
@@ -343,7 +343,7 @@ impl CertPinningManager {
         Ok(())
     }
 
-    /// Remove pins for a hostname
+
     pub fn remove_pins(&self, hostname: &str) -> Result<()> {
         let mut config = self
             .config
@@ -351,7 +351,7 @@ impl CertPinningManager {
             .map_err(|_| anyhow!("Failed to acquire write lock"))?;
         config.remove_pins(hostname);
 
-        // Clear cache for this hostname
+
         let mut cache = self
             .validation_cache
             .write()
@@ -361,7 +361,7 @@ impl CertPinningManager {
         Ok(())
     }
 
-    /// Validate a certificate against pinned fingerprints
+
     pub fn validate_certificate(
         &self,
         hostname: &str,
@@ -376,7 +376,7 @@ impl CertPinningManager {
             return Ok(PinValidationResult::success(hostname, "disabled", false));
         }
 
-        // Check cache first
+
         if let Ok(cache) = self.validation_cache.read() {
             if let Some((result, timestamp)) = cache.get(hostname) {
                 if timestamp.elapsed().as_secs() < config.cache_ttl_secs {
@@ -385,11 +385,11 @@ impl CertPinningManager {
             }
         }
 
-        // Compute actual fingerprint
+
         let actual_hash = compute_spki_fingerprint(cert_der)?;
         let actual_fingerprint = format!("sha256//{}", BASE64.encode(&actual_hash));
 
-        // Get pins for this hostname
+
         let pins = match config.get_pins(hostname) {
             Some(pins) => pins,
             None => {
@@ -411,7 +411,7 @@ impl CertPinningManager {
                     return Ok(result);
                 }
 
-                // No pins required, pass through
+
                 return Ok(PinValidationResult::success(
                     hostname,
                     "no-pins-required",
@@ -420,7 +420,7 @@ impl CertPinningManager {
             }
         };
 
-        // Check against all pins
+
         for pin in pins {
             match pin.verify(cert_der) {
                 Ok(true) => {
@@ -435,7 +435,7 @@ impl CertPinningManager {
                         );
                     }
 
-                    // Update cache
+
                     if let Ok(mut cache) = self.validation_cache.write() {
                         cache.insert(
                             hostname.to_string(),
@@ -453,7 +453,7 @@ impl CertPinningManager {
             }
         }
 
-        // No pin matched
+
         let result = PinValidationResult::failure(
             hostname,
             &actual_fingerprint,
@@ -479,12 +479,12 @@ impl CertPinningManager {
         Ok(result)
     }
 
-    /// Create an HTTP client with certificate pinning for a specific host
+
     pub fn create_pinned_client(&self, hostname: &str) -> Result<Client> {
         self.create_pinned_client_with_options(hostname, None, Duration::from_secs(30))
     }
 
-    /// Create an HTTP client with certificate pinning and custom options
+
     pub fn create_pinned_client_with_options(
         &self,
         hostname: &str,
@@ -503,14 +503,14 @@ impl CertPinningManager {
             .https_only(true)
             .tls_built_in_root_certs(true);
 
-        // Add custom CA if provided
+
         if let Some(cert) = ca_cert {
             builder = builder.add_root_certificate(cert.clone());
         }
 
-        // If pinning is enabled and we have pins, we need to use a custom verifier
-        // Note: reqwest doesn't directly support custom certificate verification,
-        // so we validate after connection or use a pre-flight check
+
+
+
         if config.enabled && config.get_pins(hostname).is_some() {
             debug!(
                 "Creating pinned client for {} with {} pins",
@@ -522,7 +522,7 @@ impl CertPinningManager {
         builder.build().context("Failed to build HTTP client")
     }
 
-    /// Validate a certificate from a PEM file
+
     pub fn validate_pem_file(
         &self,
         hostname: &str,
@@ -535,12 +535,12 @@ impl CertPinningManager {
         self.validate_certificate(hostname, &der)
     }
 
-    /// Generate a pin from a certificate file
+
     pub fn generate_pin_from_file(hostname: &str, cert_path: &Path) -> Result<PinnedCert> {
         let cert_data = fs::read(cert_path)
             .with_context(|| format!("Failed to read certificate: {:?}", cert_path))?;
 
-        // Try PEM first, then DER
+
         let der = if cert_data.starts_with(b"-----BEGIN") {
             pem_to_der(&cert_data)?
         } else {
@@ -553,7 +553,7 @@ impl CertPinningManager {
         Ok(PinnedCert::new(hostname, &fingerprint_str))
     }
 
-    /// Generate pins for all certificates in a directory
+
     pub fn generate_pins_from_directory(
         hostname: &str,
         cert_dir: &Path,
@@ -583,7 +583,7 @@ impl CertPinningManager {
         Ok(pins)
     }
 
-    /// Export current pins to a file
+
     pub fn export_pins(&self, path: &Path) -> Result<()> {
         let config = self
             .config
@@ -593,7 +593,7 @@ impl CertPinningManager {
         config.save_to_file(path)
     }
 
-    /// Import pins from a file
+
     pub fn import_pins(&self, path: &Path) -> Result<()> {
         let imported = CertPinningConfig::load_from_file(path)?;
 
@@ -606,7 +606,7 @@ impl CertPinningManager {
             config.pins.insert(hostname, pins);
         }
 
-        // Clear cache
+
         if let Ok(mut cache) = self.validation_cache.write() {
             cache.clear();
         }
@@ -614,7 +614,7 @@ impl CertPinningManager {
         Ok(())
     }
 
-    /// Get statistics about pinned certificates
+
     pub fn get_stats(&self) -> Result<PinningStats> {
         let config = self
             .config
@@ -653,7 +653,7 @@ impl CertPinningManager {
     }
 }
 
-/// Statistics about certificate pinning
+
 #[derive(Debug, Clone, Serialize)]
 pub struct PinningStats {
     pub enabled: bool,
@@ -664,31 +664,31 @@ pub struct PinningStats {
     pub report_only: bool,
 }
 
-/// Compute SHA-256 fingerprint of a certificate's Subject Public Key Info (SPKI)
+
 pub fn compute_spki_fingerprint(cert_der: &[u8]) -> Result<Vec<u8>> {
     let (_, cert) = X509Certificate::from_der(cert_der)
         .map_err(|e| anyhow!("Failed to parse X.509 certificate: {}", e))?;
 
-    // Get the raw SPKI bytes
+
     let spki = cert.public_key().raw;
 
-    // Compute SHA-256 hash
+
     let hash = digest(&SHA256, spki);
 
     Ok(hash.as_ref().to_vec())
 }
 
-/// Compute SHA-256 fingerprint of the entire certificate (not just SPKI)
+
 pub fn compute_cert_fingerprint(cert_der: &[u8]) -> Vec<u8> {
     let hash = digest(&SHA256, cert_der);
     hash.as_ref().to_vec()
 }
 
-/// Convert PEM-encoded certificate to DER
+
 pub fn pem_to_der(pem_data: &[u8]) -> Result<Vec<u8>> {
     let pem_str = std::str::from_utf8(pem_data).context("Invalid UTF-8 in PEM data")?;
 
-    // Find certificate block
+
     let start_marker = "-----BEGIN CERTIFICATE-----";
     let end_marker = "-----END CERTIFICATE-----";
 
@@ -708,7 +708,7 @@ pub fn pem_to_der(pem_data: &[u8]) -> Result<Vec<u8>> {
         .context("Failed to decode base64 certificate data")
 }
 
-/// Format a fingerprint for display
+
 pub fn format_fingerprint(hash: &[u8]) -> String {
     hash.iter()
         .map(|b| format!("{:02X}", b))
@@ -716,16 +716,16 @@ pub fn format_fingerprint(hash: &[u8]) -> String {
         .join(":")
 }
 
-/// Parse a formatted fingerprint back to bytes
+
 pub fn parse_fingerprint(formatted: &str) -> Result<Vec<u8>> {
-    // Handle "sha256//BASE64" format
+
     if let Some(base64_part) = formatted.strip_prefix("sha256//") {
         return BASE64
             .decode(base64_part)
             .context("Failed to decode base64 fingerprint");
     }
 
-    // Handle colon-separated hex format
+
     if formatted.contains(':') {
         let bytes: Result<Vec<u8>, _> = formatted
             .split(':')
@@ -735,7 +735,7 @@ pub fn parse_fingerprint(formatted: &str) -> Result<Vec<u8>> {
         return bytes.context("Failed to parse hex fingerprint");
     }
 
-    // Try plain hex
+
     let bytes: Result<Vec<u8>, _> = (0..formatted.len())
         .step_by(2)
         .map(|i| u8::from_str_radix(&formatted[i..i + 2], 16))

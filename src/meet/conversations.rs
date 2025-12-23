@@ -1,7 +1,7 @@
-//! Conversations & Real-time Communication Module
-//!
-//! Provides comprehensive conversation management including messaging, calls,
-//! screen sharing, recording, and whiteboard collaboration.
+
+
+
+
 
 use axum::{
     extract::{Path, Query, State},
@@ -15,7 +15,7 @@ use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
-// ===== Request/Response Structures =====
+
 
 #[derive(Debug, Deserialize)]
 pub struct CreateConversationRequest {
@@ -188,9 +188,9 @@ pub struct SuccessResponse {
     pub message: Option<String>,
 }
 
-// ===== API Handlers =====
 
-/// POST /conversations/create - Create new conversation
+
+
 pub async fn create_conversation(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateConversationRequest>,
@@ -216,7 +216,7 @@ pub async fn create_conversation(
     Ok(Json(conversation))
 }
 
-/// POST /conversations/:id/join - Join conversation
+
 pub async fn join_conversation(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -228,7 +228,7 @@ pub async fn join_conversation(
     }))
 }
 
-/// POST /conversations/:id/leave - Leave conversation
+
 pub async fn leave_conversation(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -240,7 +240,7 @@ pub async fn leave_conversation(
     }))
 }
 
-/// GET /conversations/:id/members - Get conversation members
+
 pub async fn get_conversation_members(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -258,7 +258,7 @@ pub async fn get_conversation_members(
     Ok(Json(members))
 }
 
-/// GET /conversations/:id/messages - Get conversation messages
+
 pub async fn get_conversation_messages(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -268,7 +268,7 @@ pub async fn get_conversation_messages(
     Ok(Json(messages))
 }
 
-/// POST /conversations/:id/messages/send - Send message
+
 pub async fn send_message(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -297,7 +297,7 @@ pub async fn send_message(
     Ok(Json(message))
 }
 
-/// PUT /conversations/:id/messages/:message_id/edit - Edit message
+
 pub async fn edit_message(
     State(state): State<Arc<AppState>>,
     Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
@@ -324,7 +324,7 @@ pub async fn edit_message(
     Ok(Json(message))
 }
 
-/// DELETE /conversations/:id/messages/:message_id/delete - Delete message
+
 pub async fn delete_message(
     State(state): State<Arc<AppState>>,
     Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
@@ -335,7 +335,7 @@ pub async fn delete_message(
     }))
 }
 
-/// POST /conversations/:id/messages/:message_id/react - React to message
+
 pub async fn react_to_message(
     State(state): State<Arc<AppState>>,
     Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
@@ -347,7 +347,7 @@ pub async fn react_to_message(
     }))
 }
 
-/// POST /conversations/:id/messages/:message_id/pin - Pin message
+
 pub async fn pin_message(
     State(state): State<Arc<AppState>>,
     Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
@@ -358,7 +358,7 @@ pub async fn pin_message(
     }))
 }
 
-/// GET /conversations/:id/messages/search - Search messages
+
 pub async fn search_messages(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -369,7 +369,7 @@ pub async fn search_messages(
     Ok(Json(messages))
 }
 
-/// POST /conversations/:id/calls/start - Start call
+
 pub async fn start_call(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -395,7 +395,7 @@ pub async fn start_call(
     Ok(Json(call))
 }
 
-/// POST /conversations/:id/calls/join - Join call
+
 pub async fn join_call(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -406,7 +406,7 @@ pub async fn join_call(
     }))
 }
 
-/// POST /conversations/:id/calls/leave - Leave call
+
 pub async fn leave_call(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -417,7 +417,7 @@ pub async fn leave_call(
     }))
 }
 
-/// POST /conversations/:id/calls/mute - Mute audio
+
 pub async fn mute_call(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -428,7 +428,7 @@ pub async fn mute_call(
     }))
 }
 
-/// POST /conversations/:id/calls/unmute - Unmute audio
+
 pub async fn unmute_call(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -439,7 +439,7 @@ pub async fn unmute_call(
     }))
 }
 
-/// POST /conversations/:id/screen/share - Start screen sharing
+
 pub async fn start_screen_share(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -462,7 +462,7 @@ pub async fn start_screen_share(
     Ok(Json(screen_share))
 }
 
-/// POST /conversations/:id/screen/stop - Stop screen sharing
+
 pub async fn stop_screen_share(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -473,7 +473,7 @@ pub async fn stop_screen_share(
     }))
 }
 
-/// POST /conversations/:id/recording/start - Start recording
+
 pub async fn start_recording(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -484,7 +484,7 @@ pub async fn start_recording(
     }))
 }
 
-/// POST /conversations/:id/recording/stop - Stop recording
+
 pub async fn stop_recording(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -495,7 +495,7 @@ pub async fn stop_recording(
     }))
 }
 
-/// POST /conversations/:id/whiteboard/create - Create whiteboard
+
 pub async fn create_whiteboard(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
@@ -518,7 +518,7 @@ pub async fn create_whiteboard(
     Ok(Json(whiteboard))
 }
 
-/// POST /conversations/:id/whiteboard/collaborate - Collaborate on whiteboard
+
 pub async fn collaborate_whiteboard(
     State(state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,

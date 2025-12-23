@@ -1,9 +1,9 @@
-//! OAuth2 Routes
-//!
-//! Provides HTTP endpoints for OAuth2 authentication flow:
-//! - GET /auth/oauth/providers - List enabled OAuth providers
-//! - GET /auth/oauth/:provider - Start OAuth flow (redirect to provider)
-//! - GET /auth/oauth/:provider/callback - Handle OAuth callback
+
+
+
+
+
+
 
 use crate::shared::state::AppState;
 use axum::{
@@ -24,27 +24,27 @@ use super::{
     OAuthProvider, OAuthState, OAuthUserInfo,
 };
 
-/// Query parameters for OAuth start
+
 #[derive(Debug, Deserialize)]
 pub struct OAuthStartParams {
-    /// Optional redirect URL after successful login
+
     pub redirect: Option<String>,
 }
 
-/// Query parameters for OAuth callback
+
 #[derive(Debug, Deserialize)]
 pub struct OAuthCallbackParams {
-    /// Authorization code from provider
+
     pub code: Option<String>,
-    /// State parameter for CSRF validation
+
     pub state: Option<String>,
-    /// Error code (if authorization failed)
+
     pub error: Option<String>,
-    /// Error description
+
     pub error_description: Option<String>,
 }
 
-/// Response for listing enabled providers
+
 #[derive(Debug, Serialize)]
 pub struct EnabledProvidersResponse {
     pub providers: Vec<ProviderInfo>,
@@ -58,7 +58,7 @@ pub struct ProviderInfo {
     pub login_url: String,
 }
 
-/// Configure OAuth routes
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/oauth/providers", get(list_providers))
@@ -66,7 +66,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/auth/oauth/{provider}/callback", get(oauth_callback))
 }
 
-/// List all enabled OAuth providers
+
 async fn list_providers(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let bot_config = get_bot_config(&state).await;
     let base_url = get_base_url(&state);
@@ -86,13 +86,13 @@ async fn list_providers(State(state): State<Arc<AppState>>) -> impl IntoResponse
     Json(EnabledProvidersResponse { providers })
 }
 
-/// Start OAuth flow - redirect to provider's authorization page
+
 async fn start_oauth(
     State(state): State<Arc<AppState>>,
     Path(provider_name): Path<String>,
     Query(params): Query<OAuthStartParams>,
 ) -> Response {
-    // Parse provider
+
     let provider = match OAuthProvider::from_str(&provider_name) {
         Some(p) => p,
         None => {
@@ -116,7 +116,7 @@ async fn start_oauth(
         }
     };
 
-    // Load provider config
+
     let bot_config = get_bot_config(&state).await;
     let base_url = get_base_url(&state);
 
@@ -144,15 +144,15 @@ async fn start_oauth(
         }
     };
 
-    // Create OAuth state for CSRF protection
+
     let oauth_state = OAuthState::new(provider, params.redirect);
     let state_encoded = oauth_state.encode();
 
-    // Note: State is encoded in the URL and validated on callback
-    // For production, consider storing state in Redis for additional validation
+
+
     debug!("OAuth state created for provider {}", provider);
 
-    // Build authorization URL
+
     let auth_url = provider.build_auth_url(&config, &state_encoded);
 
     info!(
@@ -163,13 +163,13 @@ async fn start_oauth(
     Redirect::temporary(&auth_url).into_response()
 }
 
-/// Handle OAuth callback from provider
+
 async fn oauth_callback(
     State(state): State<Arc<AppState>>,
     Path(provider_name): Path<String>,
     Query(params): Query<OAuthCallbackParams>,
 ) -> Response {
-    // Check for errors from provider
+
     if let Some(error) = &params.error {
         let description = params
             .error_description
@@ -195,7 +195,7 @@ async fn oauth_callback(
             .into_response();
     }
 
-    // Validate required parameters
+
     let code = match &params.code {
         Some(c) => c,
         None => {
@@ -240,7 +240,7 @@ async fn oauth_callback(
         }
     };
 
-    // Decode and validate state
+
     let oauth_state = match OAuthState::decode(state_param) {
         Some(s) => s,
         None => {
@@ -264,7 +264,7 @@ async fn oauth_callback(
         }
     };
 
-    // Check state expiration
+
     if oauth_state.is_expired() {
         warn!("OAuth state expired");
         return (
@@ -285,7 +285,7 @@ async fn oauth_callback(
             .into_response();
     }
 
-    // Parse provider
+
     let provider = match OAuthProvider::from_str(&provider_name) {
         Some(p) => p,
         None => {
@@ -297,7 +297,7 @@ async fn oauth_callback(
         }
     };
 
-    // Verify provider matches state
+
     if provider != oauth_state.provider {
         warn!(
             "Provider mismatch: URL says {}, state says {}",
@@ -321,7 +321,7 @@ async fn oauth_callback(
             .into_response();
     }
 
-    // Load provider config
+
     let bot_config = get_bot_config(&state).await;
     let base_url = get_base_url(&state);
 
@@ -336,7 +336,7 @@ async fn oauth_callback(
         }
     };
 
-    // Exchange code for token
+
     let http_client = reqwest::Client::new();
     let token = match provider.exchange_code(&config, code, &http_client).await {
         Ok(t) => t,
@@ -361,7 +361,7 @@ async fn oauth_callback(
         }
     };
 
-    // Fetch user info
+
     let user_info = match provider
         .fetch_user_info(&token.access_token, &http_client)
         .await
@@ -395,7 +395,7 @@ async fn oauth_callback(
         user_info.email.as_deref().unwrap_or("no email")
     );
 
-    // Create or update user in our system
+
     let user_id = match create_or_get_oauth_user(&state, &user_info).await {
         Ok(id) => id,
         Err(e) => {
@@ -408,7 +408,7 @@ async fn oauth_callback(
         }
     };
 
-    // Create session for user
+
     let session_token = match create_user_session(&state, user_id).await {
         Ok(token) => token,
         Err(e) => {
@@ -421,7 +421,7 @@ async fn oauth_callback(
         }
     };
 
-    // Determine redirect URL
+
     let redirect_url = oauth_state
         .redirect_after
         .unwrap_or_else(|| "/".to_string());
@@ -431,7 +431,7 @@ async fn oauth_callback(
         redirect_url, session_token
     );
 
-    // Set session cookie and redirect
+
     Response::builder()
         .status(StatusCode::SEE_OTHER)
         .header(header::LOCATION, redirect_url)
@@ -446,9 +446,9 @@ async fn oauth_callback(
         .unwrap()
 }
 
-/// Get bot configuration from state
+
 async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
-    // Try to get from first active bot's config
+
     let conn = state.conn.clone();
 
     match tokio::task::spawn_blocking(move || {
@@ -486,14 +486,14 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
     }
 }
 
-/// Get base URL from config or default
+
 fn get_base_url(state: &AppState) -> String {
-    // Could read from config, for now use default
+
     let _ = state;
     "http://localhost:8300".to_string()
 }
 
-/// Create or get existing OAuth user
+
 async fn create_or_get_oauth_user(
     state: &AppState,
     user_info: &OAuthUserInfo,
@@ -515,7 +515,7 @@ async fn create_or_get_oauth_user(
         use crate::shared::models::schema::users::dsl::*;
         use diesel::prelude::*;
 
-        // Try to find existing user by email (if provided)
+
         let existing_user: Option<Uuid> = if let Some(ref email_addr) = user_email {
             users
                 .filter(email.eq(email_addr))
@@ -524,7 +524,7 @@ async fn create_or_get_oauth_user(
                 .optional()
                 .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
         } else {
-            // Check by username containing OAuth provider info
+
             let oauth_username = format!("{}_{}", provider, provider_id);
             users
                 .filter(username.eq(&oauth_username))
@@ -538,9 +538,9 @@ async fn create_or_get_oauth_user(
             return Ok(user_id);
         }
 
-        // Create new user
+
         let new_user_id = Uuid::new_v4();
-        // Create a username from display name and provider, sanitizing special characters
+
         let sanitized_name: String = display_name
             .chars()
             .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
@@ -583,11 +583,11 @@ async fn create_or_get_oauth_user(
     .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
 }
 
-/// Create session for authenticated user
+
 async fn create_user_session(state: &AppState, user_id: Uuid) -> anyhow::Result<String> {
     let mut sm = state.session_manager.lock().await;
 
-    // Get first active bot for session
+
     let bot_id = {
         let conn = state.conn.clone();
         tokio::task::spawn_blocking(move || {

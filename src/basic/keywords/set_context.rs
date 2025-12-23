@@ -7,7 +7,7 @@ use std::sync::Arc;
 pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let cache = state.cache.clone();
 
-    // Register with spaces: SET CONTEXT "name" AS "value"
+
     engine
         .register_custom_syntax(
             &["SET", "CONTEXT", "$expr$", "AS", "$expr$"],

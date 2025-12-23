@@ -1,10 +1,10 @@
-//! Download Cache Module
-//!
-//! Provides caching functionality for third-party downloads.
-//! Files are cached in `botserver-installers/` directory and reused
-//! on subsequent runs, allowing offline installation.
-//!
-//! Configuration is read from `3rdparty.toml` at the botserver root.
+
+
+
+
+
+
+
 
 use anyhow::{Context, Result};
 use log::{debug, info, trace, warn};
@@ -13,13 +13,13 @@ use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-/// Default cache directory relative to botserver root
+
 const DEFAULT_CACHE_DIR: &str = "botserver-installers";
 
-/// Configuration file name
+
 const CONFIG_FILE: &str = "3rdparty.toml";
 
-/// Third-party dependencies configuration
+
 #[derive(Debug, Deserialize, Default)]
 pub struct ThirdPartyConfig {
     #[serde(default)]
@@ -30,7 +30,7 @@ pub struct ThirdPartyConfig {
     pub models: HashMap<String, ComponentDownload>,
 }
 
-/// Cache settings
+
 #[derive(Debug, Deserialize)]
 pub struct CacheSettings {
     #[serde(default = "default_cache_dir")]
@@ -49,7 +49,7 @@ fn default_cache_dir() -> String {
     DEFAULT_CACHE_DIR.to_string()
 }
 
-/// Component download configuration
+
 #[derive(Debug, Deserialize, Clone)]
 pub struct ComponentDownload {
     pub name: String,
@@ -59,30 +59,30 @@ pub struct ComponentDownload {
     pub sha256: String,
 }
 
-/// Download cache manager
+
 #[derive(Debug)]
 pub struct DownloadCache {
-    /// Base path for the botserver (where 3rdparty.toml lives)
+
     base_path: PathBuf,
-    /// Cache directory path
+
     cache_dir: PathBuf,
-    /// Loaded configuration
+
     config: ThirdPartyConfig,
 }
 
 impl DownloadCache {
-    /// Create a new download cache manager
-    ///
-    /// # Arguments
-    /// * `base_path` - Base path for botserver (typically current directory or botserver root)
-    ///
-    /// # Environment Variables
-    /// * `BOTSERVER_INSTALLERS_PATH` - Override path to pre-downloaded installers directory
+
+
+
+
+
+
+
     pub fn new(base_path: impl AsRef<Path>) -> Result<Self> {
         let base_path = base_path.as_ref().to_path_buf();
         let config = Self::load_config(&base_path)?;
 
-        // Check for BOTSERVER_INSTALLERS_PATH env var first (for testing/offline installs)
+
         let cache_dir = if let Ok(installers_path) = std::env::var("BOTSERVER_INSTALLERS_PATH") {
             let path = PathBuf::from(&installers_path);
             if path.exists() {
@@ -96,7 +96,7 @@ impl DownloadCache {
             base_path.join(&config.cache_settings.cache_dir)
         };
 
-        // Ensure cache directory exists
+
         if !cache_dir.exists() {
             fs::create_dir_all(&cache_dir)
                 .with_context(|| format!("Failed to create cache directory: {:?}", cache_dir))?;
@@ -110,7 +110,7 @@ impl DownloadCache {
         })
     }
 
-    /// Load configuration from 3rdparty.toml
+
     fn load_config(base_path: &Path) -> Result<ThirdPartyConfig> {
         let config_path = base_path.join(CONFIG_FILE);
 
@@ -138,24 +138,24 @@ impl DownloadCache {
         Ok(config)
     }
 
-    /// Get the cache directory path
+
     pub fn cache_dir(&self) -> &Path {
         &self.cache_dir
     }
 
-    /// Get the base path
+
     pub fn base_path(&self) -> &Path {
         &self.base_path
     }
 
-    /// Check if a file is cached
-    ///
-    /// # Arguments
-    /// * `filename` - The filename to check in the cache
+
+
+
+
     pub fn is_cached(&self, filename: &str) -> bool {
         let cached_path = self.cache_dir.join(filename);
         if cached_path.exists() {
-            // Also check that file is not empty
+
             if let Ok(metadata) = fs::metadata(&cached_path) {
                 return metadata.len() > 0;
             }
@@ -163,10 +163,10 @@ impl DownloadCache {
         false
     }
 
-    /// Get the cached file path if it exists
-    ///
-    /// # Arguments
-    /// * `filename` - The filename to get from cache
+
+
+
+
     pub fn get_cached_path(&self, filename: &str) -> Option<PathBuf> {
         let cached_path = self.cache_dir.join(filename);
         if self.is_cached(filename) {
@@ -176,52 +176,52 @@ impl DownloadCache {
         }
     }
 
-    /// Get the path where a file should be cached
-    ///
-    /// # Arguments
-    /// * `filename` - The filename
+
+
+
+
     pub fn get_cache_path(&self, filename: &str) -> PathBuf {
         self.cache_dir.join(filename)
     }
 
-    /// Look up component download info by component name
-    ///
-    /// # Arguments
-    /// * `component` - Component name (e.g., "drive", "tables", "llm")
+
+
+
+
     pub fn get_component(&self, component: &str) -> Option<&ComponentDownload> {
         self.config.components.get(component)
     }
 
-    /// Look up model download info by model name
-    ///
-    /// # Arguments
-    /// * `model` - Model name (e.g., "deepseek_small", "bge_embedding")
+
+
+
+
     pub fn get_model(&self, model: &str) -> Option<&ComponentDownload> {
         self.config.models.get(model)
     }
 
-    /// Get all component downloads
+
     pub fn all_components(&self) -> &HashMap<String, ComponentDownload> {
         &self.config.components
     }
 
-    /// Get all model downloads
+
     pub fn all_models(&self) -> &HashMap<String, ComponentDownload> {
         &self.config.models
     }
 
-    /// Resolve a URL to either a cached file path or the original URL
-    ///
-    /// This is the main method to use when downloading. It will:
-    /// 1. Extract filename from URL
-    /// 2. Check if file exists in cache
-    /// 3. Return cached path if available, otherwise return original URL
-    ///
-    /// # Arguments
-    /// * `url` - The download URL
-    ///
-    /// # Returns
-    /// * `CacheResult` - Either a cached file path or the URL to download from
+
+
+
+
+
+
+
+
+
+
+
+
     pub fn resolve_url(&self, url: &str) -> CacheResult {
         let filename = Self::extract_filename(url);
 
@@ -237,15 +237,15 @@ impl DownloadCache {
         }
     }
 
-    /// Resolve a URL for a specific component
-    ///
-    /// Uses the filename from config if available, otherwise extracts from URL
-    ///
-    /// # Arguments
-    /// * `component` - Component name
-    /// * `url` - Fallback URL if component not in config
+
+
+
+
+
+
+
     pub fn resolve_component_url(&self, component: &str, url: &str) -> CacheResult {
-        // Check if we have config for this component
+
         if let Some(comp) = self.get_component(component) {
             let cached_path = self.cache_dir.join(&comp.filename);
             if cached_path.exists()
@@ -256,7 +256,7 @@ impl DownloadCache {
                 info!("Using cached {} from: {:?}", comp.name, cached_path);
                 return CacheResult::Cached(cached_path);
             }
-            // Use URL from config
+
             trace!("Will download {} from config URL", comp.name);
             return CacheResult::Download {
                 url: comp.url.clone(),
@@ -264,24 +264,24 @@ impl DownloadCache {
             };
         }
 
-        // Fall back to URL-based resolution
+
         self.resolve_url(url)
     }
 
-    /// Save a downloaded file to the cache
-    ///
-    /// # Arguments
-    /// * `source` - Path to the downloaded file
-    /// * `filename` - Filename to use in the cache
+
+
+
+
+
     pub fn save_to_cache(&self, source: &Path, filename: &str) -> Result<PathBuf> {
         let cache_path = self.cache_dir.join(filename);
 
-        // If source is already in the cache directory, just return it
+
         if source == cache_path {
             return Ok(cache_path);
         }
 
-        // Copy to cache
+
         fs::copy(source, &cache_path)
             .with_context(|| format!("Failed to copy {:?} to cache at {:?}", source, cache_path))?;
 
@@ -289,7 +289,7 @@ impl DownloadCache {
         Ok(cache_path)
     }
 
-    /// Extract filename from a URL
+
     pub fn extract_filename(url: &str) -> String {
         url.split('/')
             .last()
@@ -300,14 +300,14 @@ impl DownloadCache {
             .to_string()
     }
 
-    /// Verify a cached file's checksum if sha256 is provided
-    ///
-    /// # Arguments
-    /// * `filename` - The cached filename
-    /// * `expected_sha256` - Expected SHA256 hash (empty string to skip)
+
+
+
+
+
     pub fn verify_checksum(&self, filename: &str, expected_sha256: &str) -> Result<bool> {
         if expected_sha256.is_empty() {
-            return Ok(true); // Skip verification if no hash provided
+            return Ok(true);
         }
 
         let cached_path = self.cache_dir.join(filename);
@@ -330,7 +330,7 @@ impl DownloadCache {
         }
     }
 
-    /// List all cached files
+
     pub fn list_cached(&self) -> Result<Vec<String>> {
         let mut files = Vec::new();
 
@@ -349,7 +349,7 @@ impl DownloadCache {
         Ok(files)
     }
 
-    /// Get total size of cached files in bytes
+
     pub fn cache_size(&self) -> Result<u64> {
         let mut total = 0u64;
 
@@ -365,7 +365,7 @@ impl DownloadCache {
         Ok(total)
     }
 
-    /// Clear all cached files
+
     pub fn clear_cache(&self) -> Result<()> {
         if self.cache_dir.exists() {
             for entry in fs::read_dir(&self.cache_dir)? {
@@ -380,27 +380,27 @@ impl DownloadCache {
     }
 }
 
-/// Result of resolving a URL through the cache
+
 #[derive(Debug)]
 pub enum CacheResult {
-    /// File was found in cache
+
     Cached(PathBuf),
-    /// File needs to be downloaded
+
     Download {
-        /// URL to download from
+
         url: String,
-        /// Path where file should be cached
+
         cache_path: PathBuf,
     },
 }
 
 impl CacheResult {
-    /// Check if result is a cached file
+
     pub fn is_cached(&self) -> bool {
         matches!(self, CacheResult::Cached(_))
     }
 
-    /// Get the path (either cached or target cache path)
+
     pub fn path(&self) -> &Path {
         match self {
             CacheResult::Cached(p) => p,
@@ -408,7 +408,7 @@ impl CacheResult {
         }
     }
 
-    /// Get the URL if this is a download result
+
     pub fn url(&self) -> Option<&str> {
         match self {
             CacheResult::Cached(_) => None,
@@ -417,7 +417,7 @@ impl CacheResult {
     }
 }
 
-/// Compute SHA256 hash of data and return as lowercase hex string
+
 fn sha256_hex(data: &[u8]) -> String {
     use sha2::{Digest, Sha256};
     let mut hasher = Sha256::new();

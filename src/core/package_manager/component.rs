@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
-/// Result returned after successful component installation
-/// Contains connection info that users need to configure their environment
+
+
 #[derive(Debug, Clone)]
 pub struct InstallResult {
     pub component: String,

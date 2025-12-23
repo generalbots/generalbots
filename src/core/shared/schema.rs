@@ -1,6 +1,6 @@
-//! Diesel schema definitions
-//!
-//! Contains all database table definitions for diesel ORM.
+
+
+
 
 diesel::table! {
     organizations (org_id) {
@@ -280,7 +280,7 @@ diesel::table! {
     }
 }
 
-// Enterprise Email Tables (6.1.0_enterprise_suite migration)
+
 
 diesel::table! {
     global_email_signatures (id) {

@@ -1,7 +1,7 @@
-//! Shared types and utilities
-//!
-//! This module re-exports common types from botlib and provides
-//! botserver-specific shared functionality.
+
+
+
+
 
 pub mod admin;
 pub mod analytics;
@@ -12,10 +12,10 @@ pub mod state;
 pub mod test_utils;
 pub mod utils;
 
-// Re-export schema at module level for backward compatibility
+
 pub use schema::*;
 
-// Re-export from botlib for backward compatibility
+
 pub use botlib::branding::{
     branding, copyright_text, footer_text, init_branding, is_white_label, log_prefix,
     platform_name, platform_short, BrandingConfig,
@@ -29,15 +29,15 @@ pub use botlib::version::{
     BOTSERVER_VERSION,
 };
 
-// Re-export models from botlib
+
 pub use botlib::models::{ApiResponse, Attachment, Suggestion};
 
-// Re-export BotResponse and UserMessage with full path to avoid conflicts
+
 pub use botlib::models::BotResponse;
 pub use botlib::models::Session;
 pub use botlib::models::UserMessage;
 
-// Local re-exports - database models
+
 pub use models::{
     Automation, Bot, BotConfiguration, BotMemory, Click, MessageHistory, NewTask, Organization,
     Task, TriggerKind, User, UserLoginToken, UserPreference, UserSession,
@@ -45,10 +45,10 @@ pub use models::{
 
 pub use utils::{create_conn, DbPool};
 
-/// Prelude module for convenient imports
-/// Usage: `use crate::shared::prelude::*;`
+
+
 pub mod prelude {
-    // Re-export everything commonly needed
+
     pub use super::schema::*;
     pub use super::{
         ApiResponse, Attachment, Automation, Bot, BotConfiguration, BotError, BotMemory,
@@ -57,11 +57,11 @@ pub mod prelude {
         UserSession,
     };
 
-    // Diesel prelude for database operations
+
     pub use diesel::prelude::*;
     pub use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
 
-    // Common external types
+
     pub use chrono::{DateTime, Utc};
     pub use serde::{Deserialize, Serialize};
     pub use uuid::Uuid;

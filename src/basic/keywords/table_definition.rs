@@ -28,26 +28,26 @@
 |                                                                             |
 \*****************************************************************************/
 
-//! TABLE keyword implementation for dynamic table definitions
-//!
-//! Parses and creates database tables from BASIC syntax:
-//!
-//! ```basic
-//! TABLE Contacts ON maria
-//!     Id number key
-//!     Nome string(150)
-//!     Email string(255)
-//!     Telefone string(20)
-//! END TABLE
-//! ```
-//!
-//! Connection names (e.g., "maria") are configured in config.csv with:
-//! - conn-maria-Server
-//! - conn-maria-Name (database name)
-//! - conn-maria-Username
-//! - conn-maria-Port
-//! - conn-maria-Password
-//! - conn-maria-Driver
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -60,7 +60,7 @@ use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Represents a field definition in a TABLE block
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldDefinition {
     pub name: String,
@@ -74,7 +74,7 @@ pub struct FieldDefinition {
     pub field_order: i32,
 }
 
-/// Represents a complete TABLE definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableDefinition {
     pub name: String,
@@ -82,7 +82,7 @@ pub struct TableDefinition {
     pub fields: Vec<FieldDefinition>,
 }
 
-/// External database connection configuration
+
 #[derive(Debug, Clone)]
 pub struct ExternalConnection {
     pub name: String,
@@ -94,7 +94,7 @@ pub struct ExternalConnection {
     pub password: String,
 }
 
-/// Parse a TABLE...END TABLE block from BASIC source
+
 pub fn parse_table_definition(
     source: &str,
 ) -> Result<Vec<TableDefinition>, Box<dyn Error + Send + Sync>> {
@@ -105,7 +105,7 @@ pub fn parse_table_definition(
     while i < lines.len() {
         let line = lines[i].trim();
 
-        // Look for TABLE keyword
+
         if line.starts_with("TABLE ") {
             let table_def = parse_single_table(&lines, &mut i)?;
             tables.push(table_def);
@@ -117,14 +117,14 @@ pub fn parse_table_definition(
     Ok(tables)
 }
 
-/// Parse a single TABLE block
+
 fn parse_single_table(
     lines: &[&str],
     index: &mut usize,
 ) -> Result<TableDefinition, Box<dyn Error + Send + Sync>> {
     let header_line = lines[*index].trim();
 
-    // Parse: TABLE TableName ON connection
+
     let parts: Vec<&str> = header_line.split_whitespace().collect();
 
     if parts.len() < 2 {
@@ -138,7 +138,7 @@ fn parse_single_table(
 
     let table_name = parts[1].to_string();
 
-    // Check for ON clause
+
     let connection_name = if parts.len() >= 4 && parts[2].eq_ignore_ascii_case("ON") {
         parts[3].to_string()
     } else {
@@ -151,11 +151,11 @@ fn parse_single_table(
     let mut fields = Vec::new();
     let mut field_order = 0;
 
-    // Parse fields until END TABLE
+
     while *index < lines.len() {
         let line = lines[*index].trim();
 
-        // Skip empty lines and comments
+
         if line.is_empty()
             || line.starts_with("'")
             || line.starts_with("REM")
@@ -165,13 +165,13 @@ fn parse_single_table(
             continue;
         }
 
-        // Check for END TABLE
+
         if line.eq_ignore_ascii_case("END TABLE") {
             *index += 1;
             break;
         }
 
-        // Parse field definition
+
         if let Ok(field) = parse_field_definition(line, field_order) {
             fields.push(field);
             field_order += 1;
@@ -189,8 +189,8 @@ fn parse_single_table(
     })
 }
 
-/// Parse a single field definition line
-/// Format: FieldName type[(length[,precision])] [key] [references TableName]
+
+
 fn parse_field_definition(
     line: &str,
     order: i32,
@@ -211,7 +211,7 @@ fn parse_field_definition(
     if parts.len() >= 2 {
         let type_part = parts[1];
 
-        // Parse type with optional length: string(150) or number(10,2)
+
         if let Some(paren_start) = type_part.find('(') {
             field_type = type_part[..paren_start].to_lowercase();
             let params = &type_part[paren_start + 1..type_part.len() - 1];
@@ -228,7 +228,7 @@ fn parse_field_definition(
         }
     }
 
-    // Check for additional modifiers
+
     for i in 2..parts.len() {
         let part = parts[i].to_lowercase();
         match part.as_str() {
@@ -238,7 +238,7 @@ fn parse_field_definition(
                 .map(|p| p.eq_ignore_ascii_case("references"))
                 .unwrap_or(false) =>
             {
-                // This is the reference table name, already handled
+
             }
             "references" => {
                 if i + 1 < parts.len() {
@@ -255,14 +255,14 @@ fn parse_field_definition(
         length,
         precision,
         is_key,
-        is_nullable: !is_key, // Keys are not nullable by default
+        is_nullable: !is_key,
         default_value: None,
         reference_table,
         field_order: order,
     })
 }
 
-/// Map BASIC types to SQL types
+
 fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
     let base_type = match field.field_type.as_str() {
         "string" => {
@@ -307,7 +307,7 @@ fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
     base_type
 }
 
-/// Generate CREATE TABLE SQL statement
+
 pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> String {
     let mut sql = format!(
         "CREATE TABLE IF NOT EXISTS {} (\n",
@@ -338,14 +338,14 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
 
     sql.push_str(&column_defs.join(",\n"));
 
-    // Add primary key constraint
+
     if !primary_keys.is_empty() {
         sql.push_str(&format!(",\n    PRIMARY KEY ({})", primary_keys.join(", ")));
     }
 
     sql.push_str("\n)");
 
-    // Add engine for MySQL/MariaDB
+
     if driver == "mysql" || driver == "mariadb" {
         sql.push_str(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
     }
@@ -354,14 +354,14 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
     sql
 }
 
-/// Sanitize identifier to prevent SQL injection
+
 fn sanitize_identifier(name: &str) -> String {
     name.chars()
         .filter(|c| c.is_alphanumeric() || *c == '_')
         .collect()
 }
 
-/// Load external connection configuration from bot config
+
 pub fn load_connection_config(
     state: &AppState,
     bot_id: Uuid,
@@ -419,7 +419,7 @@ pub fn load_connection_config(
     })
 }
 
-/// Build connection string for external database
+
 pub fn build_connection_string(conn: &ExternalConnection) -> String {
     let port = conn.port.unwrap_or(match conn.driver.as_str() {
         "mysql" | "mariadb" => 3306,
@@ -456,13 +456,13 @@ pub fn build_connection_string(conn: &ExternalConnection) -> String {
     }
 }
 
-/// Store table definition in metadata tables
+
 pub fn store_table_definition(
     conn: &mut diesel::PgConnection,
     bot_id: Uuid,
     table: &TableDefinition,
 ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
-    // Insert table definition
+
     let table_id: Uuid = diesel::sql_query(
         "INSERT INTO dynamic_table_definitions (bot_id, table_name, connection_name)
          VALUES ($1, $2, $3)
@@ -476,12 +476,12 @@ pub fn store_table_definition(
     .get_result::<IdResult>(conn)?
     .id;
 
-    // Delete existing fields for this table
+
     diesel::sql_query("DELETE FROM dynamic_table_fields WHERE table_definition_id = $1")
         .bind::<diesel::sql_types::Uuid, _>(table_id)
         .execute(conn)?;
 
-    // Insert field definitions
+
     for field in &table.fields {
         diesel::sql_query(
             "INSERT INTO dynamic_table_fields
@@ -511,7 +511,7 @@ struct IdResult {
     id: Uuid,
 }
 
-/// Execute CREATE TABLE on external connection
+
 pub async fn create_table_on_external_db(
     connection_string: &str,
     create_sql: &str,
@@ -531,8 +531,8 @@ async fn create_table_mysql(
     _connection_string: &str,
     _sql: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-    // MySQL support requires diesel mysql_backend feature which pulls in problematic dependencies
-    // Use PostgreSQL instead, or implement via raw SQL if needed
+
+
     Err("MySQL support is disabled. Please use PostgreSQL for dynamic tables.".into())
 }
 
@@ -549,7 +549,7 @@ async fn create_table_postgres(
     Ok(())
 }
 
-/// Process TABLE definitions during .bas file compilation
+
 pub fn process_table_definitions(
     state: Arc<AppState>,
     bot_id: Uuid,
@@ -569,10 +569,10 @@ pub fn process_table_definitions(
             table.name, table.connection_name
         );
 
-        // Store table definition in metadata
+
         store_table_definition(&mut conn, bot_id, table)?;
 
-        // Load connection config and create table on external DB
+
         if table.connection_name != "default" {
             match load_connection_config(&state, bot_id, &table.connection_name) {
                 Ok(ext_conn) => {
@@ -585,7 +585,7 @@ pub fn process_table_definitions(
                     );
                     trace!("SQL: {}", create_sql);
 
-                    // Execute async in blocking context
+
                     let driver = ext_conn.driver.clone();
                     tokio::task::block_in_place(|| {
                         tokio::runtime::Handle::current().block_on(async {
@@ -606,7 +606,7 @@ pub fn process_table_definitions(
                 }
             }
         } else {
-            // Create on default (internal) database
+
             let create_sql = generate_create_table_sql(table, "postgres");
             info!("Creating table {} on default connection", table.name);
             trace!("SQL: {}", create_sql);
@@ -618,13 +618,13 @@ pub fn process_table_definitions(
     Ok(tables)
 }
 
-/// Register TABLE keyword (no-op at runtime, processed at compile time)
+
 pub fn register_table_keywords(
     _state: Arc<AppState>,
     _user: UserSession,
     _engine: &mut rhai::Engine,
 ) {
-    // TABLE...END TABLE is processed at compile time, not runtime
-    // This function exists for consistency with other keyword modules
+
+
     trace!("TABLE keyword registered (compile-time only)");
 }

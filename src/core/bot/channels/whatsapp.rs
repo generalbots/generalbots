@@ -21,7 +21,7 @@ impl WhatsAppAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
         let config_manager = ConfigManager::new(pool);
 
-        // Load from bot_configuration table with fallback to environment variables
+
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)
             .unwrap_or_default();
@@ -433,19 +433,19 @@ impl ChannelAdapter for WhatsAppAdapter {
         &self,
         payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        // Parse WhatsApp webhook payload
+
         if let Some(entry) = payload["entry"].as_array() {
             if let Some(first_entry) = entry.first() {
                 if let Some(changes) = first_entry["changes"].as_array() {
                     if let Some(first_change) = changes.first() {
                         if let Some(messages) = first_change["value"]["messages"].as_array() {
                             if let Some(first_message) = messages.first() {
-                                // Mark message as read
+
                                 if let Some(message_id) = first_message["id"].as_str() {
                                     let _ = self.mark_message_as_read(message_id).await;
                                 }
 
-                                // Extract message content based on type
+
                                 let message_type =
                                     first_message["type"].as_str().unwrap_or("unknown");
 
@@ -503,8 +503,8 @@ impl ChannelAdapter for WhatsAppAdapter {
         &self,
         user_id: &str,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-        // WhatsApp doesn't provide user profile info via API for privacy reasons
-        // Return basic info
+
+
         Ok(serde_json::json!({
             "id": user_id,
             "platform": "whatsapp"
@@ -640,12 +640,12 @@ pub struct WhatsAppStatus {
     pub recipient_id: String,
 }
 
-// Helper functions for WhatsApp-specific features
+
 
 pub fn create_interactive_buttons(text: &str, buttons: Vec<(&str, &str)>) -> serde_json::Value {
     let button_list: Vec<serde_json::Value> = buttons
         .into_iter()
-        .take(3) // WhatsApp limits to 3 buttons
+        .take(3)
         .map(|(id, title)| {
             serde_json::json!({
                 "type": "reply",
@@ -678,7 +678,7 @@ pub fn create_interactive_list(
         .map(|(title, rows)| {
             let row_list: Vec<serde_json::Value> = rows
                 .into_iter()
-                .take(10) // WhatsApp limits to 10 rows per section
+                .take(10)
                 .map(|(id, title, description)| {
                     let mut row = serde_json::json!({
                         "id": id,

@@ -1,24 +1,24 @@
-//! Secrets Management Module
-//!
-//! Provides integration with HashiCorp Vault for secure secrets management
-//! using the `vaultrs` library.
-//!
-//! With Vault, .env contains ONLY:
-//! - VAULT_ADDR - Vault server address
-//! - VAULT_TOKEN - Vault authentication token
-//!
-//! Vault paths:
-//! - gbo/directory - Zitadel connection
-//! - gbo/tables - PostgreSQL credentials
-//! - gbo/drive - MinIO/S3 credentials
-//! - gbo/cache - Redis credentials
-//! - gbo/email - Email credentials
-//! - gbo/llm - LLM API keys
-//! - gbo/encryption - Encryption keys
-//! - gbo/meet - LiveKit credentials
-//! - gbo/alm - Forgejo credentials
-//! - gbo/vectordb - Qdrant credentials
-//! - gbo/observability - InfluxDB credentials
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use anyhow::{anyhow, Result};
 use log::{debug, info, warn};
@@ -31,7 +31,7 @@ use tokio::sync::RwLock;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use vaultrs::kv2;
 
-/// Secret paths in Vault
+
 #[derive(Debug)]
 pub struct SecretPaths;
 
@@ -49,13 +49,13 @@ impl SecretPaths {
     pub const OBSERVABILITY: &'static str = "gbo/observability";
 }
 
-/// Cached secret with expiry
+
 struct CachedSecret {
     data: HashMap<String, String>,
     expires_at: std::time::Instant,
 }
 
-/// Secrets manager using vaultrs
+
 #[derive(Clone)]
 pub struct SecretsManager {
     client: Option<StdArc<VaultClient>>,
@@ -74,28 +74,28 @@ impl std::fmt::Debug for SecretsManager {
 }
 
 impl SecretsManager {
-    /// Create from environment variables with mTLS support
-    ///
-    /// Environment variables:
-    /// - VAULT_ADDR - Vault server address (https://localhost:8200)
-    /// - VAULT_TOKEN - Vault authentication token
-    /// - VAULT_CACERT - Path to CA certificate for verifying Vault server
-    /// - VAULT_CLIENT_CERT - Path to client certificate for mTLS
-    /// - VAULT_CLIENT_KEY - Path to client key for mTLS
-    /// - VAULT_SKIP_VERIFY - Skip TLS verification (for development only)
-    /// - VAULT_CACHE_TTL - Cache TTL in seconds (default: 300)
+
+
+
+
+
+
+
+
+
+
     pub fn from_env() -> Result<Self> {
         let addr = env::var("VAULT_ADDR").unwrap_or_default();
         let token = env::var("VAULT_TOKEN").unwrap_or_default();
         let skip_verify = env::var("VAULT_SKIP_VERIFY")
             .map(|v| v == "true" || v == "1")
-            .unwrap_or(false); // Default to false - verify certificates
+            .unwrap_or(false);
         let cache_ttl = env::var("VAULT_CACHE_TTL")
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(300);
 
-        // mTLS certificate paths - default to botserver-stack paths
+
         let ca_cert = env::var("VAULT_CACERT")
             .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string());
         let client_cert = env::var("VAULT_CLIENT_CERT").unwrap_or_else(|_| {
@@ -117,7 +117,7 @@ impl SecretsManager {
             });
         }
 
-        // Build settings with mTLS if certificates exist
+
         let ca_path = PathBuf::from(&ca_cert);
         let cert_path = PathBuf::from(&client_cert);
         let key_path = PathBuf::from(&client_key);
@@ -125,20 +125,20 @@ impl SecretsManager {
         let mut settings_builder = VaultClientSettingsBuilder::default();
         settings_builder.address(&addr).token(&token);
 
-        // Configure TLS verification
+
         if skip_verify {
             warn!("TLS verification disabled - NOT RECOMMENDED FOR PRODUCTION");
             settings_builder.verify(false);
         } else {
             settings_builder.verify(true);
-            // Add CA certificate if it exists
+
             if ca_path.exists() {
                 info!("Using CA certificate for Vault: {}", ca_cert);
                 settings_builder.ca_certs(vec![ca_cert.clone()]);
             }
         }
 
-        // Configure mTLS client certificates if they exist
+
         if cert_path.exists() && key_path.exists() && !skip_verify {
             info!("Using mTLS client certificate for Vault: {}", client_cert);
         }
@@ -160,18 +160,18 @@ impl SecretsManager {
         self.enabled
     }
 
-    /// Get a secret from Vault or env fallback
+
     pub async fn get_secret(&self, path: &str) -> Result<HashMap<String, String>> {
         if !self.enabled {
             return self.get_from_env(path);
         }
 
-        // Check cache
+
         if let Some(cached) = self.get_cached(path).await {
             return Ok(cached);
         }
 
-        // Fetch from Vault
+
         let client = self
             .client
             .as_ref()
@@ -191,7 +191,7 @@ impl SecretsManager {
             }
         };
 
-        // Cache result
+
         if self.cache_ttl > 0 {
             self.cache_secret(path, data.clone()).await;
         }
@@ -207,7 +207,7 @@ impl SecretsManager {
             .ok_or_else(|| anyhow!("Key '{}' not found in '{}'", key, path))
     }
 
-    // Convenience methods for specific secrets
+
 
     pub async fn get_drive_credentials(&self) -> Result<(String, String)> {
         let s = self.get_secret(SecretPaths::DRIVE).await?;
@@ -367,13 +367,13 @@ impl SecretsManager {
         self.cache.write().await.remove(path);
     }
 
-    /// No fallback - Vault is mandatory
-    /// Returns empty HashMap if Vault is not configured
+
+
     fn get_from_env(&self, _path: &str) -> Result<HashMap<String, String>> {
-        // NO LEGACY FALLBACK - All secrets MUST come from Vault
-        // If you see this error, ensure Vault is properly configured with:
-        //   VAULT_ADDR=https://localhost:8200
-        //   VAULT_TOKEN=<your-token>
+
+
+
+
         Err(anyhow!("Vault not configured. All secrets must be stored in Vault. Set VAULT_ADDR and VAULT_TOKEN in .env"))
     }
 }

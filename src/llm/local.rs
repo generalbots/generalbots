@@ -10,7 +10,7 @@ use tokio;
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    // Skip LLM server startup if SKIP_LLM_SERVER is set (for testing with mock LLM)
+
     if std::env::var("SKIP_LLM_SERVER").is_ok() {
         info!("SKIP_LLM_SERVER set - skipping local LLM server startup (using mock/external LLM)");
         return Ok(());
@@ -59,7 +59,7 @@ pub async fn ensure_llama_servers_running(
         llm_server_path,
     ) = config_values;
 
-    // Check if local LLM server management is enabled
+
     let llm_server_enabled = llm_server_enabled.to_lowercase() == "true";
     if !llm_server_enabled {
         info!("Local LLM server management disabled (llm-server=false). Using external endpoints.");
@@ -87,7 +87,7 @@ pub async fn ensure_llama_servers_running(
         info!("Existing llama-server processes terminated (if any)");
     }
 
-    // Skip local server startup if using HTTPS endpoints
+
     let llm_running = if llm_url.starts_with("https://") {
         info!("Using external HTTPS LLM server, skipping local startup");
         true
@@ -134,11 +134,11 @@ pub async fn ensure_llama_servers_running(
     let mut llm_ready = llm_running || llm_model.is_empty();
     let mut embedding_ready = embedding_running || embedding_model.is_empty();
     let mut attempts = 0;
-    let max_attempts = 120; // Increased to 4 minutes for large models
+    let max_attempts = 120;
     while attempts < max_attempts && (!llm_ready || !embedding_ready) {
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
 
-        // Only log every 5 attempts to reduce noise
+
         if attempts % 5 == 0 {
             info!(
                 "Checking server health (attempt {}/{})...",
@@ -160,7 +160,7 @@ pub async fn ensure_llama_servers_running(
                 embedding_ready = true;
             } else if attempts % 10 == 0 {
                 warn!("Embedding server not ready yet at {}", embedding_url);
-                // Try to read log file for diagnostics
+
                 if let Ok(log_content) =
                     std::fs::read_to_string(format!("{}/llmembd-stdout.log", llm_server_path))
                 {
@@ -185,7 +185,7 @@ pub async fn ensure_llama_servers_running(
     if llm_ready && embedding_ready {
         info!("All llama.cpp servers are ready and responding!");
 
-        // Update LLM provider with new endpoints
+
         let _llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
             llm_model.clone(),
             Some(llm_url.clone()),
@@ -208,24 +208,24 @@ pub async fn is_server_running(url: &str) -> bool {
         .build()
         .unwrap_or_default();
 
-    // Try /health first (standard llama.cpp endpoint)
+
     match client.get(&format!("{}/health", url)).send().await {
         Ok(response) => {
             if response.status().is_success() {
                 return true;
             }
-            // Log non-success status for debugging
+
             info!("Health check returned status: {}", response.status());
             false
         }
         Err(e) => {
-            // Also try root endpoint as fallback
+
             match client.get(url).send().await {
                 Ok(response) => response.status().is_success(),
                 Err(_) => {
-                    // Only log connection errors occasionally to avoid spam
+
                     if e.is_connect() {
-                        // Connection refused - server not started yet
+
                         false
                     } else {
                         warn!("Health check error for {}: {}", url, e);
@@ -283,8 +283,8 @@ pub async fn start_llm_server(
         .get_config(&default_bot_id, "llm-server-ctx-size", None)
         .unwrap_or("4096".to_string());
 
-    // Configuration for flash-attn, temp, top_p, repeat-penalty is handled via config.csv
-    // Jinja templating is enabled by default when available
+
+
 
     let mut args = format!(
         "-m {} --host 0.0.0.0 --port {} --top_p 0.95 --temp 0.6 --repeat-penalty 1.2 --n-gpu-layers {}",
@@ -346,7 +346,7 @@ pub async fn start_embedding_server(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let port = url.split(':').last().unwrap_or("8082");
 
-    // Check if model file exists
+
     let full_model_path = if model_path.starts_with('/') {
         model_path.clone()
     } else {
@@ -383,7 +383,7 @@ pub async fn start_embedding_server(
         cmd.spawn()?;
     }
 
-    // Give the server a moment to start
+
     tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
 
     Ok(())

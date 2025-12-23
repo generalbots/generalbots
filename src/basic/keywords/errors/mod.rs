@@ -7,7 +7,7 @@ use log::debug;
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
 use std::sync::Arc;
 
-// Re-export ON ERROR functions for easy access
+
 pub use on_error::{
     clear_last_error, get_error_number, get_last_error, handle_error, handle_string_error,
     is_error_resume_next_active, set_error_resume_next, set_last_error,
@@ -20,7 +20,7 @@ pub fn register_error_functions(state: Arc<AppState>, user: UserSession, engine:
     assert_keyword(&state, user.clone(), engine);
     log_error_keyword(&state, user.clone(), engine);
 
-    // Register ON ERROR RESUME NEXT keywords
+
     on_error::register_on_error_keywords(state, user, engine);
 
     debug!("Registered all error handling functions");

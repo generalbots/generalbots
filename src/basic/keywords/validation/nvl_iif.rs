@@ -4,10 +4,10 @@ use log::debug;
 use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 
-/// NVL - Returns the first non-null value (coalesce)
-/// Syntax: NVL(value, default)
+
+
 pub fn nvl_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    // NVL with two arguments
+
     engine.register_fn("NVL", |value: Dynamic, default: Dynamic| -> Dynamic {
         if value.is_unit() || value.to_string().is_empty() {
             default
@@ -24,7 +24,7 @@ pub fn nvl_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
         }
     });
 
-    // COALESCE alias for NVL
+
     engine.register_fn("COALESCE", |value: Dynamic, default: Dynamic| -> Dynamic {
         if value.is_unit() || value.to_string().is_empty() {
             default
@@ -41,7 +41,7 @@ pub fn nvl_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
         }
     });
 
-    // IFNULL alias
+
     engine.register_fn("IFNULL", |value: Dynamic, default: Dynamic| -> Dynamic {
         if value.is_unit() || value.to_string().is_empty() {
             default
@@ -61,10 +61,10 @@ pub fn nvl_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
     debug!("Registered NVL/COALESCE/IFNULL keywords");
 }
 
-/// IIF - Immediate If (ternary operator)
-/// Syntax: IIF(condition, true_value, false_value)
+
+
 pub fn iif_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    // IIF with boolean condition
+
     engine.register_fn(
         "IIF",
         |condition: bool, true_val: Dynamic, false_val: Dynamic| -> Dynamic {
@@ -87,7 +87,7 @@ pub fn iif_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
         },
     );
 
-    // IF alias (common in many BASIC dialects)
+
     engine.register_fn(
         "IF_FUNC",
         |condition: bool, true_val: Dynamic, false_val: Dynamic| -> Dynamic {
@@ -99,7 +99,7 @@ pub fn iif_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
         },
     );
 
-    // CHOOSE - select from list based on index (1-based)
+
     engine.register_fn(
         "CHOOSE",
         |index: i64, val1: Dynamic, val2: Dynamic| -> Dynamic {
@@ -122,9 +122,9 @@ pub fn iif_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
         },
     );
 
-    // SWITCH function - evaluate expression and return matching result
-    // SWITCH(expr, val1, result1, val2, result2, ..., default)
-    // This is a simplified 2-case version
+
+
+
     engine.register_fn(
         "SWITCH_FUNC",
         |expr: Dynamic, val1: Dynamic, result1: Dynamic, default: Dynamic| -> Dynamic {

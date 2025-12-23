@@ -1,8 +1,8 @@
-//! Auto Task API Handlers
-//!
-//! This module provides the HTTP API endpoints for the Auto Task system,
-//! enabling the UI to interact with the Intent Compiler, execution engine,
-//! safety layer, and MCP client.
+
+
+
+
+
 
 use crate::basic::keywords::auto_task::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
@@ -22,9 +22,9 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-// REQUEST/RESPONSE TYPES
 
-/// Request to compile an intent into an executable plan
+
+
 #[derive(Debug, Deserialize)]
 pub struct CompileIntentRequest {
     pub intent: String,
@@ -32,7 +32,7 @@ pub struct CompileIntentRequest {
     pub priority: Option<String>,
 }
 
-/// Response from intent compilation
+
 #[derive(Debug, Serialize)]
 pub struct CompileIntentResponse {
     pub success: bool,
@@ -96,7 +96,7 @@ pub struct RiskResponse {
     pub impact: String,
 }
 
-/// Request to execute a compiled plan
+
 #[derive(Debug, Deserialize)]
 pub struct ExecutePlanRequest {
     pub plan_id: String,
@@ -104,7 +104,7 @@ pub struct ExecutePlanRequest {
     pub priority: Option<String>,
 }
 
-/// Response from plan execution
+
 #[derive(Debug, Serialize)]
 pub struct ExecutePlanResponse {
     pub success: bool,
@@ -113,7 +113,7 @@ pub struct ExecutePlanResponse {
     pub error: Option<String>,
 }
 
-/// Query parameters for listing tasks
+
 #[derive(Debug, Deserialize)]
 pub struct ListTasksQuery {
     pub filter: Option<String>,
@@ -123,7 +123,7 @@ pub struct ListTasksQuery {
     pub offset: Option<i32>,
 }
 
-/// Auto task stats response
+
 #[derive(Debug, Serialize)]
 pub struct AutoTaskStatsResponse {
     pub total: i32,
@@ -135,7 +135,7 @@ pub struct AutoTaskStatsResponse {
     pub pending_decision: i32,
 }
 
-/// Task action response
+
 #[derive(Debug, Serialize)]
 pub struct TaskActionResponse {
     pub success: bool,
@@ -143,7 +143,7 @@ pub struct TaskActionResponse {
     pub error: Option<String>,
 }
 
-/// Decision submission request
+
 #[derive(Debug, Deserialize)]
 pub struct DecisionRequest {
     pub decision_id: String,
@@ -151,15 +151,15 @@ pub struct DecisionRequest {
     pub skip: Option<bool>,
 }
 
-/// Approval action request
+
 #[derive(Debug, Deserialize)]
 pub struct ApprovalRequest {
     pub approval_id: String,
-    pub action: String, // "approve", "reject", "defer"
+    pub action: String,
     pub comment: Option<String>,
 }
 
-/// Simulation response
+
 #[derive(Debug, Serialize)]
 pub struct SimulationResponse {
     pub success: bool,
@@ -239,9 +239,9 @@ pub struct RecommendationResponse {
     pub action: Option<String>,
 }
 
-// API HANDLERS
 
-/// POST /api/autotask/compile - Compile an intent into an execution plan
+
+
 pub async fn compile_intent_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CompileIntentRequest>,
@@ -251,7 +251,7 @@ pub async fn compile_intent_handler(
         &request.intent[..request.intent.len().min(100)]
     );
 
-    // Get session from state (in real implementation, extract from auth)
+
     let session = match get_current_session(&state).await {
         Ok(s) => s,
         Err(e) => {
@@ -286,10 +286,10 @@ pub async fn compile_intent_handler(
         }
     };
 
-    // Create intent compiler
+
     let compiler = IntentCompiler::new(Arc::clone(&state));
 
-    // Compile the intent
+
     match compiler.compile(&request.intent, &session).await {
         Ok(compiled) => {
             let response = CompileIntentResponse {
@@ -392,7 +392,7 @@ pub async fn compile_intent_handler(
     }
 }
 
-/// POST /api/autotask/execute - Execute a compiled plan
+
 pub async fn execute_plan_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ExecutePlanRequest>,
@@ -414,7 +414,7 @@ pub async fn execute_plan_handler(
         }
     };
 
-    // Parse execution mode
+
     let execution_mode = match request.execution_mode.as_deref() {
         Some("fully-automatic") => ExecutionMode::FullyAutomatic,
         Some("supervised") => ExecutionMode::Supervised,
@@ -423,7 +423,7 @@ pub async fn execute_plan_handler(
         _ => ExecutionMode::SemiAutomatic,
     };
 
-    // Parse priority
+
     let priority = match request.priority.as_deref() {
         Some("critical") => TaskPriority::Critical,
         Some("high") => TaskPriority::High,
@@ -432,12 +432,12 @@ pub async fn execute_plan_handler(
         _ => TaskPriority::Medium,
     };
 
-    // Create the auto task from the compiled plan
+
     match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority)
         .await
     {
         Ok(task) => {
-            // Start execution
+
             match start_task_execution(&state, &task.id).await {
                 Ok(_) => (
                     StatusCode::OK,
@@ -474,7 +474,7 @@ pub async fn execute_plan_handler(
     }
 }
 
-/// GET /api/autotask/list - List auto tasks
+
 pub async fn list_tasks_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListTasksQuery>,
@@ -485,7 +485,7 @@ pub async fn list_tasks_handler(
 
     match list_auto_tasks(&state, filter, limit, offset).await {
         Ok(tasks) => {
-            // Render as HTML for HTMX
+
             let html = render_task_list_html(&tasks);
             (StatusCode::OK, axum::response::Html(html))
         }
@@ -506,7 +506,7 @@ pub async fn list_tasks_handler(
     }
 }
 
-/// GET /api/autotask/stats - Get auto task statistics
+
 pub async fn get_stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     match get_auto_task_stats(&state).await {
         Ok(stats) => (StatusCode::OK, Json(stats)),
@@ -528,7 +528,7 @@ pub async fn get_stats_handler(State(state): State<Arc<AppState>>) -> impl IntoR
     }
 }
 
-/// POST /api/autotask/:task_id/pause - Pause a task
+
 pub async fn pause_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -553,14 +553,14 @@ pub async fn pause_task_handler(
     }
 }
 
-/// POST /api/autotask/:task_id/resume - Resume a paused task
+
 pub async fn resume_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     match update_task_status(&state, &task_id, AutoTaskStatus::Running).await {
         Ok(_) => {
-            // Restart execution
+
             let _ = start_task_execution(&state, &task_id).await;
             (
                 StatusCode::OK,
@@ -582,7 +582,7 @@ pub async fn resume_task_handler(
     }
 }
 
-/// POST /api/autotask/:task_id/cancel - Cancel a task
+
 pub async fn cancel_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -607,7 +607,7 @@ pub async fn cancel_task_handler(
     }
 }
 
-/// POST /api/autotask/:task_id/simulate - Simulate task execution
+
 pub async fn simulate_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -787,7 +787,7 @@ pub async fn simulate_task_handler(
     }
 }
 
-/// GET /api/autotask/:task_id/decisions - Get pending decisions for a task
+
 pub async fn get_decisions_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -804,7 +804,7 @@ pub async fn get_decisions_handler(
     }
 }
 
-/// POST /api/autotask/:task_id/decide - Submit a decision
+
 pub async fn submit_decision_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -830,7 +830,7 @@ pub async fn submit_decision_handler(
     }
 }
 
-/// GET /api/autotask/:task_id/approvals - Get pending approvals for a task
+
 pub async fn get_approvals_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -847,7 +847,7 @@ pub async fn get_approvals_handler(
     }
 }
 
-/// POST /api/autotask/:task_id/approve - Submit an approval decision
+
 pub async fn submit_approval_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -873,7 +873,7 @@ pub async fn submit_approval_handler(
     }
 }
 
-/// POST /api/autotask/simulate/:plan_id - Simulate a plan before execution
+
 pub async fn simulate_plan_handler(
     State(state): State<Arc<AppState>>,
     Path(plan_id): Path<String>,
