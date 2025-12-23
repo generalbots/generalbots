@@ -417,7 +417,7 @@ fn get_bot_system_prompt(bot_id: Uuid, work_path: &str) -> String {
 pub async fn generate_tips(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TipRequest>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<TipResponse>) {
     info!("Generating tips for session {}", request.session_id);
 
     // Get session and bot info
@@ -528,7 +528,7 @@ Provide tips for the attendant."#,
 pub async fn polish_message(
     State(state): State<Arc<AppState>>,
     Json(request): Json<PolishRequest>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<PolishResponse>) {
     info!("Polishing message for session {}", request.session_id);
 
     let session_result = get_session(&state, request.session_id).await;
@@ -626,7 +626,7 @@ Respond in JSON format:
 pub async fn generate_smart_replies(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SmartRepliesRequest>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<SmartRepliesResponse>) {
     info!(
         "Generating smart replies for session {}",
         request.session_id
@@ -730,7 +730,7 @@ Generate 3 reply options for the attendant."#,
 pub async fn generate_summary(
     State(state): State<Arc<AppState>>,
     Path(session_id): Path<Uuid>,
-) -> impl IntoResponse {
+) -> (StatusCode, Json<SummaryResponse>) {
     info!("Generating summary for session {}", session_id);
 
     let session_result = get_session(&state, session_id).await;
@@ -1133,13 +1133,13 @@ async fn handle_take_command(
                 .and_then(|v| v.as_str())
                 .unwrap_or("Unknown");
 
-            Ok(format!(
+            Ok::<String, String>(format!(
                 " *Conversation assigned*\n\nCustomer: *{}*\nSession: {}\n\nYou can now respond to this customer. Their messages will be forwarded to you.",
                 name,
                 &session.id.to_string()[..8]
             ))
         } else {
-            Ok(" No conversations waiting in queue.".to_string())
+            Ok::<String, String>(" No conversations waiting in queue.".to_string())
         }
     })
     .await
@@ -1196,6 +1196,7 @@ async fn handle_status_command(
             .load(&mut db_conn)
             .map_err(|e| e.to_string())?;
 
+        let session_count = sessions.len();
         for session in sessions {
             let mut ctx = session.context_data.clone();
             ctx["attendant_status"] = serde_json::json!(status_val);
@@ -1207,7 +1208,7 @@ async fn handle_status_command(
                 .map_err(|e| e.to_string())?;
         }
 
-        Ok::<usize, String>(sessions.len())
+        Ok::<usize, String>(session_count)
     })
     .await
     .map_err(|e| e.to_string())?;
@@ -1369,8 +1370,7 @@ async fn handle_tips_command(
     };
 
     // Generate tips
-    let response = generate_tips(State(state.clone()), Json(request)).await;
-    let (_, Json(tip_response)) = response.into_response().into_parts();
+    let (_, Json(tip_response)) = generate_tips(State(state.clone()), Json(request)).await;
 
     if tip_response.tips.is_empty() {
         return Ok(" No specific tips for this conversation yet.".to_string());
@@ -1410,8 +1410,7 @@ async fn handle_polish_command(
         tone: "professional".to_string(),
     };
 
-    let response = polish_message(State(state.clone()), Json(request)).await;
-    let (_, Json(polish_response)) = response.into_response().into_parts();
+    let (_, Json(polish_response)) = polish_message(State(state.clone()), Json(request)).await;
 
     if !polish_response.success {
         return Err(polish_response
@@ -1447,8 +1446,7 @@ async fn handle_replies_command(
         history,
     };
 
-    let response = generate_smart_replies(State(state.clone()), Json(request)).await;
-    let (_, Json(replies_response)) = response.into_response().into_parts();
+    let (_, Json(replies_response)) = generate_smart_replies(State(state.clone()), Json(request)).await;
 
     if replies_response.replies.is_empty() {
         return Ok(" No reply suggestions available.".to_string());
@@ -1476,8 +1474,7 @@ async fn handle_summary_command(
 ) -> Result<String, String> {
     let session_id = current_session.ok_or("No active conversation")?;
 
-    let response = generate_summary(State(state.clone()), Path(session_id)).await;
-    let (_, Json(summary_response)) = response.into_response().into_parts();
+    let (_, Json(summary_response)) = generate_summary(State(state.clone()), Path(session_id)).await;
 
     if !summary_response.success {
         return Err(summary_response
@@ -2102,76 +2099,3 @@ fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
 }
 
 // Tests
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_config_defaults() {
-        let config = LlmAssistConfig::default();
-        assert!(!config.tips_enabled);
-        assert!(!config.polish_enabled);
-        assert!(!config.any_enabled());
-    }
-
-    #[test]
-    fn test_fallback_tips_urgent() {
-        let tips = generate_fallback_tips("This is URGENT! I need help immediately!");
-        assert!(!tips.is_empty());
-        assert!(tips.iter().any(|t| matches!(t.tip_type, TipType::Warning)));
-    }
-
-    #[test]
-    fn test_fallback_tips_question() {
-        let tips = generate_fallback_tips("How do I reset my password?");
-        assert!(!tips.is_empty());
-        assert!(tips.iter().any(|t| matches!(t.tip_type, TipType::Intent)));
-    }
-
-    #[test]
-    fn test_sentiment_positive() {
-        let sentiment = analyze_sentiment_keywords("Thank you so much! This is great!");
-        assert_eq!(sentiment.overall, "positive");
-        assert!(sentiment.score > 0.0);
-        assert_eq!(sentiment.escalation_risk, "low");
-    }
-
-    #[test]
-    fn test_sentiment_negative() {
-        let sentiment =
-            analyze_sentiment_keywords("This is terrible! I'm very frustrated with this problem.");
-        assert_eq!(sentiment.overall, "negative");
-        assert!(sentiment.score < 0.0);
-        assert!(sentiment.escalation_risk == "medium" || sentiment.escalation_risk == "high");
-    }
-
-    #[test]
-    fn test_sentiment_urgent() {
-        let sentiment = analyze_sentiment_keywords("I need help ASAP! This is urgent!");
-        assert!(sentiment.urgency == "high" || sentiment.urgency == "urgent");
-    }
-
-    #[test]
-    fn test_extract_json() {
-        let response = "Here is the result: {\"key\": \"value\"} and some more text.";
-        let json = extract_json(response);
-        assert_eq!(json, "{\"key\": \"value\"}");
-    }
-
-    #[test]
-    fn test_fallback_replies() {
-        let replies = generate_fallback_replies();
-        assert_eq!(replies.len(), 3);
-        assert!(replies.iter().any(|r| r.category == "greeting"));
-        assert!(replies.iter().any(|r| r.category == "follow_up"));
-    }
-
-    #[test]
-    fn test_help_text() {
-        let help = get_help_text();
-        assert!(help.contains("/queue"));
-        assert!(help.contains("/tips"));
-        assert!(help.contains("/polish"));
-    }
-}

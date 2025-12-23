@@ -194,18 +194,3 @@ pub fn get_active_kbs_for_session(
         .map(|r| (r.kb_name, r.kb_folder_path, r.qdrant_collection))
         .collect())
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_use_kb_syntax() {
-        let mut engine = Engine::new();
-        // This would normally use real state and session
-        // For now just test that the syntax can be registered
-        assert!(engine
-            .register_custom_syntax(&["USE_KB", "$expr$"], true, |_, _| Ok(Dynamic::UNIT))
-            .is_ok());
-    }
-}

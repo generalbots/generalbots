@@ -38,8 +38,13 @@ todo = "warn"
 ❌ NEVER leave dead code - DELETE it or IMPLEMENT it
 ❌ NEVER use approximate constants (3.14159) - use std::f64::consts::PI
 ❌ NEVER silence clippy in code - FIX THE CODE or configure in Cargo.toml
-❌ NEVER add comments explaining what code does - code must be self-documenting
 ❌ NEVER use CDN links - all assets must be local
+❌ NEVER run cargo check or cargo clippy - USE ONLY the diagnostics tool
+❌ NEVER add comments - code must be self-documenting via types and naming
+❌ NEVER add file header comments (//! or /*!) - no module docs
+❌ NEVER add function doc comments (///) - types are the documentation
+❌ NEVER add ASCII art or banners in code
+❌ NEVER add TODO/FIXME/HACK comments - fix it or delete it
 ```
 
 ---
@@ -176,6 +181,31 @@ pub fn calculate() -> i32 { }
 #[must_use]
 pub fn calculate() -> i32 { }
 ```
+
+### Zero Comments Policy
+
+```rust
+// ❌ WRONG - any comments
+/// Returns the user's full name
+fn get_full_name(&self) -> String { }
+
+// Validate input before processing
+fn process(data: &str) { }
+
+//! This module handles user authentication
+
+// ✅ CORRECT - self-documenting code, no comments
+fn full_name(&self) -> String { }
+
+fn process_validated_input(data: &str) { }
+```
+
+**Why zero comments:**
+- Rust's type system documents intent (Result, Option, traits)
+- Comments become stale when code changes
+- LLMs can infer intent from well-structured code
+- Good naming > comments
+- Types are the documentation
 
 ### Const Functions
 
@@ -368,6 +398,7 @@ src/shared/models.rs     # Database models
 ## Remember
 
 - **ZERO WARNINGS** - Every clippy warning must be fixed
+- **ZERO COMMENTS** - No comments, no doc comments, no file headers, no ASCII art
 - **NO ALLOW IN CODE** - Never use #[allow()] in source files
 - **CARGO.TOML EXCEPTIONS OK** - Disable lints with false positives in Cargo.toml with comment
 - **NO DEAD CODE** - Delete unused code, never prefix with _

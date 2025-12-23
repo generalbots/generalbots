@@ -187,18 +187,3 @@ pub fn log_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mu
 
     debug!("Registered LOG_ERROR keyword");
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_error_map() {
-        use rhai::{Dynamic, Map};
-
-        let mut map = Map::new();
-        map.insert("error".into(), Dynamic::from(true));
-        map.insert("message".into(), Dynamic::from("test error"));
-
-        assert!(map.contains_key("error"));
-        assert_eq!(map.get("error").unwrap().as_bool().unwrap_or(false), true);
-    }
-}

@@ -270,35 +270,42 @@ impl AccessReviewService {
         modified: Vec<(Uuid, AccessLevel)>,
         comments: String,
     ) -> Result<AccessReviewResult> {
-        let review = self
-            .reviews
-            .get_mut(&review_id)
-            .ok_or_else(|| anyhow!("Review not found"))?;
+        // Get review info first
+        let (reviewer_id, user_id) = {
+            let review = self
+                .reviews
+                .get(&review_id)
+                .ok_or_else(|| anyhow!("Review not found"))?;
 
-        if review.status != ReviewStatus::Pending && review.status != ReviewStatus::InProgress {
-            return Err(anyhow!("Review already completed"));
-        }
+            if review.status != ReviewStatus::Pending && review.status != ReviewStatus::InProgress {
+                return Err(anyhow!("Review already completed"));
+            }
+            (review.reviewer_id, review.user_id)
+        };
 
         // Process revocations
         for perm_id in &revoked {
-            self.revoke_permission(*perm_id, review.reviewer_id)?;
+            self.revoke_permission(*perm_id, reviewer_id)?;
         }
 
         // Process modifications
         for (perm_id, new_level) in &modified {
-            if let Some(permissions) = self.permissions.get_mut(&review.user_id) {
+            if let Some(permissions) = self.permissions.get_mut(&user_id) {
                 if let Some(perm) = permissions.iter_mut().find(|p| p.id == *perm_id) {
                     perm.access_level = new_level.clone();
                 }
             }
         }
 
-        review.status = ReviewStatus::Approved;
-        review.comments = Some(comments.clone());
+        // Update review status
+        if let Some(review) = self.reviews.get_mut(&review_id) {
+            review.status = ReviewStatus::Approved;
+            review.comments = Some(comments.clone());
+        }
 
         let result = AccessReviewResult {
             review_id,
-            reviewer_id: review.reviewer_id,
+            reviewer_id,
             reviewed_at: Utc::now(),
             approved_permissions: approved,
             revoked_permissions: revoked,
