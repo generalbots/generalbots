@@ -83,7 +83,7 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
         )
         .unwrap();
 
-    // Register CREATE_TEAM for creating teams with workspace
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -172,13 +172,13 @@ async fn execute_add_member(
 ) -> Result<String, String> {
     let member_id = Uuid::new_v4().to_string();
 
-    // Validate role
+
     let valid_role = validate_role(role);
 
-    // Get default permissions for role
+
     let permissions = get_permissions_for_role(&valid_role);
 
-    // Save member to database
+
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query = diesel::sql_query(
@@ -204,10 +204,10 @@ async fn execute_add_member(
         format!("Failed to add member: {}", e)
     })?;
 
-    // Send invitation email if new member
+
     send_member_invitation(state, group_id, user_email, &valid_role).await?;
 
-    // Update group activity log
+
     log_group_activity(state, group_id, "member_added", user_email).await?;
 
     trace!(
@@ -230,7 +230,7 @@ async fn execute_create_team(
 ) -> Result<String, String> {
     let team_id = Uuid::new_v4().to_string();
 
-    // Create the team/group
+
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query = diesel::sql_query(
@@ -261,10 +261,10 @@ async fn execute_create_team(
         format!("Failed to create team: {}", e)
     })?;
 
-    // Add creator as admin
+
     execute_add_member(state, user, &team_id, &user.user_id.to_string(), "admin").await?;
 
-    // Add all members
+
     for member_email in &members {
         let role = if member_email == &user.user_id.to_string() {
             "admin"
@@ -274,10 +274,10 @@ async fn execute_create_team(
         execute_add_member(state, user, &team_id, member_email, role).await?;
     }
 
-    // Create workspace structure
+
     create_workspace_structure(state, &team_id, name, workspace_template).await?;
 
-    // Create team communication channel
+
     create_team_channel(state, &team_id, name).await?;
 
     trace!(
@@ -297,7 +297,7 @@ fn validate_role(role: &str) -> String {
         "member" | "user" => "member".to_string(),
         "viewer" | "read" | "readonly" => "viewer".to_string(),
         "owner" => "owner".to_string(),
-        _ => "member".to_string(), // Default role
+        _ => "member".to_string(),
     }
 }
 
@@ -360,7 +360,7 @@ async fn send_member_invitation(
     user_email: &str,
     role: &str,
 ) -> Result<(), String> {
-    // In a real implementation, send an actual email invitation
+
     trace!(
         "Invitation sent to {} for group {} with role {}",
         user_email,
@@ -408,7 +408,7 @@ async fn create_workspace_structure(
 ) -> Result<(), String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    // Define workspace structure based on template
+
     let folders = match template {
         "project" => vec![
             "Documents",

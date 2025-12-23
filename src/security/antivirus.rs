@@ -1,11 +1,11 @@
-//! Antivirus Module
-//!
-//! This module provides antivirus and security scanning functionality including:
-//! - Integration with ClamAV (open source antivirus)
-//! - Windows Defender management (enable/disable)
-//! - Threat detection and reporting
-//! - Vulnerability scanning
-//! - Real-time protection status
+
+
+
+
+
+
+
+
 
 use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
@@ -16,7 +16,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
 
-/// Threat severity levels
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ThreatSeverity {
@@ -26,7 +26,7 @@ pub enum ThreatSeverity {
     Critical,
 }
 
-/// Threat status
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ThreatStatus {
@@ -37,7 +37,7 @@ pub enum ThreatStatus {
     Failed,
 }
 
-/// Detected threat information
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Threat {
     pub id: String,
@@ -51,7 +51,7 @@ pub struct Threat {
     pub action_taken: Option<String>,
 }
 
-/// Vulnerability information
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Vulnerability {
     pub id: String,
@@ -65,7 +65,7 @@ pub struct Vulnerability {
     pub is_patched: bool,
 }
 
-/// Scan result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScanResult {
     pub scan_id: String,
@@ -79,7 +79,7 @@ pub struct ScanResult {
     pub error_message: Option<String>,
 }
 
-/// Scan status
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ScanStatus {
@@ -90,7 +90,7 @@ pub enum ScanStatus {
     Cancelled,
 }
 
-/// Scan type
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ScanType {
@@ -101,7 +101,7 @@ pub enum ScanType {
     Rootkit,
 }
 
-/// Protection status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProtectionStatus {
     pub real_time_protection: bool,
@@ -113,28 +113,28 @@ pub struct ProtectionStatus {
     pub quarantined_items: u32,
 }
 
-/// Antivirus configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AntivirusConfig {
-    /// Path to ClamAV installation
+
     pub clamav_path: Option<PathBuf>,
-    /// Enable real-time protection
+
     pub real_time_protection: bool,
-    /// Quarantine directory
+
     pub quarantine_dir: PathBuf,
-    /// Log directory
+
     pub log_dir: PathBuf,
-    /// Auto-quarantine threats
+
     pub auto_quarantine: bool,
-    /// Excluded paths from scanning
+
     pub excluded_paths: Vec<PathBuf>,
-    /// Excluded file extensions
+
     pub excluded_extensions: Vec<String>,
-    /// Maximum file size to scan (in MB)
+
     pub max_file_size_mb: u64,
-    /// Scan archives
+
     pub scan_archives: bool,
-    /// Definition update URL
+
     pub definition_update_url: Option<String>,
 }
 
@@ -155,7 +155,7 @@ impl Default for AntivirusConfig {
     }
 }
 
-/// Antivirus Manager
+
 #[derive(Debug)]
 pub struct AntivirusManager {
     config: AntivirusConfig,
@@ -166,9 +166,9 @@ pub struct AntivirusManager {
 }
 
 impl AntivirusManager {
-    /// Create a new antivirus manager
+
     pub fn new(config: AntivirusConfig) -> Result<Self> {
-        // Ensure directories exist
+
         std::fs::create_dir_all(&config.quarantine_dir)
             .context("Failed to create quarantine directory")?;
         std::fs::create_dir_all(&config.log_dir).context("Failed to create log directory")?;
@@ -192,7 +192,7 @@ impl AntivirusManager {
         })
     }
 
-    /// Check if Windows Defender is enabled
+
     #[cfg(target_os = "windows")]
     fn check_windows_defender_status() -> bool {
         let output = Command::new("powershell")
@@ -216,12 +216,12 @@ impl AntivirusManager {
         false
     }
 
-    /// Disable Windows Defender (requires admin privileges)
+
     #[cfg(target_os = "windows")]
     pub async fn disable_windows_defender(&self) -> Result<bool> {
         info!("Attempting to disable Windows Defender...");
 
-        // This requires administrator privileges
+
         let script = r#"
             Set-MpPreference -DisableRealtimeMonitoring $true
             Set-MpPreference -DisableBehaviorMonitoring $true
@@ -260,7 +260,7 @@ impl AntivirusManager {
         Ok(false)
     }
 
-    /// Enable Windows Defender (requires admin privileges)
+
     #[cfg(target_os = "windows")]
     pub async fn enable_windows_defender(&self) -> Result<bool> {
         info!("Attempting to enable Windows Defender...");
@@ -301,7 +301,7 @@ impl AntivirusManager {
         Ok(false)
     }
 
-    /// Start a scan
+
     pub async fn start_scan(
         &self,
         scan_type: ScanType,
@@ -327,7 +327,7 @@ impl AntivirusManager {
             scans.insert(scan_id.clone(), scan_result);
         }
 
-        // Spawn scan task
+
         let scan_id_clone = scan_id.clone();
         let scans = self.active_scans.clone();
         let threats = self.threats.clone();
@@ -342,7 +342,7 @@ impl AntivirusManager {
         Ok(scan_id)
     }
 
-    /// Run the actual scan
+
     async fn run_scan(
         scan_id: String,
         scan_type: ScanType,
@@ -351,7 +351,7 @@ impl AntivirusManager {
         threats: Arc<RwLock<Vec<Threat>>>,
         config: AntivirusConfig,
     ) {
-        // Update status to running
+
         {
             let mut scans_guard = scans.write().await;
             if let Some(scan) = scans_guard.get_mut(&scan_id) {
@@ -359,7 +359,7 @@ impl AntivirusManager {
             }
         }
 
-        // Determine scan target
+
         let scan_path = match scan_type {
             ScanType::Quick => target_path.unwrap_or_else(|| {
                 if cfg!(target_os = "windows") {
@@ -380,10 +380,10 @@ impl AntivirusManager {
             ScanType::Rootkit => "/".to_string(),
         };
 
-        // Try ClamAV scan
+
         let result = Self::run_clamav_scan(&scan_path, &config).await;
 
-        // Update scan results
+
         let mut scans_guard = scans.write().await;
         if let Some(scan) = scans_guard.get_mut(&scan_id) {
             scan.completed_at = Some(chrono::Utc::now());
@@ -394,7 +394,7 @@ impl AntivirusManager {
                     scan.files_scanned = files_scanned;
                     scan.threats_found = found_threats.clone();
 
-                    // Add threats to global list
+
                     if !found_threats.is_empty() {
                         let mut threats_guard = threats.blocking_write();
                         threats_guard.extend(found_threats);
@@ -408,9 +408,9 @@ impl AntivirusManager {
         }
     }
 
-    /// Run ClamAV scan
+
     async fn run_clamav_scan(path: &str, config: &AntivirusConfig) -> Result<(u64, Vec<Threat>)> {
-        // Find clamscan executable
+
         let clamscan = config
             .clamav_path
             .clone()
@@ -424,7 +424,7 @@ impl AntivirusManager {
             });
 
         if !clamscan.exists() {
-            // Try system PATH
+
             let output = Command::new("which")
                 .arg("clamscan")
                 .output()
@@ -447,15 +447,15 @@ impl AntivirusManager {
         }
 
         let mut cmd = Command::new(&clamscan);
-        cmd.arg("-r") // Recursive
-            .arg("--infected") // Only show infected files
+        cmd.arg("-r")
+            .arg("--infected")
             .arg("--no-summary");
 
         if config.scan_archives {
             cmd.arg("--scan-archive=yes");
         }
 
-        // Add excluded paths
+
         for excluded in &config.excluded_paths {
             cmd.arg(format!("--exclude-dir={}", excluded.display()));
         }
@@ -468,7 +468,7 @@ impl AntivirusManager {
         let mut threats = Vec::new();
         let mut files_scanned: u64 = 0;
 
-        // Parse ClamAV output
+
         for line in stdout.lines() {
             if line.contains("FOUND") {
                 let parts: Vec<&str> = line.split(':').collect();
@@ -495,7 +495,7 @@ impl AntivirusManager {
         Ok((files_scanned, threats))
     }
 
-    /// Classify threat type
+
     fn classify_threat(name: &str) -> String {
         let name_lower = name.to_lowercase();
         if name_lower.contains("trojan") {
@@ -519,7 +519,7 @@ impl AntivirusManager {
         }
     }
 
-    /// Assess threat severity
+
     fn assess_severity(name: &str) -> ThreatSeverity {
         let name_lower = name.to_lowercase();
         if name_lower.contains("ransomware") || name_lower.contains("rootkit") {
@@ -533,7 +533,7 @@ impl AntivirusManager {
         }
     }
 
-    /// Quarantine a file
+
     pub async fn quarantine_file(&self, file_path: &Path) -> Result<()> {
         if !file_path.exists() {
             return Err(anyhow::anyhow!("File not found: {:?}", file_path));
@@ -556,14 +556,14 @@ impl AntivirusManager {
 
         info!("File quarantined: {:?} -> {:?}", file_path, quarantine_path);
 
-        // Update protection status
+
         let mut status = self.protection_status.write().await;
         status.quarantined_items += 1;
 
         Ok(())
     }
 
-    /// Remove a threat
+
     pub async fn remove_threat(&self, threat_id: &str) -> Result<()> {
         let mut threats = self.threats.write().await;
 
@@ -585,12 +585,12 @@ impl AntivirusManager {
         Ok(())
     }
 
-    /// Get all detected threats
+
     pub async fn get_threats(&self) -> Vec<Threat> {
         self.threats.read().await.clone()
     }
 
-    /// Get threats by status
+
     pub async fn get_threats_by_status(&self, status: ThreatStatus) -> Vec<Threat> {
         self.threats
             .read()
@@ -601,21 +601,21 @@ impl AntivirusManager {
             .collect()
     }
 
-    /// Get all vulnerabilities
+
     pub async fn get_vulnerabilities(&self) -> Vec<Vulnerability> {
         self.vulnerabilities.read().await.clone()
     }
 
-    /// Scan for vulnerabilities
+
     pub async fn scan_vulnerabilities(&self) -> Result<Vec<Vulnerability>> {
         let mut vulnerabilities = Vec::new();
 
-        // Check for common vulnerabilities
 
-        // 1. Check for outdated software (Windows)
+
+
         #[cfg(target_os = "windows")]
         {
-            // Check Windows Update status
+
             let output = Command::new("powershell")
                 .args([
                     "-Command",
@@ -625,7 +625,7 @@ impl AntivirusManager {
 
             if let Ok(output) = output {
                 let result = String::from_utf8_lossy(&output.stdout);
-                // Check if updates are old
+
                 if result.is_empty() {
                     vulnerabilities.push(Vulnerability {
                         id: uuid::Uuid::new_v4().to_string(),
@@ -644,7 +644,7 @@ impl AntivirusManager {
             }
         }
 
-        // 2. Check for weak file permissions
+
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -657,7 +657,7 @@ impl AntivirusManager {
                     if let Ok(metadata) = std::fs::metadata(path) {
                         let mode = metadata.permissions().mode();
                         if mode & 0o002 != 0 {
-                            // World writable
+
                             vulnerabilities.push(Vulnerability {
                                 id: uuid::Uuid::new_v4().to_string(),
                                 cve_id: None,
@@ -676,7 +676,7 @@ impl AntivirusManager {
             }
         }
 
-        // Store vulnerabilities
+
         {
             let mut vulns = self.vulnerabilities.write().await;
             vulns.extend(vulnerabilities.clone());
@@ -685,22 +685,22 @@ impl AntivirusManager {
         Ok(vulnerabilities)
     }
 
-    /// Get protection status
+
     pub async fn get_protection_status(&self) -> ProtectionStatus {
         self.protection_status.read().await.clone()
     }
 
-    /// Get scan result by ID
+
     pub async fn get_scan_result(&self, scan_id: &str) -> Option<ScanResult> {
         self.active_scans.read().await.get(scan_id).cloned()
     }
 
-    /// Get all scans
+
     pub async fn get_all_scans(&self) -> Vec<ScanResult> {
         self.active_scans.read().await.values().cloned().collect()
     }
 
-    /// Cancel a scan
+
     pub async fn cancel_scan(&self, scan_id: &str) -> Result<()> {
         let mut scans = self.active_scans.write().await;
         if let Some(scan) = scans.get_mut(scan_id) {
@@ -717,11 +717,11 @@ impl AntivirusManager {
         }
     }
 
-    /// Update virus definitions
+
     pub async fn update_definitions(&self) -> Result<()> {
         info!("Updating virus definitions...");
 
-        // Try freshclam (ClamAV updater)
+
         let freshclam = if cfg!(target_os = "windows") {
             "freshclam.exe"
         } else {
@@ -743,7 +743,7 @@ impl AntivirusManager {
         }
     }
 
-    /// Set real-time protection
+
     pub async fn set_realtime_protection(&self, enabled: bool) -> Result<()> {
         let mut status = self.protection_status.write().await;
         status.real_time_protection = enabled;
@@ -752,7 +752,7 @@ impl AntivirusManager {
     }
 }
 
-/// API response types for the security endpoints
+
 pub mod api {
     use super::*;
 

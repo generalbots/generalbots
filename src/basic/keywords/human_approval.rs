@@ -1,56 +1,56 @@
-//! Human-in-the-Loop Approvals
-//!
-//! This module provides human approval workflows that pause script execution
-//! until a human approves, rejects, or modifies a pending action. It enables:
-//!
-//! - Multi-channel approval requests (email, SMS, Teams, mobile push)
-//! - Timeout handling with default actions
-//! - Approval chains for multi-level authorization
-//! - Audit logging of all approval decisions
-//!
-//! ## BASIC Keywords
-//!
-//! ```basic
-//! ' Request approval via email
-//! HEAR approval ON EMAIL "manager@company.com"
-//!
-//! ' Request approval via mobile push
-//! HEAR approval ON MOBILE "+1-555-0100"
-//!
-//! ' Request approval via Teams channel
-//! HEAR approval ON TEAMS "approvals-channel"
-//!
-//! ' With timeout and default action
-//! HEAR approval ON EMAIL "manager@company.com" TIMEOUT 3600 DEFAULT "auto-approve"
-//!
-//! ' Multi-level approval chain
-//! APPROVAL CHAIN "expense-approval"
-//!     LEVEL 1 ON EMAIL "supervisor@company.com" TIMEOUT 3600
-//!     LEVEL 2 ON EMAIL "director@company.com" TIMEOUT 7200 IF amount > 10000
-//!     LEVEL 3 ON EMAIL "vp@company.com" TIMEOUT 14400 IF amount > 50000
-//! END APPROVAL CHAIN
-//!
-//! ' Request approval with context
-//! SET APPROVAL CONTEXT "action", "expense_report"
-//! SET APPROVAL CONTEXT "amount", 15000
-//! SET APPROVAL CONTEXT "description", "Q4 Marketing Campaign"
-//! result = REQUEST APPROVAL "expense-approval"
-//!
-//! ' Check approval status
-//! status = GET APPROVAL STATUS requestId
-//! ```
-//!
-//! ## Config.csv Properties
-//!
-//! ```csv
-//! name,value
-//! approval-enabled,true
-//! approval-default-timeout,3600
-//! approval-reminder-interval,1800
-//! approval-max-reminders,3
-//! approval-audit-enabled,true
-//! approval-webhook-url,https://webhook.example.com/approvals
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
@@ -59,70 +59,70 @@ use std::collections::HashMap;
 use tracing::info;
 use uuid::Uuid;
 
-/// Approval request structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalRequest {
-    /// Unique request identifier
+
     pub id: Uuid,
-    /// Bot ID that initiated the request
+
     pub bot_id: Uuid,
-    /// Session ID where the request originated
+
     pub session_id: Uuid,
-    /// User ID who triggered the approval
+
     pub initiated_by: Uuid,
-    /// Type of approval being requested
+
     pub approval_type: String,
-    /// Current status
+
     pub status: ApprovalStatus,
-    /// Channel for sending the request
+
     pub channel: ApprovalChannel,
-    /// Recipient identifier (email, phone, channel name)
+
     pub recipient: String,
-    /// Context data for the approval
+
     pub context: serde_json::Value,
-    /// Message shown to approver
+
     pub message: String,
-    /// Timeout in seconds
+
     pub timeout_seconds: u64,
-    /// Default action if timeout
+
     pub default_action: Option<ApprovalDecision>,
-    /// Current level in approval chain (1-indexed)
+
     pub current_level: u32,
-    /// Total levels in approval chain
+
     pub total_levels: u32,
-    /// When the request was created
+
     pub created_at: DateTime<Utc>,
-    /// When the request expires
+
     pub expires_at: DateTime<Utc>,
-    /// When reminders were sent
+
     pub reminders_sent: Vec<DateTime<Utc>>,
-    /// The final decision
+
     pub decision: Option<ApprovalDecision>,
-    /// Who made the decision
+
     pub decided_by: Option<String>,
-    /// When the decision was made
+
     pub decided_at: Option<DateTime<Utc>>,
-    /// Comments from the approver
+
     pub comments: Option<String>,
 }
 
-/// Approval status
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalStatus {
-    /// Waiting for approver response
+
     Pending,
-    /// Approved by approver
+
     Approved,
-    /// Rejected by approver
+
     Rejected,
-    /// Timed out, using default action
+
     TimedOut,
-    /// Cancelled by requester
+
     Cancelled,
-    /// Escalated to next level
+
     Escalated,
-    /// Error occurred
+
     Error,
 }
 
@@ -132,7 +132,7 @@ impl Default for ApprovalStatus {
     }
 }
 
-/// Approval decision
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalDecision {
@@ -143,7 +143,7 @@ pub enum ApprovalDecision {
     RequestInfo,
 }
 
-/// Channel for sending approval requests
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalChannel {
@@ -176,68 +176,68 @@ impl std::fmt::Display for ApprovalChannel {
     }
 }
 
-/// Approval chain definition
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalChain {
-    /// Chain name/identifier
+
     pub name: String,
-    /// Bot ID this chain belongs to
+
     pub bot_id: Uuid,
-    /// Levels in the chain
+
     pub levels: Vec<ApprovalLevel>,
-    /// Whether to stop on first rejection
+
     pub stop_on_reject: bool,
-    /// Whether all levels must approve
+
     pub require_all: bool,
-    /// Description of the chain
+
     pub description: Option<String>,
-    /// When the chain was created
+
     pub created_at: DateTime<Utc>,
 }
 
-/// Single level in an approval chain
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalLevel {
-    /// Level number (1-indexed)
+
     pub level: u32,
-    /// Channel to use
+
     pub channel: ApprovalChannel,
-    /// Recipient identifier
+
     pub recipient: String,
-    /// Timeout for this level
+
     pub timeout_seconds: u64,
-    /// Condition for this level (evaluated at runtime)
+
     pub condition: Option<String>,
-    /// Whether this level can be skipped
+
     pub skippable: bool,
-    /// Approvers at this level (for group approvals)
+
     pub approvers: Vec<String>,
-    /// Required number of approvals (for group)
+
     pub required_approvals: u32,
 }
 
-/// Approval audit log entry
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalAuditEntry {
-    /// Audit entry ID
+
     pub id: Uuid,
-    /// Related approval request ID
+
     pub request_id: Uuid,
-    /// Action that occurred
+
     pub action: AuditAction,
-    /// Who performed the action
+
     pub actor: String,
-    /// Details of the action
+
     pub details: serde_json::Value,
-    /// When the action occurred
+
     pub timestamp: DateTime<Utc>,
-    /// IP address if available
+
     pub ip_address: Option<String>,
-    /// User agent if available
+
     pub user_agent: Option<String>,
 }
 
-/// Actions tracked in audit log
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuditAction {
@@ -253,24 +253,24 @@ pub enum AuditAction {
     ContextUpdated,
 }
 
-/// Configuration for approval system
+
 #[derive(Debug, Clone)]
 pub struct ApprovalConfig {
-    /// Whether approvals are enabled
+
     pub enabled: bool,
-    /// Default timeout in seconds
+
     pub default_timeout: u64,
-    /// Interval between reminders
+
     pub reminder_interval: u64,
-    /// Maximum reminders to send
+
     pub max_reminders: u32,
-    /// Whether to audit all actions
+
     pub audit_enabled: bool,
-    /// Webhook URL for external notifications
+
     pub webhook_url: Option<String>,
-    /// Email template for approval requests
+
     pub email_template: Option<String>,
-    /// Base URL for approval links
+
     pub approval_base_url: Option<String>,
 }
 
@@ -289,19 +289,19 @@ impl Default for ApprovalConfig {
     }
 }
 
-/// Approval Manager
+
 #[derive(Debug)]
 pub struct ApprovalManager {
     config: ApprovalConfig,
 }
 
 impl ApprovalManager {
-    /// Create a new approval manager
+
     pub fn new(config: ApprovalConfig) -> Self {
         ApprovalManager { config }
     }
 
-    /// Create from config map
+
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = ApprovalConfig {
             enabled: config_map
@@ -331,7 +331,7 @@ impl ApprovalManager {
         ApprovalManager::new(config)
     }
 
-    /// Create a new approval request
+
     pub fn create_request(
         &self,
         bot_id: Uuid,
@@ -373,12 +373,12 @@ impl ApprovalManager {
         }
     }
 
-    /// Check if a request has expired
+
     pub fn is_expired(&self, request: &ApprovalRequest) -> bool {
         Utc::now() > request.expires_at
     }
 
-    /// Check if a reminder should be sent
+
     pub fn should_send_reminder(&self, request: &ApprovalRequest) -> bool {
         if request.status != ApprovalStatus::Pending {
             return false;
@@ -398,7 +398,7 @@ impl ApprovalManager {
         since_last.num_seconds() >= self.config.reminder_interval as i64
     }
 
-    /// Generate approval URL
+
     pub fn generate_approval_url(&self, request_id: Uuid, action: &str, token: &str) -> String {
         let base_url = self
             .config
@@ -412,7 +412,7 @@ impl ApprovalManager {
         )
     }
 
-    /// Generate email content for approval request
+
     pub fn generate_email_content(&self, request: &ApprovalRequest, token: &str) -> EmailContent {
         let approve_url = self.generate_approval_url(request.id, "approve", token);
         let reject_url = self.generate_approval_url(request.id, "reject", token);
@@ -454,7 +454,7 @@ If you have questions, reply to this email.
         }
     }
 
-    /// Process a decision
+
     pub fn process_decision(
         &self,
         request: &mut ApprovalRequest,
@@ -475,7 +475,7 @@ If you have questions, reply to this email.
         };
     }
 
-    /// Handle timeout
+
     pub fn handle_timeout(&self, request: &mut ApprovalRequest) {
         if let Some(default_action) = &request.default_action {
             request.decision = Some(default_action.clone());
@@ -491,14 +491,14 @@ If you have questions, reply to this email.
         }
     }
 
-    /// Evaluate approval chain condition
+
     pub fn evaluate_condition(
         &self,
         condition: &str,
         context: &serde_json::Value,
     ) -> Result<bool, String> {
-        // Simple condition evaluation
-        // Format: "field operator value" e.g., "amount > 10000"
+
+
         let parts: Vec<&str> = condition.split_whitespace().collect();
         if parts.len() != 3 {
             return Err(format!("Invalid condition format: {}", condition));
@@ -531,7 +531,7 @@ If you have questions, reply to this email.
     }
 }
 
-/// Email content structure
+
 #[derive(Debug, Clone)]
 pub struct EmailContent {
     pub subject: String,
@@ -539,7 +539,7 @@ pub struct EmailContent {
     pub html_body: Option<String>,
 }
 
-/// Convert ApprovalRequest to Rhai Dynamic
+
 impl ApprovalRequest {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -589,7 +589,7 @@ impl ApprovalRequest {
     }
 }
 
-/// Convert JSON value to Rhai Dynamic
+
 fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     match value {
         serde_json::Value::Null => Dynamic::UNIT,
@@ -618,9 +618,9 @@ fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     }
 }
 
-/// Register approval keywords with Rhai engine
+
 pub fn register_approval_keywords(engine: &mut Engine) {
-    // Helper functions for working with approvals in scripts
+
 
     engine.register_fn("approval_is_approved", |request: Map| -> bool {
         request
@@ -678,7 +678,7 @@ pub fn register_approval_keywords(engine: &mut Engine) {
     info!("Approval keywords registered");
 }
 
-/// SQL for creating approval tables
+
 pub const APPROVAL_SCHEMA: &str = r#"
 -- Approval requests
 CREATE TABLE IF NOT EXISTS approval_requests (
@@ -758,7 +758,7 @@ CREATE INDEX IF NOT EXISTS idx_approval_tokens_token ON approval_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_approval_tokens_request_id ON approval_tokens(request_id);
 "#;
 
-/// SQL for approval operations
+
 pub mod sql {
     pub const INSERT_REQUEST: &str = r#"
         INSERT INTO approval_requests (

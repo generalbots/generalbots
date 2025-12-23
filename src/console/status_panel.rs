@@ -38,7 +38,7 @@ impl StatusPanel {
 
     pub async fn update(&mut self) -> Result<(), std::io::Error> {
         self.system.refresh_all();
-        // Force fresh metrics by using different token counts
+
         let _tokens = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
             .unwrap()
@@ -54,7 +54,7 @@ impl StatusPanel {
     pub fn render(&mut self, selected_bot: Option<String>) -> String {
         let mut lines = Vec::new();
 
-        // System metrics section
+
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         SYSTEM METRICS                ║".to_string());
         lines.push("╚═══════════════════════════════════════╝".to_string());
@@ -88,7 +88,7 @@ impl StatusPanel {
             mem_percentage, mem_bar, used_mem, total_mem
         ));
 
-        // Components status section
+
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         COMPONENTS STATUS             ║".to_string());
@@ -111,7 +111,7 @@ impl StatusPanel {
             lines.push(format!(" {:<10} {}", comp_name, status));
         }
 
-        // Active bots section
+
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         ACTIVE BOTS                   ║".to_string());
@@ -172,7 +172,7 @@ impl StatusPanel {
             lines.push(" Database locked".to_string());
         }
 
-        // Sessions section
+
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         SESSIONS                      ║".to_string());

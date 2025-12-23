@@ -102,7 +102,7 @@ pub fn create_task_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         )
         .unwrap();
 
-    // Register ASSIGN_SMART for intelligent task assignment
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -195,21 +195,21 @@ async fn execute_create_task(
 ) -> Result<String, String> {
     let task_id = Uuid::new_v4().to_string();
 
-    // Parse due date
+
     let due_datetime = parse_due_date(due_date)?;
 
-    // Determine actual assignee
+
     let actual_assignee = if assignee == "auto" {
-        // Auto-assign based on workload
+
         auto_assign_task(state, project_id).await?
     } else {
         assignee.to_string()
     };
 
-    // Determine priority based on due date
+
     let priority = determine_priority(due_datetime);
 
-    // Save task to database
+
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query = diesel::sql_query(
@@ -234,7 +234,7 @@ async fn execute_create_task(
         format!("Failed to create task: {}", e)
     })?;
 
-    // Send notification to assignee
+
     send_task_notification(state, &task_id, title, &actual_assignee, due_datetime).await?;
 
     trace!(
@@ -255,18 +255,18 @@ async fn smart_assign_task(
     load_balance: bool,
 ) -> Result<String, String> {
     if !load_balance {
-        // Simple assignment to first available team member
+
         return Ok(team[0].clone());
     }
 
-    // Get workload for each team member
+
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let mut best_assignee = team[0].clone();
     let mut min_workload = i64::MAX;
 
     for member in &team {
-        // Count open tasks for this member
+
         let query = diesel::sql_query(
             "SELECT COUNT(*) as task_count FROM tasks
              WHERE assignee = $1 AND status IN ('open', 'in_progress')",
@@ -291,7 +291,7 @@ async fn smart_assign_task(
         }
     }
 
-    // Update task assignment
+
     let update_query = diesel::sql_query("UPDATE tasks SET assignee = $1 WHERE id = $2")
         .bind::<diesel::sql_types::Text, _>(&best_assignee)
         .bind::<diesel::sql_types::Text, _>(task_id);
@@ -314,7 +314,7 @@ async fn smart_assign_task(
 async fn auto_assign_task(state: &AppState, project_id: Option<&str>) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    // Get team members for the project
+
     let team_query_str = if let Some(proj_id) = project_id {
         format!(
             "SELECT DISTINCT assignee FROM tasks
@@ -343,7 +343,7 @@ async fn auto_assign_task(state: &AppState, project_id: Option<&str>) -> Result<
         return Ok("unassigned".to_string());
     }
 
-    // Return the team member with the least tasks
+
     Ok(team[0].assignee.clone())
 }
 
@@ -356,7 +356,7 @@ fn parse_due_date(due_date: &str) -> Result<Option<DateTime<Utc>>, String> {
 
     let now = Utc::now();
 
-    // Handle relative dates like "+3 days", "tomorrow", etc.
+
     if due_lower.starts_with('+') {
         let days_str = due_lower
             .trim_start_matches('+')
@@ -393,12 +393,12 @@ fn parse_due_date(due_date: &str) -> Result<Option<DateTime<Utc>>, String> {
         return Ok(Some(now + Duration::days(30)));
     }
 
-    // Try parsing as a date
+
     if let Ok(date) = NaiveDate::parse_from_str(&due_date, "%Y-%m-%d") {
         return Ok(Some(date.and_hms_opt(17, 0, 0).unwrap().and_utc()));
     }
 
-    // Default to 3 days from now
+
     Ok(Some(now + Duration::days(3)))
 }
 
@@ -426,7 +426,7 @@ async fn send_task_notification(
     assignee: &str,
     due_date: Option<DateTime<Utc>>,
 ) -> Result<(), String> {
-    // In a real implementation, this would send an actual notification
+
     trace!(
         "Notification sent to {} for task '{}' (ID: {})",
         assignee,

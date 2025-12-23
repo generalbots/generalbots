@@ -13,7 +13,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-    // SEND MAIL to, subject, body, attachments
+
     engine
         .register_custom_syntax(
             &[
@@ -100,7 +100,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-    // SEND MAIL to, subject, body USING account
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -177,7 +177,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-    // Register SEND TEMPLATE for bulk templated emails
+
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -190,7 +190,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let template = context.eval_expression_tree(&inputs[1])?.to_string();
                 let variables = context.eval_expression_tree(&inputs[2])?;
 
-                // Parse recipients
+
                 let mut recipients = Vec::new();
                 if recipients_input.is_array() {
                     let arr = recipients_input.cast::<rhai::Array>();
@@ -201,9 +201,9 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     recipients.push(recipients_input.to_string());
                 }
 
-                // Convert variables to JSON
+
                 let vars_json = if variables.is_map() {
-                    // Convert Rhai map to JSON
+
                     json!(variables.to_string())
                 } else {
                     json!({})
@@ -534,7 +534,7 @@ async fn save_email_draft(
 }
 
 async fn load_template(state: &AppState, template_name: &str) -> Result<String, String> {
-    // Try loading from database first
+
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query =
@@ -552,7 +552,7 @@ async fn load_template(state: &AppState, template_name: &str) -> Result<String, 
     match result {
         Ok(records) if !records.is_empty() => Ok(records[0].content.clone()),
         _ => {
-            // Fallback to file system
+
             let template_path = format!(".gbdrive/templates/{}.html", template_name);
             std::fs::read_to_string(&template_path)
                 .map_err(|e| format!("Template not found: {}", e))
@@ -567,10 +567,10 @@ fn apply_template_variables(
 ) -> Result<String, String> {
     let mut content = template.to_string();
 
-    // Replace {{recipient}} variable
+
     content = content.replace("{{recipient}}", recipient);
 
-    // Replace other variables from the JSON object
+
     if let Some(obj) = variables.as_object() {
         for (key, value) in obj {
             let placeholder = format!("{{{{{}}}}}", key);
@@ -584,7 +584,7 @@ fn apply_template_variables(
 }
 
 fn extract_template_subject(content: &str) -> Option<String> {
-    // Look for subject line in template (e.g., "Subject: ...")
+
     for line in content.lines() {
         if line.starts_with("Subject:") {
             return Some(line.trim_start_matches("Subject:").trim().to_string());

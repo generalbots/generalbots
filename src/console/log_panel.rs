@@ -33,14 +33,14 @@ impl LogPanel {
     pub fn add_log(&mut self, entry: &str) {
         if self.logs.len() >= self.max_logs {
             self.logs.remove(0);
-            // Adjust scroll offset if we removed a log
+
             if self.scroll_offset > 0 {
                 self.scroll_offset = self.scroll_offset.saturating_sub(1);
             }
         }
         self.logs.push(entry.to_string());
 
-        // Auto-scroll to bottom if enabled
+
         if self.auto_scroll {
             self.scroll_to_bottom();
         }
@@ -55,14 +55,14 @@ impl LogPanel {
         let max_scroll = self.logs.len().saturating_sub(visible_lines);
         self.scroll_offset = (self.scroll_offset + lines).min(max_scroll);
 
-        // Re-enable auto-scroll if we're at the bottom
+
         if self.scroll_offset >= max_scroll {
             self.auto_scroll = true;
         }
     }
 
     pub fn scroll_to_bottom(&mut self) {
-        // This will be adjusted when rendering based on visible lines
+
         self.scroll_offset = usize::MAX;
         self.auto_scroll = true;
     }
@@ -87,7 +87,7 @@ impl LogPanel {
 
         let total_logs = self.logs.len();
 
-        // Calculate actual scroll offset
+
         let max_scroll = total_logs.saturating_sub(visible_lines);
         let actual_offset = if self.scroll_offset == usize::MAX {
             max_scroll
@@ -95,7 +95,7 @@ impl LogPanel {
             self.scroll_offset.min(max_scroll)
         };
 
-        // Get visible slice
+
         let end = (actual_offset + visible_lines).min(total_logs);
         let start = actual_offset;
 

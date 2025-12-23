@@ -28,15 +28,15 @@
 |                                                                             |
 \*****************************************************************************/
 
-//! Import/Export keywords for CSV, JSON, and Excel data handling
-//!
-//! Provides BASIC keywords:
-//! - IMPORT "file.csv" -> imports data from file, returns array of objects
-//! - EXPORT "file.csv", data -> exports data to file, returns file path
-//! - IMPORT "file.json" -> imports JSON data
-//! - EXPORT "file.json", data -> exports to JSON
-//! - IMPORT "file.xlsx" -> imports Excel data
-//! - EXPORT "file.xlsx", data -> exports to Excel
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -49,14 +49,14 @@ use std::io::{BufRead, BufReader, Write};
 use std::path::Path;
 use std::sync::Arc;
 
-/// Register all import/export keywords
+
 pub fn register_import_export(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_import_keyword(state.clone(), user.clone(), engine);
     register_export_keyword(state.clone(), user.clone(), engine);
 }
 
-/// IMPORT "file.csv" or IMPORT "file.json"
-/// Returns array of objects from the file
+
+
 pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -113,8 +113,8 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .unwrap();
 }
 
-/// EXPORT "file.csv", data or EXPORT "file.json", data
-/// Exports data to file and returns the file path
+
+
 pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -129,7 +129,7 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                 trace!("EXPORT: Saving data to {}", file_path);
 
-                // Convert Dynamic to JSON string to make it Send-safe
+
                 let data_json = dynamic_to_json_value(&data);
 
                 let state_for_task = Arc::clone(&state_clone);
@@ -185,7 +185,7 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .unwrap();
 }
 
-/// Thread-safe import wrapper that returns JSON Value instead of Dynamic
+
 async fn execute_import_json(
     state: &AppState,
     user: &UserSession,
@@ -197,7 +197,7 @@ async fn execute_import_json(
     }
 }
 
-/// Thread-safe export wrapper that takes JSON Value instead of Dynamic
+
 async fn execute_export_json(
     state: &AppState,
     user: &UserSession,
@@ -211,7 +211,7 @@ async fn execute_export_json(
     }
 }
 
-/// Convert Dynamic to JSON Value for thread-safe transfer
+
 fn dynamic_to_json_value(data: &Dynamic) -> Value {
     dynamic_to_json(data)
 }
@@ -264,17 +264,17 @@ fn resolve_file_path(
     user: &UserSession,
     file_path: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    // If path starts with http/https, it's a URL - download first
+
     if file_path.starts_with("http://") || file_path.starts_with("https://") {
         return Ok(file_path.to_string());
     }
 
-    // Check if it's an absolute path
+
     if Path::new(file_path).is_absolute() {
         return Ok(file_path.to_string());
     }
 
-    // Resolve relative to bot's gbdrive folder
+
     let data_dir = state
         .config
         .as_ref()
@@ -287,7 +287,7 @@ fn resolve_file_path(
     if Path::new(&full_path).exists() {
         Ok(full_path)
     } else {
-        // Try without gbdrive prefix
+
         let alt_path = format!("{}/bots/{}/{}", data_dir, user.bot_id, file_path);
         if Path::new(&alt_path).exists() {
             Ok(alt_path)
@@ -302,12 +302,12 @@ fn resolve_export_path(
     user: &UserSession,
     file_path: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-    // If it's an absolute path, use it directly
+
     if Path::new(file_path).is_absolute() {
         return Ok(file_path.to_string());
     }
 
-    // Resolve relative to bot's gbdrive folder
+
     let data_dir = state
         .config
         .as_ref()
@@ -315,7 +315,7 @@ fn resolve_export_path(
         .unwrap_or("./botserver-stack/data");
     let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
-    // Ensure directory exists
+
     std::fs::create_dir_all(&base_path)?;
 
     Ok(format!("{}/{}", base_path, file_path))
@@ -326,7 +326,7 @@ fn import_csv(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + Se
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
 
-    // Read header line
+
     let headers: Vec<String> = match lines.next() {
         Some(Ok(line)) => parse_csv_line(&line),
         _ => return Err("CSV file is empty or has no header".into()),
@@ -361,7 +361,7 @@ fn import_tsv(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + Se
     let reader = BufReader::new(file);
     let mut lines = reader.lines();
 
-    // Read header line
+
     let headers: Vec<String> = match lines.next() {
         Some(Ok(line)) => line.split('\t').map(|s| s.trim().to_string()).collect(),
         _ => return Err("TSV file is empty or has no header".into()),
@@ -405,7 +405,7 @@ fn import_excel(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + 
 
     let mut workbook: Xlsx<_> = open_workbook(file_path)?;
 
-    // Get the first sheet
+
     let sheet_names = workbook.sheet_names().to_vec();
     if sheet_names.is_empty() {
         return Err("Excel file has no sheets".into());
@@ -417,7 +417,7 @@ fn import_excel(file_path: &str) -> Result<Dynamic, Box<dyn std::error::Error + 
 
     let mut rows_iter = range.rows();
 
-    // First row is headers
+
     let headers: Vec<String> = match rows_iter.next() {
         Some(row) => row
             .iter()
@@ -452,15 +452,15 @@ fn export_csv(
         return Err("No data to export".into());
     }
 
-    // Get headers from first row
+
     let headers = get_headers_from_array(&array);
 
     let mut file = File::create(file_path)?;
 
-    // Write headers
+
     writeln!(file, "{}", headers.join(","))?;
 
-    // Write data rows
+
     for item in array {
         let map = dynamic_to_map(&item);
         let values: Vec<String> = headers
@@ -490,10 +490,10 @@ fn export_tsv(
 
     let mut file = File::create(file_path)?;
 
-    // Write headers
+
     writeln!(file, "{}", headers.join("\t"))?;
 
-    // Write data rows
+
     for item in array {
         let map = dynamic_to_map(&item);
         let values: Vec<String> = headers
@@ -536,12 +536,12 @@ fn export_excel(
     let mut workbook = Workbook::new();
     let sheet = workbook.add_worksheet();
 
-    // Write headers
+
     for (col, header) in headers.iter().enumerate() {
         sheet.write_string(0, col as u16, header)?;
     }
 
-    // Write data rows
+
     for (row_idx, item) in array.iter().enumerate() {
         let map = dynamic_to_map(item);
         for (col, header) in headers.iter().enumerate() {
@@ -556,7 +556,7 @@ fn export_excel(
     Ok(file_path.to_string())
 }
 
-// Helper functions
+
 
 fn parse_csv_line(line: &str) -> Vec<String> {
     let mut result = Vec::new();
@@ -619,7 +619,7 @@ fn get_headers_from_array(array: &Array) -> Vec<String> {
     if let Some(first) = array.first() {
         let map = dynamic_to_map(first);
         headers = map.keys().cloned().collect();
-        headers.sort(); // Consistent ordering
+        headers.sort();
     }
 
     headers

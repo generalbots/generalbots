@@ -8,23 +8,23 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// A2A Protocol Message Types
-/// Based on https://a2a-protocol.org/latest/
+
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum A2AMessageType {
-    /// Agent requesting action from another agent
+
     Request,
-    /// Agent responding to a request
+
     Response,
-    /// Message broadcast to all agents in session
+
     Broadcast,
-    /// Hand off conversation to another agent
+
     Delegate,
-    /// Request collaboration on a task
+
     Collaborate,
-    /// Acknowledge receipt of message
+
     Ack,
-    /// Error response
+
     Error,
 }
 
@@ -63,30 +63,30 @@ impl From<&str> for A2AMessageType {
     }
 }
 
-/// A2A Protocol Message
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct A2AMessage {
-    /// Unique message identifier
+
     pub id: Uuid,
-    /// Source agent identifier
+
     pub from_agent: String,
-    /// Target agent identifier (None for broadcasts)
+
     pub to_agent: Option<String>,
-    /// Message type
+
     pub message_type: A2AMessageType,
-    /// Message payload (JSON)
+
     pub payload: serde_json::Value,
-    /// Correlation ID for request-response matching
+
     pub correlation_id: Uuid,
-    /// Session ID
+
     pub session_id: Uuid,
-    /// Timestamp
+
     pub timestamp: chrono::DateTime<chrono::Utc>,
-    /// Optional metadata
+
     pub metadata: HashMap<String, String>,
-    /// TTL in seconds (0 = no expiry)
+
     pub ttl_seconds: u32,
-    /// Hop count for preventing infinite loops
+
     pub hop_count: u32,
 }
 
@@ -113,7 +113,7 @@ impl A2AMessage {
         }
     }
 
-    /// Create a response to this message
+
     pub fn create_response(&self, from_agent: &str, payload: serde_json::Value) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -130,7 +130,7 @@ impl A2AMessage {
         }
     }
 
-    /// Check if message has expired
+
     pub fn is_expired(&self) -> bool {
         if self.ttl_seconds == 0 {
             return false;
@@ -140,28 +140,28 @@ impl A2AMessage {
         now > expiry
     }
 
-    /// Check if max hops exceeded
+
     pub fn max_hops_exceeded(&self, max_hops: u32) -> bool {
         self.hop_count >= max_hops
     }
 }
 
-/// A2A Protocol Configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct A2AConfig {
-    /// Whether A2A protocol is enabled
+
     pub enabled: bool,
-    /// Default timeout in seconds
+
     pub timeout_seconds: u32,
-    /// Maximum hops to prevent infinite loops
+
     pub max_hops: u32,
-    /// Protocol version
+
     pub protocol_version: String,
-    /// Enable message persistence
+
     pub persist_messages: bool,
-    /// Retry attempts on failure
+
     pub retry_count: u32,
-    /// Maximum pending messages in queue
+
     pub queue_size: u32,
 }
 
@@ -179,7 +179,7 @@ impl Default for A2AConfig {
     }
 }
 
-/// Load A2A configuration from bot config
+
 pub fn load_a2a_config(state: &AppState, bot_id: Uuid) -> A2AConfig {
     let mut config = A2AConfig::default();
 
@@ -231,7 +231,7 @@ pub fn load_a2a_config(state: &AppState, bot_id: Uuid) -> A2AConfig {
     config
 }
 
-/// Register all A2A protocol keywords
+
 pub fn register_a2a_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     send_to_bot_keyword(state.clone(), user.clone(), engine);
     broadcast_message_keyword(state.clone(), user.clone(), engine);
@@ -241,8 +241,8 @@ pub fn register_a2a_keywords(state: Arc<AppState>, user: UserSession, engine: &m
     get_a2a_messages_keyword(state.clone(), user.clone(), engine);
 }
 
-/// SEND TO BOT "bot_name" MESSAGE "message_content"
-/// Send a message to a specific bot
+
+
 pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -308,8 +308,8 @@ pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .expect("Failed to register SEND TO BOT syntax");
 }
 
-/// BROADCAST MESSAGE "message_content"
-/// Broadcast a message to all bots in the session
+
+
 pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -341,7 +341,7 @@ pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine
                             &state_for_task,
                             session_id,
                             &from_bot,
-                            None, // No target = broadcast
+                            None,
                             A2AMessageType::Broadcast,
                             serde_json::json!({ "content": message_content }),
                         )
@@ -366,8 +366,8 @@ pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register BROADCAST MESSAGE syntax");
 }
 
-/// COLLABORATE WITH "bot1", "bot2" ON "task"
-/// Request collaboration from multiple bots on a task
+
+
 pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -459,8 +459,8 @@ pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine:
         .expect("Failed to register COLLABORATE WITH syntax");
 }
 
-/// response = WAIT FOR BOT "bot_name" TIMEOUT seconds
-/// Wait for a response from a specific bot
+
+
 pub fn wait_for_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -520,8 +520,8 @@ pub fn wait_for_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         .expect("Failed to register WAIT FOR BOT syntax");
 }
 
-/// DELEGATE CONVERSATION TO "bot_name"
-/// Hand off the entire conversation to another bot
+
+
 pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -553,7 +553,7 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                     let result = rt.block_on(async {
-                        // Send delegate message
+
                         send_a2a_message(
                             &state_for_task,
                             session_id,
@@ -567,7 +567,7 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
                         )
                         .await?;
 
-                        // Update session to set new active bot
+
                         set_session_active_bot(&state_for_task, session_id, &target_bot).await
                     });
                     let _ = tx.send(result);
@@ -589,8 +589,8 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
         .expect("Failed to register DELEGATE CONVERSATION syntax");
 }
 
-/// GET A2A MESSAGES()
-/// Get all A2A messages for this bot in current session
+
+
 pub fn get_a2a_messages_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -613,9 +613,9 @@ pub fn get_a2a_messages_keyword(state: Arc<AppState>, user: UserSession, engine:
     });
 }
 
-// Database Operations
 
-/// Send an A2A message
+
+
 async fn send_a2a_message(
     state: &AppState,
     session_id: Uuid,
@@ -666,7 +666,7 @@ async fn send_a2a_message(
     Ok(message_id)
 }
 
-/// Wait for a response from a specific bot
+
 async fn wait_for_bot_response(
     state: &AppState,
     session_id: Uuid,
@@ -682,7 +682,7 @@ async fn wait_for_bot_response(
             return Err("Timeout waiting for bot response".to_string());
         }
 
-        // Check for response
+
         if let Ok(mut conn) = state.conn.get() {
             #[derive(QueryableByName)]
             struct MessageRow {
@@ -706,12 +706,12 @@ async fn wait_for_bot_response(
             .map_err(|e| format!("Failed to query messages: {}", e))?;
 
             if let Some(msg) = result {
-                // Mark as processed
+
                 let _ = diesel::sql_query("UPDATE a2a_messages SET processed = true WHERE id = $1")
                     .bind::<diesel::sql_types::Uuid, _>(msg.id)
                     .execute(&mut conn);
 
-                // Extract content from payload
+
                 if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&msg.payload) {
                     if let Some(content) = payload.get("content").and_then(|c| c.as_str()) {
                         return Ok(content.to_string());
@@ -721,12 +721,12 @@ async fn wait_for_bot_response(
             }
         }
 
-        // Sleep before next check
+
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     }
 }
 
-/// Set the active bot for a session
+
 async fn set_session_active_bot(
     state: &AppState,
     session_id: Uuid,
@@ -757,7 +757,7 @@ async fn set_session_active_bot(
     Ok(format!("Conversation delegated to {}", bot_name))
 }
 
-/// Get pending messages for a bot (sync version)
+
 fn get_pending_messages_sync(
     conn: &mut diesel::PgConnection,
     session_id: Uuid,
@@ -820,7 +820,7 @@ fn get_pending_messages_sync(
     Ok(messages)
 }
 
-/// Respond to an A2A message (helper for bots to use)
+
 pub async fn respond_to_a2a_message(
     state: &AppState,
     original_message: &A2AMessage,
@@ -838,4 +838,4 @@ pub async fn respond_to_a2a_message(
     .await
 }
 
-// Tests
+

@@ -6,9 +6,9 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Register USE_WEBSITE keyword in BASIC
-/// Runtime mode: Associates a website collection with the current session (like USE KB)
-/// Preprocessing mode: Registers website for crawling (handled in compiler/mod.rs)
+
+
+
 pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -27,7 +27,7 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     user_clone.id
                 );
 
-                // Validate URL
+
                 let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
                 if !is_valid {
                     return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -89,8 +89,8 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-/// Associate website with session (runtime behavior - like USE KB)
-/// This only associates an already-crawled website with the session
+
+
 async fn associate_website_with_session(
     state: &AppState,
     user: &UserSession,
@@ -100,10 +100,10 @@ async fn associate_website_with_session(
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-    // Create collection name for this website
+
     let collection_name = format!("website_{}", sanitize_url_for_collection(url));
 
-    // Check if website has been crawled for this bot
+
     let website_status = check_website_crawl_status(&mut conn, &user.bot_id, url)?;
 
     match website_status {
@@ -114,11 +114,11 @@ async fn associate_website_with_session(
             ));
         }
         WebsiteCrawlStatus::Pending => {
-            // Website is registered but not yet crawled - allow association but warn
+
             info!("Website {} is pending crawl, associating anyway", url);
         }
         WebsiteCrawlStatus::Crawled => {
-            // Website is fully crawled and ready
+
             info!("Website {} is already crawled and ready", url);
         }
         WebsiteCrawlStatus::Failed => {
@@ -129,7 +129,7 @@ async fn associate_website_with_session(
         }
     }
 
-    // Associate website collection with session (like session_kb_associations)
+
     add_website_to_session(&mut conn, &user.id, &user.bot_id, url, &collection_name)?;
 
     Ok(format!(
@@ -138,7 +138,7 @@ async fn associate_website_with_session(
     ))
 }
 
-/// Website crawl status enum
+
 enum WebsiteCrawlStatus {
     NotRegistered,
     Pending,
@@ -146,7 +146,7 @@ enum WebsiteCrawlStatus {
     Failed,
 }
 
-/// Check website crawl status for this bot
+
 fn check_website_crawl_status(
     conn: &mut PgConnection,
     bot_id: &Uuid,
@@ -176,15 +176,15 @@ fn check_website_crawl_status(
     }
 }
 
-/// Register website for background crawling (called from preprocessing)
-/// This is called during script compilation, not runtime
+
+
 pub fn register_website_for_crawling(
     conn: &mut PgConnection,
     bot_id: &Uuid,
     url: &str,
 ) -> Result<(), String> {
-    // Get website configuration with defaults
-    let expires_policy = "1d"; // Default, would read from bot config
+
+    let expires_policy = "1d";
 
     let query = diesel::sql_query(
         "INSERT INTO website_crawls (id, bot_id, url, expires_policy, crawl_status, next_crawl)
@@ -207,8 +207,8 @@ pub fn register_website_for_crawling(
     Ok(())
 }
 
-/// Execute USE_WEBSITE during preprocessing (called from compiler)
-/// This registers the website for crawling but doesn't associate it with any session
+
+
 pub fn execute_use_website_preprocessing(
     conn: &mut PgConnection,
     url: &str,
@@ -216,7 +216,7 @@ pub fn execute_use_website_preprocessing(
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     trace!("Preprocessing USE_WEBSITE: {}, bot_id: {:?}", url, bot_id);
 
-    // Validate URL
+
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(format!(
             "Invalid URL format: {}. Must start with http:// or https://",
@@ -225,7 +225,7 @@ pub fn execute_use_website_preprocessing(
         .into());
     }
 
-    // Register for crawling
+
     register_website_for_crawling(conn, &bot_id, url)?;
 
     Ok(serde_json::json!({
@@ -236,7 +236,7 @@ pub fn execute_use_website_preprocessing(
     }))
 }
 
-/// Add website to session (like USE KB)
+
 fn add_website_to_session(
     conn: &mut PgConnection,
     session_id: &Uuid,
@@ -244,7 +244,7 @@ fn add_website_to_session(
     url: &str,
     collection_name: &str,
 ) -> Result<(), String> {
-    // Add to session_website_associations table (similar to session_kb_associations)
+
     let assoc_id = Uuid::new_v4();
 
     diesel::sql_query(
@@ -270,7 +270,7 @@ fn add_website_to_session(
     Ok(())
 }
 
-/// Clear websites from session (companion to USE_WEBSITE)
+
 pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -311,7 +311,7 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
         .unwrap();
 }
 
-/// Clear all websites from session
+
 fn clear_all_websites(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -332,7 +332,7 @@ fn clear_all_websites(
     Ok(rows_affected)
 }
 
-/// Get active websites for a session
+
 pub fn get_active_websites_for_session(
     conn_pool: &crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -365,7 +365,7 @@ pub fn get_active_websites_for_session(
         .collect())
 }
 
-/// Sanitize URL for use as collection name
+
 fn sanitize_url_for_collection(url: &str) -> String {
     url.replace("http://", "")
         .replace("https://", "")

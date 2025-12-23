@@ -1,16 +1,16 @@
-//! Model Routing Configuration
-//! Parameters: model-routing-strategy, model-default, model-fast, model-quality, model-code, model-fallback-enabled, model-fallback-order
-//!
-//! Config.csv properties:
-//! ```csv
-//! model-routing-strategy,default
-//! model-default,gpt-4o
-//! model-fast,gpt-4o-mini
-//! model-quality,gpt-4o
-//! model-code,gpt-4o
-//! model-fallback-enabled,true
-//! model-fallback-order,gpt-4o,gpt-4o-mini,gpt-3.5-turbo
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use diesel::prelude::*;
 use log::{debug, warn};
@@ -19,22 +19,22 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-/// Routing strategy for model selection
+
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum RoutingStrategy {
-    /// Always use the default model
+
     #[default]
     Default,
-    /// Select model based on task complexity
+
     TaskBased,
-    /// Round-robin across available models
+
     RoundRobin,
-    /// Use fastest model for the task
+
     Latency,
-    /// Use cheapest model that meets requirements
+
     Cost,
-    /// Custom routing logic
+
     Custom,
 }
 
@@ -64,25 +64,25 @@ impl std::fmt::Display for RoutingStrategy {
     }
 }
 
-/// Configuration for Model Routing
-///
-/// Model routing allows bots to intelligently select the appropriate LLM
-/// based on task requirements, cost constraints, or custom logic.
+
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ModelRoutingConfig {
-    /// Strategy for selecting models
+
     pub routing_strategy: RoutingStrategy,
-    /// Default model to use when no specific model is requested
+
     pub default_model: String,
-    /// Model optimized for fast responses (simple tasks)
+
     pub fast_model: Option<String>,
-    /// Model optimized for quality responses (complex tasks)
+
     pub quality_model: Option<String>,
-    /// Model optimized for code generation tasks
+
     pub code_model: Option<String>,
-    /// Whether fallback to alternative models is enabled
+
     pub fallback_enabled: bool,
-    /// Ordered list of models to try if primary model fails
+
     pub fallback_order: Vec<String>,
 }
 
@@ -105,17 +105,17 @@ impl Default for ModelRoutingConfig {
 }
 
 impl ModelRoutingConfig {
-    /// Load Model Routing configuration from bot_configuration table
-    ///
-    /// Reads the following parameters:
-    /// - `model-routing-strategy`: Routing strategy (default: "default")
-    /// - `model-default`: Default model name (default: "gpt-4o")
-    /// - `model-fast`: Fast/lightweight model (default: "gpt-4o-mini")
-    /// - `model-quality`: High-quality model (default: "gpt-4o")
-    /// - `model-code`: Code generation model (default: "gpt-4o")
-    /// - `model-fallback-enabled`: Enable fallback (default: true)
-    /// - `model-fallback-order`: Comma-separated fallback models
-    /// Reads parameters: `model-routing-strategy`, `model-default`, `model-fast`, `model-quality`, `model-code`, `model-fallback-enabled`, `model-fallback-order`
+
+
+
+
+
+
+
+
+
+
+
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -205,7 +205,7 @@ impl ModelRoutingConfig {
         config
     }
 
-    /// Get the appropriate model for a given task type
+
     pub fn get_model_for_task(&self, task_type: TaskType) -> &str {
         match self.routing_strategy {
             RoutingStrategy::Default => &self.default_model,
@@ -221,7 +221,7 @@ impl ModelRoutingConfig {
         }
     }
 
-    /// Get the next fallback model after the given model
+
     pub fn get_fallback_model(&self, current_model: &str) -> Option<&str> {
         if !self.fallback_enabled {
             return None;
@@ -235,7 +235,7 @@ impl ModelRoutingConfig {
         self.fallback_order.get(current_idx + 1).map(|s| s.as_str())
     }
 
-    /// Get all available models in preference order
+
     pub fn get_all_models(&self) -> Vec<&str> {
         let mut models = vec![self.default_model.as_str()];
 
@@ -267,15 +267,15 @@ impl ModelRoutingConfig {
     }
 }
 
-/// Task type for model selection
+
 #[derive(Clone, Debug, PartialEq)]
 pub enum TaskType {
-    /// Simple conversational tasks
+
     Simple,
-    /// Complex reasoning tasks
+
     Complex,
-    /// Code generation/analysis tasks
+
     Code,
-    /// Default/unknown task type
+
     Default,
 }

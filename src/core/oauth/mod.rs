@@ -1,12 +1,12 @@
-//! OAuth2 Authentication Module
-//!
-//! Provides OAuth2 authentication support for multiple providers:
-//! - Google
-//! - Discord
-//! - Reddit
-//! - Twitter (X)
-//! - Microsoft
-//! - Facebook
+
+
+
+
+
+
+
+
+
 
 pub mod providers;
 pub mod routes;
@@ -14,7 +14,7 @@ pub mod routes;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Supported OAuth2 providers
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum OAuthProvider {
@@ -27,7 +27,7 @@ pub enum OAuthProvider {
 }
 
 impl OAuthProvider {
-    /// Get all available providers
+
     pub fn all() -> Vec<OAuthProvider> {
         vec![
             OAuthProvider::Google,
@@ -39,7 +39,7 @@ impl OAuthProvider {
         ]
     }
 
-    /// Get provider from string
+
     pub fn from_str(s: &str) -> Option<OAuthProvider> {
         match s.to_lowercase().as_str() {
             "google" => Some(OAuthProvider::Google),
@@ -52,7 +52,7 @@ impl OAuthProvider {
         }
     }
 
-    /// Get the config key prefix for this provider
+
     pub fn config_prefix(&self) -> &'static str {
         match self {
             OAuthProvider::Google => "oauth-google",
@@ -64,7 +64,7 @@ impl OAuthProvider {
         }
     }
 
-    /// Get display name for UI
+
     pub fn display_name(&self) -> &'static str {
         match self {
             OAuthProvider::Google => "Google",
@@ -76,7 +76,7 @@ impl OAuthProvider {
         }
     }
 
-    /// Get icon/emoji for UI
+
     pub fn icon(&self) -> &'static str {
         match self {
             OAuthProvider::Google => "",
@@ -95,7 +95,7 @@ impl fmt::Display for OAuthProvider {
     }
 }
 
-/// OAuth configuration for a provider
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthConfig {
     pub provider: OAuthProvider,
@@ -106,7 +106,7 @@ pub struct OAuthConfig {
 }
 
 impl OAuthConfig {
-    /// Create a new OAuth config
+
     pub fn new(
         provider: OAuthProvider,
         client_id: String,
@@ -122,7 +122,7 @@ impl OAuthConfig {
         }
     }
 
-    /// Check if the config is valid (has required fields)
+
     pub fn is_valid(&self) -> bool {
         self.enabled
             && !self.client_id.is_empty()
@@ -131,25 +131,25 @@ impl OAuthConfig {
     }
 }
 
-/// User information returned from OAuth provider
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthUserInfo {
-    /// Provider-specific user ID
+
     pub provider_id: String,
-    /// OAuth provider
+
     pub provider: OAuthProvider,
-    /// User's email (if available)
+
     pub email: Option<String>,
-    /// User's display name
+
     pub name: Option<String>,
-    /// User's avatar URL
+
     pub avatar_url: Option<String>,
-    /// Raw response from provider (for debugging/additional fields)
+
     #[serde(skip_serializing_if = "Option::is_none")]
     pub raw: Option<serde_json::Value>,
 }
 
-/// OAuth token response
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthTokenResponse {
     pub access_token: String,
@@ -163,7 +163,7 @@ pub struct OAuthTokenResponse {
     pub scope: Option<String>,
 }
 
-/// OAuth error types
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthError {
     pub error: String,
@@ -182,21 +182,21 @@ impl fmt::Display for OAuthError {
 
 impl std::error::Error for OAuthError {}
 
-/// State parameter for OAuth flow (CSRF protection)
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthState {
-    /// Random state token
+
     pub token: String,
-    /// Provider being used
+
     pub provider: OAuthProvider,
-    /// Optional redirect URL after login
+
     pub redirect_after: Option<String>,
-    /// Timestamp when state was created
+
     pub created_at: i64,
 }
 
 impl OAuthState {
-    /// Create a new OAuth state
+
     pub fn new(provider: OAuthProvider, redirect_after: Option<String>) -> Self {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -214,7 +214,7 @@ impl OAuthState {
         }
     }
 
-    /// Check if state is expired (default: 10 minutes)
+
     pub fn is_expired(&self) -> bool {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -223,17 +223,17 @@ impl OAuthState {
             .unwrap()
             .as_secs() as i64;
 
-        now - self.created_at > 600 // 10 minutes
+        now - self.created_at > 600
     }
 
-    /// Encode state to URL-safe string
+
     pub fn encode(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
         let json = serde_json::to_string(self).unwrap_or_default();
         URL_SAFE_NO_PAD.encode(json.as_bytes())
     }
 
-    /// Decode state from URL-safe string
+
     pub fn decode(encoded: &str) -> Option<Self> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
         let bytes = URL_SAFE_NO_PAD.decode(encoded).ok()?;

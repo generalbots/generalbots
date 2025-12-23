@@ -1,12 +1,12 @@
-//! User Memory Configuration
-//! Parameters: user-memory-enabled, user-memory-max-keys, user-memory-default-ttl
-//!
-//! Config.csv properties:
-//! ```csv
-//! user-memory-enabled,true
-//! user-memory-max-keys,100
-//! user-memory-default-ttl,86400
-//! ```
+
+
+
+
+
+
+
+
+
 
 use diesel::prelude::*;
 use log::{debug, warn};
@@ -15,17 +15,17 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-/// Configuration for User Memory storage
-///
-/// User memory allows bots to store and retrieve key-value pairs
-/// associated with individual users for personalization and context retention.
+
+
+
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct UserMemoryConfig {
-    /// Whether user memory feature is enabled
+
     pub enabled: bool,
-    /// Maximum number of keys that can be stored per user
+
     pub max_keys: u32,
-    /// Default time-to-live for memory entries in seconds (0 = no expiration)
+
     pub default_ttl: u64,
 }
 
@@ -34,18 +34,18 @@ impl Default for UserMemoryConfig {
         Self {
             enabled: true,
             max_keys: 100,
-            default_ttl: 86400, // 24 hours
+            default_ttl: 86400,
         }
     }
 }
 
 impl UserMemoryConfig {
-    /// Load User Memory configuration from bot_configuration table
-    ///
-    /// Reads the following parameters:
-    /// - `user-memory-enabled`: Whether user memory is enabled (default: true)
-    /// - `user-memory-max-keys`: Maximum keys per user (default: 100)
-    /// - `user-memory-default-ttl`: Default TTL in seconds (default: 86400)
+
+
+
+
+
+
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -94,7 +94,7 @@ impl UserMemoryConfig {
             }
         }
 
-        // Validate configuration
+
         if config.max_keys < 1 {
             warn!("User memory max keys must be at least 1, setting to default 100");
             config.max_keys = 100;
@@ -111,12 +111,12 @@ impl UserMemoryConfig {
         config
     }
 
-    /// Check if a new key can be added given the current count
+
     pub fn can_add_key(&self, current_key_count: u32) -> bool {
         self.enabled && current_key_count < self.max_keys
     }
 
-    /// Get the TTL duration, returns None if TTL is 0 (no expiration)
+
     pub fn ttl_duration(&self) -> Option<std::time::Duration> {
         if self.default_ttl == 0 {
             None
@@ -125,7 +125,7 @@ impl UserMemoryConfig {
         }
     }
 
-    /// Check if entries should expire
+
     pub fn has_expiration(&self) -> bool {
         self.default_ttl > 0
     }

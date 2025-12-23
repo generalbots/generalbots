@@ -15,7 +15,7 @@ pub fn for_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
             ],
             true,
             |context, inputs| {
-                // Normalize variable names to lowercase for case-insensitive BASIC
+
                 let loop_var = inputs[0].get_string_value().unwrap().to_lowercase();
                 let next_var = inputs[3].get_string_value().unwrap().to_lowercase();
                 if loop_var != next_var {

@@ -67,13 +67,13 @@ pub struct ValidationWarning {
 
 pub fn configure_designer_routes() -> Router<Arc<AppState>> {
     Router::new()
-        // Match frontend /api/v1/designer/* endpoints
+
         .route("/api/v1/designer/files", get(handle_list_files))
         .route("/api/v1/designer/load", get(handle_load_file))
         .route("/api/v1/designer/save", post(handle_save))
         .route("/api/v1/designer/validate", post(handle_validate))
         .route("/api/v1/designer/export", get(handle_export))
-        // Legacy endpoints for compatibility
+
         .route(
             "/api/designer/dialogs",
             get(handle_list_dialogs).post(handle_create_dialog),
@@ -81,7 +81,7 @@ pub fn configure_designer_routes() -> Router<Arc<AppState>> {
         .route("/api/designer/dialogs/{id}", get(handle_get_dialog))
 }
 
-/// GET /api/v1/designer/files - List available dialog files
+
 pub async fn handle_list_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -165,7 +165,7 @@ fn get_default_files() -> Vec<(String, String, DateTime<Utc>)> {
     ]
 }
 
-/// GET /api/v1/designer/load - Load a specific dialog file
+
 pub async fn handle_load_file(
     State(state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
@@ -197,13 +197,13 @@ pub async fn handle_load_file(
         None => get_default_dialog_content(),
     };
 
-    // Return the canvas nodes as HTML for HTMX to swap
+
     let mut html = String::new();
     html.push_str("<div class=\"canvas-loaded\" data-content=\"");
     html.push_str(&html_escape(&content));
     html.push_str("\">");
 
-    // Parse content and generate node HTML
+
     let nodes = parse_basic_to_nodes(&content);
     for node in &nodes {
         html.push_str(&format_node_html(node));
@@ -215,7 +215,7 @@ pub async fn handle_load_file(
     Html(html)
 }
 
-/// POST /api/v1/designer/save - Save dialog
+
 pub async fn handle_save(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SaveRequest>,
@@ -276,7 +276,7 @@ pub async fn handle_save(
     }
 }
 
-/// POST /api/v1/designer/validate - Validate dialog code
+
 pub async fn handle_validate(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<ValidateRequest>,
@@ -341,18 +341,18 @@ pub async fn handle_validate(
     Html(html)
 }
 
-/// GET /api/v1/designer/export - Export dialog as .bas file
+
 pub async fn handle_export(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
 ) -> impl IntoResponse {
     let _file_id = params.path.unwrap_or_else(|| "dialog".to_string());
 
-    // In production, this would generate and download the file
+
     Html("<script>alert('Export started. File will download shortly.');</script>".to_string())
 }
 
-/// GET /api/designer/dialogs - List dialogs (legacy endpoint)
+
 pub async fn handle_list_dialogs(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
 
@@ -401,7 +401,7 @@ pub async fn handle_list_dialogs(State(state): State<Arc<AppState>>) -> impl Int
     Html(html)
 }
 
-/// POST /api/designer/dialogs - Create new dialog (legacy endpoint)
+
 pub async fn handle_create_dialog(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SaveRequest>,
@@ -460,7 +460,7 @@ pub async fn handle_create_dialog(
     }
 }
 
-/// GET /api/designer/dialogs/{id} - Get specific dialog (legacy endpoint)
+
 pub async fn handle_get_dialog(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<String>,
@@ -524,7 +524,7 @@ fn validate_basic_code(code: &str) -> ValidationResult {
             continue;
         }
 
-        // Check for common syntax issues
+
         let upper = trimmed.to_uppercase();
 
         if upper.starts_with("IF ") && !upper.contains(" THEN") {
@@ -545,7 +545,7 @@ fn validate_basic_code(code: &str) -> ValidationResult {
             });
         }
 
-        // Check for unclosed strings
+
         let quote_count = trimmed.chars().filter(|c| *c == '"').count();
         if quote_count % 2 != 0 {
             errors.push(ValidationError {
@@ -556,7 +556,7 @@ fn validate_basic_code(code: &str) -> ValidationResult {
             });
         }
 
-        // Warnings
+
         if upper.starts_with("GOTO ") {
             warnings.push(ValidationWarning {
                 line: line_num,
@@ -574,7 +574,7 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         }
     }
 
-    // Check block structures
+
     let mut if_count = 0i32;
     let mut for_count = 0i32;
     let mut sub_count = 0i32;
@@ -584,7 +584,7 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         let trimmed = upper.trim();
 
         if trimmed.starts_with("IF ") && !trimmed.ends_with(" THEN") && trimmed.contains(" THEN") {
-            // Single-line IF
+
         } else if trimmed.starts_with("IF ") {
             if_count += 1;
         } else if trimmed == "END IF" || trimmed == "ENDIF" {

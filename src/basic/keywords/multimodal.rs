@@ -1,10 +1,10 @@
-//! Multimodal keywords for image, video, audio generation and vision/captioning
-//!
-//! Provides BASIC keywords:
-//! - IMAGE "prompt" -> generates image, returns file URL
-//! - VIDEO "prompt" -> generates video, returns file URL
-//! - AUDIO "text" -> generates speech audio, returns file URL
-//! - SEE file -> gets caption/description of image or video
+
+
+
+
+
+
+
 
 use crate::multimodal::BotModelsClient;
 use crate::shared::models::UserSession;
@@ -14,7 +14,7 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use std::time::Duration;
 
-/// Register all multimodal keywords
+
 pub fn register_multimodal_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     image_keyword(state.clone(), user.clone(), engine);
     video_keyword(state.clone(), user.clone(), engine);
@@ -22,8 +22,8 @@ pub fn register_multimodal_keywords(state: Arc<AppState>, user: UserSession, eng
     see_keyword(state.clone(), user.clone(), engine);
 }
 
-/// IMAGE "prompt" - Generate an image from text prompt
-/// Returns the URL/path to the generated image file
+
+
 pub fn image_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -94,8 +94,8 @@ async fn execute_image_generation(
     client.generate_image(&prompt).await
 }
 
-/// VIDEO "prompt" - Generate a video from text prompt
-/// Returns the URL/path to the generated video file
+
+
 pub fn video_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -131,7 +131,7 @@ pub fn video_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                 }
             });
 
-            // Video generation can take longer
+
             match rx.recv_timeout(Duration::from_secs(600)) {
                 Ok(Ok(result)) => Ok(Dynamic::from(result)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -167,8 +167,8 @@ async fn execute_video_generation(
     client.generate_video(&prompt).await
 }
 
-/// AUDIO "text" - Generate speech audio from text
-/// Returns the URL/path to the generated audio file
+
+
 pub fn audio_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -239,8 +239,8 @@ async fn execute_audio_generation(
     client.generate_audio(&text, None, None).await
 }
 
-/// SEE file - Get caption/description of an image or video file
-/// Returns the text description of the visual content
+
+
 pub fn see_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -308,7 +308,7 @@ async fn execute_see_caption(
         return Err("BotModels is not enabled. Set botmodels-enabled=true in config.csv".into());
     }
 
-    // Determine if it's a video or image based on extension
+
     let lower_path = file_path.to_lowercase();
     if lower_path.ends_with(".mp4")
         || lower_path.ends_with(".avi")

@@ -18,7 +18,7 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// Main Knowledge Base manager
+
 #[derive(Debug)]
 pub struct KnowledgeBaseManager {
     indexer: Arc<KbIndexer>,
@@ -27,7 +27,7 @@ pub struct KnowledgeBaseManager {
 }
 
 impl KnowledgeBaseManager {
-    /// Create new KB manager with default configuration
+
     pub fn new(work_root: impl Into<std::path::PathBuf>) -> Self {
         let work_root = work_root.into();
         let embedding_config = EmbeddingConfig::from_env();
@@ -47,7 +47,7 @@ impl KnowledgeBaseManager {
         }
     }
 
-    /// Process and index a knowledge base folder
+
     pub async fn index_kb_folder(
         &self,
         bot_name: &str,
@@ -59,7 +59,7 @@ impl KnowledgeBaseManager {
             kb_name, bot_name, kb_path
         );
 
-        // Index the folder using the indexer
+
         let result = self
             .indexer
             .index_kb_folder(bot_name, kb_name, kb_path)
@@ -73,7 +73,7 @@ impl KnowledgeBaseManager {
         Ok(())
     }
 
-    /// Search in a knowledge base
+
     pub async fn search(
         &self,
         bot_name: &str,
@@ -85,12 +85,12 @@ impl KnowledgeBaseManager {
         self.indexer.search(&collection_name, query, limit).await
     }
 
-    /// Process a single document
+
     pub async fn process_document(&self, file_path: &Path) -> Result<Vec<TextChunk>> {
         self.processor.process_document(file_path).await
     }
 
-    /// Handle .gbkb folder change notification from drive monitor
+
     pub async fn handle_gbkb_change(&self, bot_name: &str, kb_folder: &Path) -> Result<()> {
         info!(
             "Handling .gbkb folder change for bot {} at {:?}",
@@ -101,7 +101,7 @@ impl KnowledgeBaseManager {
         monitor.process_gbkb_folder(bot_name, kb_folder).await
     }
 
-    /// Clear a knowledge base collection
+
     pub async fn clear_kb(&self, bot_name: &str, kb_name: &str) -> Result<()> {
         let collection_name = format!("{}_{}", bot_name, kb_name);
 
@@ -119,23 +119,23 @@ impl KnowledgeBaseManager {
         }
     }
 
-    /// Get collection statistics from Qdrant
+
     pub async fn get_kb_stats(&self, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
         let collection_name = format!("{}_{}", bot_name, kb_name);
 
-        // Query Qdrant for collection statistics
+
         let collection_info = self.indexer.get_collection_info(&collection_name).await?;
 
-        // Estimate document count from unique document paths
-        // Each document typically produces multiple chunks (points)
-        // Average ~10 chunks per document is a reasonable estimate
+
+
+
         let estimated_doc_count = if collection_info.points_count > 0 {
             std::cmp::max(1, collection_info.points_count / 10)
         } else {
             0
         };
 
-        // Estimate size: ~1KB per chunk average (text + metadata + vector)
+
         let estimated_size = collection_info.points_count * 1024;
 
         Ok(KbStatistics {
@@ -148,7 +148,7 @@ impl KnowledgeBaseManager {
     }
 }
 
-/// Statistics for a knowledge base
+
 #[derive(Debug, Clone)]
 pub struct KbStatistics {
     pub collection_name: String,
@@ -158,7 +158,7 @@ pub struct KbStatistics {
     pub status: String,
 }
 
-/// Integration with drive monitor
+
 #[derive(Debug)]
 pub struct DriveMonitorIntegration {
     kb_manager: Arc<KnowledgeBaseManager>,
@@ -169,7 +169,7 @@ impl DriveMonitorIntegration {
         Self { kb_manager }
     }
 
-    /// Called when drive monitor detects changes in .gbkb folder
+
     pub async fn on_gbkb_folder_changed(
         &self,
         bot_name: &str,
@@ -187,7 +187,7 @@ impl DriveMonitorIntegration {
                     .await
             }
             ChangeType::Deleted => {
-                // Extract KB name from path
+
                 if let Some(kb_name) = folder_path.file_name().and_then(|n| n.to_str()) {
                     self.kb_manager.clear_kb(bot_name, kb_name).await
                 } else {
@@ -198,7 +198,7 @@ impl DriveMonitorIntegration {
     }
 }
 
-/// Types of changes detected by drive monitor
+
 #[derive(Debug, Clone, Copy)]
 pub enum ChangeType {
     Created,

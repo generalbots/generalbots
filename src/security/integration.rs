@@ -1,7 +1,7 @@
-//! TLS Integration Module
-//!
-//! This module provides helper functions and utilities for integrating TLS/HTTPS
-//! with existing services, including automatic URL conversion and client configuration.
+
+
+
+
 
 use anyhow::{Context, Result};
 use reqwest::{Certificate, Client, ClientBuilder, Identity};
@@ -12,7 +12,7 @@ use std::sync::{Arc, OnceLock};
 use std::time::Duration;
 use tracing::{info, warn};
 
-/// Service URL mappings for TLS conversion
+
 #[derive(Debug, Clone)]
 pub struct ServiceUrls {
     pub original: String,
@@ -21,31 +21,31 @@ pub struct ServiceUrls {
     pub tls_port: u16,
 }
 
-/// TLS Integration Manager
+
 #[derive(Debug)]
 pub struct TlsIntegration {
-    /// Service URL mappings
+
     services: HashMap<String, ServiceUrls>,
 
-    /// CA certificate for validation
+
     ca_cert: Option<Certificate>,
 
-    /// Client certificates for mTLS
+
     client_certs: HashMap<String, Identity>,
 
-    /// Whether TLS is enabled globally
+
     tls_enabled: bool,
 
-    /// Whether to enforce HTTPS for all connections
+
     https_only: bool,
 }
 
 impl TlsIntegration {
-    /// Create a new TLS integration manager
+
     pub fn new(tls_enabled: bool) -> Self {
         let mut services = HashMap::new();
 
-        // Define service mappings
+
         services.insert(
             "api".to_string(),
             ServiceUrls {
@@ -135,7 +135,7 @@ impl TlsIntegration {
         }
     }
 
-    /// Load CA certificate
+
     pub fn load_ca_cert(&mut self, ca_path: &Path) -> Result<()> {
         if ca_path.exists() {
             let ca_cert_pem = fs::read(ca_path)
@@ -153,7 +153,7 @@ impl TlsIntegration {
         Ok(())
     }
 
-    /// Load client certificate for mTLS
+
     pub fn load_client_cert(
         &mut self,
         service: &str,
@@ -179,20 +179,20 @@ impl TlsIntegration {
         Ok(())
     }
 
-    /// Convert URL to HTTPS if TLS is enabled
+
     pub fn convert_url(&self, url: &str) -> String {
         if !self.tls_enabled {
             return url.to_string();
         }
 
-        // Check if URL matches any known service
+
         for (_service, urls) in &self.services {
             if url.starts_with(&urls.original) {
                 return url.replace(&urls.original, &urls.secure);
             }
         }
 
-        // Generic conversion for unknown services
+
         if url.starts_with("http://") {
             url.replace("http://", "https://")
         } else if url.starts_with("redis://") {
@@ -202,7 +202,7 @@ impl TlsIntegration {
         }
     }
 
-    /// Get service URL (returns HTTPS if TLS is enabled)
+
     pub fn get_service_url(&self, service: &str) -> Option<String> {
         self.services.get(service).map(|urls| {
             if self.tls_enabled {
@@ -213,27 +213,27 @@ impl TlsIntegration {
         })
     }
 
-    /// Create HTTPS client for a specific service
+
     pub fn create_client(&self, service: &str) -> Result<Client> {
         let mut builder = ClientBuilder::new()
             .timeout(Duration::from_secs(30))
             .connect_timeout(Duration::from_secs(10));
 
         if self.tls_enabled {
-            // Use rustls for TLS
+
             builder = builder.use_rustls_tls();
 
-            // Add CA certificate if available
+
             if let Some(ca_cert) = &self.ca_cert {
                 builder = builder.add_root_certificate(ca_cert.clone());
             }
 
-            // Add client certificate for mTLS if available
+
             if let Some(identity) = self.client_certs.get(service) {
                 builder = builder.identity(identity.clone());
             }
 
-            // For development, allow self-signed certificates
+
             if cfg!(debug_assertions) {
                 builder = builder.danger_accept_invalid_certs(true);
             }
@@ -246,17 +246,17 @@ impl TlsIntegration {
         builder.build().context("Failed to build HTTP client")
     }
 
-    /// Create a generic HTTPS client
+
     pub fn create_generic_client(&self) -> Result<Client> {
         self.create_client("generic")
     }
 
-    /// Check if TLS is enabled
+
     pub fn is_tls_enabled(&self) -> bool {
         self.tls_enabled
     }
 
-    /// Get the secure port for a service
+
     pub fn get_secure_port(&self, service: &str) -> Option<u16> {
         self.services.get(service).map(|urls| {
             if self.tls_enabled {
@@ -267,19 +267,19 @@ impl TlsIntegration {
         })
     }
 
-    /// Update PostgreSQL connection string for TLS
+
     pub fn update_postgres_url(&self, url: &str) -> String {
         if !self.tls_enabled {
             return url.to_string();
         }
 
-        // Parse and update PostgreSQL URL
+
         if url.contains("localhost:5432") || url.contains("127.0.0.1:5432") {
             let base = url
                 .replace("localhost:5432", "localhost:5433")
                 .replace("127.0.0.1:5432", "127.0.0.1:5433");
 
-            // Add SSL parameters if not present
+
             if !base.contains("sslmode=") {
                 if base.contains('?') {
                     format!("{}&sslmode=require", base)
@@ -294,7 +294,7 @@ impl TlsIntegration {
         }
     }
 
-    /// Update Redis connection string for TLS
+
     pub fn update_redis_url(&self, url: &str) -> String {
         if !self.tls_enabled {
             return url.to_string();
@@ -308,15 +308,15 @@ impl TlsIntegration {
         }
     }
 
-    /// Load all certificates from a directory
+
     pub fn load_all_certs_from_dir(&mut self, cert_dir: &Path) -> Result<()> {
-        // Load CA certificate
+
         let ca_path = cert_dir.join("ca.crt");
         if ca_path.exists() {
             self.load_ca_cert(&ca_path)?;
         }
 
-        // Load service client certificates
+
         for service in &[
             "api",
             "llm",
@@ -341,10 +341,10 @@ impl TlsIntegration {
     }
 }
 
-/// Global TLS integration instance using OnceLock for safe initialization
+
 static TLS_INTEGRATION: OnceLock<Arc<TlsIntegration>> = OnceLock::new();
 
-/// Initialize global TLS integration
+
 pub fn init_tls_integration(tls_enabled: bool, cert_dir: Option<PathBuf>) -> Result<()> {
     let _ = TLS_INTEGRATION.get_or_init(|| {
         let mut integration = TlsIntegration::new(tls_enabled);
@@ -364,12 +364,12 @@ pub fn init_tls_integration(tls_enabled: bool, cert_dir: Option<PathBuf>) -> Res
     Ok(())
 }
 
-/// Get the global TLS integration instance
+
 pub fn get_tls_integration() -> Option<Arc<TlsIntegration>> {
     TLS_INTEGRATION.get().cloned()
 }
 
-/// Convert a URL to HTTPS using global TLS settings
+
 pub fn to_secure_url(url: &str) -> String {
     if let Some(integration) = get_tls_integration() {
         integration.convert_url(url)
@@ -378,12 +378,12 @@ pub fn to_secure_url(url: &str) -> String {
     }
 }
 
-/// Create an HTTPS client for a service using global TLS settings
+
 pub fn create_https_client(service: &str) -> Result<Client> {
     if let Some(integration) = get_tls_integration() {
         integration.create_client(service)
     } else {
-        // Fallback to default client
+
         Client::builder()
             .timeout(Duration::from_secs(30))
             .build()

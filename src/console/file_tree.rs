@@ -232,7 +232,7 @@ impl FileTree {
     pub fn render_items(&self) -> &[(String, TreeNode)] {
         &self.items
     }
-    /// Get items for external conversion (used by drive module)
+
     pub fn get_items(&self) -> &[(String, TreeNode)] {
         &self.items
     }

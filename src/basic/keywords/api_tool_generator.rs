@@ -1,14 +1,14 @@
-//! API Tool Generator
-//!
-//! Automatically generates BASIC tools from OpenAPI/Swagger specifications.
-//! Tools are created in the bot's .gbdialog folder and become immediately available.
-//!
-//! Config.csv format:
-//! ```csv
-//! name,value
-//! myweather-api-server,https://api.weather.com/openapi.json
-//! payment-api-server,https://api.stripe.com/v3/spec
-//! ```
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -19,7 +19,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// OpenAPI specification (simplified)
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAPISpec {
     pub openapi: Option<String>,
@@ -99,7 +99,7 @@ pub struct OpenAPIResponse {
     pub content: Option<HashMap<String, OpenAPIMediaType>>,
 }
 
-/// Generated endpoint information
+
 #[derive(Debug, Clone)]
 pub struct GeneratedEndpoint {
     pub operation_id: String,
@@ -114,13 +114,13 @@ pub struct GeneratedEndpoint {
 pub struct EndpointParameter {
     pub name: String,
     pub param_type: String,
-    pub location: String, // "path", "query", "header", "body"
+    pub location: String,
     pub description: String,
     pub required: bool,
     pub example: Option<String>,
 }
 
-/// API Tool Generator
+
 pub struct ApiToolGenerator {
     state: Arc<AppState>,
     bot_id: Uuid,
@@ -145,13 +145,13 @@ impl ApiToolGenerator {
         }
     }
 
-    /// Sync all API tools from config.csv
-    /// Looks for entries like: myweather-api-server,https://api.weather.com/openapi.json
+
+
     pub async fn sync_all_api_tools(&self) -> Result<SyncResult, String> {
         let api_configs = self.get_api_configs().await?;
         let mut result = SyncResult::default();
 
-        // Clone api_configs for use in cleanup after the loop
+
         let api_configs_for_cleanup = api_configs.clone();
 
         for (api_name, spec_url) in api_configs {
@@ -170,33 +170,33 @@ impl ApiToolGenerator {
             }
         }
 
-        // Clean up removed APIs
+
         let removed = self.cleanup_removed_apis(&api_configs_for_cleanup).await?;
         result.tools_removed = removed;
 
         Ok(result)
     }
 
-    /// Sync tools for a single API
+
     pub async fn sync_api_tools(&self, api_name: &str, spec_url: &str) -> Result<usize, String> {
-        // Fetch the OpenAPI spec
+
         let spec_content = self.fetch_spec(spec_url).await?;
         let spec_hash = self.calculate_hash(&spec_content);
 
-        // Check if spec has changed
+
         if !self.has_spec_changed(api_name, &spec_hash).await? {
             trace!("API spec unchanged for {}, skipping", api_name);
             return Ok(0);
         }
 
-        // Parse the spec
+
         let spec: OpenAPISpec = serde_json::from_str(&spec_content)
             .map_err(|e| format!("Failed to parse OpenAPI spec: {}", e))?;
 
-        // Generate endpoints
+
         let endpoints = self.extract_endpoints(&spec)?;
 
-        // Create .gbdialog folder for this API
+
         let api_folder = format!(
             "{}/{}.gbai/.gbdialog/{}",
             self.work_path, self.bot_id, api_name
@@ -204,7 +204,7 @@ impl ApiToolGenerator {
         std::fs::create_dir_all(&api_folder)
             .map_err(|e| format!("Failed to create API folder: {}", e))?;
 
-        // Generate .bas files
+
         let mut generated_count = 0;
         for endpoint in &endpoints {
             let bas_content = self.generate_bas_file(&api_name, endpoint)?;
@@ -216,22 +216,22 @@ impl ApiToolGenerator {
             generated_count += 1;
         }
 
-        // Update database record
+
         self.update_api_record(api_name, spec_url, &spec_hash, generated_count)
             .await?;
 
         Ok(generated_count)
     }
 
-    /// Fetch OpenAPI spec from URL
+
     async fn fetch_spec(&self, spec_url: &str) -> Result<String, String> {
-        // Handle local file paths
+
         if spec_url.starts_with("./") || spec_url.starts_with("/") {
             return std::fs::read_to_string(spec_url)
                 .map_err(|e| format!("Failed to read local spec file: {}", e));
         }
 
-        // Fetch from URL
+
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()
@@ -254,11 +254,11 @@ impl ApiToolGenerator {
             .map_err(|e| format!("Failed to read spec body: {}", e))
     }
 
-    /// Extract endpoints from OpenAPI spec
+
     fn extract_endpoints(&self, spec: &OpenAPISpec) -> Result<Vec<GeneratedEndpoint>, String> {
         let mut endpoints = Vec::new();
 
-        // Determine base URL
+
         let base_url = spec
             .servers
             .as_ref()
@@ -268,30 +268,30 @@ impl ApiToolGenerator {
 
         for (path, methods) in &spec.paths {
             for (method, operation) in methods {
-                // Skip if no operationId
+
                 let operation_id = match &operation.operation_id {
                     Some(id) => self.sanitize_operation_id(id),
                     None => self.generate_operation_id(&method, &path),
                 };
 
-                // Build description
+
                 let description = operation
                     .summary
                     .clone()
                     .or_else(|| operation.description.clone())
                     .unwrap_or_else(|| format!("{} {}", method.to_uppercase(), path));
 
-                // Extract parameters
+
                 let mut parameters = Vec::new();
 
-                // Path and query parameters
+
                 if let Some(params) = &operation.parameters {
                     for param in params {
                         parameters.push(self.convert_parameter(param));
                     }
                 }
 
-                // Request body parameters
+
                 if let Some(body) = &operation.request_body {
                     if let Some(content) = &body.content {
                         if let Some(json_content) = content.get("application/json") {
@@ -320,7 +320,7 @@ impl ApiToolGenerator {
         Ok(endpoints)
     }
 
-    /// Convert OpenAPI parameter to our format
+
     fn convert_parameter(&self, param: &OpenAPIParameter) -> EndpointParameter {
         let param_type = param
             .schema
@@ -344,7 +344,7 @@ impl ApiToolGenerator {
         }
     }
 
-    /// Extract parameters from request body schema
+
     fn extract_body_parameters(
         &self,
         schema: &OpenAPISchema,
@@ -380,7 +380,7 @@ impl ApiToolGenerator {
         params
     }
 
-    /// Generate BASIC file for an endpoint
+
     fn generate_bas_file(
         &self,
         api_name: &str,
@@ -388,7 +388,7 @@ impl ApiToolGenerator {
     ) -> Result<String, String> {
         let mut bas = String::new();
 
-        // Header comment
+
         bas.push_str(&format!("' Auto-generated tool for {} API\n", api_name));
         bas.push_str(&format!(
             "' Endpoint: {} {}\n",
@@ -399,7 +399,7 @@ impl ApiToolGenerator {
             chrono::Utc::now().to_rfc3339()
         ));
 
-        // PARAM declarations
+
         for param in &endpoint.parameters {
             let example = param.example.as_deref().unwrap_or("");
             let required_marker = if param.required { "" } else { " ' optional" };
@@ -414,13 +414,13 @@ impl ApiToolGenerator {
             ));
         }
 
-        // DESCRIPTION
+
         bas.push_str(&format!(
             "\nDESCRIPTION \"{}\"\n\n",
             self.escape_description(&endpoint.description)
         ));
 
-        // Build URL with path parameters
+
         let mut url = format!("{}{}", endpoint.base_url, endpoint.path);
         let path_params: Vec<&EndpointParameter> = endpoint
             .parameters
@@ -435,7 +435,7 @@ impl ApiToolGenerator {
             );
         }
 
-        // Build query string
+
         let query_params: Vec<&EndpointParameter> = endpoint
             .parameters
             .iter()
@@ -456,7 +456,7 @@ impl ApiToolGenerator {
             bas.push('\n');
         }
 
-        // Build request body
+
         let body_params: Vec<&EndpointParameter> = endpoint
             .parameters
             .iter()
@@ -476,7 +476,7 @@ impl ApiToolGenerator {
             bas.push('\n');
         }
 
-        // Make HTTP request
+
         bas.push_str("' Make API request\n");
         let full_url = if query_params.is_empty() {
             format!("\"{}\"", url)
@@ -493,14 +493,14 @@ impl ApiToolGenerator {
             ));
         }
 
-        // Return result
+
         bas.push_str("\n' Return result\n");
         bas.push_str("RETURN result\n");
 
         Ok(bas)
     }
 
-    /// Get API configurations from bot config
+
     async fn get_api_configs(&self) -> Result<Vec<(String, String)>, String> {
         let mut conn = self
             .state
@@ -535,7 +535,7 @@ impl ApiToolGenerator {
         Ok(result)
     }
 
-    /// Check if spec has changed since last sync
+
     async fn has_spec_changed(&self, api_name: &str, current_hash: &str) -> Result<bool, String> {
         let mut conn = self
             .state
@@ -561,11 +561,11 @@ impl ApiToolGenerator {
 
         match result {
             Some(row) => Ok(row.spec_hash != current_hash),
-            None => Ok(true), // No record exists, need to sync
+            None => Ok(true),
         }
     }
 
-    /// Update API record in database
+
     async fn update_api_record(
         &self,
         api_name: &str,
@@ -605,7 +605,7 @@ impl ApiToolGenerator {
         Ok(())
     }
 
-    /// Cleanup APIs that have been removed from config
+
     async fn cleanup_removed_apis(
         &self,
         current_apis: &[(String, String)],
@@ -633,7 +633,7 @@ impl ApiToolGenerator {
 
         for api in existing {
             if !current_names.contains(&api.api_name.as_str()) {
-                // Remove from database
+
                 diesel::sql_query(
                     "DELETE FROM generated_api_tools WHERE bot_id = $1 AND api_name = $2",
                 )
@@ -642,7 +642,7 @@ impl ApiToolGenerator {
                 .execute(&mut conn)
                 .ok();
 
-                // Remove folder
+
                 let api_folder = format!(
                     "{}/{}.gbai/.gbdialog/{}",
                     self.work_path, self.bot_id, api.api_name
@@ -659,7 +659,7 @@ impl ApiToolGenerator {
         Ok(removed_count)
     }
 
-    // Helper functions
+
 
     fn calculate_hash(&self, content: &str) -> String {
         let mut hasher = Sha256::new();
@@ -726,7 +726,7 @@ impl ApiToolGenerator {
     }
 }
 
-/// Result of API sync operation
+
 #[derive(Debug, Default)]
 pub struct SyncResult {
     pub apis_synced: usize,

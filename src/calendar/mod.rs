@@ -78,7 +78,7 @@ pub struct CalendarEventInput {
 }
 
 impl CalendarEvent {
-    /// Convert to iCal Event
+
     pub fn to_ical(&self) -> IcalEvent {
         let mut event = IcalEvent::new();
         event.uid(&self.id.to_string());
@@ -110,7 +110,7 @@ impl CalendarEvent {
         event.done()
     }
 
-    /// Create from iCal Event
+
     pub fn from_ical(ical: &IcalEvent, organizer: &str) -> Option<Self> {
         let uid = ical.get_uid()?;
         let summary = ical.get_summary()?;
@@ -137,32 +137,32 @@ impl CalendarEvent {
     }
 }
 
-/// Convert DatePerhapsTime to DateTime<Utc>
+
 fn date_perhaps_time_to_utc(dpt: DatePerhapsTime) -> Option<DateTime<Utc>> {
     match dpt {
         DatePerhapsTime::DateTime(cal_dt) => {
-            // Handle different CalendarDateTime variants
+
             match cal_dt {
                 CalendarDateTime::Utc(dt) => Some(dt),
                 CalendarDateTime::Floating(naive) => {
-                    // For floating time, assume UTC
+
                     Some(Utc.from_utc_datetime(&naive))
                 }
                 CalendarDateTime::WithTimezone { date_time, .. } => {
-                    // For timezone-aware, convert to UTC (assuming UTC if tz parsing fails)
+
                     Some(Utc.from_utc_datetime(&date_time))
                 }
             }
         }
         DatePerhapsTime::Date(date) => {
-            // For date-only, use midnight UTC
+
             let naive = NaiveDateTime::new(date, chrono::NaiveTime::from_hms_opt(0, 0, 0)?);
             Some(Utc.from_utc_datetime(&naive))
         }
     }
 }
 
-/// Export events to iCal format
+
 pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
     let mut calendar = Calendar::new();
     calendar.name(calendar_name);
@@ -175,7 +175,7 @@ pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
     calendar.done().to_string()
 }
 
-/// Import events from iCal format
+
 pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
     let Ok(calendar) = ical_str.parse::<Calendar>() else {
         return Vec::new();
@@ -312,7 +312,7 @@ pub async fn list_events(
     Json(result)
 }
 
-/// List calendars - JSON API for services
+
 pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "calendars": [
@@ -326,7 +326,7 @@ pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<ser
     }))
 }
 
-/// List calendars - HTMX HTML response for UI
+
 pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(r#"
         <div class="calendar-item" data-calendar-id="default">
@@ -344,7 +344,7 @@ pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::respon
     "#.to_string())
 }
 
-/// Get upcoming events - JSON API for services
+
 pub async fn upcoming_events_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "events": [],
@@ -352,7 +352,7 @@ pub async fn upcoming_events_api(State(_state): State<Arc<AppState>>) -> Json<se
     }))
 }
 
-/// Get upcoming events - HTMX HTML response for UI
+
 pub async fn upcoming_events(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(
         r#"
@@ -469,7 +469,7 @@ pub async fn import_ical(
     Ok(Json(serde_json::json!({ "imported": events.len() })))
 }
 
-/// New event form (HTMX HTML response)
+
 pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(
         r#"
@@ -481,7 +481,7 @@ pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::respon
     )
 }
 
-/// New calendar form (HTMX HTML response)
+
 pub async fn new_calendar_form(
     State(_state): State<Arc<AppState>>,
 ) -> axum::response::Html<String> {
@@ -509,12 +509,12 @@ pub async fn new_calendar_form(
     "##.to_string())
 }
 
-/// Start the reminder job that checks for upcoming events and sends notifications
+
 pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
     info!("Starting calendar reminder job");
 
     loop {
-        // Check every minute for upcoming reminders
+
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
 
         let now = Utc::now();
@@ -522,20 +522,20 @@ pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
             if let Some(reminder_minutes) = event.reminder_minutes {
                 let reminder_time =
                     event.start_time - chrono::Duration::minutes(reminder_minutes as i64);
-                // Check if we're within the reminder window (within 1 minute)
+
                 if now >= reminder_time && now < reminder_time + chrono::Duration::minutes(1) {
                     info!(
                         "Reminder: Event '{}' starts in {} minutes",
                         event.title, reminder_minutes
                     );
-                    // TODO: Send actual notification via configured channels
+
                 }
             }
         }
     }
 }
 
-/// Configure calendar API routes
+
 pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
     Router::new()
         .route(
@@ -548,10 +548,10 @@ pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/calendar/export.ics", get(export_ical))
         .route("/api/calendar/import", post(import_ical))
-        // JSON API endpoints for services
+
         .route("/api/calendar/calendars", get(list_calendars_api))
         .route("/api/calendar/events/upcoming", get(upcoming_events_api))
-        // HTMX UI endpoints (return HTML fragments)
+
         .route("/ui/calendar/list", get(list_calendars))
         .route("/ui/calendar/upcoming", get(upcoming_events))
         .route("/ui/calendar/event/new", get(new_event_form))

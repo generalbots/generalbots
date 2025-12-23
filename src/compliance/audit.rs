@@ -1,7 +1,7 @@
-//! Audit Module
-//!
-//! Provides comprehensive audit logging and tracking capabilities
-//! for compliance monitoring and security analysis.
+
+
+
+
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
@@ -11,7 +11,7 @@ use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
 
-/// Audit event types
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum AuditEventType {
     UserLogin,
@@ -28,7 +28,7 @@ pub enum AuditEventType {
     ComplianceViolation,
 }
 
-/// Audit severity levels
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 pub enum AuditSeverity {
     Info,
@@ -37,7 +37,7 @@ pub enum AuditSeverity {
     Critical,
 }
 
-/// Audit event structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEvent {
     pub id: Uuid,
@@ -54,7 +54,7 @@ pub struct AuditEvent {
     pub metadata: serde_json::Value,
 }
 
-/// Audit outcome
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum AuditOutcome {
     Success,
@@ -63,7 +63,7 @@ pub enum AuditOutcome {
     Unknown,
 }
 
-/// Audit trail for tracking related events
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditTrail {
     pub trail_id: Uuid,
@@ -75,7 +75,7 @@ pub struct AuditTrail {
     pub tags: Vec<String>,
 }
 
-/// Audit retention policy
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetentionPolicy {
     pub name: String,
@@ -85,7 +85,7 @@ pub struct RetentionPolicy {
     pub archive_enabled: bool,
 }
 
-/// Audit statistics
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditStatistics {
     pub total_events: usize,
@@ -96,7 +96,7 @@ pub struct AuditStatistics {
     pub time_range: (DateTime<Utc>, DateTime<Utc>),
 }
 
-/// Audit service for managing audit logs
+
 #[derive(Clone)]
 pub struct AuditService {
     events: Arc<RwLock<VecDeque<AuditEvent>>>,
@@ -106,13 +106,13 @@ pub struct AuditService {
 }
 
 impl AuditService {
-    /// Create new audit service
+
     pub fn new(max_events: usize) -> Self {
         Self {
             events: Arc::new(RwLock::new(VecDeque::new())),
             trails: Arc::new(RwLock::new(HashMap::new())),
             retention_policies: Arc::new(RwLock::new(vec![
-                // Default retention policies
+
                 RetentionPolicy {
                     name: "Security Events".to_string(),
                     retention_days: 365,
@@ -139,7 +139,7 @@ impl AuditService {
         }
     }
 
-    /// Log an audit event
+
     pub async fn log_event(
         &self,
         event_type: AuditEventType,
@@ -166,11 +166,11 @@ impl AuditService {
 
         let event_id = event.id;
 
-        // Add event to the queue
+
         let mut events = self.events.write().await;
         events.push_back(event.clone());
 
-        // Maintain max events limit
+
         while events.len() > self.max_events {
             events.pop_front();
         }
@@ -185,7 +185,7 @@ impl AuditService {
         Ok(event_id)
     }
 
-    /// Create an audit trail
+
     pub async fn create_trail(&self, name: String, tags: Vec<String>) -> Result<Uuid> {
         let trail = AuditTrail {
             trail_id: Uuid::new_v4(),
@@ -204,7 +204,7 @@ impl AuditService {
         Ok(trail_id)
     }
 
-    /// Add event to trail
+
     pub async fn add_to_trail(&self, trail_id: Uuid, event_id: Uuid) -> Result<()> {
         let mut trails = self.trails.write().await;
         let trail = trails
@@ -219,7 +219,7 @@ impl AuditService {
         Ok(())
     }
 
-    /// End an audit trail
+
     pub async fn end_trail(&self, trail_id: Uuid, summary: String) -> Result<()> {
         let mut trails = self.trails.write().await;
         let trail = trails
@@ -232,7 +232,7 @@ impl AuditService {
         Ok(())
     }
 
-    /// Query audit events
+
     pub async fn query_events(&self, filter: AuditFilter) -> Result<Vec<AuditEvent>> {
         let events = self.events.read().await;
 
@@ -245,7 +245,7 @@ impl AuditService {
         Ok(filtered)
     }
 
-    /// Get audit statistics
+
     pub async fn get_statistics(
         &self,
         since: Option<DateTime<Utc>>,
@@ -287,7 +287,7 @@ impl AuditService {
         }
     }
 
-    /// Apply retention policies
+
     pub async fn apply_retention_policies(&self) -> Result<usize> {
         let policies = self.retention_policies.read().await;
         let mut events = self.events.write().await;
@@ -297,7 +297,7 @@ impl AuditService {
         for policy in policies.iter() {
             let cutoff = now - Duration::days(policy.retention_days);
 
-            // Remove events older than retention period
+
             let initial_len = events.len();
             events.retain(|e| {
                 if !policy.event_types.contains(&e.event_type) {
@@ -323,7 +323,7 @@ impl AuditService {
         Ok(removed_count)
     }
 
-    /// Export audit logs
+
     pub async fn export_logs(
         &self,
         format: ExportFormat,
@@ -339,7 +339,7 @@ impl AuditService {
             ExportFormat::Csv => {
                 let mut csv_writer = csv::Writer::from_writer(vec![]);
 
-                // Write headers
+
                 csv_writer.write_record(&[
                     "ID",
                     "Timestamp",
@@ -350,7 +350,7 @@ impl AuditService {
                     "Outcome",
                 ])?;
 
-                // Write records
+
                 for event in events {
                     csv_writer.write_record(&[
                         event.id.to_string(),
@@ -368,7 +368,7 @@ impl AuditService {
         }
     }
 
-    /// Get compliance report
+
     pub async fn get_compliance_report(&self) -> ComplianceReport {
         let stats = self.get_statistics(None, None).await;
         let events = self.events.read().await;
@@ -406,10 +406,10 @@ impl AuditService {
         }
     }
 
-    /// Calculate audit coverage percentage
+
     fn calculate_audit_coverage(&self, events: &VecDeque<AuditEvent>) -> f64 {
-        // Calculate based on expected event types coverage
-        let expected_types = 12; // Total number of event types
+
+        let expected_types = 12;
         let covered_types = events
             .iter()
             .map(|e| e.event_type.clone())
@@ -420,7 +420,7 @@ impl AuditService {
     }
 }
 
-/// Audit filter for querying events
+
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AuditFilter {
     pub event_types: Option<Vec<AuditEventType>>,
@@ -473,14 +473,14 @@ impl AuditFilter {
     }
 }
 
-/// Export format for audit logs
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExportFormat {
     Json,
     Csv,
 }
 
-/// Compliance report
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceReport {
     pub generated_at: DateTime<Utc>,

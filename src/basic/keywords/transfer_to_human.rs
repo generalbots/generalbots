@@ -1,41 +1,41 @@
-//! Transfer to Human Keyword
-//!
-//! Provides the TRANSFER TO HUMAN keyword for bot-to-human handoff in conversations.
-//! This is a critical feature for hybrid bot/human support workflows.
-//!
-//! ## Features
-//!
-//! - Transfer to any available attendant
-//! - Transfer to specific person by name or alias
-//! - Transfer to specific department
-//! - Priority-based queue placement
-//! - Context passing for seamless handoff
-//!
-//! ## Configuration
-//!
-//! Requires `crm-enabled = true` in the bot's config.csv file.
-//! Attendants are configured in attendant.csv in the bot's .gbai folder.
-//!
-//! ## Usage in BASIC
-//!
-//! ```basic
-//! ' Transfer to any available human
-//! TRANSFER TO HUMAN
-//!
-//! ' Transfer to specific person
-//! TRANSFER TO HUMAN "John Smith"
-//!
-//! ' Transfer to department
-//! TRANSFER TO HUMAN department: "sales"
-//!
-//! ' Transfer with priority and context
-//! TRANSFER TO HUMAN "support", "high", "Customer needs help with billing"
-//! ```
-//!
-//! ## As LLM Tool
-//!
-//! This keyword is also registered as an LLM tool, allowing the AI to
-//! automatically transfer conversations when appropriate.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -48,22 +48,22 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Transfer request structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferToHumanRequest {
-    /// Optional name or alias of the person to transfer to
+
     pub name: Option<String>,
-    /// Optional department to transfer to
+
     pub department: Option<String>,
-    /// Priority level: "normal", "high", "urgent"
+
     pub priority: Option<String>,
-    /// Reason for the transfer (passed to attendant)
+
     pub reason: Option<String>,
-    /// Additional context from the conversation
+
     pub context: Option<String>,
 }
 
-/// Transfer result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferResult {
     pub success: bool,
@@ -75,27 +75,27 @@ pub struct TransferResult {
     pub message: String,
 }
 
-/// Transfer status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TransferStatus {
-    /// Queued for next available attendant
+
     Queued,
-    /// Assigned to specific attendant
+
     Assigned,
-    /// Attendant is online and ready
+
     Connected,
-    /// No attendants available
+
     NoAttendants,
-    /// CRM not enabled
+
     CrmDisabled,
-    /// Specified attendant not found
+
     AttendantNotFound,
-    /// Error during transfer
+
     Error,
 }
 
-/// Attendant information from CSV
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attendant {
     pub id: String,
@@ -107,7 +107,7 @@ pub struct Attendant {
     pub status: AttendantStatus,
 }
 
-/// Attendant status
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AttendantStatus {
@@ -123,14 +123,14 @@ impl Default for AttendantStatus {
     }
 }
 
-/// Check if CRM is enabled in bot's config.csv
+
 pub fn is_crm_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("config.csv");
 
     if !config_path.exists() {
-        // Also try without UUID prefix
+
         let alt_path = PathBuf::from(work_path).join("config.csv");
         if alt_path.exists() {
             return check_config_for_crm(&alt_path);
@@ -147,13 +147,13 @@ fn check_config_for_crm(config_path: &PathBuf) -> bool {
         Ok(content) => {
             for line in content.lines() {
                 let line_lower = line.to_lowercase();
-                // Check for crm-enabled = true or crm_enabled = true
+
                 if (line_lower.contains("crm-enabled") || line_lower.contains("crm_enabled"))
                     && line_lower.contains("true")
                 {
                     return true;
                 }
-                // Also support legacy transfer = true
+
                 if line_lower.contains("transfer") && line_lower.contains("true") {
                     return true;
                 }
@@ -167,14 +167,14 @@ fn check_config_for_crm(config_path: &PathBuf) -> bool {
     }
 }
 
-/// Read attendants from attendant.csv
+
 pub fn read_attendants(bot_id: Uuid, work_path: &str) -> Vec<Attendant> {
     let attendant_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("attendant.csv");
 
     if !attendant_path.exists() {
-        // Try alternate path
+
         let alt_path = PathBuf::from(work_path).join("attendant.csv");
         if alt_path.exists() {
             return parse_attendants_csv(&alt_path);
@@ -192,11 +192,11 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
             let mut attendants = Vec::new();
             let mut lines = content.lines();
 
-            // Skip header
+
             let header = lines.next().unwrap_or("");
             let headers: Vec<String> = header.split(',').map(|s| s.trim().to_lowercase()).collect();
 
-            // Find column indices
+
             let id_idx = headers.iter().position(|h| h == "id").unwrap_or(0);
             let name_idx = headers.iter().position(|h| h == "name").unwrap_or(1);
             let channel_idx = headers.iter().position(|h| h == "channel").unwrap_or(2);
@@ -224,7 +224,7 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
                         preferences: parts.get(pref_idx).unwrap_or(&"").to_string(),
                         department,
                         aliases,
-                        status: AttendantStatus::Online, // Default to online, will be updated from DB
+                        status: AttendantStatus::Online,
                     });
                 }
             }
@@ -239,7 +239,7 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
     }
 }
 
-/// Find attendant by name, alias, or department
+
 pub fn find_attendant<'a>(
     attendants: &'a [Attendant],
     name: Option<&str>,
@@ -248,7 +248,7 @@ pub fn find_attendant<'a>(
     if let Some(search_name) = name {
         let search_lower = search_name.to_lowercase();
 
-        // First try exact name match
+
         if let Some(att) = attendants
             .iter()
             .find(|a| a.name.to_lowercase() == search_lower)
@@ -256,7 +256,7 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-        // Try partial name match
+
         if let Some(att) = attendants
             .iter()
             .find(|a| a.name.to_lowercase().contains(&search_lower))
@@ -264,7 +264,7 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-        // Try alias match
+
         if let Some(att) = attendants
             .iter()
             .find(|a| a.aliases.contains(&search_lower))
@@ -272,7 +272,7 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-        // Try ID match
+
         if let Some(att) = attendants
             .iter()
             .find(|a| a.id.to_lowercase() == search_lower)
@@ -284,7 +284,7 @@ pub fn find_attendant<'a>(
     if let Some(dept) = department {
         let dept_lower = dept.to_lowercase();
 
-        // Find first online attendant in department
+
         if let Some(att) = attendants.iter().find(|a| {
             a.department
                 .as_ref()
@@ -295,7 +295,7 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-        // Try preferences match for department
+
         if let Some(att) = attendants.iter().find(|a| {
             a.preferences.to_lowercase().contains(&dept_lower)
                 && a.status == AttendantStatus::Online
@@ -304,13 +304,13 @@ pub fn find_attendant<'a>(
         }
     }
 
-    // Return first online attendant if no specific match
+
     attendants
         .iter()
         .find(|a| a.status == AttendantStatus::Online)
 }
 
-/// Priority to integer for queue ordering
+
 fn priority_to_int(priority: Option<&str>) -> i32 {
     match priority.map(|p| p.to_lowercase()).as_deref() {
         Some("urgent") => 3,
@@ -321,7 +321,7 @@ fn priority_to_int(priority: Option<&str>) -> i32 {
     }
 }
 
-/// Execute the transfer to human
+
 pub async fn execute_transfer(
     state: Arc<AppState>,
     session: &UserSession,
@@ -330,7 +330,7 @@ pub async fn execute_transfer(
     let work_path = "./work";
     let bot_id = session.bot_id;
 
-    // Check if CRM is enabled
+
     if !is_crm_enabled(bot_id, work_path) {
         return TransferResult {
             success: false,
@@ -344,7 +344,7 @@ pub async fn execute_transfer(
         };
     }
 
-    // Load attendants
+
     let attendants = read_attendants(bot_id, work_path);
     if attendants.is_empty() {
         return TransferResult {
@@ -359,14 +359,14 @@ pub async fn execute_transfer(
         };
     }
 
-    // Find matching attendant
+
     let attendant = find_attendant(
         &attendants,
         request.name.as_deref(),
         request.department.as_deref(),
     );
 
-    // If specific name was requested but not found
+
     if request.name.is_some() && attendant.is_none() {
         return TransferResult {
             success: false,
@@ -387,7 +387,7 @@ pub async fn execute_transfer(
         };
     }
 
-    // Update session to mark as needing human attention
+
     let priority = priority_to_int(request.priority.as_deref());
     let transfer_context = serde_json::json!({
         "transfer_requested_at": Utc::now().to_rfc3339(),
@@ -402,7 +402,7 @@ pub async fn execute_transfer(
         "status": if attendant.is_some() { "assigned" } else { "queued" },
     });
 
-    // Update session in database
+
     let session_id = session.id;
     let conn = state.conn.clone();
     let ctx_data = transfer_context.clone();
@@ -491,7 +491,7 @@ pub async fn execute_transfer(
     }
 }
 
-/// Convert TransferResult to Rhai Dynamic
+
 impl TransferResult {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -563,13 +563,13 @@ async fn calculate_queue_position(state: &Arc<AppState>, current_session_id: Uui
     }
 }
 
-/// Register the TRANSFER TO HUMAN keyword with the Rhai engine
+
 pub fn register_transfer_to_human_keyword(
     state: Arc<AppState>,
     user: UserSession,
     engine: &mut Engine,
 ) {
-    // TRANSFER TO HUMAN (no arguments - any available)
+
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn("transfer_to_human", move || -> Dynamic {
@@ -595,7 +595,7 @@ pub fn register_transfer_to_human_keyword(
         result.to_dynamic()
     });
 
-    // TRANSFER TO HUMAN "name"
+
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn("transfer_to_human", move |name: &str| -> Dynamic {
@@ -622,7 +622,7 @@ pub fn register_transfer_to_human_keyword(
         result.to_dynamic()
     });
 
-    // TRANSFER TO HUMAN "department", "priority"
+
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn(
@@ -653,7 +653,7 @@ pub fn register_transfer_to_human_keyword(
         },
     );
 
-    // TRANSFER TO HUMAN "department", "priority", "reason"
+
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn(
@@ -685,7 +685,7 @@ pub fn register_transfer_to_human_keyword(
         },
     );
 
-    // TRANSFER TO HUMAN with Map (for named parameters)
+
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn("transfer_to_human_ex", move |params: Map| -> Dynamic {
@@ -730,7 +730,7 @@ pub fn register_transfer_to_human_keyword(
     debug!("Registered TRANSFER TO HUMAN keywords");
 }
 
-/// Tool schema for LLM integration
+
 pub const TRANSFER_TO_HUMAN_TOOL_SCHEMA: &str = r#"{
     "name": "transfer_to_human",
     "description": "Transfer the conversation to a human attendant. Use this when the customer explicitly asks to speak with a person, when the issue is too complex for automated handling, or when emotional support is needed.",
@@ -761,7 +761,7 @@ pub const TRANSFER_TO_HUMAN_TOOL_SCHEMA: &str = r#"{
     }
 }"#;
 
-/// Get the tool definition for registration with LLM
+
 pub fn get_tool_definition() -> serde_json::Value {
     serde_json::json!({
         "type": "function",

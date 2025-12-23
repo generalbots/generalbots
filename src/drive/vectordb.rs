@@ -17,7 +17,7 @@ use qdrant_client::{
     Qdrant,
 };
 
-/// File metadata for vector DB indexing
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
     pub id: String,
@@ -35,7 +35,7 @@ pub struct FileDocument {
     pub tags: Vec<String>,
 }
 
-/// File search query
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchQuery {
     pub query_text: String,
@@ -47,7 +47,7 @@ pub struct FileSearchQuery {
     pub limit: usize,
 }
 
-/// File search result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchResult {
     pub file: FileDocument,
@@ -56,7 +56,7 @@ pub struct FileSearchResult {
     pub highlights: Vec<String>,
 }
 
-/// Per-user drive vector DB manager
+
 pub struct UserDriveVectorDB {
     user_id: Uuid,
     bot_id: Uuid,
@@ -67,7 +67,7 @@ pub struct UserDriveVectorDB {
 }
 
 impl UserDriveVectorDB {
-    /// Create new user drive vector DB instance
+
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("drive_{}_{}", bot_id, user_id);
 
@@ -93,12 +93,12 @@ impl UserDriveVectorDB {
         &self.collection_name
     }
 
-    /// Initialize vector DB collection
+
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
         let client = Qdrant::from_url(qdrant_url).build()?;
 
-        // Check if collection exists
+
         let collections = client.list_collections().await?;
         let exists = collections
             .collections
@@ -106,7 +106,7 @@ impl UserDriveVectorDB {
             .any(|c| c.name == self.collection_name);
 
         if !exists {
-            // Create collection for file embeddings (1536 dimensions for OpenAI embeddings)
+
             client
                 .create_collection(
                     qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
@@ -132,7 +132,7 @@ impl UserDriveVectorDB {
         Ok(())
     }
 
-    /// Index a single file (on-demand)
+
     #[cfg(feature = "vectordb")]
     pub async fn index_file(&self, file: &FileDocument, embedding: Vec<f32>) -> Result<()> {
         let client = self
@@ -163,14 +163,14 @@ impl UserDriveVectorDB {
 
     #[cfg(not(feature = "vectordb"))]
     pub async fn index_file(&self, file: &FileDocument, _embedding: Vec<f32>) -> Result<()> {
-        // Fallback: Store in JSON file
+
         let file_path = self.db_path.join(format!("{}.json", file.id));
         let json = serde_json::to_string_pretty(file)?;
         fs::write(file_path, json).await?;
         Ok(())
     }
 
-    /// Index multiple files in batch
+
     pub async fn index_files_batch(&self, files: &[(FileDocument, Vec<f32>)]) -> Result<()> {
         #[cfg(feature = "vectordb")]
         {
@@ -215,7 +215,7 @@ impl UserDriveVectorDB {
         Ok(())
     }
 
-    /// Search files using vector similarity
+
     #[cfg(feature = "vectordb")]
     pub async fn search(
         &self,
@@ -227,7 +227,7 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        // Build filter if specified
+
         let filter = if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
             let mut conditions = vec![];
 
@@ -276,10 +276,10 @@ impl UserDriveVectorDB {
 
         let mut results = Vec::new();
         for point in search_result.result {
-            // Convert payload HashMap to FileDocument
+
             let payload = &point.payload;
             if !payload.is_empty() {
-                // Extract fields from payload
+
                 let get_str = |key: &str| -> String {
                     payload.get(key)
                         .and_then(|v| v.as_str())
@@ -300,16 +300,16 @@ impl UserDriveVectorDB {
                     content_summary: payload.get("content_summary")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
-                    created_at: chrono::Utc::now(), // Simplified
-                    modified_at: chrono::Utc::now(), // Simplified
-                    indexed_at: chrono::Utc::now(), // Simplified
+                    created_at: chrono::Utc::now(),
+                    modified_at: chrono::Utc::now(),
+                    indexed_at: chrono::Utc::now(),
                     mime_type: payload.get("mime_type")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
                     tags: vec![],
                 };
 
-                // Create snippet and highlights
+
                 let snippet = self.create_snippet(&file.content_text, &query.query_text, 200);
                 let highlights = self.extract_highlights(&file.content_text, &query.query_text, 3);
 
@@ -331,7 +331,7 @@ impl UserDriveVectorDB {
         query: &FileSearchQuery,
         _query_embedding: Vec<f32>,
     ) -> Result<Vec<FileSearchResult>> {
-        // Fallback: Simple text search in JSON files
+
         let mut results = Vec::new();
         let mut entries = fs::read_dir(&self.db_path).await?;
 
@@ -339,7 +339,7 @@ impl UserDriveVectorDB {
             if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
                 let content = fs::read_to_string(entry.path()).await?;
                 if let Ok(file) = serde_json::from_str::<FileDocument>(&content) {
-                    // Apply filters
+
                     if let Some(bucket) = &query.bucket {
                         if &file.bucket != bucket {
                             continue;
@@ -352,7 +352,7 @@ impl UserDriveVectorDB {
                         }
                     }
 
-                    // Simple text matching
+
                     let query_lower = query.query_text.to_lowercase();
                     if file.file_name.to_lowercase().contains(&query_lower)
                         || file.content_text.to_lowercase().contains(&query_lower)
@@ -384,7 +384,7 @@ impl UserDriveVectorDB {
         Ok(results)
     }
 
-    /// Create a snippet around the query match
+
     fn create_snippet(&self, content: &str, query: &str, max_length: usize) -> String {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
@@ -410,7 +410,7 @@ impl UserDriveVectorDB {
         }
     }
 
-    /// Extract highlighted segments containing the query
+
     fn extract_highlights(&self, content: &str, query: &str, max_highlights: usize) -> Vec<String> {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
@@ -434,7 +434,7 @@ impl UserDriveVectorDB {
         highlights
     }
 
-    /// Delete file from index
+
     #[cfg(feature = "vectordb")]
     pub async fn delete_file(&self, file_id: &str) -> Result<()> {
         let client = self
@@ -462,7 +462,7 @@ impl UserDriveVectorDB {
         Ok(())
     }
 
-    /// Get indexed file count
+
     #[cfg(feature = "vectordb")]
     pub async fn get_count(&self) -> Result<u64> {
         let client = self
@@ -489,9 +489,9 @@ impl UserDriveVectorDB {
         Ok(count)
     }
 
-    /// Update file metadata without re-indexing content
+
     pub async fn update_file_metadata(&self, file_id: &str, tags: Vec<String>) -> Result<()> {
-        // Read existing file
+
         #[cfg(not(feature = "vectordb"))]
         {
             let file_path = self.db_path.join(format!("{}.json", file_id));
@@ -506,14 +506,14 @@ impl UserDriveVectorDB {
 
         #[cfg(feature = "vectordb")]
         {
-            // Update payload in Qdrant
+
             log::warn!("Metadata update not yet implemented for Qdrant backend");
         }
 
         Ok(())
     }
 
-    /// Clear all indexed files
+
     #[cfg(feature = "vectordb")]
     pub async fn clear(&self) -> Result<()> {
         let client = self
@@ -525,7 +525,7 @@ impl UserDriveVectorDB {
             .delete_collection(&self.collection_name)
             .await?;
 
-        // Recreate empty collection
+
         client
             .create_collection(
                 qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
@@ -551,69 +551,69 @@ impl UserDriveVectorDB {
     }
 }
 
-/// File content extractor for different file types
+
 #[derive(Debug)]
 pub struct FileContentExtractor;
 
 impl FileContentExtractor {
-    /// Extract text content from file based on type
+
     pub async fn extract_text(file_path: &PathBuf, mime_type: &str) -> Result<String> {
         match mime_type {
-            // Plain text files
+
             "text/plain" | "text/markdown" | "text/csv" => {
                 let content = fs::read_to_string(file_path).await?;
                 Ok(content)
             }
 
-            // Code files
+
             t if t.starts_with("text/") => {
                 let content = fs::read_to_string(file_path).await?;
                 Ok(content)
             }
 
-            // PDF files
+
             "application/pdf" => {
                 log::info!("PDF extraction for {:?}", file_path);
                 Self::extract_pdf_text(file_path).await
             }
 
-            // Microsoft Word documents
+
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             | "application/msword" => {
                 log::info!("Word document extraction for {:?}", file_path);
                 Self::extract_docx_text(file_path).await
             }
 
-            // Excel/Spreadsheet files
+
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             | "application/vnd.ms-excel" => {
                 log::info!("Spreadsheet extraction for {:?}", file_path);
                 Self::extract_xlsx_text(file_path).await
             }
 
-            // JSON files
+
             "application/json" => {
                 let content = fs::read_to_string(file_path).await?;
-                // Pretty print JSON for better indexing
+
                 match serde_json::from_str::<serde_json::Value>(&content) {
                     Ok(json) => Ok(serde_json::to_string_pretty(&json)?),
                     Err(_) => Ok(content),
                 }
             }
 
-            // XML/HTML files
+
             "text/xml" | "application/xml" | "text/html" => {
                 let content = fs::read_to_string(file_path).await?;
-                // Basic HTML/XML tag removal
+
                 let tag_regex = regex::Regex::new(r"<[^>]+>").unwrap();
                 let text = tag_regex.replace_all(&content, " ").to_string();
                 Ok(text.trim().to_string())
             }
 
-            // RTF files
+
             "text/rtf" | "application/rtf" => {
                 let content = fs::read_to_string(file_path).await?;
-                // Basic RTF extraction - remove control words and groups
+
                 let control_regex = regex::Regex::new(r"\\[a-z]+[\-0-9]*[ ]?").unwrap();
                 let group_regex = regex::Regex::new(r"[\{\}]").unwrap();
 
@@ -737,14 +737,14 @@ impl FileContentExtractor {
         }
     }
 
-    /// Determine if file should be indexed based on type
+
     pub fn should_index(mime_type: &str, file_size: u64) -> bool {
-        // Skip very large files (> 10MB)
+
         if file_size > 10 * 1024 * 1024 {
             return false;
         }
 
-        // Index text-based files
+
         matches!(
             mime_type,
             "text/plain"

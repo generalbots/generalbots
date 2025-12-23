@@ -6,10 +6,10 @@ use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-/// Llama.cpp release version and download URLs
+
 const LLAMA_CPP_VERSION: &str = "b7345";
 
-/// Get the appropriate llama.cpp download URL for the current platform
+
 fn get_llama_cpp_url() -> Option<String> {
     let base_url = format!(
         "https://github.com/ggml-org/llama.cpp/releases/download/{}",
@@ -20,12 +20,12 @@ fn get_llama_cpp_url() -> Option<String> {
     {
         #[cfg(target_arch = "x86_64")]
         {
-            // Check for CUDA support
+
             if std::path::Path::new("/usr/local/cuda").exists()
                 || std::path::Path::new("/opt/cuda").exists()
                 || std::env::var("CUDA_HOME").is_ok()
             {
-                // Check CUDA version
+
                 if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
@@ -44,7 +44,7 @@ fn get_llama_cpp_url() -> Option<String> {
                 }
             }
 
-            // Check for Vulkan support
+
             if std::path::Path::new("/usr/share/vulkan").exists()
                 || std::env::var("VULKAN_SDK").is_ok()
             {
@@ -55,7 +55,7 @@ fn get_llama_cpp_url() -> Option<String> {
                 ));
             }
 
-            // Default to standard x64 build (CPU only)
+
             info!("Using standard Ubuntu x64 build (CPU)");
             return Some(format!(
                 "{}/llama-{}-bin-ubuntu-x64.zip",
@@ -75,7 +75,7 @@ fn get_llama_cpp_url() -> Option<String> {
         #[cfg(target_arch = "aarch64")]
         {
             info!("Detected ARM64 architecture on Linux");
-            // No official ARM64 Linux build, would need to compile from source
+
             warn!("No pre-built llama.cpp for Linux ARM64 - LLM will not be available");
             return None;
         }
@@ -106,7 +106,7 @@ fn get_llama_cpp_url() -> Option<String> {
     {
         #[cfg(target_arch = "x86_64")]
         {
-            // Check for CUDA on Windows
+
             if std::env::var("CUDA_PATH").is_ok() {
                 if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
@@ -126,7 +126,7 @@ fn get_llama_cpp_url() -> Option<String> {
                 }
             }
 
-            // Check for Vulkan on Windows
+
             if std::env::var("VULKAN_SDK").is_ok() {
                 info!("Detected Vulkan SDK on Windows");
                 return Some(format!(
@@ -135,7 +135,7 @@ fn get_llama_cpp_url() -> Option<String> {
                 ));
             }
 
-            // Default Windows CPU build
+
             info!("Using standard Windows x64 CPU build");
             return Some(format!(
                 "{}/llama-{}-bin-win-cpu-x64.zip",
@@ -153,7 +153,7 @@ fn get_llama_cpp_url() -> Option<String> {
         }
     }
 
-    // Fallback for unknown platforms
+
     #[allow(unreachable_code)]
     {
         warn!("Unknown platform - no llama.cpp binary available");
@@ -193,7 +193,7 @@ impl PackageManager {
         Ok(pm)
     }
 
-    /// Create a PackageManager with a custom base path (for testing)
+
     pub fn with_base_path(
         mode: InstallMode,
         tenant: Option<String>,
@@ -320,8 +320,8 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
-        // Using Valkey - the Redis-compatible fork
-        // Source tarball - requires compilation with make
+
+
         self.components.insert(
             "cache".to_string(),
             ComponentConfig {
@@ -337,7 +337,7 @@ impl PackageManager {
                 binary_name: Some("valkey-server".to_string()),
                 pre_install_cmds_linux: vec![],
                 post_install_cmds_linux: vec![
-                    // Create symlink for redis-server compatibility
+
                     "ln -sf {{BIN_PATH}}/valkey-server {{BIN_PATH}}/redis-server 2>/dev/null || true".to_string(),
                     "ln -sf {{BIN_PATH}}/valkey-cli {{BIN_PATH}}/redis-cli 2>/dev/null || true".to_string(),
                 ],
@@ -354,7 +354,7 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
-        // Detect platform and get appropriate llama.cpp URL
+
         let download_url = get_llama_cpp_url();
 
         if download_url.is_none() {
@@ -386,9 +386,9 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: vec![
-                    // Default small model for CPU or minimal GPU (4GB VRAM)
+
                     "https://huggingface.co/bartowski/DeepSeek-R1-Distill-Qwen-1.5B-GGUF/resolve/main/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf".to_string(),
-                    // Embedding model for vector search
+
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
@@ -480,11 +480,11 @@ impl PackageManager {
                     "mkdir -p {{LOGS_PATH}}".to_string(),
                 ],
                 post_install_cmds_linux: vec![
-                    // Use start-from-init which does init + setup + start in one command
-                    // This properly creates the first instance with PAT
-                    // Masterkey comes from Vault (gbo/directory/masterkey)
+
+
+
                     "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start-from-init --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled --steps {{CONF_PATH}}/directory/steps.yaml > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-                    // Wait for Zitadel to be fully ready (up to 90 seconds for first instance setup)
+
                     "for i in $(seq 1 90); do curl -sf http://localhost:8300/debug/ready && break || sleep 1; done".to_string(),
                 ],
                 pre_install_cmds_macos: vec![
@@ -556,8 +556,8 @@ impl PackageManager {
                     "mkdir -p {{CONF_PATH}}/alm-ci".to_string(),
                 ],
                 post_install_cmds_linux: vec![
-                    // Register runner with Forgejo instance
-                    // Token must be obtained from Forgejo admin panel: Site Administration > Actions > Runners
+
+
                     "echo 'To register the runner, run:'".to_string(),
                     "echo '{{BIN_PATH}}/forgejo-runner register --instance $ALM_URL --token $ALM_RUNNER_TOKEN --name gbo --labels ubuntu-latest:docker://node:20-bookworm'".to_string(),
                     "echo 'Then start with: {{BIN_PATH}}/forgejo-runner daemon --config {{CONF_PATH}}/alm-ci/config.yaml'".to_string(),
@@ -876,9 +876,9 @@ impl PackageManager {
         );
     }
 
-    /// Register HashiCorp Vault for secrets management
-    /// Vault stores service credentials (drive, email, etc.) securely
-    /// Only VAULT_ADDR and VAULT_TOKEN needed in .env, all other secrets fetched from Vault
+
+
+
     fn register_vault(&mut self) {
         self.components.insert(
             "vault".to_string(),
@@ -914,8 +914,8 @@ ui = true
 disable_mlock = true
 EOF"#.to_string(),
                 ],
-                // Note: Vault initialization is handled in bootstrap::setup_vault()
-                // because it requires the Vault server to be running first
+
+
                 post_install_cmds_linux: vec![],
                 pre_install_cmds_macos: vec![
                     "mkdir -p {{DATA_PATH}}/vault".to_string(),
@@ -958,16 +958,16 @@ EOF"#.to_string(),
         );
     }
 
-    /// Register Vector for observability (log aggregation and metrics)
-    /// Component name: observability (like drive for minio)
-    /// Config path: ./botserver-stack/conf/monitoring/vector.toml
-    /// Logs path: ./botserver-stack/logs/ (monitors all component logs)
+
+
+
+
     fn register_observability(&mut self) {
         self.components.insert(
             "observability".to_string(),
             ComponentConfig {
                 name: "observability".to_string(),
-                ports: vec![8686], // Vector API port
+                ports: vec![8686],
                 dependencies: vec!["timeseries_db".to_string()],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -990,12 +990,12 @@ EOF"#.to_string(),
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                // Vector monitors all logs in botserver-stack/logs/
-                // - logs/system/ for botserver logs
-                // - logs/drive/ for minio logs
-                // - logs/tables/ for postgres logs
-                // - logs/cache/ for redis logs
-                // - etc.
+
+
+
+
+
+
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml".to_string(),
                 check_cmd: "curl -f http://localhost:8686/health >/dev/null 2>&1".to_string(),
             },
@@ -1043,7 +1043,7 @@ EOF"#.to_string(),
             let conf_path = self.base_path.join("conf");
             let logs_path = self.base_path.join("logs").join(&component.name);
 
-            // First check if the service is already running
+
             let check_cmd = component
                 .check_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -1070,7 +1070,7 @@ EOF"#.to_string(),
                     .spawn()?);
             }
 
-            // If not running, execute the main command
+
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -1095,15 +1095,15 @@ EOF"#.to_string(),
                 bin_path, logs_path
             );
 
-            // Fetch credentials from Vault for special placeholders
+
             let vault_credentials = Self::fetch_vault_credentials();
 
-            // Create new env vars map with evaluated $VAR references
+
             let mut evaluated_envs = HashMap::new();
             for (k, v) in &component.env_vars {
                 if v.starts_with('$') {
                     let var_name = &v[1..];
-                    // First check Vault credentials, then fall back to env vars
+
                     let value = vault_credentials
                         .get(var_name)
                         .cloned()
@@ -1115,9 +1115,9 @@ EOF"#.to_string(),
                 }
             }
 
-            // Don't redirect stdout/stderr to null - let the shell command handle its own redirections
-            // This is important for commands like "nohup ... > file 2>&1 &" which need to redirect
-            // their own output to files
+
+
+
             info!(
                 "[START] About to spawn shell command for {}: {}",
                 component.name, rendered_cmd
@@ -1137,7 +1137,7 @@ EOF"#.to_string(),
             );
             std::thread::sleep(std::time::Duration::from_secs(2));
 
-            // Check if the process is actually running after sleep
+
             info!(
                 "[START] Checking if {} process exists after 2s sleep...",
                 component.name
@@ -1184,12 +1184,12 @@ EOF"#.to_string(),
         }
     }
 
-    /// Fetch credentials from Vault for component env var placeholders
-    /// Returns a HashMap with keys like DRIVE_ACCESSKEY, DRIVE_SECRET, etc.
+
+
     fn fetch_vault_credentials() -> HashMap<String, String> {
         let mut credentials = HashMap::new();
 
-        // Try to fetch drive credentials from Vault using vault CLI
+
         let vault_addr =
             std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://localhost:8200".to_string());
         let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
@@ -1199,7 +1199,7 @@ EOF"#.to_string(),
             return credentials;
         }
 
-        // Fetch drive credentials
+
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
@@ -1224,7 +1224,7 @@ EOF"#.to_string(),
             }
         }
 
-        // Fetch cache credentials
+
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(

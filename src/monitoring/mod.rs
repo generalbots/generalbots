@@ -1,6 +1,6 @@
-//! Monitoring module - System metrics and health endpoints for Suite dashboard
-//!
-//! Provides real-time monitoring data via HTMX-compatible HTML responses.
+
+
+
 
 use axum::{extract::State, response::Html, routing::get, Router};
 use log::info;
@@ -9,7 +9,7 @@ use sysinfo::{Disks, Networks, System};
 
 use crate::shared::state::AppState;
 
-/// Configure monitoring API routes
+
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/api/monitoring/dashboard", get(dashboard))
@@ -20,7 +20,7 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/api/monitoring/health", get(health))
 }
 
-/// Dashboard overview with key metrics
+
 async fn dashboard(State(state): State<Arc<AppState>>) -> Html<String> {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -106,7 +106,7 @@ async fn dashboard(State(state): State<Arc<AppState>>) -> Html<String> {
     ))
 }
 
-/// Services status page
+
 async fn services(State(_state): State<Arc<AppState>>) -> Html<String> {
     let services = vec![
         ("PostgreSQL", check_postgres(), "Database"),
@@ -166,7 +166,7 @@ async fn services(State(_state): State<Arc<AppState>>) -> Html<String> {
     ))
 }
 
-/// System resources view
+
 async fn resources(State(_state): State<Arc<AppState>>) -> Html<String> {
     let mut sys = System::new_all();
     sys.refresh_all();
@@ -266,7 +266,7 @@ async fn resources(State(_state): State<Arc<AppState>>) -> Html<String> {
     ))
 }
 
-/// Logs viewer
+
 async fn logs(State(_state): State<Arc<AppState>>) -> Html<String> {
     Html(
         r##"<div class="logs-view">
@@ -298,7 +298,7 @@ async fn logs(State(_state): State<Arc<AppState>>) -> Html<String> {
     )
 }
 
-/// LLM metrics (uses observability module)
+
 async fn llm_metrics(State(_state): State<Arc<AppState>>) -> Html<String> {
     Html(
         r##"<div class="llm-metrics-view">
@@ -352,7 +352,7 @@ async fn llm_metrics(State(_state): State<Arc<AppState>>) -> Html<String> {
     )
 }
 
-/// Health check endpoint
+
 async fn health(State(state): State<Arc<AppState>>) -> Html<String> {
     let db_ok = state.conn.get().is_ok();
     let status = if db_ok { "healthy" } else { "degraded" };
@@ -365,7 +365,7 @@ async fn health(State(state): State<Arc<AppState>>) -> Html<String> {
     ))
 }
 
-/// Format uptime seconds to human readable string
+
 fn format_uptime(seconds: u64) -> String {
     let days = seconds / 86400;
     let hours = (seconds % 86400) / 3600;
@@ -380,22 +380,22 @@ fn format_uptime(seconds: u64) -> String {
     }
 }
 
-/// Check if PostgreSQL is accessible
+
 fn check_postgres() -> bool {
     true
 }
 
-/// Check if Redis is accessible
+
 fn check_redis() -> bool {
     true
 }
 
-/// Check if MinIO is accessible
+
 fn check_minio() -> bool {
     true
 }
 
-/// Check if LLM server is accessible
+
 fn check_llm() -> bool {
     true
 }

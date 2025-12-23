@@ -1,5 +1,5 @@
-//! Keyword-based services for attendance system
-//! Provides automated keyword detection and processing for attendance commands
+
+
 
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Local, NaiveTime, Utc};
@@ -8,7 +8,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-/// Keyword command types for attendance
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AttendanceCommand {
     CheckIn,
@@ -20,7 +20,7 @@ pub enum AttendanceCommand {
     Override,
 }
 
-/// Keyword configuration for attendance
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KeywordConfig {
     pub enabled: bool,
@@ -58,7 +58,7 @@ impl Default for KeywordConfig {
     }
 }
 
-/// Parsed keyword command
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ParsedCommand {
     pub command: AttendanceCommand,
@@ -67,21 +67,21 @@ pub struct ParsedCommand {
     pub raw_input: String,
 }
 
-/// Keyword parser for attendance commands
+
 #[derive(Debug, Clone)]
 pub struct KeywordParser {
     config: Arc<RwLock<KeywordConfig>>,
 }
 
 impl KeywordParser {
-    /// Create new keyword parser
+
     pub fn new(config: KeywordConfig) -> Self {
         Self {
             config: Arc::new(RwLock::new(config)),
         }
     }
 
-    /// Parse input text for attendance commands
+
     pub async fn parse(&self, input: &str) -> Option<ParsedCommand> {
         let config = self.config.read().await;
 
@@ -95,7 +95,7 @@ impl KeywordParser {
             input.trim().to_lowercase()
         };
 
-        // Check for prefix if configured
+
         let command_text = if let Some(prefix) = &config.prefix {
             if !processed_input.starts_with(prefix) {
                 return None;
@@ -105,7 +105,7 @@ impl KeywordParser {
             &processed_input
         };
 
-        // Split command and arguments
+
         let parts: Vec<&str> = command_text.split_whitespace().collect();
         if parts.is_empty() {
             return None;
@@ -114,14 +114,14 @@ impl KeywordParser {
         let command_word = parts[0];
         let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
 
-        // Resolve aliases
+
         let resolved_command = if let Some(alias) = config.aliases.get(command_word) {
             alias.as_str()
         } else {
             command_word
         };
 
-        // Look up command
+
         let command = config.keywords.get(resolved_command)?;
 
         Some(ParsedCommand {
@@ -132,43 +132,43 @@ impl KeywordParser {
         })
     }
 
-    /// Update configuration
+
     pub async fn update_config(&self, config: KeywordConfig) {
         let mut current = self.config.write().await;
         *current = config;
     }
 
-    /// Add a new keyword
+
     pub async fn add_keyword(&self, keyword: String, command: AttendanceCommand) {
         let mut config = self.config.write().await;
         config.keywords.insert(keyword, command);
     }
 
-    /// Add a new alias
+
     pub async fn add_alias(&self, alias: String, target: String) {
         let mut config = self.config.write().await;
         config.aliases.insert(alias, target);
     }
 
-    /// Remove a keyword
+
     pub async fn remove_keyword(&self, keyword: &str) -> bool {
         let mut config = self.config.write().await;
         config.keywords.remove(keyword).is_some()
     }
 
-    /// Remove an alias
+
     pub async fn remove_alias(&self, alias: &str) -> bool {
         let mut config = self.config.write().await;
         config.aliases.remove(alias).is_some()
     }
 
-    /// Get current configuration
+
     pub async fn get_config(&self) -> KeywordConfig {
         self.config.read().await.clone()
     }
 }
 
-/// Attendance record
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttendanceRecord {
     pub id: String,
@@ -179,7 +179,7 @@ pub struct AttendanceRecord {
     pub notes: Option<String>,
 }
 
-/// Attendance service for processing commands
+
 #[derive(Debug, Clone)]
 pub struct AttendanceService {
     parser: Arc<KeywordParser>,
@@ -187,7 +187,7 @@ pub struct AttendanceService {
 }
 
 impl AttendanceService {
-    /// Create new attendance service
+
     pub fn new(parser: KeywordParser) -> Self {
         Self {
             parser: Arc::new(parser),
@@ -195,7 +195,7 @@ impl AttendanceService {
         }
     }
 
-    /// Process a text input for attendance commands
+
     pub async fn process_input(
         &self,
         user_id: &str,
@@ -218,7 +218,7 @@ impl AttendanceService {
         }
     }
 
-    /// Handle check-in command
+
     async fn handle_check_in(
         &self,
         user_id: &str,
@@ -226,7 +226,7 @@ impl AttendanceService {
     ) -> Result<AttendanceResponse> {
         let mut records = self.records.write().await;
 
-        // Check if already checked in
+
         if let Some(last_record) = records.iter().rev().find(|r| r.user_id == user_id) {
             if matches!(last_record.command, AttendanceCommand::CheckIn) {
                 return Ok(AttendanceResponse::Error {
@@ -257,7 +257,7 @@ impl AttendanceService {
         })
     }
 
-    /// Handle check-out command
+
     async fn handle_check_out(
         &self,
         user_id: &str,
@@ -265,7 +265,7 @@ impl AttendanceService {
     ) -> Result<AttendanceResponse> {
         let mut records = self.records.write().await;
 
-        // Find last check-in
+
         let check_in_time = records
             .iter()
             .rev()
@@ -303,7 +303,7 @@ impl AttendanceService {
         })
     }
 
-    /// Handle break command
+
     async fn handle_break(
         &self,
         user_id: &str,
@@ -311,7 +311,7 @@ impl AttendanceService {
     ) -> Result<AttendanceResponse> {
         let mut records = self.records.write().await;
 
-        // Check if checked in
+
         let is_checked_in = records
             .iter()
             .rev()
@@ -343,7 +343,7 @@ impl AttendanceService {
         })
     }
 
-    /// Handle resume command
+
     async fn handle_resume(
         &self,
         user_id: &str,
@@ -351,7 +351,7 @@ impl AttendanceService {
     ) -> Result<AttendanceResponse> {
         let mut records = self.records.write().await;
 
-        // Find last break
+
         let break_time = records
             .iter()
             .rev()
@@ -384,7 +384,7 @@ impl AttendanceService {
         })
     }
 
-    /// Handle status command
+
     async fn handle_status(&self, user_id: &str) -> Result<AttendanceResponse> {
         let records = self.records.read().await;
 
@@ -421,7 +421,7 @@ impl AttendanceService {
         })
     }
 
-    /// Handle report command
+
     async fn handle_report(
         &self,
         user_id: &str,
@@ -464,7 +464,7 @@ impl AttendanceService {
         Ok(AttendanceResponse::Report { data: report })
     }
 
-    /// Handle override command (for admins)
+
     async fn handle_override(
         &self,
         user_id: &str,
@@ -479,7 +479,7 @@ impl AttendanceService {
         let target_user = &parsed.args[0];
         let action = &parsed.args[1];
 
-        // In a real implementation, check admin permissions here
+
         log::warn!(
             "Override command by {} for user {}: {}",
             user_id,
@@ -493,7 +493,7 @@ impl AttendanceService {
         })
     }
 
-    /// Get all records for a user
+
     pub async fn get_user_records(&self, user_id: &str) -> Vec<AttendanceRecord> {
         let records = self.records.read().await;
         records
@@ -503,13 +503,13 @@ impl AttendanceService {
             .collect()
     }
 
-    /// Clear all records (for testing)
+
     pub async fn clear_records(&self) {
         let mut records = self.records.write().await;
         records.clear();
     }
 
-    /// Get total work time for a user today
+
     pub async fn get_today_work_time(&self, user_id: &str) -> Duration {
         let records = self.records.read().await;
         let today = Local::now().date_naive();
@@ -536,7 +536,7 @@ impl AttendanceService {
             }
         }
 
-        // If still checked in, add time until now
+
         if let Some(checkin) = last_checkin {
             total_duration = total_duration + (Utc::now() - checkin);
         }
@@ -545,7 +545,7 @@ impl AttendanceService {
     }
 }
 
-/// Response from attendance service
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum AttendanceResponse {
     Success {

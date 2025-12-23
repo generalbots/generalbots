@@ -41,7 +41,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::sync::Arc;
 
-/// Register all data operation keywords
+
 pub fn register_data_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_save_keyword(state.clone(), user.clone(), engine);
     register_insert_keyword(state.clone(), user.clone(), engine);
@@ -57,8 +57,8 @@ pub fn register_data_operations(state: Arc<AppState>, user: UserSession, engine:
     register_group_by_keyword(state.clone(), user.clone(), engine);
 }
 
-/// SAVE "table", id, data
-/// Saves data to a table - inserts if new, updates if exists (upsert)
+
+
 pub fn register_save_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -87,8 +87,8 @@ pub fn register_save_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-/// INSERT "table", data
-/// Inserts a new record into a table
+
+
 pub fn register_insert_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -116,8 +116,8 @@ pub fn register_insert_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-/// UPDATE "table", filter, data
-/// Updates records in a table matching the filter
+
+
 pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -146,15 +146,15 @@ pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-/// DELETE - Unified delete keyword
-/// Automatically detects context:
-/// - DELETE "url" - HTTP DELETE request
-/// - DELETE "table", "filter" - Database delete with WHERE clause
-/// - DELETE "file.txt" - File deletion
+
+
+
+
+
 pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-    // DELETE with two arguments: table + filter (SQL style)
+
     engine
         .register_custom_syntax(
             &["DELETE", "$expr$", ",", "$expr$"],
@@ -163,9 +163,9 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
                 let first_arg = context.eval_expression_tree(&inputs[0])?.to_string();
                 let second_arg = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                // Auto-detect: HTTP URL vs Database table
+
                 if first_arg.starts_with("http://") || first_arg.starts_with("https://") {
-                    // HTTP DELETE with body/params
+
                     trace!("DELETE HTTP with data: {}", first_arg);
 
                     let (tx, rx) = std::sync::mpsc::channel();
@@ -208,7 +208,7 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
                         ))),
                     }
                 } else {
-                    // Database DELETE with WHERE clause
+
                     trace!("DELETE from table: {}, filter: {}", first_arg, second_arg);
 
                     let mut conn = state_clone
@@ -225,15 +225,15 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
         )
         .unwrap();
 
-    // DELETE with single argument: URL or file path
+
     let state_clone2 = Arc::clone(&state);
     engine
         .register_custom_syntax(&["DELETE", "$expr$"], false, move |context, inputs| {
             let target = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            // Auto-detect: HTTP URL vs File path
+
             if target.starts_with("http://") || target.starts_with("https://") {
-                // HTTP DELETE
+
                 trace!("DELETE HTTP: {}", target);
 
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -276,20 +276,20 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
                     ))),
                 }
             } else {
-                // File deletion
+
                 trace!("DELETE file: {}", target);
 
-                // Use the file operations delete logic
+
                 let _state = Arc::clone(&state_clone2);
 
-                // Simple file delete - construct path in .gbdrive
+
                 let file_path = std::path::Path::new(&target);
                 if file_path.exists() {
                     std::fs::remove_file(file_path)
                         .map_err(|e| format!("File delete error: {}", e))?;
                     Ok(Dynamic::from(true))
                 } else {
-                    // Try in .gbdrive
+
                     Ok(Dynamic::from(format!("File not found: {}", target)))
                 }
             }
@@ -297,8 +297,8 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-/// MERGE "table", data, key_field
-/// Merges data into a table using key_field for matching
+
+
 pub fn register_merge_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -327,8 +327,8 @@ pub fn register_merge_keyword(state: Arc<AppState>, _user: UserSession, engine: 
         .unwrap();
 }
 
-/// FILL data, template
-/// Transforms data structure by filling a template with values
+
+
 pub fn register_fill_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -348,8 +348,8 @@ pub fn register_fill_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
         .unwrap();
 }
 
-/// MAP data, "a->x, b->y"
-/// Maps field names from source to destination
+
+
 pub fn register_map_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -369,8 +369,8 @@ pub fn register_map_keyword(_state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-/// FILTER data, "field=value"
-/// Filters records based on a condition
+
+
 pub fn register_filter_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -390,8 +390,8 @@ pub fn register_filter_keyword(_state: Arc<AppState>, _user: UserSession, engine
         .unwrap();
 }
 
-/// AGGREGATE "SUM", data, "field"
-/// Performs aggregation operations on data
+
+
 pub fn register_aggregate_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -412,8 +412,8 @@ pub fn register_aggregate_keyword(_state: Arc<AppState>, _user: UserSession, eng
         .unwrap();
 }
 
-/// JOIN left_data, right_data, "key_field"
-/// Joins two datasets on a key field
+
+
 pub fn register_join_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -434,8 +434,8 @@ pub fn register_join_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
         .unwrap();
 }
 
-/// PIVOT data, "row_field", "value_field"
-/// Creates a pivot table from data
+
+
 pub fn register_pivot_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -456,8 +456,8 @@ pub fn register_pivot_keyword(_state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-/// GROUP_BY data, "field"
-/// Groups data by a field
+
+
 pub fn register_group_by_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
@@ -477,9 +477,9 @@ pub fn register_group_by_keyword(_state: Arc<AppState>, _user: UserSession, engi
         .unwrap();
 }
 
-// Implementation Functions
 
-/// Execute SAVE - upsert operation
+
+
 fn execute_save(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -489,7 +489,7 @@ fn execute_save(
     let data_map = dynamic_to_map(data);
     let id_value = id.to_string();
 
-    // Build column names and values
+
     let mut columns: Vec<String> = vec!["id".to_string()];
     let mut values: Vec<String> = vec![format!("'{}'", sanitize_sql(&id_value))];
     let mut update_sets: Vec<String> = Vec::new();
@@ -525,7 +525,7 @@ fn execute_save(
     }))
 }
 
-/// Execute INSERT
+
 fn execute_insert(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -580,7 +580,7 @@ fn execute_insert(
     }
 }
 
-/// Execute UPDATE
+
 fn execute_update(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -616,7 +616,7 @@ fn execute_update(
     Ok(result as i64)
 }
 
-/// Execute DELETE
+
 fn execute_delete(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -640,7 +640,7 @@ fn execute_delete(
     Ok(result as i64)
 }
 
-/// Execute MERGE
+
 fn execute_merge(
     conn: &mut diesel::PgConnection,
     table: &str,
@@ -663,7 +663,7 @@ fn execute_merge(
             continue;
         }
 
-        // Check if record exists
+
         let check_query = format!(
             "SELECT COUNT(*) as cnt FROM {} WHERE {} = '{}'",
             sanitize_identifier(table),
@@ -683,7 +683,7 @@ fn execute_merge(
             .unwrap_or(false);
 
         if exists {
-            // Update
+
             let mut update_sets: Vec<String> = Vec::new();
             for (key, value) in &item_map {
                 if key != key_field {
@@ -707,7 +707,7 @@ fn execute_merge(
                 updated += 1;
             }
         } else {
-            // Insert
+
             let mut columns: Vec<String> = Vec::new();
             let mut values: Vec<String> = Vec::new();
 
@@ -736,7 +736,7 @@ fn execute_merge(
     }))
 }
 
-/// Execute FILL - template transformation
+
 fn execute_fill(data: &Dynamic, template: &Dynamic) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
     let template_map = dynamic_to_map(template);
     let array = to_array(data.clone());
@@ -749,7 +749,7 @@ fn execute_fill(data: &Dynamic, template: &Dynamic) -> Result<Dynamic, Box<rhai:
         for (template_key, template_value) in &template_map {
             let template_str = template_value.to_string();
 
-            // Replace placeholders like {{field_name}} with actual values
+
             let mut filled_value = template_str.clone();
             for (data_key, data_value) in &item_map {
                 let placeholder = format!("{{{{{}}}}}", data_key);
@@ -765,9 +765,9 @@ fn execute_fill(data: &Dynamic, template: &Dynamic) -> Result<Dynamic, Box<rhai:
     Ok(Dynamic::from(results))
 }
 
-/// Execute MAP - field mapping
+
 fn execute_map(data: &Dynamic, mapping: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
-    // Parse mapping string like "a->x, b->y"
+
     let mappings: HashMap<String, String> = mapping
         .split(',')
         .filter_map(|pair| {
@@ -798,7 +798,7 @@ fn execute_map(data: &Dynamic, mapping: &str) -> Result<Dynamic, Box<rhai::EvalA
     Ok(Dynamic::from(results))
 }
 
-/// Execute FILTER - conditional filtering
+
 fn execute_filter(data: &Dynamic, condition: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
     let (field, operator, value) = parse_condition(condition)?;
     let array = to_array(data.clone());
@@ -843,7 +843,7 @@ fn execute_filter(data: &Dynamic, condition: &str) -> Result<Dynamic, Box<rhai::
     Ok(Dynamic::from(results))
 }
 
-/// Execute AGGREGATE - aggregation functions
+
 fn execute_aggregate(
     operation: &str,
     data: &Dynamic,
@@ -884,7 +884,7 @@ fn execute_aggregate(
     Ok(Dynamic::from(result))
 }
 
-/// Execute JOIN - inner join two datasets
+
 fn execute_join(
     left: &Dynamic,
     right: &Dynamic,
@@ -894,7 +894,7 @@ fn execute_join(
     let right_array = to_array(right.clone());
     let mut results: Array = Array::new();
 
-    // Build index on right side
+
     let mut right_index: HashMap<String, Vec<Map>> = HashMap::new();
     for item in &right_array {
         let item_map = dynamic_to_map(item);
@@ -907,7 +907,7 @@ fn execute_join(
         }
     }
 
-    // Join
+
     for left_item in &left_array {
         let left_map = dynamic_to_map(left_item);
         if let Some(key_value) = left_map.get(key) {
@@ -929,7 +929,7 @@ fn execute_join(
     Ok(Dynamic::from(results))
 }
 
-/// Execute PIVOT - create pivot table
+
 fn execute_pivot(
     data: &Dynamic,
     row_field: &str,
@@ -965,7 +965,7 @@ fn execute_pivot(
     Ok(Dynamic::from(results))
 }
 
-/// Execute GROUP_BY - group data by field
+
 fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, Box<rhai::EvalAltResult>> {
     let array = to_array(data.clone());
     let mut groups: HashMap<String, Array> = HashMap::new();
@@ -992,9 +992,9 @@ fn execute_group_by(data: &Dynamic, field: &str) -> Result<Dynamic, Box<rhai::Ev
     Ok(Dynamic::from(result_map))
 }
 
-// Helper Functions
 
-/// Convert Dynamic to HashMap<String, Dynamic>
+
+
 fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
     let mut result = HashMap::new();
 
@@ -1010,7 +1010,7 @@ fn dynamic_to_map(value: &Dynamic) -> HashMap<String, Dynamic> {
     result
 }
 
-/// Convert Dynamic to Rhai Map
+
 fn dynamic_to_rhai_map(value: &Dynamic) -> Map {
     match value.clone().try_cast::<Map>() {
         Some(map) => map,
@@ -1018,7 +1018,7 @@ fn dynamic_to_rhai_map(value: &Dynamic) -> Map {
     }
 }
 
-/// Parse a filter clause string like "field=value" or "field>10"
+
 fn parse_filter_clause(filter: &str) -> Result<String, Box<dyn Error + Send + Sync>> {
     let (field, operator, value) = parse_condition_internal(filter)?;
 
@@ -1041,7 +1041,7 @@ fn parse_filter_clause(filter: &str) -> Result<String, Box<dyn Error + Send + Sy
     ))
 }
 
-/// Parse a condition string into (field, operator, value)
+
 fn parse_condition(condition: &str) -> Result<(String, String, String), Box<rhai::EvalAltResult>> {
     parse_condition_internal(condition).map_err(|e| {
         Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -1067,14 +1067,14 @@ fn parse_condition_internal(
     Err("Invalid condition format".into())
 }
 
-/// Sanitize SQL identifier (table name, column name)
+
 fn sanitize_identifier(name: &str) -> String {
     name.chars()
         .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
         .collect()
 }
 
-/// Sanitize SQL value string
+
 fn sanitize_sql(value: &str) -> String {
     value.replace('\'', "''")
 }

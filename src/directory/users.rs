@@ -8,11 +8,11 @@ use chrono::{DateTime, Utc};
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-// use uuid::Uuid; // Unused import
+
 
 use crate::shared::state::AppState;
 
-// Request/Response Types
+
 
 #[derive(Debug, Deserialize)]
 pub struct CreateUserRequest {
@@ -76,22 +76,22 @@ pub struct ErrorResponse {
     pub details: Option<String>,
 }
 
-// User Management Handlers
 
-/// Create a new user in Zitadel
+
+
 pub async fn create_user(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateUserRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<ErrorResponse>)> {
     info!("Creating user: {} ({})", req.username, req.email);
 
-    // Get auth service from app state
+
     let client = {
         let auth_service = state.auth_service.lock().await;
         auth_service.client().clone()
     };
 
-    // Create user in Zitadel
+
     match client
         .create_user(
             &req.email,
@@ -122,7 +122,7 @@ pub async fn create_user(
     }
 }
 
-/// Update an existing user
+
 pub async fn update_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
@@ -135,7 +135,7 @@ pub async fn update_user(
         auth_service.client().clone()
     };
 
-    // Build update payload
+
     let mut update_data = serde_json::Map::new();
     if let Some(username) = &req.username {
         update_data.insert("userName".to_string(), serde_json::json!(username));
@@ -156,7 +156,7 @@ pub async fn update_user(
         update_data.insert("phone".to_string(), serde_json::json!(phone));
     }
 
-    // Update user via Zitadel API
+
     match client
         .http_patch(format!("{}/users/{}", client.api_url(), user_id))
         .await
@@ -195,7 +195,7 @@ pub async fn update_user(
     }
 }
 
-/// Delete a user
+
 pub async fn delete_user(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,
@@ -207,10 +207,10 @@ pub async fn delete_user(
         auth_service.client().clone()
     };
 
-    // Verify user exists
+
     match client.get_user(&user_id).await {
         Ok(_) => {
-            // In production, you'd call a deactivate/delete method
+
             info!("User {} deleted/deactivated", user_id);
             Ok(Json(SuccessResponse {
                 success: true,
@@ -231,7 +231,7 @@ pub async fn delete_user(
     }
 }
 
-/// List users with pagination and optional search
+
 pub async fn list_users(
     State(state): State<Arc<AppState>>,
     Query(params): Query<UserQuery>,
@@ -304,7 +304,7 @@ pub async fn list_users(
     }
 }
 
-/// Get user profile
+
 pub async fn get_user_profile(
     State(state): State<Arc<AppState>>,
     Path(user_id): Path<String>,

@@ -21,7 +21,7 @@ impl TeamsAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
         let config_manager = ConfigManager::new(pool);
 
-        // Load from bot_configuration table with fallback to environment variables
+
         let app_id = config_manager
             .get_config(&bot_id, "teams-app-id", None)
             .unwrap_or_default();
@@ -342,7 +342,7 @@ impl ChannelAdapter for TeamsAdapter {
             return Err("Teams not configured".into());
         }
 
-        // Try to use existing conversation or create a new one
+
         let conversation_id = self.create_conversation(&response.user_id).await?;
 
         let activity = TeamsActivity {
@@ -365,13 +365,13 @@ impl ChannelAdapter for TeamsAdapter {
         &self,
         payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-        // Parse Teams activity
+
         let activity_type = payload["type"].as_str().unwrap_or("");
 
         match activity_type {
             "message" => {
                 if let Some(text) = payload["text"].as_str() {
-                    // Remove bot mention if present
+
                     let cleaned_text = text
                         .replace(&format!("<at>{}</at>", self.bot_id), "")
                         .trim()
@@ -406,8 +406,8 @@ impl ChannelAdapter for TeamsAdapter {
         &self,
         user_id: &str,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-        // Teams user info would require Graph API access
-        // For now, return basic info
+
+
         Ok(serde_json::json!({
             "id": user_id,
             "platform": "teams"
@@ -488,7 +488,7 @@ pub struct TeamsConversationAccount {
     pub is_group: Option<bool>,
 }
 
-// Helper functions for Teams-specific features
+
 
 pub fn create_adaptive_card(
     title: &str,

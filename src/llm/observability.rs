@@ -1,35 +1,35 @@
-//! LLM Observability - Metrics, Tracing, and Cost Tracking
-//!
-//! This module provides comprehensive observability for LLM operations including:
-//!
-//! - Request/response metrics (latency, tokens, cache hits)
-//! - Cost tracking and budgeting
-//! - Trace visualization for debugging
-//! - Model performance comparison
-//! - Real-time monitoring via SSE
-//!
-//! ## Features
-//!
-//! - Token usage tracking per conversation
-//! - Response latency histograms
-//! - Cache hit/miss rates
-//! - Model selection distribution
-//! - Error rate monitoring
-//! - Cost estimation and budgeting
-//!
-//! ## Config.csv Properties
-//!
-//! ```csv
-//! name,value
-//! observability-enabled,true
-//! observability-metrics-interval,60
-//! observability-cost-tracking,true
-//! observability-trace-enabled,true
-//! observability-trace-sample-rate,1.0
-//! observability-budget-daily,100.00
-//! observability-budget-monthly,2000.00
-//! observability-alert-threshold,0.8
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use rhai::{Dynamic, Engine, Map};
@@ -41,44 +41,44 @@ use tokio::sync::RwLock;
 use tracing::info;
 use uuid::Uuid;
 
-/// LLM request metrics
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMRequestMetrics {
-    /// Request ID
+
     pub request_id: Uuid,
-    /// Session ID
+
     pub session_id: Uuid,
-    /// Bot ID
+
     pub bot_id: Uuid,
-    /// Model used
+
     pub model: String,
-    /// Request type (chat, completion, embedding)
+
     pub request_type: RequestType,
-    /// Input tokens
+
     pub input_tokens: u64,
-    /// Output tokens
+
     pub output_tokens: u64,
-    /// Total tokens
+
     pub total_tokens: u64,
-    /// Latency in milliseconds
+
     pub latency_ms: u64,
-    /// Time to first token (for streaming)
+
     pub ttft_ms: Option<u64>,
-    /// Whether response was cached
+
     pub cached: bool,
-    /// Whether request succeeded
+
     pub success: bool,
-    /// Error message if failed
+
     pub error: Option<String>,
-    /// Estimated cost in USD
+
     pub estimated_cost: f64,
-    /// When the request was made
+
     pub timestamp: DateTime<Utc>,
-    /// Additional metadata
+
     pub metadata: HashMap<String, String>,
 }
 
-/// Type of LLM request
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
 pub enum RequestType {
@@ -113,67 +113,67 @@ impl std::fmt::Display for RequestType {
     }
 }
 
-/// Aggregated metrics for a time period
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AggregatedMetrics {
-    /// Time period start
+
     pub period_start: DateTime<Utc>,
-    /// Time period end
+
     pub period_end: DateTime<Utc>,
-    /// Total requests
+
     pub total_requests: u64,
-    /// Successful requests
+
     pub successful_requests: u64,
-    /// Failed requests
+
     pub failed_requests: u64,
-    /// Cache hits
+
     pub cache_hits: u64,
-    /// Cache misses
+
     pub cache_misses: u64,
-    /// Total input tokens
+
     pub total_input_tokens: u64,
-    /// Total output tokens
+
     pub total_output_tokens: u64,
-    /// Total tokens
+
     pub total_tokens: u64,
-    /// Total estimated cost
+
     pub total_cost: f64,
-    /// Average latency
+
     pub avg_latency_ms: f64,
-    /// P50 latency
+
     pub p50_latency_ms: f64,
-    /// P95 latency
+
     pub p95_latency_ms: f64,
-    /// P99 latency
+
     pub p99_latency_ms: f64,
-    /// Max latency
+
     pub max_latency_ms: u64,
-    /// Min latency
+
     pub min_latency_ms: u64,
-    /// Requests by model
+
     pub requests_by_model: HashMap<String, u64>,
-    /// Tokens by model
+
     pub tokens_by_model: HashMap<String, u64>,
-    /// Cost by model
+
     pub cost_by_model: HashMap<String, f64>,
-    /// Requests by type
+
     pub requests_by_type: HashMap<String, u64>,
-    /// Error count by type
+
     pub errors_by_type: HashMap<String, u64>,
 }
 
-/// Model pricing configuration
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelPricing {
-    /// Model name/identifier
+
     pub model: String,
-    /// Cost per 1K input tokens
+
     pub input_cost_per_1k: f64,
-    /// Cost per 1K output tokens
+
     pub output_cost_per_1k: f64,
-    /// Cost per request (flat fee)
+
     pub cost_per_request: f64,
-    /// Whether this is a local model (no cost)
+
     pub is_local: bool,
 }
 
@@ -189,26 +189,26 @@ impl Default for ModelPricing {
     }
 }
 
-/// Budget configuration and tracking
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Budget {
-    /// Daily budget in USD
+
     pub daily_limit: f64,
-    /// Monthly budget in USD
+
     pub monthly_limit: f64,
-    /// Alert threshold (0-1, e.g., 0.8 = 80%)
+
     pub alert_threshold: f64,
-    /// Current daily spend
+
     pub daily_spend: f64,
-    /// Current monthly spend
+
     pub monthly_spend: f64,
-    /// Last reset date for daily
+
     pub daily_reset_date: DateTime<Utc>,
-    /// Last reset date for monthly
+
     pub monthly_reset_date: DateTime<Utc>,
-    /// Whether daily alert has been sent
+
     pub daily_alert_sent: bool,
-    /// Whether monthly alert has been sent
+
     pub monthly_alert_sent: bool,
 }
 
@@ -229,36 +229,36 @@ impl Default for Budget {
     }
 }
 
-/// Trace event for debugging
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceEvent {
-    /// Event ID
+
     pub id: Uuid,
-    /// Parent event ID (for nested spans)
+
     pub parent_id: Option<Uuid>,
-    /// Trace ID (groups related events)
+
     pub trace_id: Uuid,
-    /// Event name
+
     pub name: String,
-    /// Component that generated the event
+
     pub component: String,
-    /// Event type
+
     pub event_type: TraceEventType,
-    /// Duration in milliseconds
+
     pub duration_ms: Option<u64>,
-    /// Start timestamp
+
     pub start_time: DateTime<Utc>,
-    /// End timestamp
+
     pub end_time: Option<DateTime<Utc>>,
-    /// Event attributes
+
     pub attributes: HashMap<String, String>,
-    /// Status
+
     pub status: TraceStatus,
-    /// Error message if failed
+
     pub error: Option<String>,
 }
 
-/// Type of trace event
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum TraceEventType {
@@ -268,7 +268,7 @@ pub enum TraceEventType {
     Metric,
 }
 
-/// Trace status
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum TraceStatus {
@@ -283,26 +283,26 @@ impl Default for TraceStatus {
     }
 }
 
-/// Configuration for observability
+
 #[derive(Debug, Clone)]
 pub struct ObservabilityConfig {
-    /// Whether observability is enabled
+
     pub enabled: bool,
-    /// Metrics aggregation interval in seconds
+
     pub metrics_interval: u64,
-    /// Whether to track costs
+
     pub cost_tracking: bool,
-    /// Whether tracing is enabled
+
     pub trace_enabled: bool,
-    /// Trace sampling rate (0-1)
+
     pub trace_sample_rate: f64,
-    /// Daily budget
+
     pub budget_daily: f64,
-    /// Monthly budget
+
     pub budget_monthly: f64,
-    /// Alert threshold (0-1)
+
     pub alert_threshold: f64,
-    /// Model pricing configurations
+
     pub model_pricing: HashMap<String, ModelPricing>,
 }
 
@@ -322,11 +322,11 @@ impl Default for ObservabilityConfig {
     }
 }
 
-/// Default pricing for common models
+
 fn default_model_pricing() -> HashMap<String, ModelPricing> {
     let mut pricing = HashMap::new();
 
-    // OpenAI models
+
     pricing.insert(
         "gpt-4".to_string(),
         ModelPricing {
@@ -360,7 +360,7 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
         },
     );
 
-    // Anthropic models
+
     pricing.insert(
         "claude-3-opus".to_string(),
         ModelPricing {
@@ -383,7 +383,7 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
         },
     );
 
-    // Groq (fast inference)
+
     pricing.insert(
         "mixtral-8x7b-32768".to_string(),
         ModelPricing {
@@ -395,7 +395,7 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
         },
     );
 
-    // Local models (free)
+
     pricing.insert(
         "local".to_string(),
         ModelPricing {
@@ -410,19 +410,19 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
     pricing
 }
 
-/// Observability Manager
+
 #[derive(Debug)]
 pub struct ObservabilityManager {
     config: ObservabilityConfig,
-    /// In-memory metrics buffer
+
     metrics_buffer: Arc<RwLock<Vec<LLMRequestMetrics>>>,
-    /// Current aggregated metrics
+
     current_metrics: Arc<RwLock<AggregatedMetrics>>,
-    /// Budget tracking
+
     budget: Arc<RwLock<Budget>>,
-    /// Trace buffer
+
     trace_buffer: Arc<RwLock<Vec<TraceEvent>>>,
-    /// Counters for quick access
+
     request_count: AtomicU64,
     token_count: AtomicU64,
     cache_hits: AtomicU64,
@@ -431,7 +431,7 @@ pub struct ObservabilityManager {
 }
 
 impl ObservabilityManager {
-    /// Create a new observability manager
+
     pub fn new(config: ObservabilityConfig) -> Self {
         let budget = Budget {
             daily_limit: config.budget_daily,
@@ -454,7 +454,7 @@ impl ObservabilityManager {
         }
     }
 
-    /// Create from config map
+
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = ObservabilityConfig {
             enabled: config_map
@@ -494,13 +494,13 @@ impl ObservabilityManager {
         ObservabilityManager::new(config)
     }
 
-    /// Record a request
+
     pub async fn record_request(&self, metrics: LLMRequestMetrics) {
         if !self.config.enabled {
             return;
         }
 
-        // Update atomic counters
+
         self.request_count.fetch_add(1, Ordering::Relaxed);
         self.token_count
             .fetch_add(metrics.total_tokens, Ordering::Relaxed);
@@ -515,24 +515,24 @@ impl ObservabilityManager {
             self.error_count.fetch_add(1, Ordering::Relaxed);
         }
 
-        // Update budget if cost tracking enabled
+
         if self.config.cost_tracking && metrics.estimated_cost > 0.0 {
             let mut budget = self.budget.write().await;
             budget.daily_spend += metrics.estimated_cost;
             budget.monthly_spend += metrics.estimated_cost;
         }
 
-        // Add to buffer
+
         let mut buffer = self.metrics_buffer.write().await;
         buffer.push(metrics);
 
-        // Limit buffer size
+
         if buffer.len() > 10000 {
             buffer.drain(0..1000);
         }
     }
 
-    /// Calculate estimated cost for a request
+
     pub fn calculate_cost(&self, model: &str, input_tokens: u64, output_tokens: u64) -> f64 {
         if let Some(pricing) = self.config.model_pricing.get(model) {
             if pricing.is_local {
@@ -542,12 +542,12 @@ impl ObservabilityManager {
             let output_cost = (output_tokens as f64 / 1000.0) * pricing.output_cost_per_1k;
             input_cost + output_cost + pricing.cost_per_request
         } else {
-            // Default to local (free) if model not found
+
             0.0
         }
     }
 
-    /// Get current budget status
+
     pub async fn get_budget_status(&self) -> BudgetStatus {
         let budget = self.budget.read().await;
         BudgetStatus {
@@ -567,7 +567,7 @@ impl ObservabilityManager {
         }
     }
 
-    /// Check if budget allows a request
+
     pub async fn check_budget(&self, estimated_cost: f64) -> BudgetCheckResult {
         let budget = self.budget.read().await;
 
@@ -593,7 +593,7 @@ impl ObservabilityManager {
         BudgetCheckResult::Ok
     }
 
-    /// Reset daily budget
+
     pub async fn reset_daily_budget(&self) {
         let mut budget = self.budget.write().await;
         budget.daily_spend = 0.0;
@@ -601,7 +601,7 @@ impl ObservabilityManager {
         budget.daily_alert_sent = false;
     }
 
-    /// Reset monthly budget
+
     pub async fn reset_monthly_budget(&self) {
         let mut budget = self.budget.write().await;
         budget.monthly_spend = 0.0;
@@ -609,13 +609,13 @@ impl ObservabilityManager {
         budget.monthly_alert_sent = false;
     }
 
-    /// Record a trace event
+
     pub async fn record_trace(&self, event: TraceEvent) {
         if !self.config.enabled || !self.config.trace_enabled {
             return;
         }
 
-        // Sample rate check
+
         if self.config.trace_sample_rate < 1.0 {
             let sample: f64 = rand::random();
             if sample > self.config.trace_sample_rate {
@@ -626,13 +626,13 @@ impl ObservabilityManager {
         let mut buffer = self.trace_buffer.write().await;
         buffer.push(event);
 
-        // Limit buffer size
+
         if buffer.len() > 5000 {
             buffer.drain(0..500);
         }
     }
 
-    /// Start a trace span
+
     pub fn start_span(
         &self,
         trace_id: Uuid,
@@ -656,7 +656,7 @@ impl ObservabilityManager {
         }
     }
 
-    /// End a trace span
+
     pub fn end_span(&self, span: &mut TraceEvent, status: TraceStatus, error: Option<String>) {
         let end_time = Utc::now();
         span.end_time = Some(end_time);
@@ -665,7 +665,7 @@ impl ObservabilityManager {
         span.error = error;
     }
 
-    /// Get aggregated metrics for a time range
+
     pub async fn get_aggregated_metrics(
         &self,
         start: DateTime<Utc>,
@@ -731,7 +731,7 @@ impl ObservabilityManager {
                 .or_insert(0) += 1;
         }
 
-        // Calculate latency statistics
+
         if !latencies.is_empty() {
             latencies.sort();
             let len = latencies.len();
@@ -748,7 +748,7 @@ impl ObservabilityManager {
         metrics
     }
 
-    /// Get quick stats
+
     pub async fn get_current_metrics(&self) -> AggregatedMetrics {
         self.current_metrics.read().await.clone()
     }
@@ -789,13 +789,13 @@ impl ObservabilityManager {
         }
     }
 
-    /// Get recent traces
+
     pub async fn get_recent_traces(&self, limit: usize) -> Vec<TraceEvent> {
         let buffer = self.trace_buffer.read().await;
         buffer.iter().rev().take(limit).cloned().collect()
     }
 
-    /// Get traces for a specific trace ID
+
     pub async fn get_trace(&self, trace_id: Uuid) -> Vec<TraceEvent> {
         let buffer = self.trace_buffer.read().await;
         buffer
@@ -806,7 +806,7 @@ impl ObservabilityManager {
     }
 }
 
-/// Budget status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetStatus {
     pub daily_limit: f64,
@@ -823,7 +823,7 @@ pub struct BudgetStatus {
     pub near_monthly_limit: bool,
 }
 
-/// Budget check result
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum BudgetCheckResult {
     Ok,
@@ -833,7 +833,7 @@ pub enum BudgetCheckResult {
     MonthlyExceeded,
 }
 
-/// Quick stats (from atomic counters)
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuickStats {
     pub total_requests: u64,
@@ -845,7 +845,7 @@ pub struct QuickStats {
     pub error_rate: f64,
 }
 
-/// Convert metrics to Rhai Dynamic
+
 impl LLMRequestMetrics {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -935,9 +935,9 @@ impl BudgetStatus {
     }
 }
 
-/// Register observability functions with Rhai engine
+
 pub fn register_observability_keywords(engine: &mut Engine) {
-    // Helper functions for metrics in scripts
+
 
     engine.register_fn("metrics_total_requests", |metrics: Map| -> i64 {
         metrics
@@ -1006,7 +1006,7 @@ pub fn register_observability_keywords(engine: &mut Engine) {
     info!("Observability keywords registered");
 }
 
-/// SQL for creating observability tables
+
 pub const OBSERVABILITY_SCHEMA: &str = r#"
 -- LLM request metrics
 CREATE TABLE IF NOT EXISTS llm_metrics (

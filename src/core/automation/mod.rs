@@ -119,7 +119,7 @@ impl AutomationService {
         };
         let mut script_service = ScriptService::new(Arc::clone(&self.state), session);
 
-        // Inject param-* config variables from bot configuration
+
         script_service.load_bot_config_params(&self.state, automation.bot_id);
 
         match script_service.compile(&script_content) {

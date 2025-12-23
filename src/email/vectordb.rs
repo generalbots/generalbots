@@ -13,7 +13,7 @@ use qdrant_client::{
     Qdrant,
 };
 
-/// Email metadata for vector DB indexing
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailDocument {
     pub id: String,
@@ -29,7 +29,7 @@ pub struct EmailDocument {
     pub thread_id: Option<String>,
 }
 
-/// Email search query
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailSearchQuery {
     pub query_text: String,
@@ -40,7 +40,7 @@ pub struct EmailSearchQuery {
     pub limit: usize,
 }
 
-/// Email search result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailSearchResult {
     pub email: EmailDocument,
@@ -48,7 +48,7 @@ pub struct EmailSearchResult {
     pub snippet: String,
 }
 
-/// Per-user email vector DB manager
+
 pub struct UserEmailVectorDB {
     user_id: Uuid,
     bot_id: Uuid,
@@ -59,7 +59,7 @@ pub struct UserEmailVectorDB {
 }
 
 impl UserEmailVectorDB {
-    /// Create new user email vector DB instance
+
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("emails_{}_{}", bot_id, user_id);
 
@@ -73,12 +73,12 @@ impl UserEmailVectorDB {
         }
     }
 
-    /// Initialize vector DB collection
+
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
         let client = Qdrant::from_url(qdrant_url).build()?;
 
-        // Check if collection exists
+
         let collections = client.list_collections().await?;
         let exists = collections
             .collections
@@ -86,7 +86,7 @@ impl UserEmailVectorDB {
             .any(|c| c.name == self.collection_name);
 
         if !exists {
-            // Create collection for email embeddings (1536 dimensions for OpenAI embeddings)
+
             client
                 .create_collection(
                     qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
@@ -111,7 +111,7 @@ impl UserEmailVectorDB {
         Ok(())
     }
 
-    /// Index a single email (on-demand)
+
     #[cfg(feature = "vectordb")]
     pub async fn index_email(&self, email: &EmailDocument, embedding: Vec<f32>) -> Result<()> {
         let client = self
@@ -142,14 +142,14 @@ impl UserEmailVectorDB {
 
     #[cfg(not(feature = "vectordb"))]
     pub async fn index_email(&self, email: &EmailDocument, _embedding: Vec<f32>) -> Result<()> {
-        // Fallback: Store in JSON file
+
         let file_path = self.db_path.join(format!("{}.json", email.id));
         let json = serde_json::to_string_pretty(email)?;
         fs::write(file_path, json).await?;
         Ok(())
     }
 
-    /// Index multiple emails in batch
+
     pub async fn index_emails_batch(&self, emails: &[(EmailDocument, Vec<f32>)]) -> Result<()> {
         for (email, embedding) in emails {
             self.index_email(email, embedding.clone()).await?;
@@ -157,7 +157,7 @@ impl UserEmailVectorDB {
         Ok(())
     }
 
-    /// Search emails using vector similarity
+
     #[cfg(feature = "vectordb")]
     pub async fn search(
         &self,
@@ -169,7 +169,7 @@ impl UserEmailVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        // Build filter if specified
+
         let filter = if query.account_id.is_some() || query.folder.is_some() {
             let mut conditions = vec![];
 
@@ -224,13 +224,13 @@ impl UserEmailVectorDB {
                     to_email: get_str("to_email"),
                     subject: get_str("subject"),
                     body_text: get_str("body_text"),
-                    date: chrono::Utc::now(), // Simplified
+                    date: chrono::Utc::now(),
                     folder: get_str("folder"),
                     has_attachments: false,
                     thread_id: payload.get("thread_id").and_then(|v| v.as_str()).map(|s| s.to_string()),
                 };
 
-                // Create snippet from body (first 200 chars)
+
                 let snippet = if email.body_text.len() > 200 {
                     format!("{}...", &email.body_text[..200])
                 } else {
@@ -254,7 +254,7 @@ impl UserEmailVectorDB {
         query: &EmailSearchQuery,
         _query_embedding: Vec<f32>,
     ) -> Result<Vec<EmailSearchResult>> {
-        // Fallback: Simple text search in JSON files
+
         let mut results = Vec::new();
         let mut entries = fs::read_dir(&self.db_path).await?;
 
@@ -262,7 +262,7 @@ impl UserEmailVectorDB {
             if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
                 let content = fs::read_to_string(entry.path()).await?;
                 if let Ok(email) = serde_json::from_str::<EmailDocument>(&content) {
-                    // Simple text matching
+
                     let query_lower = query.query_text.to_lowercase();
                     if email.subject.to_lowercase().contains(&query_lower)
                         || email.body_text.to_lowercase().contains(&query_lower)
@@ -291,7 +291,7 @@ impl UserEmailVectorDB {
         Ok(results)
     }
 
-    /// Delete email from index
+
     #[cfg(feature = "vectordb")]
     pub async fn delete_email(&self, email_id: &str) -> Result<()> {
         let client = self
@@ -319,7 +319,7 @@ impl UserEmailVectorDB {
         Ok(())
     }
 
-    /// Get indexed email count
+
     #[cfg(feature = "vectordb")]
     pub async fn get_count(&self) -> Result<u64> {
         let client = self
@@ -346,7 +346,7 @@ impl UserEmailVectorDB {
         Ok(count)
     }
 
-    /// Clear all indexed emails
+
     #[cfg(feature = "vectordb")]
     pub async fn clear(&self) -> Result<()> {
         let client = self
@@ -358,7 +358,7 @@ impl UserEmailVectorDB {
             .delete_collection(&self.collection_name)
             .await?;
 
-        // Recreate empty collection
+
         client
             .create_collection(
                 qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
@@ -384,7 +384,7 @@ impl UserEmailVectorDB {
     }
 }
 
-/// Email embedding generator using LLM
+
 pub struct EmailEmbeddingGenerator {
     pub llm_endpoint: String,
 }
@@ -394,15 +394,15 @@ impl EmailEmbeddingGenerator {
         Self { llm_endpoint }
     }
 
-    /// Generate embedding for email content
+
     pub async fn generate_embedding(&self, email: &EmailDocument) -> Result<Vec<f32>> {
-        // Combine email fields for embedding
+
         let text = format!(
             "From: {} <{}>\nSubject: {}\n\n{}",
             email.from_name, email.from_email, email.subject, email.body_text
         );
 
-        // Truncate if too long (max 8000 chars for most embedding models)
+
         let text = if text.len() > 8000 {
             &text[..8000]
         } else {
@@ -412,17 +412,17 @@ impl EmailEmbeddingGenerator {
         self.generate_text_embedding(text).await
     }
 
-    /// Generate embedding from raw text
+
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
-        // Use local embedding service - configure via config.csv if needed
+
         let embedding_url = "http://localhost:8082".to_string();
         return self.generate_local_embedding(text, &embedding_url).await;
 
-        // Fall back to simple hash-based embedding for development
+
         self.generate_hash_embedding(text)
     }
 
-    /// Generate embedding using OpenAI API
+
     async fn generate_openai_embedding(&self, text: &str, api_key: &str) -> Result<Vec<f32>> {
         use reqwest::header::{HeaderMap, HeaderValue, AUTHORIZATION, CONTENT_TYPE};
         use serde_json::json;
@@ -462,7 +462,7 @@ impl EmailEmbeddingGenerator {
         Ok(embedding)
     }
 
-    /// Generate embedding using local embedding service
+
     async fn generate_local_embedding(&self, text: &str, embedding_url: &str) -> Result<Vec<f32>> {
         use serde_json::json;
 
@@ -492,7 +492,7 @@ impl EmailEmbeddingGenerator {
         Ok(embedding)
     }
 
-    /// Generate deterministic hash-based embedding for development
+
     fn generate_hash_embedding(&self, text: &str) -> Result<Vec<f32>> {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
@@ -500,7 +500,7 @@ impl EmailEmbeddingGenerator {
         const EMBEDDING_DIM: usize = 1536;
         let mut embedding = vec![0.0f32; EMBEDDING_DIM];
 
-        // Create multiple hash values for different dimensions
+
         let words: Vec<&str> = text.split_whitespace().collect();
 
         for (i, chunk) in words.chunks(10).enumerate() {
@@ -508,7 +508,7 @@ impl EmailEmbeddingGenerator {
             chunk.join(" ").hash(&mut hasher);
             let hash = hasher.finish();
 
-            // Distribute hash across embedding dimensions
+
             for j in 0..64 {
                 let idx = (i * 64 + j) % EMBEDDING_DIM;
                 let value = ((hash >> j) & 1) as f32;
@@ -516,7 +516,7 @@ impl EmailEmbeddingGenerator {
             }
         }
 
-        // Normalize the embedding
+
         let norm: f32 = embedding.iter().map(|x| x * x).sum::<f32>().sqrt();
         if norm > 0.0 {
             for val in &mut embedding {

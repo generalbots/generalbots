@@ -1,7 +1,7 @@
-//! CalDAV module for calendar synchronization
-//!
-//! This module provides CalDAV protocol support for calendar synchronization
-//! with external calendar clients and servers.
+
+
+
+
 
 use axum::{
     http::StatusCode,
@@ -14,11 +14,11 @@ use std::sync::Arc;
 use super::CalendarEngine;
 use crate::shared::state::AppState;
 
-/// Create the CalDAV router
-/// Note: The engine is stored in a static for now to avoid state type conflicts
+
+
 pub fn create_caldav_router(_engine: Arc<CalendarEngine>) -> Router<Arc<AppState>> {
-    // TODO: Store engine in a way accessible to handlers
-    // For now, create a stateless router that can merge with any state type
+
+
     Router::new()
         .route("/caldav", get(caldav_root))
         .route("/caldav/principals", get(caldav_principals))
@@ -30,7 +30,7 @@ pub fn create_caldav_router(_engine: Arc<CalendarEngine>) -> Router<Arc<AppState
         )
 }
 
-/// CalDAV root endpoint - returns server capabilities
+
 async fn caldav_root() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::OK)
@@ -57,7 +57,7 @@ async fn caldav_root() -> impl IntoResponse {
         .unwrap()
 }
 
-/// CalDAV principals endpoint - returns user principal
+
 async fn caldav_principals() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::OK)
@@ -86,7 +86,7 @@ async fn caldav_principals() -> impl IntoResponse {
         .unwrap()
 }
 
-/// CalDAV calendars collection endpoint
+
 async fn caldav_calendars() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::OK)
@@ -129,7 +129,7 @@ async fn caldav_calendars() -> impl IntoResponse {
         .unwrap()
 }
 
-/// CalDAV single calendar endpoint
+
 async fn caldav_calendar() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::OK)
@@ -156,16 +156,16 @@ async fn caldav_calendar() -> impl IntoResponse {
         .unwrap()
 }
 
-/// Get a single event in iCalendar format
+
 async fn caldav_event() -> impl IntoResponse {
-    // TODO: Fetch actual event from engine and convert to iCalendar format
+
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "text/calendar; charset=utf-8")
         .body(
             r#"BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//GeneralBots//Calendar//EN
+PRODID:-
 BEGIN:VEVENT
 UID:placeholder@generalbots.com
 DTSTAMP:20240101T000000Z
@@ -179,9 +179,9 @@ END:VCALENDAR"#
         .unwrap()
 }
 
-/// Put (create/update) an event
+
 async fn caldav_put_event() -> impl IntoResponse {
-    // TODO: Parse incoming iCalendar and create/update event in engine
+
     Response::builder()
         .status(StatusCode::CREATED)
         .header("ETag", "\"placeholder-etag\"")

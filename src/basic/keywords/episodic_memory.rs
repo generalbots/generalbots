@@ -1,41 +1,41 @@
-//! Episodic Memory - Conversation Summaries
-//!
-//! This module provides episodic memory capabilities that compress long conversations
-//! into summaries for efficient context management. Episodic memory enables:
-//!
-//! - Automatic conversation summarization
-//! - Key topic extraction
-//! - Decision and action item tracking
-//! - Long-term memory without context overflow
-//!
-//! ## BASIC Keywords
-//!
-//! ```basic
-//! ' Create episode summary manually
-//! summary = CREATE EPISODE SUMMARY
-//!
-//! ' Get recent episodes for a user
-//! episodes = GET EPISODES(10)
-//!
-//! ' Search episodes by topic
-//! related = SEARCH EPISODES "billing issues"
-//!
-//! ' Clear old episodes
-//! CLEAR EPISODES OLDER THAN 30
-//! ```
-//!
-//! ## Config.csv Properties
-//!
-//! ```csv
-//! name,value
-//! episodic-memory-enabled,true
-//! episodic-memory-threshold,4
-//! episodic-memory-history,2
-//! episodic-memory-model,fast
-//! episodic-memory-max-episodes,100
-//! episodic-memory-retention-days,365
-//! episodic-memory-auto-summarize,true
-//! ```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
@@ -43,58 +43,58 @@ use serde::{Deserialize, Serialize};
 use tracing::info;
 use uuid::Uuid;
 
-/// Episode summary structure
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Episode {
-    /// Unique episode identifier
+
     pub id: Uuid,
-    /// User ID this episode belongs to
+
     pub user_id: Uuid,
-    /// Bot ID that created the episode
+
     pub bot_id: Uuid,
-    /// Session/conversation ID
+
     pub session_id: Uuid,
-    /// Condensed summary of the conversation
+
     pub summary: String,
-    /// Key topics discussed
+
     pub key_topics: Vec<String>,
-    /// Decisions made during conversation
+
     pub decisions: Vec<String>,
-    /// Action items identified
+
     pub action_items: Vec<ActionItem>,
-    /// Sentiment analysis result
+
     pub sentiment: Sentiment,
-    /// Resolution status
+
     pub resolution: ResolutionStatus,
-    /// Number of messages summarized
+
     pub message_count: usize,
-    /// Original message IDs (for reference)
+
     pub message_ids: Vec<Uuid>,
-    /// When the episode was created
+
     pub created_at: DateTime<Utc>,
-    /// Time range of original conversation
+
     pub conversation_start: DateTime<Utc>,
     pub conversation_end: DateTime<Utc>,
-    /// Metadata
+
     pub metadata: serde_json::Value,
 }
 
-/// Action item extracted from conversation
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionItem {
-    /// Description of the action
+
     pub description: String,
-    /// Who is responsible
+
     pub assignee: Option<String>,
-    /// Due date if mentioned
+
     pub due_date: Option<DateTime<Utc>>,
-    /// Priority level
+
     pub priority: Priority,
-    /// Completion status
+
     pub completed: bool,
 }
 
-/// Priority levels for action items
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum Priority {
@@ -110,18 +110,18 @@ impl Default for Priority {
     }
 }
 
-/// Sentiment analysis result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sentiment {
-    /// Overall sentiment score (-1.0 to 1.0)
+
     pub score: f64,
-    /// Sentiment label
+
     pub label: SentimentLabel,
-    /// Confidence in the assessment
+
     pub confidence: f64,
 }
 
-/// Sentiment labels
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum SentimentLabel {
@@ -148,7 +148,7 @@ impl Default for Sentiment {
     }
 }
 
-/// Resolution status of the conversation
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ResolutionStatus {
@@ -165,22 +165,22 @@ impl Default for ResolutionStatus {
     }
 }
 
-/// Configuration for episodic memory
+
 #[derive(Debug, Clone)]
 pub struct EpisodicMemoryConfig {
-    /// Whether episodic memory is enabled
+
     pub enabled: bool,
-    /// Message count threshold before auto-summarization
+
     pub threshold: usize,
-    /// Number of recent exchanges to keep in full
+
     pub history: usize,
-    /// Model to use for summarization
+
     pub model: String,
-    /// Maximum episodes to keep per user
+
     pub max_episodes: usize,
-    /// Days to retain episodes
+
     pub retention_days: u32,
-    /// Whether to auto-summarize conversations
+
     pub auto_summarize: bool,
 }
 
@@ -198,7 +198,7 @@ impl Default for EpisodicMemoryConfig {
     }
 }
 
-/// Message structure for summarization
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConversationMessage {
     pub id: Uuid,
@@ -207,19 +207,19 @@ pub struct ConversationMessage {
     pub timestamp: DateTime<Utc>,
 }
 
-/// Episodic Memory Manager
+
 #[derive(Debug)]
 pub struct EpisodicMemoryManager {
     config: EpisodicMemoryConfig,
 }
 
 impl EpisodicMemoryManager {
-    /// Create a new episodic memory manager
+
     pub fn new(config: EpisodicMemoryConfig) -> Self {
         EpisodicMemoryManager { config }
     }
 
-    /// Create from config map
+
     pub fn from_config(config_map: &std::collections::HashMap<String, String>) -> Self {
         let config = EpisodicMemoryConfig {
             enabled: config_map
@@ -254,22 +254,22 @@ impl EpisodicMemoryManager {
         EpisodicMemoryManager::new(config)
     }
 
-    /// Check if auto-summarization should trigger
+
     pub fn should_summarize(&self, message_count: usize) -> bool {
         self.config.enabled && self.config.auto_summarize && message_count >= self.config.threshold
     }
 
-    /// Get number of recent exchanges to keep in full
+
     pub fn get_history_to_keep(&self) -> usize {
         self.config.history
     }
 
-    /// Get the threshold value
+
     pub fn get_threshold(&self) -> usize {
         self.config.threshold
     }
 
-    /// Generate the summarization prompt
+
     pub fn generate_summary_prompt(&self, messages: &[ConversationMessage]) -> String {
         let formatted_messages = messages
             .iter()
@@ -309,7 +309,7 @@ Respond with valid JSON only:
         )
     }
 
-    /// Parse LLM response into episode data
+
     pub fn parse_summary_response(
         &self,
         response: &str,
@@ -318,7 +318,7 @@ Respond with valid JSON only:
         bot_id: Uuid,
         session_id: Uuid,
     ) -> Result<Episode, String> {
-        // Try to extract JSON from response
+
         let json_str = extract_json(response)?;
 
         let parsed: serde_json::Value =
@@ -418,25 +418,25 @@ Respond with valid JSON only:
         })
     }
 
-    /// Get retention cutoff date
+
     pub fn get_retention_cutoff(&self) -> DateTime<Utc> {
         Utc::now() - Duration::days(self.config.retention_days as i64)
     }
 }
 
-/// Extract JSON from LLM response (handles markdown code blocks)
+
 fn extract_json(response: &str) -> Result<String, String> {
-    // Try to find JSON in code blocks first
+
     if let Some(start) = response.find("```json") {
         if let Some(end) = response[start + 7..].find("```") {
             return Ok(response[start + 7..start + 7 + end].trim().to_string());
         }
     }
 
-    // Try to find JSON in generic code blocks
+
     if let Some(start) = response.find("```") {
         let after_start = start + 3;
-        // Skip language identifier if present
+
         let json_start = response[after_start..]
             .find('\n')
             .map(|i| after_start + i + 1)
@@ -446,7 +446,7 @@ fn extract_json(response: &str) -> Result<String, String> {
         }
     }
 
-    // Try to find raw JSON (starts with {)
+
     if let Some(start) = response.find('{') {
         if let Some(end) = response.rfind('}') {
             if end > start {
@@ -458,7 +458,7 @@ fn extract_json(response: &str) -> Result<String, String> {
     Err("No JSON found in response".to_string())
 }
 
-/// Convert Episode to Rhai Dynamic
+
 impl Episode {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -531,12 +531,12 @@ impl Episode {
     }
 }
 
-/// Register episodic memory keywords with Rhai engine
-pub fn register_episodic_memory_keywords(engine: &mut Engine) {
-    // CREATE EPISODE SUMMARY - creates a summary of current conversation
-    // This is typically called from the runtime with state access
 
-    // Helper functions for working with episodes in scripts
+pub fn register_episodic_memory_keywords(engine: &mut Engine) {
+
+
+
+
     engine.register_fn("episode_summary", |episode: Map| -> String {
         episode
             .get("summary")
@@ -584,7 +584,7 @@ pub fn register_episodic_memory_keywords(engine: &mut Engine) {
     info!("Episodic memory keywords registered");
 }
 
-/// SQL for creating episodic memory tables
+
 pub const EPISODIC_MEMORY_SCHEMA: &str = r#"
 -- Conversation episodes (summaries)
 CREATE TABLE IF NOT EXISTS conversation_episodes (
@@ -619,7 +619,7 @@ CREATE INDEX IF NOT EXISTS idx_episodes_summary_fts ON conversation_episodes
     USING GIN(to_tsvector('english', summary));
 "#;
 
-/// SQL for episode operations
+
 pub mod sql {
     pub const INSERT_EPISODE: &str = r#"
         INSERT INTO conversation_episodes (

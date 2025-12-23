@@ -1,13 +1,13 @@
-//! Compliance Monitoring Module
-//!
-//! This module provides automated compliance monitoring, audit logging,
-//! risk assessment, and security policy enforcement capabilities.
-//!
-//! Includes code scanning for BASIC files to detect:
-//! - Hardcoded passwords and secrets
-//! - Deprecated keywords and patterns
-//! - Configuration issues
-//! - Security vulnerabilities
+
+
+
+
+
+
+
+
+
+
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -20,13 +20,13 @@ pub mod policy_checker;
 pub mod risk_assessment;
 pub mod training_tracker;
 
-// Re-export commonly used types from code_scanner
+
 pub use code_scanner::{
     CodeIssue, CodeScanner, ComplianceReporter, ComplianceScanResult, IssueSeverity, IssueType,
     ScanStats,
 };
 
-/// Compliance framework types
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComplianceFramework {
     GDPR,
@@ -36,7 +36,7 @@ pub enum ComplianceFramework {
     PCIDSS,
 }
 
-/// Compliance status
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComplianceStatus {
     Compliant,
@@ -46,7 +46,7 @@ pub enum ComplianceStatus {
     NotApplicable,
 }
 
-/// Severity levels
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Severity {
     Low,
@@ -55,7 +55,7 @@ pub enum Severity {
     Critical,
 }
 
-/// Compliance check result
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceCheckResult {
     pub framework: ComplianceFramework,
@@ -68,7 +68,7 @@ pub struct ComplianceCheckResult {
     pub evidence: Vec<String>,
 }
 
-/// Compliance issue
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceIssue {
     pub id: String,
@@ -80,7 +80,7 @@ pub struct ComplianceIssue {
     pub assigned_to: Option<String>,
 }
 
-/// Audit log entry
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditLogEntry {
     pub id: String,
@@ -96,7 +96,7 @@ pub struct AuditLogEntry {
     pub metadata: HashMap<String, String>,
 }
 
-/// Audit event types
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AuditEventType {
     Access,
@@ -108,7 +108,7 @@ pub enum AuditEventType {
     Authorization,
 }
 
-/// Action result
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ActionResult {
     Success,
@@ -117,7 +117,7 @@ pub enum ActionResult {
     Error,
 }
 
-/// Risk assessment
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskAssessment {
     pub id: String,
@@ -130,7 +130,7 @@ pub struct RiskAssessment {
     pub risks: Vec<Risk>,
 }
 
-/// Individual risk
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Risk {
     pub id: String,
@@ -145,7 +145,7 @@ pub struct Risk {
     pub status: RiskStatus,
 }
 
-/// Risk categories
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RiskCategory {
     Technical,
@@ -155,7 +155,7 @@ pub enum RiskCategory {
     Reputational,
 }
 
-/// Risk treatment strategies
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TreatmentStrategy {
     Mitigate,
@@ -164,7 +164,7 @@ pub enum TreatmentStrategy {
     Avoid,
 }
 
-/// Risk status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RiskStatus {
     Open,
@@ -174,7 +174,7 @@ pub enum RiskStatus {
     Closed,
 }
 
-/// Training record
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingRecord {
     pub id: String,
@@ -187,7 +187,7 @@ pub struct TrainingRecord {
     pub certificate_url: Option<String>,
 }
 
-/// Training types
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrainingType {
     SecurityAwareness,
@@ -197,7 +197,7 @@ pub enum TrainingType {
     RoleSpecific,
 }
 
-/// Access review record
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReview {
     pub id: String,
@@ -210,7 +210,7 @@ pub struct AccessReview {
     pub status: ReviewStatus,
 }
 
-/// Permission review
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermissionReview {
     pub resource_type: String,
@@ -220,7 +220,7 @@ pub struct PermissionReview {
     pub action: ReviewAction,
 }
 
-/// Review actions
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReviewAction {
     Approved,
@@ -229,7 +229,7 @@ pub enum ReviewAction {
     FlaggedForReview,
 }
 
-/// Review status
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReviewStatus {
     Pending,
@@ -238,7 +238,7 @@ pub enum ReviewStatus {
     Approved,
 }
 
-/// Compliance monitor
+
 pub struct ComplianceMonitor {
     enabled_frameworks: Vec<ComplianceFramework>,
     check_interval_hours: u32,
@@ -246,7 +246,7 @@ pub struct ComplianceMonitor {
 }
 
 impl ComplianceMonitor {
-    /// Create new compliance monitor
+
     pub fn new(frameworks: Vec<ComplianceFramework>) -> Self {
         Self {
             enabled_frameworks: frameworks,
@@ -255,7 +255,7 @@ impl ComplianceMonitor {
         }
     }
 
-    /// Run compliance checks
+
     pub async fn run_checks(
         &self,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
@@ -269,7 +269,7 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-    /// Check specific framework
+
     async fn check_framework(
         &self,
         framework: &ComplianceFramework,
@@ -283,11 +283,11 @@ impl ComplianceMonitor {
         }
     }
 
-    /// Check GDPR compliance
+
     async fn check_gdpr(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
 
-        // Check data retention policy
+
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
             control_id: "gdpr_7.2".to_string(),
@@ -299,7 +299,7 @@ impl ComplianceMonitor {
             evidence: vec!["Automated data deletion configured".to_string()],
         });
 
-        // Check encryption
+
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
             control_id: "gdpr_5.1.f".to_string(),
@@ -311,7 +311,7 @@ impl ComplianceMonitor {
             evidence: vec!["AES-256-GCM encryption enabled".to_string()],
         });
 
-        // Check consent management
+
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
             control_id: "gdpr_6.1".to_string(),
@@ -326,11 +326,11 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-    /// Check SOC 2 compliance
+
     async fn check_soc2(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
 
-        // Check access controls
+
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::SOC2,
             control_id: "cc6.1".to_string(),
@@ -345,13 +345,13 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-    /// Check ISO 27001 compliance
+
     async fn check_iso27001(
         &self,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
 
-        // Check asset management
+
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::ISO27001,
             control_id: "a.8.1".to_string(),
@@ -366,19 +366,19 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-    /// Check HIPAA compliance
+
     async fn check_hipaa(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 
-    /// Check PCI DSS compliance
+
     async fn check_pci_dss(
         &self,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 
-    /// Get overall compliance score
+
     pub fn calculate_compliance_score(results: &[ComplianceCheckResult]) -> f64 {
         if results.is_empty() {
             return 0.0;
@@ -388,7 +388,7 @@ impl ComplianceMonitor {
         total / results.len() as f64
     }
 
-    /// Generate compliance report
+
     pub fn generate_report(results: &[ComplianceCheckResult]) -> ComplianceReport {
         let mut issues_by_severity = HashMap::new();
         let mut total_issues = 0;
@@ -420,7 +420,7 @@ impl ComplianceMonitor {
     }
 }
 
-/// Compliance report
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceReport {
     pub generated_at: DateTime<Utc>,
