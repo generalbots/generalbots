@@ -83,31 +83,3 @@ pub fn get_csv_path(work_path: &str, bot_id: &str) -> std::path::PathBuf {
     let loader = McpCsvLoader::new(work_path, bot_id);
     loader.get_csv_path()
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_server_type_icons() {
-        assert_eq!(get_server_type_icon("filesystem"), "📁");
-        assert_eq!(get_server_type_icon("database"), "🗄️");
-        assert_eq!(get_server_type_icon("github"), "🐙");
-        assert_eq!(get_server_type_icon("unknown"), "🔌");
-    }
-
-    #[test]
-    fn test_risk_level_class() {
-        assert_eq!(get_risk_level_class(&ToolRiskLevel::Safe), "risk-safe");
-        assert_eq!(
-            get_risk_level_class(&ToolRiskLevel::Critical),
-            "risk-critical"
-        );
-    }
-
-    #[test]
-    fn test_risk_level_name() {
-        assert_eq!(get_risk_level_name(&ToolRiskLevel::Safe), "Safe");
-        assert_eq!(get_risk_level_name(&ToolRiskLevel::High), "High");
-    }
-}

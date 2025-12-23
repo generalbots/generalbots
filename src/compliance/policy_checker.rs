@@ -350,14 +350,18 @@ impl PolicyChecker {
 
     /// Check all active policies
     pub fn check_all_policies(&mut self, context: &PolicyContext) -> Vec<PolicyCheckResult> {
+        // Collect active policy IDs first to avoid borrow issues
+        let active_policy_ids: Vec<Uuid> = self
+            .policies
+            .iter()
+            .filter(|(_, p)| p.status == PolicyStatus::Active)
+            .map(|(id, _)| *id)
+            .collect();
+
         let mut results = Vec::new();
 
-        for policy in self.policies.values() {
-            if policy.status != PolicyStatus::Active {
-                continue;
-            }
-
-            let result = self.check_policy(policy.id, context);
+        for policy_id in active_policy_ids {
+            let result = self.check_policy(policy_id, context);
             if let Ok(result) = result {
                 results.push(result);
             }

@@ -190,23 +190,3 @@ pub fn get_active_kb_count(
 
     Ok(result.count)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_clear_kb_syntax() {
-        let mut engine = Engine::new();
-
-        // Test CLEAR_KB with argument
-        assert!(engine
-            .register_custom_syntax(&["CLEAR_KB", "$expr$"], true, |_, _| Ok(Dynamic::UNIT))
-            .is_ok());
-
-        // Test CLEAR_KB without argument
-        assert!(engine
-            .register_custom_syntax(&["CLEAR_KB"], true, |_, _| Ok(Dynamic::UNIT))
-            .is_ok());
-    }
-}

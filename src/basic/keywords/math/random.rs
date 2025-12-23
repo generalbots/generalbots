@@ -83,13 +83,3 @@ pub fn mod_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
 
     debug!("Registered MOD keyword");
 }
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_mod() {
-        assert_eq!(17 % 5, 2);
-        assert_eq!(10 % 3, 1);
-        assert_eq!(0 % 5, 0);
-    }
-}

@@ -896,7 +896,7 @@ impl StalwartClient {
     }
 
     /// Generate Sieve script for vacation auto-responder
-    fn generate_vacation_sieve(&self, config: &AutoResponderConfig) -> String {
+    pub fn generate_vacation_sieve(&self, config: &AutoResponderConfig) -> String {
         let mut script = String::from("require [\"vacation\", \"variables\", \"date\", \"relational\"];\n\n");
 
         // Add date checks if start/end dates are specified
@@ -967,7 +967,7 @@ impl StalwartClient {
     }
 
     /// Generate Sieve script for an email filter rule
-    fn generate_filter_sieve(&self, rule: &EmailRule) -> String {
+    pub fn generate_filter_sieve(&self, rule: &EmailRule) -> String {
         let mut script =
             String::from("require [\"fileinto\", \"reject\", \"vacation\", \"imap4flags\", \"copy\"];\n\n");
 
@@ -1025,7 +1025,7 @@ impl StalwartClient {
     }
 
     /// Generate Sieve condition string
-    fn generate_condition_sieve(&self, condition: &RuleCondition) -> String {
+    pub fn generate_condition_sieve(&self, condition: &RuleCondition) -> String {
         let field_header = match condition.field.as_str() {
             "from" => "From",
             "to" => "To",
@@ -1055,7 +1055,7 @@ impl StalwartClient {
     }
 
     /// Generate Sieve action string
-    fn generate_action_sieve(&self, action: &RuleAction) -> String {
+    pub fn generate_action_sieve(&self, action: &RuleAction) -> String {
         match action.action_type.as_str() {
             "move" => format!("fileinto \"{}\";", action.value.replace('"', "\\\"")),
             "copy" => format!("fileinto :copy \"{}\";", action.value.replace('"', "\\\"")),
@@ -1281,123 +1281,3 @@ impl StalwartClient {
 }
 
 // Tests
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_generate_vacation_sieve_basic() {
-        let client = StalwartClient::new("http://localhost", "test");
-        let config = AutoResponderConfig {
-            enabled: true,
-            subject: "Out of Office".to_string(),
-            body_plain: "I am away.".to_string(),
-            body_html: None,
-            start_date: None,
-            end_date: None,
-            only_contacts: false,
-            vacation_days: 1,
-        };
-
-        let sieve = client.generate_vacation_sieve(&config);
-        assert!(sieve.contains("require"));
-        assert!(sieve.contains("vacation"));
-        assert!(sieve.contains("Out of Office"));
-        assert!(sieve.contains("I am away."));
-    }
-
-    #[test]
-    fn test_generate_vacation_sieve_with_dates() {
-        let client = StalwartClient::new("http://localhost", "test");
-        let config = AutoResponderConfig {
-            enabled: true,
-            subject: "Vacation".to_string(),
-            body_plain: "On vacation.".to_string(),
-            body_html: None,
-            start_date: Some(NaiveDate::from_ymd_opt(2024, 12, 20).expect("valid date")),
-            end_date: Some(NaiveDate::from_ymd_opt(2024, 12, 31).expect("valid date")),
-            only_contacts: false,
-            vacation_days: 7,
-        };
-
-        let sieve = client.generate_vacation_sieve(&config);
-        assert!(sieve.contains("2024-12-20"));
-        assert!(sieve.contains("2024-12-31"));
-        assert!(sieve.contains(":days 7"));
-    }
-
-    #[test]
-    fn test_generate_filter_sieve_move_rule() {
-        let client = StalwartClient::new("http://localhost", "test");
-        let rule = EmailRule {
-            id: "rule1".to_string(),
-            name: "Move newsletters".to_string(),
-            priority: 0,
-            enabled: true,
-            conditions: vec![RuleCondition {
-                field: "from".to_string(),
-                operator: "contains".to_string(),
-                value: "newsletter".to_string(),
-                header_name: None,
-                case_sensitive: false,
-            }],
-            actions: vec![RuleAction {
-                action_type: "move".to_string(),
-                value: "Newsletters".to_string(),
-            }],
-            stop_processing: true,
-        };
-
-        let sieve = client.generate_filter_sieve(&rule);
-        assert!(sieve.contains("fileinto"));
-        assert!(sieve.contains("Newsletters"));
-        assert!(sieve.contains("From"));
-        assert!(sieve.contains("newsletter"));
-        assert!(sieve.contains("stop"));
-    }
-
-    #[test]
-    fn test_generate_filter_sieve_disabled() {
-        let client = StalwartClient::new("http://localhost", "test");
-        let rule = EmailRule {
-            id: "rule2".to_string(),
-            name: "Disabled rule".to_string(),
-            priority: 0,
-            enabled: false,
-            conditions: vec![],
-            actions: vec![],
-            stop_processing: false,
-        };
-
-        let sieve = client.generate_filter_sieve(&rule);
-        assert!(sieve.contains("DISABLED"));
-    }
-
-    #[test]
-    fn test_account_update_builders() {
-        let set = AccountUpdate::set("description", "New description");
-        assert_eq!(set.action, "set");
-        assert_eq!(set.field, "description");
-
-        let add = AccountUpdate::add_item("members", "user@example.com");
-        assert_eq!(add.action, "addItem");
-
-        let remove = AccountUpdate::remove_item("members", "old@example.com");
-        assert_eq!(remove.action, "removeItem");
-
-        let clear = AccountUpdate::clear("members");
-        assert_eq!(clear.action, "clear");
-    }
-
-    #[test]
-    fn test_delivery_status_deserialize() {
-        let json = r#""pending""#;
-        let status: DeliveryStatus = serde_json::from_str(json).expect("deserialize");
-        assert_eq!(status, DeliveryStatus::Pending);
-
-        let json = r#""unknown_status""#;
-        let status: DeliveryStatus = serde_json::from_str(json).expect("deserialize");
-        assert_eq!(status, DeliveryStatus::Unknown);
-    }
-}

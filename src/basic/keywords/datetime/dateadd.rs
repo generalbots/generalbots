@@ -56,7 +56,7 @@ fn parse_datetime(datetime_str: &str) -> Option<NaiveDateTime> {
         .or_else(|| parse_date(trimmed).and_then(|d| d.and_hms_opt(0, 0, 0)))
 }
 
-fn dateadd_impl(date_str: &str, amount: i64, unit: &str) -> String {
+pub fn dateadd_impl(date_str: &str, amount: i64, unit: &str) -> String {
     let unit_lower = unit.to_lowercase();
 
     if let Some(datetime) = parse_datetime(date_str) {
@@ -104,7 +104,7 @@ fn dateadd_impl(date_str: &str, amount: i64, unit: &str) -> String {
     }
 }
 
-fn datediff_impl(date1: &str, date2: &str, unit: &str) -> i64 {
+pub fn datediff_impl(date1: &str, date2: &str, unit: &str) -> i64 {
     let unit_lower = unit.to_lowercase();
 
     if let (Some(dt1), Some(dt2)) = (parse_datetime(date1), parse_datetime(date2)) {
@@ -126,50 +126,5 @@ fn datediff_impl(date1: &str, date2: &str, unit: &str) -> i64 {
         }
     } else {
         0
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_dateadd_days() {
-        assert_eq!(dateadd_impl("2025-01-15", 5, "day"), "2025-01-20");
-        assert_eq!(dateadd_impl("2025-01-15", -10, "day"), "2025-01-05");
-    }
-
-    #[test]
-    fn test_dateadd_months() {
-        assert_eq!(dateadd_impl("2025-01-15", 1, "month"), "2025-02-15");
-        assert_eq!(dateadd_impl("2025-01-15", -1, "month"), "2024-12-15");
-    }
-
-    #[test]
-    fn test_dateadd_years() {
-        assert_eq!(dateadd_impl("2025-01-15", 1, "year"), "2026-01-15");
-    }
-
-    #[test]
-    fn test_datediff_days() {
-        assert_eq!(datediff_impl("2025-01-01", "2025-01-15", "day"), 14);
-        assert_eq!(datediff_impl("2025-01-15", "2025-01-01", "day"), -14);
-    }
-
-    #[test]
-    fn test_datediff_months() {
-        assert_eq!(datediff_impl("2025-01-01", "2025-03-01", "month"), 2);
-    }
-
-    #[test]
-    fn test_datediff_years() {
-        assert_eq!(datediff_impl("2024-01-01", "2025-01-01", "year"), 1);
-    }
-
-    #[test]
-    fn test_parse_date() {
-        assert!(parse_date("2025-01-15").is_some());
-        assert!(parse_date("15/01/2025").is_some());
-        assert!(parse_date("invalid").is_none());
     }
 }

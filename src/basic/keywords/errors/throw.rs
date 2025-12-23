@@ -28,12 +28,3 @@
 // - Stack trace capture
 // - Error context/metadata
 // - Retry mechanisms
-
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn test_placeholder() {
-        // Placeholder test - actual functionality is in mod.rs
-        assert!(true);
-    }
-}

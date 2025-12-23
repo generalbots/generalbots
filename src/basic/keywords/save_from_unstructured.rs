@@ -463,25 +463,3 @@ async fn save_to_table(
 
     Ok(record_id)
 }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_clean_value_for_type() {
-        assert_eq!(clean_value_for_type(&json!("test"), "text"), json!("test"));
-        assert_eq!(clean_value_for_type(&json!("42"), "integer"), json!(42));
-        assert_eq!(clean_value_for_type(&json!("3.14"), "numeric"), json!(3.14));
-        assert_eq!(clean_value_for_type(&json!("true"), "boolean"), json!(true));
-    }
-
-    #[test]
-    fn test_get_default_schema() {
-        let leads_schema = get_default_schema("leads");
-        assert!(leads_schema.is_array());
-
-        let tasks_schema = get_default_schema("tasks");
-        assert!(tasks_schema.is_array());
-    }
-}
