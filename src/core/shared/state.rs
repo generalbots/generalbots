@@ -48,6 +48,7 @@ pub struct Extensions {
 }
 
 impl Extensions {
+    #[must_use]
     pub fn new() -> Self {
         Self {
             map: Arc::new(RwLock::new(HashMap::new())),

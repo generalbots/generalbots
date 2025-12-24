@@ -11,7 +11,7 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
-pub fn register_math_functions(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+pub fn register_math_functions(state: &Arc<AppState>, user: UserSession, engine: &mut Engine) {
     abs::abs_keyword(&state, user.clone(), engine);
     round::round_keyword(&state, user.clone(), engine);
     basic_math::int_keyword(&state, user.clone(), engine);
