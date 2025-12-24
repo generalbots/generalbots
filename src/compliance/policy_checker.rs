@@ -383,7 +383,7 @@ impl PolicyChecker {
             .clone();
 
         let mut violations = Vec::new();
-        let mut warnings = Vec::new();
+        let warnings = Vec::new();
 
         for rule in &policy.rules {
             if !self.evaluate_rule(rule, context) {

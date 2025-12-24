@@ -54,7 +54,7 @@ pub struct UserDriveVectorDB {
     user_id: Uuid,
     bot_id: Uuid,
     collection_name: String,
-    db_path: PathBuf,
+    _db_path: PathBuf,
     #[cfg(feature = "vectordb")]
     client: Option<Arc<Qdrant>>,
 }

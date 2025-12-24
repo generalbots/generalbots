@@ -1,14 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -20,12 +9,10 @@ pub mod policy_checker;
 pub mod risk_assessment;
 pub mod training_tracker;
 
-
 pub use code_scanner::{
     CodeIssue, CodeScanner, ComplianceReporter, ComplianceScanResult, IssueSeverity, IssueType,
     ScanStats,
 };
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComplianceFramework {
@@ -36,7 +23,6 @@ pub enum ComplianceFramework {
     PCIDSS,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComplianceStatus {
     Compliant,
@@ -46,7 +32,6 @@ pub enum ComplianceStatus {
     NotApplicable,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum Severity {
     Low,
@@ -54,7 +39,6 @@ pub enum Severity {
     High,
     Critical,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceCheckResult {
@@ -68,7 +52,6 @@ pub struct ComplianceCheckResult {
     pub evidence: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceIssue {
     pub id: String,
@@ -79,7 +62,6 @@ pub struct ComplianceIssue {
     pub due_date: Option<DateTime<Utc>>,
     pub assigned_to: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditLogEntry {
@@ -96,7 +78,6 @@ pub struct AuditLogEntry {
     pub metadata: HashMap<String, String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum AuditEventType {
     Access,
@@ -108,7 +89,6 @@ pub enum AuditEventType {
     Authorization,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ActionResult {
     Success,
@@ -116,7 +96,6 @@ pub enum ActionResult {
     Denied,
     Error,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskAssessment {
@@ -129,7 +108,6 @@ pub struct RiskAssessment {
     pub overall_risk_score: f64,
     pub risks: Vec<Risk>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Risk {
@@ -145,7 +123,6 @@ pub struct Risk {
     pub status: RiskStatus,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RiskCategory {
     Technical,
@@ -155,7 +132,6 @@ pub enum RiskCategory {
     Reputational,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TreatmentStrategy {
     Mitigate,
@@ -163,7 +139,6 @@ pub enum TreatmentStrategy {
     Transfer,
     Avoid,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RiskStatus {
@@ -173,7 +148,6 @@ pub enum RiskStatus {
     Accepted,
     Closed,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingRecord {
@@ -187,7 +161,6 @@ pub struct TrainingRecord {
     pub certificate_url: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum TrainingType {
     SecurityAwareness,
@@ -196,7 +169,6 @@ pub enum TrainingType {
     ComplianceOverview,
     RoleSpecific,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReview {
@@ -210,7 +182,6 @@ pub struct AccessReview {
     pub status: ReviewStatus,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PermissionReview {
     pub resource_type: String,
@@ -220,7 +191,6 @@ pub struct PermissionReview {
     pub action: ReviewAction,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReviewAction {
     Approved,
@@ -228,7 +198,6 @@ pub enum ReviewAction {
     Modified,
     FlaggedForReview,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ReviewStatus {
@@ -238,23 +207,20 @@ pub enum ReviewStatus {
     Approved,
 }
 
-
 pub struct ComplianceMonitor {
     enabled_frameworks: Vec<ComplianceFramework>,
-    check_interval_hours: u32,
-    auto_remediate: bool,
+    _check_interval_hours: u32,
+    _auto_remediate: bool,
 }
 
 impl ComplianceMonitor {
-
     pub fn new(frameworks: Vec<ComplianceFramework>) -> Self {
         Self {
             enabled_frameworks: frameworks,
-            check_interval_hours: 24,
-            auto_remediate: false,
+            _check_interval_hours: 24,
+            _auto_remediate: false,
         }
     }
-
 
     pub async fn run_checks(
         &self,
@@ -269,7 +235,6 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-
     async fn check_framework(
         &self,
         framework: &ComplianceFramework,
@@ -283,10 +248,8 @@ impl ComplianceMonitor {
         }
     }
 
-
     async fn check_gdpr(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
-
 
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
@@ -299,7 +262,6 @@ impl ComplianceMonitor {
             evidence: vec!["Automated data deletion configured".to_string()],
         });
 
-
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
             control_id: "gdpr_5.1.f".to_string(),
@@ -310,7 +272,6 @@ impl ComplianceMonitor {
             issues: vec![],
             evidence: vec!["AES-256-GCM encryption enabled".to_string()],
         });
-
 
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::GDPR,
@@ -326,10 +287,8 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-
     async fn check_soc2(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
-
 
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::SOC2,
@@ -345,12 +304,10 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-
     async fn check_iso27001(
         &self,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
-
 
         results.push(ComplianceCheckResult {
             framework: ComplianceFramework::ISO27001,
@@ -366,18 +323,15 @@ impl ComplianceMonitor {
         Ok(results)
     }
 
-
     async fn check_hipaa(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
-
 
     async fn check_pci_dss(
         &self,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
-
 
     pub fn calculate_compliance_score(results: &[ComplianceCheckResult]) -> f64 {
         if results.is_empty() {
@@ -387,7 +341,6 @@ impl ComplianceMonitor {
         let total: f64 = results.iter().map(|r| r.score).sum();
         total / results.len() as f64
     }
-
 
     pub fn generate_report(results: &[ComplianceCheckResult]) -> ComplianceReport {
         let mut issues_by_severity = HashMap::new();
@@ -419,7 +372,6 @@ impl ComplianceMonitor {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceReport {
