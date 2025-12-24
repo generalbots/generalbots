@@ -1,6 +1,5 @@
 use anyhow::Result;
 use chrono::{DateTime, Utc};
-use diesel::RunQueryDsl;
 use log::{error, info, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -50,7 +49,6 @@ impl UserWorkspace {
     }
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum IndexingStatus {
     Idle,
@@ -58,7 +56,6 @@ pub enum IndexingStatus {
     Paused,
     Failed(String),
 }
-
 
 #[derive(Debug, Clone)]
 pub struct IndexingStats {
@@ -69,7 +66,6 @@ pub struct IndexingStats {
     pub last_run: Option<DateTime<Utc>>,
     pub errors: u64,
 }
-
 
 struct UserIndexingJob {
     user_id: Uuid,
@@ -83,7 +79,6 @@ struct UserIndexingJob {
     status: IndexingStatus,
 }
 
-
 pub struct VectorDBIndexer {
     db_pool: DbPool,
     work_root: PathBuf,
@@ -96,7 +91,6 @@ pub struct VectorDBIndexer {
 }
 
 impl VectorDBIndexer {
-
     pub fn new(
         db_pool: DbPool,
         work_root: PathBuf,
@@ -114,7 +108,6 @@ impl VectorDBIndexer {
             batch_size: 10,
         }
     }
-
 
     pub async fn start(self: Arc<Self>) -> Result<()> {
         let mut running = self.running.write().await;
@@ -135,17 +128,14 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-
     pub async fn stop(&self) {
         let mut running = self.running.write().await;
         *running = false;
         info!("🛑 Stopping Vector DB Indexer");
     }
 
-
     async fn run_indexing_loop(self: Arc<Self>) {
         loop {
-
             {
                 let running = self.running.read().await;
                 if !*running {
@@ -154,7 +144,6 @@ impl VectorDBIndexer {
             }
 
             info!(" Running vector DB indexing cycle...");
-
 
             match self.get_active_users().await {
                 Ok(users) => {
@@ -173,13 +162,11 @@ impl VectorDBIndexer {
 
             info!(" Indexing cycle complete");
 
-
             sleep(Duration::from_secs(self.interval_seconds)).await;
         }
 
         info!("Vector DB Indexer stopped");
     }
-
 
     async fn get_active_users(&self) -> Result<Vec<(Uuid, Uuid)>> {
         let conn = self.db_pool.clone();
@@ -189,7 +176,6 @@ impl VectorDBIndexer {
             use diesel::prelude::*;
 
             let mut db_conn = conn.get()?;
-
 
             let results: Vec<(Uuid, Uuid)> = user_sessions
                 .select((user_id, bot_id))
@@ -201,10 +187,8 @@ impl VectorDBIndexer {
         .await?
     }
 
-
     async fn index_user_data(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
         info!("Indexing user: {} (bot: {})", user_id, bot_id);
-
 
         let mut jobs = self.jobs.write().await;
         let job = jobs.entry(user_id).or_insert_with(|| {
@@ -235,7 +219,6 @@ impl VectorDBIndexer {
 
         job.status = IndexingStatus::Running;
 
-
         if job.email_db.is_none() {
             let mut email_db =
                 UserEmailVectorDB::new(user_id, bot_id, job.workspace.email_vectordb().into());
@@ -264,16 +247,13 @@ impl VectorDBIndexer {
 
         drop(jobs);
 
-
         if let Err(e) = self.index_user_emails(user_id).await {
             error!("Failed to index emails for user {}: {}", user_id, e);
         }
 
-
         if let Err(e) = self.index_user_files(user_id).await {
             error!("Failed to index files for user {}: {}", user_id, e);
         }
-
 
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
@@ -283,7 +263,6 @@ impl VectorDBIndexer {
 
         Ok(())
     }
-
 
     async fn index_user_emails(&self, user_id: Uuid) -> Result<()> {
         let jobs = self.jobs.read().await;
@@ -299,7 +278,6 @@ impl VectorDBIndexer {
             }
         };
 
-
         let accounts = self.get_user_email_accounts(user_id).await?;
 
         info!(
@@ -309,7 +287,6 @@ impl VectorDBIndexer {
         );
 
         for account_id in accounts {
-
             match self.get_unindexed_emails(user_id, &account_id).await {
                 Ok(emails) => {
                     if emails.is_empty() {
@@ -321,7 +298,6 @@ impl VectorDBIndexer {
                         emails.len(),
                         account_id
                     );
-
 
                     for chunk in emails.chunks(self.batch_size) {
                         for email in chunk {
@@ -342,7 +318,6 @@ impl VectorDBIndexer {
                             }
                         }
 
-
                         sleep(Duration::from_millis(100)).await;
                     }
                 }
@@ -358,7 +333,6 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-
     async fn index_user_files(&self, user_id: Uuid) -> Result<()> {
         let jobs = self.jobs.read().await;
         let job = jobs
@@ -373,7 +347,6 @@ impl VectorDBIndexer {
             }
         };
 
-
         match self.get_unindexed_files(user_id).await {
             Ok(files) => {
                 if files.is_empty() {
@@ -382,15 +355,12 @@ impl VectorDBIndexer {
 
                 info!("Indexing {} files for user {}", files.len(), user_id);
 
-
                 for chunk in files.chunks(self.batch_size) {
                     for file in chunk {
-
                         let mime_type = file.mime_type.as_ref().map(|s| s.as_str()).unwrap_or("");
                         if !FileContentExtractor::should_index(&mime_type, file.file_size) {
                             continue;
                         }
-
 
                         let text = format!(
                             "File: {}\nType: {}\n\n{}",
@@ -415,7 +385,6 @@ impl VectorDBIndexer {
                         }
                     }
 
-
                     sleep(Duration::from_millis(100)).await;
                 }
             }
@@ -426,7 +395,6 @@ impl VectorDBIndexer {
 
         Ok(())
     }
-
 
     async fn get_user_email_accounts(&self, user_id: Uuid) -> Result<Vec<String>> {
         let conn = self.db_pool.clone();
@@ -490,7 +458,7 @@ impl VectorDBIndexer {
                 folder: String,
             }
 
-            let query = r#"
+            let query = r"
                 SELECT e.id, e.message_id, e.subject, e.from_address, e.to_addresses,
                        e.body_text, e.body_html, e.received_at, e.folder
                 FROM emails e
@@ -500,7 +468,7 @@ impl VectorDBIndexer {
                   AND (eis.indexed_at IS NULL OR eis.needs_reindex = true)
                 ORDER BY e.received_at DESC
                 LIMIT 100
-            "#;
+            ";
 
             let rows: Vec<EmailRow> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -510,20 +478,18 @@ impl VectorDBIndexer {
 
             let emails: Vec<EmailDocument> = rows
                 .into_iter()
-                .map(|row| {
-                    EmailDocument {
-                        id: row.id.to_string(),
-                        account_id: account_id.clone(),
-                        from_email: row.from_address.clone(),
-                        from_name: row.from_address,
-                        to_email: row.to_addresses,
-                        subject: row.subject,
-                        body_text: row.body_text.unwrap_or_default(),
-                        date: row.received_at,
-                        folder: row.folder,
-                        has_attachments: false,
-                        thread_id: None,
-                    }
+                .map(|row| EmailDocument {
+                    id: row.id.to_string(),
+                    account_id: account_id.clone(),
+                    from_email: row.from_address.clone(),
+                    from_name: row.from_address,
+                    to_email: row.to_addresses,
+                    subject: row.subject,
+                    body_text: row.body_text.unwrap_or_default(),
+                    date: row.received_at,
+                    folder: row.folder,
+                    has_attachments: false,
+                    thread_id: None,
                 })
                 .collect();
 
@@ -566,17 +532,16 @@ impl VectorDBIndexer {
                 modified_at: DateTime<Utc>,
             }
 
-            let query = r#"
+            let query = r"
                 SELECT f.id, f.file_path, f.file_name, f.file_type, f.file_size,
                        f.bucket, f.mime_type, f.created_at, f.modified_at
-                FROM files f
+                FROM user_files f
                 LEFT JOIN file_index_status fis ON f.id = fis.file_id
                 WHERE f.user_id = $1
                   AND (fis.indexed_at IS NULL OR fis.needs_reindex = true)
-                  AND f.file_size < 10485760
                 ORDER BY f.modified_at DESC
                 LIMIT 100
-            "#;
+            ";
 
             let rows: Vec<FileRow> = diesel::sql_query(query)
                 .bind::<diesel::sql_types::Uuid, _>(user_id)
@@ -585,22 +550,20 @@ impl VectorDBIndexer {
 
             let files: Vec<FileDocument> = rows
                 .into_iter()
-                .map(|row| {
-                    FileDocument {
-                        id: row.id.to_string(),
-                        file_path: row.file_path,
-                        file_name: row.file_name,
-                        file_type: row.file_type,
-                        file_size: row.file_size as u64,
-                        bucket: row.bucket,
-                        content_text: String::new(),
-                        content_summary: None,
-                        created_at: row.created_at,
-                        modified_at: row.modified_at,
-                        indexed_at: Utc::now(),
-                        mime_type: row.mime_type,
-                        tags: Vec::new(),
-                    }
+                .map(|row| FileDocument {
+                    id: row.id.to_string(),
+                    file_path: row.file_path,
+                    file_name: row.file_name,
+                    file_type: row.file_type,
+                    file_size: row.file_size as u64,
+                    bucket: row.bucket,
+                    content_text: String::new(),
+                    content_summary: None,
+                    created_at: row.created_at,
+                    modified_at: row.modified_at,
+                    indexed_at: Utc::now(),
+                    mime_type: row.mime_type,
+                    tags: Vec::new(),
                 })
                 .collect();
 
@@ -611,12 +574,10 @@ impl VectorDBIndexer {
         Ok(results)
     }
 
-
     pub async fn get_user_stats(&self, user_id: Uuid) -> Option<IndexingStats> {
         let jobs = self.jobs.read().await;
         jobs.get(&user_id).map(|job| job.stats.clone())
     }
-
 
     pub async fn get_overall_stats(&self) -> IndexingStats {
         let jobs = self.jobs.read().await;
@@ -647,7 +608,6 @@ impl VectorDBIndexer {
         total_stats
     }
 
-
     pub async fn pause_user_indexing(&self, user_id: Uuid) -> Result<()> {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
@@ -657,7 +617,6 @@ impl VectorDBIndexer {
         Ok(())
     }
 
-
     pub async fn resume_user_indexing(&self, user_id: Uuid) -> Result<()> {
         let mut jobs = self.jobs.write().await;
         if let Some(job) = jobs.get_mut(&user_id) {
@@ -666,7 +625,6 @@ impl VectorDBIndexer {
         }
         Ok(())
     }
-
 
     pub async fn trigger_user_indexing(&self, user_id: Uuid, bot_id: Uuid) -> Result<()> {
         info!(" Triggering immediate indexing for user {}", user_id);
