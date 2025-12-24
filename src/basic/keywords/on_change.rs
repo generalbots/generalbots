@@ -126,7 +126,7 @@ pub fn parse_folder_path(path: &str) -> (FolderProvider, Option<String>, String)
     (FolderProvider::Local, None, path.to_string())
 }
 
-fn detect_provider_from_email(email: &str) -> FolderProvider {
+pub fn detect_provider_from_email(email: &str) -> FolderProvider {
     let lower = email.to_lowercase();
     if lower.ends_with("@gmail.com") || lower.contains("google") {
         FolderProvider::GDrive
@@ -285,7 +285,7 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
         .unwrap();
 }
 
-fn sanitize_path_for_filename(path: &str) -> String {
+pub fn sanitize_path_for_filename(path: &str) -> String {
     path.replace('/', "_")
         .replace('\\', "_")
         .replace(':', "_")

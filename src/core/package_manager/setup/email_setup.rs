@@ -5,7 +5,6 @@ use std::time::Duration;
 use tokio::fs;
 use tokio::time::sleep;
 
-
 #[derive(Debug)]
 pub struct EmailSetup {
     base_url: String,
@@ -34,7 +33,6 @@ pub struct EmailDomain {
 
 impl EmailSetup {
     pub fn new(base_url: String, config_path: PathBuf) -> Self {
-
         let admin_user = format!(
             "admin_{}@botserver.local",
             uuid::Uuid::new_v4()
@@ -53,7 +51,6 @@ impl EmailSetup {
         }
     }
 
-
     fn generate_secure_password() -> String {
         use rand::distr::Alphanumeric;
         use rand::Rng;
@@ -66,12 +63,10 @@ impl EmailSetup {
             .collect()
     }
 
-
     pub async fn wait_for_ready(&self, max_attempts: u32) -> Result<()> {
         log::info!("Waiting for Email service to be ready...");
 
         for attempt in 1..=max_attempts {
-
             if let Ok(_) = tokio::net::TcpStream::connect("127.0.0.1:25").await {
                 log::info!("Email service is ready!");
                 return Ok(());
@@ -88,26 +83,21 @@ impl EmailSetup {
         anyhow::bail!("Email service did not become ready in time")
     }
 
-
     pub async fn initialize(
         &mut self,
         directory_config_path: Option<PathBuf>,
     ) -> Result<EmailConfig> {
         log::info!(" Initializing Email (Stalwart) server...");
 
-
         if let Ok(existing_config) = self.load_existing_config().await {
             log::info!("Email already initialized, using existing config");
             return Ok(existing_config);
         }
 
-
         self.wait_for_ready(30).await?;
-
 
         self.create_default_domain().await?;
         log::info!(" Created default email domain: localhost");
-
 
         let directory_integration = if let Some(dir_config_path) = directory_config_path {
             match self.setup_directory_integration(&dir_config_path).await {
@@ -124,7 +114,6 @@ impl EmailSetup {
             false
         };
 
-
         self.create_admin_account().await?;
         log::info!(" Created admin email account: {}", self.admin_user);
 
@@ -139,7 +128,6 @@ impl EmailSetup {
             directory_integration,
         };
 
-
         self.save_config(&config).await?;
         log::info!(" Saved Email configuration");
 
@@ -151,13 +139,9 @@ impl EmailSetup {
         Ok(config)
     }
 
-
     async fn create_default_domain(&self) -> Result<()> {
-
-
         Ok(())
     }
-
 
     async fn create_admin_account(&self) -> Result<()> {
         log::info!("Creating admin email account via Stalwart API...");
@@ -166,14 +150,13 @@ impl EmailSetup {
             .timeout(Duration::from_secs(30))
             .build()?;
 
-
         let api_url = format!("{}/api/account", self.base_url);
 
         let account_data = serde_json::json!({
             "name": self.admin_user,
             "secret": self.admin_pass,
             "description": "BotServer Admin Account",
-            "quota": 1073741824,
+            "quota": 1_073_741_824,
             "type": "individual",
             "emails": [self.admin_user.clone()],
             "memberOf": ["administrators"],
@@ -196,7 +179,6 @@ impl EmailSetup {
                     );
                     Ok(())
                 } else if resp.status().as_u16() == 409 {
-
                     log::info!("Admin email account already exists: {}", self.admin_user);
                     Ok(())
                 } else {
@@ -222,7 +204,6 @@ impl EmailSetup {
         }
     }
 
-
     async fn setup_directory_integration(&self, directory_config_path: &PathBuf) -> Result<()> {
         let content = fs::read_to_string(directory_config_path).await?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
@@ -234,11 +215,8 @@ impl EmailSetup {
         log::info!("Setting up OIDC authentication with Directory...");
         log::info!("Issuer URL: {}", issuer_url);
 
-
-
         Ok(())
     }
-
 
     async fn save_config(&self, config: &EmailConfig) -> Result<()> {
         let json = serde_json::to_string_pretty(config)?;
@@ -246,18 +224,15 @@ impl EmailSetup {
         Ok(())
     }
 
-
     async fn load_existing_config(&self) -> Result<EmailConfig> {
         let content = fs::read_to_string(&self.config_path).await?;
         let config: EmailConfig = serde_json::from_str(&content)?;
         Ok(config)
     }
 
-
     pub async fn get_config(&self) -> Result<EmailConfig> {
         self.load_existing_config().await
     }
-
 
     pub async fn create_user_mailbox(
         &self,
@@ -267,19 +242,14 @@ impl EmailSetup {
     ) -> Result<()> {
         log::info!("Creating mailbox for user: {}", email);
 
-
-
-
         Ok(())
     }
-
 
     pub async fn sync_users_from_directory(&self, directory_config_path: &PathBuf) -> Result<()> {
         log::info!("Syncing users from Directory to Email...");
 
         let content = fs::read_to_string(directory_config_path).await?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
-
 
         if let Some(default_user) = dir_config.get("default_user") {
             let email = default_user["email"].as_str().unwrap_or("");
@@ -295,7 +265,6 @@ impl EmailSetup {
         Ok(())
     }
 }
-
 
 pub async fn generate_email_config(
     config_path: PathBuf,
@@ -351,7 +320,6 @@ store = "sqlite"
 "#,
         data_path.display()
     );
-
 
     if directory_integration {
         config.push_str(

@@ -1,36 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use rhai::{Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
@@ -41,10 +8,8 @@ use tokio::sync::RwLock;
 use tracing::info;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LLMRequestMetrics {
-
     pub request_id: Uuid,
 
     pub session_id: Uuid,
@@ -77,7 +42,6 @@ pub struct LLMRequestMetrics {
 
     pub metadata: HashMap<String, String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
@@ -113,10 +77,8 @@ impl std::fmt::Display for RequestType {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AggregatedMetrics {
-
     pub period_start: DateTime<Utc>,
 
     pub period_end: DateTime<Utc>,
@@ -162,10 +124,8 @@ pub struct AggregatedMetrics {
     pub errors_by_type: HashMap<String, u64>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelPricing {
-
     pub model: String,
 
     pub input_cost_per_1k: f64,
@@ -189,10 +149,8 @@ impl Default for ModelPricing {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Budget {
-
     pub daily_limit: f64,
 
     pub monthly_limit: f64,
@@ -229,10 +187,8 @@ impl Default for Budget {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceEvent {
-
     pub id: Uuid,
 
     pub parent_id: Option<Uuid>,
@@ -258,7 +214,6 @@ pub struct TraceEvent {
     pub error: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum TraceEventType {
@@ -267,7 +222,6 @@ pub enum TraceEventType {
     Log,
     Metric,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -283,10 +237,8 @@ impl Default for TraceStatus {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ObservabilityConfig {
-
     pub enabled: bool,
 
     pub metrics_interval: u64,
@@ -322,10 +274,8 @@ impl Default for ObservabilityConfig {
     }
 }
 
-
 fn default_model_pricing() -> HashMap<String, ModelPricing> {
     let mut pricing = HashMap::new();
-
 
     pricing.insert(
         "gpt-4".to_string(),
@@ -360,7 +310,6 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
         },
     );
 
-
     pricing.insert(
         "claude-3-opus".to_string(),
         ModelPricing {
@@ -383,7 +332,6 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
         },
     );
 
-
     pricing.insert(
         "mixtral-8x7b-32768".to_string(),
         ModelPricing {
@@ -394,7 +342,6 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
             is_local: false,
         },
     );
-
 
     pricing.insert(
         "local".to_string(),
@@ -409,7 +356,6 @@ fn default_model_pricing() -> HashMap<String, ModelPricing> {
 
     pricing
 }
-
 
 #[derive(Debug)]
 pub struct ObservabilityManager {
@@ -431,7 +377,6 @@ pub struct ObservabilityManager {
 }
 
 impl ObservabilityManager {
-
     pub fn new(config: ObservabilityConfig) -> Self {
         let budget = Budget {
             daily_limit: config.budget_daily,
@@ -453,7 +398,6 @@ impl ObservabilityManager {
             error_count: AtomicU64::new(0),
         }
     }
-
 
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = ObservabilityConfig {
@@ -494,12 +438,10 @@ impl ObservabilityManager {
         ObservabilityManager::new(config)
     }
 
-
     pub async fn record_request(&self, metrics: LLMRequestMetrics) {
         if !self.config.enabled {
             return;
         }
-
 
         self.request_count.fetch_add(1, Ordering::Relaxed);
         self.token_count
@@ -515,23 +457,19 @@ impl ObservabilityManager {
             self.error_count.fetch_add(1, Ordering::Relaxed);
         }
 
-
         if self.config.cost_tracking && metrics.estimated_cost > 0.0 {
             let mut budget = self.budget.write().await;
             budget.daily_spend += metrics.estimated_cost;
             budget.monthly_spend += metrics.estimated_cost;
         }
 
-
         let mut buffer = self.metrics_buffer.write().await;
         buffer.push(metrics);
-
 
         if buffer.len() > 10000 {
             buffer.drain(0..1000);
         }
     }
-
 
     pub fn calculate_cost(&self, model: &str, input_tokens: u64, output_tokens: u64) -> f64 {
         if let Some(pricing) = self.config.model_pricing.get(model) {
@@ -542,11 +480,9 @@ impl ObservabilityManager {
             let output_cost = (output_tokens as f64 / 1000.0) * pricing.output_cost_per_1k;
             input_cost + output_cost + pricing.cost_per_request
         } else {
-
             0.0
         }
     }
-
 
     pub async fn get_budget_status(&self) -> BudgetStatus {
         let budget = self.budget.read().await;
@@ -566,7 +502,6 @@ impl ObservabilityManager {
                 >= budget.monthly_limit * budget.alert_threshold,
         }
     }
-
 
     pub async fn check_budget(&self, estimated_cost: f64) -> BudgetCheckResult {
         let budget = self.budget.read().await;
@@ -593,14 +528,12 @@ impl ObservabilityManager {
         BudgetCheckResult::Ok
     }
 
-
     pub async fn reset_daily_budget(&self) {
         let mut budget = self.budget.write().await;
         budget.daily_spend = 0.0;
         budget.daily_reset_date = Utc::now();
         budget.daily_alert_sent = false;
     }
-
 
     pub async fn reset_monthly_budget(&self) {
         let mut budget = self.budget.write().await;
@@ -609,12 +542,10 @@ impl ObservabilityManager {
         budget.monthly_alert_sent = false;
     }
 
-
     pub async fn record_trace(&self, event: TraceEvent) {
         if !self.config.enabled || !self.config.trace_enabled {
             return;
         }
-
 
         if self.config.trace_sample_rate < 1.0 {
             let sample: f64 = rand::random();
@@ -626,12 +557,10 @@ impl ObservabilityManager {
         let mut buffer = self.trace_buffer.write().await;
         buffer.push(event);
 
-
         if buffer.len() > 5000 {
             buffer.drain(0..500);
         }
     }
-
 
     pub fn start_span(
         &self,
@@ -656,7 +585,6 @@ impl ObservabilityManager {
         }
     }
 
-
     pub fn end_span(&self, span: &mut TraceEvent, status: TraceStatus, error: Option<String>) {
         let end_time = Utc::now();
         span.end_time = Some(end_time);
@@ -664,7 +592,6 @@ impl ObservabilityManager {
         span.status = status;
         span.error = error;
     }
-
 
     pub async fn get_aggregated_metrics(
         &self,
@@ -731,7 +658,6 @@ impl ObservabilityManager {
                 .or_insert(0) += 1;
         }
 
-
         if !latencies.is_empty() {
             latencies.sort();
             let len = latencies.len();
@@ -747,7 +673,6 @@ impl ObservabilityManager {
 
         metrics
     }
-
 
     pub async fn get_current_metrics(&self) -> AggregatedMetrics {
         self.current_metrics.read().await.clone()
@@ -789,12 +714,10 @@ impl ObservabilityManager {
         }
     }
 
-
     pub async fn get_recent_traces(&self, limit: usize) -> Vec<TraceEvent> {
         let buffer = self.trace_buffer.read().await;
         buffer.iter().rev().take(limit).cloned().collect()
     }
-
 
     pub async fn get_trace(&self, trace_id: Uuid) -> Vec<TraceEvent> {
         let buffer = self.trace_buffer.read().await;
@@ -805,7 +728,6 @@ impl ObservabilityManager {
             .collect()
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BudgetStatus {
@@ -823,7 +745,6 @@ pub struct BudgetStatus {
     pub near_monthly_limit: bool,
 }
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum BudgetCheckResult {
     Ok,
@@ -832,7 +753,6 @@ pub enum BudgetCheckResult {
     DailyExceeded,
     MonthlyExceeded,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuickStats {
@@ -844,7 +764,6 @@ pub struct QuickStats {
     pub cache_hit_rate: f64,
     pub error_rate: f64,
 }
-
 
 impl LLMRequestMetrics {
     pub fn to_dynamic(&self) -> Dynamic {
@@ -935,10 +854,7 @@ impl BudgetStatus {
     }
 }
 
-
 pub fn register_observability_keywords(engine: &mut Engine) {
-
-
     engine.register_fn("metrics_total_requests", |metrics: Map| -> i64 {
         metrics
             .get("total_requests")
@@ -1006,8 +922,7 @@ pub fn register_observability_keywords(engine: &mut Engine) {
     info!("Observability keywords registered");
 }
 
-
-pub const OBSERVABILITY_SCHEMA: &str = r#"
+pub const OBSERVABILITY_SCHEMA: &str = r"
 -- LLM request metrics
 CREATE TABLE IF NOT EXISTS llm_metrics (
     id UUID PRIMARY KEY,
@@ -1102,4 +1017,4 @@ CREATE INDEX IF NOT EXISTS idx_llm_metrics_hourly_hour ON llm_metrics_hourly(hou
 CREATE INDEX IF NOT EXISTS idx_llm_traces_trace_id ON llm_traces(trace_id);
 CREATE INDEX IF NOT EXISTS idx_llm_traces_start_time ON llm_traces(start_time DESC);
 CREATE INDEX IF NOT EXISTS idx_llm_traces_component ON llm_traces(component);
-"#;
+";

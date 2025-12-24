@@ -28,18 +28,6 @@
 |                                                                             |
 \*****************************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -49,7 +37,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, PartialEq)]
 pub enum SmsProvider {
     Twilio,
@@ -58,7 +45,6 @@ pub enum SmsProvider {
     MessageBird,
     Custom(String),
 }
-
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum SmsPriority {
@@ -108,7 +94,6 @@ impl From<&str> for SmsProvider {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SmsSendResult {
     pub success: bool,
@@ -119,14 +104,11 @@ pub struct SmsSendResult {
     pub error: Option<String>,
 }
 
-
 pub fn register_sms_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_send_sms_keyword(state.clone(), user.clone(), engine);
     register_send_sms_with_third_arg_keyword(state.clone(), user.clone(), engine);
     register_send_sms_full_keyword(state, user, engine);
 }
-
-
 
 pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -211,9 +193,6 @@ pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-
-
-
 pub fn register_send_sms_with_third_arg_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -230,7 +209,6 @@ pub fn register_send_sms_with_third_arg_keyword(
                 let phone = context.eval_expression_tree(&inputs[0])?.to_string();
                 let message = context.eval_expression_tree(&inputs[1])?.to_string();
                 let third_arg = context.eval_expression_tree(&inputs[2])?.to_string();
-
 
                 let is_priority = matches!(
                     third_arg.to_lowercase().as_str(),
@@ -318,8 +296,6 @@ pub fn register_send_sms_with_third_arg_keyword(
         )
         .unwrap();
 }
-
-
 
 pub fn register_send_sms_full_keyword(
     state: Arc<AppState>,
@@ -413,7 +389,6 @@ pub fn register_send_sms_full_keyword(
             },
         )
         .unwrap();
-
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
@@ -517,7 +492,6 @@ async fn execute_send_sms(
     let config_manager = ConfigManager::new(state.conn.clone());
     let bot_id = user.bot_id;
 
-
     let provider_name = match provider_override {
         Some(p) => p.to_string(),
         None => config_manager
@@ -526,7 +500,6 @@ async fn execute_send_sms(
     };
 
     let provider = SmsProvider::from(provider_name.as_str());
-
 
     let priority = match priority_override {
         Some(p) => SmsPriority::from(p),
@@ -538,9 +511,7 @@ async fn execute_send_sms(
         }
     };
 
-
     let normalized_phone = normalize_phone_number(phone);
-
 
     if matches!(priority, SmsPriority::High | SmsPriority::Urgent) {
         info!(
@@ -548,7 +519,6 @@ async fn execute_send_sms(
             normalized_phone, priority
         );
     }
-
 
     let result = match provider {
         SmsProvider::Twilio => {
@@ -602,20 +572,16 @@ async fn execute_send_sms(
 }
 
 fn normalize_phone_number(phone: &str) -> String {
-
     let has_plus = phone.starts_with('+');
     let digits: String = phone.chars().filter(|c| c.is_ascii_digit()).collect();
 
     if has_plus {
         format!("+{}", digits)
     } else if digits.len() == 10 {
-
         format!("+1{}", digits)
     } else if digits.len() == 11 && digits.starts_with('1') {
-
         format!("+{}", digits)
     } else {
-
         format!("+{}", digits)
     }
 }
@@ -646,8 +612,6 @@ async fn send_via_twilio(
         "https://api.twilio.com/2010-04-01/Accounts/{}/Messages.json",
         account_sid
     );
-
-
 
     let final_message = match priority {
         SmsPriority::Urgent => format!("[URGENT] {}", message),
@@ -699,21 +663,16 @@ async fn send_via_aws_sns(
         .get_config(bot_id, "aws-region", Some("us-east-1"))
         .unwrap_or_else(|_| "us-east-1".to_string());
 
-
     let client = reqwest::Client::new();
     let url = format!("https://sns.{}.amazonaws.com/", region);
 
-
     let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
     let _date = &timestamp[..8];
-
-
 
     let sms_type = match priority {
         SmsPriority::High | SmsPriority::Urgent => "Transactional",
         _ => "Promotional",
     };
-
 
     let params = [
         ("Action", "Publish"),
@@ -724,8 +683,6 @@ async fn send_via_aws_sns(
         ("MessageAttributes.entry.1.Value.DataType", "String"),
         ("MessageAttributes.entry.1.Value.StringValue", sms_type),
     ];
-
-
 
     let response = client
         .post(&url)
@@ -774,7 +731,6 @@ async fn send_via_vonage(
 
     let client = reqwest::Client::new();
 
-
     let message_class = match priority {
         SmsPriority::Urgent => Some("0"),
         _ => None,
@@ -798,25 +754,24 @@ async fn send_via_vonage(
         .send()
         .await?;
 
-    if response.status().is_success() {
-        let json: serde_json::Value = response.json().await?;
-        let messages = json["messages"].as_array();
-
-        if let Some(msgs) = messages {
-            if let Some(first) = msgs.first() {
-                if first["status"].as_str() == Some("0") {
-                    return Ok(first["message-id"].as_str().map(|s| s.to_string()));
-                } else {
-                    let error_text = first["error-text"].as_str().unwrap_or("Unknown error");
-                    return Err(format!("Vonage error: {}", error_text).into());
-                }
-            }
-        }
-        Err("Invalid Vonage response".into())
-    } else {
+    if !response.status().is_success() {
         let error_text = response.text().await?;
-        Err(format!("Vonage API error: {}", error_text).into())
+        return Err(format!("Vonage API error: {error_text}").into());
     }
+
+    let json: serde_json::Value = response.json().await?;
+    let messages = json["messages"].as_array();
+
+    if let Some(msgs) = messages {
+        if let Some(first) = msgs.first() {
+            if first["status"].as_str() == Some("0") {
+                return Ok(first["message-id"].as_str().map(|s| s.to_string()));
+            }
+            let error_text = first["error-text"].as_str().unwrap_or("Unknown error");
+            return Err(format!("Vonage error: {error_text}").into());
+        }
+    }
+    Err("Invalid Vonage response".into())
 }
 
 async fn send_via_messagebird(
@@ -839,7 +794,6 @@ async fn send_via_messagebird(
         })?;
 
     let client = reqwest::Client::new();
-
 
     let type_details = match priority {
         SmsPriority::Urgent => Some(serde_json::json!({"class": 0})),

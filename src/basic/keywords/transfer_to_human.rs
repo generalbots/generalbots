@@ -1,42 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::Utc;
@@ -48,10 +9,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferToHumanRequest {
-
     pub name: Option<String>,
 
     pub department: Option<String>,
@@ -62,7 +21,6 @@ pub struct TransferToHumanRequest {
 
     pub context: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TransferResult {
@@ -75,11 +33,9 @@ pub struct TransferResult {
     pub message: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TransferStatus {
-
     Queued,
 
     Assigned,
@@ -95,7 +51,6 @@ pub enum TransferStatus {
     Error,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Attendant {
     pub id: String,
@@ -106,7 +61,6 @@ pub struct Attendant {
     pub aliases: Vec<String>,
     pub status: AttendantStatus,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -123,14 +77,12 @@ impl Default for AttendantStatus {
     }
 }
 
-
 pub fn is_crm_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("config.csv");
 
     if !config_path.exists() {
-
         let alt_path = PathBuf::from(work_path).join("config.csv");
         if alt_path.exists() {
             return check_config_for_crm(&alt_path);
@@ -167,14 +119,12 @@ fn check_config_for_crm(config_path: &PathBuf) -> bool {
     }
 }
 
-
 pub fn read_attendants(bot_id: Uuid, work_path: &str) -> Vec<Attendant> {
     let attendant_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("attendant.csv");
 
     if !attendant_path.exists() {
-
         let alt_path = PathBuf::from(work_path).join("attendant.csv");
         if alt_path.exists() {
             return parse_attendants_csv(&alt_path);
@@ -192,10 +142,8 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
             let mut attendants = Vec::new();
             let mut lines = content.lines();
 
-
             let header = lines.next().unwrap_or("");
             let headers: Vec<String> = header.split(',').map(|s| s.trim().to_lowercase()).collect();
-
 
             let id_idx = headers.iter().position(|h| h == "id").unwrap_or(0);
             let name_idx = headers.iter().position(|h| h == "name").unwrap_or(1);
@@ -239,7 +187,6 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
     }
 }
 
-
 pub fn find_attendant<'a>(
     attendants: &'a [Attendant],
     name: Option<&str>,
@@ -248,14 +195,12 @@ pub fn find_attendant<'a>(
     if let Some(search_name) = name {
         let search_lower = search_name.to_lowercase();
 
-
         if let Some(att) = attendants
             .iter()
             .find(|a| a.name.to_lowercase() == search_lower)
         {
             return Some(att);
         }
-
 
         if let Some(att) = attendants
             .iter()
@@ -264,14 +209,12 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-
         if let Some(att) = attendants
             .iter()
             .find(|a| a.aliases.contains(&search_lower))
         {
             return Some(att);
         }
-
 
         if let Some(att) = attendants
             .iter()
@@ -284,7 +227,6 @@ pub fn find_attendant<'a>(
     if let Some(dept) = department {
         let dept_lower = dept.to_lowercase();
 
-
         if let Some(att) = attendants.iter().find(|a| {
             a.department
                 .as_ref()
@@ -295,7 +237,6 @@ pub fn find_attendant<'a>(
             return Some(att);
         }
 
-
         if let Some(att) = attendants.iter().find(|a| {
             a.preferences.to_lowercase().contains(&dept_lower)
                 && a.status == AttendantStatus::Online
@@ -304,12 +245,10 @@ pub fn find_attendant<'a>(
         }
     }
 
-
     attendants
         .iter()
         .find(|a| a.status == AttendantStatus::Online)
 }
-
 
 fn priority_to_int(priority: Option<&str>) -> i32 {
     match priority.map(|p| p.to_lowercase()).as_deref() {
@@ -321,7 +260,6 @@ fn priority_to_int(priority: Option<&str>) -> i32 {
     }
 }
 
-
 pub async fn execute_transfer(
     state: Arc<AppState>,
     session: &UserSession,
@@ -329,7 +267,6 @@ pub async fn execute_transfer(
 ) -> TransferResult {
     let work_path = "./work";
     let bot_id = session.bot_id;
-
 
     if !is_crm_enabled(bot_id, work_path) {
         return TransferResult {
@@ -343,7 +280,6 @@ pub async fn execute_transfer(
                 .to_string(),
         };
     }
-
 
     let attendants = read_attendants(bot_id, work_path);
     if attendants.is_empty() {
@@ -359,13 +295,11 @@ pub async fn execute_transfer(
         };
     }
 
-
     let attendant = find_attendant(
         &attendants,
         request.name.as_deref(),
         request.department.as_deref(),
     );
-
 
     if request.name.is_some() && attendant.is_none() {
         return TransferResult {
@@ -387,7 +321,6 @@ pub async fn execute_transfer(
         };
     }
 
-
     let priority = priority_to_int(request.priority.as_deref());
     let transfer_context = serde_json::json!({
         "transfer_requested_at": Utc::now().to_rfc3339(),
@@ -401,7 +334,6 @@ pub async fn execute_transfer(
         "assigned_to_name": attendant.as_ref().map(|a| a.name.clone()),
         "status": if attendant.is_some() { "assigned" } else { "queued" },
     });
-
 
     let session_id = session.id;
     let conn = state.conn.clone();
@@ -491,7 +423,6 @@ pub async fn execute_transfer(
     }
 }
 
-
 impl TransferResult {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -532,11 +463,11 @@ async fn calculate_queue_position(state: &Arc<AppState>, current_session_id: Uui
         };
 
         let query = diesel::sql_query(
-            r#"SELECT COUNT(*) as position FROM user_sessions
+            r"SELECT COUNT(*) as position FROM user_sessions
                WHERE context_data->>'needs_human' = 'true'
                AND context_data->>'status' = 'queued'
                AND created_at <= (SELECT created_at FROM user_sessions WHERE id = $1)
-               AND id != $2"#,
+               AND id != $2",
         )
         .bind::<diesel::sql_types::Uuid, _>(current_session_id)
         .bind::<diesel::sql_types::Uuid, _>(current_session_id);
@@ -563,13 +494,11 @@ async fn calculate_queue_position(state: &Arc<AppState>, current_session_id: Uui
     }
 }
 
-
 pub fn register_transfer_to_human_keyword(
     state: Arc<AppState>,
     user: UserSession,
     engine: &mut Engine,
 ) {
-
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn("transfer_to_human", move || -> Dynamic {
@@ -594,7 +523,6 @@ pub fn register_transfer_to_human_keyword(
 
         result.to_dynamic()
     });
-
 
     let state_clone = state.clone();
     let user_clone = user.clone();
@@ -621,7 +549,6 @@ pub fn register_transfer_to_human_keyword(
 
         result.to_dynamic()
     });
-
 
     let state_clone = state.clone();
     let user_clone = user.clone();
@@ -653,7 +580,6 @@ pub fn register_transfer_to_human_keyword(
         },
     );
 
-
     let state_clone = state.clone();
     let user_clone = user.clone();
     engine.register_fn(
@@ -684,7 +610,6 @@ pub fn register_transfer_to_human_keyword(
             result.to_dynamic()
         },
     );
-
 
     let state_clone = state.clone();
     let user_clone = user.clone();
@@ -730,7 +655,6 @@ pub fn register_transfer_to_human_keyword(
     debug!("Registered TRANSFER TO HUMAN keywords");
 }
 
-
 pub const TRANSFER_TO_HUMAN_TOOL_SCHEMA: &str = r#"{
     "name": "transfer_to_human",
     "description": "Transfer the conversation to a human attendant. Use this when the customer explicitly asks to speak with a person, when the issue is too complex for automated handling, or when emotional support is needed.",
@@ -760,7 +684,6 @@ pub const TRANSFER_TO_HUMAN_TOOL_SCHEMA: &str = r#"{
         "required": []
     }
 }"#;
-
 
 pub fn get_tool_definition() -> serde_json::Value {
     serde_json::json!({

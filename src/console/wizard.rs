@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use crate::shared::platform_name;
 use crate::shared::BOTSERVER_VERSION;
 use crossterm::{
@@ -21,37 +11,26 @@ use serde::{Deserialize, Serialize};
 use std::io::{self, Write};
 use std::path::PathBuf;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WizardConfig {
-
     pub llm_provider: LlmProvider,
-
 
     pub llm_api_key: Option<String>,
 
-
     pub local_model_path: Option<String>,
-
 
     pub components: Vec<ComponentChoice>,
 
-
     pub admin: AdminConfig,
-
 
     pub organization: OrgConfig,
 
-
     pub template: Option<String>,
-
 
     pub install_mode: InstallMode,
 
-
     pub data_dir: PathBuf,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum LlmProvider {
@@ -73,7 +52,6 @@ impl std::fmt::Display for LlmProvider {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ComponentChoice {
@@ -104,7 +82,6 @@ impl std::fmt::Display for ComponentChoice {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AdminConfig {
     pub username: String,
@@ -113,14 +90,12 @@ pub struct AdminConfig {
     pub display_name: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct OrgConfig {
     pub name: String,
     pub slug: String,
     pub domain: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum InstallMode {
@@ -149,7 +124,6 @@ impl Default for WizardConfig {
     }
 }
 
-
 #[derive(Debug)]
 pub struct StartupWizard {
     config: WizardConfig,
@@ -166,11 +140,9 @@ impl StartupWizard {
         }
     }
 
-
     pub fn run(&mut self) -> io::Result<WizardConfig> {
         terminal::enable_raw_mode()?;
         let mut stdout = io::stdout();
-
 
         execute!(
             stdout,
@@ -181,30 +153,23 @@ impl StartupWizard {
         self.show_welcome(&mut stdout)?;
         self.wait_for_enter()?;
 
-
         self.current_step = 1;
         self.step_install_mode(&mut stdout)?;
-
 
         self.current_step = 2;
         self.step_llm_provider(&mut stdout)?;
 
-
         self.current_step = 3;
         self.step_components(&mut stdout)?;
-
 
         self.current_step = 4;
         self.step_organization(&mut stdout)?;
 
-
         self.current_step = 5;
         self.step_admin_user(&mut stdout)?;
 
-
         self.current_step = 6;
         self.step_template(&mut stdout)?;
-
 
         self.current_step = 7;
         self.step_summary(&mut stdout)?;
@@ -220,7 +185,7 @@ impl StartupWizard {
             cursor::MoveTo(0, 0)
         )?;
 
-        let banner = r#"
+        let banner = r"
     ╔══════════════════════════════════════════════════════════════════╗
     ║                                                                  ║
     ║     ██████╗ ███████╗███╗   ██╗███████╗██████╗  █████╗ ██╗       ║
@@ -237,7 +202,7 @@ impl StartupWizard {
     ║                      ╚═════╝  ╚═════╝    ╚═╝   ╚══════╝          ║
     ║                                                                  ║
     ╚══════════════════════════════════════════════════════════════════╝
-"#;
+";
 
         execute!(
             stdout,
@@ -287,7 +252,6 @@ impl StartupWizard {
             terminal::Clear(ClearType::All),
             cursor::MoveTo(0, 0)
         )?;
-
 
         let progress = format!("Step {}/{}: {}", self.current_step, self.total_steps, title);
         let bar_width = 50;
@@ -396,7 +360,6 @@ impl StartupWizard {
         let selected = self.select_option(stdout, &options, 0)?;
         self.config.llm_provider = options[selected].2.clone();
 
-
         if self.config.llm_provider != LlmProvider::Local
             && self.config.llm_provider != LlmProvider::None
         {
@@ -485,7 +448,6 @@ impl StartupWizard {
         io::stdin().read_line(&mut org_name)?;
         self.config.organization.name = org_name.trim().to_string();
 
-
         self.config.organization.slug = self
             .config
             .organization
@@ -556,7 +518,6 @@ impl StartupWizard {
 
         execute!(stdout, cursor::MoveTo(2, 13), Print("Admin password: "))?;
         stdout.flush()?;
-
 
         let mut password = String::new();
         io::stdin().read_line(&mut password)?;
@@ -824,7 +785,6 @@ impl StartupWizard {
                     }
                     KeyCode::Char(' ') => {
                         if options[cursor].2 {
-
                             selected[cursor] = !selected[cursor];
                         }
                     }
@@ -857,14 +817,12 @@ impl StartupWizard {
     }
 }
 
-
 pub fn save_wizard_config(config: &WizardConfig, path: &str) -> io::Result<()> {
     let content = toml::to_string_pretty(config)
         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     std::fs::write(path, content)?;
     Ok(())
 }
-
 
 pub fn load_wizard_config(path: &str) -> io::Result<WizardConfig> {
     let content = std::fs::read_to_string(path)?;
@@ -873,31 +831,25 @@ pub fn load_wizard_config(path: &str) -> io::Result<WizardConfig> {
     Ok(config)
 }
 
-
 pub fn should_run_wizard() -> bool {
     !std::path::Path::new("./botserver-stack").exists()
         && !std::path::Path::new("/opt/gbo").exists()
 }
 
-
 pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
     use std::fs;
 
-
     fs::create_dir_all(&config.data_dir)?;
-
 
     let subdirs = ["bots", "logs", "cache", "uploads", "config"];
     for subdir in &subdirs {
         fs::create_dir_all(config.data_dir.join(subdir))?;
     }
 
-
     save_wizard_config(
         config,
         &config.data_dir.join("config/wizard.toml").to_string_lossy(),
     )?;
-
 
     let mut env_content = String::new();
     env_content.push_str(&format!(

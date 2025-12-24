@@ -1,50 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
@@ -52,10 +5,8 @@ use std::collections::HashMap;
 use tracing::info;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgEntity {
-
     pub id: Uuid,
 
     pub bot_id: Uuid,
@@ -77,7 +28,6 @@ pub struct KgEntity {
     pub updated_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum EntitySource {
@@ -93,10 +43,8 @@ impl Default for EntitySource {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KgRelationship {
-
     pub id: Uuid,
 
     pub bot_id: Uuid,
@@ -118,10 +66,8 @@ pub struct KgRelationship {
     pub created_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedEntity {
-
     pub name: String,
 
     pub canonical_name: String,
@@ -137,10 +83,8 @@ pub struct ExtractedEntity {
     pub properties: serde_json::Value,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractedRelationship {
-
     pub from_entity: String,
 
     pub to_entity: String,
@@ -152,10 +96,8 @@ pub struct ExtractedRelationship {
     pub evidence: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionResult {
-
     pub entities: Vec<ExtractedEntity>,
 
     pub relationships: Vec<ExtractedRelationship>,
@@ -163,10 +105,8 @@ pub struct ExtractionResult {
     pub metadata: ExtractionMetadata,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExtractionMetadata {
-
     pub model: String,
 
     pub processing_time_ms: u64,
@@ -176,10 +116,8 @@ pub struct ExtractionMetadata {
     pub text_length: usize,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct GraphQueryResult {
-
     pub entities: Vec<KgEntity>,
 
     pub relationships: Vec<KgRelationship>,
@@ -189,10 +127,8 @@ pub struct GraphQueryResult {
     pub confidence: f64,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct KnowledgeGraphConfig {
-
     pub enabled: bool,
 
     pub backend: String,
@@ -233,18 +169,15 @@ impl Default for KnowledgeGraphConfig {
     }
 }
 
-
 #[derive(Debug)]
 pub struct KnowledgeGraphManager {
     config: KnowledgeGraphConfig,
 }
 
 impl KnowledgeGraphManager {
-
     pub fn new(config: KnowledgeGraphConfig) -> Self {
         KnowledgeGraphManager { config }
     }
-
 
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = KnowledgeGraphConfig {
@@ -284,7 +217,6 @@ impl KnowledgeGraphManager {
         KnowledgeGraphManager::new(config)
     }
 
-
     pub fn generate_extraction_prompt(&self, text: &str) -> String {
         let entity_types = self.config.entity_types.join(", ");
 
@@ -320,7 +252,6 @@ Respond with valid JSON only:
         )
     }
 
-
     pub fn generate_query_prompt(&self, query: &str, context: &str) -> String {
         format!(
             r#"Answer this question using the knowledge graph context.
@@ -335,7 +266,6 @@ If the information is not available, say so clearly.
 "#
         )
     }
-
 
     pub fn parse_extraction_response(
         &self,
@@ -401,11 +331,9 @@ If the information is not available, say so clearly.
         })
     }
 
-
     pub fn should_extract(&self) -> bool {
         self.config.enabled && self.config.extract_entities
     }
-
 
     pub fn is_valid_entity_type(&self, entity_type: &str) -> bool {
         self.config
@@ -415,15 +343,12 @@ If the information is not available, say so clearly.
     }
 }
 
-
 fn extract_json(response: &str) -> Result<String, String> {
-
     if let Some(start) = response.find("```json") {
         if let Some(end) = response[start + 7..].find("```") {
             return Ok(response[start + 7..start + 7 + end].trim().to_string());
         }
     }
-
 
     if let Some(start) = response.find("```") {
         let after_start = start + 3;
@@ -436,7 +361,6 @@ fn extract_json(response: &str) -> Result<String, String> {
         }
     }
 
-
     if let Some(start) = response.find('{') {
         if let Some(end) = response.rfind('}') {
             if end > start {
@@ -447,7 +371,6 @@ fn extract_json(response: &str) -> Result<String, String> {
 
     Err("No JSON found in response".to_string())
 }
-
 
 impl KgEntity {
     pub fn to_dynamic(&self) -> Dynamic {
@@ -478,7 +401,6 @@ impl KgEntity {
     }
 }
 
-
 impl KgRelationship {
     pub fn to_dynamic(&self) -> Dynamic {
         let mut map = Map::new();
@@ -506,7 +428,6 @@ impl KgRelationship {
         Dynamic::from(map)
     }
 }
-
 
 fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     match value {
@@ -536,10 +457,7 @@ fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     }
 }
 
-
 pub fn register_knowledge_graph_keywords(engine: &mut Engine) {
-
-
     engine.register_fn("entity_name", |entity: Map| -> String {
         entity
             .get("entity_name")
@@ -575,7 +493,6 @@ pub fn register_knowledge_graph_keywords(engine: &mut Engine) {
 
     info!("Knowledge graph keywords registered");
 }
-
 
 pub const KNOWLEDGE_GRAPH_SCHEMA: &str = r#"
 -- Knowledge graph entities
@@ -627,9 +544,8 @@ CREATE INDEX IF NOT EXISTS idx_kg_entities_name_fts ON kg_entities
     USING GIN(to_tsvector('english', entity_name));
 "#;
 
-
 pub mod sql {
-    pub const INSERT_ENTITY: &str = r#"
+    pub const INSERT_ENTITY: &str = r"
         INSERT INTO kg_entities (
             id, bot_id, entity_type, entity_name, aliases, properties,
             confidence, source, created_at, updated_at
@@ -643,9 +559,9 @@ pub mod sql {
             confidence = GREATEST(kg_entities.confidence, $7),
             updated_at = $10
         RETURNING id
-    "#;
+    ";
 
-    pub const INSERT_RELATIONSHIP: &str = r#"
+    pub const INSERT_RELATIONSHIP: &str = r"
         INSERT INTO kg_relationships (
             id, bot_id, from_entity_id, to_entity_id, relationship_type,
             properties, confidence, bidirectional, source, created_at
@@ -657,9 +573,9 @@ pub mod sql {
             properties = kg_relationships.properties || $6,
             confidence = GREATEST(kg_relationships.confidence, $7)
         RETURNING id
-    "#;
+    ";
 
-    pub const GET_ENTITY_BY_NAME: &str = r#"
+    pub const GET_ENTITY_BY_NAME: &str = r"
         SELECT * FROM kg_entities
         WHERE bot_id = $1
         AND (
@@ -667,13 +583,13 @@ pub mod sql {
             OR aliases @> $3::jsonb
         )
         LIMIT 1
-    "#;
+    ";
 
-    pub const GET_ENTITY_BY_ID: &str = r#"
+    pub const GET_ENTITY_BY_ID: &str = r"
         SELECT * FROM kg_entities WHERE id = $1
-    "#;
+    ";
 
-    pub const SEARCH_ENTITIES: &str = r#"
+    pub const SEARCH_ENTITIES: &str = r"
         SELECT * FROM kg_entities
         WHERE bot_id = $1
         AND (
@@ -682,16 +598,16 @@ pub mod sql {
         )
         ORDER BY confidence DESC
         LIMIT $4
-    "#;
+    ";
 
-    pub const GET_ENTITIES_BY_TYPE: &str = r#"
+    pub const GET_ENTITIES_BY_TYPE: &str = r"
         SELECT * FROM kg_entities
         WHERE bot_id = $1 AND entity_type = $2
         ORDER BY entity_name
         LIMIT $3
-    "#;
+    ";
 
-    pub const GET_RELATED_ENTITIES: &str = r#"
+    pub const GET_RELATED_ENTITIES: &str = r"
         SELECT e.*, r.relationship_type, r.confidence as rel_confidence
         FROM kg_entities e
         JOIN kg_relationships r ON (
@@ -701,9 +617,9 @@ pub mod sql {
         WHERE r.bot_id = $2
         ORDER BY r.confidence DESC
         LIMIT $3
-    "#;
+    ";
 
-    pub const GET_RELATED_BY_TYPE: &str = r#"
+    pub const GET_RELATED_BY_TYPE: &str = r"
         SELECT e.*, r.relationship_type, r.confidence as rel_confidence
         FROM kg_entities e
         JOIN kg_relationships r ON (
@@ -713,17 +629,17 @@ pub mod sql {
         WHERE r.bot_id = $2 AND r.relationship_type = $3
         ORDER BY r.confidence DESC
         LIMIT $4
-    "#;
+    ";
 
-    pub const GET_RELATIONSHIP: &str = r#"
+    pub const GET_RELATIONSHIP: &str = r"
         SELECT * FROM kg_relationships
         WHERE bot_id = $1
         AND from_entity_id = $2
         AND to_entity_id = $3
         AND relationship_type = $4
-    "#;
+    ";
 
-    pub const GET_ALL_RELATIONSHIPS_FOR_ENTITY: &str = r#"
+    pub const GET_ALL_RELATIONSHIPS_FOR_ENTITY: &str = r"
         SELECT r.*,
                e1.entity_name as from_name, e1.entity_type as from_type,
                e2.entity_name as to_name, e2.entity_type as to_type
@@ -733,42 +649,41 @@ pub mod sql {
         WHERE r.bot_id = $1
         AND (r.from_entity_id = $2 OR r.to_entity_id = $2)
         ORDER BY r.confidence DESC
-    "#;
+    ";
 
-    pub const DELETE_ENTITY: &str = r#"
+    pub const DELETE_ENTITY: &str = r"
         DELETE FROM kg_entities WHERE id = $1 AND bot_id = $2
-    "#;
+    ";
 
-    pub const DELETE_RELATIONSHIP: &str = r#"
+    pub const DELETE_RELATIONSHIP: &str = r"
         DELETE FROM kg_relationships WHERE id = $1 AND bot_id = $2
-    "#;
+    ";
 
-    pub const COUNT_ENTITIES: &str = r#"
+    pub const COUNT_ENTITIES: &str = r"
         SELECT COUNT(*) FROM kg_entities WHERE bot_id = $1
-    "#;
+    ";
 
-    pub const COUNT_RELATIONSHIPS: &str = r#"
+    pub const COUNT_RELATIONSHIPS: &str = r"
         SELECT COUNT(*) FROM kg_relationships WHERE bot_id = $1
-    "#;
+    ";
 
-    pub const GET_ENTITY_TYPES: &str = r#"
+    pub const GET_ENTITY_TYPES: &str = r"
         SELECT DISTINCT entity_type, COUNT(*) as count
         FROM kg_entities
         WHERE bot_id = $1
         GROUP BY entity_type
         ORDER BY count DESC
-    "#;
+    ";
 
-    pub const GET_RELATIONSHIP_TYPES: &str = r#"
+    pub const GET_RELATIONSHIP_TYPES: &str = r"
         SELECT DISTINCT relationship_type, COUNT(*) as count
         FROM kg_relationships
         WHERE bot_id = $1
         GROUP BY relationship_type
         ORDER BY count DESC
-    "#;
+    ";
 
-
-    pub const FIND_PATH: &str = r#"
+    pub const FIND_PATH: &str = r"
         WITH RECURSIVE path_finder AS (
             -- Base case: start from source entity
             SELECT
@@ -799,9 +714,8 @@ pub mod sql {
         WHERE to_entity_id = $3
         ORDER BY depth
         LIMIT 1
-    "#;
+    ";
 }
-
 
 pub mod relationship_types {
     pub const WORKS_ON: &str = "works_on";
@@ -819,7 +733,6 @@ pub mod relationship_types {
     pub const PREDECESSOR_OF: &str = "predecessor_of";
     pub const ALIAS_OF: &str = "alias_of";
 }
-
 
 pub mod entity_types {
     pub const PERSON: &str = "person";

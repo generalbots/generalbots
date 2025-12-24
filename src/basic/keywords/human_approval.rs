@@ -1,57 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
@@ -59,10 +5,8 @@ use std::collections::HashMap;
 use tracing::info;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalRequest {
-
     pub id: Uuid,
 
     pub bot_id: Uuid,
@@ -106,11 +50,9 @@ pub struct ApprovalRequest {
     pub comments: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalStatus {
-
     Pending,
 
     Approved,
@@ -132,7 +74,6 @@ impl Default for ApprovalStatus {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalDecision {
@@ -142,7 +83,6 @@ pub enum ApprovalDecision {
     Defer,
     RequestInfo,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -176,10 +116,8 @@ impl std::fmt::Display for ApprovalChannel {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalChain {
-
     pub name: String,
 
     pub bot_id: Uuid,
@@ -195,10 +133,8 @@ pub struct ApprovalChain {
     pub created_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalLevel {
-
     pub level: u32,
 
     pub channel: ApprovalChannel,
@@ -216,10 +152,8 @@ pub struct ApprovalLevel {
     pub required_approvals: u32,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalAuditEntry {
-
     pub id: Uuid,
 
     pub request_id: Uuid,
@@ -237,7 +171,6 @@ pub struct ApprovalAuditEntry {
     pub user_agent: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuditAction {
@@ -253,10 +186,8 @@ pub enum AuditAction {
     ContextUpdated,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ApprovalConfig {
-
     pub enabled: bool,
 
     pub default_timeout: u64,
@@ -289,18 +220,15 @@ impl Default for ApprovalConfig {
     }
 }
 
-
 #[derive(Debug)]
 pub struct ApprovalManager {
     config: ApprovalConfig,
 }
 
 impl ApprovalManager {
-
     pub fn new(config: ApprovalConfig) -> Self {
         ApprovalManager { config }
     }
-
 
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
         let config = ApprovalConfig {
@@ -330,7 +258,6 @@ impl ApprovalManager {
         };
         ApprovalManager::new(config)
     }
-
 
     pub fn create_request(
         &self,
@@ -373,11 +300,9 @@ impl ApprovalManager {
         }
     }
 
-
     pub fn is_expired(&self, request: &ApprovalRequest) -> bool {
         Utc::now() > request.expires_at
     }
-
 
     pub fn should_send_reminder(&self, request: &ApprovalRequest) -> bool {
         if request.status != ApprovalStatus::Pending {
@@ -398,7 +323,6 @@ impl ApprovalManager {
         since_last.num_seconds() >= self.config.reminder_interval as i64
     }
 
-
     pub fn generate_approval_url(&self, request_id: Uuid, action: &str, token: &str) -> String {
         let base_url = self
             .config
@@ -412,7 +336,6 @@ impl ApprovalManager {
         )
     }
 
-
     pub fn generate_email_content(&self, request: &ApprovalRequest, token: &str) -> EmailContent {
         let approve_url = self.generate_approval_url(request.id, "approve", token);
         let reject_url = self.generate_approval_url(request.id, "reject", token);
@@ -423,7 +346,7 @@ impl ApprovalManager {
         );
 
         let body = format!(
-            r#"
+            r"
 An approval is requested for:
 
 Type: {}
@@ -438,7 +361,7 @@ To approve, click: {}
 To reject, click: {}
 
 If you have questions, reply to this email.
-"#,
+",
             request.approval_type,
             request.message,
             serde_json::to_string_pretty(&request.context).unwrap_or_default(),
@@ -453,7 +376,6 @@ If you have questions, reply to this email.
             html_body: None,
         }
     }
-
 
     pub fn process_decision(
         &self,
@@ -475,7 +397,6 @@ If you have questions, reply to this email.
         };
     }
 
-
     pub fn handle_timeout(&self, request: &mut ApprovalRequest) {
         if let Some(default_action) = &request.default_action {
             request.decision = Some(default_action.clone());
@@ -491,14 +412,11 @@ If you have questions, reply to this email.
         }
     }
 
-
     pub fn evaluate_condition(
         &self,
         condition: &str,
         context: &serde_json::Value,
     ) -> Result<bool, String> {
-
-
         let parts: Vec<&str> = condition.split_whitespace().collect();
         if parts.len() != 3 {
             return Err(format!("Invalid condition format: {}", condition));
@@ -531,14 +449,12 @@ If you have questions, reply to this email.
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct EmailContent {
     pub subject: String,
     pub body: String,
     pub html_body: Option<String>,
 }
-
 
 impl ApprovalRequest {
     pub fn to_dynamic(&self) -> Dynamic {
@@ -589,7 +505,6 @@ impl ApprovalRequest {
     }
 }
 
-
 fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     match value {
         serde_json::Value::Null => Dynamic::UNIT,
@@ -618,10 +533,7 @@ fn json_to_dynamic(value: &serde_json::Value) -> Dynamic {
     }
 }
 
-
 pub fn register_approval_keywords(engine: &mut Engine) {
-
-
     engine.register_fn("approval_is_approved", |request: Map| -> bool {
         request
             .get("status")
@@ -677,7 +589,6 @@ pub fn register_approval_keywords(engine: &mut Engine) {
 
     info!("Approval keywords registered");
 }
-
 
 pub const APPROVAL_SCHEMA: &str = r#"
 -- Approval requests
@@ -758,9 +669,8 @@ CREATE INDEX IF NOT EXISTS idx_approval_tokens_token ON approval_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_approval_tokens_request_id ON approval_tokens(request_id);
 "#;
 
-
 pub mod sql {
-    pub const INSERT_REQUEST: &str = r#"
+    pub const INSERT_REQUEST: &str = r"
         INSERT INTO approval_requests (
             id, bot_id, session_id, initiated_by, approval_type, status,
             channel, recipient, context, message, timeout_seconds,
@@ -769,9 +679,9 @@ pub mod sql {
         ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17
         )
-    "#;
+    ";
 
-    pub const UPDATE_REQUEST: &str = r#"
+    pub const UPDATE_REQUEST: &str = r"
         UPDATE approval_requests
         SET status = $2,
             decision = $3,
@@ -779,71 +689,71 @@ pub mod sql {
             decided_at = $5,
             comments = $6
         WHERE id = $1
-    "#;
+    ";
 
-    pub const GET_REQUEST: &str = r#"
+    pub const GET_REQUEST: &str = r"
         SELECT * FROM approval_requests WHERE id = $1
-    "#;
+    ";
 
-    pub const GET_PENDING_REQUESTS: &str = r#"
+    pub const GET_PENDING_REQUESTS: &str = r"
         SELECT * FROM approval_requests
         WHERE status = 'pending'
         AND expires_at > NOW()
         ORDER BY created_at ASC
-    "#;
+    ";
 
-    pub const GET_EXPIRED_REQUESTS: &str = r#"
+    pub const GET_EXPIRED_REQUESTS: &str = r"
         SELECT * FROM approval_requests
         WHERE status = 'pending'
         AND expires_at <= NOW()
-    "#;
+    ";
 
-    pub const GET_REQUESTS_BY_SESSION: &str = r#"
+    pub const GET_REQUESTS_BY_SESSION: &str = r"
         SELECT * FROM approval_requests
         WHERE session_id = $1
         ORDER BY created_at DESC
-    "#;
+    ";
 
-    pub const UPDATE_REMINDERS: &str = r#"
+    pub const UPDATE_REMINDERS: &str = r"
         UPDATE approval_requests
         SET reminders_sent = reminders_sent || $2::jsonb
         WHERE id = $1
-    "#;
+    ";
 
-    pub const INSERT_AUDIT: &str = r#"
+    pub const INSERT_AUDIT: &str = r"
         INSERT INTO approval_audit_log (
             id, request_id, action, actor, details, timestamp, ip_address, user_agent
         ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8
         )
-    "#;
+    ";
 
-    pub const GET_AUDIT_LOG: &str = r#"
+    pub const GET_AUDIT_LOG: &str = r"
         SELECT * FROM approval_audit_log
         WHERE request_id = $1
         ORDER BY timestamp ASC
-    "#;
+    ";
 
-    pub const INSERT_TOKEN: &str = r#"
+    pub const INSERT_TOKEN: &str = r"
         INSERT INTO approval_tokens (
             id, request_id, token, action, expires_at, created_at
         ) VALUES (
             $1, $2, $3, $4, $5, $6
         )
-    "#;
+    ";
 
-    pub const GET_TOKEN: &str = r#"
+    pub const GET_TOKEN: &str = r"
         SELECT * FROM approval_tokens
         WHERE token = $1 AND used = false AND expires_at > NOW()
-    "#;
+    ";
 
-    pub const USE_TOKEN: &str = r#"
+    pub const USE_TOKEN: &str = r"
         UPDATE approval_tokens
         SET used = true, used_at = NOW()
         WHERE token = $1
-    "#;
+    ";
 
-    pub const INSERT_CHAIN: &str = r#"
+    pub const INSERT_CHAIN: &str = r"
         INSERT INTO approval_chains (
             id, name, bot_id, levels, stop_on_reject, require_all, description, created_at
         ) VALUES (
@@ -855,10 +765,10 @@ pub mod sql {
             stop_on_reject = $5,
             require_all = $6,
             description = $7
-    "#;
+    ";
 
-    pub const GET_CHAIN: &str = r#"
+    pub const GET_CHAIN: &str = r"
         SELECT * FROM approval_chains
         WHERE bot_id = $1 AND name = $2
-    "#;
+    ";
 }

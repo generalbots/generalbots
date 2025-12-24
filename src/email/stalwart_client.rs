@@ -1,23 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::{Client, Method, StatusCode};
@@ -26,23 +6,14 @@ use serde_json::{json, Value};
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
-
-
-
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
-
 
 pub const DEFAULT_QUEUE_POLL_INTERVAL_SECS: u64 = 30;
 
-
 pub const DEFAULT_METRICS_POLL_INTERVAL_SECS: u64 = 60;
-
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueueStatus {
-
     pub is_running: bool,
 
     pub total_queued: u64,
@@ -50,10 +21,8 @@ pub struct QueueStatus {
     pub messages: Vec<QueuedMessage>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QueuedMessage {
-
     pub id: String,
 
     pub from: String,
@@ -81,7 +50,6 @@ pub struct QueuedMessage {
     pub queued_at: Option<DateTime<Utc>>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum DeliveryStatus {
@@ -94,7 +62,6 @@ pub enum DeliveryStatus {
     Unknown,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 struct QueueListResponse {
     #[serde(default)]
@@ -102,9 +69,6 @@ struct QueueListResponse {
     #[serde(default)]
     items: Vec<QueuedMessage>,
 }
-
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
@@ -119,10 +83,8 @@ pub enum PrincipalType {
     Other,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Principal {
-
     pub id: Option<u64>,
 
     #[serde(rename = "type")]
@@ -149,10 +111,8 @@ pub struct Principal {
     pub disabled: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct AccountUpdate {
-
     pub action: String,
 
     pub field: String,
@@ -161,7 +121,6 @@ pub struct AccountUpdate {
 }
 
 impl AccountUpdate {
-
     pub fn set(field: &str, value: impl Into<Value>) -> Self {
         Self {
             action: "set".to_string(),
@@ -169,7 +128,6 @@ impl AccountUpdate {
             value: value.into(),
         }
     }
-
 
     pub fn add_item(field: &str, value: impl Into<Value>) -> Self {
         Self {
@@ -179,7 +137,6 @@ impl AccountUpdate {
         }
     }
 
-
     pub fn remove_item(field: &str, value: impl Into<Value>) -> Self {
         Self {
             action: "removeItem".to_string(),
@@ -187,7 +144,6 @@ impl AccountUpdate {
             value: value.into(),
         }
     }
-
 
     pub fn clear(field: &str) -> Self {
         Self {
@@ -198,12 +154,8 @@ impl AccountUpdate {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutoResponderConfig {
-
     pub enabled: bool,
 
     pub subject: String,
@@ -235,7 +187,8 @@ impl Default for AutoResponderConfig {
         Self {
             enabled: false,
             subject: "Out of Office".to_string(),
-            body_plain: "I am currently out of the office and will respond upon my return.".to_string(),
+            body_plain: "I am currently out of the office and will respond upon my return."
+                .to_string(),
             body_html: None,
             start_date: None,
             end_date: None,
@@ -245,10 +198,8 @@ impl Default for AutoResponderConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmailRule {
-
     pub id: String,
 
     pub name: String,
@@ -270,10 +221,8 @@ fn default_stop_processing() -> bool {
     true
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleCondition {
-
     pub field: String,
 
     pub operator: String,
@@ -287,22 +236,16 @@ pub struct RuleCondition {
     pub case_sensitive: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuleAction {
-
     pub action_type: String,
 
     #[serde(default)]
     pub value: String,
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Metrics {
-
     #[serde(default)]
     pub messages_received: u64,
 
@@ -334,10 +277,8 @@ pub struct Metrics {
     pub extra: std::collections::HashMap<String, Value>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct LogEntry {
-
     pub timestamp: DateTime<Utc>,
 
     pub level: String,
@@ -351,7 +292,6 @@ pub struct LogEntry {
     pub context: Option<Value>,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct LogList {
     #[serde(default)]
@@ -360,10 +300,8 @@ pub struct LogList {
     pub items: Vec<LogEntry>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TraceEvent {
-
     pub timestamp: DateTime<Utc>,
 
     pub event_type: String,
@@ -390,7 +328,6 @@ pub struct TraceEvent {
     pub duration_ms: Option<u64>,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct TraceList {
     #[serde(default)]
@@ -399,12 +336,8 @@ pub struct TraceList {
     pub items: Vec<TraceEvent>,
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Report {
-
     pub id: String,
 
     pub report_type: String,
@@ -423,7 +356,6 @@ pub struct Report {
     pub data: Value,
 }
 
-
 #[derive(Debug, Clone, Deserialize)]
 pub struct ReportList {
     #[serde(default)]
@@ -432,12 +364,8 @@ pub struct ReportList {
     pub items: Vec<Report>,
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpamClassifyRequest {
-
     pub from: String,
 
     pub to: Vec<String>,
@@ -455,10 +383,8 @@ pub struct SpamClassifyRequest {
     pub body: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpamClassifyResult {
-
     pub score: f64,
 
     pub classification: String,
@@ -470,10 +396,8 @@ pub struct SpamClassifyResult {
     pub action: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SpamTest {
-
     pub name: String,
 
     pub score: f64,
@@ -481,9 +405,6 @@ pub struct SpamTest {
     #[serde(default)]
     pub description: Option<String>,
 }
-
-
-
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
@@ -493,9 +414,6 @@ enum ApiResponse<T> {
     Error { error: String },
 }
 
-
-
-
 #[derive(Debug, Clone)]
 pub struct StalwartClient {
     base_url: String,
@@ -504,18 +422,6 @@ pub struct StalwartClient {
 }
 
 impl StalwartClient {
-
-
-
-
-
-
-
-
-
-
-
-
     pub fn new(base_url: &str, token: &str) -> Self {
         let http_client = Client::builder()
             .timeout(Duration::from_secs(DEFAULT_TIMEOUT_SECS))
@@ -529,7 +435,6 @@ impl StalwartClient {
         }
     }
 
-
     pub fn with_timeout(base_url: &str, token: &str, timeout_secs: u64) -> Self {
         let http_client = Client::builder()
             .timeout(Duration::from_secs(timeout_secs))
@@ -542,7 +447,6 @@ impl StalwartClient {
             http_client,
         }
     }
-
 
     async fn request<T: DeserializeOwned>(
         &self,
@@ -563,20 +467,24 @@ impl StalwartClient {
             req = req.header("Content-Type", "application/json").json(b);
         }
 
-        let resp = req.send().await.context("Failed to send request to Stalwart")?;
+        let resp = req
+            .send()
+            .await
+            .context("Failed to send request to Stalwart")?;
         let status = resp.status();
 
         if !status.is_success() {
-            let error_text = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             error!("Stalwart API error: {} - {}", status, error_text);
             return Err(anyhow!("Stalwart API error ({}): {}", status, error_text));
         }
 
         let text = resp.text().await.context("Failed to read response body")?;
 
-
         if text.is_empty() || text == "null" {
-
             return serde_json::from_str("null")
                 .or_else(|_| serde_json::from_str("{}"))
                 .or_else(|_| serde_json::from_str("true"))
@@ -586,8 +494,13 @@ impl StalwartClient {
         serde_json::from_str(&text).context("Failed to parse Stalwart API response")
     }
 
-
-    async fn request_raw(&self, method: Method, path: &str, body: &str, content_type: &str) -> Result<()> {
+    async fn request_raw(
+        &self,
+        method: Method,
+        path: &str,
+        body: &str,
+        content_type: &str,
+    ) -> Result<()> {
         let url = format!("{}{}", self.base_url, path);
         debug!("Stalwart API raw request: {} {}", method, url);
 
@@ -603,17 +516,15 @@ impl StalwartClient {
 
         let status = resp.status();
         if !status.is_success() {
-            let error_text = resp.text().await.unwrap_or_else(|_| "Unknown error".to_string());
+            let error_text = resp
+                .text()
+                .await
+                .unwrap_or_else(|_| "Unknown error".to_string());
             return Err(anyhow!("Stalwart API error ({}): {}", status, error_text));
         }
 
         Ok(())
     }
-
-
-
-
-
 
     pub async fn get_queue_status(&self) -> Result<QueueStatus> {
         let status: bool = self
@@ -636,7 +547,6 @@ impl StalwartClient {
         })
     }
 
-
     pub async fn get_queued_message(&self, message_id: &str) -> Result<QueuedMessage> {
         self.request(
             Method::GET,
@@ -645,7 +555,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn list_queued_messages(
         &self,
@@ -660,7 +569,6 @@ impl StalwartClient {
         self.request(Method::GET, &path, None).await
     }
 
-
     pub async fn retry_delivery(&self, message_id: &str) -> Result<bool> {
         self.request(
             Method::PATCH,
@@ -669,7 +577,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn cancel_delivery(&self, message_id: &str) -> Result<bool> {
         self.request(
@@ -680,16 +587,15 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn stop_queue(&self) -> Result<bool> {
-        self.request(Method::PATCH, "/api/queue/status/stop", None).await
+        self.request(Method::PATCH, "/api/queue/status/stop", None)
+            .await
     }
-
 
     pub async fn start_queue(&self) -> Result<bool> {
-        self.request(Method::PATCH, "/api/queue/status/start", None).await
+        self.request(Method::PATCH, "/api/queue/status/start", None)
+            .await
     }
-
 
     pub async fn get_failed_delivery_count(&self) -> Result<u64> {
         let resp: QueueListResponse = self
@@ -701,11 +607,6 @@ impl StalwartClient {
             .await?;
         Ok(resp.total)
     }
-
-
-
-
-
 
     pub async fn create_account(
         &self,
@@ -725,18 +626,18 @@ impl StalwartClient {
             "roles": ["user"]
         });
 
-        self.request(Method::POST, "/api/principal", Some(body)).await
+        self.request(Method::POST, "/api/principal", Some(body))
+            .await
     }
-
 
     pub async fn create_account_full(&self, principal: &Principal, password: &str) -> Result<u64> {
         let mut body = serde_json::to_value(principal)?;
         if let Some(obj) = body.as_object_mut() {
             obj.insert("secrets".to_string(), json!([password]));
         }
-        self.request(Method::POST, "/api/principal", Some(body)).await
+        self.request(Method::POST, "/api/principal", Some(body))
+            .await
     }
-
 
     pub async fn create_distribution_list(
         &self,
@@ -752,9 +653,9 @@ impl StalwartClient {
             "description": format!("Distribution list: {}", name)
         });
 
-        self.request(Method::POST, "/api/principal", Some(body)).await
+        self.request(Method::POST, "/api/principal", Some(body))
+            .await
     }
-
 
     pub async fn create_shared_mailbox(
         &self,
@@ -770,19 +671,14 @@ impl StalwartClient {
             "description": format!("Shared mailbox: {}", name)
         });
 
-        self.request(Method::POST, "/api/principal", Some(body)).await
+        self.request(Method::POST, "/api/principal", Some(body))
+            .await
     }
-
 
     pub async fn get_account(&self, account_id: &str) -> Result<Principal> {
-        self.request(
-            Method::GET,
-            &format!("/api/principal/{}", account_id),
-            None,
-        )
-        .await
+        self.request(Method::GET, &format!("/api/principal/{}", account_id), None)
+            .await
     }
-
 
     pub async fn get_account_by_email(&self, email: &str) -> Result<Principal> {
         self.request(
@@ -793,8 +689,11 @@ impl StalwartClient {
         .await
     }
 
-
-    pub async fn update_account(&self, account_id: &str, updates: Vec<AccountUpdate>) -> Result<()> {
+    pub async fn update_account(
+        &self,
+        account_id: &str,
+        updates: Vec<AccountUpdate>,
+    ) -> Result<()> {
         let body: Vec<Value> = updates
             .iter()
             .map(|u| {
@@ -815,7 +714,6 @@ impl StalwartClient {
         Ok(())
     }
 
-
     pub async fn delete_account(&self, account_id: &str) -> Result<()> {
         self.request::<Value>(
             Method::DELETE,
@@ -826,15 +724,16 @@ impl StalwartClient {
         Ok(())
     }
 
-
-    pub async fn list_principals(&self, principal_type: Option<PrincipalType>) -> Result<Vec<Principal>> {
+    pub async fn list_principals(
+        &self,
+        principal_type: Option<PrincipalType>,
+    ) -> Result<Vec<Principal>> {
         let path = match principal_type {
             Some(t) => format!("/api/principal?type={:?}", t).to_lowercase(),
             None => "/api/principal".to_string(),
         };
         self.request(Method::GET, &path, None).await
     }
-
 
     pub async fn add_members(&self, account_id: &str, members: Vec<String>) -> Result<()> {
         let updates: Vec<AccountUpdate> = members
@@ -844,7 +743,6 @@ impl StalwartClient {
         self.update_account(account_id, updates).await
     }
 
-
     pub async fn remove_members(&self, account_id: &str, members: Vec<String>) -> Result<()> {
         let updates: Vec<AccountUpdate> = members
             .into_iter()
@@ -852,11 +750,6 @@ impl StalwartClient {
             .collect();
         self.update_account(account_id, updates).await
     }
-
-
-
-
-
 
     pub async fn set_auto_responder(
         &self,
@@ -879,7 +772,6 @@ impl StalwartClient {
         Ok(script_id)
     }
 
-
     pub async fn disable_auto_responder(&self, account_id: &str) -> Result<()> {
         let script_id = format!("{}_vacation", account_id);
 
@@ -895,10 +787,9 @@ impl StalwartClient {
         Ok(())
     }
 
-
     pub fn generate_vacation_sieve(&self, config: &AutoResponderConfig) -> String {
-        let mut script = String::from("require [\"vacation\", \"variables\", \"date\", \"relational\"];\n\n");
-
+        let mut script =
+            String::from("require [\"vacation\", \"variables\", \"date\", \"relational\"];\n\n");
 
         if config.start_date.is_some() || config.end_date.is_some() {
             script.push_str("# Date-based activation\n");
@@ -920,7 +811,6 @@ impl StalwartClient {
             script.push('\n');
         }
 
-
         let subject = config.subject.replace('"', "\\\"").replace('\n', " ");
         let body = config.body_plain.replace('"', "\\\"").replace('\n', "\\n");
 
@@ -931,7 +821,6 @@ impl StalwartClient {
 
         script
     }
-
 
     pub async fn set_filter_rule(&self, account_id: &str, rule: &EmailRule) -> Result<String> {
         let sieve_script = self.generate_filter_sieve(rule);
@@ -950,7 +839,6 @@ impl StalwartClient {
         Ok(script_id)
     }
 
-
     pub async fn delete_filter_rule(&self, account_id: &str, rule_id: &str) -> Result<()> {
         let script_id = format!("{}_filter_{}", account_id, rule_id);
 
@@ -966,10 +854,10 @@ impl StalwartClient {
         Ok(())
     }
 
-
     pub fn generate_filter_sieve(&self, rule: &EmailRule) -> String {
-        let mut script =
-            String::from("require [\"fileinto\", \"reject\", \"vacation\", \"imap4flags\", \"copy\"];\n\n");
+        let mut script = String::from(
+            "require [\"fileinto\", \"reject\", \"vacation\", \"imap4flags\", \"copy\"];\n\n",
+        );
 
         script.push_str(&format!("# Rule: {}\n", rule.name));
 
@@ -977,7 +865,6 @@ impl StalwartClient {
             script.push_str("# DISABLED\n");
             return script;
         }
-
 
         let mut conditions = Vec::new();
         for condition in &rule.conditions {
@@ -988,13 +875,10 @@ impl StalwartClient {
         }
 
         if conditions.is_empty() {
-
             script.push_str("# Always applies\n");
         } else {
-
             script.push_str(&format!("if allof ({}) {{\n", conditions.join(", ")));
         }
-
 
         for action in &rule.actions {
             let action_str = self.generate_action_sieve(action);
@@ -1007,7 +891,6 @@ impl StalwartClient {
             }
         }
 
-
         if rule.stop_processing {
             if conditions.is_empty() {
                 script.push_str("stop;\n");
@@ -1016,14 +899,12 @@ impl StalwartClient {
             }
         }
 
-
         if !conditions.is_empty() {
             script.push_str("}\n");
         }
 
         script
     }
-
 
     pub fn generate_condition_sieve(&self, condition: &RuleCondition) -> String {
         let field_header = match condition.field.as_str() {
@@ -1044,16 +925,33 @@ impl StalwartClient {
         let value = condition.value.replace('"', "\\\"");
 
         match condition.operator.as_str() {
-            "contains" => format!("header :contains{} \"{}\" \"{}\"", comparator, field_header, value),
-            "equals" => format!("header :is{} \"{}\" \"{}\"", comparator, field_header, value),
-            "startsWith" => format!("header :matches{} \"{}\" \"{}*\"", comparator, field_header, value),
-            "endsWith" => format!("header :matches{} \"{}\" \"*{}\"", comparator, field_header, value),
-            "regex" => format!("header :regex{} \"{}\" \"{}\"", comparator, field_header, value),
-            "notContains" => format!("not header :contains{} \"{}\" \"{}\"", comparator, field_header, value),
+            "contains" => format!(
+                "header :contains{} \"{}\" \"{}\"",
+                comparator, field_header, value
+            ),
+            "equals" => format!(
+                "header :is{} \"{}\" \"{}\"",
+                comparator, field_header, value
+            ),
+            "startsWith" => format!(
+                "header :matches{} \"{}\" \"{}*\"",
+                comparator, field_header, value
+            ),
+            "endsWith" => format!(
+                "header :matches{} \"{}\" \"*{}\"",
+                comparator, field_header, value
+            ),
+            "regex" => format!(
+                "header :regex{} \"{}\" \"{}\"",
+                comparator, field_header, value
+            ),
+            "notContains" => format!(
+                "not header :contains{} \"{}\" \"{}\"",
+                comparator, field_header, value
+            ),
             _ => String::new(),
         }
     }
-
 
     pub fn generate_action_sieve(&self, action: &RuleAction) -> String {
         match action.action_type.as_str() {
@@ -1068,15 +966,10 @@ impl StalwartClient {
         }
     }
 
-
-
-
-
-
     pub async fn get_metrics(&self) -> Result<Metrics> {
-        self.request(Method::GET, "/api/telemetry/metrics", None).await
+        self.request(Method::GET, "/api/telemetry/metrics", None)
+            .await
     }
-
 
     pub async fn get_logs(&self, page: u32, limit: u32) -> Result<LogList> {
         self.request(
@@ -1087,7 +980,6 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn get_logs_by_level(&self, level: &str, page: u32, limit: u32) -> Result<LogList> {
         self.request(
             Method::GET,
@@ -1096,7 +988,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn get_traces(&self, trace_type: &str, page: u32) -> Result<TraceList> {
         self.request(
@@ -1110,7 +1001,6 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn get_recent_traces(&self, limit: u32) -> Result<TraceList> {
         self.request(
             Method::GET,
@@ -1119,7 +1009,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn get_trace(&self, trace_id: &str) -> Result<Vec<TraceEvent>> {
         self.request(
@@ -1130,7 +1019,6 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn get_dmarc_reports(&self, page: u32) -> Result<ReportList> {
         self.request(
             Method::GET,
@@ -1139,7 +1027,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn get_tls_reports(&self, page: u32) -> Result<ReportList> {
         self.request(
@@ -1150,7 +1037,6 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn get_arf_reports(&self, page: u32) -> Result<ReportList> {
         self.request(
             Method::GET,
@@ -1160,22 +1046,15 @@ impl StalwartClient {
         .await
     }
 
-
     pub async fn get_live_metrics_token(&self) -> Result<String> {
         self.request(Method::GET, "/api/telemetry/live/metrics-token", None)
             .await
     }
 
-
     pub async fn get_live_tracing_token(&self) -> Result<String> {
         self.request(Method::GET, "/api/telemetry/live/tracing-token", None)
             .await
     }
-
-
-
-
-
 
     pub async fn train_spam(&self, raw_message: &str) -> Result<()> {
         self.request_raw(
@@ -1189,7 +1068,6 @@ impl StalwartClient {
         Ok(())
     }
 
-
     pub async fn train_ham(&self, raw_message: &str) -> Result<()> {
         self.request_raw(
             Method::POST,
@@ -1202,8 +1080,10 @@ impl StalwartClient {
         Ok(())
     }
 
-
-    pub async fn classify_message(&self, message: &SpamClassifyRequest) -> Result<SpamClassifyResult> {
+    pub async fn classify_message(
+        &self,
+        message: &SpamClassifyRequest,
+    ) -> Result<SpamClassifyResult> {
         self.request(
             Method::POST,
             "/api/spam-filter/classify",
@@ -1212,20 +1092,17 @@ impl StalwartClient {
         .await
     }
 
-
-
-
-
-
     pub async fn troubleshoot_delivery(&self, recipient: &str) -> Result<Value> {
         self.request(
             Method::GET,
-            &format!("/api/troubleshoot/delivery/{}", urlencoding::encode(recipient)),
+            &format!(
+                "/api/troubleshoot/delivery/{}",
+                urlencoding::encode(recipient)
+            ),
             None,
         )
         .await
     }
-
 
     pub async fn check_dmarc(&self, domain: &str, from_email: &str) -> Result<Value> {
         let body = json!({
@@ -1236,16 +1113,10 @@ impl StalwartClient {
             .await
     }
 
-
     pub async fn get_dns_records(&self, domain: &str) -> Result<Value> {
-        self.request(
-            Method::GET,
-            &format!("/api/dns/records/{}", domain),
-            None,
-        )
-        .await
+        self.request(Method::GET, &format!("/api/dns/records/{}", domain), None)
+            .await
     }
-
 
     pub async fn undelete_messages(&self, account_id: &str) -> Result<Value> {
         self.request(
@@ -1255,7 +1126,6 @@ impl StalwartClient {
         )
         .await
     }
-
 
     pub async fn purge_account(&self, account_id: &str) -> Result<()> {
         self.request::<Value>(
@@ -1268,9 +1138,11 @@ impl StalwartClient {
         Ok(())
     }
 
-
     pub async fn health_check(&self) -> Result<bool> {
-        match self.request::<Value>(Method::GET, "/api/queue/status", None).await {
+        match self
+            .request::<Value>(Method::GET, "/api/queue/status", None)
+            .await
+        {
             Ok(_) => Ok(true),
             Err(e) => {
                 warn!("Stalwart health check failed: {}", e);
@@ -1279,5 +1151,3 @@ impl StalwartClient {
         }
     }
 }
-
-

@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{info, trace};
@@ -20,7 +7,6 @@ use std::collections::HashMap;
 use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ContentType {
@@ -39,10 +25,8 @@ pub enum ContentType {
 }
 
 impl ContentType {
-
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
-
             "mp4" | "webm" | "ogg" | "mov" | "avi" | "mkv" | "m4v" => ContentType::Video,
 
             "mp3" | "wav" | "flac" | "aac" | "m4a" | "wma" => ContentType::Audio,
@@ -67,7 +51,6 @@ impl ContentType {
             _ => ContentType::Unknown,
         }
     }
-
 
     pub fn from_mime(mime: &str) -> Self {
         if mime.starts_with("video/") {
@@ -97,7 +80,6 @@ impl ContentType {
         }
     }
 
-
     pub fn player_component(&self) -> &'static str {
         match self {
             ContentType::Video => "video-player",
@@ -115,7 +97,6 @@ impl ContentType {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PlayOptions {
@@ -137,7 +118,6 @@ pub struct PlayOptions {
 }
 
 impl PlayOptions {
-
     pub fn from_string(options_str: &str) -> Self {
         let mut opts = PlayOptions::default();
         opts.controls = true;
@@ -151,7 +131,6 @@ impl PlayOptions {
                 "nocontrols" => opts.controls = false,
                 "linenumbers" => opts.line_numbers = Some(true),
                 _ => {
-
                     if let Some((key, value)) = opt.split_once('=') {
                         match key {
                             "start" => opts.start_time = value.parse().ok(),
@@ -177,7 +156,6 @@ impl PlayOptions {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayContent {
     pub id: Uuid,
@@ -189,7 +167,6 @@ pub struct PlayContent {
     pub created_at: chrono::DateTime<chrono::Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlayResponse {
     pub player_id: Uuid,
@@ -200,7 +177,6 @@ pub struct PlayResponse {
     pub options: PlayOptions,
     pub metadata: HashMap<String, String>,
 }
-
 
 pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     if let Err(e) = play_simple_keyword(state.clone(), user.clone(), engine) {
@@ -219,7 +195,6 @@ pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         log::error!("Failed to register RESUME keyword: {}", e);
     }
 }
-
 
 fn play_simple_keyword(
     state: Arc<AppState>,
@@ -268,7 +243,6 @@ fn play_simple_keyword(
     })?;
     Ok(())
 }
-
 
 fn play_with_options_keyword(
     state: Arc<AppState>,
@@ -334,7 +308,6 @@ fn play_with_options_keyword(
     Ok(())
 }
 
-
 fn stop_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -372,7 +345,6 @@ fn stop_keyword(
     })?;
     Ok(())
 }
-
 
 fn pause_keyword(
     state: Arc<AppState>,
@@ -413,7 +385,6 @@ fn pause_keyword(
     Ok(())
 }
 
-
 fn resume_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -453,33 +424,24 @@ fn resume_keyword(
     Ok(())
 }
 
-
-
-
 async fn execute_play(
     state: &AppState,
     session_id: Uuid,
     source: &str,
     options: PlayOptions,
 ) -> Result<PlayResponse, String> {
-
     let content_type = detect_content_type(source);
-
 
     let source_url = resolve_source_url(state, session_id, source).await?;
 
-
     let metadata = get_content_metadata(state, &source_url, &content_type).await?;
 
-
     let player_id = Uuid::new_v4();
-
 
     let title = metadata
         .get("title")
         .cloned()
         .unwrap_or_else(|| extract_title_from_source(source));
-
 
     let response = PlayResponse {
         player_id,
@@ -491,7 +453,6 @@ async fn execute_play(
         metadata,
     };
 
-
     send_play_to_client(state, session_id, &response).await?;
 
     info!(
@@ -502,18 +463,14 @@ async fn execute_play(
     Ok(response)
 }
 
-
-fn detect_content_type(source: &str) -> ContentType {
-
+pub fn detect_content_type(source: &str) -> ContentType {
     if source.starts_with("http://") || source.starts_with("https://") {
-
         if source.contains("youtube.com")
             || source.contains("youtu.be")
             || source.contains("vimeo.com")
         {
             return ContentType::Video;
         }
-
 
         if source.contains("imgur.com")
             || source.contains("unsplash.com")
@@ -522,17 +479,14 @@ fn detect_content_type(source: &str) -> ContentType {
             return ContentType::Image;
         }
 
-
         if let Some(path) = source.split('?').next() {
             if let Some(ext) = Path::new(path).extension() {
                 return ContentType::from_extension(&ext.to_string_lossy());
             }
         }
 
-
         return ContentType::Iframe;
     }
-
 
     if let Some(ext) = Path::new(source).extension() {
         return ContentType::from_extension(&ext.to_string_lossy());
@@ -541,20 +495,16 @@ fn detect_content_type(source: &str) -> ContentType {
     ContentType::Unknown
 }
 
-
 async fn resolve_source_url(
     _state: &AppState,
     session_id: Uuid,
     source: &str,
 ) -> Result<String, String> {
-
     if source.starts_with("http://") || source.starts_with("https://") {
         return Ok(source.to_string());
     }
 
-
     if source.starts_with("/") || source.contains(".gbdrive") {
-
         let file_url = format!(
             "/api/drive/file/{}?session={}",
             urlencoding::encode(source),
@@ -562,7 +512,6 @@ async fn resolve_source_url(
         );
         return Ok(file_url);
     }
-
 
     let file_url = format!(
         "/api/drive/file/{}?session={}",
@@ -573,7 +522,6 @@ async fn resolve_source_url(
     Ok(file_url)
 }
 
-
 async fn get_content_metadata(
     _state: &AppState,
     source_url: &str,
@@ -583,7 +531,6 @@ async fn get_content_metadata(
 
     metadata.insert("source".to_string(), source_url.to_string());
     metadata.insert("type".to_string(), format!("{:?}", content_type));
-
 
     match content_type {
         ContentType::Video => {
@@ -613,9 +560,7 @@ async fn get_content_metadata(
     Ok(metadata)
 }
 
-
-fn extract_title_from_source(source: &str) -> String {
-
+pub fn extract_title_from_source(source: &str) -> String {
     let path = source.split('?').next().unwrap_or(source);
 
     Path::new(path)
@@ -623,7 +568,6 @@ fn extract_title_from_source(source: &str) -> String {
         .map(|s| s.to_string_lossy().to_string())
         .unwrap_or_else(|| "Untitled".to_string())
 }
-
 
 async fn send_play_to_client(
     state: &AppState,
@@ -637,7 +581,6 @@ async fn send_play_to_client(
 
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
-
 
     let bot_response = crate::shared::models::BotResponse {
         bot_id: String::new(),
@@ -663,7 +606,6 @@ async fn send_play_to_client(
     Ok(())
 }
 
-
 async fn send_player_command(
     state: &AppState,
     session_id: Uuid,
@@ -676,7 +618,6 @@ async fn send_player_command(
 
     let message_str =
         serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
-
 
     let _ = state
         .web_adapter

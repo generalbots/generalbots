@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -33,10 +11,8 @@ use std::time::Duration;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SandboxRuntime {
-
     LXC,
 
     Docker,
@@ -62,7 +38,6 @@ impl From<&str> for SandboxRuntime {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum CodeLanguage {
@@ -108,10 +83,8 @@ impl CodeLanguage {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SandboxConfig {
-
     pub enabled: bool,
 
     pub runtime: SandboxRuntime,
@@ -151,7 +124,6 @@ impl Default for SandboxConfig {
 }
 
 impl SandboxConfig {
-
     pub fn from_bot_config(state: &AppState, bot_id: Uuid) -> Self {
         let mut config = Self::default();
 
@@ -218,10 +190,8 @@ impl SandboxConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionResult {
-
     pub stdout: String,
 
     pub stderr: String,
@@ -289,7 +259,6 @@ impl ExecutionResult {
     }
 }
 
-
 pub struct CodeSandbox {
     config: SandboxConfig,
     session_id: Uuid,
@@ -308,7 +277,6 @@ impl CodeSandbox {
     pub fn new(config: SandboxConfig, session_id: Uuid) -> Self {
         Self { config, session_id }
     }
-
 
     pub async fn execute(&self, code: &str, language: CodeLanguage) -> ExecutionResult {
         if !self.config.enabled {
@@ -339,19 +307,15 @@ impl CodeSandbox {
         }
     }
 
-
     async fn execute_lxc(
         &self,
         code: &str,
         language: &CodeLanguage,
     ) -> Result<ExecutionResult, String> {
-
         let container_name = format!("gb-sandbox-{}", Uuid::new_v4());
-
 
         std::fs::create_dir_all(&self.config.work_dir)
             .map_err(|e| format!("Failed to create work dir: {}", e))?;
-
 
         let code_file = format!(
             "{}/{}.{}",
@@ -362,7 +326,6 @@ impl CodeSandbox {
         std::fs::write(&code_file, code)
             .map_err(|e| format!("Failed to write code file: {}", e))?;
 
-
         let mut cmd = Command::new("lxc-execute");
         cmd.arg("-n")
             .arg(&container_name)
@@ -372,7 +335,6 @@ impl CodeSandbox {
             .arg(language.interpreter())
             .arg(&code_file);
 
-
         cmd.env(
             "LXC_CGROUP_MEMORY_LIMIT",
             format!("{}M", self.config.memory_limit_mb),
@@ -381,7 +343,6 @@ impl CodeSandbox {
             "LXC_CGROUP_CPU_QUOTA",
             format!("{}", self.config.cpu_limit_percent * 1000),
         );
-
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
@@ -397,7 +358,6 @@ impl CodeSandbox {
                 .await
         })
         .await;
-
 
         let _ = std::fs::remove_file(&code_file);
 
@@ -422,19 +382,16 @@ impl CodeSandbox {
         }
     }
 
-
     async fn execute_docker(
         &self,
         code: &str,
         language: &CodeLanguage,
     ) -> Result<ExecutionResult, String> {
-
         let image = match language {
             CodeLanguage::Python => "python:3.11-slim",
             CodeLanguage::JavaScript => "node:20-slim",
             CodeLanguage::Bash => "alpine:latest",
         };
-
 
         let args = vec![
             "run".to_string(),
@@ -458,7 +415,6 @@ impl CodeSandbox {
             "-c".to_string(),
             code.to_string(),
         ];
-
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
@@ -490,41 +446,33 @@ impl CodeSandbox {
         }
     }
 
-
     async fn execute_firecracker(
         &self,
         code: &str,
         language: &CodeLanguage,
     ) -> Result<ExecutionResult, String> {
-
-
         warn!("Firecracker runtime not yet implemented, falling back to process isolation");
         self.execute_process(code, language).await
     }
-
 
     async fn execute_process(
         &self,
         code: &str,
         language: &CodeLanguage,
     ) -> Result<ExecutionResult, String> {
-
         let temp_dir = format!("{}/{}", self.config.work_dir, Uuid::new_v4());
         std::fs::create_dir_all(&temp_dir)
             .map_err(|e| format!("Failed to create temp dir: {}", e))?;
 
-
         let code_file = format!("{}/code.{}", temp_dir, language.file_extension());
         std::fs::write(&code_file, code)
             .map_err(|e| format!("Failed to write code file: {}", e))?;
-
 
         let (cmd_name, cmd_args): (&str, Vec<&str>) = match language {
             CodeLanguage::Python => ("python3", vec![&code_file]),
             CodeLanguage::JavaScript => ("node", vec![&code_file]),
             CodeLanguage::Bash => ("bash", vec![&code_file]),
         };
-
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
         let output = timeout(timeout_duration, async {
@@ -539,7 +487,6 @@ impl CodeSandbox {
                 .await
         })
         .await;
-
 
         let _ = std::fs::remove_dir_all(&temp_dir);
 
@@ -564,7 +511,6 @@ impl CodeSandbox {
         }
     }
 
-
     pub async fn execute_file(&self, file_path: &str, language: CodeLanguage) -> ExecutionResult {
         match std::fs::read_to_string(file_path) {
             Ok(code) => self.execute(&code, language).await,
@@ -573,14 +519,12 @@ impl CodeSandbox {
     }
 }
 
-
 pub fn register_sandbox_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     run_python_keyword(state.clone(), user.clone(), engine);
     run_javascript_keyword(state.clone(), user.clone(), engine);
     run_bash_keyword(state.clone(), user.clone(), engine);
     run_file_keyword(state.clone(), user.clone(), engine);
 }
-
 
 pub fn run_python_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -627,7 +571,6 @@ pub fn run_python_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
         .expect("Failed to register RUN PYTHON syntax");
 }
 
-
 pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -672,7 +615,6 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
         )
         .expect("Failed to register RUN JAVASCRIPT syntax");
 
-
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -710,7 +652,6 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
         })
         .expect("Failed to register RUN JS syntax");
 }
-
 
 pub fn run_bash_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -752,7 +693,6 @@ pub fn run_bash_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         })
         .expect("Failed to register RUN BASH syntax");
 }
-
 
 pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -802,7 +742,6 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         )
         .expect("Failed to register RUN PYTHON WITH FILE syntax");
 
-
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
@@ -847,11 +786,8 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         .expect("Failed to register RUN JAVASCRIPT WITH FILE syntax");
 }
 
-
-
-
 pub fn generate_python_lxc_config() -> String {
-    r#"
+    r"
 # LXC configuration for Python sandbox
 lxc.include = /usr/share/lxc/config/common.conf
 lxc.arch = linux64
@@ -879,13 +815,12 @@ lxc.mount.auto = proc:mixed sys:ro
 lxc.mount.entry = /usr/bin/python3 usr/bin/python3 none ro,bind 0 0
 lxc.mount.entry = /usr/lib/python3 usr/lib/python3 none ro,bind 0 0
 lxc.mount.entry = tmpfs tmp tmpfs defaults 0 0
-"#
+"
     .to_string()
 }
 
-
 pub fn generate_node_lxc_config() -> String {
-    r#"
+    r"
 # LXC configuration for Node.js sandbox
 lxc.include = /usr/share/lxc/config/common.conf
 lxc.arch = linux64
@@ -913,8 +848,6 @@ lxc.mount.auto = proc:mixed sys:ro
 lxc.mount.entry = /usr/bin/node usr/bin/node none ro,bind 0 0
 lxc.mount.entry = /usr/lib/node_modules usr/lib/node_modules none ro,bind 0 0
 lxc.mount.entry = tmpfs tmp tmpfs defaults 0 0
-"#
+"
     .to_string()
 }
-
-

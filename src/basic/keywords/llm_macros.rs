@@ -28,14 +28,6 @@
 |                                                                             |
 \*****************************************************************************/
 
-
-
-
-
-
-
-
-
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -45,14 +37,12 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-
 pub fn register_llm_macros(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_calculate_keyword(state.clone(), user.clone(), engine);
     register_validate_keyword(state.clone(), user.clone(), engine);
     register_translate_keyword(state.clone(), user.clone(), engine);
     register_summarize_keyword(state, user, engine);
 }
-
 
 async fn call_llm(
     state: &AppState,
@@ -74,7 +64,6 @@ async fn call_llm(
     let processed = handler.process_content(&raw_response);
     Ok(processed)
 }
-
 
 fn run_llm_with_timeout(
     state: Arc<AppState>,
@@ -117,8 +106,6 @@ fn run_llm_with_timeout(
     }
 }
 
-
-
 pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -158,7 +145,7 @@ fn build_calculate_prompt(formula: &str, variables: &Dynamic) -> String {
     };
 
     format!(
-        r#"You are a precise calculator. Evaluate the following expression.
+        r"You are a precise calculator. Evaluate the following expression.
 
 Formula: {}
 Variables: {}
@@ -169,7 +156,7 @@ Instructions:
 3. Return ONLY the final result (number, boolean, or text)
 4. No explanations, just the result
 
-Result:"#,
+Result:",
         formula, vars_str
     )
 }
@@ -197,8 +184,6 @@ fn parse_calculate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResu
 
     Ok(Dynamic::from(trimmed.to_string()))
 }
-
-
 
 pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -306,8 +291,6 @@ fn parse_validate_result(result: &str) -> Result<Dynamic, Box<rhai::EvalAltResul
     Ok(Dynamic::from(map))
 }
 
-
-
 pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
@@ -336,19 +319,17 @@ pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engi
 
 fn build_translate_prompt(text: &str, language: &str) -> String {
     format!(
-        r#"Translate the following text to {}.
+        r"Translate the following text to {}.
 
 Text:
 {}
 
 Return ONLY the translated text, no explanations:
 
-Translation:"#,
+Translation:",
         language, text
     )
 }
-
-
 
 pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -369,14 +350,14 @@ pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engi
 
 fn build_summarize_prompt(text: &str) -> String {
     format!(
-        r#"Summarize the following text concisely.
+        r"Summarize the following text concisely.
 
 Text:
 {}
 
 Return ONLY the summary:
 
-Summary:"#,
+Summary:",
         text
     )
 }

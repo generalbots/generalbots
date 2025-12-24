@@ -1,39 +1,7 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub mod drive;
 pub mod keyword_services;
 pub mod llm_assist;
 pub mod queue;
-
 
 pub use drive::{AttendanceDriveConfig, AttendanceDriveService, RecordMetadata, SyncResult};
 pub use keyword_services::{
@@ -58,14 +26,13 @@ use crate::shared::state::{AppState, AttendantNotification};
 use axum::{
     extract::{
         ws::{Message, WebSocket, WebSocketUpgrade},
-        Path, Query, State,
+        Query, State,
     },
     http::StatusCode,
     response::IntoResponse,
     routing::{get, post},
     Json, Router,
 };
-use botlib::MessageType;
 use chrono::Utc;
 use diesel::prelude::*;
 use futures::{SinkExt, StreamExt};
@@ -76,10 +43,8 @@ use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
 
-
 pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/api/attendance/queue", get(queue::list_queue))
         .route("/api/attendance/attendants", get(queue::list_attendants))
         .route("/api/attendance/assign", post(queue::assign_conversation))
@@ -92,11 +57,8 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
             post(queue::resolve_conversation),
         )
         .route("/api/attendance/insights", get(queue::get_insights))
-
         .route("/api/attendance/respond", post(attendant_respond))
-
         .route("/ws/attendant", get(attendant_websocket_handler))
-
         .route("/api/attendance/llm/tips", post(llm_assist::generate_tips))
         .route(
             "/api/attendance/llm/polish",
@@ -120,14 +82,12 @@ pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
         )
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct AttendantRespondRequest {
     pub session_id: String,
     pub message: String,
     pub attendant_id: String,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct AttendantRespondResponse {
@@ -136,7 +96,6 @@ pub struct AttendantRespondResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
-
 
 pub async fn attendant_respond(
     State(state): State<Arc<AppState>>,
@@ -160,7 +119,6 @@ pub async fn attendant_respond(
             )
         }
     };
-
 
     let conn = state.conn.clone();
     let session_result = tokio::task::spawn_blocking(move || {
@@ -189,13 +147,11 @@ pub async fn attendant_respond(
         }
     };
 
-
     let channel = session
         .context_data
         .get("channel")
         .and_then(|v| v.as_str())
         .unwrap_or("web");
-
 
     let recipient = session
         .context_data
@@ -203,11 +159,9 @@ pub async fn attendant_respond(
         .and_then(|v| v.as_str())
         .unwrap_or("");
 
-
     if let Err(e) = save_message_to_history(&state, &session, &request.message, "attendant").await {
         error!("Failed to save attendant message: {}", e);
     }
-
 
     match channel {
         "whatsapp" => {
@@ -240,7 +194,6 @@ pub async fn attendant_respond(
 
             match adapter.send_message(response).await {
                 Ok(_) => {
-
                     broadcast_attendant_action(&state, &session, &request, "attendant_response")
                         .await;
 
@@ -264,7 +217,6 @@ pub async fn attendant_respond(
             }
         }
         "web" | _ => {
-
             let sent = if let Some(tx) = state
                 .response_channels
                 .lock()
@@ -282,14 +234,13 @@ pub async fn attendant_respond(
                     is_complete: true,
                     suggestions: vec![],
                     context_name: None,
-                context_length: 0,
-                context_max_length: 0,
+                    context_length: 0,
+                    context_max_length: 0,
                 };
                 tx.send(response).await.is_ok()
             } else {
                 false
             };
-
 
             broadcast_attendant_action(&state, &session, &request, "attendant_response").await;
 
@@ -303,7 +254,6 @@ pub async fn attendant_respond(
                     }),
                 )
             } else {
-
                 (
                     StatusCode::OK,
                     Json(AttendantRespondResponse {
@@ -316,7 +266,6 @@ pub async fn attendant_respond(
         }
     }
 }
-
 
 async fn save_message_to_history(
     state: &Arc<AppState>,
@@ -355,7 +304,6 @@ async fn save_message_to_history(
 
     Ok(())
 }
-
 
 async fn broadcast_attendant_action(
     state: &Arc<AppState>,
@@ -396,7 +344,6 @@ async fn broadcast_attendant_action(
     }
 }
 
-
 pub async fn attendant_websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -422,12 +369,10 @@ pub async fn attendant_websocket_handler(
         .into_response()
 }
 
-
 async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, attendant_id: String) {
     let (mut sender, mut receiver) = socket.split();
 
     info!("Attendant WebSocket connected: {}", attendant_id);
-
 
     let welcome = serde_json::json!({
         "type": "connected",
@@ -447,7 +392,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
         }
     }
 
-
     let mut broadcast_rx = if let Some(broadcast_tx) = state.attendant_broadcast.as_ref() {
         broadcast_tx.subscribe()
     } else {
@@ -455,14 +399,11 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
         return;
     };
 
-
     let attendant_id_clone = attendant_id.clone();
     let mut send_task = tokio::spawn(async move {
         loop {
             match broadcast_rx.recv().await {
                 Ok(notification) => {
-
-
                     let should_send = notification.assigned_to.is_none()
                         || notification.assigned_to.as_ref() == Some(&attendant_id_clone);
 
@@ -493,7 +434,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
         }
     });
 
-
     let state_clone = state.clone();
     let attendant_id_for_recv = attendant_id.clone();
     let mut recv_task = tokio::spawn(async move {
@@ -505,7 +445,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
                         attendant_id_for_recv, text
                     );
 
-
                     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
                         handle_attendant_message(&state_clone, &attendant_id_for_recv, parsed)
                             .await;
@@ -513,7 +452,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
                 }
                 Message::Ping(data) => {
                     debug!("Received ping from attendant {}", attendant_id_for_recv);
-
                 }
                 Message::Close(_) => {
                     info!(
@@ -527,7 +465,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
         }
     });
 
-
     tokio::select! {
         _ = (&mut send_task) => {
             recv_task.abort();
@@ -539,7 +476,6 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
 
     info!("Attendant WebSocket disconnected: {}", attendant_id);
 }
-
 
 async fn handle_attendant_message(
     state: &Arc<AppState>,
@@ -553,24 +489,19 @@ async fn handle_attendant_message(
 
     match msg_type {
         "status_update" => {
-
             if let Some(status) = message.get("status").and_then(|v| v.as_str()) {
                 info!("Attendant {} status update: {}", attendant_id, status);
-
             }
         }
         "typing" => {
-
             if let Some(session_id) = message.get("session_id").and_then(|v| v.as_str()) {
                 debug!(
                     "Attendant {} typing in session {}",
                     attendant_id, session_id
                 );
-
             }
         }
         "read" => {
-
             if let Some(session_id) = message.get("session_id").and_then(|v| v.as_str()) {
                 debug!(
                     "Attendant {} marked session {} as read",
@@ -579,7 +510,6 @@ async fn handle_attendant_message(
             }
         }
         "respond" => {
-
             if let (Some(session_id), Some(content)) = (
                 message.get("session_id").and_then(|v| v.as_str()),
                 message.get("content").and_then(|v| v.as_str()),
@@ -589,13 +519,11 @@ async fn handle_attendant_message(
                     attendant_id, session_id
                 );
 
-
                 let request = AttendantRespondRequest {
                     session_id: session_id.to_string(),
                     message: content.to_string(),
                     attendant_id: attendant_id.to_string(),
                 };
-
 
                 if let Ok(uuid) = Uuid::parse_str(session_id) {
                     let conn = state.conn.clone();
@@ -611,10 +539,8 @@ async fn handle_attendant_message(
                     .ok()
                     .flatten()
                     {
-
                         let _ =
                             save_message_to_history(state, &session, content, "attendant").await;
-
 
                         let channel = session
                             .context_data
@@ -639,13 +565,12 @@ async fn handle_attendant_message(
                                     is_complete: true,
                                     suggestions: vec![],
                                     context_name: None,
-                context_length: 0,
-                context_max_length: 0,
+                                    context_length: 0,
+                                    context_max_length: 0,
                                 };
                                 let _ = adapter.send_message(response).await;
                             }
                         }
-
 
                         broadcast_attendant_action(state, &session, &request, "attendant_response")
                             .await;

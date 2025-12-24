@@ -345,9 +345,7 @@ async fn scrape_table(
                     .chain(row.select(&td_sel))
                     .map(|cell| cell.text().collect::<Vec<_>>().join(" ").trim().to_string())
                     .collect();
-                if headers.is_empty() {
-                    continue;
-                }
+                if headers.is_empty() {}
             } else {
                 let mut row_map = Map::new();
                 for (j, cell) in row.select(&td_sel).enumerate() {

@@ -71,7 +71,6 @@ impl PackageManager {
                 .await?;
         }
         if !component.data_download_list.is_empty() {
-
             let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
             let cache = DownloadCache::new(cache_base).ok();
 
@@ -83,17 +82,14 @@ impl PackageManager {
                     .join(&component.name)
                     .join(&filename);
 
-
                 if output_path.exists() {
                     info!("Data file already exists: {:?}", output_path);
                     continue;
                 }
 
-
                 if let Some(parent) = output_path.parent() {
                     std::fs::create_dir_all(parent)?;
                 }
-
 
                 if let Some(ref c) = cache {
                     if let Some(cached_path) = c.get_cached_path(&filename) {
@@ -102,7 +98,6 @@ impl PackageManager {
                         continue;
                     }
                 }
-
 
                 let download_target = if let Some(ref c) = cache {
                     c.get_cache_path(&filename)
@@ -113,7 +108,6 @@ impl PackageManager {
                 info!("Downloading data file: {}", url);
                 println!("Downloading {}", url);
                 utils::download_file(url, download_target.to_str().unwrap()).await?;
-
 
                 if cache.is_some() && download_target != output_path {
                     std::fs::copy(&download_target, &output_path)?;
@@ -127,9 +121,7 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-
         let _ = Command::new("lxd").args(&["init", "--auto"]).output();
-
 
         let images = [
             "ubuntu:24.04",
@@ -157,14 +149,13 @@ impl PackageManager {
                 info!("Successfully created container with image: {}", image);
                 success = true;
                 break;
-            } else {
-                last_error = String::from_utf8_lossy(&output.stderr).to_string();
-                warn!("Failed to create container with {}: {}", image, last_error);
-
-                let _ = Command::new("lxc")
-                    .args(&["delete", &container_name, "--force"])
-                    .output();
             }
+            last_error = String::from_utf8_lossy(&output.stderr).to_string();
+            warn!("Failed to create container with {}: {}", image, last_error);
+
+            let _ = Command::new("lxc")
+                .args(&["delete", &container_name, "--force"])
+                .output();
         }
 
         if !success {
@@ -176,7 +167,6 @@ impl PackageManager {
         std::thread::sleep(std::time::Duration::from_secs(15));
         self.exec_in_container(&container_name, "mkdir -p /opt/gbo/{bin,data,conf,logs}")?;
 
-
         self.exec_in_container(
             &container_name,
             "echo 'nameserver 8.8.8.8' > /etc/resolv.conf",
@@ -185,7 +175,6 @@ impl PackageManager {
             &container_name,
             "echo 'nameserver 8.8.4.4' >> /etc/resolv.conf",
         )?;
-
 
         self.exec_in_container(&container_name, "apt-get update -qq")?;
         self.exec_in_container(
@@ -247,14 +236,11 @@ impl PackageManager {
         }
         self.setup_port_forwarding(&container_name, &component.ports)?;
 
-
         let container_ip = self.get_container_ip(&container_name)?;
-
 
         if component.name == "vault" {
             self.initialize_vault(&container_name, &container_ip)?;
         }
-
 
         let (connection_info, env_vars) =
             self.generate_connection_info(&component.name, &container_ip, &component.ports);
@@ -275,11 +261,8 @@ impl PackageManager {
         })
     }
 
-
     fn get_container_ip(&self, container_name: &str) -> Result<String> {
-
         std::thread::sleep(std::time::Duration::from_secs(2));
-
 
         let output = Command::new("lxc")
             .args(&["list", container_name, "-c", "4", "--format", "csv"])
@@ -289,7 +272,6 @@ impl PackageManager {
             let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
             if !ip_output.is_empty() {
-
                 let ip = ip_output
                     .split(|c| c == ' ' || c == '(')
                     .next()
@@ -300,7 +282,6 @@ impl PackageManager {
                 }
             }
         }
-
 
         let output = Command::new("lxc")
             .args(&["exec", container_name, "--", "hostname", "-I"])
@@ -318,14 +299,10 @@ impl PackageManager {
         Ok("unknown".to_string())
     }
 
-
     fn initialize_vault(&self, container_name: &str, ip: &str) -> Result<()> {
         info!("Initializing Vault...");
 
-
         std::thread::sleep(std::time::Duration::from_secs(5));
-
-
 
         let output = Command::new("lxc")
             .args(&[
@@ -350,7 +327,6 @@ impl PackageManager {
 
         let init_output = String::from_utf8_lossy(&output.stdout);
 
-
         let init_json: serde_json::Value =
             serde_json::from_str(&init_output).context("Failed to parse Vault init output")?;
 
@@ -361,12 +337,10 @@ impl PackageManager {
             .as_str()
             .context("No root token in output")?;
 
-
         let unseal_keys_file = PathBuf::from("vault-unseal-keys");
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
-
                 unseal_content.push_str(&format!(
                     "VAULT_UNSEAL_KEY_{}={}\n",
                     i + 1,
@@ -376,7 +350,6 @@ impl PackageManager {
         }
         std::fs::write(&unseal_keys_file, &unseal_content)?;
 
-
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -385,7 +358,6 @@ impl PackageManager {
 
         info!("Created {}", unseal_keys_file.display());
 
-
         let env_file = PathBuf::from(".env");
         let env_content = format!(
             "\n# Vault Configuration (auto-generated)\nVAULT_ADDR=http://{}:8200\nVAULT_TOKEN={}\nVAULT_UNSEAL_KEYS_FILE=vault-unseal-keys\n",
@@ -393,11 +365,9 @@ impl PackageManager {
         );
 
         if env_file.exists() {
-
             let existing = std::fs::read_to_string(&env_file)?;
 
             if !existing.contains("VAULT_ADDR=") {
-
                 let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
                 use std::io::Write;
                 file.write_all(env_content.as_bytes())?;
@@ -406,12 +376,9 @@ impl PackageManager {
                 warn!(".env already contains VAULT_ADDR, not overwriting");
             }
         } else {
-
             std::fs::write(&env_file, env_content.trim_start())?;
             info!("Created .env with Vault config");
         }
-
-
 
         for i in 0..3 {
             if let Some(key) = unseal_keys.get(i) {
@@ -434,8 +401,6 @@ impl PackageManager {
         Ok(())
     }
 
-
-
     fn generate_connection_info(
         &self,
         component: &str,
@@ -445,9 +410,8 @@ impl PackageManager {
         let env_vars = HashMap::new();
         let connection_info = match component {
             "vault" => {
-
                 format!(
-                    r#"Vault Server:
+                    r"Vault Server:
   URL: http://{}:8200
   UI:  http://{}:8200/ui
 
@@ -466,141 +430,141 @@ Or manually:
   lxc exec {}-vault -- /opt/gbo/bin/vault operator unseal <key>
 
 For other auto-unseal options (TPM, HSM, Transit), see:
-  https://generalbots.github.io/botbook/chapter-08/secrets-management.html"#,
+  https://generalbots.github.io/botbook/chapter-08/secrets-management.html",
                     ip, ip, self.tenant
                 )
             }
             "vector_db" => {
                 format!(
-                    r#"Qdrant Vector Database:
+                    r"Qdrant Vector Database:
   REST API: http://{}:6333
   gRPC:     {}:6334
   Dashboard: http://{}:6333/dashboard
 
 Store credentials in Vault:
-  botserver vault put gbo/vectordb host={} port=6333"#,
+  botserver vault put gbo/vectordb host={} port=6333",
                     ip, ip, ip, ip
                 )
             }
             "tables" => {
                 format!(
-                    r#"PostgreSQL Database:
+                    r"PostgreSQL Database:
   Host: {}
   Port: 5432
   Database: botserver
   User: gbuser
 
 Store credentials in Vault:
-  botserver vault put gbo/tables host={} port=5432 database=botserver username=gbuser password=<your-password>"#,
+  botserver vault put gbo/tables host={} port=5432 database=botserver username=gbuser password=<your-password>",
                     ip, ip
                 )
             }
             "drive" => {
                 format!(
-                    r#"MinIO Object Storage:
+                    r"MinIO Object Storage:
   API:     http://{}:9000
   Console: http://{}:9001
 
 Store credentials in Vault:
-  botserver vault put gbo/drive server={} port=9000 accesskey=minioadmin secret=<your-secret>"#,
+  botserver vault put gbo/drive server={} port=9000 accesskey=minioadmin secret=<your-secret>",
                     ip, ip, ip
                 )
             }
             "cache" => {
                 format!(
-                    r#"Redis/Valkey Cache:
+                    r"Redis/Valkey Cache:
   Host: {}
   Port: 6379
 
 Store credentials in Vault:
-  botserver vault put gbo/cache host={} port=6379 password=<your-password>"#,
+  botserver vault put gbo/cache host={} port=6379 password=<your-password>",
                     ip, ip
                 )
             }
             "email" => {
                 format!(
-                    r#"Email Server (Stalwart):
+                    r"Email Server (Stalwart):
   SMTP: {}:25
   IMAP: {}:143
   Web:  http://{}:8080
 
 Store credentials in Vault:
-  botserver vault put gbo/email server={} port=25 username=admin password=<your-password>"#,
+  botserver vault put gbo/email server={} port=25 username=admin password=<your-password>",
                     ip, ip, ip, ip
                 )
             }
             "directory" => {
                 format!(
-                    r#"Zitadel Identity Provider:
+                    r"Zitadel Identity Provider:
   URL: http://{}:8080
   Console: http://{}:8080/ui/console
 
 Store credentials in Vault:
-  botserver vault put gbo/directory url=http://{}:8080 client_id=<client-id> client_secret=<client-secret>"#,
+  botserver vault put gbo/directory url=http://{}:8080 client_id=<client-id> client_secret=<client-secret>",
                     ip, ip, ip
                 )
             }
             "llm" => {
                 format!(
-                    r#"LLM Server (llama.cpp):
+                    r"LLM Server (llama.cpp):
   API: http://{}:8081
 
 Test:
   curl http://{}:8081/v1/models
 
 Store credentials in Vault:
-  botserver vault put gbo/llm url=http://{}:8081 local=true"#,
+  botserver vault put gbo/llm url=http://{}:8081 local=true",
                     ip, ip, ip
                 )
             }
             "meeting" => {
                 format!(
-                    r#"LiveKit Meeting Server:
+                    r"LiveKit Meeting Server:
   WebSocket: ws://{}:7880
   API: http://{}:7880
 
 Store credentials in Vault:
-  botserver vault put gbo/meet url=ws://{}:7880 api_key=<api-key> api_secret=<api-secret>"#,
+  botserver vault put gbo/meet url=ws://{}:7880 api_key=<api-key> api_secret=<api-secret>",
                     ip, ip, ip
                 )
             }
             "proxy" => {
                 format!(
-                    r#"Caddy Reverse Proxy:
+                    r"Caddy Reverse Proxy:
   HTTP:  http://{}:80
   HTTPS: https://{}:443
-  Admin: http://{}:2019"#,
+  Admin: http://{}:2019",
                     ip, ip, ip
                 )
             }
             "timeseries_db" => {
                 format!(
-                    r#"InfluxDB Time Series Database:
+                    r"InfluxDB Time Series Database:
   API: http://{}:8086
 
 Store credentials in Vault:
-  botserver vault put gbo/observability url=http://{}:8086 token=<influx-token> org=pragmatismo bucket=metrics"#,
+  botserver vault put gbo/observability url=http://{}:8086 token=<influx-token> org=pragmatismo bucket=metrics",
                     ip, ip
                 )
             }
             "observability" => {
                 format!(
-                    r#"Vector Log Aggregation:
+                    r"Vector Log Aggregation:
   API: http://{}:8686
 
 Store credentials in Vault:
-  botserver vault put gbo/observability vector_url=http://{}:8686"#,
+  botserver vault put gbo/observability vector_url=http://{}:8686",
                     ip, ip
                 )
             }
             "alm" => {
                 format!(
-                    r#"Forgejo Git Server:
+                    r"Forgejo Git Server:
   Web: http://{}:3000
   SSH: {}:22
 
 Store credentials in Vault:
-  botserver vault put gbo/alm url=http://{}:3000 token=<api-token>"#,
+  botserver vault put gbo/alm url=http://{}:3000 token=<api-token>",
                     ip, ip, ip
                 )
             }
@@ -611,11 +575,11 @@ Store credentials in Vault:
                     .collect::<Vec<_>>()
                     .join("\n");
                 format!(
-                    r#"Component: {}
+                    r"Component: {}
   Container: {}-{}
   IP: {}
   Ports:
-{}"#,
+{}",
                     component, self.tenant, component, ip, ports_str
                 )
             }
@@ -740,14 +704,12 @@ Store credentials in Vault:
         let bin_path = self.base_path.join("bin").join(component);
         std::fs::create_dir_all(&bin_path)?;
 
-
         let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
         let cache = DownloadCache::new(cache_base).unwrap_or_else(|e| {
             warn!("Failed to initialize download cache: {}", e);
 
             DownloadCache::new(&self.base_path).expect("Failed to create fallback cache")
         });
-
 
         let cache_result = cache.resolve_component_url(component, url);
 
@@ -763,7 +725,6 @@ Store credentials in Vault:
                 info!("Downloading {} from {}", component, download_url);
                 println!("Downloading {}", download_url);
 
-
                 self.download_with_reqwest(&download_url, &cache_path, component)
                     .await?;
 
@@ -771,7 +732,6 @@ Store credentials in Vault:
                 cache_path
             }
         };
-
 
         self.handle_downloaded_file(&source_file, &bin_path, binary_name)?;
         Ok(())
@@ -784,7 +744,6 @@ Store credentials in Vault:
     ) -> Result<()> {
         const MAX_RETRIES: u32 = 3;
         const RETRY_DELAY: std::time::Duration = std::time::Duration::from_secs(2);
-
 
         if let Some(parent) = target_file.parent() {
             std::fs::create_dir_all(parent)?;
@@ -870,7 +829,6 @@ Store credentials in Vault:
                 } else {
                     let final_path = bin_path.join(temp_file.file_name().unwrap());
 
-
                     if temp_file.to_string_lossy().contains("botserver-installers") {
                         std::fs::copy(temp_file, &final_path)?;
                     } else {
@@ -894,7 +852,6 @@ Store credentials in Vault:
             ));
         }
 
-
         if !temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::remove_file(temp_file)?;
         }
@@ -911,7 +868,6 @@ Store credentials in Vault:
                 String::from_utf8_lossy(&output.stderr)
             ));
         }
-
 
         #[cfg(unix)]
         {
@@ -935,8 +891,6 @@ Store credentials in Vault:
             }
         }
 
-
-
         if !temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::remove_file(temp_file)?;
         }
@@ -949,7 +903,6 @@ Store credentials in Vault:
         name: &str,
     ) -> Result<()> {
         let final_path = bin_path.join(name);
-
 
         if temp_file.to_string_lossy().contains("botserver-installers") {
             std::fs::copy(temp_file, &final_path)?;
@@ -981,7 +934,6 @@ Store credentials in Vault:
             PathBuf::from("/opt/gbo/data")
         };
 
-
         let conf_path = if target == "local" {
             self.base_path.join("conf")
         } else {
@@ -993,15 +945,12 @@ Store credentials in Vault:
             PathBuf::from("/opt/gbo/logs")
         };
 
-
         let db_password = match get_database_url_sync() {
             Ok(url) => {
                 let (_, password, _, _, _) = parse_database_url(&url);
                 password
             }
             Err(_) => {
-
-
                 trace!("Vault not available for DB_PASSWORD, using empty string");
                 String::new()
             }
@@ -1124,8 +1073,6 @@ Store credentials in Vault:
         exec_cmd: &str,
         env_vars: &HashMap<String, String>,
     ) -> Result<()> {
-
-
         let db_password = match get_database_url_sync() {
             Ok(url) => {
                 let (_, password, _, _, _) = parse_database_url(&url);
