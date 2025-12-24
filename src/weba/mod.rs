@@ -92,7 +92,7 @@ pub enum ComponentType {
 pub struct WebaState {
     apps: RwLock<HashMap<Uuid, WebApp>>,
     pages: RwLock<HashMap<Uuid, WebAppPage>>,
-    components: RwLock<HashMap<Uuid, WebAppComponent>>,
+    _components: RwLock<HashMap<Uuid, WebAppComponent>>,
 }
 
 impl WebaState {
@@ -100,7 +100,7 @@ impl WebaState {
         Self {
             apps: RwLock::new(HashMap::new()),
             pages: RwLock::new(HashMap::new()),
-            components: RwLock::new(HashMap::new()),
+            _components: RwLock::new(HashMap::new()),
         }
     }
 }
