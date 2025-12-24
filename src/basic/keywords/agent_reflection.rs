@@ -1,22 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -27,10 +8,8 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum ReflectionType {
-
     ConversationQuality,
 
     ResponseAccuracy,
@@ -66,7 +45,6 @@ impl From<&str> for ReflectionType {
 }
 
 impl ReflectionType {
-
     pub fn prompt_template(&self) -> String {
         match self {
             ReflectionType::ConversationQuality => {
@@ -190,10 +168,8 @@ Provide your analysis in JSON format:
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReflectionConfig {
-
     pub enabled: bool,
 
     pub interval: u32,
@@ -224,7 +200,6 @@ impl Default for ReflectionConfig {
 }
 
 impl ReflectionConfig {
-
     pub fn from_bot_config(state: &AppState, bot_id: Uuid) -> Self {
         let mut config = Self::default();
 
@@ -278,10 +253,8 @@ impl ReflectionConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ReflectionResult {
-
     pub id: Uuid,
 
     pub bot_id: Uuid,
@@ -325,7 +298,6 @@ impl ReflectionResult {
         }
     }
 
-
     pub fn from_llm_response(
         bot_id: Uuid,
         session_id: Uuid,
@@ -337,15 +309,12 @@ impl ReflectionResult {
         result.raw_response = response.to_string();
         result.messages_analyzed = messages_analyzed;
 
-
         if let Ok(json) = serde_json::from_str::<serde_json::Value>(response) {
-
             result.score = json
                 .get("score")
                 .or_else(|| json.get("overall_score"))
                 .and_then(|v| v.as_f64())
                 .unwrap_or(5.0) as f32;
-
 
             if let Some(insights) = json.get("key_insights").or_else(|| json.get("insights")) {
                 if let Some(arr) = insights.as_array() {
@@ -355,7 +324,6 @@ impl ReflectionResult {
                         .collect();
                 }
             }
-
 
             if let Some(improvements) = json
                 .get("improvements")
@@ -370,7 +338,6 @@ impl ReflectionResult {
                 }
             }
 
-
             if let Some(patterns) = json
                 .get("positive_patterns")
                 .or_else(|| json.get("strengths"))
@@ -383,7 +350,6 @@ impl ReflectionResult {
                         .collect();
                 }
             }
-
 
             if let Some(concerns) = json
                 .get("weaknesses")
@@ -399,7 +365,6 @@ impl ReflectionResult {
                 }
             }
         } else {
-
             warn!("Reflection response was not valid JSON, extracting from plain text");
             result.insights = extract_insights_from_text(response);
             result.score = 5.0;
@@ -408,11 +373,9 @@ impl ReflectionResult {
         result
     }
 
-
     pub fn needs_improvement(&self, threshold: f32) -> bool {
         self.score < threshold
     }
-
 
     pub fn summary(&self) -> String {
         format!(
@@ -430,10 +393,8 @@ impl ReflectionResult {
     }
 }
 
-
-fn extract_insights_from_text(text: &str) -> Vec<String> {
+pub fn extract_insights_from_text(text: &str) -> Vec<String> {
     let mut insights = Vec::new();
-
 
     for line in text.lines() {
         let trimmed = line.trim();
@@ -453,7 +414,6 @@ fn extract_insights_from_text(text: &str) -> Vec<String> {
         }
     }
 
-
     if insights.is_empty() {
         for sentence in text.split(|c| c == '.' || c == '!' || c == '?') {
             let trimmed = sentence.trim();
@@ -466,7 +426,6 @@ fn extract_insights_from_text(text: &str) -> Vec<String> {
     insights.truncate(10);
     insights
 }
-
 
 pub struct ReflectionEngine {
     state: Arc<AppState>,
@@ -501,7 +460,6 @@ impl ReflectionEngine {
         }
     }
 
-
     pub async fn reflect(
         &self,
         session_id: Uuid,
@@ -511,7 +469,6 @@ impl ReflectionEngine {
             return Err("Reflection is not enabled for this bot".to_string());
         }
 
-
         let history = self.get_recent_history(session_id, 20).await?;
 
         if history.is_empty() {
@@ -520,12 +477,9 @@ impl ReflectionEngine {
 
         let messages_count = history.len();
 
-
         let prompt = self.build_reflection_prompt(&reflection_type, &history)?;
 
-
         let response = self.call_llm_for_reflection(&prompt).await?;
-
 
         let result = ReflectionResult::from_llm_response(
             self.bot_id,
@@ -535,9 +489,7 @@ impl ReflectionEngine {
             messages_count,
         );
 
-
         self.store_reflection(&result).await?;
-
 
         if self.config.auto_apply && result.needs_improvement(self.config.improvement_threshold) {
             self.apply_improvements(&result).await?;
@@ -550,7 +502,6 @@ impl ReflectionEngine {
 
         Ok(result)
     }
-
 
     async fn get_recent_history(
         &self,
@@ -595,7 +546,6 @@ impl ReflectionEngine {
         Ok(history)
     }
 
-
     fn build_reflection_prompt(
         &self,
         reflection_type: &ReflectionType,
@@ -606,7 +556,6 @@ impl ReflectionEngine {
         } else {
             reflection_type.prompt_template()
         };
-
 
         let conversation = history
             .iter()
@@ -629,9 +578,7 @@ impl ReflectionEngine {
         Ok(prompt)
     }
 
-
     async fn call_llm_for_reflection(&self, prompt: &str) -> Result<String, String> {
-
         let (llm_url, llm_model, llm_key) = self.get_llm_config().await?;
 
         let client = reqwest::Client::new();
@@ -680,7 +627,6 @@ impl ReflectionEngine {
         Ok(content)
     }
 
-
     async fn get_llm_config(&self) -> Result<(String, String, String), String> {
         let mut conn = self
             .state
@@ -720,7 +666,6 @@ impl ReflectionEngine {
         Ok((llm_url, llm_model, llm_key))
     }
 
-
     async fn store_reflection(&self, result: &ReflectionResult) -> Result<(), String> {
         let mut conn = self
             .state
@@ -759,9 +704,7 @@ impl ReflectionEngine {
         Ok(())
     }
 
-
     async fn apply_improvements(&self, result: &ReflectionResult) -> Result<(), String> {
-
         let mut conn = self
             .state
             .conn
@@ -795,7 +738,6 @@ impl ReflectionEngine {
 
         Ok(())
     }
-
 
     pub async fn get_insights(&self, limit: usize) -> Result<Vec<ReflectionResult>, String> {
         let mut conn = self
@@ -867,12 +809,10 @@ impl ReflectionEngine {
         Ok(results)
     }
 
-
     pub async fn should_reflect(&self, session_id: Uuid) -> bool {
         if !self.config.enabled {
             return false;
         }
-
 
         if let Ok(mut conn) = self.state.conn.get() {
             #[derive(QueryableByName)]
@@ -897,7 +837,6 @@ impl ReflectionEngine {
     }
 }
 
-
 #[derive(Debug, Clone)]
 struct ConversationMessage {
     pub role: String,
@@ -905,13 +844,11 @@ struct ConversationMessage {
     pub timestamp: chrono::DateTime<chrono::Utc>,
 }
 
-
 pub fn register_reflection_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     set_bot_reflection_keyword(state.clone(), user.clone(), engine);
     reflect_on_keyword(state.clone(), user.clone(), engine);
     get_reflection_insights_keyword(state.clone(), user.clone(), engine);
 }
-
 
 pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
@@ -964,7 +901,6 @@ pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engin
         .expect("Failed to register SET BOT REFLECTION syntax");
 }
 
-
 pub fn reflect_on_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
@@ -1016,7 +952,6 @@ pub fn reflect_on_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
         .expect("Failed to register REFLECT ON syntax");
 }
 
-
 pub fn get_reflection_insights_keyword(
     state: Arc<AppState>,
     user: UserSession,
@@ -1044,7 +979,6 @@ pub fn get_reflection_insights_keyword(
         }
     });
 }
-
 
 async fn set_reflection_enabled(
     state: &AppState,
@@ -1077,5 +1011,3 @@ async fn set_reflection_enabled(
         if enabled { "enabled" } else { "disabled" }
     ))
 }
-
-

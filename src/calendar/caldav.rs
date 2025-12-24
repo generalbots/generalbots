@@ -1,8 +1,3 @@
-
-
-
-
-
 use axum::{
     http::StatusCode,
     response::{IntoResponse, Response},
@@ -14,11 +9,7 @@ use std::sync::Arc;
 use super::CalendarEngine;
 use crate::shared::state::AppState;
 
-
-
 pub fn create_caldav_router(_engine: Arc<CalendarEngine>) -> Router<Arc<AppState>> {
-
-
     Router::new()
         .route("/caldav", get(caldav_root))
         .route("/caldav/principals", get(caldav_principals))
@@ -29,7 +20,6 @@ pub fn create_caldav_router(_engine: Arc<CalendarEngine>) -> Router<Arc<AppState
             get(caldav_event).put(caldav_put_event),
         )
 }
-
 
 async fn caldav_root() -> impl IntoResponse {
     Response::builder()
@@ -56,7 +46,6 @@ async fn caldav_root() -> impl IntoResponse {
         )
         .unwrap()
 }
-
 
 async fn caldav_principals() -> impl IntoResponse {
     Response::builder()
@@ -85,7 +74,6 @@ async fn caldav_principals() -> impl IntoResponse {
         )
         .unwrap()
 }
-
 
 async fn caldav_calendars() -> impl IntoResponse {
     Response::builder()
@@ -129,7 +117,6 @@ async fn caldav_calendars() -> impl IntoResponse {
         .unwrap()
 }
 
-
 async fn caldav_calendar() -> impl IntoResponse {
     Response::builder()
         .status(StatusCode::OK)
@@ -156,14 +143,12 @@ async fn caldav_calendar() -> impl IntoResponse {
         .unwrap()
 }
 
-
 async fn caldav_event() -> impl IntoResponse {
-
     Response::builder()
         .status(StatusCode::OK)
         .header("Content-Type", "text/calendar; charset=utf-8")
         .body(
-            r#"BEGIN:VCALENDAR
+            r"BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-
 BEGIN:VEVENT
@@ -173,15 +158,13 @@ DTSTART:20240101T090000Z
 DTEND:20240101T100000Z
 SUMMARY:Placeholder Event
 END:VEVENT
-END:VCALENDAR"#
+END:VCALENDAR"
                 .to_string(),
         )
         .unwrap()
 }
 
-
 async fn caldav_put_event() -> impl IntoResponse {
-
     Response::builder()
         .status(StatusCode::CREATED)
         .header("ETag", "\"placeholder-etag\"")

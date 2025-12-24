@@ -1,29 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::message_types::MessageType;
 use crate::shared::models::{BotResponse, UserSession};
 use crate::shared::state::AppState;
@@ -34,8 +8,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InputType {
     Any,
     Email,
@@ -67,80 +40,73 @@ pub enum InputType {
 }
 
 impl InputType {
-
+    #[must_use]
     pub fn error_message(&self) -> String {
         match self {
-            InputType::Any => "".to_string(),
-            InputType::Email => {
+            Self::Any => String::new(),
+            Self::Email => {
                 "Please enter a valid email address (e.g., user@example.com)".to_string()
             }
-            InputType::Date => {
-                "Please enter a valid date (e.g., 25/12/2024 or 2024-12-25)".to_string()
-            }
-            InputType::Name => "Please enter a valid name (letters and spaces only)".to_string(),
-            InputType::Integer => "Please enter a valid whole number".to_string(),
-            InputType::Float => "Please enter a valid number".to_string(),
-            InputType::Boolean => "Please answer yes or no".to_string(),
-            InputType::Hour => "Please enter a valid time (e.g., 14:30 or 2:30 PM)".to_string(),
-            InputType::Money => {
-                "Please enter a valid amount (e.g., 100.00 or R$ 100,00)".to_string()
-            }
-            InputType::Mobile => "Please enter a valid mobile number".to_string(),
-            InputType::Zipcode => "Please enter a valid ZIP/postal code".to_string(),
-            InputType::Language => {
-                "Please enter a valid language code (e.g., en, pt, es)".to_string()
-            }
-            InputType::Cpf => "Please enter a valid CPF (11 digits)".to_string(),
-            InputType::Cnpj => "Please enter a valid CNPJ (14 digits)".to_string(),
-            InputType::QrCode => "Please send an image containing a QR code".to_string(),
-            InputType::Login => "Please complete the authentication process".to_string(),
-            InputType::Menu(options) => format!("Please select one of: {}", options.join(", ")),
-            InputType::File => "Please upload a file".to_string(),
-            InputType::Image => "Please send an image".to_string(),
-            InputType::Audio => "Please send an audio file or voice message".to_string(),
-            InputType::Video => "Please send a video".to_string(),
-            InputType::Document => "Please send a document (PDF, Word, etc.)".to_string(),
-            InputType::Url => "Please enter a valid URL".to_string(),
-            InputType::Uuid => "Please enter a valid UUID".to_string(),
-            InputType::Color => "Please enter a valid color (e.g., #FF0000 or red)".to_string(),
-            InputType::CreditCard => "Please enter a valid credit card number".to_string(),
-            InputType::Password => "Please enter a password (minimum 8 characters)".to_string(),
+            Self::Date => "Please enter a valid date (e.g., 25/12/2024 or 2024-12-25)".to_string(),
+            Self::Name => "Please enter a valid name (letters and spaces only)".to_string(),
+            Self::Integer => "Please enter a valid whole number".to_string(),
+            Self::Float => "Please enter a valid number".to_string(),
+            Self::Boolean => "Please answer yes or no".to_string(),
+            Self::Hour => "Please enter a valid time (e.g., 14:30 or 2:30 PM)".to_string(),
+            Self::Money => "Please enter a valid amount (e.g., 100.00 or R$ 100,00)".to_string(),
+            Self::Mobile => "Please enter a valid mobile number".to_string(),
+            Self::Zipcode => "Please enter a valid ZIP/postal code".to_string(),
+            Self::Language => "Please enter a valid language code (e.g., en, pt, es)".to_string(),
+            Self::Cpf => "Please enter a valid CPF (11 digits)".to_string(),
+            Self::Cnpj => "Please enter a valid CNPJ (14 digits)".to_string(),
+            Self::QrCode => "Please send an image containing a QR code".to_string(),
+            Self::Login => "Please complete the authentication process".to_string(),
+            Self::Menu(options) => format!("Please select one of: {}", options.join(", ")),
+            Self::File => "Please upload a file".to_string(),
+            Self::Image => "Please send an image".to_string(),
+            Self::Audio => "Please send an audio file or voice message".to_string(),
+            Self::Video => "Please send a video".to_string(),
+            Self::Document => "Please send a document (PDF, Word, etc.)".to_string(),
+            Self::Url => "Please enter a valid URL".to_string(),
+            Self::Uuid => "Please enter a valid UUID".to_string(),
+            Self::Color => "Please enter a valid color (e.g., #FF0000 or red)".to_string(),
+            Self::CreditCard => "Please enter a valid credit card number".to_string(),
+            Self::Password => "Please enter a password (minimum 8 characters)".to_string(),
         }
     }
 
-
+    #[must_use]
     pub fn from_str(s: &str) -> Self {
         match s.to_uppercase().as_str() {
-            "EMAIL" => InputType::Email,
-            "DATE" => InputType::Date,
-            "NAME" => InputType::Name,
-            "INTEGER" | "INT" | "NUMBER" => InputType::Integer,
-            "FLOAT" | "DECIMAL" | "DOUBLE" => InputType::Float,
-            "BOOLEAN" | "BOOL" => InputType::Boolean,
-            "HOUR" | "TIME" => InputType::Hour,
-            "MONEY" | "CURRENCY" | "AMOUNT" => InputType::Money,
-            "MOBILE" | "PHONE" | "TELEPHONE" => InputType::Mobile,
-            "ZIPCODE" | "ZIP" | "CEP" | "POSTALCODE" => InputType::Zipcode,
-            "LANGUAGE" | "LANG" => InputType::Language,
-            "CPF" => InputType::Cpf,
-            "CNPJ" => InputType::Cnpj,
-            "QRCODE" | "QR" => InputType::QrCode,
-            "LOGIN" | "AUTH" => InputType::Login,
-            "FILE" => InputType::File,
-            "IMAGE" | "PHOTO" | "PICTURE" => InputType::Image,
-            "AUDIO" | "VOICE" | "SOUND" => InputType::Audio,
-            "VIDEO" => InputType::Video,
-            "DOCUMENT" | "DOC" | "PDF" => InputType::Document,
-            "URL" | "LINK" => InputType::Url,
-            "UUID" | "GUID" => InputType::Uuid,
-            "COLOR" | "COLOUR" => InputType::Color,
-            "CREDITCARD" | "CARD" => InputType::CreditCard,
-            "PASSWORD" | "PASS" | "SECRET" => InputType::Password,
-            _ => InputType::Any,
+            "EMAIL" => Self::Email,
+            "DATE" => Self::Date,
+            "NAME" => Self::Name,
+            "INTEGER" | "INT" | "NUMBER" => Self::Integer,
+            "FLOAT" | "DECIMAL" | "DOUBLE" => Self::Float,
+            "BOOLEAN" | "BOOL" => Self::Boolean,
+            "HOUR" | "TIME" => Self::Hour,
+            "MONEY" | "CURRENCY" | "AMOUNT" => Self::Money,
+            "MOBILE" | "PHONE" | "TELEPHONE" => Self::Mobile,
+            "ZIPCODE" | "ZIP" | "CEP" | "POSTALCODE" => Self::Zipcode,
+            "LANGUAGE" | "LANG" => Self::Language,
+            "CPF" => Self::Cpf,
+            "CNPJ" => Self::Cnpj,
+            "QRCODE" | "QR" => Self::QrCode,
+            "LOGIN" | "AUTH" => Self::Login,
+            "FILE" => Self::File,
+            "IMAGE" | "PHOTO" | "PICTURE" => Self::Image,
+            "AUDIO" | "VOICE" | "SOUND" => Self::Audio,
+            "VIDEO" => Self::Video,
+            "DOCUMENT" | "DOC" | "PDF" => Self::Document,
+            "URL" | "LINK" => Self::Url,
+            "UUID" | "GUID" => Self::Uuid,
+            "COLOR" | "COLOUR" => Self::Color,
+            "CREDITCARD" | "CARD" => Self::CreditCard,
+            "PASSWORD" | "PASS" | "SECRET" => Self::Password,
+            _ => Self::Any,
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ValidationResult {
@@ -151,6 +117,7 @@ pub struct ValidationResult {
 }
 
 impl ValidationResult {
+    #[must_use]
     pub fn valid(value: String) -> Self {
         Self {
             is_valid: true,
@@ -160,6 +127,7 @@ impl ValidationResult {
         }
     }
 
+    #[must_use]
     pub fn valid_with_metadata(value: String, metadata: serde_json::Value) -> Self {
         Self {
             is_valid: true,
@@ -169,6 +137,7 @@ impl ValidationResult {
         }
     }
 
+    #[must_use]
     pub fn invalid(error: String) -> Self {
         Self {
             is_valid: false,
@@ -179,18 +148,13 @@ impl ValidationResult {
     }
 }
 
-
 pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-
     register_hear_basic(state.clone(), user.clone(), engine);
-
 
     register_hear_as_type(state.clone(), user.clone(), engine);
 
-
     register_hear_as_menu(state.clone(), user.clone(), engine);
 }
-
 
 fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
@@ -198,7 +162,6 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
     engine
         .register_custom_syntax(&["HEAR", "$ident$"], true, move |_context, inputs| {
-
             let variable_name = inputs[0]
                 .get_string_value()
                 .expect("Expected identifier as string")
@@ -223,10 +186,9 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 let mut session_manager = state_for_spawn.session_manager.lock().await;
                 session_manager.mark_waiting(session_id_clone);
 
-
                 if let Some(redis_client) = &state_for_spawn.cache {
                     if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-                        let key = format!("hear:{}:{}", session_id_clone, var_name_clone);
+                        let key = format!("hear:{session_id_clone}:{var_name_clone}");
                         let wait_data = serde_json::json!({
                             "variable": var_name_clone,
                             "type": "any",
@@ -252,7 +214,6 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
         .unwrap();
 }
 
-
 fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
     let state_clone = Arc::clone(&state);
@@ -262,7 +223,6 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
             &["HEAR", "$ident$", "AS", "$ident$"],
             true,
             move |_context, inputs| {
-
                 let variable_name = inputs[0]
                     .get_string_value()
                     .expect("Expected identifier for variable")
@@ -274,11 +234,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
 
                 let _input_type = InputType::from_str(&type_name);
 
-                trace!(
-                    "HEAR {} AS {} - waiting for validated input",
-                    variable_name,
-                    type_name
-                );
+                trace!("HEAR {variable_name} AS {type_name} - waiting for validated input");
 
                 let state_for_spawn = Arc::clone(&state_clone);
                 let session_id_clone = session_id;
@@ -289,11 +245,10 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                     let mut session_manager = state_for_spawn.session_manager.lock().await;
                     session_manager.mark_waiting(session_id_clone);
 
-
                     if let Some(redis_client) = &state_for_spawn.cache {
                         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
                         {
-                            let key = format!("hear:{}:{}", session_id_clone, var_name_clone);
+                            let key = format!("hear:{session_id_clone}:{var_name_clone}");
                             let wait_data = serde_json::json!({
                                 "variable": var_name_clone,
                                 "type": type_clone.to_lowercase(),
@@ -321,44 +276,34 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
         .unwrap();
 }
 
-
 fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let session_id = user.id;
     let state_clone = Arc::clone(&state);
-
-
 
     engine
         .register_custom_syntax(
             &["HEAR", "$ident$", "AS", "$expr$"],
             true,
             move |context, inputs| {
-
                 let variable_name = inputs[0]
                     .get_string_value()
                     .expect("Expected identifier for variable")
                     .to_lowercase();
 
-
                 let options_expr = context.eval_expression_tree(&inputs[1])?;
                 let options_str = options_expr.to_string();
 
-
                 let input_type = InputType::from_str(&options_str);
                 if input_type != InputType::Any {
-
                     return Err(Box::new(EvalAltResult::ErrorRuntime(
                         "Use HEAR AS TYPE syntax".into(),
                         rhai::Position::NONE,
                     )));
                 }
 
-
                 let options: Vec<String> = if options_str.starts_with('[') {
-
                     serde_json::from_str(&options_str).unwrap_or_default()
                 } else {
-
                     options_str
                         .split(',')
                         .map(|s| s.trim().trim_matches('"').to_string())
@@ -384,11 +329,10 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                     let mut session_manager = state_for_spawn.session_manager.lock().await;
                     session_manager.mark_waiting(session_id_clone);
 
-
                     if let Some(redis_client) = &state_for_spawn.cache {
                         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
                         {
-                            let key = format!("hear:{}:{}", session_id_clone, var_name_clone);
+                            let key = format!("hear:{session_id_clone}:{var_name_clone}");
                             let wait_data = serde_json::json!({
                                 "variable": var_name_clone,
                                 "type": "menu",
@@ -404,9 +348,8 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                                 .query_async(&mut conn)
                                 .await;
 
-
                             let suggestions_key =
-                                format!("suggestions:{}:{}", session_id_clone, session_id_clone);
+                                format!("suggestions:{session_id_clone}:{session_id_clone}");
                             for opt in &options_clone {
                                 let suggestion = serde_json::json!({
                                     "text": opt,
@@ -431,15 +374,19 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
         .unwrap();
 }
 
-
-
-
+#[must_use]
 pub fn validate_input(input: &str, input_type: &InputType) -> ValidationResult {
     let trimmed = input.trim();
 
     match input_type {
-        InputType::Any => ValidationResult::valid(trimmed.to_string()),
-
+        InputType::Any
+        | InputType::QrCode
+        | InputType::File
+        | InputType::Image
+        | InputType::Audio
+        | InputType::Video
+        | InputType::Document
+        | InputType::Login => ValidationResult::valid(trimmed.to_string()),
         InputType::Email => validate_email(trimmed),
         InputType::Date => validate_date(trimmed),
         InputType::Name => validate_name(trimmed),
@@ -458,18 +405,7 @@ pub fn validate_input(input: &str, input_type: &InputType) -> ValidationResult {
         InputType::Color => validate_color(trimmed),
         InputType::CreditCard => validate_credit_card(trimmed),
         InputType::Password => validate_password(trimmed),
-
         InputType::Menu(options) => validate_menu(trimmed, options),
-
-
-        InputType::QrCode
-        | InputType::File
-        | InputType::Image
-        | InputType::Audio
-        | InputType::Video
-        | InputType::Document => ValidationResult::valid(trimmed.to_string()),
-
-        InputType::Login => ValidationResult::valid(trimmed.to_string()),
     }
 }
 
@@ -486,31 +422,22 @@ fn validate_email(input: &str) -> ValidationResult {
 }
 
 fn validate_date(input: &str) -> ValidationResult {
-
     let formats = [
-        "%d/%m/%Y",
-        "%d-%m-%Y",
-        "%Y-%m-%d",
-        "%Y/%m/%d",
-        "%d.%m.%Y",
-        "%m/%d/%Y",
-        "%d %b %Y",
+        "%d/%m/%Y", "%d-%m-%Y", "%Y-%m-%d", "%Y/%m/%d", "%d.%m.%Y", "%m/%d/%Y", "%d %b %Y",
         "%d %B %Y",
     ];
 
     for format in &formats {
         if let Ok(date) = chrono::NaiveDate::parse_from_str(input, format) {
-
             return ValidationResult::valid_with_metadata(
                 date.format("%Y-%m-%d").to_string(),
                 serde_json::json!({
                     "original": input,
-                    "parsed_format": format
+                    "parsed_format": *format
                 }),
             );
         }
     }
-
 
     let lower = input.to_lowercase();
     let today = chrono::Local::now().date_naive();
@@ -537,7 +464,6 @@ fn validate_date(input: &str) -> ValidationResult {
 }
 
 fn validate_name(input: &str) -> ValidationResult {
-
     let name_regex = Regex::new(r"^[\p{L}\s\-']+$").unwrap();
 
     if input.len() < 2 {
@@ -549,7 +475,6 @@ fn validate_name(input: &str) -> ValidationResult {
     }
 
     if name_regex.is_match(input) {
-
         let normalized = input
             .split_whitespace()
             .map(|word| {
@@ -568,11 +493,10 @@ fn validate_name(input: &str) -> ValidationResult {
 }
 
 fn validate_integer(input: &str) -> ValidationResult {
-
     let cleaned = input
-        .replace(",", "")
-        .replace(".", "")
-        .replace(" ", "")
+        .replace(',', "")
+        .replace('.', "")
+        .replace(' ', "")
         .trim()
         .to_string();
 
@@ -586,7 +510,6 @@ fn validate_integer(input: &str) -> ValidationResult {
 }
 
 fn validate_float(input: &str) -> ValidationResult {
-
     let cleaned = input.replace(" ", "").replace(",", ".").trim().to_string();
 
     match cleaned.parse::<f64>() {
@@ -644,7 +567,6 @@ fn validate_boolean(input: &str) -> ValidationResult {
 }
 
 fn validate_hour(input: &str) -> ValidationResult {
-
     let time_24_regex = Regex::new(r"^([01]?\d|2[0-3]):([0-5]\d)$").unwrap();
     if let Some(caps) = time_24_regex.captures(input) {
         let hour: u32 = caps[1].parse().unwrap();
@@ -654,7 +576,6 @@ fn validate_hour(input: &str) -> ValidationResult {
             serde_json::json!({ "hour": hour, "minute": minute }),
         );
     }
-
 
     let time_12_regex =
         Regex::new(r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$").unwrap();
@@ -679,7 +600,6 @@ fn validate_hour(input: &str) -> ValidationResult {
 }
 
 fn validate_money(input: &str) -> ValidationResult {
-
     let cleaned = input
         .replace("R$", "")
         .replace("$", "")
@@ -690,21 +610,16 @@ fn validate_money(input: &str) -> ValidationResult {
         .trim()
         .to_string();
 
-
     let normalized = if cleaned.contains(',') && cleaned.contains('.') {
-
         let last_comma = cleaned.rfind(',').unwrap_or(0);
         let last_dot = cleaned.rfind('.').unwrap_or(0);
 
         if last_comma > last_dot {
-
-            cleaned.replace(".", "").replace(",", ".")
+            cleaned.replace('.', "").replace(',', ".")
         } else {
-
             cleaned.replace(",", "")
         }
     } else if cleaned.contains(',') {
-
         cleaned.replace(",", ".")
     } else {
         cleaned
@@ -720,26 +635,19 @@ fn validate_money(input: &str) -> ValidationResult {
 }
 
 fn validate_mobile(input: &str) -> ValidationResult {
-
     let digits: String = input.chars().filter(|c| c.is_ascii_digit()).collect();
-
 
     if digits.len() < 10 || digits.len() > 15 {
         return ValidationResult::invalid(InputType::Mobile.error_message());
     }
 
-
     let formatted = if digits.len() == 11 && digits.starts_with('9') {
-
         format!("({}) {}-{}", &digits[0..2], &digits[2..7], &digits[7..11])
     } else if digits.len() == 11 {
-
         format!("({}) {}-{}", &digits[0..2], &digits[2..7], &digits[7..11])
     } else if digits.len() == 10 {
-
         format!("({}) {}-{}", &digits[0..3], &digits[3..6], &digits[6..10])
     } else {
-
         format!("+{}", digits)
     };
 
@@ -750,12 +658,10 @@ fn validate_mobile(input: &str) -> ValidationResult {
 }
 
 fn validate_zipcode(input: &str) -> ValidationResult {
-
     let cleaned: String = input
         .chars()
         .filter(|c| c.is_ascii_alphanumeric())
         .collect();
-
 
     if cleaned.len() == 8 && cleaned.chars().all(|c| c.is_ascii_digit()) {
         let formatted = format!("{}-{}", &cleaned[0..5], &cleaned[5..8]);
@@ -765,10 +671,9 @@ fn validate_zipcode(input: &str) -> ValidationResult {
         );
     }
 
-
     if (cleaned.len() == 5 || cleaned.len() == 9) && cleaned.chars().all(|c| c.is_ascii_digit()) {
         let formatted = if cleaned.len() == 9 {
-            format!("{}-{}", &cleaned[0..5], &cleaned[5..9])
+            format!("{}-{}", &cleaned[0..5], &cleaned[5..8])
         } else {
             cleaned.clone()
         };
@@ -777,7 +682,6 @@ fn validate_zipcode(input: &str) -> ValidationResult {
             serde_json::json!({ "digits": cleaned, "formatted": formatted, "country": "US" }),
         );
     }
-
 
     let uk_regex = Regex::new(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$").unwrap();
     if uk_regex.is_match(&cleaned.to_uppercase()) {
@@ -792,7 +696,6 @@ fn validate_zipcode(input: &str) -> ValidationResult {
 
 fn validate_language(input: &str) -> ValidationResult {
     let lower = input.to_lowercase().trim().to_string();
-
 
     let languages = [
         ("en", "english", "inglês", "ingles"),
@@ -827,7 +730,6 @@ fn validate_language(input: &str) -> ValidationResult {
         }
     }
 
-
     if lower.len() == 2 && lower.chars().all(|c| c.is_ascii_lowercase()) {
         return ValidationResult::valid(lower);
     }
@@ -836,21 +738,17 @@ fn validate_language(input: &str) -> ValidationResult {
 }
 
 fn validate_cpf(input: &str) -> ValidationResult {
-
     let digits: String = input.chars().filter(|c| c.is_ascii_digit()).collect();
 
     if digits.len() != 11 {
         return ValidationResult::invalid(InputType::Cpf.error_message());
     }
 
-
     if digits.chars().all(|c| c == digits.chars().next().unwrap()) {
         return ValidationResult::invalid("Invalid CPF".to_string());
     }
 
-
-    let digits_vec: Vec<u32> = digits.chars().map(|c| c.to_digit(10).unwrap()).collect();
-
+    let digits_vec: Vec<u32> = digits.chars().filter_map(|c| c.to_digit(10)).collect();
 
     let sum1: u32 = digits_vec[0..9]
         .iter()
@@ -864,7 +762,6 @@ fn validate_cpf(input: &str) -> ValidationResult {
         return ValidationResult::invalid("Invalid CPF".to_string());
     }
 
-
     let sum2: u32 = digits_vec[0..10]
         .iter()
         .enumerate()
@@ -876,7 +773,6 @@ fn validate_cpf(input: &str) -> ValidationResult {
     if check2 != digits_vec[10] {
         return ValidationResult::invalid("Invalid CPF".to_string());
     }
-
 
     let formatted = format!(
         "{}.{}.{}-{}",
@@ -893,16 +789,13 @@ fn validate_cpf(input: &str) -> ValidationResult {
 }
 
 fn validate_cnpj(input: &str) -> ValidationResult {
-
     let digits: String = input.chars().filter(|c| c.is_ascii_digit()).collect();
 
     if digits.len() != 14 {
         return ValidationResult::invalid(InputType::Cnpj.error_message());
     }
 
-
-    let digits_vec: Vec<u32> = digits.chars().map(|c| c.to_digit(10).unwrap()).collect();
-
+    let digits_vec: Vec<u32> = digits.chars().filter_map(|c| c.to_digit(10)).collect();
 
     let weights1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
     let sum1: u32 = digits_vec[0..12]
@@ -917,7 +810,6 @@ fn validate_cnpj(input: &str) -> ValidationResult {
         return ValidationResult::invalid("Invalid CNPJ".to_string());
     }
 
-
     let weights2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
     let sum2: u32 = digits_vec[0..13]
         .iter()
@@ -930,7 +822,6 @@ fn validate_cnpj(input: &str) -> ValidationResult {
     if check2 != digits_vec[13] {
         return ValidationResult::invalid("Invalid CNPJ".to_string());
     }
-
 
     let formatted = format!(
         "{}.{}.{}/{}-{}",
@@ -948,9 +839,8 @@ fn validate_cnpj(input: &str) -> ValidationResult {
 }
 
 fn validate_url(input: &str) -> ValidationResult {
-
     let url_str = if !input.starts_with("http://") && !input.starts_with("https://") {
-        format!("https://{}", input)
+        format!("https://{input}")
     } else {
         input.to_string()
     };
@@ -975,7 +865,6 @@ fn validate_uuid(input: &str) -> ValidationResult {
 
 fn validate_color(input: &str) -> ValidationResult {
     let lower = input.to_lowercase().trim().to_string();
-
 
     let named_colors = [
         ("red", "#FF0000"),
@@ -1003,7 +892,6 @@ fn validate_color(input: &str) -> ValidationResult {
         }
     }
 
-
     let hex_regex = Regex::new(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").unwrap();
     if let Some(caps) = hex_regex.captures(&lower) {
         let hex = caps[1].to_uppercase();
@@ -1016,7 +904,6 @@ fn validate_color(input: &str) -> ValidationResult {
         };
         return ValidationResult::valid(format!("#{}", full_hex));
     }
-
 
     let rgb_regex =
         Regex::new(r"^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$").unwrap();
@@ -1031,13 +918,11 @@ fn validate_color(input: &str) -> ValidationResult {
 }
 
 fn validate_credit_card(input: &str) -> ValidationResult {
-
     let digits: String = input.chars().filter(|c| c.is_ascii_digit()).collect();
 
     if digits.len() < 13 || digits.len() > 19 {
         return ValidationResult::invalid(InputType::CreditCard.error_message());
     }
-
 
     let mut sum = 0;
     let mut double = false;
@@ -1058,7 +943,6 @@ fn validate_credit_card(input: &str) -> ValidationResult {
         return ValidationResult::invalid("Invalid card number".to_string());
     }
 
-
     let card_type = if digits.starts_with('4') {
         "Visa"
     } else if digits.starts_with("51")
@@ -1077,7 +961,6 @@ fn validate_credit_card(input: &str) -> ValidationResult {
     } else {
         "Unknown"
     };
-
 
     let masked = format!(
         "{} **** **** {}",
@@ -1113,7 +996,6 @@ fn validate_password(input: &str) -> ValidationResult {
         _ => "weak",
     };
 
-
     ValidationResult::valid_with_metadata(
         "[PASSWORD SET]".to_string(),
         serde_json::json!({
@@ -1126,7 +1008,6 @@ fn validate_password(input: &str) -> ValidationResult {
 fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
     let lower_input = input.to_lowercase().trim().to_string();
 
-
     for (i, opt) in options.iter().enumerate() {
         if opt.to_lowercase() == lower_input {
             return ValidationResult::valid_with_metadata(
@@ -1135,7 +1016,6 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
             );
         }
     }
-
 
     if let Ok(num) = lower_input.parse::<usize>() {
         if num >= 1 && num <= options.len() {
@@ -1146,7 +1026,6 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
             );
         }
     }
-
 
     let matches: Vec<&String> = options
         .iter()
@@ -1161,10 +1040,9 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
         );
     }
 
-    ValidationResult::invalid(format!("Please select one of: {}", options.join(", ")))
+    let opts = options.join(", ");
+    ValidationResult::invalid(format!("Please select one of: {opts}"))
 }
-
-
 
 pub async fn execute_talk(
     state: Arc<AppState>,
@@ -1172,7 +1050,6 @@ pub async fn execute_talk(
     message: String,
 ) -> Result<BotResponse, Box<dyn std::error::Error + Send + Sync>> {
     let mut suggestions = Vec::new();
-
 
     if let Some(redis_client) = &state.cache {
         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
@@ -1212,7 +1089,6 @@ pub async fn execute_talk(
     let user_id = user_session.id.to_string();
     let response_clone = response.clone();
 
-
     let web_adapter = Arc::clone(&state.web_adapter);
     tokio::spawn(async move {
         if let Err(e) = web_adapter
@@ -1249,9 +1125,6 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-
-
-
 pub async fn process_hear_input(
     state: &AppState,
     session_id: Uuid,
@@ -1259,10 +1132,9 @@ pub async fn process_hear_input(
     input: &str,
     attachments: Option<Vec<crate::shared::models::Attachment>>,
 ) -> Result<(String, Option<serde_json::Value>), String> {
-
     let wait_data = if let Some(redis_client) = &state.cache {
         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-            let key = format!("hear:{}:{}", session_id, variable_name);
+            let key = format!("hear:{session_id}:{variable_name}");
 
             let data: Result<String, _> = redis::cmd("GET").arg(&key).query_async(&mut conn).await;
 
@@ -1293,13 +1165,11 @@ pub async fn process_hear_input(
                 .collect::<Vec<_>>()
         });
 
-
     let validation_type = if let Some(opts) = options {
         InputType::Menu(opts)
     } else {
         InputType::from_str(input_type)
     };
-
 
     match validation_type {
         InputType::Image | InputType::QrCode => {
@@ -1309,7 +1179,6 @@ pub async fn process_hear_input(
                     .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("image/"))
                 {
                     if validation_type == InputType::QrCode {
-
                         return process_qrcode(state, &img.url).await;
                     }
                     return Ok((
@@ -1326,7 +1195,6 @@ pub async fn process_hear_input(
                     .iter()
                     .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("audio/"))
                 {
-
                     return process_audio_to_text(state, &audio.url).await;
                 }
             }
@@ -1338,7 +1206,6 @@ pub async fn process_hear_input(
                     .iter()
                     .find(|a| a.mime_type.as_deref().unwrap_or("").starts_with("video/"))
                 {
-
                     return process_video_description(state, &video.url).await;
                 }
             }
@@ -1358,14 +1225,12 @@ pub async fn process_hear_input(
         _ => {}
     }
 
-
     let result = validate_input(input, &validation_type);
 
     if result.is_valid {
-
         if let Some(redis_client) = &state.cache {
             if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-                let key = format!("hear:{}:{}", session_id, variable_name);
+                let key = format!("hear:{session_id}:{variable_name}");
                 let _: Result<(), _> = redis::cmd("DEL").arg(&key).query_async(&mut conn).await;
             }
         }
@@ -1378,12 +1243,10 @@ pub async fn process_hear_input(
     }
 }
 
-
 async fn process_qrcode(
     state: &AppState,
     image_url: &str,
 ) -> Result<(String, Option<serde_json::Value>), String> {
-
     let botmodels_url = {
         let config_url = state.conn.get().ok().and_then(|mut conn| {
             use crate::shared::models::schema::bot_memories::dsl::*;
@@ -1401,7 +1264,6 @@ async fn process_qrcode(
 
     let client = reqwest::Client::new();
 
-
     let image_data = client
         .get(image_url)
         .send()
@@ -1409,11 +1271,10 @@ async fn process_qrcode(
         .map_err(|e| format!("Failed to download image: {}", e))?
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read image: {}", e))?;
-
+        .map_err(|e| format!("Failed to fetch image: {e}"))?;
 
     let response = client
-        .post(format!("{}/api/v1/vision/qrcode", botmodels_url))
+        .post(format!("{botmodels_url}/api/v1/vision/qrcode"))
         .header("Content-Type", "application/octet-stream")
         .body(image_data.to_vec())
         .send()
@@ -1424,7 +1285,7 @@ async fn process_qrcode(
         let result: serde_json::Value = response
             .json()
             .await
-            .map_err(|e| format!("Failed to parse response: {}", e))?;
+            .map_err(|e| format!("Failed to read image: {e}"))?;
 
         if let Some(qr_data) = result.get("data").and_then(|d| d.as_str()) {
             Ok((
@@ -1442,7 +1303,6 @@ async fn process_qrcode(
     }
 }
 
-
 async fn process_audio_to_text(
     _state: &AppState,
     audio_url: &str,
@@ -1452,7 +1312,6 @@ async fn process_audio_to_text(
 
     let client = reqwest::Client::new();
 
-
     let audio_data = client
         .get(audio_url)
         .send()
@@ -1460,11 +1319,10 @@ async fn process_audio_to_text(
         .map_err(|e| format!("Failed to download audio: {}", e))?
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read audio: {}", e))?;
-
+        .map_err(|e| format!("Failed to read audio: {e}"))?;
 
     let response = client
-        .post(format!("{}/api/v1/speech/to-text", botmodels_url))
+        .post(format!("{botmodels_url}/api/v1/speech/to-text"))
         .header("Content-Type", "application/octet-stream")
         .body(audio_data.to_vec())
         .send()
@@ -1494,7 +1352,6 @@ async fn process_audio_to_text(
     }
 }
 
-
 async fn process_video_description(
     _state: &AppState,
     video_url: &str,
@@ -1504,7 +1361,6 @@ async fn process_video_description(
 
     let client = reqwest::Client::new();
 
-
     let video_data = client
         .get(video_url)
         .send()
@@ -1512,16 +1368,15 @@ async fn process_video_description(
         .map_err(|e| format!("Failed to download video: {}", e))?
         .bytes()
         .await
-        .map_err(|e| format!("Failed to read video: {}", e))?;
-
+        .map_err(|e| format!("Failed to fetch video: {e}"))?;
 
     let response = client
-        .post(format!("{}/api/v1/vision/describe-video", botmodels_url))
+        .post(format!("{botmodels_url}/api/v1/vision/describe-video"))
         .header("Content-Type", "application/octet-stream")
         .body(video_data.to_vec())
         .send()
         .await
-        .map_err(|e| format!("Failed to call botmodels: {}", e))?;
+        .map_err(|e| format!("Failed to read video: {e}"))?;
 
     if response.status().is_success() {
         let result: serde_json::Value = response

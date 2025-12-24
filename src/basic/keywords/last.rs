@@ -3,7 +3,7 @@ use rhai::Engine;
 
 pub fn last_keyword(engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["LAST", "(", "$expr$", ")"], false, {
+        .register_custom_syntax(["LAST", "(", "$expr$", ")"], false, {
             move |context, inputs| {
                 let input_string = context.eval_expression_tree(&inputs[0])?;
                 let input_str = input_string.to_string();

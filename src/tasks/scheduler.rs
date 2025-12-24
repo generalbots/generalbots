@@ -83,7 +83,7 @@ type TaskHandler = Arc<
 impl TaskScheduler {
     pub fn new(state: Arc<AppState>) -> Self {
         let scheduler = Self {
-            state: state,
+            state,
             running_tasks: Arc::new(RwLock::new(HashMap::new())),
             task_registry: Arc::new(RwLock::new(HashMap::new())),
             scheduled_tasks: Arc::new(RwLock::new(Vec::new())),
@@ -101,14 +101,10 @@ impl TaskScheduler {
         tokio::spawn(async move {
             let mut handlers = registry.write().await;
 
-
             handlers.insert(
                 "database_cleanup".to_string(),
                 Arc::new(move |_state: Arc<AppState>, _payload: serde_json::Value| {
                     Box::pin(async move {
-
-
-
                         info!("Database cleanup task executed");
 
                         Ok(serde_json::json!({
@@ -119,7 +115,6 @@ impl TaskScheduler {
                     })
                 }),
             );
-
 
             handlers.insert(
                 "cache_cleanup".to_string(),
@@ -139,7 +134,6 @@ impl TaskScheduler {
                 }),
             );
 
-
             handlers.insert(
                 "backup".to_string(),
                 Arc::new(move |state: Arc<AppState>, payload: serde_json::Value| {
@@ -156,7 +150,6 @@ impl TaskScheduler {
                                     .arg("-f")
                                     .arg(&backup_file)
                                     .output()?;
-
 
                                 if state.s3_client.is_some() {
                                     let s3 = state.s3_client.as_ref().unwrap();
@@ -196,7 +189,6 @@ impl TaskScheduler {
                 }),
             );
 
-
             handlers.insert(
                 "generate_report".to_string(),
                 Arc::new(move |_state: Arc<AppState>, payload: serde_json::Value| {
@@ -229,7 +221,6 @@ impl TaskScheduler {
                 }),
             );
 
-
             handlers.insert(
                 "health_check".to_string(),
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
@@ -240,16 +231,13 @@ impl TaskScheduler {
                             "timestamp": Utc::now()
                         });
 
-
                         let db_ok = state.conn.get().is_ok();
                         health["database"] = serde_json::json!(db_ok);
-
 
                         if let Some(cache) = &state.cache {
                             let cache_ok = cache.get_connection().is_ok();
                             health["cache"] = serde_json::json!(cache_ok);
                         }
-
 
                         if let Some(s3) = &state.s3_client {
                             let s3_ok = s3.list_buckets().send().await.is_ok();
@@ -351,7 +339,6 @@ impl TaskScheduler {
             let execution_id = Uuid::new_v4();
             let started_at = Utc::now();
 
-
             let _execution = TaskExecution {
                 id: execution_id,
                 scheduled_task_id: task_id,
@@ -362,11 +349,6 @@ impl TaskScheduler {
                 error_message: None,
                 duration_ms: None,
             };
-
-
-
-
-
 
             let result = {
                 let handlers = registry.read().await;
@@ -388,24 +370,19 @@ impl TaskScheduler {
             let completed_at = Utc::now();
             let _duration_ms = (completed_at - started_at).num_milliseconds();
 
-
             match result {
                 Ok(_result) => {
-
                     let schedule = Schedule::from_str(&task.cron_expression).ok();
                     let _next_run = schedule
                         .and_then(|s| s.upcoming(chrono::Local).take(1).next())
                         .map(|dt| dt.with_timezone(&Utc))
                         .unwrap_or_else(|| Utc::now() + Duration::hours(1));
 
-
-
                     info!("Task {} completed successfully", task.name);
                 }
                 Err(e) => {
                     let error_msg = format!("Task failed: {}", e);
                     error!("{}", error_msg);
-
 
                     task.retry_count += 1;
                     if task.retry_count < task.max_retries {
@@ -424,11 +401,9 @@ impl TaskScheduler {
                 }
             }
 
-
             let mut running = running_tasks.write().await;
             running.remove(&task_id);
         });
-
 
         let mut running = self.running_tasks.write().await;
         running.insert(task_id, handle);
@@ -444,7 +419,6 @@ impl TaskScheduler {
             handle.abort();
             info!("Stopped task: {}", task_id);
         }
-
 
         let mut tasks = self.scheduled_tasks.write().await;
         if let Some(task) = tasks.iter_mut().find(|t| t.id == task_id) {

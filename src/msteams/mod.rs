@@ -50,7 +50,7 @@ pub fn configure() -> Router<Arc<AppState>> {
 }
 
 async fn handle_incoming(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(activity): Json<TeamsActivity>,
 ) -> impl IntoResponse {
     match activity.activity_type.as_str() {
