@@ -70,7 +70,7 @@ mail = ["email"]
 
 # ===== ENTERPRISE FEATURES =====
 compliance = ["dep:csv"]
-attendance = []
+attendance = ["drive"]
 directory = []
 weba = []
 timeseries = []
@@ -171,7 +171,7 @@ livekit = { version = "0.7", optional = true }
 qdrant-client = { version = "1.12", optional = true }
 
 # File Storage & Drive (drive feature)
-aws-config = { version = "1.8.8", optional = true }
+aws-config = { version = "1.8.8", features = ["behavior-version-latest"], optional = true }
 aws-sdk-s3 = { version = "1.109.0", features = ["behavior-version-latest"], optional = true }
 pdf-extract = { version = "0.10.0", optional = true }
 zip = { version = "2.2", optional = true }
