@@ -38,16 +38,13 @@ async fn verify_webhook(Query(query): Query<WebhookVerifyQuery>) -> impl IntoRes
         query.verify_token.as_deref(),
         query.challenge,
     ) {
-        (Some(mode), Some(token), Some(challenge)) => {
-            if let Some(response) = adapter
-                .handle_webhook_verification(mode, token, &challenge)
-                .await
-            {
-                (StatusCode::OK, response)
-            } else {
-                (StatusCode::FORBIDDEN, "Verification failed".to_string())
-            }
-        }
+        (Some(mode), Some(token), Some(challenge)) => adapter
+            .handle_webhook_verification(mode, token, &challenge)
+            .await
+            .map_or_else(
+                || (StatusCode::FORBIDDEN, "Verification failed".to_string()),
+                |response| (StatusCode::OK, response),
+            ),
         _ => (StatusCode::BAD_REQUEST, "Missing parameters".to_string()),
     }
 }

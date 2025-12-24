@@ -1,6 +1,6 @@
 use anyhow::{anyhow, Context, Result};
 use chrono::{DateTime, NaiveDate, Utc};
-use reqwest::{Client, Method, StatusCode};
+use reqwest::{Client, Method};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::time::Duration;
