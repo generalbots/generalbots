@@ -14,7 +14,6 @@ use qdrant_client::{
     Qdrant,
 };
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileDocument {
     pub id: String,
@@ -32,7 +31,6 @@ pub struct FileDocument {
     pub tags: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchQuery {
     pub query_text: String,
@@ -44,7 +42,6 @@ pub struct FileSearchQuery {
     pub limit: usize,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileSearchResult {
     pub file: FileDocument,
@@ -52,7 +49,6 @@ pub struct FileSearchResult {
     pub snippet: String,
     pub highlights: Vec<String>,
 }
-
 
 pub struct UserDriveVectorDB {
     user_id: Uuid,
@@ -64,7 +60,6 @@ pub struct UserDriveVectorDB {
 }
 
 impl UserDriveVectorDB {
-
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("drive_{}_{}", bot_id, user_id);
 
@@ -90,11 +85,9 @@ impl UserDriveVectorDB {
         &self.collection_name
     }
 
-
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
         let client = Qdrant::from_url(qdrant_url).build()?;
-
 
         let collections = client.list_collections().await?;
         let exists = collections
@@ -103,7 +96,6 @@ impl UserDriveVectorDB {
             .any(|c| c.name == self.collection_name);
 
         if !exists {
-
             client
                 .create_collection(
                     qdrant_client::qdrant::CreateCollectionBuilder::new(&self.collection_name)
@@ -129,7 +121,6 @@ impl UserDriveVectorDB {
         Ok(())
     }
 
-
     #[cfg(feature = "vectordb")]
     pub async fn index_file(&self, file: &FileDocument, embedding: Vec<f32>) -> Result<()> {
         let client = self
@@ -149,9 +140,10 @@ impl UserDriveVectorDB {
         let point = PointStruct::new(file.id.clone(), embedding, payload);
 
         client
-            .upsert_points(
-                qdrant_client::qdrant::UpsertPointsBuilder::new(&self.collection_name, vec![point]),
-            )
+            .upsert_points(qdrant_client::qdrant::UpsertPointsBuilder::new(
+                &self.collection_name,
+                vec![point],
+            ))
             .await?;
 
         log::debug!("Indexed file: {} - {}", file.id, file.file_name);
@@ -160,13 +152,11 @@ impl UserDriveVectorDB {
 
     #[cfg(not(feature = "vectordb"))]
     pub async fn index_file(&self, file: &FileDocument, _embedding: Vec<f32>) -> Result<()> {
-
         let file_path = self.db_path.join(format!("{}.json", file.id));
         let json = serde_json::to_string_pretty(file)?;
         fs::write(file_path, json).await?;
         Ok(())
     }
-
 
     pub async fn index_files_batch(&self, files: &[(FileDocument, Vec<f32>)]) -> Result<()> {
         #[cfg(feature = "vectordb")]
@@ -184,7 +174,9 @@ impl UserDriveVectorDB {
                             let payload: qdrant_client::Payload = m
                                 .clone()
                                 .into_iter()
-                                .map(|(k, v)| (k, qdrant_client::qdrant::Value::from(v.to_string())))
+                                .map(|(k, v)| {
+                                    (k, qdrant_client::qdrant::Value::from(v.to_string()))
+                                })
                                 .collect::<std::collections::HashMap<_, _>>()
                                 .into();
                             PointStruct::new(file.id.clone(), embedding.clone(), payload)
@@ -195,9 +187,10 @@ impl UserDriveVectorDB {
 
             if !points.is_empty() {
                 client
-                    .upsert_points(
-                        qdrant_client::qdrant::UpsertPointsBuilder::new(&self.collection_name, points),
-                    )
+                    .upsert_points(qdrant_client::qdrant::UpsertPointsBuilder::new(
+                        &self.collection_name,
+                        points,
+                    ))
                     .await?;
             }
         }
@@ -212,7 +205,6 @@ impl UserDriveVectorDB {
         Ok(())
     }
 
-
     #[cfg(feature = "vectordb")]
     pub async fn search(
         &self,
@@ -224,39 +216,39 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
+        let filter =
+            if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
+                let mut conditions = vec![];
 
-        let filter = if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
-            let mut conditions = vec![];
+                if let Some(bucket) = &query.bucket {
+                    conditions.push(qdrant_client::qdrant::Condition::matches(
+                        "bucket",
+                        bucket.clone(),
+                    ));
+                }
 
-            if let Some(bucket) = &query.bucket {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "bucket",
-                    bucket.clone(),
-                ));
-            }
+                if let Some(file_type) = &query.file_type {
+                    conditions.push(qdrant_client::qdrant::Condition::matches(
+                        "file_type",
+                        file_type.clone(),
+                    ));
+                }
 
-            if let Some(file_type) = &query.file_type {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "file_type",
-                    file_type.clone(),
-                ));
-            }
+                for tag in &query.tags {
+                    conditions.push(qdrant_client::qdrant::Condition::matches(
+                        "tags",
+                        tag.clone(),
+                    ));
+                }
 
-            for tag in &query.tags {
-                conditions.push(qdrant_client::qdrant::Condition::matches(
-                    "tags",
-                    tag.clone(),
-                ));
-            }
-
-            if !conditions.is_empty() {
-                Some(qdrant_client::qdrant::Filter::must(conditions))
+                if !conditions.is_empty() {
+                    Some(qdrant_client::qdrant::Filter::must(conditions))
+                } else {
+                    None
+                }
             } else {
                 None
-            }
-        } else {
-            None
-        };
+            };
 
         let mut search_builder = qdrant_client::qdrant::SearchPointsBuilder::new(
             &self.collection_name,
@@ -273,12 +265,11 @@ impl UserDriveVectorDB {
 
         let mut results = Vec::new();
         for point in search_result.result {
-
             let payload = &point.payload;
             if !payload.is_empty() {
-
                 let get_str = |key: &str| -> String {
-                    payload.get(key)
+                    payload
+                        .get(key)
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string())
                         .unwrap_or_default()
@@ -289,23 +280,25 @@ impl UserDriveVectorDB {
                     file_path: get_str("file_path"),
                     file_name: get_str("file_name"),
                     file_type: get_str("file_type"),
-                    file_size: payload.get("file_size")
+                    file_size: payload
+                        .get("file_size")
                         .and_then(|v| v.as_integer())
                         .unwrap_or(0) as u64,
                     bucket: get_str("bucket"),
                     content_text: get_str("content_text"),
-                    content_summary: payload.get("content_summary")
+                    content_summary: payload
+                        .get("content_summary")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
                     created_at: chrono::Utc::now(),
                     modified_at: chrono::Utc::now(),
                     indexed_at: chrono::Utc::now(),
-                    mime_type: payload.get("mime_type")
+                    mime_type: payload
+                        .get("mime_type")
                         .and_then(|v| v.as_str())
                         .map(|s| s.to_string()),
                     tags: vec![],
                 };
-
 
                 let snippet = self.create_snippet(&file.content_text, &query.query_text, 200);
                 let highlights = self.extract_highlights(&file.content_text, &query.query_text, 3);
@@ -328,7 +321,6 @@ impl UserDriveVectorDB {
         query: &FileSearchQuery,
         _query_embedding: Vec<f32>,
     ) -> Result<Vec<FileSearchResult>> {
-
         let mut results = Vec::new();
         let mut entries = fs::read_dir(&self.db_path).await?;
 
@@ -336,7 +328,6 @@ impl UserDriveVectorDB {
             if entry.path().extension().and_then(|s| s.to_str()) == Some("json") {
                 let content = fs::read_to_string(entry.path()).await?;
                 if let Ok(file) = serde_json::from_str::<FileDocument>(&content) {
-
                     if let Some(bucket) = &query.bucket {
                         if &file.bucket != bucket {
                             continue;
@@ -348,7 +339,6 @@ impl UserDriveVectorDB {
                             continue;
                         }
                     }
-
 
                     let query_lower = query.query_text.to_lowercase();
                     if file.file_name.to_lowercase().contains(&query_lower)
@@ -381,7 +371,6 @@ impl UserDriveVectorDB {
         Ok(results)
     }
 
-
     fn create_snippet(&self, content: &str, query: &str, max_length: usize) -> String {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
@@ -407,7 +396,6 @@ impl UserDriveVectorDB {
         }
     }
 
-
     fn extract_highlights(&self, content: &str, query: &str, max_highlights: usize) -> Vec<String> {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
@@ -431,7 +419,6 @@ impl UserDriveVectorDB {
         highlights
     }
 
-
     #[cfg(feature = "vectordb")]
     pub async fn delete_file(&self, file_id: &str) -> Result<()> {
         let client = self
@@ -441,8 +428,9 @@ impl UserDriveVectorDB {
 
         client
             .delete_points(
-                qdrant_client::qdrant::DeletePointsBuilder::new(&self.collection_name)
-                    .points(vec![qdrant_client::qdrant::PointId::from(file_id.to_string())]),
+                qdrant_client::qdrant::DeletePointsBuilder::new(&self.collection_name).points(
+                    vec![qdrant_client::qdrant::PointId::from(file_id.to_string())],
+                ),
             )
             .await?;
 
@@ -458,7 +446,6 @@ impl UserDriveVectorDB {
         }
         Ok(())
     }
-
 
     #[cfg(feature = "vectordb")]
     pub async fn get_count(&self) -> Result<u64> {
@@ -486,9 +473,7 @@ impl UserDriveVectorDB {
         Ok(count)
     }
 
-
-    pub async fn update_file_metadata(&self, file_id: &str, tags: Vec<String>) -> Result<()> {
-
+    pub async fn update_file_metadata(&self, _file_id: &str, _tags: Vec<String>) -> Result<()> {
         #[cfg(not(feature = "vectordb"))]
         {
             let file_path = self.db_path.join(format!("{}.json", file_id));
@@ -503,13 +488,11 @@ impl UserDriveVectorDB {
 
         #[cfg(feature = "vectordb")]
         {
-
             log::warn!("Metadata update not yet implemented for Qdrant backend");
         }
 
         Ok(())
     }
-
 
     #[cfg(feature = "vectordb")]
     pub async fn clear(&self) -> Result<()> {
@@ -518,10 +501,7 @@ impl UserDriveVectorDB {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("Vector DB not initialized"))?;
 
-        client
-            .delete_collection(&self.collection_name)
-            .await?;
-
+        client.delete_collection(&self.collection_name).await?;
 
         client
             .create_collection(
@@ -548,32 +528,26 @@ impl UserDriveVectorDB {
     }
 }
 
-
 #[derive(Debug)]
 pub struct FileContentExtractor;
 
 impl FileContentExtractor {
-
     pub async fn extract_text(file_path: &PathBuf, mime_type: &str) -> Result<String> {
         match mime_type {
-
             "text/plain" | "text/markdown" | "text/csv" => {
                 let content = fs::read_to_string(file_path).await?;
                 Ok(content)
             }
-
 
             t if t.starts_with("text/") => {
                 let content = fs::read_to_string(file_path).await?;
                 Ok(content)
             }
 
-
             "application/pdf" => {
                 log::info!("PDF extraction for {:?}", file_path);
                 Self::extract_pdf_text(file_path).await
             }
-
 
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             | "application/msword" => {
@@ -581,13 +555,11 @@ impl FileContentExtractor {
                 Self::extract_docx_text(file_path).await
             }
 
-
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             | "application/vnd.ms-excel" => {
                 log::info!("Spreadsheet extraction for {:?}", file_path);
                 Self::extract_xlsx_text(file_path).await
             }
-
 
             "application/json" => {
                 let content = fs::read_to_string(file_path).await?;
@@ -598,7 +570,6 @@ impl FileContentExtractor {
                 }
             }
 
-
             "text/xml" | "application/xml" | "text/html" => {
                 let content = fs::read_to_string(file_path).await?;
 
@@ -606,7 +577,6 @@ impl FileContentExtractor {
                 let text = tag_regex.replace_all(&content, " ").to_string();
                 Ok(text.trim().to_string())
             }
-
 
             "text/rtf" | "application/rtf" => {
                 let content = fs::read_to_string(file_path).await?;
@@ -734,13 +704,10 @@ impl FileContentExtractor {
         }
     }
 
-
     pub fn should_index(mime_type: &str, file_size: u64) -> bool {
-
         if file_size > 10 * 1024 * 1024 {
             return false;
         }
-
 
         matches!(
             mime_type,

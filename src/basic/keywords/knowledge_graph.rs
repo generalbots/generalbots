@@ -254,7 +254,7 @@ Respond with valid JSON only:
 
     pub fn generate_query_prompt(&self, query: &str, context: &str) -> String {
         format!(
-            r#"Answer this question using the knowledge graph context.
+            r"Answer this question using the knowledge graph context.
 
 QUESTION: {query}
 
@@ -263,7 +263,7 @@ KNOWLEDGE GRAPH CONTEXT:
 
 Provide a natural language answer based on the entities and relationships.
 If the information is not available, say so clearly.
-"#
+"
         )
     }
 
@@ -494,7 +494,7 @@ pub fn register_knowledge_graph_keywords(engine: &mut Engine) {
     info!("Knowledge graph keywords registered");
 }
 
-pub const KNOWLEDGE_GRAPH_SCHEMA: &str = r#"
+pub const KNOWLEDGE_GRAPH_SCHEMA: &str = r"
 -- Knowledge graph entities
 CREATE TABLE IF NOT EXISTS kg_entities (
     id UUID PRIMARY KEY,
@@ -542,7 +542,7 @@ CREATE INDEX IF NOT EXISTS idx_kg_relationships_type ON kg_relationships(relatio
 -- Full-text search on entity names
 CREATE INDEX IF NOT EXISTS idx_kg_entities_name_fts ON kg_entities
     USING GIN(to_tsvector('english', entity_name));
-"#;
+";
 
 pub mod sql {
     pub const INSERT_ENTITY: &str = r"

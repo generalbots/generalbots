@@ -3,7 +3,6 @@ pub use crate::core::bot::channels::teams::TeamsAdapter;
 use crate::core::bot::channels::ChannelAdapter;
 use crate::shared::state::AppState;
 use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::post, Json, Router};
-use diesel::prelude::*;
 use serde::Deserialize;
 use std::sync::Arc;
 use uuid::Uuid;

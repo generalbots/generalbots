@@ -590,7 +590,7 @@ pub fn register_approval_keywords(engine: &mut Engine) {
     info!("Approval keywords registered");
 }
 
-pub const APPROVAL_SCHEMA: &str = r#"
+pub const APPROVAL_SCHEMA: &str = r"
 -- Approval requests
 CREATE TABLE IF NOT EXISTS approval_requests (
     id UUID PRIMARY KEY,
@@ -667,7 +667,7 @@ CREATE INDEX IF NOT EXISTS idx_approval_audit_timestamp ON approval_audit_log(ti
 
 CREATE INDEX IF NOT EXISTS idx_approval_tokens_token ON approval_tokens(token);
 CREATE INDEX IF NOT EXISTS idx_approval_tokens_request_id ON approval_tokens(request_id);
-"#;
+";
 
 pub mod sql {
     pub const INSERT_REQUEST: &str = r"

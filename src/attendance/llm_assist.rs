@@ -52,7 +52,6 @@ impl LlmAssistConfig {
 
         if let Ok(content) = std::fs::read_to_string(&path) {
             for line in content.lines() {
-                let line_lower = line.to_lowercase();
                 let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
 
                 if parts.len() < 2 {
@@ -1420,7 +1419,7 @@ async fn handle_summary_command(
 }
 
 fn get_help_text() -> String {
-    r#"*Attendant Commands*
+    r"*Attendant Commands*
 
 *Queue Management:*
 `/queue` - View waiting conversations
@@ -1438,7 +1437,7 @@ fn get_help_text() -> String {
 *Other:*
 `/help` - Show this help
 
-_Portuguese: /fila, /pegar, /transferir, /resolver, /dicas, /polir, /respostas, /resumo, /ajuda_"#
+_Portuguese: /fila, /pegar, /transferir, /resolver, /dicas, /polir, /respostas, /resumo, /ajuda_"
         .to_string()
 }
 

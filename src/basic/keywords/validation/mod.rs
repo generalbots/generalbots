@@ -9,7 +9,11 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
-pub fn register_validation_functions(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+pub fn register_validation_functions(
+    state: &Arc<AppState>,
+    user: UserSession,
+    engine: &mut Engine,
+) {
     str_val::val_keyword(&state, user.clone(), engine);
     str_val::str_keyword(&state, user.clone(), engine);
     str_val::cint_keyword(&state, user.clone(), engine);

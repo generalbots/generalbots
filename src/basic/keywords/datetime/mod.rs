@@ -9,7 +9,7 @@ use log::debug;
 use rhai::Engine;
 use std::sync::Arc;
 
-pub fn register_datetime_functions(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+pub fn register_datetime_functions(state: &Arc<AppState>, user: UserSession, engine: &mut Engine) {
     now::now_keyword(&state, user.clone(), engine);
     now::today_keyword(&state, user.clone(), engine);
     now::time_keyword(&state, user.clone(), engine);
@@ -28,4 +28,3 @@ pub fn register_datetime_functions(state: Arc<AppState>, user: UserSession, engi
 
     debug!("Registered all datetime functions");
 }
-

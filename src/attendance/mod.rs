@@ -450,7 +450,7 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
                             .await;
                     }
                 }
-                Message::Ping(data) => {
+                Message::Ping(_data) => {
                     debug!("Received ping from attendant {}", attendant_id_for_recv);
                 }
                 Message::Close(_) => {
