@@ -10,10 +10,7 @@ use uuid::Uuid;
 
 #[cfg(feature = "vectordb")]
 use qdrant_client::{
-    qdrant::{
-        vectors_config::Config, CreateCollection, Distance, PointStruct, VectorParams,
-        VectorsConfig,
-    },
+    qdrant::{Distance, PointStruct, VectorParams},
     Qdrant,
 };
 

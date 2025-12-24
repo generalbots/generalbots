@@ -1,52 +1,11 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Duration, Utc};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde::{Deserialize, Serialize};
 use tracing::info;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Episode {
-
     pub id: Uuid,
 
     pub user_id: Uuid,
@@ -79,10 +38,8 @@ pub struct Episode {
     pub metadata: serde_json::Value,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ActionItem {
-
     pub description: String,
 
     pub assignee: Option<String>,
@@ -93,7 +50,6 @@ pub struct ActionItem {
 
     pub completed: bool,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -110,17 +66,14 @@ impl Default for Priority {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Sentiment {
-
     pub score: f64,
 
     pub label: SentimentLabel,
 
     pub confidence: f64,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -148,7 +101,6 @@ impl Default for Sentiment {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum ResolutionStatus {
@@ -165,10 +117,8 @@ impl Default for ResolutionStatus {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct EpisodicMemoryConfig {
-
     pub enabled: bool,
 
     pub threshold: usize,
@@ -198,7 +148,6 @@ impl Default for EpisodicMemoryConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConversationMessage {
     pub id: Uuid,
@@ -207,18 +156,15 @@ pub struct ConversationMessage {
     pub timestamp: DateTime<Utc>,
 }
 
-
 #[derive(Debug)]
 pub struct EpisodicMemoryManager {
     config: EpisodicMemoryConfig,
 }
 
 impl EpisodicMemoryManager {
-
     pub fn new(config: EpisodicMemoryConfig) -> Self {
         EpisodicMemoryManager { config }
     }
-
 
     pub fn from_config(config_map: &std::collections::HashMap<String, String>) -> Self {
         let config = EpisodicMemoryConfig {
@@ -254,21 +200,17 @@ impl EpisodicMemoryManager {
         EpisodicMemoryManager::new(config)
     }
 
-
     pub fn should_summarize(&self, message_count: usize) -> bool {
         self.config.enabled && self.config.auto_summarize && message_count >= self.config.threshold
     }
-
 
     pub fn get_history_to_keep(&self) -> usize {
         self.config.history
     }
 
-
     pub fn get_threshold(&self) -> usize {
         self.config.threshold
     }
-
 
     pub fn generate_summary_prompt(&self, messages: &[ConversationMessage]) -> String {
         let formatted_messages = messages
@@ -309,7 +251,6 @@ Respond with valid JSON only:
         )
     }
 
-
     pub fn parse_summary_response(
         &self,
         response: &str,
@@ -318,7 +259,6 @@ Respond with valid JSON only:
         bot_id: Uuid,
         session_id: Uuid,
     ) -> Result<Episode, String> {
-
         let json_str = extract_json(response)?;
 
         let parsed: serde_json::Value =
@@ -418,21 +358,17 @@ Respond with valid JSON only:
         })
     }
 
-
     pub fn get_retention_cutoff(&self) -> DateTime<Utc> {
         Utc::now() - Duration::days(self.config.retention_days as i64)
     }
 }
 
-
-fn extract_json(response: &str) -> Result<String, String> {
-
+pub fn extract_json(response: &str) -> Result<String, String> {
     if let Some(start) = response.find("```json") {
         if let Some(end) = response[start + 7..].find("```") {
             return Ok(response[start + 7..start + 7 + end].trim().to_string());
         }
     }
-
 
     if let Some(start) = response.find("```") {
         let after_start = start + 3;
@@ -446,7 +382,6 @@ fn extract_json(response: &str) -> Result<String, String> {
         }
     }
 
-
     if let Some(start) = response.find('{') {
         if let Some(end) = response.rfind('}') {
             if end > start {
@@ -457,7 +392,6 @@ fn extract_json(response: &str) -> Result<String, String> {
 
     Err("No JSON found in response".to_string())
 }
-
 
 impl Episode {
     pub fn to_dynamic(&self) -> Dynamic {
@@ -531,12 +465,7 @@ impl Episode {
     }
 }
 
-
 pub fn register_episodic_memory_keywords(engine: &mut Engine) {
-
-
-
-
     engine.register_fn("episode_summary", |episode: Map| -> String {
         episode
             .get("summary")
@@ -584,7 +513,6 @@ pub fn register_episodic_memory_keywords(engine: &mut Engine) {
     info!("Episodic memory keywords registered");
 }
 
-
 pub const EPISODIC_MEMORY_SCHEMA: &str = r#"
 -- Conversation episodes (summaries)
 CREATE TABLE IF NOT EXISTS conversation_episodes (
@@ -619,9 +547,8 @@ CREATE INDEX IF NOT EXISTS idx_episodes_summary_fts ON conversation_episodes
     USING GIN(to_tsvector('english', summary));
 "#;
 
-
 pub mod sql {
-    pub const INSERT_EPISODE: &str = r#"
+    pub const INSERT_EPISODE: &str = r"
         INSERT INTO conversation_episodes (
             id, user_id, bot_id, session_id, summary, key_topics, decisions,
             action_items, sentiment, resolution, message_count, message_ids,
@@ -629,22 +556,22 @@ pub mod sql {
         ) VALUES (
             $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16
         )
-    "#;
+    ";
 
-    pub const GET_EPISODES_BY_USER: &str = r#"
+    pub const GET_EPISODES_BY_USER: &str = r"
         SELECT * FROM conversation_episodes
         WHERE user_id = $1
         ORDER BY created_at DESC
         LIMIT $2
-    "#;
+    ";
 
-    pub const GET_EPISODES_BY_SESSION: &str = r#"
+    pub const GET_EPISODES_BY_SESSION: &str = r"
         SELECT * FROM conversation_episodes
         WHERE session_id = $1
         ORDER BY created_at DESC
-    "#;
+    ";
 
-    pub const SEARCH_EPISODES: &str = r#"
+    pub const SEARCH_EPISODES: &str = r"
         SELECT * FROM conversation_episodes
         WHERE user_id = $1
         AND (
@@ -653,19 +580,19 @@ pub mod sql {
         )
         ORDER BY created_at DESC
         LIMIT $4
-    "#;
+    ";
 
-    pub const DELETE_OLD_EPISODES: &str = r#"
+    pub const DELETE_OLD_EPISODES: &str = r"
         DELETE FROM conversation_episodes
         WHERE created_at < $1
-    "#;
+    ";
 
-    pub const COUNT_USER_EPISODES: &str = r#"
+    pub const COUNT_USER_EPISODES: &str = r"
         SELECT COUNT(*) FROM conversation_episodes
         WHERE user_id = $1
-    "#;
+    ";
 
-    pub const DELETE_OLDEST_EPISODES: &str = r#"
+    pub const DELETE_OLDEST_EPISODES: &str = r"
         DELETE FROM conversation_episodes
         WHERE id IN (
             SELECT id FROM conversation_episodes
@@ -673,5 +600,5 @@ pub mod sql {
             ORDER BY created_at ASC
             LIMIT $2
         )
-    "#;
+    ";
 }

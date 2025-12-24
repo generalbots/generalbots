@@ -21,9 +21,6 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, QueryableByName)]
 pub struct EmailAccountBasicRow {
     #[diesel(sql_type = DieselUuid)]
@@ -36,7 +33,6 @@ pub struct EmailAccountBasicRow {
     pub is_primary: bool,
 }
 
-
 #[derive(Debug, QueryableByName)]
 pub struct ImapCredentialsRow {
     #[diesel(sql_type = Text)]
@@ -48,7 +44,6 @@ pub struct ImapCredentialsRow {
     #[diesel(sql_type = Text)]
     pub password_encrypted: String,
 }
-
 
 #[derive(Debug, QueryableByName)]
 pub struct SmtpCredentialsRow {
@@ -65,7 +60,6 @@ pub struct SmtpCredentialsRow {
     #[diesel(sql_type = Text)]
     pub password_encrypted: String,
 }
-
 
 #[derive(Debug, QueryableByName)]
 pub struct EmailSearchRow {
@@ -87,19 +81,12 @@ pub mod stalwart_client;
 pub mod stalwart_sync;
 pub mod vectordb;
 
-
-async fn extract_user_from_session(state: &Arc<AppState>) -> Result<Uuid, String> {
-
-
+async fn extract_user_from_session(_state: &Arc<AppState>) -> Result<Uuid, String> {
     Ok(Uuid::new_v4())
 }
 
-
-
-
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-
         .route(ApiUrls::EMAIL_ACCOUNTS, get(list_email_accounts))
         .route(
             &format!("{}/add", ApiUrls::EMAIL_ACCOUNTS),
@@ -127,7 +114,6 @@ pub fn configure() -> Router<Arc<AppState>> {
                 .replace(":email", "{email}"),
             post(track_click),
         )
-
         .route(
             "/api/email/tracking/pixel/{tracking_id}",
             get(serve_tracking_pixel),
@@ -138,7 +124,6 @@ pub fn configure() -> Router<Arc<AppState>> {
         )
         .route("/api/email/tracking/list", get(list_sent_emails_tracking))
         .route("/api/email/tracking/stats", get(get_tracking_stats))
-
         .route("/ui/email/accounts", get(list_email_accounts_htmx))
         .route("/ui/email/list", get(list_emails_htmx))
         .route("/ui/email/folders", get(list_folders_htmx))
@@ -153,7 +138,6 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/ui/email/auto-responder", post(save_auto_responder))
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SaveDraftRequest {
     pub account_id: String,
@@ -163,9 +147,6 @@ pub struct SaveDraftRequest {
     pub subject: String,
     pub body: String,
 }
-
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SentEmailTracking {
@@ -187,7 +168,6 @@ pub struct SentEmailTracking {
     pub is_read: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrackingStatusResponse {
     pub tracking_id: String,
@@ -199,12 +179,10 @@ pub struct TrackingStatusResponse {
     pub read_count: i32,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct TrackingPixelQuery {
     pub t: Option<String>,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct ListTrackingQuery {
@@ -214,7 +192,6 @@ pub struct ListTrackingQuery {
     pub filter: Option<String>,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct TrackingStatsResponse {
     pub total_sent: i64,
@@ -222,8 +199,6 @@ pub struct TrackingStatsResponse {
     pub read_rate: f64,
     pub avg_time_to_read_hours: Option<f64>,
 }
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct EmailAccountRequest {
@@ -332,9 +307,7 @@ pub struct ApiResponse<T> {
     pub message: Option<String>,
 }
 
-
-
-struct EmailError(String);
+pub struct EmailError(String);
 
 impl IntoResponse for EmailError {
     fn into_response(self) -> Response {
@@ -344,11 +317,9 @@ impl IntoResponse for EmailError {
 
 impl From<String> for EmailError {
     fn from(s: String) -> Self {
-        EmailError(s)
+        Self(s)
     }
 }
-
-
 
 fn parse_from_field(from: &str) -> (String, String) {
     if let Some(start) = from.find('<') {
@@ -362,7 +333,6 @@ fn parse_from_field(from: &str) -> (String, String) {
 }
 
 fn format_email_time(date_str: &str) -> String {
-
     if date_str.is_empty() {
         return "Unknown".to_string();
     }
@@ -375,28 +345,26 @@ fn format_email_time(date_str: &str) -> String {
 }
 
 fn encrypt_password(password: &str) -> String {
-
-
     general_purpose::STANDARD.encode(password.as_bytes())
 }
 
 fn decrypt_password(encrypted: &str) -> Result<String, String> {
-
     general_purpose::STANDARD
         .decode(encrypted)
-        .map_err(|e| format!("Decryption failed: {}", e))
+        .map_err(|e| format!("Decryption failed: {e}"))
         .and_then(|bytes| {
-            String::from_utf8(bytes).map_err(|e| format!("UTF-8 conversion failed: {}", e))
+            String::from_utf8(bytes).map_err(|e| format!("UTF-8 conversion failed: {e}"))
         })
 }
 
-
-
+/// Add a new email account.
+///
+/// # Errors
+/// Returns an error if authentication fails or database operations fail.
 pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
     Json(request): Json<EmailAccountRequest>,
 ) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
-
     let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
@@ -404,7 +372,6 @@ pub async fn add_email_account(
 
     let account_id = Uuid::new_v4();
     let encrypted_password = encrypt_password(&request.password);
-
 
     let resp_email = request.email.clone();
     let resp_display_name = request.display_name.clone();
@@ -416,8 +383,8 @@ pub async fn add_email_account(
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
-        use crate::shared::models::schema::user_email_accounts::dsl::*;
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        use crate::shared::models::schema::user_email_accounts::dsl::{is_primary, user_email_accounts, user_id};
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
 
         if request.is_primary {
@@ -437,20 +404,20 @@ pub async fn add_email_account(
         .bind::<diesel::sql_types::Text, _>(&request.email)
         .bind::<diesel::sql_types::Nullable<diesel::sql_types::Text>, _>(request.display_name.as_ref())
         .bind::<diesel::sql_types::Text, _>(&request.imap_server)
-        .bind::<diesel::sql_types::Integer, _>(request.imap_port as i32)
+        .bind::<diesel::sql_types::Integer, _>(i32::from(request.imap_port))
         .bind::<diesel::sql_types::Text, _>(&request.smtp_server)
-        .bind::<diesel::sql_types::Integer, _>(request.smtp_port as i32)
+        .bind::<diesel::sql_types::Integer, _>(i32::from(request.smtp_port))
         .bind::<diesel::sql_types::Text, _>(&request.username)
         .bind::<diesel::sql_types::Text, _>(&encrypted_password)
         .bind::<diesel::sql_types::Bool, _>(request.is_primary)
         .bind::<diesel::sql_types::Bool, _>(true)
         .execute(&mut db_conn)
-        .map_err(|e| format!("Failed to insert account: {}", e))?;
+        .map_err(|e| format!("Failed to insert account: {e}"))?;
 
         Ok::<_, String>(account_id)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     Ok(Json(ApiResponse {
@@ -471,9 +438,7 @@ pub async fn add_email_account(
     }))
 }
 
-
 pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-
     let user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => {
@@ -487,18 +452,18 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
 
     let conn = state.conn.clone();
     let accounts = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         diesel::sql_query(
             "SELECT id, email, display_name, is_primary FROM user_email_accounts WHERE user_id = $1 AND is_active = true ORDER BY is_primary DESC"
         )
         .bind::<diesel::sql_types::Uuid, _>(user_id)
         .load::<EmailAccountBasicRow>(&mut db_conn)
-        .map_err(|e| format!("Query failed: {}", e))
+        .map_err(|e| format!("Query failed: {e}"))
     })
     .await
     .ok()
-    .and_then(|r| r.ok())
+    .and_then(Result::ok)
     .unwrap_or_default();
 
     if accounts.is_empty() {
@@ -516,27 +481,31 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
             .clone()
             .unwrap_or_else(|| account.email.clone());
         let primary_badge = if account.is_primary {
-            r##"<span class="badge">Primary</span>"##
+            r#"<span class="badge">Primary</span>"#
         } else {
             ""
         };
-        html.push_str(&format!(
-            r##"<div class="account-item" data-account-id="{}">
+        use std::fmt::Write;
+        let _ = write!(
+            html,
+            r#"<div class="account-item" data-account-id="{}">
                 <span>{}</span>
                 {}
-            </div>"##,
+            </div>"#,
             account.id, name, primary_badge
-        ));
+        );
     }
 
     axum::response::Html(html)
 }
 
-
+/// List all email accounts for the current user.
+///
+/// # Errors
+/// Returns an error if authentication fails or database operations fail.
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
-
     let current_user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
         Err(_) => return Err(EmailError("Authentication required".to_string())),
@@ -544,10 +513,13 @@ pub async fn list_email_accounts(
 
     let conn = state.conn.clone();
     let accounts = tokio::task::spawn_blocking(move || {
-        use crate::shared::models::schema::user_email_accounts::dsl::*;
+        use crate::shared::models::schema::user_email_accounts::dsl::{
+            created_at, display_name, email, id, imap_port, imap_server, is_active, is_primary,
+            smtp_port, smtp_server, user_email_accounts, user_id,
+        };
         let mut db_conn = conn
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+            .map_err(|e| format!("DB connection error: {e}"))?;
 
         let results = user_email_accounts
             .filter(user_id.eq(current_user_id))
@@ -577,12 +549,12 @@ pub async fn list_email_accounts(
                 bool,
                 chrono::DateTime<chrono::Utc>,
             )>(&mut db_conn)
-            .map_err(|e| format!("Query failed: {}", e))?;
+            .map_err(|e| format!("Query failed: {e}"))?;
 
         Ok::<_, String>(results)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     let account_list: Vec<EmailAccountResponse> = accounts
@@ -623,6 +595,10 @@ pub async fn list_email_accounts(
     }))
 }
 
+/// Delete an email account.
+///
+/// # Errors
+/// Returns an error if the account ID is invalid or database operations fail.
 pub async fn delete_email_account(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<String>,
@@ -634,17 +610,17 @@ pub async fn delete_email_account(
     tokio::task::spawn_blocking(move || {
         let mut db_conn = conn
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+            .map_err(|e| format!("DB connection error: {e}"))?;
 
         diesel::sql_query("UPDATE user_email_accounts SET is_active = false WHERE id = $1")
             .bind::<diesel::sql_types::Uuid, _>(account_uuid)
             .execute(&mut db_conn)
-            .map_err(|e| format!("Failed to delete account: {}", e))?;
+            .map_err(|e| format!("Failed to delete account: {e}"))?;
 
         Ok::<_, String>(())
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     Ok(Json(ApiResponse {
@@ -654,8 +630,10 @@ pub async fn delete_email_account(
     }))
 }
 
-
-
+/// List emails from a specific account and folder.
+///
+/// # Errors
+/// Returns an error if the account ID is invalid, IMAP connection fails, or emails cannot be fetched.
 pub async fn list_emails(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ListEmailsRequest>,
@@ -663,22 +641,21 @@ pub async fn list_emails(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         let result: ImapCredentialsRow = diesel::sql_query(
             "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
         )
         .bind::<diesel::sql_types::Uuid, _>(account_uuid)
         .get_result(&mut db_conn)
-        .map_err(|e| format!("Account not found: {}", e))?;
+        .map_err(|e| format!("Account not found: {e}"))?;
 
         Ok::<_, String>(result)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     let (imap_server, imap_port, username, encrypted_password) = (
@@ -689,29 +666,28 @@ pub async fn list_emails(
     );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
-
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
         .connect()
-        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
 
     let mut session = client
         .login(&username, &password)
-        .map_err(|e| EmailError(format!("Login failed: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
 
     let folder = request.folder.unwrap_or_else(|| "INBOX".to_string());
     session
         .select(&folder)
-        .map_err(|e| EmailError(format!("Failed to select folder: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Failed to select folder: {e:?}")))?;
 
     let messages = session
         .search("ALL")
-        .map_err(|e| EmailError(format!("Failed to search emails: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Failed to search emails: {e:?}")))?;
 
     let mut email_list = Vec::new();
     let limit = request.limit.unwrap_or(50);
     let offset = request.offset.unwrap_or(0);
 
-    let recent_messages: Vec<_> = messages.iter().cloned().collect();
+    let recent_messages: Vec<_> = messages.iter().copied().collect();
     let recent_messages: Vec<Seq> = recent_messages
         .into_iter()
         .rev()
@@ -722,7 +698,7 @@ pub async fn list_emails(
     for seq in recent_messages {
         let fetch_result = session.fetch(seq.to_string(), "RFC822");
         let messages =
-            fetch_result.map_err(|e| EmailError(format!("Failed to fetch email: {:?}", e)))?;
+            fetch_result.map_err(|e| EmailError(format!("Failed to fetch email: {e:?}")))?;
 
         for msg in messages.iter() {
             let body = msg
@@ -730,7 +706,7 @@ pub async fn list_emails(
                 .ok_or_else(|| EmailError("No body found".to_string()))?;
 
             let parsed = parse_mail(body)
-                .map_err(|e| EmailError(format!("Failed to parse email: {:?}", e)))?;
+                .map_err(|e| EmailError(format!("Failed to parse email: {e:?}")))?;
 
             let headers = parsed.get_headers();
             let subject = headers.get_first_value("Subject").unwrap_or_default();
@@ -738,25 +714,22 @@ pub async fn list_emails(
             let to = headers.get_first_value("To").unwrap_or_default();
             let date = headers.get_first_value("Date").unwrap_or_default();
 
-            let body_text = if let Some(body_part) = parsed
+            let body_text = parsed
                 .subparts
                 .iter()
                 .find(|p| p.ctype.mimetype == "text/plain")
-            {
-                body_part.get_body().unwrap_or_default()
-            } else {
-                parsed.get_body().unwrap_or_default()
-            };
+                .map_or_else(
+                    || parsed.get_body().unwrap_or_default(),
+                    |body_part| body_part.get_body().unwrap_or_default(),
+                );
 
-            let body_html = if let Some(body_part) = parsed
+            let body_html = parsed
                 .subparts
                 .iter()
                 .find(|p| p.ctype.mimetype == "text/html")
-            {
-                body_part.get_body().unwrap_or_default()
-            } else {
-                String::new()
-            };
+                .map_or_else(String::new, |body_part| {
+                    body_part.get_body().unwrap_or_default()
+                });
 
             let preview = body_text.lines().take(3).collect::<Vec<_>>().join(" ");
             let preview_truncated = if preview.len() > 150 {
@@ -800,6 +773,10 @@ pub async fn list_emails(
     }))
 }
 
+/// Send an email from a specific account.
+///
+/// # Errors
+/// Returns an error if the account ID is invalid, SMTP connection fails, or email cannot be sent.
 pub async fn send_email(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SendEmailRequest>,
@@ -807,12 +784,11 @@ pub async fn send_email(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn
             .get()
-            .map_err(|e| format!("DB connection error: {}", e))?;
+            .map_err(|e| format!("DB connection error: {e}"))?;
 
         let result: SmtpCredentialsRow = diesel::sql_query(
             "SELECT email, display_name, smtp_port, smtp_server, username, password_encrypted
@@ -820,12 +796,12 @@ pub async fn send_email(
         )
         .bind::<diesel::sql_types::Uuid, _>(account_uuid)
         .get_result(&mut db_conn)
-        .map_err(|e| format!("Account not found: {}", e))?;
+        .map_err(|e| format!("Account not found: {e}"))?;
 
         Ok::<_, String>(result)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     let (from_email, display_name, smtp_port, smtp_server, username, encrypted_password) = (
@@ -841,13 +817,11 @@ pub async fn send_email(
     let from_addr = if display_name.is_empty() {
         from_email.clone()
     } else {
-        format!("{} <{}>", display_name, from_email)
+        format!("{display_name} <{from_email}>")
     };
-
 
     let pixel_enabled = is_tracking_pixel_enabled(&state, None).await;
     let tracking_id = Uuid::new_v4();
-
 
     let final_body = if pixel_enabled && request.is_html {
         inject_tracking_pixel(&request.body, &tracking_id.to_string(), &state).await
@@ -855,48 +829,45 @@ pub async fn send_email(
         request.body.clone()
     };
 
-
     let mut email_builder = Message::builder()
         .from(
             from_addr
                 .parse()
-                .map_err(|e| EmailError(format!("Invalid from address: {}", e)))?,
+                .map_err(|e| EmailError(format!("Invalid from address: {e}")))?,
         )
         .to(request
             .to
             .parse()
-            .map_err(|e| EmailError(format!("Invalid to address: {}", e)))?)
+            .map_err(|e| EmailError(format!("Invalid to address: {e}")))?)
         .subject(request.subject.clone());
 
     if let Some(ref cc) = request.cc {
         email_builder = email_builder.cc(cc
             .parse()
-            .map_err(|e| EmailError(format!("Invalid cc address: {}", e)))?);
+            .map_err(|e| EmailError(format!("Invalid cc address: {e}")))?);
     }
 
     if let Some(ref bcc) = request.bcc {
         email_builder = email_builder.bcc(
             bcc.parse()
-                .map_err(|e| EmailError(format!("Invalid bcc address: {}", e)))?,
+                .map_err(|e| EmailError(format!("Invalid bcc address: {e}")))?,
         );
     }
 
     let email = email_builder
         .body(final_body)
-        .map_err(|e| EmailError(format!("Failed to build email: {}", e)))?;
-
+        .map_err(|e| EmailError(format!("Failed to build email: {e}")))?;
 
     let creds = Credentials::new(username, password);
     let mailer = SmtpTransport::relay(&smtp_server)
-        .map_err(|e| EmailError(format!("Failed to create SMTP transport: {}", e)))?
-        .port(smtp_port as u16)
+        .map_err(|e| EmailError(format!("Failed to create SMTP transport: {e}")))?
+        .port(u16::try_from(smtp_port).unwrap_or(587))
         .credentials(creds)
         .build();
 
     mailer
         .send(&email)
-        .map_err(|e| EmailError(format!("Failed to send email: {}", e)))?;
-
+        .map_err(|e| EmailError(format!("Failed to send email: {e}")))?;
 
     if pixel_enabled {
         let conn = state.conn.clone();
@@ -921,10 +892,7 @@ pub async fn send_email(
         .await;
     }
 
-    info!(
-        "Email sent successfully from account {} with tracking_id {}",
-        account_uuid, tracking_id
-    );
+    info!("Email sent successfully from account {account_uuid} with tracking_id {tracking_id}");
 
     Ok(Json(ApiResponse {
         success: true,
@@ -933,13 +901,16 @@ pub async fn send_email(
     }))
 }
 
+/// Save an email draft.
+///
+/// # Errors
+/// Returns an error if the account ID is invalid, authentication fails, or database operations fail.
 pub async fn save_draft(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SaveDraftRequest>,
 ) -> Result<Json<SaveDraftResponse>, EmailError> {
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
-
 
     let user_id = match extract_user_from_session(&state).await {
         Ok(id) => id,
@@ -949,7 +920,7 @@ pub async fn save_draft(
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         diesel::sql_query(
             "INSERT INTO email_drafts (id, user_id, account_id, to_address, cc_address, bcc_address, subject, body)
@@ -964,15 +935,13 @@ pub async fn save_draft(
         .bind::<diesel::sql_types::Text, _>(&request.subject)
         .bind::<diesel::sql_types::Text, _>(&request.body)
         .execute(&mut db_conn)
-        .map_err(|e| format!("Failed to save draft: {}", e))?;
+        .map_err(|e| format!("Failed to save draft: {e}"))?;
 
         Ok::<_, String>(())
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(|e| {
-        return EmailError(e);
-    })?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
 
     Ok(Json(SaveDraftResponse {
         success: true,
@@ -981,6 +950,10 @@ pub async fn save_draft(
     }))
 }
 
+/// List all folders for an email account.
+///
+/// # Errors
+/// Returns an error if the account ID is invalid, IMAP connection fails, or folders cannot be listed.
 pub async fn list_folders(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<String>,
@@ -988,22 +961,21 @@ pub async fn list_folders(
     let account_uuid =
         Uuid::parse_str(&account_id).map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-
     let conn = state.conn.clone();
     let account_info = tokio::task::spawn_blocking(move || {
-        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {}", e))?;
+        let mut db_conn = conn.get().map_err(|e| format!("DB connection error: {e}"))?;
 
         let result: ImapCredentialsRow = diesel::sql_query(
             "SELECT imap_server, imap_port, username, password_encrypted FROM user_email_accounts WHERE id = $1 AND is_active = true"
         )
         .bind::<diesel::sql_types::Uuid, _>(account_uuid)
         .get_result(&mut db_conn)
-        .map_err(|e| format!("Account not found: {}", e))?;
+        .map_err(|e| format!("Account not found: {e}"))?;
 
         Ok::<_, String>(result)
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
     .map_err(EmailError)?;
 
     let (imap_server, imap_port, username, encrypted_password) = (
@@ -1014,19 +986,17 @@ pub async fn list_folders(
     );
     let password = decrypt_password(&encrypted_password).map_err(EmailError)?;
 
-
-
     let client = imap::ClientBuilder::new(imap_server.as_str(), imap_port as u16)
         .connect()
-        .map_err(|e| format!("Failed to connect to IMAP: {:?}", e))?;
+        .map_err(|e| EmailError(format!("Failed to connect to IMAP: {e:?}")))?;
 
     let mut session = client
         .login(&username, &password)
-        .map_err(|e| EmailError(format!("Login failed: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Login failed: {e:?}")))?;
 
     let folders = session
         .list(None, Some("*"))
-        .map_err(|e| EmailError(format!("Failed to list folders: {:?}", e)))?;
+        .map_err(|e| EmailError(format!("Failed to list folders: {e:?}")))?;
 
     let folder_list: Vec<FolderInfo> = folders
         .iter()
@@ -1047,9 +1017,11 @@ pub async fn list_folders(
     }))
 }
 
-
-
-pub async fn get_latest_email_from(
+/// Get the latest email from a specific sender.
+///
+/// # Errors
+/// Returns an error if the operation fails.
+pub fn get_latest_email_from(
     State(_state): State<Arc<AppState>>,
     Json(_request): Json<serde_json::Value>,
 ) -> Result<Json<serde_json::Value>, EmailError> {
@@ -1059,7 +1031,7 @@ pub async fn get_latest_email_from(
     })))
 }
 
-pub async fn save_click(
+pub fn save_click(
     Path((campaign_id, email)): Path<(String, String)>,
     State(_state): State<Arc<AppState>>,
 ) -> impl IntoResponse {
@@ -1077,15 +1049,11 @@ pub async fn save_click(
     (StatusCode::OK, [("content-type", "image/gif")], pixel)
 }
 
-
-
-
 const TRACKING_PIXEL: [u8; 43] = [
     0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 0x01, 0x00, 0x01, 0x00, 0x80, 0x00, 0x00, 0xFF, 0xFF, 0xFF,
     0x00, 0x00, 0x00, 0x21, 0xF9, 0x04, 0x01, 0x00, 0x00, 0x00, 0x00, 0x2C, 0x00, 0x00, 0x00, 0x00,
     0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
 ];
-
 
 async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> bool {
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
@@ -1097,13 +1065,11 @@ async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) 
         .unwrap_or(false)
 }
 
-
 async fn inject_tracking_pixel(
     html_body: &str,
     tracking_id: &str,
     state: &Arc<AppState>,
 ) -> String {
-
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
         .get_config(&Uuid::nil(), "server-url", Some("http://localhost:8080"))
@@ -1115,7 +1081,6 @@ async fn inject_tracking_pixel(
         pixel_url
     );
 
-
     if html_body.to_lowercase().contains("</body>") {
         html_body
             .replace("</body>", &format!("{}</body>", pixel_html))
@@ -1124,7 +1089,6 @@ async fn inject_tracking_pixel(
         format!("{}{}", html_body, pixel_html)
     }
 }
-
 
 fn save_email_tracking_record(
     conn: crate::shared::utils::DbPool,
@@ -1145,9 +1109,9 @@ fn save_email_tracking_record(
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"INSERT INTO sent_email_tracking
+        "INSERT INTO sent_email_tracking
            (id, tracking_id, bot_id, account_id, from_email, to_email, cc, bcc, subject, sent_at, read_count, is_read)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, false)"#
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, false)"
     )
     .bind::<diesel::sql_types::Uuid, _>(id)
     .bind::<diesel::sql_types::Uuid, _>(tracking_id)
@@ -1166,14 +1130,12 @@ fn save_email_tracking_record(
     Ok(())
 }
 
-
 pub async fn serve_tracking_pixel(
     Path(tracking_id): Path<String>,
     State(state): State<Arc<AppState>>,
     Query(_query): Query<TrackingPixelQuery>,
     headers: axum::http::HeaderMap,
 ) -> impl IntoResponse {
-
     let client_ip = headers
         .get("x-forwarded-for")
         .and_then(|v| v.to_str().ok())
@@ -1190,12 +1152,10 @@ pub async fn serve_tracking_pixel(
         .and_then(|v| v.to_str().ok())
         .map(|s| s.to_string());
 
-
     if let Ok(tracking_uuid) = Uuid::parse_str(&tracking_id) {
         let conn = state.conn.clone();
         let ip_clone = client_ip.clone();
         let ua_clone = user_agent.clone();
-
 
         let _ = tokio::task::spawn_blocking(move || {
             update_email_read_status(conn, tracking_uuid, ip_clone, ua_clone)
@@ -1209,8 +1169,6 @@ pub async fn serve_tracking_pixel(
     } else {
         warn!("Invalid tracking ID received: {}", tracking_id);
     }
-
-
 
     (
         StatusCode::OK,
@@ -1227,7 +1185,6 @@ pub async fn serve_tracking_pixel(
     )
 }
 
-
 fn update_email_read_status(
     conn: crate::shared::utils::DbPool,
     tracking_id: Uuid,
@@ -1238,7 +1195,6 @@ fn update_email_read_status(
         .get()
         .map_err(|e| format!("DB connection error: {}", e))?;
     let now = Utc::now();
-
 
     diesel::sql_query(
         r#"UPDATE sent_email_tracking
@@ -1263,7 +1219,6 @@ fn update_email_read_status(
     Ok(())
 }
 
-
 pub async fn get_tracking_status(
     Path(tracking_id): Path<String>,
     State(state): State<Arc<AppState>>,
@@ -1283,7 +1238,6 @@ pub async fn get_tracking_status(
         message: None,
     }))
 }
-
 
 fn get_tracking_record(
     conn: crate::shared::utils::DbPool,
@@ -1330,7 +1284,6 @@ fn get_tracking_record(
     })
 }
 
-
 pub async fn list_sent_emails_tracking(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListTrackingQuery>,
@@ -1347,7 +1300,6 @@ pub async fn list_sent_emails_tracking(
         message: None,
     }))
 }
-
 
 fn list_tracking_records(
     conn: crate::shared::utils::DbPool,
@@ -1378,22 +1330,21 @@ fn list_tracking_records(
         read_count: i32,
     }
 
-
     let base_query = match query.filter.as_deref() {
         Some("read") => {
-            r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
-               FROM sent_email_tracking WHERE is_read = true
-               ORDER BY sent_at DESC LIMIT $1 OFFSET $2"#
+            "SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
+               FROM sent_email_tracking WHERE account_id = $1 AND is_read = true
+               ORDER BY sent_at DESC LIMIT $2 OFFSET $3"
         }
         Some("unread") => {
-            r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
-               FROM sent_email_tracking WHERE is_read = false
-               ORDER BY sent_at DESC LIMIT $1 OFFSET $2"#
+            "SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
+               FROM sent_email_tracking WHERE account_id = $1 AND is_read = false
+               ORDER BY sent_at DESC LIMIT $2 OFFSET $3"
         }
         _ => {
-            r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
-               FROM sent_email_tracking
-               ORDER BY sent_at DESC LIMIT $1 OFFSET $2"#
+            "SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
+               FROM sent_email_tracking WHERE account_id = $1
+               ORDER BY sent_at DESC LIMIT $2 OFFSET $3"
         }
     };
 
@@ -1417,7 +1368,6 @@ fn list_tracking_records(
         .collect())
 }
 
-
 pub async fn get_tracking_stats(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<TrackingStatsResponse>>, EmailError> {
@@ -1433,7 +1383,6 @@ pub async fn get_tracking_stats(
         message: None,
     }))
 }
-
 
 fn calculate_tracking_stats(
     conn: crate::shared::utils::DbPool,
@@ -1483,8 +1432,6 @@ pub async fn get_emails(
     info!("Get emails requested for campaign: {}", campaign_id);
     "No emails tracked".to_string()
 }
-
-
 
 pub struct EmailService {
     state: Arc<AppState>,
@@ -1542,18 +1489,14 @@ impl EmailService {
         to: &str,
         subject: &str,
         body: &str,
-        attachment: Vec<u8>,
-        filename: &str,
+        _attachment: Vec<u8>,
+        _filename: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
-
         self.send_email(to, subject, body, None).await
     }
 }
 
-
 pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1565,7 +1508,6 @@ pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<Stri
     session
         .select("INBOX")
         .map_err(|e| format!("Select INBOX failed: {}", e))?;
-
 
     let search_query = format!("TO \"{}\"", to);
     let message_ids = session
@@ -1594,7 +1536,6 @@ pub async fn save_email_draft(
 ) -> Result<(), String> {
     use chrono::Utc;
 
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1602,7 +1543,6 @@ pub async fn save_email_draft(
     let mut session = client
         .login(&config.username, &config.password)
         .map_err(|e| format!("Login failed: {:?}", e))?;
-
 
     let date = Utc::now().to_rfc2822();
     let message_id = format!("<{}.{}@botserver>", Uuid::new_v4(), config.server);
@@ -1625,7 +1565,6 @@ pub async fn save_email_draft(
         date, config.from, draft.to, cc_header, draft.subject, message_id, draft.body
     );
 
-
     let folder = session
         .list(None, Some("Drafts"))
         .map_err(|e| format!("List folders failed: {}", e))?
@@ -1644,13 +1583,10 @@ pub async fn save_email_draft(
     Ok(())
 }
 
-
-
 async fn fetch_emails_from_folder(
     config: &EmailConfig,
     folder: &str,
 ) -> Result<Vec<EmailSummary>, String> {
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1708,7 +1644,6 @@ async fn get_folder_counts(
 ) -> Result<std::collections::HashMap<String, usize>, String> {
     use std::collections::HashMap;
 
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1730,7 +1665,6 @@ async fn get_folder_counts(
 }
 
 async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1783,7 +1717,6 @@ async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailConten
 }
 
 async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
-
     let client = imap::ClientBuilder::new(&config.server, config.port as u16)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
@@ -1795,7 +1728,6 @@ async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), Strin
     session
         .select("INBOX")
         .map_err(|e| format!("Select failed: {}", e))?;
-
 
     session
         .store(id, "+FLAGS (\\Deleted)")
@@ -1828,20 +1760,15 @@ struct EmailContent {
     body: String,
 }
 
-
-
-
 pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl IntoResponse, EmailError> {
     let folder = params.get("folder").unwrap_or(&"inbox".to_string()).clone();
 
-
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
-
 
     let conn = state.conn.clone();
     let account = tokio::task::spawn_blocking(move || {
@@ -1869,7 +1796,6 @@ pub async fn list_emails_htmx(
         ));
     };
 
-
     let config = EmailConfig {
         username: account.username.clone(),
         password: account.password.clone(),
@@ -1885,7 +1811,7 @@ pub async fn list_emails_htmx(
         .unwrap_or_default();
 
     let mut html = String::new();
-    for (idx, email) in emails.iter().enumerate() {
+    for email in &emails {
         let unread_class = if email.unread { "unread" } else { "" };
         html.push_str(&format!(
             r##"<div class="mail-item {}"
@@ -1916,11 +1842,9 @@ pub async fn list_emails_htmx(
     Ok(axum::response::Html(html))
 }
 
-
 pub async fn list_folders_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
-
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -1948,7 +1872,6 @@ pub async fn list_folders_htmx(
     }
 
     let account = account.unwrap();
-
 
     let config = EmailConfig {
         username: account.username.clone(),
@@ -2008,9 +1931,8 @@ pub async fn list_folders_htmx(
     Ok(axum::response::Html(html))
 }
 
-
 pub async fn compose_email_htmx(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
     let html = r##"
         <div class="mail-content-view">
@@ -2044,12 +1966,10 @@ pub async fn compose_email_htmx(
     Ok(axum::response::Html(html))
 }
 
-
 pub async fn get_email_content_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
-
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -2078,7 +1998,6 @@ pub async fn get_email_content_htmx(
                 .to_string(),
         ));
     };
-
 
     let config = EmailConfig {
         username: account.username.clone(),
@@ -2135,12 +2054,10 @@ pub async fn get_email_content_htmx(
     Ok(axum::response::Html(html))
 }
 
-
 pub async fn delete_email_htmx(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
-
     let user_id = extract_user_from_session(&state)
         .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
@@ -2172,7 +2089,6 @@ pub async fn delete_email_htmx(
             smtp_port: account.smtp_port as u16,
         };
 
-
         move_email_to_trash(&config, &id)
             .await
             .map_err(|e| EmailError(format!("Failed to delete email: {}", e)))?;
@@ -2180,15 +2096,12 @@ pub async fn delete_email_htmx(
 
     info!("Email {} moved to trash", id);
 
-
     list_emails_htmx(State(state), Query(std::collections::HashMap::new())).await
 }
 
-
 pub async fn get_latest_email(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
-
     Ok(Json(ApiResponse {
         success: true,
         data: Some(EmailData {
@@ -2204,12 +2117,10 @@ pub async fn get_latest_email(
     }))
 }
 
-
 pub async fn get_email(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(campaign_id): Path<String>,
 ) -> Result<Json<ApiResponse<EmailData>>, EmailError> {
-
     Ok(Json(ApiResponse {
         success: true,
         data: Some(EmailData {
@@ -2224,7 +2135,6 @@ pub async fn get_email(
         message: Some("Email fetched".to_string()),
     }))
 }
-
 
 pub async fn track_click(
     State(state): State<Arc<AppState>>,
@@ -2253,13 +2163,12 @@ pub struct EmailData {
     pub unread: bool,
 }
 
-
 #[derive(Debug, QueryableByName)]
 struct EmailAccountRow {
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub id: Uuid,
+    pub _id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Uuid)]
-    pub user_id: Uuid,
+    pub _user_id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub email: String,
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -2276,11 +2185,7 @@ struct EmailAccountRow {
     pub smtp_port: i32,
 }
 
-
-
-
 pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-
     axum::response::Html(
         r#"
         <div class="label-item" style="--label-color: #ef4444;">
@@ -2303,7 +2208,6 @@ pub async fn list_labels_htmx(State(_state): State<Arc<AppState>>) -> impl IntoR
         .to_string(),
     )
 }
-
 
 pub async fn list_templates_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
@@ -2328,7 +2232,6 @@ pub async fn list_templates_htmx(State(_state): State<Arc<AppState>>) -> impl In
     )
 }
 
-
 pub async fn list_signatures_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
         r#"
@@ -2347,7 +2250,6 @@ pub async fn list_signatures_htmx(State(_state): State<Arc<AppState>>) -> impl I
         .to_string(),
     )
 }
-
 
 pub async fn list_rules_htmx(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     axum::response::Html(
@@ -2379,7 +2281,6 @@ pub async fn list_rules_htmx(State(_state): State<Arc<AppState>>) -> impl IntoRe
         .to_string(),
     )
 }
-
 
 pub async fn search_emails_htmx(
     State(state): State<Arc<AppState>>,
@@ -2453,7 +2354,7 @@ pub async fn search_emails_htmx(
 
     let mut html = String::from(r##"<div class="search-results">"##);
     html.push_str(&format!(
-        r##"<div class="search-header"><span>Found {} result(s) for "{}"</span></div>"##,
+        r#"<div class="result-stats">Found {} results for "{}"</div>"#,
         results.len(),
         query
     ));
@@ -2482,13 +2383,11 @@ pub async fn search_emails_htmx(
     axum::response::Html(html)
 }
 
-
 pub async fn save_auto_responder(
     State(_state): State<Arc<AppState>>,
     axum::Form(form): axum::Form<std::collections::HashMap<String, String>>,
 ) -> impl IntoResponse {
     info!("Saving auto-responder settings: {:?}", form);
-
 
     axum::response::Html(
         r#"

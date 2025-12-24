@@ -1,15 +1,8 @@
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use regex::Regex;
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use walkdir::WalkDir;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "lowercase")]
@@ -32,7 +25,6 @@ impl std::fmt::Display for IssueSeverity {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "snake_case")]
@@ -64,7 +56,6 @@ impl std::fmt::Display for IssueType {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CodeIssue {
     pub id: String,
@@ -80,7 +71,6 @@ pub struct CodeIssue {
     pub detected_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BotScanResult {
     pub bot_id: String,
@@ -90,7 +80,6 @@ pub struct BotScanResult {
     pub issues: Vec<CodeIssue>,
     pub stats: ScanStats,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ScanStats {
@@ -124,7 +113,6 @@ impl ScanStats {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceScanResult {
     pub scanned_at: DateTime<Utc>,
@@ -134,7 +122,6 @@ pub struct ComplianceScanResult {
     pub stats: ScanStats,
     pub bot_results: Vec<BotScanResult>,
 }
-
 
 struct ScanPattern {
     regex: Regex,
@@ -146,14 +133,12 @@ struct ScanPattern {
     category: String,
 }
 
-
 pub struct CodeScanner {
     patterns: Vec<ScanPattern>,
     base_path: PathBuf,
 }
 
 impl CodeScanner {
-
     pub fn new(base_path: impl AsRef<Path>) -> Self {
         let patterns = Self::build_patterns();
         Self {
@@ -162,10 +147,8 @@ impl CodeScanner {
         }
     }
 
-
     fn build_patterns() -> Vec<ScanPattern> {
         let mut patterns = Vec::new();
-
 
         patterns.push(ScanPattern {
             regex: Regex::new(r#"(?i)password\s*=\s*["'][^"']+["']"#).unwrap(),
@@ -197,9 +180,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)IF\s+.*\binput\b"#).unwrap(),
+            regex: Regex::new(r"(?i)IF\s+.*\binput\b").unwrap(),
             issue_type: IssueType::DeprecatedIfInput,
             severity: IssueSeverity::Medium,
             title: "Deprecated IF...input Pattern".to_string(),
@@ -211,9 +193,8 @@ impl CodeScanner {
             category: "Code Quality".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b"#).unwrap(),
+            regex: Regex::new(r"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b").unwrap(),
             issue_type: IssueType::UnderscoreInKeyword,
             severity: IssueSeverity::Low,
             title: "Underscore in Keyword".to_string(),
@@ -222,9 +203,8 @@ impl CodeScanner {
             category: "Naming Convention".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+"#).unwrap(),
+            regex: Regex::new(r"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+").unwrap(),
             issue_type: IssueType::InsecurePattern,
             severity: IssueSeverity::High,
             title: "Instagram Credentials in Code".to_string(),
@@ -235,10 +215,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+"#)
-                .unwrap(),
+            regex: Regex::new(r"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+").unwrap(),
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::Medium,
             title: "Raw SQL Query".to_string(),
@@ -250,9 +228,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)\bEVAL\s*\("#).unwrap(),
+            regex: Regex::new(r"(?i)\bEVAL\s*\(").unwrap(),
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::High,
             title: "Dynamic Code Execution".to_string(),
@@ -260,7 +237,6 @@ impl CodeScanner {
             remediation: "Avoid EVAL. Use structured control flow instead.".to_string(),
             category: "Security".to_string(),
         });
-
 
         patterns.push(ScanPattern {
             regex: Regex::new(
@@ -276,9 +252,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)(AKIA[0-9A-Z]{16})"#).unwrap(),
+            regex: Regex::new(r"(?i)(AKIA[0-9A-Z]{16})").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "AWS Access Key".to_string(),
@@ -288,9 +263,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----"#).unwrap(),
+            regex: Regex::new(r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "Private Key in Code".to_string(),
@@ -300,9 +274,8 @@ impl CodeScanner {
             category: "Security".to_string(),
         });
 
-
         patterns.push(ScanPattern {
-            regex: Regex::new(r#"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@"#).unwrap(),
+            regex: Regex::new(r"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
             title: "Database Credentials in Connection String".to_string(),
@@ -314,7 +287,6 @@ impl CodeScanner {
         patterns
     }
 
-
     pub async fn scan_all(
         &self,
     ) -> Result<ComplianceScanResult, Box<dyn std::error::Error + Send + Sync>> {
@@ -323,12 +295,10 @@ impl CodeScanner {
         let mut total_stats = ScanStats::default();
         let mut total_files = 0;
 
-
         let templates_path = self.base_path.join("templates");
         let work_path = self.base_path.join("work");
 
         let mut bot_paths = Vec::new();
-
 
         if templates_path.exists() {
             for entry in WalkDir::new(&templates_path).max_depth(3) {
@@ -344,7 +314,6 @@ impl CodeScanner {
             }
         }
 
-
         if work_path.exists() {
             for entry in WalkDir::new(&work_path).max_depth(3) {
                 if let Ok(entry) = entry {
@@ -358,7 +327,6 @@ impl CodeScanner {
                 }
             }
         }
-
 
         for bot_path in &bot_paths {
             let result = self.scan_bot(bot_path).await?;
@@ -379,7 +347,6 @@ impl CodeScanner {
         })
     }
 
-
     pub async fn scan_bot(
         &self,
         bot_path: &Path,
@@ -397,7 +364,6 @@ impl CodeScanner {
         let mut stats = ScanStats::default();
         let mut files_scanned = 0;
 
-
         for entry in WalkDir::new(bot_path) {
             if let Ok(entry) = entry {
                 let path = entry.path();
@@ -414,7 +380,6 @@ impl CodeScanner {
                 }
             }
         }
-
 
         let config_path = bot_path.join("config.csv");
         if config_path.exists() {
@@ -438,7 +403,6 @@ impl CodeScanner {
             }
         }
 
-
         issues.sort_by(|a, b| b.severity.cmp(&a.severity));
 
         Ok(BotScanResult {
@@ -450,7 +414,6 @@ impl CodeScanner {
             stats,
         })
     }
-
 
     async fn scan_file(
         &self,
@@ -468,7 +431,6 @@ impl CodeScanner {
         for (line_number, line) in content.lines().enumerate() {
             let line_num = line_number + 1;
 
-
             let trimmed = line.trim();
             if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
                 continue;
@@ -476,7 +438,6 @@ impl CodeScanner {
 
             for pattern in &self.patterns {
                 if pattern.regex.is_match(line) {
-
                     let snippet = self.redact_sensitive(line);
 
                     let issue = CodeIssue {
@@ -500,18 +461,15 @@ impl CodeScanner {
         Ok(issues)
     }
 
-
     fn redact_sensitive(&self, line: &str) -> String {
         let mut result = line.to_string();
-
 
         let secret_pattern = Regex::new(r#"(["'])[^"']{8,}(["'])"#).unwrap();
         result = secret_pattern
             .replace_all(&result, "$1***REDACTED***$2")
             .to_string();
 
-
-        let aws_pattern = Regex::new(r#"AKIA[0-9A-Z]{16}"#).unwrap();
+        let aws_pattern = Regex::new(r"AKIA[0-9A-Z]{16}").unwrap();
         result = aws_pattern
             .replace_all(&result, "AKIA***REDACTED***")
             .to_string();
@@ -519,13 +477,11 @@ impl CodeScanner {
         result
     }
 
-
     async fn check_vault_config(
         &self,
         config_path: &Path,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
         let content = tokio::fs::read_to_string(config_path).await?;
-
 
         let has_vault = content.to_lowercase().contains("vault_addr")
             || content.to_lowercase().contains("vault_token")
@@ -533,7 +489,6 @@ impl CodeScanner {
 
         Ok(has_vault)
     }
-
 
     pub async fn scan_bots(
         &self,
@@ -543,13 +498,10 @@ impl CodeScanner {
             return self.scan_all().await;
         }
 
-
-
         let mut full_result = self.scan_all().await?;
         full_result
             .bot_results
             .retain(|r| bot_ids.contains(&r.bot_id) || bot_ids.contains(&r.bot_name));
-
 
         let mut new_stats = ScanStats::default();
         for bot in &full_result.bot_results {
@@ -562,11 +514,9 @@ impl CodeScanner {
     }
 }
 
-
 pub struct ComplianceReporter;
 
 impl ComplianceReporter {
-
     pub fn to_html(result: &ComplianceScanResult) -> String {
         let mut html = String::new();
 
@@ -617,11 +567,9 @@ impl ComplianceReporter {
         html
     }
 
-
     pub fn to_json(result: &ComplianceScanResult) -> Result<String, serde_json::Error> {
         serde_json::to_string_pretty(result)
     }
-
 
     pub fn to_csv(result: &ComplianceScanResult) -> String {
         let mut csv = String::new();
@@ -649,7 +597,6 @@ impl ComplianceReporter {
         csv
     }
 }
-
 
 fn escape_csv(s: &str) -> String {
     if s.contains(',') || s.contains('"') || s.contains('\n') {

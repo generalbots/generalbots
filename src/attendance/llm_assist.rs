@@ -1,40 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -46,18 +9,14 @@ use axum::{
 };
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{debug, error, info, warn};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, Clone, Default)]
 pub struct LlmAssistConfig {
-
     pub tips_enabled: bool,
 
     pub polish_enabled: bool,
@@ -74,7 +33,6 @@ pub struct LlmAssistConfig {
 }
 
 impl LlmAssistConfig {
-
     pub fn from_config(bot_id: Uuid, work_path: &str) -> Self {
         let config_path = PathBuf::from(work_path)
             .join(format!("{}.gbai", bot_id))
@@ -143,7 +101,6 @@ impl LlmAssistConfig {
         config
     }
 
-
     pub fn any_enabled(&self) -> bool {
         self.tips_enabled
             || self.polish_enabled
@@ -153,9 +110,6 @@ impl LlmAssistConfig {
     }
 }
 
-
-
-
 #[derive(Debug, Deserialize)]
 pub struct TipRequest {
     pub session_id: Uuid,
@@ -164,7 +118,6 @@ pub struct TipRequest {
     #[serde(default)]
     pub history: Vec<ConversationMessage>,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct PolishRequest {
@@ -179,7 +132,6 @@ fn default_tone() -> String {
     "professional".to_string()
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct SmartRepliesRequest {
     pub session_id: Uuid,
@@ -187,12 +139,10 @@ pub struct SmartRepliesRequest {
     pub history: Vec<ConversationMessage>,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct SummaryRequest {
     pub session_id: Uuid,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct SentimentRequest {
@@ -202,14 +152,12 @@ pub struct SentimentRequest {
     pub history: Vec<ConversationMessage>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConversationMessage {
     pub role: String,
     pub content: String,
     pub timestamp: Option<String>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct TipResponse {
@@ -219,7 +167,6 @@ pub struct TipResponse {
     pub error: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct AttendantTip {
     pub tip_type: TipType,
@@ -228,11 +175,9 @@ pub struct AttendantTip {
     pub priority: i32,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TipType {
-
     Intent,
 
     Action,
@@ -246,7 +191,6 @@ pub enum TipType {
     General,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct PolishResponse {
     pub success: bool,
@@ -257,7 +201,6 @@ pub struct PolishResponse {
     pub error: Option<String>,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct SmartRepliesResponse {
     pub success: bool,
@@ -265,7 +208,6 @@ pub struct SmartRepliesResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize)]
 pub struct SmartReply {
@@ -275,7 +217,6 @@ pub struct SmartReply {
     pub category: String,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct SummaryResponse {
     pub success: bool,
@@ -283,7 +224,6 @@ pub struct SummaryResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct ConversationSummary {
@@ -297,7 +237,6 @@ pub struct ConversationSummary {
     pub duration_minutes: i32,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct SentimentResponse {
     pub success: bool,
@@ -305,7 +244,6 @@ pub struct SentimentResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Default)]
 pub struct SentimentAnalysis {
@@ -317,15 +255,11 @@ pub struct SentimentAnalysis {
     pub emoji: String,
 }
 
-
 #[derive(Debug, Clone, Serialize)]
 pub struct Emotion {
     pub name: String,
     pub intensity: f32,
 }
-
-
-
 
 async fn execute_llm_with_context(
     state: &Arc<AppState>,
@@ -351,7 +285,6 @@ async fn execute_llm_with_context(
                 .unwrap_or_default()
         });
 
-
     let messages = serde_json::json!([
         {
             "role": "system",
@@ -368,21 +301,17 @@ async fn execute_llm_with_context(
         .generate(user_prompt, &messages, &model, &key)
         .await?;
 
-
     let handler = crate::llm::llm_models::get_handler(&model);
     let processed = handler.process_content(&response);
 
     Ok(processed)
 }
 
-
 fn get_bot_system_prompt(bot_id: Uuid, work_path: &str) -> String {
-
     let config = LlmAssistConfig::from_config(bot_id, work_path);
     if let Some(prompt) = config.bot_system_prompt {
         return prompt;
     }
-
 
     let start_bas_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
@@ -390,7 +319,6 @@ fn get_bot_system_prompt(bot_id: Uuid, work_path: &str) -> String {
         .join("start.bas");
 
     if let Ok(content) = std::fs::read_to_string(&start_bas_path) {
-
         let mut description_lines = Vec::new();
         for line in content.lines() {
             let trimmed = line.trim();
@@ -406,20 +334,14 @@ fn get_bot_system_prompt(bot_id: Uuid, work_path: &str) -> String {
         }
     }
 
-
     "You are a professional customer service assistant. Be helpful, empathetic, and solution-oriented. Maintain a friendly but professional tone.".to_string()
 }
-
-
-
-
 
 pub async fn generate_tips(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TipRequest>,
 ) -> (StatusCode, Json<TipResponse>) {
     info!("Generating tips for session {}", request.session_id);
-
 
     let session_result = get_session(&state, request.session_id).await;
     let session = match session_result {
@@ -436,7 +358,6 @@ pub async fn generate_tips(
         }
     };
 
-
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
     let config = LlmAssistConfig::from_config(session.bot_id, &work_path);
 
@@ -450,7 +371,6 @@ pub async fn generate_tips(
             }),
         );
     }
-
 
     let history_context = request
         .history
@@ -497,7 +417,6 @@ Provide tips for the attendant."#,
 
     match execute_llm_with_context(&state, session.bot_id, &system_prompt, &user_prompt).await {
         Ok(response) => {
-
             let tips = parse_tips_response(&response);
             (
                 StatusCode::OK,
@@ -522,8 +441,6 @@ Provide tips for the attendant."#,
         }
     }
 }
-
-
 
 pub async fn polish_message(
     State(state): State<Arc<AppState>>,
@@ -621,8 +538,6 @@ Respond in JSON format:
     }
 }
 
-
-
 pub async fn generate_smart_replies(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SmartRepliesRequest>,
@@ -677,7 +592,7 @@ The service has this personality: {}
 Generate exactly 3 reply suggestions that:
 1. Are contextually appropriate
 2. Sound natural and human (not robotic)
-3. Vary in approach (one empathetic, one solution-focused, one follow-up)
+3. Vary in approach (one empathetic, one solution-focused, one follow_up)
 4. Are ready to send (no placeholders like [name])
 
 Respond in JSON format:
@@ -692,10 +607,10 @@ Respond in JSON format:
     );
 
     let user_prompt = format!(
-        r#"Conversation:
+        r"Conversation:
 {}
 
-Generate 3 reply options for the attendant."#,
+Generate 3 reply options for the attendant.",
         history_context
     );
 
@@ -724,8 +639,6 @@ Generate 3 reply options for the attendant."#,
         }
     }
 }
-
-
 
 pub async fn generate_summary(
     State(state): State<Arc<AppState>>,
@@ -761,7 +674,6 @@ pub async fn generate_summary(
             }),
         );
     }
-
 
     let history = load_conversation_history(&state, session_id).await;
 
@@ -806,9 +718,9 @@ Respond in JSON format:
     );
 
     let user_prompt = format!(
-        r#"Summarize this conversation:
+        r"Summarize this conversation:
 
-{}"#,
+{}",
         history_text
     );
 
@@ -816,7 +728,6 @@ Respond in JSON format:
         Ok(response) => {
             let mut summary = parse_summary_response(&response);
             summary.message_count = history.len() as i32;
-
 
             if let (Some(first_ts), Some(last_ts)) = (
                 history.first().and_then(|m| m.timestamp.as_ref()),
@@ -857,8 +768,6 @@ Respond in JSON format:
     }
 }
 
-
-
 pub async fn analyze_sentiment(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SentimentRequest>,
@@ -884,7 +793,6 @@ pub async fn analyze_sentiment(
     let config = LlmAssistConfig::from_config(session.bot_id, &work_path);
 
     if !config.sentiment_enabled {
-
         let sentiment = analyze_sentiment_keywords(&request.message);
         return (
             StatusCode::OK,
@@ -959,8 +867,6 @@ Analyze the customer's sentiment."#,
     }
 }
 
-
-
 pub async fn get_llm_config(
     State(_state): State<Arc<AppState>>,
     Path(bot_id): Path<Uuid>,
@@ -980,9 +886,6 @@ pub async fn get_llm_config(
         })),
     )
 }
-
-
-
 
 pub async fn process_attendant_command(
     state: &Arc<AppState>,
@@ -1020,7 +923,6 @@ pub async fn process_attendant_command(
 }
 
 async fn handle_queue_command(state: &Arc<AppState>) -> Result<String, String> {
-
     let conn = state.conn.clone();
     let result = tokio::task::spawn_blocking(move || {
         let mut db_conn = conn.get().map_err(|e| e.to_string())?;
@@ -1174,8 +1076,6 @@ async fn handle_status_command(
         }
     };
 
-
-
     let conn = state.conn.clone();
     let phone = attendant_phone.to_string();
     let status_val = status_value.to_string();
@@ -1184,8 +1084,6 @@ async fn handle_status_command(
         let mut db_conn = conn.get().map_err(|e| e.to_string())?;
 
         use crate::shared::models::schema::user_sessions;
-
-
 
         let sessions: Vec<UserSession> = user_sessions::table
             .filter(
@@ -1243,7 +1141,6 @@ async fn handle_transfer_command(
     let target = args.join(" ");
     let target_clean = target.trim_start_matches('@').to_string();
 
-
     let conn = state.conn.clone();
     let target_attendant = target_clean.clone();
 
@@ -1252,12 +1149,10 @@ async fn handle_transfer_command(
 
         use crate::shared::models::schema::user_sessions;
 
-
         let session: UserSession = user_sessions::table
             .find(session_id)
             .first(&mut db_conn)
             .map_err(|e| format!("Session not found: {}", e))?;
-
 
         let mut ctx = session.context_data.clone();
         let previous_attendant = ctx
@@ -1271,10 +1166,8 @@ async fn handle_transfer_command(
         ctx["transferred_at"] = serde_json::json!(Utc::now().to_rfc3339());
         ctx["status"] = serde_json::json!("pending_transfer");
 
-
         ctx["assigned_to_phone"] = serde_json::Value::Null;
         ctx["assigned_to"] = serde_json::Value::Null;
-
 
         ctx["needs_human"] = serde_json::json!(true);
 
@@ -1347,7 +1240,6 @@ async fn handle_tips_command(
 ) -> Result<String, String> {
     let session_id = current_session.ok_or("No active conversation. Use /take first.")?;
 
-
     let history = load_conversation_history(state, session_id).await;
 
     if history.is_empty() {
@@ -1368,7 +1260,6 @@ async fn handle_tips_command(
         customer_message: last_customer_msg,
         history,
     };
-
 
     let (_, Json(tip_response)) = generate_tips(State(state.clone()), Json(request)).await;
 
@@ -1446,7 +1337,8 @@ async fn handle_replies_command(
         history,
     };
 
-    let (_, Json(replies_response)) = generate_smart_replies(State(state.clone()), Json(request)).await;
+    let (_, Json(replies_response)) =
+        generate_smart_replies(State(state.clone()), Json(request)).await;
 
     if replies_response.replies.is_empty() {
         return Ok(" No reply suggestions available.".to_string());
@@ -1474,7 +1366,8 @@ async fn handle_summary_command(
 ) -> Result<String, String> {
     let session_id = current_session.ok_or("No active conversation")?;
 
-    let (_, Json(summary_response)) = generate_summary(State(state.clone()), Path(session_id)).await;
+    let (_, Json(summary_response)) =
+        generate_summary(State(state.clone()), Path(session_id)).await;
 
     if !summary_response.success {
         return Err(summary_response
@@ -1527,7 +1420,7 @@ async fn handle_summary_command(
 }
 
 fn get_help_text() -> String {
-    r#" *Attendant Commands*
+    r#"*Attendant Commands*
 
 *Queue Management:*
 `/queue` - View waiting conversations
@@ -1549,9 +1442,6 @@ _Portuguese: /fila, /pegar, /transferir, /resolver, /dicas, /polir, /respostas, 
         .to_string()
 }
 
-
-
-
 async fn get_session(state: &Arc<AppState>, session_id: Uuid) -> Result<UserSession, String> {
     let conn = state.conn.clone();
 
@@ -1568,7 +1458,6 @@ async fn get_session(state: &Arc<AppState>, session_id: Uuid) -> Result<UserSess
     .await
     .map_err(|e| format!("Task error: {}", e))?
 }
-
 
 async fn load_conversation_history(
     state: &Arc<AppState>,
@@ -1616,9 +1505,7 @@ async fn load_conversation_history(
     result
 }
 
-
 fn parse_tips_response(response: &str) -> Vec<AttendantTip> {
-
     let json_str = extract_json(response);
 
     if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&json_str) {
@@ -1653,7 +1540,6 @@ fn parse_tips_response(response: &str) -> Vec<AttendantTip> {
         }
     }
 
-
     if !response.trim().is_empty() {
         vec![AttendantTip {
             tip_type: TipType::General,
@@ -1665,7 +1551,6 @@ fn parse_tips_response(response: &str) -> Vec<AttendantTip> {
         Vec::new()
     }
 }
-
 
 fn parse_polish_response(response: &str, original: &str) -> (String, Vec<String>) {
     let json_str = extract_json(response);
@@ -1690,13 +1575,11 @@ fn parse_polish_response(response: &str, original: &str) -> (String, Vec<String>
         return (polished, changes);
     }
 
-
     (
         response.trim().to_string(),
         vec!["Message improved".to_string()],
     )
 }
-
 
 fn parse_smart_replies_response(response: &str) -> Vec<SmartReply> {
     let json_str = extract_json(response);
@@ -1730,7 +1613,6 @@ fn parse_smart_replies_response(response: &str) -> Vec<SmartReply> {
 
     generate_fallback_replies()
 }
-
 
 fn parse_summary_response(response: &str) -> ConversationSummary {
     let json_str = extract_json(response);
@@ -1789,7 +1671,6 @@ fn parse_summary_response(response: &str) -> ConversationSummary {
     }
 }
 
-
 fn parse_sentiment_response(response: &str) -> SentimentAnalysis {
     let json_str = extract_json(response);
 
@@ -1839,9 +1720,7 @@ fn parse_sentiment_response(response: &str) -> SentimentAnalysis {
     SentimentAnalysis::default()
 }
 
-
 fn extract_json(response: &str) -> String {
-
     if let Some(start) = response.find('{') {
         if let Some(end) = response.rfind('}') {
             if end > start {
@@ -1849,7 +1728,6 @@ fn extract_json(response: &str) -> String {
             }
         }
     }
-
 
     if let Some(start) = response.find('[') {
         if let Some(end) = response.rfind(']') {
@@ -1862,11 +1740,9 @@ fn extract_json(response: &str) -> String {
     response.to_string()
 }
 
-
 fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
     let msg_lower = message.to_lowercase();
     let mut tips = Vec::new();
-
 
     if msg_lower.contains("urgent")
         || msg_lower.contains("asap")
@@ -1881,7 +1757,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
         });
     }
 
-
     if msg_lower.contains("frustrated")
         || msg_lower.contains("angry")
         || msg_lower.contains("ridiculous")
@@ -1895,7 +1770,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
         });
     }
 
-
     if message.contains('?') {
         tips.push(AttendantTip {
             tip_type: TipType::Intent,
@@ -1904,7 +1778,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
             priority: 2,
         });
     }
-
 
     if msg_lower.contains("problem")
         || msg_lower.contains("issue")
@@ -1918,7 +1791,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
             priority: 2,
         });
     }
-
 
     if msg_lower.contains("thank")
         || msg_lower.contains("great")
@@ -1934,7 +1806,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
         });
     }
 
-
     if tips.is_empty() {
         tips.push(AttendantTip {
             tip_type: TipType::General,
@@ -1946,7 +1817,6 @@ fn generate_fallback_tips(message: &str) -> Vec<AttendantTip> {
 
     tips
 }
-
 
 fn generate_fallback_replies() -> Vec<SmartReply> {
     vec![
@@ -1970,7 +1840,6 @@ fn generate_fallback_replies() -> Vec<SmartReply> {
         },
     ]
 }
-
 
 fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
     let msg_lower = message.to_lowercase();
@@ -2097,5 +1966,3 @@ fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
         emoji: emoji.to_string(),
     }
 }
-
-

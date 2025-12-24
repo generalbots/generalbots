@@ -3,7 +3,7 @@ use rhai::Engine;
 
 pub fn first_keyword(engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["FIRST", "$expr$"], false, {
+        .register_custom_syntax(["FIRST", "$expr$"], false, {
             move |context, inputs| {
                 let input_string = context.eval_expression_tree(&inputs[0])?;
                 let input_str = input_string.to_string();

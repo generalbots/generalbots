@@ -6,7 +6,7 @@ use std::time::Duration;
 
 pub fn wait_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["WAIT", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["WAIT", "$expr$"], false, move |context, inputs| {
             let seconds = context.eval_expression_tree(&inputs[0])?;
             let duration_secs = if seconds.is::<i64>() {
                 #[allow(clippy::cast_precision_loss)]
