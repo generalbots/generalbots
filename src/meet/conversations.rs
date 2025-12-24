@@ -1,8 +1,3 @@
-
-
-
-
-
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
@@ -14,8 +9,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
-
-
 
 #[derive(Debug, Deserialize)]
 pub struct CreateConversationRequest {
@@ -188,11 +181,8 @@ pub struct SuccessResponse {
     pub message: Option<String>,
 }
 
-
-
-
 pub async fn create_conversation(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Json(req): Json<CreateConversationRequest>,
 ) -> Result<Json<ConversationResponse>, (StatusCode, Json<serde_json::Value>)> {
     let conversation_id = Uuid::new_v4();
@@ -216,34 +206,37 @@ pub async fn create_conversation(
     Ok(Json(conversation))
 }
 
-
 pub async fn join_conversation(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
     Json(req): Json<JoinConversationRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
-        message: Some(format!("User {} joined conversation {}", req.user_id, conversation_id)),
+        message: Some(format!(
+            "User {} joined conversation {}",
+            req.user_id, conversation_id
+        )),
     }))
 }
 
-
 pub async fn leave_conversation(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
     Json(req): Json<LeaveConversationRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
-        message: Some(format!("User {} left conversation {}", req.user_id, conversation_id)),
+        message: Some(format!(
+            "User {} left conversation {}",
+            req.user_id, conversation_id
+        )),
     }))
 }
 
-
 pub async fn get_conversation_members(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<Vec<ParticipantResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let members = vec![ParticipantResponse {
         user_id: Uuid::new_v4(),
@@ -258,19 +251,17 @@ pub async fn get_conversation_members(
     Ok(Json(members))
 }
 
-
 pub async fn get_conversation_messages(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<Vec<MessageResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let messages = vec![];
 
     Ok(Json(messages))
 }
 
-
 pub async fn send_message(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
     Json(req): Json<SendMessageRequest>,
 ) -> Result<Json<MessageResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -297,9 +288,8 @@ pub async fn send_message(
     Ok(Json(message))
 }
 
-
 pub async fn edit_message(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<EditMessageRequest>,
 ) -> Result<Json<MessageResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -324,10 +314,9 @@ pub async fn edit_message(
     Ok(Json(message))
 }
 
-
 pub async fn delete_message(
-    State(state): State<Arc<AppState>>,
-    Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
+    State(_state): State<Arc<AppState>>,
+    Path((_conversation_id, message_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -335,22 +324,23 @@ pub async fn delete_message(
     }))
 }
 
-
 pub async fn react_to_message(
-    State(state): State<Arc<AppState>>,
-    Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
+    State(_state): State<Arc<AppState>>,
+    Path((_conversation_id, message_id)): Path<(Uuid, Uuid)>,
     Json(req): Json<ReactToMessageRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
-        message: Some(format!("Reaction '{}' added to message {}", req.reaction, message_id)),
+        message: Some(format!(
+            "Reaction '{}' added to message {}",
+            req.reaction, message_id
+        )),
     }))
 }
 
-
 pub async fn pin_message(
-    State(state): State<Arc<AppState>>,
-    Path((conversation_id, message_id)): Path<(Uuid, Uuid)>,
+    State(_state): State<Arc<AppState>>,
+    Path((_conversation_id, message_id)): Path<(Uuid, Uuid)>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -358,20 +348,18 @@ pub async fn pin_message(
     }))
 }
 
-
 pub async fn search_messages(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
-    Query(params): Query<SearchMessagesQuery>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
+    Query(_params): Query<SearchMessagesQuery>,
 ) -> Result<Json<Vec<MessageResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let messages = vec![];
 
     Ok(Json(messages))
 }
 
-
 pub async fn start_call(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
     Json(req): Json<StartCallRequest>,
 ) -> Result<Json<CallResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -395,10 +383,9 @@ pub async fn start_call(
     Ok(Json(call))
 }
 
-
 pub async fn join_call(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -406,10 +393,9 @@ pub async fn join_call(
     }))
 }
 
-
 pub async fn leave_call(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -417,10 +403,9 @@ pub async fn leave_call(
     }))
 }
 
-
 pub async fn mute_call(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -428,10 +413,9 @@ pub async fn mute_call(
     }))
 }
 
-
 pub async fn unmute_call(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -439,9 +423,8 @@ pub async fn unmute_call(
     }))
 }
 
-
 pub async fn start_screen_share(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
     Json(req): Json<ScreenShareRequest>,
 ) -> Result<Json<ScreenShareResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -462,10 +445,9 @@ pub async fn start_screen_share(
     Ok(Json(screen_share))
 }
 
-
 pub async fn stop_screen_share(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -473,10 +455,9 @@ pub async fn stop_screen_share(
     }))
 }
 
-
 pub async fn start_recording(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -484,10 +465,9 @@ pub async fn start_recording(
     }))
 }
 
-
 pub async fn stop_recording(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,
@@ -495,9 +475,8 @@ pub async fn stop_recording(
     }))
 }
 
-
 pub async fn create_whiteboard(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path(conversation_id): Path<Uuid>,
 ) -> Result<Json<WhiteboardResponse>, (StatusCode, Json<serde_json::Value>)> {
     let whiteboard_id = Uuid::new_v4();
@@ -518,11 +497,10 @@ pub async fn create_whiteboard(
     Ok(Json(whiteboard))
 }
 
-
 pub async fn collaborate_whiteboard(
-    State(state): State<Arc<AppState>>,
-    Path(conversation_id): Path<Uuid>,
-    Json(data): Json<serde_json::Value>,
+    State(_state): State<Arc<AppState>>,
+    Path(_conversation_id): Path<Uuid>,
+    Json(_data): Json<serde_json::Value>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(SuccessResponse {
         success: true,

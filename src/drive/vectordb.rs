@@ -67,7 +67,7 @@ impl UserDriveVectorDB {
             user_id,
             bot_id,
             collection_name,
-            db_path,
+            _db_path: db_path,
             #[cfg(feature = "vectordb")]
             client: None,
         }
