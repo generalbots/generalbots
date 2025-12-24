@@ -3,6 +3,7 @@ use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::sync::Arc;
+#[cfg(not(feature = "vectordb"))]
 use tokio::fs;
 use uuid::Uuid;
 

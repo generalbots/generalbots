@@ -1,54 +1,12 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-use log::{debug, error, info, trace, warn};
+use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
-use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HybridSearchConfig {
-
     pub dense_weight: f32,
 
     pub sparse_weight: f32,
@@ -82,7 +40,6 @@ impl Default for HybridSearchConfig {
 }
 
 impl HybridSearchConfig {
-
     pub fn from_bot_config(state: &AppState, bot_id: Uuid) -> Self {
         use diesel::prelude::*;
 
@@ -136,7 +93,6 @@ impl HybridSearchConfig {
             }
         }
 
-
         let total = config.dense_weight + config.sparse_weight;
         if total > 0.0 {
             config.dense_weight /= total;
@@ -151,21 +107,17 @@ impl HybridSearchConfig {
         config
     }
 
-
     pub fn use_sparse_search(&self) -> bool {
         self.bm25_enabled && self.sparse_weight > 0.0
     }
-
 
     pub fn use_dense_search(&self) -> bool {
         self.dense_weight > 0.0
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
-
     pub doc_id: String,
 
     pub content: String,
@@ -179,7 +131,6 @@ pub struct SearchResult {
     pub search_method: SearchMethod,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub enum SearchMethod {
     Dense,
@@ -187,8 +138,6 @@ pub enum SearchMethod {
     Hybrid,
     Reranked,
 }
-
-
 
 pub struct BM25Index {
     doc_freq: HashMap<String, usize>,
@@ -341,7 +290,6 @@ impl Default for BM25Index {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct BM25Stats {
     pub doc_count: usize,
@@ -350,7 +298,6 @@ pub struct BM25Stats {
     pub enabled: bool,
 }
 
-
 #[derive(Debug, Clone)]
 struct DocumentEntry {
     pub content: String,
@@ -358,9 +305,7 @@ struct DocumentEntry {
     pub metadata: HashMap<String, String>,
 }
 
-
 pub struct HybridSearchEngine {
-
     bm25_index: BM25Index,
 
     documents: HashMap<String, DocumentEntry>,
@@ -391,7 +336,6 @@ impl HybridSearchEngine {
         }
     }
 
-
     pub async fn index_document(
         &mut self,
         doc_id: &str,
@@ -400,9 +344,7 @@ impl HybridSearchEngine {
         metadata: HashMap<String, String>,
         embedding: Option<Vec<f32>>,
     ) -> Result<(), String> {
-
         self.bm25_index.add_document(doc_id, content, source);
-
 
         self.documents.insert(
             doc_id.to_string(),
@@ -413,7 +355,6 @@ impl HybridSearchEngine {
             },
         );
 
-
         if let Some(emb) = embedding {
             self.upsert_to_qdrant(doc_id, &emb).await?;
         }
@@ -421,11 +362,9 @@ impl HybridSearchEngine {
         Ok(())
     }
 
-
     pub fn commit(&mut self) -> Result<(), String> {
         Ok(())
     }
-
 
     pub async fn remove_document(&mut self, doc_id: &str) -> Result<(), String> {
         self.bm25_index.remove_document(doc_id);
@@ -434,14 +373,12 @@ impl HybridSearchEngine {
         Ok(())
     }
 
-
     pub async fn search(
         &self,
         query: &str,
         query_embedding: Option<Vec<f32>>,
     ) -> Result<Vec<SearchResult>, String> {
         let fetch_count = self.config.max_results * 3;
-
 
         let sparse_results: Vec<(String, f32)> = if self.config.use_sparse_search() {
             self.bm25_index
@@ -453,7 +390,6 @@ impl HybridSearchEngine {
             Vec::new()
         };
 
-
         let dense_results = if self.config.use_dense_search() {
             if let Some(embedding) = query_embedding {
                 self.search_qdrant(&embedding, fetch_count).await?
@@ -463,7 +399,6 @@ impl HybridSearchEngine {
         } else {
             Vec::new()
         };
-
 
         let (results, method) = if sparse_results.is_empty() && dense_results.is_empty() {
             (Vec::new(), SearchMethod::Hybrid)
@@ -477,7 +412,6 @@ impl HybridSearchEngine {
                 SearchMethod::Hybrid,
             )
         };
-
 
         let mut search_results: Vec<SearchResult> = results
             .into_iter()
@@ -495,14 +429,12 @@ impl HybridSearchEngine {
             .take(self.config.max_results)
             .collect();
 
-
         if self.config.reranker_enabled && !search_results.is_empty() {
             search_results = self.rerank(query, search_results).await?;
         }
 
         Ok(search_results)
     }
-
 
     pub fn sparse_search(&self, query: &str) -> Vec<SearchResult> {
         let results = self.bm25_index.search(query, self.config.max_results);
@@ -521,7 +453,6 @@ impl HybridSearchEngine {
             })
             .collect()
     }
-
 
     pub async fn dense_search(
         &self,
@@ -548,7 +479,6 @@ impl HybridSearchEngine {
         Ok(search_results)
     }
 
-
     fn reciprocal_rank_fusion(
         &self,
         sparse: &[(String, f32)],
@@ -557,22 +487,18 @@ impl HybridSearchEngine {
         let k = self.config.rrf_k as f32;
         let mut scores: HashMap<String, f32> = HashMap::new();
 
-
         for (rank, (doc_id, _)) in sparse.iter().enumerate() {
             let rrf_score = self.config.sparse_weight / (k + rank as f32 + 1.0);
             *scores.entry(doc_id.clone()).or_insert(0.0) += rrf_score;
         }
-
 
         for (rank, (doc_id, _)) in dense.iter().enumerate() {
             let rrf_score = self.config.dense_weight / (k + rank as f32 + 1.0);
             *scores.entry(doc_id.clone()).or_insert(0.0) += rrf_score;
         }
 
-
         let mut results: Vec<(String, f32)> = scores.into_iter().collect();
         results.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
-
 
         let max_score = results.first().map(|(_, s)| *s).unwrap_or(0.0);
         if max_score > 0.0 {
@@ -584,19 +510,18 @@ impl HybridSearchEngine {
         results
     }
 
-
     async fn rerank(
         &self,
         query: &str,
         results: Vec<SearchResult>,
     ) -> Result<Vec<SearchResult>, String> {
-
-
         let mut reranked = results;
 
         let query_lower = query.to_lowercase();
-        let query_terms: std::collections::HashSet<String> =
-            query_lower.split_whitespace().map(|s| s.to_string()).collect();
+        let query_terms: std::collections::HashSet<String> = query_lower
+            .split_whitespace()
+            .map(|s| s.to_string())
+            .collect();
         let query_terms_len = query_terms.len();
 
         for result in &mut reranked {
@@ -622,7 +547,6 @@ impl HybridSearchEngine {
 
         Ok(reranked)
     }
-
 
     async fn search_qdrant(
         &self,
@@ -673,7 +597,6 @@ impl HybridSearchEngine {
         Ok(results)
     }
 
-
     async fn upsert_to_qdrant(&self, doc_id: &str, embedding: &[f32]) -> Result<(), String> {
         let client = reqwest::Client::new();
 
@@ -701,7 +624,6 @@ impl HybridSearchEngine {
 
         Ok(())
     }
-
 
     async fn delete_from_qdrant(&self, doc_id: &str) -> Result<(), String> {
         let client = reqwest::Client::new();
@@ -731,7 +653,6 @@ impl HybridSearchEngine {
         Ok(())
     }
 
-
     pub fn stats(&self) -> HybridSearchStats {
         let bm25_stats = self.bm25_index.stats();
 
@@ -746,7 +667,6 @@ impl HybridSearchEngine {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct HybridSearchStats {
     pub total_documents: usize,
@@ -756,7 +676,6 @@ pub struct HybridSearchStats {
     pub bm25_enabled: bool,
     pub config: HybridSearchConfig,
 }
-
 
 pub struct QueryDecomposer {
     llm_endpoint: String,
@@ -771,10 +690,8 @@ impl QueryDecomposer {
         }
     }
 
-
     pub async fn decompose(&self, query: &str) -> Result<Vec<String>, String> {
         let mut sub_queries = Vec::new();
-
 
         let conjunctions = ["and", "also", "as well as", "in addition to"];
         let mut parts: Vec<&str> = vec![query];
@@ -820,7 +737,6 @@ impl QueryDecomposer {
 
         Ok(sub_queries)
     }
-
 
     pub fn synthesize(&self, query: &str, sub_answers: &[String]) -> String {
         if sub_answers.len() == 1 {
