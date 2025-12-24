@@ -1,14 +1,11 @@
-
-
-
 use anyhow::{anyhow, Result};
+use aws_config::BehaviorVersion;
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
 use chrono::TimeZone;
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use tokio::fs;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AttendanceDriveConfig {
@@ -29,7 +26,6 @@ impl Default for AttendanceDriveConfig {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct AttendanceDriveService {
     config: AttendanceDriveConfig,
@@ -37,15 +33,14 @@ pub struct AttendanceDriveService {
 }
 
 impl AttendanceDriveService {
-
     pub async fn new(config: AttendanceDriveConfig) -> Result<Self> {
         let sdk_config = if let Some(region) = &config.region {
-            aws_config::from_env()
+            aws_config::defaults(BehaviorVersion::latest())
                 .region(aws_config::Region::new(region.clone()))
                 .load()
                 .await
         } else {
-            aws_config::from_env().load().await
+            aws_config::defaults(BehaviorVersion::latest()).load().await
         };
 
         let client = Client::new(&sdk_config);
@@ -53,16 +48,13 @@ impl AttendanceDriveService {
         Ok(Self { config, client })
     }
 
-
     pub fn with_client(config: AttendanceDriveConfig, client: Client) -> Self {
         Self { config, client }
     }
 
-
     fn get_record_key(&self, record_id: &str) -> String {
         format!("{}{}", self.config.prefix, record_id)
     }
-
 
     pub async fn upload_record(&self, record_id: &str, data: Vec<u8>) -> Result<()> {
         let key = self.get_record_key(record_id);
@@ -89,7 +81,6 @@ impl AttendanceDriveService {
         log::debug!("Successfully uploaded attendance record {}", record_id);
         Ok(())
     }
-
 
     pub async fn download_record(&self, record_id: &str) -> Result<Vec<u8>> {
         let key = self.get_record_key(record_id);
@@ -119,7 +110,6 @@ impl AttendanceDriveService {
         log::debug!("Successfully downloaded attendance record {}", record_id);
         Ok(data.into_bytes().to_vec())
     }
-
 
     pub async fn list_records(&self, prefix: Option<&str>) -> Result<Vec<String>> {
         let list_prefix = if let Some(p) = prefix {
@@ -157,7 +147,6 @@ impl AttendanceDriveService {
             if let Some(contents) = result.contents {
                 for obj in contents {
                     if let Some(key) = obj.key {
-
                         if let Some(record_id) = key.strip_prefix(&self.config.prefix) {
                             records.push(record_id.to_string());
                         }
@@ -175,7 +164,6 @@ impl AttendanceDriveService {
         log::debug!("Found {} attendance records", records.len());
         Ok(records)
     }
-
 
     pub async fn delete_record(&self, record_id: &str) -> Result<()> {
         let key = self.get_record_key(record_id);
@@ -199,7 +187,6 @@ impl AttendanceDriveService {
         Ok(())
     }
 
-
     pub async fn delete_records(&self, record_ids: &[String]) -> Result<()> {
         if record_ids.is_empty() {
             return Ok(());
@@ -210,7 +197,6 @@ impl AttendanceDriveService {
             record_ids.len(),
             self.config.bucket_name
         );
-
 
         for chunk in record_ids.chunks(1000) {
             let objects: Vec<_> = chunk
@@ -244,7 +230,6 @@ impl AttendanceDriveService {
         Ok(())
     }
 
-
     pub async fn record_exists(&self, record_id: &str) -> Result<bool> {
         let key = self.get_record_key(record_id);
 
@@ -269,7 +254,6 @@ impl AttendanceDriveService {
             }
         }
     }
-
 
     pub async fn sync_records(&self, local_path: PathBuf) -> Result<SyncResult> {
         if !self.config.sync_enabled {
@@ -315,13 +299,11 @@ impl AttendanceDriveService {
                 }
             };
 
-
             if self.record_exists(&file_name).await? {
                 log::debug!("Record {} already exists in drive, skipping", file_name);
                 skipped += 1;
                 continue;
             }
-
 
             match fs::read(&path).await {
                 Ok(data) => match self.upload_record(&file_name, data).await {
@@ -357,7 +339,6 @@ impl AttendanceDriveService {
         Ok(result)
     }
 
-
     pub async fn get_record_metadata(&self, record_id: &str) -> Result<RecordMetadata> {
         let key = self.get_record_key(record_id);
 
@@ -382,14 +363,12 @@ impl AttendanceDriveService {
     }
 }
 
-
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 pub struct SyncResult {
     pub uploaded: usize,
     pub failed: usize,
     pub skipped: usize,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RecordMetadata {

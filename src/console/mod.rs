@@ -102,7 +102,6 @@ impl XtreeUI {
         let backend = CrosstermBackend::new(stdout);
         let mut terminal = Terminal::new(backend)?;
 
-
         if let Err(e) = init_logger(self.log_panel.clone()) {
             eprintln!("Warning: Could not initialize UI logger: {}", e);
         }
@@ -123,19 +122,16 @@ impl XtreeUI {
         let mut last_blink = std::time::Instant::now();
         let rt = tokio::runtime::Runtime::new()?;
         loop {
-
             if self.app_state.is_none() {
                 if let Some(ref state_rx) = self.state_channel {
                     if let Ok(mut rx) = state_rx.try_lock() {
                         if let Ok(app_state) = rx.try_recv() {
-
                             self.file_tree = Some(FileTree::new(app_state.clone()));
                             self.status_panel = Some(StatusPanel::new(app_state.clone()));
                             self.chat_panel = Some(ChatPanel::new(app_state.clone()));
                             self.app_state = Some(app_state);
                             self.active_panel = ActivePanel::FileTree;
                             self.bootstrap_status = "Ready".to_string();
-
 
                             if let Ok(mut log_panel) = self.log_panel.lock() {
                                 log_panel.add_log("AppState received - UI fully initialized");
@@ -205,14 +201,14 @@ impl XtreeUI {
     }
     fn render(&mut self, f: &mut Frame, cursor_blink: bool) {
         let bg = Color::Rgb(0, 30, 100);
-        let border_active = Color::Rgb(85, 255, 255);
-        let border_inactive = Color::Rgb(170, 170, 170);
+        let border_focused = Color::Rgb(85, 255, 255);
+        let border_dim = Color::Rgb(170, 170, 170);
         let text = Color::Rgb(255, 255, 255);
         let highlight = Color::Rgb(0, 170, 170);
-        let title_bg = Color::Rgb(170, 170, 170);
-        let title_fg = Color::Rgb(0, 0, 0);
+        let header_bg_color = Color::Rgb(170, 170, 170);
+        let header_text_color = Color::Rgb(0, 0, 0);
         if self.app_state.is_none() {
-            self.render_loading(f, bg, text, border_active, title_bg, title_fg);
+            self.render_loading(f, bg, text, border_focused, header_bg_color, header_text_color);
             return;
         }
         let main_chunks = Layout::default()
@@ -223,7 +219,7 @@ impl XtreeUI {
                 Constraint::Length(12),
             ])
             .split(f.area());
-        self.render_header(f, main_chunks[0], bg, title_bg, title_fg);
+        self.render_header(f, main_chunks[0], bg, header_bg_color, header_text_color);
         if self.editor.is_some() {
             let content_chunks = Layout::default()
                 .direction(Direction::Horizontal)
@@ -238,28 +234,28 @@ impl XtreeUI {
                 content_chunks[0],
                 bg,
                 text,
-                border_active,
-                border_inactive,
+                border_focused,
+                border_dim,
                 highlight,
-                title_bg,
-                title_fg,
+                header_bg_color,
+                header_text_color,
             );
             if let Some(editor) = &mut self.editor {
                 let area = content_chunks[1];
                 editor.set_visible_lines(area.height.saturating_sub(4) as usize);
                 let is_active = self.active_panel == ActivePanel::Editor;
                 let border_color = if is_active {
-                    border_active
+                    border_focused
                 } else {
-                    border_inactive
+                    border_dim
                 };
                 let title_style = if is_active {
                     Style::default()
-                        .fg(title_fg)
-                        .bg(title_bg)
+                        .fg(header_text_color)
+                        .bg(header_bg_color)
                         .add_modifier(Modifier::BOLD)
                 } else {
-                    Style::default().fg(title_fg).bg(title_bg)
+                    Style::default().fg(header_text_color).bg(header_bg_color)
                 };
                 let title_text = format!(" EDITOR: {} ", editor.file_path());
                 let block = Block::default()
@@ -279,11 +275,11 @@ impl XtreeUI {
                 content_chunks[2],
                 bg,
                 text,
-                border_active,
-                border_inactive,
+                border_focused,
+                border_dim,
                 highlight,
-                title_bg,
-                title_fg,
+                header_bg_color,
+                header_text_color,
             );
         } else {
             let content_chunks = Layout::default()
@@ -299,11 +295,11 @@ impl XtreeUI {
                 content_chunks[0],
                 bg,
                 text,
-                border_active,
-                border_inactive,
+                border_focused,
+                border_dim,
                 highlight,
-                title_bg,
-                title_fg,
+                header_bg_color,
+                header_text_color,
             );
             let right_chunks = Layout::default()
                 .direction(Direction::Vertical)
@@ -314,22 +310,22 @@ impl XtreeUI {
                 right_chunks[0],
                 bg,
                 text,
-                border_active,
-                border_inactive,
+                border_focused,
+                border_dim,
                 highlight,
-                title_bg,
-                title_fg,
+                header_bg_color,
+                header_text_color,
             );
-            self.render_chat(
+            self.render_status(
                 f,
-                content_chunks[2],
+                content_chunks[1],
                 bg,
                 text,
-                border_active,
-                border_inactive,
+                border_focused,
+                border_dim,
                 highlight,
-                title_bg,
-                title_fg,
+                header_bg_color,
+                header_text_color,
             );
         }
         self.render_logs(
@@ -337,11 +333,11 @@ impl XtreeUI {
             main_chunks[2],
             bg,
             text,
-            border_active,
-            border_inactive,
+            border_focused,
+            border_dim,
             highlight,
-            title_bg,
-            title_fg,
+            header_bg_color,
+            header_text_color,
         );
     }
     fn render_header(
@@ -349,10 +345,10 @@ impl XtreeUI {
         f: &mut Frame,
         area: Rect,
         _bg: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
-        let block = Block::default().style(Style::default().bg(title_bg));
+        let block = Block::default().style(Style::default().bg(header_bg_color));
         f.render_widget(block, area);
         let title = if self.app_state.is_some() {
             let components = vec![
@@ -385,8 +381,8 @@ impl XtreeUI {
         let title_span = Span::styled(
             title,
             Style::default()
-                .fg(title_fg)
-                .bg(title_bg)
+                .fg(header_text_color)
+                .bg(header_bg_color)
                 .add_modifier(Modifier::BOLD),
         );
         f.render_widget(
@@ -405,10 +401,9 @@ impl XtreeUI {
         bg: Color,
         text: Color,
         border: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
-
         let main_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([
@@ -418,8 +413,7 @@ impl XtreeUI {
             ])
             .split(f.area());
 
-
-        let header_block = Block::default().style(Style::default().bg(title_bg));
+        let header_block = Block::default().style(Style::default().bg(header_bg_color));
         f.render_widget(header_block, main_chunks[0]);
 
         let title = " GENERAL BOTS ";
@@ -428,8 +422,8 @@ impl XtreeUI {
         let title_span = Span::styled(
             title,
             Style::default()
-                .fg(title_fg)
-                .bg(title_bg)
+                .fg(header_text_color)
+                .bg(header_bg_color)
                 .add_modifier(Modifier::BOLD),
         );
         f.render_widget(
@@ -442,7 +436,6 @@ impl XtreeUI {
             },
         );
 
-
         let content_chunks = Layout::default()
             .direction(Direction::Horizontal)
             .constraints([
@@ -452,11 +445,10 @@ impl XtreeUI {
             ])
             .split(main_chunks[1]);
 
-
         let file_block = Block::default()
             .title(Span::styled(
                 " FILE EXPLORER ",
-                Style::default().fg(title_fg).bg(title_bg),
+                Style::default().fg(header_text_color).bg(header_bg_color),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border))
@@ -466,7 +458,6 @@ impl XtreeUI {
             .style(Style::default().fg(Color::DarkGray));
         f.render_widget(file_text, content_chunks[0]);
 
-
         let middle_chunks = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -475,7 +466,7 @@ impl XtreeUI {
         let status_block = Block::default()
             .title(Span::styled(
                 " STATUS ",
-                Style::default().fg(title_fg).bg(title_bg),
+                Style::default().fg(header_text_color).bg(header_bg_color),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border))
@@ -490,18 +481,16 @@ impl XtreeUI {
             .style(Style::default().fg(text));
         f.render_widget(status_para, middle_chunks[0]);
 
-
         let empty_block = Block::default()
             .borders(Borders::ALL)
             .border_style(Style::default().fg(Color::DarkGray))
             .style(Style::default().bg(bg));
         f.render_widget(empty_block, middle_chunks[1]);
 
-
         let chat_block = Block::default()
             .title(Span::styled(
                 " CHAT ",
-                Style::default().fg(title_fg).bg(title_bg),
+                Style::default().fg(header_text_color).bg(header_bg_color),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border))
@@ -511,16 +500,14 @@ impl XtreeUI {
             .style(Style::default().fg(Color::DarkGray));
         f.render_widget(chat_text, content_chunks[2]);
 
-
         let logs_block = Block::default()
             .title(Span::styled(
                 " SYSTEM LOGS ",
-                Style::default().fg(title_fg).bg(title_bg),
+                Style::default().fg(header_text_color).bg(header_bg_color),
             ))
             .borders(Borders::ALL)
             .border_style(Style::default().fg(border))
             .style(Style::default().bg(bg));
-
 
         let logs_visible_lines = main_chunks[2].height.saturating_sub(2) as usize;
         let logs_content = if let Ok(panel) = self.log_panel.lock() {
@@ -541,11 +528,11 @@ impl XtreeUI {
         area: Rect,
         bg: Color,
         text: Color,
-        border_active: Color,
-        border_inactive: Color,
+        border_focused: Color,
+        border_dim: Color,
         highlight: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
         if let Some(file_tree) = &self.file_tree {
             let items = file_tree.render_items();
@@ -569,17 +556,17 @@ impl XtreeUI {
                 .collect();
             let is_active = self.active_panel == ActivePanel::FileTree;
             let border_color = if is_active {
-                border_active
+                border_focused
             } else {
-                border_inactive
+                border_dim
             };
             let title_style = if is_active {
                 Style::default()
-                    .fg(title_fg)
-                    .bg(title_bg)
+                    .fg(header_text_color)
+                    .bg(header_bg_color)
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(title_fg).bg(title_bg)
+                Style::default().fg(header_text_color).bg(header_bg_color)
             };
             let block = Block::default()
                 .title(Span::styled(" FILE EXPLORER ", title_style))
@@ -596,11 +583,11 @@ impl XtreeUI {
         area: Rect,
         bg: Color,
         text: Color,
-        border_active: Color,
-        border_inactive: Color,
+        border_focused: Color,
+        border_dim: Color,
         _highlight: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
         let selected_bot_opt = self.file_tree.as_ref().and_then(|ft| ft.get_selected_bot());
         let status_text = if let Some(status_panel) = &mut self.status_panel {
@@ -613,17 +600,17 @@ impl XtreeUI {
         };
         let is_active = self.active_panel == ActivePanel::Status;
         let border_color = if is_active {
-            border_active
+            border_focused
         } else {
-            border_inactive
+            border_dim
         };
         let title_style = if is_active {
             Style::default()
-                .fg(title_fg)
-                .bg(title_bg)
+                .fg(header_text_color)
+                .bg(header_bg_color)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(title_fg).bg(title_bg)
+            Style::default().fg(header_text_color).bg(header_bg_color)
         };
         let block = Block::default()
             .title(Span::styled(" SYSTEM STATUS ", title_style))
@@ -642,26 +629,26 @@ impl XtreeUI {
         area: Rect,
         bg: Color,
         text: Color,
-        border_active: Color,
-        border_inactive: Color,
+        border_focused: Color,
+        border_dim: Color,
         _highlight: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
         if let Some(chat_panel) = &self.chat_panel {
             let is_active = self.active_panel == ActivePanel::Chat;
             let border_color = if is_active {
-                border_active
+                border_focused
             } else {
-                border_inactive
+                border_dim
             };
             let title_style = if is_active {
                 Style::default()
-                    .fg(title_fg)
-                    .bg(title_bg)
+                    .fg(header_text_color)
+                    .bg(header_bg_color)
                     .add_modifier(Modifier::BOLD)
             } else {
-                Style::default().fg(title_fg).bg(title_bg)
+                Style::default().fg(header_text_color).bg(header_bg_color)
             };
             let selected_bot = if let Some(file_tree) = &self.file_tree {
                 file_tree
@@ -690,13 +677,12 @@ impl XtreeUI {
         area: Rect,
         bg: Color,
         text: Color,
-        border_active: Color,
-        border_inactive: Color,
+        border_focused: Color,
+        border_dim: Color,
         _highlight: Color,
-        title_bg: Color,
-        title_fg: Color,
+        header_bg_color: Color,
+        header_text_color: Color,
     ) {
-
         let visible_lines = area.height.saturating_sub(2) as usize;
 
         let log_panel = self.log_panel.try_lock();
@@ -716,19 +702,18 @@ impl XtreeUI {
 
         let is_active = self.active_panel == ActivePanel::Logs;
         let border_color = if is_active {
-            border_active
+            border_focused
         } else {
-            border_inactive
+            border_dim
         };
         let title_style = if is_active {
             Style::default()
-                .fg(title_fg)
-                .bg(title_bg)
+                .fg(header_text_color)
+                .bg(header_bg_color)
                 .add_modifier(Modifier::BOLD)
         } else {
-            Style::default().fg(title_fg).bg(title_bg)
+            Style::default().fg(header_text_color).bg(header_bg_color)
         };
-
 
         let scroll_indicator = if can_scroll_up && can_scroll_down {
             " [^v] "
@@ -760,7 +745,7 @@ impl XtreeUI {
     async fn handle_input(&mut self, key: KeyCode, modifiers: KeyModifiers) -> Result<()> {
         if modifiers.contains(KeyModifiers::CONTROL) {
             match key {
-                KeyCode::Char('c') | KeyCode::Char('q') => {
+                KeyCode::Char('c' | 'q') => {
                     self.should_quit = true;
                     return Ok(());
                 }

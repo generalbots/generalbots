@@ -1197,7 +1197,7 @@ fn update_email_read_status(
     let now = Utc::now();
 
     diesel::sql_query(
-        r#"UPDATE sent_email_tracking
+        r"UPDATE sent_email_tracking
            SET
                is_read = true,
                read_count = read_count + 1,
@@ -1206,7 +1206,7 @@ fn update_email_read_status(
                last_read_ip = $3,
                user_agent = COALESCE(user_agent, $4),
                updated_at = $2
-           WHERE tracking_id = $1"#,
+           WHERE tracking_id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(tracking_id)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
@@ -1266,8 +1266,8 @@ fn get_tracking_record(
     }
 
     let row: TrackingRow = diesel::sql_query(
-        r#"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
-           FROM sent_email_tracking WHERE tracking_id = $1"#,
+        r"SELECT tracking_id, to_email, subject, sent_at, is_read, read_at, read_count
+           FROM sent_email_tracking WHERE tracking_id = $1",
     )
     .bind::<diesel::sql_types::Uuid, _>(tracking_id)
     .get_result(&mut db_conn)
@@ -1402,11 +1402,11 @@ fn calculate_tracking_stats(
     }
 
     let stats: StatsRow = diesel::sql_query(
-        r#"SELECT
+        r"SELECT
                COUNT(*) as total_sent,
                COUNT(*) FILTER (WHERE is_read = true) as total_read,
                AVG(EXTRACT(EPOCH FROM (read_at - sent_at)) / 3600) FILTER (WHERE is_read = true) as avg_time_hours
-           FROM sent_email_tracking"#
+           FROM sent_email_tracking",
     )
     .get_result(&mut db_conn)
     .map_err(|e| format!("Stats query failed: {}", e))?;
@@ -1831,10 +1831,10 @@ pub async fn list_emails_htmx(
 
     if html.is_empty() {
         html = format!(
-            r##"<div class="empty-state">
+            r#"<div class="empty-state">
                 <h3>No emails in {}</h3>
                 <p>This folder is empty</p>
-            </div>"##,
+            </div>"#,
             folder
         );
     }
@@ -1899,7 +1899,7 @@ pub async fn list_folders_htmx(
         };
         let count_badge = if **count > 0 {
             format!(
-                r##"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"##,
+                r#"<span style="margin-left: auto; font-size: 0.875rem; color: #64748b;">{}</span>"#,
                 count
             )
         } else {
@@ -1992,9 +1992,9 @@ pub async fn get_email_content_htmx(
 
     let Some(account) = account else {
         return Ok(axum::response::Html(
-            r##"<div class="mail-content-view">
+            r#"<div class="mail-content-view">
                 <p>No email account configured</p>
-            </div>"##
+            </div>"#
                 .to_string(),
         ));
     };
@@ -2137,7 +2137,7 @@ pub async fn get_email(
 }
 
 pub async fn track_click(
-    State(state): State<Arc<AppState>>,
+    State(_state): State<Arc<AppState>>,
     Path((campaign_id, email)): Path<(String, String)>,
 ) -> Result<Json<ApiResponse<()>>, EmailError> {
     info!(
@@ -2338,7 +2338,7 @@ pub async fn search_emails_htmx(
 
     if results.is_empty() {
         return axum::response::Html(format!(
-            r##"
+            r#"
             <div class="empty-state">
                 <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -2347,12 +2347,12 @@ pub async fn search_emails_htmx(
                 <h3>No results for "{}"</h3>
                 <p>Try different keywords or check your spelling.</p>
             </div>
-        "##,
+        "#,
             query
         ));
     }
 
-    let mut html = String::from(r##"<div class="search-results">"##);
+    let mut html = String::from(r#"<div class="search-results">"#);
     html.push_str(&format!(
         r#"<div class="result-stats">Found {} results for "{}"</div>"#,
         results.len(),
