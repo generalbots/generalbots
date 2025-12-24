@@ -473,7 +473,7 @@ impl UserDriveVectorDB {
         Ok(count)
     }
 
-    pub async fn update_file_metadata(&self, _file_id: &str, _tags: Vec<String>) -> Result<()> {
+    pub async fn update_file_metadata(&self, file_id: &str, tags: Vec<String>) -> Result<()> {
         #[cfg(not(feature = "vectordb"))]
         {
             let file_path = self.db_path.join(format!("{}.json", file_id));
@@ -488,6 +488,7 @@ impl UserDriveVectorDB {
 
         #[cfg(feature = "vectordb")]
         {
+            let _ = (file_id, tags);
             log::warn!("Metadata update not yet implemented for Qdrant backend");
         }
 
