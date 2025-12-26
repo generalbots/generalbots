@@ -30,10 +30,6 @@ pub struct ActiveKbResult {
     pub qdrant_collection: String,
 }
 
-
-
-
-
 pub fn register_use_kb_keyword(
     engine: &mut Engine,
     state: Arc<AppState>,
@@ -42,8 +38,7 @@ pub fn register_use_kb_keyword(
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
 
-
-    engine.register_custom_syntax(&["USE", "KB", "$expr$"], true, move |context, inputs| {
+    engine.register_custom_syntax(["USE", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
@@ -55,7 +50,6 @@ pub fn register_use_kb_keyword(
         let bot_id = session_clone.bot_id;
         let conn = state_clone.conn.clone();
         let kb_name_clone = kb_name.clone();
-
 
         let result =
             std::thread::spawn(move || add_kb_to_session(conn, session_id, bot_id, &kb_name_clone))
@@ -80,7 +74,6 @@ pub fn register_use_kb_keyword(
     Ok(())
 }
 
-
 fn add_kb_to_session(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -91,13 +84,11 @@ fn add_kb_to_session(
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
 
-
     let bot_result: BotNameResult = diesel::sql_query("SELECT name FROM bots WHERE id = $1")
         .bind::<diesel::sql_types::Uuid, _>(bot_id)
         .get_result(&mut conn)
         .map_err(|e| format!("Failed to get bot name: {}", e))?;
     let bot_name = bot_result.name;
-
 
     let kb_exists: Option<KbCollectionResult> = diesel::sql_query(
         "SELECT folder_path, qdrant_collection FROM kb_collections WHERE bot_id = $1 AND name = $2",
@@ -111,7 +102,6 @@ fn add_kb_to_session(
     let (kb_folder_path, qdrant_collection) = if let Some(kb_result) = kb_exists {
         (kb_result.folder_path, kb_result.qdrant_collection)
     } else {
-
         let default_path = format!("work/{}/{}.gbkb/{}", bot_name, bot_name, kb_name);
         let default_collection = format!("{}_{}", bot_name, kb_name);
 
@@ -119,7 +109,6 @@ fn add_kb_to_session(
             "KB '{}' not found in kb_collections for bot {}. Using default path: {}",
             kb_name, bot_name, default_path
         );
-
 
         let kb_id = Uuid::new_v4();
         diesel::sql_query(
@@ -138,9 +127,7 @@ fn add_kb_to_session(
         (default_path, default_collection)
     };
 
-
     let tool_name: Option<String> = None;
-
 
     let assoc_id = Uuid::new_v4();
     diesel::sql_query(
@@ -169,7 +156,6 @@ fn add_kb_to_session(
 
     Ok(())
 }
-
 
 pub fn get_active_kbs_for_session(
     conn_pool: &crate::shared::utils::DbPool,

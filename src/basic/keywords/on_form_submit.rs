@@ -82,7 +82,7 @@ pub fn on_form_submit_keyword(state: Arc<AppState>, user: UserSession, engine: &
     });
 
     let user8 = user.clone();
-    let state8 = state.clone();
+    let state8 = state;
 
     engine.register_fn(
         "GET_SUBMISSIONS",
@@ -95,7 +95,7 @@ pub fn on_form_submit_keyword(state: Arc<AppState>, user: UserSession, engine: &
         },
     );
 
-    let user9 = user.clone();
+    let user9 = user;
 
     engine.register_fn("FORM_ERROR", move |message: &str| -> Map {
         debug!("FORM_ERROR: {}, user={}", message, user9.user_id);
@@ -138,7 +138,7 @@ fn validate_form_with_rules(form_data: &Map, rules: &Map) -> bool {
                 }
                 "email" => {
                     let email_str = field_value.to_string();
-                    if !email_str.contains("@") || !email_str.contains(".") {
+                    if !email_str.contains('@') || !email_str.contains('.') {
                         debug!("Validation failed: invalid email: {}", field_name);
                         return false;
                     }

@@ -1,10 +1,3 @@
-
-
-
-
-
-
-
 use crate::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
@@ -24,17 +17,13 @@ use super::{
     OAuthProvider, OAuthState, OAuthUserInfo,
 };
 
-
 #[derive(Debug, Deserialize)]
 pub struct OAuthStartParams {
-
     pub redirect: Option<String>,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct OAuthCallbackParams {
-
     pub code: Option<String>,
 
     pub state: Option<String>,
@@ -43,7 +32,6 @@ pub struct OAuthCallbackParams {
 
     pub error_description: Option<String>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct EnabledProvidersResponse {
@@ -58,14 +46,12 @@ pub struct ProviderInfo {
     pub login_url: String,
 }
 
-
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
         .route("/auth/oauth/providers", get(list_providers))
         .route("/auth/oauth/{provider}", get(start_oauth))
         .route("/auth/oauth/{provider}/callback", get(oauth_callback))
 }
-
 
 async fn list_providers(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let bot_config = get_bot_config(&state).await;
@@ -86,20 +72,16 @@ async fn list_providers(State(state): State<Arc<AppState>>) -> impl IntoResponse
     Json(EnabledProvidersResponse { providers })
 }
 
-
 async fn start_oauth(
     State(state): State<Arc<AppState>>,
     Path(provider_name): Path<String>,
     Query(params): Query<OAuthStartParams>,
 ) -> Response {
-
-    let provider = match OAuthProvider::from_str(&provider_name) {
-        Some(p) => p,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Html(format!(
-                    r#"<!DOCTYPE html>
+    let Some(provider) = OAuthProvider::from_str(&provider_name) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(format!(
+                r#"<!DOCTYPE html>
 <html>
 <head><title>Error</title></head>
 <body>
@@ -109,13 +91,11 @@ async fn start_oauth(
     <a href="/auth/login">Back to Login</a>
 </body>
 </html>"#,
-                    provider_name
-                )),
-            )
-                .into_response();
-        }
+                provider_name
+            )),
+        )
+            .into_response();
     };
-
 
     let bot_config = get_bot_config(&state).await;
     let base_url = get_base_url(&state);
@@ -144,14 +124,10 @@ async fn start_oauth(
         }
     };
 
-
     let oauth_state = OAuthState::new(provider, params.redirect);
     let state_encoded = oauth_state.encode();
 
-
-
     debug!("OAuth state created for provider {}", provider);
-
 
     let auth_url = provider.build_auth_url(&config, &state_encoded);
 
@@ -163,13 +139,11 @@ async fn start_oauth(
     Redirect::temporary(&auth_url).into_response()
 }
 
-
 async fn oauth_callback(
     State(state): State<Arc<AppState>>,
     Path(provider_name): Path<String>,
     Query(params): Query<OAuthCallbackParams>,
 ) -> Response {
-
     if let Some(error) = &params.error {
         let description = params
             .error_description
@@ -195,14 +169,11 @@ async fn oauth_callback(
             .into_response();
     }
 
-
-    let code = match &params.code {
-        Some(c) => c,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Html(
-                    r#"<!DOCTYPE html>
+    let Some(code) = &params.code else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(
+                r#"<!DOCTYPE html>
 <html>
 <head><title>Error</title></head>
 <body>
@@ -211,20 +182,17 @@ async fn oauth_callback(
     <a href="/auth/login">Try Again</a>
 </body>
 </html>"#
-                        .to_string(),
-                ),
-            )
-                .into_response();
-        }
+                    .to_string(),
+            ),
+        )
+            .into_response();
     };
 
-    let state_param = match &params.state {
-        Some(s) => s,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Html(
-                    r#"<!DOCTYPE html>
+    let Some(state_param) = &params.state else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(
+                r#"<!DOCTYPE html>
 <html>
 <head><title>Error</title></head>
 <body>
@@ -233,22 +201,18 @@ async fn oauth_callback(
     <a href="/auth/login">Try Again</a>
 </body>
 </html>"#
-                        .to_string(),
-                ),
-            )
-                .into_response();
-        }
+                    .to_string(),
+            ),
+        )
+            .into_response();
     };
 
-
-    let oauth_state = match OAuthState::decode(state_param) {
-        Some(s) => s,
-        None => {
-            warn!("Failed to decode OAuth state parameter");
-            return (
-                StatusCode::BAD_REQUEST,
-                Html(
-                    r#"<!DOCTYPE html>
+    let Some(oauth_state) = OAuthState::decode(state_param) else {
+        warn!("Failed to decode OAuth state parameter");
+        return (
+            StatusCode::BAD_REQUEST,
+            Html(
+                r#"<!DOCTYPE html>
 <html>
 <head><title>Error</title></head>
 <body>
@@ -257,13 +221,11 @@ async fn oauth_callback(
     <a href="/auth/login">Try Again</a>
 </body>
 </html>"#
-                        .to_string(),
-                ),
-            )
-                .into_response();
-        }
+                    .to_string(),
+            ),
+        )
+            .into_response();
     };
-
 
     if oauth_state.is_expired() {
         warn!("OAuth state expired");
@@ -285,18 +247,13 @@ async fn oauth_callback(
             .into_response();
     }
 
-
-    let provider = match OAuthProvider::from_str(&provider_name) {
-        Some(p) => p,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Html("Invalid provider".to_string()),
-            )
-                .into_response();
-        }
+    let Some(provider) = OAuthProvider::from_str(&provider_name) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Html("Invalid provider".to_string()),
+        )
+            .into_response();
     };
-
 
     if provider != oauth_state.provider {
         warn!(
@@ -321,21 +278,16 @@ async fn oauth_callback(
             .into_response();
     }
 
-
     let bot_config = get_bot_config(&state).await;
     let base_url = get_base_url(&state);
 
-    let config = match load_oauth_config(provider, &bot_config, &base_url) {
-        Some(c) => c,
-        None => {
-            return (
-                StatusCode::SERVICE_UNAVAILABLE,
-                Html("OAuth provider not configured".to_string()),
-            )
-                .into_response();
-        }
+    let Some(config) = load_oauth_config(provider, &bot_config, &base_url) else {
+        return (
+            StatusCode::SERVICE_UNAVAILABLE,
+            Html("OAuth provider not configured".to_string()),
+        )
+            .into_response();
     };
-
 
     let http_client = reqwest::Client::new();
     let token = match provider.exchange_code(&config, code, &http_client).await {
@@ -360,7 +312,6 @@ async fn oauth_callback(
                 .into_response();
         }
     };
-
 
     let user_info = match provider
         .fetch_user_info(&token.access_token, &http_client)
@@ -395,7 +346,6 @@ async fn oauth_callback(
         user_info.email.as_deref().unwrap_or("no email")
     );
 
-
     let user_id = match create_or_get_oauth_user(&state, &user_info).await {
         Ok(id) => id,
         Err(e) => {
@@ -407,7 +357,6 @@ async fn oauth_callback(
                 .into_response();
         }
     };
-
 
     let session_token = match create_user_session(&state, user_id).await {
         Ok(token) => token,
@@ -421,7 +370,6 @@ async fn oauth_callback(
         }
     };
 
-
     let redirect_url = oauth_state
         .redirect_after
         .unwrap_or_else(|| "/".to_string());
@@ -430,7 +378,6 @@ async fn oauth_callback(
         "OAuth complete, redirecting to {} with session {}",
         redirect_url, session_token
     );
-
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
@@ -446,9 +393,7 @@ async fn oauth_callback(
         .unwrap()
 }
 
-
 async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
-
     let conn = state.conn.clone();
 
     match tokio::task::spawn_blocking(move || {
@@ -486,13 +431,10 @@ async fn get_bot_config(state: &AppState) -> HashMap<String, String> {
     }
 }
 
-
 fn get_base_url(state: &AppState) -> String {
-
     let _ = state;
     "http://localhost:8300".to_string()
 }
-
 
 async fn create_or_get_oauth_user(
     state: &AppState,
@@ -515,7 +457,6 @@ async fn create_or_get_oauth_user(
         use crate::shared::models::schema::users::dsl::*;
         use diesel::prelude::*;
 
-
         let existing_user: Option<Uuid> = if let Some(ref email_addr) = user_email {
             users
                 .filter(email.eq(email_addr))
@@ -524,7 +465,6 @@ async fn create_or_get_oauth_user(
                 .optional()
                 .map_err(|e| anyhow::anyhow!("DB error: {}", e))?
         } else {
-
             let oauth_username = format!("{}_{}", provider, provider_id);
             users
                 .filter(username.eq(&oauth_username))
@@ -537,7 +477,6 @@ async fn create_or_get_oauth_user(
         if let Some(user_id) = existing_user {
             return Ok(user_id);
         }
-
 
         let new_user_id = Uuid::new_v4();
 
@@ -583,10 +522,8 @@ async fn create_or_get_oauth_user(
     .map_err(|e| anyhow::anyhow!("Task error: {}", e))?
 }
 
-
 async fn create_user_session(state: &AppState, user_id: Uuid) -> anyhow::Result<String> {
     let mut sm = state.session_manager.lock().await;
-
 
     let bot_id = {
         let conn = state.conn.clone();

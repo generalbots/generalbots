@@ -7,10 +7,9 @@ use std::sync::Arc;
 pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let cache = state.cache.clone();
 
-
     engine
         .register_custom_syntax(
-            &["SET", "CONTEXT", "$expr$", "AS", "$expr$"],
+            ["SET", "CONTEXT", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -34,8 +33,6 @@ pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
 
                 if let Some(cache_client) = &cache {
                     let cache_client = cache_client.clone();
-                    let redis_key = redis_key.clone();
-                    let context_value = context_value.clone();
 
                     trace!(
                         "Cloned cache_client, redis_key ({}) and context_value (len={}) for async task",

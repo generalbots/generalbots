@@ -36,7 +36,7 @@ pub fn get_instagram_metrics_keyword(state: Arc<AppState>, user: UserSession, en
 
     engine
         .register_custom_syntax(
-            &["GET", "INSTAGRAM", "METRICS", "$expr$"],
+            ["GET", "INSTAGRAM", "METRICS", "$expr$"],
             false,
             move |context, inputs| {
                 let post_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -89,7 +89,7 @@ pub fn get_facebook_metrics_keyword(state: Arc<AppState>, user: UserSession, eng
 
     engine
         .register_custom_syntax(
-            &["GET", "FACEBOOK", "METRICS", "$expr$"],
+            ["GET", "FACEBOOK", "METRICS", "$expr$"],
             false,
             move |context, inputs| {
                 let post_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -142,7 +142,7 @@ pub fn get_linkedin_metrics_keyword(state: Arc<AppState>, user: UserSession, eng
 
     engine
         .register_custom_syntax(
-            &["GET", "LINKEDIN", "METRICS", "$expr$"],
+            ["GET", "LINKEDIN", "METRICS", "$expr$"],
             false,
             move |context, inputs| {
                 let post_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -195,7 +195,7 @@ pub fn get_twitter_metrics_keyword(state: Arc<AppState>, user: UserSession, engi
 
     engine
         .register_custom_syntax(
-            &["GET", "TWITTER", "METRICS", "$expr$"],
+            ["GET", "TWITTER", "METRICS", "$expr$"],
             false,
             move |context, inputs| {
                 let post_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -459,4 +459,24 @@ async fn fetch_twitter_metrics(
             .unwrap_or(0),
         ..Default::default()
     })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_engagement_to_dynamic() {
+        let engagement = PostEngagement {
+            likes: 100,
+            comments: 20,
+            shares: 5,
+            views: 1000,
+            clicks: 50,
+            reach: 500,
+        };
+
+        let dynamic = engagement.to_dynamic();
+        assert!(dynamic.is_map());
+    }
 }

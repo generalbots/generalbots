@@ -48,7 +48,7 @@ impl SessionManager {
         conn: PooledConnection<ConnectionManager<PgConnection>>,
         redis_client: Option<Arc<Client>>,
     ) -> Self {
-        SessionManager {
+        Self {
             conn,
             sessions: HashMap::new(),
             waiting_for_input: HashSet::new(),
@@ -225,7 +225,7 @@ impl SessionManager {
         Ok(())
     }
 
-    pub async fn update_session_context(
+    pub fn update_session_context(
         &mut self,
         session_id: &Uuid,
         user_id: &Uuid,
@@ -242,7 +242,7 @@ impl SessionManager {
         Ok(())
     }
 
-    pub async fn get_session_context_data(
+    pub fn get_session_context_data(
         &self,
         session_id: &Uuid,
         user_id: &Uuid,
@@ -322,7 +322,6 @@ impl SessionManager {
     ) -> Result<Vec<UserSession>, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
 
-
         let sessions = if uid == Uuid::nil() {
             user_sessions
                 .order(created_at.desc())
@@ -355,11 +354,9 @@ impl SessionManager {
         Ok(())
     }
 
-
     pub fn active_count(&self) -> usize {
         self.sessions.len()
     }
-
 
     pub fn total_count(&mut self) -> usize {
         use crate::shared::models::user_sessions::dsl::*;
@@ -368,7 +365,6 @@ impl SessionManager {
             .first::<i64>(&mut self.conn)
             .unwrap_or(0) as usize
     }
-
 
     pub fn recent_sessions(
         &mut self,
@@ -382,7 +378,6 @@ impl SessionManager {
             .load::<UserSession>(&mut self.conn)?;
         Ok(sessions)
     }
-
 
     pub fn get_statistics(&mut self) -> Result<serde_json::Value, Box<dyn Error + Send + Sync>> {
         use crate::shared::models::user_sessions::dsl::*;
@@ -410,38 +405,30 @@ impl SessionManager {
 
 /* Axum handlers */
 
-
 pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-
     let temp_session_id = Uuid::new_v4();
 
-
     if state.conn.get().is_ok() {
-
         let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
         let bot_id = Uuid::nil();
 
-        let _session_result = {
+        {
             let mut sm = state.session_manager.lock().await;
 
-            match sm.get_or_create_user_session(user_id, bot_id, "New Conversation") {
-                Ok(Some(session)) => {
-                    return (
-                        StatusCode::OK,
-                        Json(serde_json::json!({
-                            "session_id": session.id,
-                            "title": "New Conversation",
-                            "created_at": Utc::now()
-                        })),
-                    );
-                }
-                _ => {
-
-                }
+            if let Ok(Some(session)) =
+                sm.get_or_create_user_session(user_id, bot_id, "New Conversation")
+            {
+                return (
+                    StatusCode::OK,
+                    Json(serde_json::json!({
+                        "session_id": session.id,
+                        "title": "New Conversation",
+                        "created_at": Utc::now()
+                    })),
+                );
             }
         };
     }
-
 
     (
         StatusCode::OK,
@@ -454,29 +441,20 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
     )
 }
 
-
 pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-
     let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap();
-
 
     let conn_result = state.conn.get();
     if conn_result.is_err() {
-
         return (StatusCode::OK, Json(serde_json::json!([])));
     }
 
     let orchestrator = BotOrchestrator::new(state.clone());
     match orchestrator.get_user_sessions(user_id).await {
         Ok(sessions) => (StatusCode::OK, Json(serde_json::json!(sessions))),
-        Err(_) => {
-
-
-            (StatusCode::OK, Json(serde_json::json!([])))
-        }
+        Err(_) => (StatusCode::OK, Json(serde_json::json!([]))),
     }
 }
-
 
 pub async fn start_session(
     Extension(state): Extension<Arc<AppState>>,
@@ -510,7 +488,6 @@ pub async fn start_session(
     }
 }
 
-
 pub async fn get_session_history(
     Extension(state): Extension<Arc<AppState>>,
     Path(session_id): Path<String>,
@@ -534,5 +511,691 @@ pub async fn get_session_history(
             StatusCode::BAD_REQUEST,
             Json(serde_json::json!({ "error": "Invalid session ID" })),
         ),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
+    use std::time::Duration;
+
+    // Test fixtures from bottest/fixtures/mod.rs
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum Role {
+        Admin,
+        Attendant,
+        User,
+        Guest,
+    }
+
+    impl Default for Role {
+        fn default() -> Self {
+            Self::User
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct User {
+        pub id: Uuid,
+        pub email: String,
+        pub name: String,
+        pub role: Role,
+        pub created_at: chrono::DateTime<chrono::Utc>,
+        pub updated_at: chrono::DateTime<chrono::Utc>,
+        pub metadata: HashMap<String, String>,
+    }
+
+    impl Default for User {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                email: "user@example.com".to_string(),
+                name: "Test User".to_string(),
+                role: Role::User,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                metadata: HashMap::new(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum Channel {
+        WhatsApp,
+        Teams,
+        Web,
+        SMS,
+        Email,
+        API,
+    }
+
+    impl Default for Channel {
+        fn default() -> Self {
+            Self::WhatsApp
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Customer {
+        pub id: Uuid,
+        pub external_id: String,
+        pub phone: Option<String>,
+        pub email: Option<String>,
+        pub name: Option<String>,
+        pub channel: Channel,
+        pub created_at: chrono::DateTime<chrono::Utc>,
+        pub updated_at: chrono::DateTime<chrono::Utc>,
+        pub metadata: HashMap<String, String>,
+    }
+
+    impl Default for Customer {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                external_id: format!("ext_{}", Uuid::new_v4()),
+                phone: Some("+15551234567".to_string()),
+                email: None,
+                name: Some("Test Customer".to_string()),
+                channel: Channel::WhatsApp,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                metadata: HashMap::new(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Bot {
+        pub id: Uuid,
+        pub name: String,
+        pub description: Option<String>,
+        pub kb_enabled: bool,
+        pub llm_enabled: bool,
+        pub llm_model: Option<String>,
+        pub active: bool,
+        pub created_at: chrono::DateTime<chrono::Utc>,
+        pub updated_at: chrono::DateTime<chrono::Utc>,
+        pub config: HashMap<String, serde_json::Value>,
+    }
+
+    impl Default for Bot {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                name: "test-bot".to_string(),
+                description: Some("Test bot for automated testing".to_string()),
+                kb_enabled: false,
+                llm_enabled: true,
+                llm_model: Some("gpt-4".to_string()),
+                active: true,
+                created_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                config: HashMap::new(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "snake_case")]
+    pub enum SessionState {
+        Active,
+        Waiting,
+        Transferred,
+        Ended,
+    }
+
+    impl Default for SessionState {
+        fn default() -> Self {
+            Self::Active
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Session {
+        pub id: Uuid,
+        pub bot_id: Uuid,
+        pub customer_id: Uuid,
+        pub channel: Channel,
+        pub state: SessionState,
+        pub context: HashMap<String, serde_json::Value>,
+        pub started_at: chrono::DateTime<chrono::Utc>,
+        pub updated_at: chrono::DateTime<chrono::Utc>,
+        pub ended_at: Option<chrono::DateTime<chrono::Utc>>,
+    }
+
+    impl Default for Session {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                bot_id: Uuid::new_v4(),
+                customer_id: Uuid::new_v4(),
+                channel: Channel::WhatsApp,
+                state: SessionState::Active,
+                context: HashMap::new(),
+                started_at: chrono::Utc::now(),
+                updated_at: chrono::Utc::now(),
+                ended_at: None,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum MessageDirection {
+        Incoming,
+        Outgoing,
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum ContentType {
+        Text,
+        Image,
+        Audio,
+        Video,
+        Document,
+        Location,
+        Contact,
+        Interactive,
+    }
+
+    impl Default for ContentType {
+        fn default() -> Self {
+            Self::Text
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct Message {
+        pub id: Uuid,
+        pub session_id: Uuid,
+        pub direction: MessageDirection,
+        pub content: String,
+        pub content_type: ContentType,
+        pub timestamp: chrono::DateTime<chrono::Utc>,
+        pub metadata: HashMap<String, serde_json::Value>,
+    }
+
+    impl Default for Message {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                session_id: Uuid::new_v4(),
+                direction: MessageDirection::Incoming,
+                content: "Hello".to_string(),
+                content_type: ContentType::Text,
+                timestamp: chrono::Utc::now(),
+                metadata: HashMap::new(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+    #[serde(rename_all = "lowercase")]
+    pub enum Priority {
+        Low = 0,
+        Normal = 1,
+        High = 2,
+        Urgent = 3,
+    }
+
+    impl Default for Priority {
+        fn default() -> Self {
+            Self::Normal
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    #[serde(rename_all = "snake_case")]
+    pub enum QueueStatus {
+        Waiting,
+        Assigned,
+        InProgress,
+        Completed,
+        Cancelled,
+    }
+
+    impl Default for QueueStatus {
+        fn default() -> Self {
+            Self::Waiting
+        }
+    }
+
+    #[derive(Debug, Clone, Serialize, Deserialize)]
+    pub struct QueueEntry {
+        pub id: Uuid,
+        pub customer_id: Uuid,
+        pub session_id: Uuid,
+        pub priority: Priority,
+        pub status: QueueStatus,
+        pub entered_at: chrono::DateTime<chrono::Utc>,
+        pub assigned_at: Option<chrono::DateTime<chrono::Utc>>,
+        pub attendant_id: Option<Uuid>,
+    }
+
+    impl Default for QueueEntry {
+        fn default() -> Self {
+            Self {
+                id: Uuid::new_v4(),
+                customer_id: Uuid::new_v4(),
+                session_id: Uuid::new_v4(),
+                priority: Priority::Normal,
+                status: QueueStatus::Waiting,
+                entered_at: chrono::Utc::now(),
+                assigned_at: None,
+                attendant_id: None,
+            }
+        }
+    }
+
+    // Conversation test types from bottest/bot/mod.rs
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+    pub enum ConversationState {
+        Initial,
+        WaitingForUser,
+        WaitingForBot,
+        Transferred,
+        Ended,
+        Error,
+    }
+
+    impl Default for ConversationState {
+        fn default() -> Self {
+            Self::Initial
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct ConversationConfig {
+        pub response_timeout: Duration,
+        pub record: bool,
+        pub use_mock_llm: bool,
+        pub variables: HashMap<String, String>,
+    }
+
+    impl Default for ConversationConfig {
+        fn default() -> Self {
+            Self {
+                response_timeout: Duration::from_secs(30),
+                record: true,
+                use_mock_llm: true,
+                variables: HashMap::new(),
+            }
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub struct AssertionResult {
+        pub passed: bool,
+        pub message: String,
+        pub expected: Option<String>,
+        pub actual: Option<String>,
+    }
+
+    impl AssertionResult {
+        pub fn pass(message: &str) -> Self {
+            Self {
+                passed: true,
+                message: message.to_string(),
+                expected: None,
+                actual: None,
+            }
+        }
+
+        pub fn fail(message: &str, expected: &str, actual: &str) -> Self {
+            Self {
+                passed: false,
+                message: message.to_string(),
+                expected: Some(expected.to_string()),
+                actual: Some(actual.to_string()),
+            }
+        }
+    }
+
+    // Fixture factory functions
+
+    fn admin_user() -> User {
+        User {
+            email: "admin@test.com".to_string(),
+            name: "Test Admin".to_string(),
+            role: Role::Admin,
+            ..Default::default()
+        }
+    }
+
+    fn attendant_user() -> User {
+        User {
+            email: "attendant@test.com".to_string(),
+            name: "Test Attendant".to_string(),
+            role: Role::Attendant,
+            ..Default::default()
+        }
+    }
+
+    fn regular_user() -> User {
+        User {
+            email: "user@test.com".to_string(),
+            name: "Test User".to_string(),
+            role: Role::User,
+            ..Default::default()
+        }
+    }
+
+    fn customer(phone: &str) -> Customer {
+        Customer {
+            phone: Some(phone.to_string()),
+            channel: Channel::WhatsApp,
+            ..Default::default()
+        }
+    }
+
+    fn basic_bot(name: &str) -> Bot {
+        Bot {
+            name: name.to_string(),
+            kb_enabled: false,
+            llm_enabled: true,
+            ..Default::default()
+        }
+    }
+
+    fn bot_with_kb(name: &str) -> Bot {
+        Bot {
+            name: name.to_string(),
+            kb_enabled: true,
+            llm_enabled: true,
+            ..Default::default()
+        }
+    }
+
+    fn session_for(bot: &Bot, customer: &Customer) -> Session {
+        Session {
+            bot_id: bot.id,
+            customer_id: customer.id,
+            channel: customer.channel,
+            ..Default::default()
+        }
+    }
+
+    fn incoming_message(content: &str) -> Message {
+        Message {
+            direction: MessageDirection::Incoming,
+            content: content.to_string(),
+            ..Default::default()
+        }
+    }
+
+    fn outgoing_message(content: &str) -> Message {
+        Message {
+            direction: MessageDirection::Outgoing,
+            content: content.to_string(),
+            ..Default::default()
+        }
+    }
+
+    fn high_priority_queue_entry() -> QueueEntry {
+        QueueEntry {
+            priority: Priority::High,
+            ..Default::default()
+        }
+    }
+
+    fn urgent_queue_entry() -> QueueEntry {
+        QueueEntry {
+            priority: Priority::Urgent,
+            ..Default::default()
+        }
+    }
+
+    // Tests
+
+    #[test]
+    fn test_admin_user() {
+        let user = admin_user();
+        assert_eq!(user.role, Role::Admin);
+        assert_eq!(user.email, "admin@test.com");
+    }
+
+    #[test]
+    fn test_customer_factory() {
+        let c = customer("+15559876543");
+        assert_eq!(c.phone, Some("+15559876543".to_string()));
+        assert_eq!(c.channel, Channel::WhatsApp);
+    }
+
+    #[test]
+    fn test_bot_with_kb() {
+        let bot = bot_with_kb("kb-bot");
+        assert!(bot.kb_enabled);
+        assert!(bot.llm_enabled);
+    }
+
+    #[test]
+    fn test_session_for() {
+        let bot = basic_bot("test");
+        let customer = customer("+15551234567");
+        let session = session_for(&bot, &customer);
+
+        assert_eq!(session.bot_id, bot.id);
+        assert_eq!(session.customer_id, customer.id);
+        assert_eq!(session.channel, customer.channel);
+    }
+
+    #[test]
+    fn test_message_factories() {
+        let incoming = incoming_message("Hello");
+        assert_eq!(incoming.direction, MessageDirection::Incoming);
+        assert_eq!(incoming.content, "Hello");
+
+        let outgoing = outgoing_message("Hi there!");
+        assert_eq!(outgoing.direction, MessageDirection::Outgoing);
+        assert_eq!(outgoing.content, "Hi there!");
+    }
+
+    #[test]
+    fn test_queue_entry_priority() {
+        let normal = QueueEntry::default();
+        let high = high_priority_queue_entry();
+        let urgent = urgent_queue_entry();
+
+        assert!(urgent.priority > high.priority);
+        assert!(high.priority > normal.priority);
+    }
+
+    #[test]
+    fn test_default_implementations() {
+        let _user = User::default();
+        let _customer = Customer::default();
+        let _bot = Bot::default();
+        let _session = Session::default();
+        let _message = Message::default();
+        let _queue = QueueEntry::default();
+    }
+
+    #[test]
+    fn test_assertion_result_pass() {
+        let result = AssertionResult::pass("Test passed");
+        assert!(result.passed);
+        assert_eq!(result.message, "Test passed");
+    }
+
+    #[test]
+    fn test_assertion_result_fail() {
+        let result = AssertionResult::fail("Test failed", "expected", "actual");
+        assert!(!result.passed);
+        assert_eq!(result.expected, Some("expected".to_string()));
+        assert_eq!(result.actual, Some("actual".to_string()));
+    }
+
+    #[test]
+    fn test_conversation_config_default() {
+        let config = ConversationConfig::default();
+        assert_eq!(config.response_timeout, Duration::from_secs(30));
+        assert!(config.record);
+        assert!(config.use_mock_llm);
+    }
+
+    #[test]
+    fn test_conversation_state_default() {
+        let state = ConversationState::default();
+        assert_eq!(state, ConversationState::Initial);
+    }
+
+    #[test]
+    fn test_session_state_transitions() {
+        let mut session = Session::default();
+        assert_eq!(session.state, SessionState::Active);
+
+        session.state = SessionState::Waiting;
+        assert_eq!(session.state, SessionState::Waiting);
+
+        session.state = SessionState::Transferred;
+        assert_eq!(session.state, SessionState::Transferred);
+
+        session.state = SessionState::Ended;
+        session.ended_at = Some(chrono::Utc::now());
+        assert_eq!(session.state, SessionState::Ended);
+        assert!(session.ended_at.is_some());
+    }
+
+    #[test]
+    fn test_user_roles() {
+        let admin = admin_user();
+        let attendant = attendant_user();
+        let user = regular_user();
+
+        assert_eq!(admin.role, Role::Admin);
+        assert_eq!(attendant.role, Role::Attendant);
+        assert_eq!(user.role, Role::User);
+    }
+
+    #[test]
+    fn test_channel_types() {
+        let wa_customer = Customer {
+            channel: Channel::WhatsApp,
+            ..Default::default()
+        };
+        let teams_customer = Customer {
+            channel: Channel::Teams,
+            ..Default::default()
+        };
+        let web_customer = Customer {
+            channel: Channel::Web,
+            ..Default::default()
+        };
+
+        assert_eq!(wa_customer.channel, Channel::WhatsApp);
+        assert_eq!(teams_customer.channel, Channel::Teams);
+        assert_eq!(web_customer.channel, Channel::Web);
+    }
+
+    #[test]
+    fn test_bot_configuration() {
+        let mut bot = basic_bot("configurable-bot");
+        bot.config
+            .insert("max_tokens".to_string(), serde_json::json!(1000));
+        bot.config
+            .insert("temperature".to_string(), serde_json::json!(0.7));
+
+        assert_eq!(bot.config.get("max_tokens"), Some(&serde_json::json!(1000)));
+        assert_eq!(bot.config.get("temperature"), Some(&serde_json::json!(0.7)));
+    }
+
+    #[test]
+    fn test_message_content_types() {
+        let text_msg = Message {
+            content_type: ContentType::Text,
+            content: "Hello".to_string(),
+            ..Default::default()
+        };
+        let image_msg = Message {
+            content_type: ContentType::Image,
+            content: "[image]".to_string(),
+            ..Default::default()
+        };
+
+        assert_eq!(text_msg.content_type, ContentType::Text);
+        assert_eq!(image_msg.content_type, ContentType::Image);
+    }
+
+    #[test]
+    fn test_queue_status_transitions() {
+        let mut entry = QueueEntry::default();
+        assert_eq!(entry.status, QueueStatus::Waiting);
+
+        entry.status = QueueStatus::Assigned;
+        entry.assigned_at = Some(chrono::Utc::now());
+        entry.attendant_id = Some(Uuid::new_v4());
+        assert_eq!(entry.status, QueueStatus::Assigned);
+        assert!(entry.assigned_at.is_some());
+        assert!(entry.attendant_id.is_some());
+
+        entry.status = QueueStatus::InProgress;
+        assert_eq!(entry.status, QueueStatus::InProgress);
+
+        entry.status = QueueStatus::Completed;
+        assert_eq!(entry.status, QueueStatus::Completed);
+    }
+
+    #[test]
+    fn test_customer_metadata() {
+        let mut customer = Customer::default();
+        customer
+            .metadata
+            .insert("vip".to_string(), "true".to_string());
+        customer
+            .metadata
+            .insert("segment".to_string(), "enterprise".to_string());
+
+        assert_eq!(customer.metadata.get("vip"), Some(&"true".to_string()));
+        assert_eq!(
+            customer.metadata.get("segment"),
+            Some(&"enterprise".to_string())
+        );
+    }
+
+    #[test]
+    fn test_session_context() {
+        let mut session = Session::default();
+        session
+            .context
+            .insert("last_intent".to_string(), serde_json::json!("greeting"));
+        session
+            .context
+            .insert("turn_count".to_string(), serde_json::json!(5));
+
+        assert_eq!(
+            session.context.get("last_intent"),
+            Some(&serde_json::json!("greeting"))
+        );
+        assert_eq!(
+            session.context.get("turn_count"),
+            Some(&serde_json::json!(5))
+        );
+    }
+
+    #[test]
+    fn test_message_metadata() {
+        let mut message = Message::default();
+        message
+            .metadata
+            .insert("sentiment".to_string(), serde_json::json!("positive"));
+        message
+            .metadata
+            .insert("confidence".to_string(), serde_json::json!(0.95));
+
+        assert_eq!(
+            message.metadata.get("sentiment"),
+            Some(&serde_json::json!("positive"))
+        );
+        assert_eq!(
+            message.metadata.get("confidence"),
+            Some(&serde_json::json!(0.95))
+        );
     }
 }

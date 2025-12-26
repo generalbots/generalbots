@@ -8,6 +8,7 @@ use anyhow::{Context, Result};
 use log::{error, info, trace, warn};
 use reqwest::Client;
 use std::collections::HashMap;
+use std::fmt::Write as FmtWrite;
 use std::path::PathBuf;
 use std::process::Command;
 impl PackageManager {
@@ -83,7 +84,7 @@ impl PackageManager {
                     .join(&filename);
 
                 if output_path.exists() {
-                    info!("Data file already exists: {:?}", output_path);
+                    info!("Data file already exists: {}", output_path.display());
                     continue;
                 }
 
@@ -93,7 +94,7 @@ impl PackageManager {
 
                 if let Some(ref c) = cache {
                     if let Some(cached_path) = c.get_cached_path(&filename) {
-                        info!("Using cached data file: {:?}", cached_path);
+                        info!("Using cached data file: {}", cached_path.display());
                         std::fs::copy(&cached_path, &output_path)?;
                         continue;
                     }
@@ -111,7 +112,7 @@ impl PackageManager {
 
                 if cache.is_some() && download_target != output_path {
                     std::fs::copy(&download_target, &output_path)?;
-                    info!("Copied cached file to: {:?}", output_path);
+                    info!("Copied cached file to: {}", output_path.display());
                 }
             }
         }
@@ -121,7 +122,7 @@ impl PackageManager {
     pub fn install_container(&self, component: &ComponentConfig) -> Result<InstallResult> {
         let container_name = format!("{}-{}", self.tenant, component.name);
 
-        let _ = Command::new("lxd").args(&["init", "--auto"]).output();
+        let _ = Command::new("lxd").args(["init", "--auto"]).output();
 
         let images = [
             "ubuntu:24.04",
@@ -136,7 +137,7 @@ impl PackageManager {
         for image in &images {
             info!("Attempting to create container with image: {}", image);
             let output = Command::new("lxc")
-                .args(&[
+                .args([
                     "launch",
                     image,
                     &container_name,
@@ -154,7 +155,7 @@ impl PackageManager {
             warn!("Failed to create container with {}: {}", image, last_error);
 
             let _ = Command::new("lxc")
-                .args(&["delete", &container_name, "--force"])
+                .args(["delete", &container_name, "--force"])
                 .output();
         }
 
@@ -236,10 +237,10 @@ impl PackageManager {
         }
         self.setup_port_forwarding(&container_name, &component.ports)?;
 
-        let container_ip = self.get_container_ip(&container_name)?;
+        let container_ip = Self::get_container_ip(&container_name)?;
 
         if component.name == "vault" {
-            self.initialize_vault(&container_name, &container_ip)?;
+            Self::initialize_vault(&container_name, &container_ip)?;
         }
 
         let (connection_info, env_vars) =
@@ -253,7 +254,7 @@ impl PackageManager {
 
         Ok(InstallResult {
             component: component.name.clone(),
-            container_name: container_name.clone(),
+            container_name,
             container_ip,
             ports: component.ports.clone(),
             env_vars,
@@ -261,22 +262,18 @@ impl PackageManager {
         })
     }
 
-    fn get_container_ip(&self, container_name: &str) -> Result<String> {
+    fn get_container_ip(container_name: &str) -> Result<String> {
         std::thread::sleep(std::time::Duration::from_secs(2));
 
         let output = Command::new("lxc")
-            .args(&["list", container_name, "-c", "4", "--format", "csv"])
+            .args(["list", container_name, "-c", "4", "--format", "csv"])
             .output()?;
 
         if output.status.success() {
             let ip_output = String::from_utf8_lossy(&output.stdout).trim().to_string();
 
             if !ip_output.is_empty() {
-                let ip = ip_output
-                    .split(|c| c == ' ' || c == '(')
-                    .next()
-                    .unwrap_or("")
-                    .trim();
+                let ip = ip_output.split([' ', '(']).next().unwrap_or("").trim();
                 if !ip.is_empty() && ip.contains('.') {
                     return Ok(ip.to_string());
                 }
@@ -284,7 +281,7 @@ impl PackageManager {
         }
 
         let output = Command::new("lxc")
-            .args(&["exec", container_name, "--", "hostname", "-I"])
+            .args(["exec", container_name, "--", "hostname", "-I"])
             .output()?;
 
         if output.status.success() {
@@ -299,13 +296,13 @@ impl PackageManager {
         Ok("unknown".to_string())
     }
 
-    fn initialize_vault(&self, container_name: &str, ip: &str) -> Result<()> {
+    fn initialize_vault(container_name: &str, ip: &str) -> Result<()> {
         info!("Initializing Vault...");
 
         std::thread::sleep(std::time::Duration::from_secs(5));
 
         let output = Command::new("lxc")
-            .args(&[
+            .args([
                 "exec",
                 container_name,
                 "--",
@@ -341,11 +338,12 @@ impl PackageManager {
         let mut unseal_content = String::new();
         for (i, key) in unseal_keys.iter().enumerate() {
             if i < 3 {
-                unseal_content.push_str(&format!(
-                    "VAULT_UNSEAL_KEY_{}={}\n",
+                let _ = writeln!(
+                    unseal_content,
+                    "VAULT_UNSEAL_KEY_{}={}",
                     i + 1,
                     key.as_str().unwrap_or("")
-                ));
+                );
             }
         }
         std::fs::write(&unseal_keys_file, &unseal_content)?;
@@ -367,13 +365,13 @@ impl PackageManager {
         if env_file.exists() {
             let existing = std::fs::read_to_string(&env_file)?;
 
-            if !existing.contains("VAULT_ADDR=") {
+            if existing.contains("VAULT_ADDR=") {
+                warn!(".env already contains VAULT_ADDR, not overwriting");
+            } else {
                 let mut file = std::fs::OpenOptions::new().append(true).open(&env_file)?;
                 use std::io::Write;
                 file.write_all(env_content.as_bytes())?;
                 info!("Appended Vault config to .env");
-            } else {
-                warn!(".env already contains VAULT_ADDR, not overwriting");
             }
         } else {
             std::fs::write(&env_file, env_content.trim_start())?;
@@ -388,7 +386,7 @@ impl PackageManager {
                     key_str
                 );
                 let unseal_output = Command::new("lxc")
-                    .args(&["exec", container_name, "--", "bash", "-c", &unseal_cmd])
+                    .args(["exec", container_name, "--", "bash", "-c", &unseal_cmd])
                     .output()?;
 
                 if !unseal_output.status.success() {
@@ -606,11 +604,9 @@ Store credentials in Vault:
     }
     pub fn remove_container(&self, component: &ComponentConfig) -> Result<()> {
         let container_name = format!("{}-{}", self.tenant, component.name);
-        let _ = Command::new("lxc")
-            .args(&["stop", &container_name])
-            .output();
+        let _ = Command::new("lxc").args(["stop", &container_name]).output();
         let output = Command::new("lxc")
-            .args(&["delete", &container_name])
+            .args(["delete", &container_name])
             .output()?;
         if !output.status.success() {
             warn!(
@@ -632,7 +628,7 @@ Store credentials in Vault:
             InstallMode::Container => {
                 let container_name = format!("{}-{}", self.tenant, component_name);
                 let output = Command::new("lxc")
-                    .args(&["list", &container_name, "--format=json"])
+                    .args(["list", &container_name, "--format=json"])
                     .output()
                     .unwrap();
                 if !output.status.success() {
@@ -648,7 +644,7 @@ Store credentials in Vault:
         for dir in &dirs {
             let path = self.base_path.join(dir).join(component);
             std::fs::create_dir_all(&path)
-                .context(format!("Failed to create directory: {:?}", path))?;
+                .context(format!("Failed to create directory: {}", path.display()))?;
         }
         Ok(())
     }
@@ -668,12 +664,12 @@ Store credentials in Vault:
         );
         match self.os_type {
             OsType::Linux => {
-                let output = Command::new("apt-get").args(&["update"]).output()?;
+                let output = Command::new("apt-get").args(["update"]).output()?;
                 if !output.status.success() {
                     warn!("apt-get update had issues");
                 }
                 let output = Command::new("apt-get")
-                    .args(&["install", "-y"])
+                    .args(["install", "-y"])
                     .args(packages)
                     .output()?;
                 if !output.status.success() {
@@ -682,7 +678,7 @@ Store credentials in Vault:
             }
             OsType::MacOS => {
                 let output = Command::new("brew")
-                    .args(&["install"])
+                    .args(["install"])
                     .args(packages)
                     .output()?;
                 if !output.status.success() {
@@ -715,7 +711,11 @@ Store credentials in Vault:
 
         let source_file = match cache_result {
             CacheResult::Cached(cached_path) => {
-                info!("Using cached file for {}: {:?}", component, cached_path);
+                info!(
+                    "Using cached file for {}: {}",
+                    component,
+                    cached_path.display()
+                );
                 cached_path
             }
             CacheResult::Download {
@@ -728,7 +728,7 @@ Store credentials in Vault:
                 self.download_with_reqwest(&download_url, &cache_path, component)
                     .await?;
 
-                info!("Cached {} to {:?}", component, cache_path);
+                info!("Cached {} to {}", component, cache_path.display());
                 cache_path
             }
         };
@@ -739,7 +739,7 @@ Store credentials in Vault:
     pub async fn download_with_reqwest(
         &self,
         url: &str,
-        target_file: &PathBuf,
+        target_file: &std::path::Path,
         component: &str,
     ) -> Result<()> {
         const MAX_RETRIES: u32 = 3;
@@ -792,7 +792,7 @@ Store credentials in Vault:
         &self,
         _client: &Client,
         url: &str,
-        temp_file: &PathBuf,
+        temp_file: &std::path::Path,
     ) -> Result<u64> {
         let output_path = temp_file.to_str().context("Invalid temp file path")?;
         utils::download_file(url, output_path)
@@ -804,8 +804,8 @@ Store credentials in Vault:
     }
     pub fn handle_downloaded_file(
         &self,
-        temp_file: &PathBuf,
-        bin_path: &PathBuf,
+        temp_file: &std::path::Path,
+        bin_path: &std::path::Path,
         binary_name: Option<&str>,
     ) -> Result<()> {
         let metadata = std::fs::metadata(temp_file)?;
@@ -840,10 +840,18 @@ Store credentials in Vault:
         }
         Ok(())
     }
-    pub fn extract_tar_gz(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
+    pub fn extract_tar_gz(
+        &self,
+        temp_file: &std::path::Path,
+        bin_path: &std::path::Path,
+    ) -> Result<()> {
         let output = Command::new("tar")
             .current_dir(bin_path)
-            .args(&["-xzf", temp_file.to_str().unwrap(), "--strip-components=1"])
+            .args([
+                "-xzf",
+                temp_file.to_str().unwrap_or_default(),
+                "--strip-components=1",
+            ])
             .output()?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
@@ -857,10 +865,14 @@ Store credentials in Vault:
         }
         Ok(())
     }
-    pub fn extract_zip(&self, temp_file: &PathBuf, bin_path: &PathBuf) -> Result<()> {
+    pub fn extract_zip(
+        &self,
+        temp_file: &std::path::Path,
+        bin_path: &std::path::Path,
+    ) -> Result<()> {
         let output = Command::new("unzip")
             .current_dir(bin_path)
-            .args(&["-o", "-q", temp_file.to_str().unwrap()])
+            .args(["-o", "-q", temp_file.to_str().unwrap_or_default()])
             .output()?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(
@@ -883,7 +895,7 @@ Store credentials in Vault:
                             if ext.is_empty() || ext == "sh" || ext == "bash" {
                                 perms.set_mode(0o755);
                                 let _ = std::fs::set_permissions(&path, perms);
-                                trace!("Made executable: {:?}", path);
+                                trace!("Made executable: {}", path.display());
                             }
                         }
                     }
@@ -898,8 +910,8 @@ Store credentials in Vault:
     }
     pub fn install_binary(
         &self,
-        temp_file: &PathBuf,
-        bin_path: &PathBuf,
+        temp_file: &std::path::Path,
+        bin_path: &std::path::Path,
         name: &str,
     ) -> Result<()> {
         let final_path = bin_path.join(name);
@@ -912,7 +924,7 @@ Store credentials in Vault:
         self.make_executable(&final_path)?;
         Ok(())
     }
-    pub fn make_executable(&self, path: &PathBuf) -> Result<()> {
+    pub fn make_executable(&self, path: &std::path::Path) -> Result<()> {
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;
@@ -967,7 +979,7 @@ Store credentials in Vault:
                 trace!("Executing command: {}", rendered_cmd);
                 let output = Command::new("bash")
                     .current_dir(&bin_path)
-                    .args(&["-c", &rendered_cmd])
+                    .args(["-c", &rendered_cmd])
                     .stdout(std::process::Stdio::null())
                     .stderr(std::process::Stdio::piped())
                     .output()
@@ -989,7 +1001,7 @@ Store credentials in Vault:
     pub fn exec_in_container(&self, container: &str, command: &str) -> Result<()> {
         info!("Executing in container {}: {}", container, command);
         let output = Command::new("lxc")
-            .args(&["exec", container, "--", "bash", "-c", command])
+            .args(["exec", container, "--", "bash", "-c", command])
             .output()?;
         if !output.status.success() {
             let stderr = String::from_utf8_lossy(&output.stderr);
@@ -1018,9 +1030,23 @@ Store credentials in Vault:
     ) -> Result<()> {
         let download_cmd = format!("wget -O /tmp/download.tmp {}", url);
         self.exec_in_container(container, &download_cmd)?;
-        if url.ends_with(".tar.gz") || url.ends_with(".tgz") {
+        let path = std::path::Path::new(url);
+        let is_tar_gz = path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("tgz"))
+            || (path
+                .extension()
+                .is_some_and(|ext| ext.eq_ignore_ascii_case("gz"))
+                && path
+                    .file_stem()
+                    .and_then(|s| std::path::Path::new(s).extension())
+                    .is_some_and(|e| e.eq_ignore_ascii_case("tar")));
+        let is_zip = path
+            .extension()
+            .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"));
+        if is_tar_gz {
             self.exec_in_container(container, "tar -xzf /tmp/download.tmp -C /opt/gbo/bin")?;
-        } else if url.ends_with(".zip") {
+        } else if is_zip {
             self.exec_in_container(container, "unzip -o /tmp/download.tmp -d /opt/gbo/bin")?;
         } else if let Some(name) = binary_name {
             let mv_cmd = format!(
@@ -1040,10 +1066,10 @@ Store credentials in Vault:
             let device_name = format!("{}-{}", component, dir);
             let container_path = format!("/opt/gbo/{}", dir);
             let _ = Command::new("lxc")
-                .args(&["config", "device", "remove", container, &device_name])
+                .args(["config", "device", "remove", container, &device_name])
                 .output();
             let output = Command::new("lxc")
-                .args(&[
+                .args([
                     "config",
                     "device",
                     "add",
@@ -1099,7 +1125,7 @@ Store credentials in Vault:
                 .replace("{{BIN_PATH}}", "/opt/gbo/bin")
                 .replace("{{CONF_PATH}}", "/opt/gbo/conf")
                 .replace("{{LOGS_PATH}}", "/opt/gbo/logs");
-            env_section.push_str(&format!("Environment={}={}\n", key, rendered_value));
+            let _ = writeln!(env_section, "Environment={key}={rendered_value}");
         }
         let service_content = format!(
             "[Unit]\nDescription={} Service\nAfter=network.target\n\n[Service]\nType=simple\n{}ExecStart={}\nWorkingDirectory=/opt/gbo/data\nRestart=always\nRestartSec=10\nUser=root\n\n[Install]\nWantedBy=multi-user.target\n",
@@ -1108,11 +1134,11 @@ Store credentials in Vault:
         let service_file = format!("/tmp/{}.service", component);
         std::fs::write(&service_file, &service_content)?;
         let output = Command::new("lxc")
-            .args(&[
+            .args([
                 "file",
                 "push",
                 &service_file,
-                &format!("{}/etc/systemd/system/{}.service", container, component),
+                &format!("{container}/etc/systemd/system/{component}.service"),
             ])
             .output()?;
         if !output.status.success() {
@@ -1133,18 +1159,18 @@ Store credentials in Vault:
         for port in ports {
             let device_name = format!("port-{}", port);
             let _ = Command::new("lxc")
-                .args(&["config", "device", "remove", container, &device_name])
+                .args(["config", "device", "remove", container, &device_name])
                 .output();
             let output = Command::new("lxc")
-                .args(&[
+                .args([
                     "config",
                     "device",
                     "add",
                     container,
                     &device_name,
                     "proxy",
-                    &format!("listen=tcp:0.0.0.0:{}", port),
-                    &format!("connect=tcp:127.0.0.1:{}", port),
+                    &format!("listen=tcp:0.0.0.0:{port}"),
+                    &format!("connect=tcp:127.0.0.1:{port}"),
                 ])
                 .output()?;
             if !output.status.success() {

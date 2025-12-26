@@ -14,12 +14,11 @@ pub fn save_from_unstructured_keyword(
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SAVE", "FROM", "UNSTRUCTURED", "$expr$", ",", "$expr$"],
+            ["SAVE", "FROM", "UNSTRUCTURED", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let table_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -86,22 +85,18 @@ pub fn save_from_unstructured_keyword(
         .unwrap();
 }
 
-async fn execute_save_from_unstructured(
+pub async fn execute_save_from_unstructured(
     state: &AppState,
     user: &UserSession,
     table_name: &str,
     text: &str,
 ) -> Result<String, String> {
-
     let schema = get_table_schema(state, table_name).await?;
-
 
     let extraction_prompt = build_extraction_prompt(table_name, &schema, text);
     let extracted_json = call_llm_for_extraction(state, &extraction_prompt).await?;
 
-
     let cleaned_data = validate_and_clean_data(&extracted_json, &schema)?;
-
 
     let record_id = save_to_table(state, user, table_name, cleaned_data).await?;
 
@@ -115,9 +110,7 @@ async fn execute_save_from_unstructured(
 }
 
 async fn get_table_schema(state: &AppState, table_name: &str) -> Result<Value, String> {
-
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-
 
     let query = diesel::sql_query(
         "SELECT column_name, data_type, is_nullable, column_default
@@ -145,7 +138,6 @@ async fn get_table_schema(state: &AppState, table_name: &str) -> Result<Value, S
     })?;
 
     if columns.is_empty() {
-
         return Ok(get_default_schema(table_name));
     }
 
@@ -165,7 +157,6 @@ async fn get_table_schema(state: &AppState, table_name: &str) -> Result<Value, S
 }
 
 fn get_default_schema(table_name: &str) -> Value {
-
     match table_name {
         "leads" | "rob" => json!([
             {"name": "id", "type": "uuid", "nullable": false},
@@ -258,7 +249,6 @@ Return ONLY the JSON object, no explanations or markdown formatting."#,
 }
 
 async fn call_llm_for_extraction(state: &AppState, prompt: &str) -> Result<Value, String> {
-
     let config_manager = crate::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
         .get_config(&Uuid::nil(), "llm-model", None)
@@ -267,16 +257,13 @@ async fn call_llm_for_extraction(state: &AppState, prompt: &str) -> Result<Value
         .get_config(&Uuid::nil(), "llm-key", None)
         .unwrap_or_default();
 
-
     let response = state
         .llm_provider
         .generate(prompt, &Value::Null, &model, &key)
         .await
         .map_err(|e| format!("LLM extraction failed: {}", e))?;
 
-
     let extracted = serde_json::from_str::<Value>(&response).unwrap_or_else(|_| {
-
         if let Some(start) = response.find('{') {
             if let Some(end) = response.rfind('}') {
                 let json_str = &response[start..=end];
@@ -299,13 +286,11 @@ fn validate_and_clean_data(data: &Value, schema: &Value) -> Result<Value, String
         if let Some(schema_arr) = schema.as_array() {
             for column_def in schema_arr {
                 if let Some(column_name) = column_def.get("name").and_then(|n| n.as_str()) {
-
                     if column_name == "id" || column_name == "created_at" {
                         continue;
                     }
 
                     if let Some(value) = data_obj.get(column_name) {
-
                         let column_type = column_def
                             .get("type")
                             .and_then(|t| t.as_str())
@@ -322,8 +307,7 @@ fn validate_and_clean_data(data: &Value, schema: &Value) -> Result<Value, String
         }
     }
 
-
-    if cleaned.as_object().map_or(true, |o| o.is_empty()) {
+    if cleaned.as_object().is_none_or(|o| o.is_empty()) {
         return Err("No valid data could be extracted from the text".to_string());
     }
 
@@ -376,7 +360,6 @@ fn clean_value_for_type(value: &Value, data_type: &str) -> Value {
         "jsonb" | "json" => value.clone(),
         "uuid" => {
             if let Some(s) = value.as_str() {
-
                 if Uuid::parse_str(s).is_ok() {
                     value.clone()
                 } else {
@@ -390,7 +373,7 @@ fn clean_value_for_type(value: &Value, data_type: &str) -> Value {
     }
 }
 
-async fn save_to_table(
+pub async fn save_to_table(
     state: &AppState,
     user: &UserSession,
     table_name: &str,
@@ -402,49 +385,42 @@ async fn save_to_table(
     let user_id = user.user_id.to_string();
     let created_at = Utc::now();
 
-
     let mut fields = vec!["id", "created_at"];
     let mut placeholders = vec!["$1".to_string(), "$2".to_string()];
-    let mut bind_index = 3;
+    let mut _bind_index = 3;
 
     let data_obj = data.as_object().ok_or("Invalid data format")?;
 
     for (field, _) in data_obj {
         fields.push(field);
-        placeholders.push(format!("${}", bind_index));
-        bind_index += 1;
+        placeholders.push(format!("${}", _bind_index));
+        _bind_index += 1;
     }
-
 
     if !data_obj.contains_key("user_id") {
         fields.push("user_id");
-        placeholders.push(format!("${}", bind_index));
+        placeholders.push(format!("${}", _bind_index));
     }
-
 
     let mut values_map = serde_json::Map::new();
     values_map.insert("id".to_string(), json!(record_id));
     values_map.insert("created_at".to_string(), json!(created_at));
 
-
     for (field, value) in data_obj {
         values_map.insert(field.clone(), value.clone());
     }
-
 
     if !data_obj.contains_key("user_id") {
         values_map.insert("user_id".to_string(), json!(user_id));
     }
 
-
     let values_json = json!(values_map);
-
 
     let insert_query = format!(
         "INSERT INTO {} SELECT * FROM jsonb_populate_record(NULL::{},'{}');",
         table_name,
         table_name,
-        values_json.to_string().replace("'", "''")
+        values_json.to_string().replace('\'', "''")
     );
 
     diesel::sql_query(&insert_query)
@@ -462,4 +438,27 @@ async fn save_to_table(
     );
 
     Ok(record_id)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_clean_value_for_type() {
+        assert_eq!(clean_value_for_type(&json!("test"), "text"), json!("test"));
+        assert_eq!(clean_value_for_type(&json!("42"), "integer"), json!(42));
+        assert_eq!(clean_value_for_type(&json!("3.14"), "numeric"), json!(3.14));
+        assert_eq!(clean_value_for_type(&json!("true"), "boolean"), json!(true));
+    }
+
+    #[test]
+    fn test_get_default_schema() {
+        let leads_schema = get_default_schema("leads");
+        assert!(leads_schema.is_array());
+
+        let tasks_schema = get_default_schema("tasks");
+        assert!(tasks_schema.is_array());
+    }
 }

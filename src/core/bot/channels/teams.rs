@@ -21,7 +21,6 @@ impl TeamsAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
         let config_manager = ConfigManager::new(pool);
 
-
         let app_id = config_manager
             .get_config(&bot_id, "teams-app-id", None)
             .unwrap_or_default();
@@ -325,7 +324,7 @@ impl TeamsAdapter {
 
 #[async_trait]
 impl ChannelAdapter for TeamsAdapter {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Teams"
     }
 
@@ -341,7 +340,6 @@ impl ChannelAdapter for TeamsAdapter {
             error!("Teams adapter not configured. Please set teams-app-id and teams-app-password in config.csv");
             return Err("Teams not configured".into());
         }
-
 
         let conversation_id = self.create_conversation(&response.user_id).await?;
 
@@ -365,13 +363,11 @@ impl ChannelAdapter for TeamsAdapter {
         &self,
         payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-
         let activity_type = payload["type"].as_str().unwrap_or("");
 
         match activity_type {
             "message" => {
                 if let Some(text) = payload["text"].as_str() {
-
                     let cleaned_text = text
                         .replace(&format!("<at>{}</at>", self.bot_id), "")
                         .trim()
@@ -406,8 +402,6 @@ impl ChannelAdapter for TeamsAdapter {
         &self,
         user_id: &str,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-
-
         Ok(serde_json::json!({
             "id": user_id,
             "platform": "teams"
@@ -487,8 +481,6 @@ pub struct TeamsConversationAccount {
     #[serde(rename = "isGroup")]
     pub is_group: Option<bool>,
 }
-
-
 
 pub fn create_adaptive_card(
     title: &str,

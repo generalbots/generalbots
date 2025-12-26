@@ -28,13 +28,6 @@
 |                                                                             |
 \*****************************************************************************/
 
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -47,21 +40,18 @@ use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 pub fn register_qrcode_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     register_qr_code_keyword(state.clone(), user.clone(), engine);
     register_qr_code_with_size_keyword(state.clone(), user.clone(), engine);
     register_qr_code_full_keyword(state, user, engine);
 }
 
-
-
 pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["QR", "CODE", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["QR", "CODE", "$expr$"], false, move |context, inputs| {
             let data = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("QR CODE: Generating QR code for data: {}", data);
@@ -100,19 +90,17 @@ pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine:
         .unwrap();
 }
 
-
-
 pub fn register_qr_code_with_size_keyword(
     state: Arc<AppState>,
     user: UserSession,
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["QR", "CODE", "$expr$", ",", "$expr$"],
+            ["QR", "CODE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let data = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -167,15 +155,13 @@ pub fn register_qr_code_with_size_keyword(
         .unwrap();
 }
 
-
-
 pub fn register_qr_code_full_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["QR_CODE", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["QR_CODE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let data = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -239,17 +225,13 @@ fn execute_qr_code_generation(
     size: u32,
     output_path: Option<&str>,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-
     let code = QrCode::new(data.as_bytes())?;
-
 
     let matrix = code.to_colors();
     let qr_width = code.width();
 
-
     let scale = (size as usize) / qr_width;
     let actual_size = qr_width * scale;
-
 
     let mut pixels: Vec<u8> = Vec::with_capacity(actual_size * actual_size);
 
@@ -265,7 +247,6 @@ fn execute_qr_code_generation(
             pixels.push(if is_dark { 0 } else { 255 });
         }
     }
-
 
     let data_dir = state
         .config
@@ -285,21 +266,18 @@ fn execute_qr_code_generation(
             let filename = format!("qrcode_{}.png", Uuid::new_v4());
             let base_path = format!("{}/bots/{}/gbdrive", data_dir, user.bot_id);
 
-
             std::fs::create_dir_all(&base_path)?;
 
             format!("{}/{}", base_path, filename)
         }
     };
 
-
     if let Some(parent) = Path::new(&final_path).parent() {
         std::fs::create_dir_all(parent)?;
     }
 
-
     let file = File::create(&final_path)?;
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
     let mut encoder = Encoder::new(w, actual_size as u32, actual_size as u32);
     encoder.set_color(ColorType::Grayscale);
@@ -312,7 +290,6 @@ fn execute_qr_code_generation(
     Ok(final_path)
 }
 
-
 pub fn generate_qr_code_colored(
     data: &str,
     size: u32,
@@ -322,14 +299,11 @@ pub fn generate_qr_code_colored(
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
     let code = QrCode::new(data.as_bytes())?;
 
-
     let matrix = code.to_colors();
     let qr_width = code.width();
 
-
     let scale = (size as usize) / qr_width;
     let actual_size = qr_width * scale;
-
 
     let mut pixels: Vec<u8> = Vec::with_capacity(actual_size * actual_size * 3);
 
@@ -347,9 +321,8 @@ pub fn generate_qr_code_colored(
         }
     }
 
-
     let file = File::create(output_path)?;
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
     let mut encoder = Encoder::new(w, actual_size as u32, actual_size as u32);
     encoder.set_color(ColorType::Rgb);
@@ -361,39 +334,29 @@ pub fn generate_qr_code_colored(
     Ok(output_path.to_string())
 }
 
-
-
-
 pub fn generate_qr_code_with_logo(
     data: &str,
     size: u32,
     _logo_path: &str,
     output_path: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-
     let code = QrCode::with_error_correction_level(data.as_bytes(), qrcode::EcLevel::H)?;
-
 
     let matrix = code.to_colors();
     let qr_width = code.width();
 
-
     let scale = (size as usize) / qr_width;
     let actual_size = qr_width * scale;
-
 
     let logo_size = actual_size / 5;
     let logo_start = (actual_size - logo_size) / 2;
     let logo_end = logo_start + logo_size;
 
-
     let mut pixels: Vec<u8> = Vec::with_capacity(actual_size * actual_size * 4);
 
     for y in 0..actual_size {
         for x in 0..actual_size {
-
             if x >= logo_start && x < logo_end && y >= logo_start && y < logo_end {
-
                 pixels.extend_from_slice(&[255, 255, 255, 255]);
             } else {
                 let qr_x = x / scale;
@@ -412,9 +375,8 @@ pub fn generate_qr_code_with_logo(
         }
     }
 
-
     let file = File::create(output_path)?;
-    let ref mut w = BufWriter::new(file);
+    let w = &mut BufWriter::new(file);
 
     let mut encoder = Encoder::new(w, actual_size as u32, actual_size as u32);
     encoder.set_color(ColorType::Rgba);
@@ -423,9 +385,45 @@ pub fn generate_qr_code_with_logo(
     let mut writer = encoder.write_header()?;
     writer.write_image_data(&pixels)?;
 
-
-
     trace!("QR code with logo placeholder generated: {}", output_path);
 
     Ok(output_path.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use qrcode::QrCode;
+
+    #[test]
+    fn test_qr_code_generation() {
+        let result = QrCode::new(b"https://example.com");
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_qr_code_with_unicode() {
+        let result = QrCode::new("Hello 世界 🌍".as_bytes());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_qr_code_long_data() {
+        let long_data = "A".repeat(1000);
+        let result = QrCode::new(long_data.as_bytes());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_qr_code_url() {
+        let url = "https://example.com/path?param=value&other=123";
+        let result = QrCode::new(url.as_bytes());
+        assert!(result.is_ok());
+    }
+
+    #[test]
+    fn test_qr_code_json() {
+        let json = r#"{"id": 123, "name": "Test", "active": true}"#;
+        let result = QrCode::new(json.as_bytes());
+        assert!(result.is_ok());
+    }
 }

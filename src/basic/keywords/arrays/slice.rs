@@ -1,23 +1,10 @@
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::debug;
 use rhai::{Array, Dynamic, Engine};
 use std::sync::Arc;
 
-
 pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-
     engine.register_fn("SLICE", |arr: Array, start: i64| -> Array {
         slice_array(&arr, start, None)
     });
@@ -25,7 +12,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
     engine.register_fn("slice", |arr: Array, start: i64| -> Array {
         slice_array(&arr, start, None)
     });
-
 
     engine.register_fn("SLICE", |arr: Array, start: i64, end: i64| -> Array {
         slice_array(&arr, start, Some(end))
@@ -35,11 +21,9 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, start, Some(end))
     });
 
-
     engine.register_fn("SUBARRAY", |arr: Array, start: i64, end: i64| -> Array {
         slice_array(&arr, start, Some(end))
     });
-
 
     engine.register_fn(
         "MID_ARRAY",
@@ -49,7 +33,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         },
     );
 
-
     engine.register_fn("TAKE", |arr: Array, count: i64| -> Array {
         slice_array(&arr, 0, Some(count))
     });
@@ -57,7 +40,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
     engine.register_fn("take", |arr: Array, count: i64| -> Array {
         slice_array(&arr, 0, Some(count))
     });
-
 
     engine.register_fn("DROP", |arr: Array, count: i64| -> Array {
         slice_array(&arr, count, None)
@@ -67,7 +49,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         slice_array(&arr, count, None)
     });
 
-
     engine.register_fn("HEAD", |arr: Array| -> Dynamic {
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -75,7 +56,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
     engine.register_fn("head", |arr: Array| -> Dynamic {
         arr.first().cloned().unwrap_or(Dynamic::UNIT)
     });
-
 
     engine.register_fn("TAIL", |arr: Array| -> Array {
         if arr.len() <= 1 {
@@ -93,7 +73,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         }
     });
 
-
     engine.register_fn("INIT", |arr: Array| -> Array {
         if arr.is_empty() {
             Array::new()
@@ -102,7 +81,6 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
         }
     });
 
-
     engine.register_fn("LAST", |arr: Array| -> Dynamic {
         arr.last().cloned().unwrap_or(Dynamic::UNIT)
     });
@@ -110,10 +88,8 @@ pub fn slice_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
     debug!("Registered SLICE keyword");
 }
 
-
 fn slice_array(arr: &Array, start: i64, end: Option<i64>) -> Array {
     let len = arr.len() as i64;
-
 
     let start_idx = if start < 0 {
         (len + start).max(0) as usize
@@ -137,4 +113,69 @@ fn slice_array(arr: &Array, start: i64, end: Option<i64>) -> Array {
     }
 
     arr[start_idx..end_idx].to_vec()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rhai::{Array, Dynamic};
+
+    fn make_test_array() -> Array {
+        vec![
+            Dynamic::from(1),
+            Dynamic::from(2),
+            Dynamic::from(3),
+            Dynamic::from(4),
+            Dynamic::from(5),
+        ]
+    }
+
+    #[test]
+    fn test_slice_from_start() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, 2, None);
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].as_int().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_slice_with_end() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, 1, Some(3));
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].as_int().unwrap(), 2);
+        assert_eq!(result[1].as_int().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_slice_negative_start() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, -2, None);
+        assert_eq!(result.len(), 2);
+        assert_eq!(result[0].as_int().unwrap(), 4);
+        assert_eq!(result[1].as_int().unwrap(), 5);
+    }
+
+    #[test]
+    fn test_slice_negative_end() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, 0, Some(-2));
+        assert_eq!(result.len(), 3);
+        assert_eq!(result[0].as_int().unwrap(), 1);
+        assert_eq!(result[2].as_int().unwrap(), 3);
+    }
+
+    #[test]
+    fn test_slice_out_of_bounds() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, 10, None);
+        assert!(result.is_empty());
+    }
+
+    #[test]
+    fn test_slice_empty_range() {
+        let arr = make_test_array();
+        let result = slice_array(&arr, 3, Some(2));
+        assert!(result.is_empty());
+    }
 }

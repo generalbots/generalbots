@@ -22,6 +22,7 @@ impl std::fmt::Debug for StatusPanel {
             .field("app_state", &"Arc<AppState>")
             .field("last_update", &self.last_update)
             .field("cached_content_len", &self.cached_content.len())
+            .field("system", &"System")
             .finish()
     }
 }
@@ -36,7 +37,7 @@ impl StatusPanel {
         }
     }
 
-    pub async fn update(&mut self) -> Result<(), std::io::Error> {
+    pub fn update(&mut self) -> Result<(), std::io::Error> {
         self.system.refresh_all();
 
         let _tokens = (std::time::SystemTime::now()
@@ -52,13 +53,12 @@ impl StatusPanel {
     }
 
     pub fn render(&mut self, selected_bot: Option<String>) -> String {
-        let mut lines = Vec::new();
-
-
-        lines.push("╔═══════════════════════════════════════╗".to_string());
-        lines.push("║         SYSTEM METRICS                ║".to_string());
-        lines.push("╚═══════════════════════════════════════╝".to_string());
-        lines.push("".to_string());
+        let mut lines = vec![
+            "╔═══════════════════════════════════════╗".to_string(),
+            "║         SYSTEM METRICS                ║".to_string(),
+            "╚═══════════════════════════════════════╝".to_string(),
+            String::new(),
+        ];
 
         self.system.refresh_cpu_all();
         let cpu_usage = self.system.global_cpu_usage();
@@ -88,7 +88,6 @@ impl StatusPanel {
             mem_percentage, mem_bar, used_mem, total_mem
         ));
 
-
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());
         lines.push("║         COMPONENTS STATUS             ║".to_string());
@@ -110,7 +109,6 @@ impl StatusPanel {
             };
             lines.push(format!(" {:<10} {}", comp_name, status));
         }
-
 
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());
@@ -171,7 +169,6 @@ impl StatusPanel {
         } else {
             lines.push(" Database locked".to_string());
         }
-
 
         lines.push("".to_string());
         lines.push("╔═══════════════════════════════════════╗".to_string());

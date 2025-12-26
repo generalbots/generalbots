@@ -14,7 +14,7 @@ pub fn register_crm_keywords(state: Arc<AppState>, user: UserSession, engine: &m
     score_lead::update_lead_score_keyword(state.clone(), user.clone(), engine);
     score_lead::ai_score_lead_keyword(state.clone(), user.clone(), engine);
 
-    attendance::register_attendance_keywords(state.clone(), user.clone(), engine);
+    attendance::register_attendance_keywords(state, user, engine);
 
     debug!("Registered all CRM keywords (lead scoring + attendance + LLM assist)");
 }

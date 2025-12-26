@@ -111,7 +111,6 @@ pub fn datediff_impl(date1: &str, date2: &str, unit: &str) -> i64 {
         let duration = dt2.signed_duration_since(dt1);
 
         match unit_lower.as_str() {
-            "day" | "days" | "d" => duration.num_days(),
             "week" | "weeks" | "w" => duration.num_weeks(),
             "hour" | "hours" | "h" => duration.num_hours(),
             "minute" | "minutes" | "min" | "m" => duration.num_minutes(),
@@ -119,12 +118,58 @@ pub fn datediff_impl(date1: &str, date2: &str, unit: &str) -> i64 {
             "month" | "months" => {
                 let months1 = dt1.year() * 12 + dt1.month() as i32;
                 let months2 = dt2.year() * 12 + dt2.month() as i32;
-                (months2 - months1) as i64
+                i64::from(months2 - months1)
             }
-            "year" | "years" | "y" => (dt2.year() - dt1.year()) as i64,
+            "year" | "years" | "y" => i64::from(dt2.year() - dt1.year()),
+            // day/days/d and any unknown unit defaults to days
             _ => duration.num_days(),
         }
     } else {
         0
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dateadd_days() {
+        assert_eq!(dateadd_impl("2025-01-15", 5, "day"), "2025-01-20");
+        assert_eq!(dateadd_impl("2025-01-15", -10, "day"), "2025-01-05");
+    }
+
+    #[test]
+    fn test_dateadd_months() {
+        assert_eq!(dateadd_impl("2025-01-15", 1, "month"), "2025-02-15");
+        assert_eq!(dateadd_impl("2025-01-15", -1, "month"), "2024-12-15");
+    }
+
+    #[test]
+    fn test_dateadd_years() {
+        assert_eq!(dateadd_impl("2025-01-15", 1, "year"), "2026-01-15");
+    }
+
+    #[test]
+    fn test_datediff_days() {
+        assert_eq!(datediff_impl("2025-01-01", "2025-01-15", "day"), 14);
+        assert_eq!(datediff_impl("2025-01-15", "2025-01-01", "day"), -14);
+    }
+
+    #[test]
+    fn test_datediff_months() {
+        assert_eq!(datediff_impl("2025-01-01", "2025-03-01", "month"), 2);
+    }
+
+    #[test]
+    fn test_datediff_years() {
+        assert_eq!(datediff_impl("2024-01-01", "2025-01-01", "year"), 1);
+    }
+
+    #[test]
+    fn test_parse_date() {
+        assert!(parse_date("2025-01-15").is_some());
+        assert!(parse_date("15/01/2025").is_some());
+        assert!(parse_date("invalid").is_none());
     }
 }

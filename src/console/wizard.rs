@@ -8,6 +8,7 @@ use crossterm::{
     terminal::{self, ClearType},
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 use std::path::PathBuf;
 
@@ -32,7 +33,7 @@ pub struct WizardConfig {
     pub data_dir: PathBuf,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum LlmProvider {
     Claude,
     OpenAI,
@@ -44,16 +45,16 @@ pub enum LlmProvider {
 impl std::fmt::Display for LlmProvider {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LlmProvider::Claude => write!(f, "Claude (Anthropic) - Best for complex reasoning"),
-            LlmProvider::OpenAI => write!(f, "GPT-4 (OpenAI) - General purpose"),
-            LlmProvider::Gemini => write!(f, "Gemini (Google) - Google integration"),
-            LlmProvider::Local => write!(f, "Local (Llama/Mistral) - Privacy focused"),
-            LlmProvider::None => write!(f, "None - Configure later"),
+            Self::Claude => write!(f, "Claude (Anthropic) - Best for complex reasoning"),
+            Self::OpenAI => write!(f, "GPT-4 (OpenAI) - General purpose"),
+            Self::Gemini => write!(f, "Gemini (Google) - Google integration"),
+            Self::Local => write!(f, "Local (Llama/Mistral) - Privacy focused"),
+            Self::None => write!(f, "None - Configure later"),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ComponentChoice {
     Drive,
     Email,
@@ -69,15 +70,15 @@ pub enum ComponentChoice {
 impl std::fmt::Display for ComponentChoice {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ComponentChoice::Drive => write!(f, "Drive (MinIO) - File storage"),
-            ComponentChoice::Email => write!(f, "Email Server - Send/receive emails"),
-            ComponentChoice::Meet => write!(f, "Meet (LiveKit) - Video meetings"),
-            ComponentChoice::Tables => write!(f, "Database (PostgreSQL) - Required"),
-            ComponentChoice::Cache => write!(f, "Cache (Redis) - Sessions & queues"),
-            ComponentChoice::VectorDb => write!(f, "Vector DB - AI embeddings"),
-            ComponentChoice::Proxy => write!(f, "Proxy (Caddy) - HTTPS & routing"),
-            ComponentChoice::Directory => write!(f, "Directory - Users & SSO"),
-            ComponentChoice::BotModels => write!(f, "BotModels - Local AI models"),
+            Self::Drive => write!(f, "Drive (MinIO) - File storage"),
+            Self::Email => write!(f, "Email Server - Send/receive emails"),
+            Self::Meet => write!(f, "Meet (LiveKit) - Video meetings"),
+            Self::Tables => write!(f, "Database (PostgreSQL) - Required"),
+            Self::Cache => write!(f, "Cache (Redis) - Sessions & queues"),
+            Self::VectorDb => write!(f, "Vector DB - AI embeddings"),
+            Self::Proxy => write!(f, "Proxy (Caddy) - HTTPS & routing"),
+            Self::Directory => write!(f, "Directory - Users & SSO"),
+            Self::BotModels => write!(f, "BotModels - Local AI models"),
         }
     }
 }
@@ -97,7 +98,7 @@ pub struct OrgConfig {
     pub domain: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum InstallMode {
     Development,
     Production,
@@ -131,13 +132,19 @@ pub struct StartupWizard {
     total_steps: usize,
 }
 
-impl StartupWizard {
-    pub fn new() -> Self {
+impl Default for StartupWizard {
+    fn default() -> Self {
         Self {
             config: WizardConfig::default(),
             current_step: 0,
             total_steps: 7,
         }
+    }
+}
+
+impl StartupWizard {
+    pub fn new() -> Self {
+        Self::default()
     }
 
     pub fn run(&mut self) -> io::Result<WizardConfig> {
@@ -179,6 +186,7 @@ impl StartupWizard {
     }
 
     fn show_welcome(&self, stdout: &mut io::Stdout) -> io::Result<()> {
+        let _ = self; // kept for API consistency
         execute!(
             stdout,
             terminal::Clear(ClearType::All),
@@ -555,19 +563,19 @@ impl StartupWizard {
                     if *name == "none" {
                         None
                     } else {
-                        Some(name.to_string())
+                        Some((*name).to_string())
                     },
                 )
             })
             .collect();
 
         let selected = self.select_option(stdout, &templates, 0)?;
-        self.config.template = templates[selected].2.clone();
+        self.config.template.clone_from(&templates[selected].2);
 
         Ok(())
     }
 
-    fn step_summary(&mut self, stdout: &mut io::Stdout) -> io::Result<()> {
+    fn step_summary(&self, stdout: &mut io::Stdout) -> io::Result<()> {
         self.show_step_header(stdout, "Configuration Summary")?;
 
         let mode = match self.config.install_mode {
@@ -668,6 +676,7 @@ impl StartupWizard {
         options: &[(&str, &str, T)],
         default: usize,
     ) -> io::Result<usize> {
+        let _ = self; // kept for API consistency
         let mut selected = default;
         let start_row = 10;
 
@@ -702,9 +711,7 @@ impl StartupWizard {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
                     KeyCode::Up => {
-                        if selected > 0 {
-                            selected -= 1;
-                        }
+                        selected = selected.saturating_sub(1);
                     }
                     KeyCode::Down => {
                         if selected < options.len() - 1 {
@@ -728,6 +735,7 @@ impl StartupWizard {
         stdout: &mut io::Stdout,
         options: &[(ComponentChoice, bool, bool)],
     ) -> io::Result<Vec<ComponentChoice>> {
+        let _ = self; // kept for API consistency
         let mut selected: Vec<bool> = options.iter().map(|(_, s, _)| *s).collect();
         let mut cursor = 0;
         let start_row = 10;
@@ -774,9 +782,7 @@ impl StartupWizard {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 match code {
                     KeyCode::Up => {
-                        if cursor > 0 {
-                            cursor -= 1;
-                        }
+                        cursor = cursor.saturating_sub(1);
                     }
                     KeyCode::Down => {
                         if cursor < options.len() - 1 {
@@ -806,6 +812,7 @@ impl StartupWizard {
     }
 
     fn wait_for_enter(&self) -> io::Result<()> {
+        let _ = self; // kept for API consistency
         loop {
             if let Event::Key(KeyEvent { code, .. }) = event::read()? {
                 if code == KeyCode::Enter {
@@ -852,16 +859,17 @@ pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
     )?;
 
     let mut env_content = String::new();
-    env_content.push_str(&format!(
-        "# Generated by {} Setup Wizard\n\n",
+    let _ = writeln!(
+        env_content,
+        "# Generated by {} Setup Wizard\n",
         platform_name()
-    ));
-    env_content.push_str(&format!("INSTALL_MODE={:?}\n", config.install_mode));
-    env_content.push_str(&format!("ORG_NAME={}\n", config.organization.name));
-    env_content.push_str(&format!("ORG_SLUG={}\n", config.organization.slug));
+    );
+    let _ = writeln!(env_content, "INSTALL_MODE={:?}", config.install_mode);
+    let _ = writeln!(env_content, "ORG_NAME={}", config.organization.name);
+    let _ = writeln!(env_content, "ORG_SLUG={}", config.organization.slug);
 
     if let Some(domain) = &config.organization.domain {
-        env_content.push_str(&format!("DOMAIN={}\n", domain));
+        let _ = writeln!(env_content, "DOMAIN={domain}");
     }
 
     match &config.llm_provider {
@@ -873,11 +881,11 @@ pub fn apply_wizard_config(config: &WizardConfig) -> io::Result<()> {
     }
 
     if let Some(api_key) = &config.llm_api_key {
-        env_content.push_str(&format!("LLM_API_KEY={}\n", api_key));
+        let _ = writeln!(env_content, "LLM_API_KEY={api_key}");
     }
 
     if let Some(model_path) = &config.local_model_path {
-        env_content.push_str(&format!("LOCAL_MODEL_PATH={}\n", model_path));
+        let _ = writeln!(env_content, "LOCAL_MODEL_PATH={model_path}");
     }
 
     fs::write(config.data_dir.join(".env"), env_content)?;

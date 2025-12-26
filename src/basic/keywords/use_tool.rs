@@ -7,10 +7,10 @@ use std::sync::Arc;
 use uuid::Uuid;
 pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["USE", "TOOL", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["USE", "TOOL", "$expr$"], false, move |context, inputs| {
             let tool_path = context.eval_expression_tree(&inputs[0])?;
             let tool_path_str = tool_path.to_string().trim_matches('"').to_string();
             trace!(
@@ -32,7 +32,7 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             }
             let state_for_task = Arc::clone(&state_clone);
             let user_for_task = user_clone.clone();
-            let tool_name_for_task = tool_name.clone();
+            let tool_name_for_task = tool_name;
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_multi_thread()

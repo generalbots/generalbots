@@ -1,12 +1,3 @@
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::Utc;
@@ -22,7 +13,7 @@ pub fn post_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
     engine
         .register_custom_syntax(
-            &["POST", "TO", "$expr$", "$expr$", ",", "$expr$"],
+            ["POST", "TO", "$expr$", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let platform = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -37,7 +28,7 @@ pub fn post_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let platform_owned = platform.clone();
+                let platform_owned = platform;
                 let media_owned = media.to_string();
                 let caption_owned = caption.to_string();
 
@@ -90,7 +81,7 @@ fn register_platform_shortcuts(state: Arc<AppState>, user: UserSession, engine: 
 
         engine
             .register_custom_syntax(
-                &["POST", "TO", platform, "$expr$", ",", "$expr$"],
+                ["POST", "TO", platform, "$expr$", ",", "$expr$"],
                 false,
                 move |context, inputs| {
                     let media = context.eval_expression_tree(&inputs[0])?.to_string();

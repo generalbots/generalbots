@@ -1,14 +1,8 @@
-
-
-
-
 use axum::{extract::State, http::StatusCode, response::Json};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
 use crate::shared::state::AppState;
-
-
 
 #[derive(Debug, Deserialize)]
 pub struct MergeDocumentsRequest {
@@ -40,7 +34,8 @@ pub struct ExportDocumentRequest {
     pub bucket: String,
     pub source_path: String,
     pub format: String,
-    pub _options: Option<serde_json::Value>,
+    #[allow(dead_code)]
+    pub options: Option<serde_json::Value>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -59,9 +54,6 @@ pub struct DocumentResponse {
     pub message: Option<String>,
     pub metadata: Option<serde_json::Value>,
 }
-
-
-
 
 pub async fn merge_documents(
     State(state): State<Arc<AppState>>,
@@ -149,7 +141,6 @@ pub async fn merge_documents(
     }))
 }
 
-
 pub async fn convert_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ConvertDocumentRequest>,
@@ -236,7 +227,7 @@ pub async fn convert_document(
                                                     v.to_string()
                                                 }
                                             })
-                                            .unwrap_or_else(|| String::new())
+                                            .unwrap_or_else(String::new)
                                     })
                                     .collect::<Vec<_>>()
                                     .join(",");
@@ -329,7 +320,6 @@ pub async fn convert_document(
     }))
 }
 
-
 pub async fn fill_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<FillDocumentRequest>,
@@ -414,7 +404,6 @@ pub async fn fill_document(
     }))
 }
 
-
 pub async fn export_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ExportDocumentRequest>,
@@ -488,7 +477,6 @@ pub async fn export_document(
     }))
 }
 
-
 pub async fn import_document(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ImportDocumentRequest>,
@@ -536,9 +524,7 @@ pub async fn import_document(
             })?;
             serde_json::to_string_pretty(&parsed).unwrap_or(content)
         }
-        "xml" => content,
-        "csv" => content,
-        _ => content,
+        "xml" | "csv" | _ => content,
     };
 
     s3_client

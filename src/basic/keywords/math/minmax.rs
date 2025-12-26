@@ -57,3 +57,46 @@ pub fn min_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
 
     debug!("Registered MIN keyword");
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_max_values() {
+        assert_eq!(10_i64.max(5), 10);
+        assert_eq!(5_i64.max(10), 10);
+        assert_eq!(3.5_f64.max(7.2), 7.2);
+        assert_eq!(7.2_f64.max(3.5), 7.2);
+    }
+
+    #[test]
+    fn test_min_values() {
+        assert_eq!(10_i64.min(5), 5);
+        assert_eq!(5_i64.min(10), 5);
+        assert_eq!(3.5_f64.min(7.2), 3.5);
+        assert_eq!(7.2_f64.min(3.5), 3.5);
+    }
+
+    #[test]
+    fn test_max_equal_values() {
+        assert_eq!(5_i64.max(5), 5);
+        assert_eq!(3.5_f64.max(3.5), 3.5);
+    }
+
+    #[test]
+    fn test_min_equal_values() {
+        assert_eq!(5_i64.min(5), 5);
+        assert_eq!(3.5_f64.min(3.5), 3.5);
+    }
+
+    #[test]
+    fn test_max_negative_values() {
+        assert_eq!((-10_i64).max(-5), -5);
+        assert_eq!((-3.5_f64).max(-7.2), -3.5);
+    }
+
+    #[test]
+    fn test_min_negative_values() {
+        assert_eq!((-10_i64).min(-5), -10);
+        assert_eq!((-3.5_f64).min(-7.2), -7.2);
+    }
+}

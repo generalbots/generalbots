@@ -26,6 +26,12 @@ pub struct MetricsCollector {
     aggregates: Arc<RwLock<HashMap<String, f64>>>,
 }
 
+impl Default for MetricsCollector {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl MetricsCollector {
     pub fn new() -> Self {
         Self {
@@ -130,7 +136,6 @@ pub struct DataSet {
 pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
     let mut conn = state.conn.get().unwrap();
 
-
     #[derive(QueryableByName)]
     struct CountResult {
         #[diesel(sql_type = diesel::sql_types::BigInt)]
@@ -155,7 +160,6 @@ pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppSta
         .get_result::<CountResult>(&mut conn)
         .map(|r| r.count)
         .unwrap_or(0);
-
 
     #[derive(QueryableByName)]
     struct SizeResult {
@@ -285,7 +289,6 @@ pub async fn get_dashboard(
 
     let mut charts = Vec::new();
 
-
     let now = Utc::now();
     let mut api_labels = Vec::new();
     let mut api_data = Vec::new();
@@ -308,14 +311,13 @@ pub async fn get_dashboard(
         }],
     });
 
-
     let mut activity_labels = Vec::new();
     let mut activity_data = Vec::new();
 
     for i in (0..7).rev() {
         let day = now - Duration::days(i);
         activity_labels.push(day.format("%a").to_string());
-        activity_data.push((active_users as f64 / 7.0) * (1.0 + (i as f64 * 0.1)));
+        activity_data.push((active_users as f64 / 7.0) * (i as f64).mul_add(0.1, 1.0));
     }
 
     charts.push(ChartData {
@@ -358,7 +360,6 @@ pub async fn get_metric(
     let collector = &state.metrics_collector;
 
     let result = match query.aggregation.as_deref() {
-        Some("sum") => collector.get_aggregate(&query.name).await,
         Some("p50") => collector.get_percentile(&query.name, 50.0).await,
         Some("p95") => collector.get_percentile(&query.name, 95.0).await,
         Some("p99") => collector.get_percentile(&query.name, 99.0).await,
@@ -366,7 +367,7 @@ pub async fn get_metric(
             let window = Duration::minutes(query.window_minutes.unwrap_or(1));
             Some(collector.get_rate(&query.name, window).await)
         }
-        _ => collector.get_aggregate(&query.name).await,
+        Some("sum") | Some(_) | None => collector.get_aggregate(&query.name).await,
     };
 
     Json(match result {
@@ -386,12 +387,13 @@ pub async fn export_metrics(State(state): State<Arc<AppState>>) -> (StatusCode, 
     let collector = &state.metrics_collector;
     let metrics = collector.get_metrics().await;
 
+    use std::fmt::Write;
     let mut prometheus_format = String::new();
     let mut seen_metrics = HashMap::new();
 
     for metric in metrics {
         if !seen_metrics.contains_key(&metric.name) {
-            prometheus_format.push_str(&format!("# TYPE {} gauge\n", metric.name));
+            let _ = writeln!(prometheus_format, "# TYPE {} gauge", metric.name);
             seen_metrics.insert(metric.name.clone(), true);
         }
 
@@ -403,20 +405,22 @@ pub async fn export_metrics(State(state): State<Arc<AppState>>) -> (StatusCode, 
             .join(",");
 
         if labels.is_empty() {
-            prometheus_format.push_str(&format!(
-                "{} {} {}\n",
+            let _ = writeln!(
+                prometheus_format,
+                "{} {} {}",
                 metric.name,
                 metric.value,
                 metric.timestamp.timestamp_millis()
-            ));
+            );
         } else {
-            prometheus_format.push_str(&format!(
-                "{}{{{}}} {} {}\n",
+            let _ = writeln!(
+                prometheus_format,
+                "{}{{{}}} {} {}",
                 metric.name,
                 labels,
                 metric.value,
                 metric.timestamp.timestamp_millis()
-            ));
+            );
         }
     }
 

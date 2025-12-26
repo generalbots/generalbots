@@ -3,6 +3,7 @@ use crate::shared::state::AppState;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use std::sync::Arc;
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -30,13 +31,12 @@ pub struct ForecastDay {
     pub rain_chance: u32,
 }
 
-
 pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
     engine
-        .register_custom_syntax(&["WEATHER", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["WEATHER", "$expr$"], false, move |context, inputs| {
             let location = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!(
@@ -47,7 +47,7 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
             let state_for_task = Arc::clone(&state_clone);
             let user_for_task = user_clone.clone();
-            let location_for_task = location.clone();
+            let location_for_task = location;
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
@@ -85,13 +85,12 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
         })
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
+    let user_clone2 = user;
 
     engine
         .register_custom_syntax(
-            &["FORECAST", "$expr$", ",", "$expr$"],
+            ["FORECAST", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let location = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -109,7 +108,7 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
                 let state_for_task = Arc::clone(&state_clone2);
                 let user_for_task = user_clone2.clone();
-                let location_for_task = location.clone();
+                let location_for_task = location;
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
@@ -155,9 +154,7 @@ async fn get_weather(
     _user: &UserSession,
     location: &str,
 ) -> Result<String, String> {
-
     let api_key = get_weather_api_key(state)?;
-
 
     match fetch_openweathermap_current(&api_key, location).await {
         Ok(weather) => {
@@ -167,7 +164,7 @@ async fn get_weather(
         Err(e) => {
             error!("OpenWeatherMap API failed: {}", e);
 
-            fetch_fallback_weather(location).await
+            fetch_fallback_weather(location)
         }
     }
 }
@@ -218,7 +215,6 @@ async fn fetch_openweathermap_current(
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-
     Ok(WeatherData {
         location: data["name"].as_str().unwrap_or(location).to_string(),
         temperature: data["main"]["temp"].as_f64().unwrap_or(0.0) as f32,
@@ -266,7 +262,6 @@ async fn fetch_openweathermap_forecast(
         .await
         .map_err(|e| format!("Failed to parse response: {}", e))?;
 
-
     let mut forecast_days = Vec::new();
     let mut daily_data: std::collections::HashMap<String, (f32, f32, String, u32)> =
         std::collections::HashMap::new();
@@ -282,13 +277,9 @@ async fn fetch_openweathermap_forecast(
                 .to_string();
             let rain_chance = (item["pop"].as_f64().unwrap_or(0.0) * 100.0) as u32;
 
-            let entry = daily_data.entry(forecast_date.to_string()).or_insert((
-                temp,
-                temp,
-                description.clone(),
-                rain_chance,
-            ));
-
+            let entry = daily_data
+                .entry(forecast_date.to_string())
+                .or_insert_with(|| (temp, temp, description.clone(), rain_chance));
 
             if temp < entry.0 {
                 entry.0 = temp;
@@ -303,7 +294,6 @@ async fn fetch_openweathermap_forecast(
         }
     }
 
-
     for (date, (temp_low, temp_high, description, rain_chance)) in daily_data.iter() {
         forecast_days.push(ForecastDay {
             date: date.clone(),
@@ -313,7 +303,6 @@ async fn fetch_openweathermap_forecast(
             rain_chance: *rain_chance,
         });
     }
-
 
     forecast_days.sort_by(|a, b| a.date.cmp(&b.date));
 
@@ -336,9 +325,7 @@ async fn fetch_openweathermap_forecast(
     })
 }
 
-async fn fetch_fallback_weather(location: &str) -> Result<String, String> {
-
-
+fn fetch_fallback_weather(location: &str) -> Result<String, String> {
     info!("Using fallback weather for {}", location);
 
     Ok(format!(
@@ -347,7 +334,7 @@ async fn fetch_fallback_weather(location: &str) -> Result<String, String> {
     ))
 }
 
-fn format_weather_response(weather: &WeatherData) -> String {
+pub fn format_weather_response(weather: &WeatherData) -> String {
     format!(
         "Current weather in {}:\n\
          Temperature: {:.1}{} (feels like {:.1}{})\n\
@@ -374,19 +361,20 @@ fn format_forecast_response(weather: &WeatherData) -> String {
     let mut response = format!("Weather forecast for {}:\n\n", weather.location);
 
     for day in &weather.forecast {
-        response.push_str(&format!(
+        let _ = write!(
+            response,
             " {}\n\
              High: {:.1}°C, Low: {:.1}°C\n\
              {}\n\
              Rain chance: {}%\n\n",
             day.date, day.temp_high, day.temp_low, day.description, day.rain_chance
-        ));
+        );
     }
 
     response
 }
 
-fn degrees_to_compass(degrees: f64) -> String {
+pub fn degrees_to_compass(degrees: f64) -> String {
     let directions = [
         "N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW",
         "NW", "NNW",
@@ -396,7 +384,5 @@ fn degrees_to_compass(degrees: f64) -> String {
 }
 
 fn get_weather_api_key(_state: &AppState) -> Result<String, String> {
-
-
     Err("Weather API key not configured. Please set 'weather-api-key' in config.csv".to_string())
 }

@@ -8,20 +8,20 @@ use uuid::Uuid;
 
 pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
 
     engine
         .register_custom_syntax(
-            &["SET", "BOT", "MEMORY", "$expr$", ",", "$expr$"],
+            ["SET", "BOT", "MEMORY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let key = context.eval_expression_tree(&inputs[0])?.to_string();
                 let value = context.eval_expression_tree(&inputs[1])?.to_string();
                 let state_for_spawn = Arc::clone(&state_clone);
                 let user_clone_spawn = user_clone.clone();
-                let key_clone = key.clone();
-                let value_clone = value.clone();
+                let key_clone = key;
+                let value_clone = value;
 
                 tokio::spawn(async move {
                     use crate::shared::models::bot_memories;
@@ -114,7 +114,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
 
 pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
 
     engine.register_fn("GET BOT MEMORY", move |key_param: String| -> String {

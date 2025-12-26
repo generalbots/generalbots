@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 use diesel::prelude::*;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
@@ -15,10 +5,8 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct SseConfig {
-
     pub enabled: bool,
 
     pub heartbeat_seconds: u32,
@@ -37,12 +25,6 @@ impl Default for SseConfig {
 }
 
 impl SseConfig {
-
-
-
-
-
-
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -88,7 +70,6 @@ impl SseConfig {
             }
         }
 
-
         if config.heartbeat_seconds < 5 {
             warn!(
                 "SSE heartbeat interval {} is too low, setting to minimum of 5 seconds",
@@ -105,13 +86,11 @@ impl SseConfig {
         config
     }
 
-
     pub fn can_accept_connection(&self, current_connections: u32) -> bool {
         self.enabled && current_connections < self.max_connections
     }
 
-
     pub fn heartbeat_duration(&self) -> std::time::Duration {
-        std::time::Duration::from_secs(self.heartbeat_seconds as u64)
+        std::time::Duration::from_secs(u64::from(self.heartbeat_seconds))
     }
 }

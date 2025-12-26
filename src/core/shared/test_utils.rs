@@ -90,7 +90,7 @@ pub struct MockChannelAdapter {
 impl MockChannelAdapter {
     pub fn new(name: &str) -> Self {
         Self {
-            name: name.to_string(),
+            name: name.into(),
             messages: Arc::new(Mutex::new(Vec::new())),
         }
     }
@@ -102,8 +102,8 @@ impl MockChannelAdapter {
 
 #[async_trait]
 impl ChannelAdapter for MockChannelAdapter {
-    fn name(&self) -> &str {
-        &self.name
+    fn name(&self) -> &'static str {
+        "Mock"
     }
 
     fn is_configured(&self) -> bool {

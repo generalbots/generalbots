@@ -14,7 +14,7 @@ pub use code_scanner::{
     ScanStats,
 };
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ComplianceFramework {
     GDPR,
     SOC2,
@@ -23,7 +23,7 @@ pub enum ComplianceFramework {
     PCIDSS,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ComplianceStatus {
     Compliant,
     PartialCompliance,
@@ -78,7 +78,7 @@ pub struct AuditLogEntry {
     pub metadata: HashMap<String, String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AuditEventType {
     Access,
     Modification,
@@ -89,7 +89,7 @@ pub enum AuditEventType {
     Authorization,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ActionResult {
     Success,
     Failure,
@@ -240,57 +240,51 @@ impl ComplianceMonitor {
         framework: &ComplianceFramework,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         match framework {
-            ComplianceFramework::GDPR => self.check_gdpr().await,
-            ComplianceFramework::SOC2 => self.check_soc2().await,
-            ComplianceFramework::ISO27001 => self.check_iso27001().await,
-            ComplianceFramework::HIPAA => self.check_hipaa().await,
-            ComplianceFramework::PCIDSS => self.check_pci_dss().await,
+            ComplianceFramework::GDPR => self.check_gdpr(),
+            ComplianceFramework::SOC2 => self.check_soc2(),
+            ComplianceFramework::ISO27001 => self.check_iso27001(),
+            ComplianceFramework::HIPAA => self.check_hipaa(),
+            ComplianceFramework::PCIDSS => self.check_pci_dss(),
         }
     }
 
-    async fn check_gdpr(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
-        let mut results = Vec::new();
-
-        results.push(ComplianceCheckResult {
-            framework: ComplianceFramework::GDPR,
-            control_id: "gdpr_7.2".to_string(),
-            control_name: "Data Retention Policy".to_string(),
-            status: ComplianceStatus::Compliant,
-            score: 95.0,
-            checked_at: Utc::now(),
-            issues: vec![],
-            evidence: vec!["Automated data deletion configured".to_string()],
-        });
-
-        results.push(ComplianceCheckResult {
-            framework: ComplianceFramework::GDPR,
-            control_id: "gdpr_5.1.f".to_string(),
-            control_name: "Data Protection Measures".to_string(),
-            status: ComplianceStatus::Compliant,
-            score: 100.0,
-            checked_at: Utc::now(),
-            issues: vec![],
-            evidence: vec!["AES-256-GCM encryption enabled".to_string()],
-        });
-
-        results.push(ComplianceCheckResult {
-            framework: ComplianceFramework::GDPR,
-            control_id: "gdpr_6.1".to_string(),
-            control_name: "Lawful Basis for Processing".to_string(),
-            status: ComplianceStatus::Compliant,
-            score: 98.0,
-            checked_at: Utc::now(),
-            issues: vec![],
-            evidence: vec!["Consent records maintained".to_string()],
-        });
-
-        Ok(results)
+    fn check_gdpr(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+        Ok(vec![
+            ComplianceCheckResult {
+                framework: ComplianceFramework::GDPR,
+                control_id: "gdpr_7.2".to_string(),
+                control_name: "Data Retention Policy".to_string(),
+                status: ComplianceStatus::Compliant,
+                score: 95.0,
+                checked_at: Utc::now(),
+                issues: vec![],
+                evidence: vec!["Automated data deletion configured".to_string()],
+            },
+            ComplianceCheckResult {
+                framework: ComplianceFramework::GDPR,
+                control_id: "gdpr_5.1.f".to_string(),
+                control_name: "Data Protection Measures".to_string(),
+                status: ComplianceStatus::Compliant,
+                score: 100.0,
+                checked_at: Utc::now(),
+                issues: vec![],
+                evidence: vec!["AES-256-GCM encryption enabled".to_string()],
+            },
+            ComplianceCheckResult {
+                framework: ComplianceFramework::GDPR,
+                control_id: "gdpr_6.1".to_string(),
+                control_name: "Lawful Basis for Processing".to_string(),
+                status: ComplianceStatus::Compliant,
+                score: 98.0,
+                checked_at: Utc::now(),
+                issues: vec![],
+                evidence: vec!["Consent records maintained".to_string()],
+            },
+        ])
     }
 
-    async fn check_soc2(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
-        let mut results = Vec::new();
-
-        results.push(ComplianceCheckResult {
+    fn check_soc2(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+        Ok(vec![ComplianceCheckResult {
             framework: ComplianceFramework::SOC2,
             control_id: "cc6.1".to_string(),
             control_name: "Logical and Physical Access Controls".to_string(),
@@ -299,17 +293,11 @@ impl ComplianceMonitor {
             checked_at: Utc::now(),
             issues: vec![],
             evidence: vec!["MFA enabled for privileged accounts".to_string()],
-        });
-
-        Ok(results)
+        }])
     }
 
-    async fn check_iso27001(
-        &self,
-    ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
-        let mut results = Vec::new();
-
-        results.push(ComplianceCheckResult {
+    fn check_iso27001(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+        Ok(vec![ComplianceCheckResult {
             framework: ComplianceFramework::ISO27001,
             control_id: "a.8.1".to_string(),
             control_name: "Inventory of Assets".to_string(),
@@ -318,18 +306,14 @@ impl ComplianceMonitor {
             checked_at: Utc::now(),
             issues: vec![],
             evidence: vec!["Asset inventory maintained".to_string()],
-        });
-
-        Ok(results)
+        }])
     }
 
-    async fn check_hipaa(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_hipaa(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 
-    async fn check_pci_dss(
-        &self,
-    ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_pci_dss(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 

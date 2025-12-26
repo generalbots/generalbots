@@ -50,7 +50,7 @@ pub struct ApprovalRequest {
     pub comments: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalStatus {
     Pending,
@@ -70,11 +70,11 @@ pub enum ApprovalStatus {
 
 impl Default for ApprovalStatus {
     fn default() -> Self {
-        ApprovalStatus::Pending
+        Self::Pending
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalDecision {
     Approve,
@@ -84,7 +84,7 @@ pub enum ApprovalDecision {
     RequestInfo,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ApprovalChannel {
     Email,
@@ -98,20 +98,20 @@ pub enum ApprovalChannel {
 
 impl Default for ApprovalChannel {
     fn default() -> Self {
-        ApprovalChannel::Email
+        Self::Email
     }
 }
 
 impl std::fmt::Display for ApprovalChannel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ApprovalChannel::Email => write!(f, "email"),
-            ApprovalChannel::Sms => write!(f, "sms"),
-            ApprovalChannel::Mobile => write!(f, "mobile"),
-            ApprovalChannel::Teams => write!(f, "teams"),
-            ApprovalChannel::Slack => write!(f, "slack"),
-            ApprovalChannel::Webhook => write!(f, "webhook"),
-            ApprovalChannel::InApp => write!(f, "in_app"),
+            Self::Email => write!(f, "email"),
+            Self::Sms => write!(f, "sms"),
+            Self::Mobile => write!(f, "mobile"),
+            Self::Teams => write!(f, "teams"),
+            Self::Slack => write!(f, "slack"),
+            Self::Webhook => write!(f, "webhook"),
+            Self::InApp => write!(f, "in_app"),
         }
     }
 }
@@ -171,7 +171,7 @@ pub struct ApprovalAuditEntry {
     pub user_agent: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AuditAction {
     RequestCreated,
@@ -207,7 +207,7 @@ pub struct ApprovalConfig {
 
 impl Default for ApprovalConfig {
     fn default() -> Self {
-        ApprovalConfig {
+        Self {
             enabled: true,
             default_timeout: 3600,
             reminder_interval: 1800,
@@ -227,7 +227,7 @@ pub struct ApprovalManager {
 
 impl ApprovalManager {
     pub fn new(config: ApprovalConfig) -> Self {
-        ApprovalManager { config }
+        Self { config }
     }
 
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
@@ -256,7 +256,7 @@ impl ApprovalManager {
             email_template: config_map.get("approval-email-template").cloned(),
             approval_base_url: config_map.get("approval-base-url").cloned(),
         };
-        ApprovalManager::new(config)
+        Self::new(config)
     }
 
     pub fn create_request(
@@ -475,10 +475,10 @@ impl ApprovalRequest {
         map.insert("message".into(), self.message.clone().into());
         map.insert(
             "timeout_seconds".into(),
-            (self.timeout_seconds as i64).into(),
+            i64::from(self.timeout_seconds as u32).into(),
         );
-        map.insert("current_level".into(), (self.current_level as i64).into());
-        map.insert("total_levels".into(), (self.total_levels as i64).into());
+        map.insert("current_level".into(), i64::from(self.current_level).into());
+        map.insert("total_levels".into(), i64::from(self.total_levels).into());
         map.insert("created_at".into(), self.created_at.to_rfc3339().into());
         map.insert("expires_at".into(), self.expires_at.to_rfc3339().into());
 

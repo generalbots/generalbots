@@ -18,7 +18,6 @@ use std::path::Path;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-
 #[derive(Debug)]
 pub struct KnowledgeBaseManager {
     indexer: Arc<KbIndexer>,
@@ -27,7 +26,6 @@ pub struct KnowledgeBaseManager {
 }
 
 impl KnowledgeBaseManager {
-
     pub fn new(work_root: impl Into<std::path::PathBuf>) -> Self {
         let work_root = work_root.into();
         let embedding_config = EmbeddingConfig::from_env();
@@ -47,7 +45,6 @@ impl KnowledgeBaseManager {
         }
     }
 
-
     pub async fn index_kb_folder(
         &self,
         bot_name: &str,
@@ -55,10 +52,11 @@ impl KnowledgeBaseManager {
         kb_path: &Path,
     ) -> Result<()> {
         info!(
-            "Indexing knowledge base: {} for bot {} from path: {:?}",
-            kb_name, bot_name, kb_path
+            "Indexing knowledge base: {} for bot {} from path: {}",
+            kb_name,
+            bot_name,
+            kb_path.display()
         );
-
 
         let result = self
             .indexer
@@ -73,7 +71,6 @@ impl KnowledgeBaseManager {
         Ok(())
     }
 
-
     pub async fn search(
         &self,
         bot_name: &str,
@@ -85,22 +82,20 @@ impl KnowledgeBaseManager {
         self.indexer.search(&collection_name, query, limit).await
     }
 
-
     pub async fn process_document(&self, file_path: &Path) -> Result<Vec<TextChunk>> {
         self.processor.process_document(file_path).await
     }
 
-
     pub async fn handle_gbkb_change(&self, bot_name: &str, kb_folder: &Path) -> Result<()> {
         info!(
-            "Handling .gbkb folder change for bot {} at {:?}",
-            bot_name, kb_folder
+            "Handling .gbkb folder change for bot {} at {}",
+            bot_name,
+            kb_folder.display()
         );
 
         let monitor = self.monitor.read().await;
         monitor.process_gbkb_folder(bot_name, kb_folder).await
     }
-
 
     pub async fn clear_kb(&self, bot_name: &str, kb_name: &str) -> Result<()> {
         let collection_name = format!("{}_{}", bot_name, kb_name);
@@ -119,22 +114,16 @@ impl KnowledgeBaseManager {
         }
     }
 
-
     pub async fn get_kb_stats(&self, bot_name: &str, kb_name: &str) -> Result<KbStatistics> {
         let collection_name = format!("{}_{}", bot_name, kb_name);
 
-
         let collection_info = self.indexer.get_collection_info(&collection_name).await?;
-
-
-
 
         let estimated_doc_count = if collection_info.points_count > 0 {
             std::cmp::max(1, collection_info.points_count / 10)
         } else {
             0
         };
-
 
         let estimated_size = collection_info.points_count * 1024;
 
@@ -148,7 +137,6 @@ impl KnowledgeBaseManager {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct KbStatistics {
     pub collection_name: String,
@@ -157,7 +145,6 @@ pub struct KbStatistics {
     pub total_size_bytes: usize,
     pub status: String,
 }
-
 
 #[derive(Debug)]
 pub struct DriveMonitorIntegration {
@@ -169,7 +156,6 @@ impl DriveMonitorIntegration {
         Self { kb_manager }
     }
 
-
     pub async fn on_gbkb_folder_changed(
         &self,
         bot_name: &str,
@@ -179,15 +165,15 @@ impl DriveMonitorIntegration {
         match change_type {
             ChangeType::Created | ChangeType::Modified => {
                 info!(
-                    "Drive monitor detected {:?} in .gbkb folder: {:?}",
-                    change_type, folder_path
+                    "Drive monitor detected {:?} in .gbkb folder: {}",
+                    change_type,
+                    folder_path.display()
                 );
                 self.kb_manager
                     .handle_gbkb_change(bot_name, folder_path)
                     .await
             }
             ChangeType::Deleted => {
-
                 if let Some(kb_name) = folder_path.file_name().and_then(|n| n.to_str()) {
                     self.kb_manager.clear_kb(bot_name, kb_name).await
                 } else {
@@ -197,7 +183,6 @@ impl DriveMonitorIntegration {
         }
     }
 }
-
 
 #[derive(Debug, Clone, Copy)]
 pub enum ChangeType {

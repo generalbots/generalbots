@@ -7,7 +7,7 @@ pub fn create_draft_keyword(state: &AppState, _user: UserSession, engine: &mut E
     let state_clone = state.clone();
     engine
         .register_custom_syntax(
-            &["CREATE_DRAFT", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["CREATE_DRAFT", "$expr$", ",", "$expr$", ",", "$expr$"],
             true,
             move |context, inputs| {
                 let to = context.eval_expression_tree(&inputs[0])?.to_string();

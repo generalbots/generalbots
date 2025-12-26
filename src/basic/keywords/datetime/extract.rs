@@ -26,10 +26,14 @@ fn parse_datetime(datetime_str: &str) -> Option<NaiveDateTime> {
 
 pub fn year_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("YEAR", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.year() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.year()))
+            .unwrap_or(0)
     });
     engine.register_fn("year", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.year() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.year()))
+            .unwrap_or(0)
     });
 
     debug!("Registered YEAR keyword");
@@ -37,10 +41,14 @@ pub fn year_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Eng
 
 pub fn month_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("MONTH", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.month() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.month()))
+            .unwrap_or(0)
     });
     engine.register_fn("month", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.month() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.month()))
+            .unwrap_or(0)
     });
 
     debug!("Registered MONTH keyword");
@@ -48,10 +56,14 @@ pub fn month_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
 
 pub fn day_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("DAY", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.day() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.day()))
+            .unwrap_or(0)
     });
     engine.register_fn("day", |date_str: &str| -> i64 {
-        parse_date(date_str).map(|d| d.day() as i64).unwrap_or(0)
+        parse_date(date_str)
+            .map(|d| i64::from(d.day()))
+            .unwrap_or(0)
     });
 
     debug!("Registered DAY keyword");
@@ -60,12 +72,12 @@ pub fn day_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engi
 pub fn hour_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("HOUR", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.hour() as i64)
+            .map(|d| i64::from(d.hour()))
             .unwrap_or(0)
     });
     engine.register_fn("hour", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.hour() as i64)
+            .map(|d| i64::from(d.hour()))
             .unwrap_or(0)
     });
 
@@ -75,12 +87,12 @@ pub fn hour_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Eng
 pub fn minute_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("MINUTE", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.minute() as i64)
+            .map(|d| i64::from(d.minute()))
             .unwrap_or(0)
     });
     engine.register_fn("minute", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.minute() as i64)
+            .map(|d| i64::from(d.minute()))
             .unwrap_or(0)
     });
 
@@ -90,12 +102,12 @@ pub fn minute_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut E
 pub fn second_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("SECOND", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.second() as i64)
+            .map(|d| i64::from(d.second()))
             .unwrap_or(0)
     });
     engine.register_fn("second", |datetime_str: &str| -> i64 {
         parse_datetime(datetime_str)
-            .map(|d| d.second() as i64)
+            .map(|d| i64::from(d.second()))
             .unwrap_or(0)
     });
 
@@ -105,12 +117,12 @@ pub fn second_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut E
 pub fn weekday_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("WEEKDAY", |date_str: &str| -> i64 {
         parse_date(date_str)
-            .map(|d| d.weekday().num_days_from_sunday() as i64 + 1)
+            .map(|d| i64::from(d.weekday().num_days_from_sunday()) + 1)
             .unwrap_or(0)
     });
     engine.register_fn("weekday", |date_str: &str| -> i64 {
         parse_date(date_str)
-            .map(|d| d.weekday().num_days_from_sunday() as i64 + 1)
+            .map(|d| i64::from(d.weekday().num_days_from_sunday()) + 1)
             .unwrap_or(0)
     });
 
@@ -164,5 +176,37 @@ pub fn format_date_impl(date_str: &str, format: &str) -> String {
         datetime.format(&chrono_format).to_string()
     } else {
         date_str.to_string()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::{Datelike, Timelike};
+
+    #[test]
+    fn test_parse_date() {
+        let date = parse_date("2025-01-22");
+        assert!(date.is_some());
+        let d = date.unwrap();
+        assert_eq!(d.year(), 2025);
+        assert_eq!(d.month(), 1);
+        assert_eq!(d.day(), 22);
+    }
+
+    #[test]
+    fn test_parse_datetime() {
+        let dt = parse_datetime("2025-01-22 14:30:45");
+        assert!(dt.is_some());
+        let d = dt.unwrap();
+        assert_eq!(d.hour(), 14);
+        assert_eq!(d.minute(), 30);
+        assert_eq!(d.second(), 45);
+    }
+
+    #[test]
+    fn test_invalid_date() {
+        let date = parse_date("invalid");
+        assert!(date.is_none());
     }
 }

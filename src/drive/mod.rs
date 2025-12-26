@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #[cfg(feature = "console")]
 use crate::console::file_tree::FileTree;
 use crate::shared::state::AppState;
@@ -30,11 +16,6 @@ use std::sync::Arc;
 pub mod document_processing;
 pub mod drive_monitor;
 pub mod vectordb;
-
-
-
-
-
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FileItem {
@@ -114,10 +95,10 @@ pub struct SearchQuery {
 
 #[derive(Debug, Deserialize)]
 pub struct ShareRequest {
-    pub _bucket: String,
-    pub _path: String,
-    pub _users: Vec<String>,
-    pub _permissions: String,
+    pub bucket: String,
+    pub path: String,
+    pub users: Vec<String>,
+    pub permissions: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -141,11 +122,6 @@ pub struct ShareResponse {
     pub expires_at: Option<String>,
 }
 
-
-
-
-
-
 #[derive(Debug, Serialize)]
 pub struct SyncStatus {
     pub status: String,
@@ -155,8 +131,6 @@ pub struct SyncStatus {
     pub is_desktop: bool,
     pub message: Option<String>,
 }
-
-
 
 #[derive(Debug, Deserialize)]
 pub struct VersionsQuery {
@@ -194,13 +168,9 @@ pub struct RestoreResponse {
     pub new_version_id: Option<String>,
 }
 
-
-
-
 #[allow(unused)]
 pub fn configure() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/files/list", get(list_files))
         .route("/files/read", post(read_file))
         .route("/files/write", post(write_file))
@@ -209,30 +179,23 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/files/delete", post(delete_file))
         .route("/files/upload", post(upload_file_to_drive))
         .route("/files/download", post(download_file))
-
         .route("/files/copy", post(copy_file))
         .route("/files/move", post(move_file))
         .route("/files/createFolder", post(create_folder))
         .route("/files/create-folder", post(create_folder))
         .route("/files/dirFolder", post(list_folder_contents))
-
         .route("/files/search", get(search_files))
         .route("/files/recent", get(recent_files))
         .route("/files/favorite", get(list_favorites))
-
         .route("/files/shareFolder", post(share_folder))
         .route("/files/shared", get(list_shared))
         .route("/files/permissions", get(get_permissions))
-
         .route("/files/quota", get(get_quota))
-
         .route("/files/sync/status", get(sync_status))
         .route("/files/sync/start", post(start_sync))
         .route("/files/sync/stop", post(stop_sync))
-
         .route("/files/versions", get(list_versions))
         .route("/files/restore", post(restore_version))
-
         .route("/docs/merge", post(document_processing::merge_documents))
         .route("/docs/convert", post(document_processing::convert_document))
         .route("/docs/fill", post(document_processing::fill_document))
@@ -240,14 +203,10 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/docs/import", post(document_processing::import_document))
 }
 
-
-
-
 pub async fn list_files(
     State(state): State<Arc<AppState>>,
     Query(params): Query<ListQuery>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
-
     #[cfg(feature = "console")]
     let result = {
         let mut tree = FileTree::new(state.clone());
@@ -261,13 +220,11 @@ pub async fn list_files(
             tree.load_root().await.ok();
         }
 
-
         Ok::<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)>(vec![])
     };
 
     #[cfg(not(feature = "console"))]
     let result: Result<Vec<FileItem>, (StatusCode, Json<serde_json::Value>)> = {
-
         let s3_client = state.drive.as_ref().ok_or_else(|| {
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -294,7 +251,6 @@ pub async fn list_files(
                     Json(serde_json::json!({"error": e.to_string()})),
                 )
             })? {
-
                 if let Some(prefixes) = result.common_prefixes {
                     for prefix in prefixes {
                         if let Some(dir) = prefix.prefix {
@@ -315,7 +271,6 @@ pub async fn list_files(
                         }
                     }
                 }
-
 
                 if let Some(contents) = result.contents {
                     for object in contents {
@@ -361,7 +316,7 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
                         is_dir: true,
                         size: None,
                         modified: None,
-                        icon: if name.ends_with(".gbai") {
+                        icon: if name.to_ascii_lowercase().ends_with(".gbai") {
                             "".to_string()
                         } else {
                             "📦".to_string()
@@ -370,7 +325,7 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
                 }
             }
             crate::console::file_tree::TreeNode::Folder { bucket, path } => {
-                let folder_name = path.split('/').last().unwrap_or(&display_name);
+                let folder_name = path.split('/').next_back().unwrap_or(&display_name);
                 items.push(FileItem {
                     name: folder_name.to_string(),
                     path: format!("/{}/{}", bucket, path),
@@ -381,7 +336,7 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
                 });
             }
             crate::console::file_tree::TreeNode::File { bucket, path } => {
-                let file_name = path.split('/').last().unwrap_or(&display_name);
+                let file_name = path.split('/').next_back().unwrap_or(&display_name);
                 items.push(FileItem {
                     name: file_name.to_string(),
                     path: format!("/{}/{}", bucket, path),
@@ -396,7 +351,6 @@ pub fn convert_tree_to_items(tree: &FileTree) -> Vec<FileItem> {
 
     items
 }
-
 
 pub async fn read_file(
     State(state): State<Arc<AppState>>,
@@ -444,7 +398,6 @@ pub async fn read_file(
     Ok(Json(ReadResponse { content }))
 }
 
-
 pub async fn write_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
@@ -476,7 +429,6 @@ pub async fn write_file(
     }))
 }
 
-
 pub async fn delete_file(
     State(state): State<Arc<AppState>>,
     Json(req): Json<DeleteRequest>,
@@ -487,7 +439,6 @@ pub async fn delete_file(
             Json(serde_json::json!({ "error": "S3 service not available" })),
         )
     })?;
-
 
     if req.path.ends_with('/') {
         let result = s3_client
@@ -540,7 +491,6 @@ pub async fn delete_file(
     }))
 }
 
-
 pub async fn create_folder(
     State(state): State<Arc<AppState>>,
     Json(req): Json<CreateFolderRequest>,
@@ -551,7 +501,6 @@ pub async fn create_folder(
             Json(serde_json::json!({ "error": "S3 service not available" })),
         )
     })?;
-
 
     let folder_path = if req.path.is_empty() || req.path == "/" {
         format!("{}/", req.name)
@@ -579,35 +528,24 @@ pub async fn create_folder(
     }))
 }
 
-
-
-
 fn get_file_icon(path: &str) -> String {
-    if path.ends_with(".bas") {
-        "".to_string()
-    } else if path.ends_with(".ast") {
-        "".to_string()
-    } else if path.ends_with(".csv") {
-        "".to_string()
-    } else if path.ends_with(".gbkb") {
-        "".to_string()
-    } else if path.ends_with(".json") {
-        "🔖".to_string()
-    } else if path.ends_with(".txt") || path.ends_with(".md") {
-        "📃".to_string()
-    } else if path.ends_with(".pdf") {
-        "📕".to_string()
-    } else if path.ends_with(".zip") || path.ends_with(".tar") || path.ends_with(".gz") {
-        "📦".to_string()
-    } else if path.ends_with(".jpg") || path.ends_with(".png") || path.ends_with(".gif") {
-        "".to_string()
-    } else {
-        "📄".to_string()
+    let ext = std::path::Path::new(path)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase());
+
+    match ext.as_deref() {
+        Some("bas") => "".to_string(),
+        Some("ast") => "".to_string(),
+        Some("csv") => "".to_string(),
+        Some("gbkb") => "".to_string(),
+        Some("json") => "🔖".to_string(),
+        Some("txt" | "md") => "📃".to_string(),
+        Some("pdf") => "📕".to_string(),
+        Some("zip" | "tar" | "gz") => "📦".to_string(),
+        Some("jpg" | "png" | "gif") | _ => "📄".to_string(),
     }
 }
-
-
-
 
 pub async fn copy_file(
     State(state): State<Arc<AppState>>,
@@ -641,7 +579,6 @@ pub async fn copy_file(
         message: Some("File copied successfully".to_string()),
     }))
 }
-
 
 pub async fn move_file(
     State(state): State<Arc<AppState>>,
@@ -691,14 +628,12 @@ pub async fn move_file(
     }))
 }
 
-
 pub async fn upload_file_to_drive(
     State(state): State<Arc<AppState>>,
     Json(req): Json<WriteRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
     write_file(State(state), Json(req)).await
 }
-
 
 pub async fn download_file(
     State(state): State<Arc<AppState>>,
@@ -714,7 +649,6 @@ pub async fn download_file(
     .await
 }
 
-
 pub async fn list_folder_contents(
     State(state): State<Arc<AppState>>,
     Json(req): Json<ReadRequest>,
@@ -728,7 +662,6 @@ pub async fn list_folder_contents(
     )
     .await
 }
-
 
 pub async fn search_files(
     State(state): State<Arc<AppState>>,
@@ -773,7 +706,7 @@ pub async fn search_files(
 
         for obj in result.contents() {
             if let Some(key) = obj.key() {
-                let name = key.split('/').last().unwrap_or(key).to_lowercase();
+                let name = key.split('/').next_back().unwrap_or(key).to_lowercase();
                 let query_lower = params.query.to_lowercase();
 
                 if name.contains(&query_lower) {
@@ -805,7 +738,6 @@ pub async fn search_files(
 
     Ok(Json(all_items))
 }
-
 
 pub async fn recent_files(
     State(state): State<Arc<AppState>>,
@@ -851,7 +783,7 @@ pub async fn recent_files(
         for obj in result.contents() {
             if let Some(key) = obj.key() {
                 all_items.push(FileItem {
-                    name: key.split('/').last().unwrap_or(key).to_string(),
+                    name: key.split('/').next_back().unwrap_or(key).to_string(),
                     path: key.to_string(),
                     is_dir: false,
                     size: obj.size(),
@@ -868,13 +800,11 @@ pub async fn recent_files(
     Ok(Json(all_items))
 }
 
-
 pub async fn list_favorites(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
-
 
 pub async fn share_folder(
     State(_state): State<Arc<AppState>>,
@@ -895,13 +825,11 @@ pub async fn share_folder(
     }))
 }
 
-
 pub async fn list_shared(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<FileItem>>, (StatusCode, Json<serde_json::Value>)> {
     Ok(Json(Vec::new()))
 }
-
 
 pub async fn get_permissions(
     State(_state): State<Arc<AppState>>,
@@ -919,7 +847,6 @@ pub async fn get_permissions(
         "shared_with": []
     })))
 }
-
 
 pub async fn get_quota(
     State(state): State<Arc<AppState>>,
@@ -973,19 +900,9 @@ pub async fn get_quota(
         total_bytes,
         used_bytes,
         available_bytes,
-        percentage_used: percentage_used as f64,
+        percentage_used,
     }))
 }
-
-
-
-
-
-
-
-
-
-
 
 pub async fn sync_status(
     State(_state): State<Arc<AppState>>,
@@ -1002,15 +919,6 @@ pub async fn sync_status(
     }))
 }
 
-
-
-
-
-
-
-
-
-
 pub async fn start_sync(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -1019,14 +927,6 @@ pub async fn start_sync(
         message: Some("File sync requires the General Bots desktop app. Install rclone and use the desktop app to sync files.".to_string()),
     }))
 }
-
-
-
-
-
-
-
-
 
 pub async fn stop_sync(
     State(_state): State<Arc<AppState>>,
@@ -1037,16 +937,6 @@ pub async fn stop_sync(
     }))
 }
 
-
-
-
-
-
-
-
-
-
-
 pub async fn list_versions(
     State(state): State<Arc<AppState>>,
     Query(params): Query<VersionsQuery>,
@@ -1054,14 +944,12 @@ pub async fn list_versions(
     let bucket = params.bucket.unwrap_or_else(|| "default".to_string());
     let path = params.path;
 
-
     let s3_client = state.s3_client.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({ "error": "S3 storage not configured" })),
         )
     })?;
-
 
     let versions_result = s3_client
         .list_object_versions()
@@ -1078,7 +966,6 @@ pub async fn list_versions(
 
     let mut versions: Vec<FileVersion> = Vec::new();
 
-
     for version in versions_result.versions() {
         if version.key().unwrap_or_default() == path {
             versions.push(FileVersion {
@@ -1094,7 +981,6 @@ pub async fn list_versions(
         }
     }
 
-
     versions.sort_by(|a, b| b.modified.cmp(&a.modified));
 
     Ok(Json(VersionsResponse {
@@ -1102,15 +988,6 @@ pub async fn list_versions(
         versions,
     }))
 }
-
-
-
-
-
-
-
-
-
 
 pub async fn restore_version(
     State(state): State<Arc<AppState>>,
@@ -1120,15 +997,12 @@ pub async fn restore_version(
     let path = payload.path;
     let version_id = payload.version_id;
 
-
     let s3_client = state.s3_client.as_ref().ok_or_else(|| {
         (
             StatusCode::SERVICE_UNAVAILABLE,
             Json(serde_json::json!({ "error": "S3 storage not configured" })),
         )
     })?;
-
-
 
     let copy_source = format!("{}/{}?versionId={}", bucket, path, version_id);
 
@@ -1154,4 +1028,409 @@ pub async fn restore_version(
         restored_version: version_id,
         new_version_id,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::path::PathBuf;
+
+    // Test structures for MinIO/S3-like storage service tests from bottest/services/minio.rs
+
+    #[derive(Debug, Clone)]
+    struct MinioTestConfig {
+        api_port: u16,
+        console_port: u16,
+        data_dir: PathBuf,
+        access_key: String,
+        secret_key: String,
+    }
+
+    impl Default for MinioTestConfig {
+        fn default() -> Self {
+            Self {
+                api_port: 9000,
+                console_port: 10000,
+                data_dir: PathBuf::from("/tmp/test"),
+                access_key: "minioadmin".to_string(),
+                secret_key: "minioadmin".to_string(),
+            }
+        }
+    }
+
+    impl MinioTestConfig {
+        fn endpoint(&self) -> String {
+            format!("http://127.0.0.1:{}", self.api_port)
+        }
+
+        fn console_url(&self) -> String {
+            format!("http://127.0.0.1:{}", self.console_port)
+        }
+
+        fn credentials(&self) -> (String, String) {
+            (self.access_key.clone(), self.secret_key.clone())
+        }
+
+        fn s3_config(&self) -> HashMap<String, String> {
+            let mut config = HashMap::new();
+            config.insert("endpoint_url".to_string(), self.endpoint());
+            config.insert("access_key_id".to_string(), self.access_key.clone());
+            config.insert("secret_access_key".to_string(), self.secret_key.clone());
+            config.insert("region".to_string(), "us-east-1".to_string());
+            config.insert("force_path_style".to_string(), "true".to_string());
+            config
+        }
+    }
+
+    #[test]
+    fn test_endpoint_format() {
+        let config = MinioTestConfig {
+            api_port: 9000,
+            console_port: 10000,
+            ..Default::default()
+        };
+
+        assert_eq!(config.endpoint(), "http://127.0.0.1:9000");
+        assert_eq!(config.console_url(), "http://127.0.0.1:10000");
+    }
+
+    #[test]
+    fn test_credentials() {
+        let config = MinioTestConfig {
+            access_key: "mykey".to_string(),
+            secret_key: "mysecret".to_string(),
+            ..Default::default()
+        };
+
+        let (key, secret) = config.credentials();
+        assert_eq!(key, "mykey");
+        assert_eq!(secret, "mysecret");
+    }
+
+    #[test]
+    fn test_s3_config() {
+        let config = MinioTestConfig {
+            api_port: 9000,
+            access_key: "access".to_string(),
+            secret_key: "secret".to_string(),
+            ..Default::default()
+        };
+
+        let s3_config = config.s3_config();
+        assert_eq!(
+            s3_config.get("endpoint_url"),
+            Some(&"http://127.0.0.1:9000".to_string())
+        );
+        assert_eq!(s3_config.get("access_key_id"), Some(&"access".to_string()));
+        assert_eq!(s3_config.get("force_path_style"), Some(&"true".to_string()));
+    }
+
+    #[test]
+    fn test_file_item_creation() {
+        let item = FileItem {
+            name: "test.txt".to_string(),
+            path: "/documents/test.txt".to_string(),
+            is_dir: false,
+            size: Some(1024),
+            modified: Some("2024-01-15T10:30:00Z".to_string()),
+            icon: "file-text".to_string(),
+        };
+
+        assert_eq!(item.name, "test.txt");
+        assert!(!item.is_dir);
+        assert_eq!(item.size, Some(1024));
+    }
+
+    #[test]
+    fn test_file_item_directory() {
+        let item = FileItem {
+            name: "documents".to_string(),
+            path: "/documents".to_string(),
+            is_dir: true,
+            size: None,
+            modified: Some("2024-01-15T10:30:00Z".to_string()),
+            icon: "folder".to_string(),
+        };
+
+        assert!(item.is_dir);
+        assert!(item.size.is_none());
+    }
+
+    #[test]
+    fn test_list_query() {
+        let query = ListQuery {
+            path: Some("/documents".to_string()),
+            bucket: Some("my-bucket".to_string()),
+        };
+
+        assert_eq!(query.path, Some("/documents".to_string()));
+        assert_eq!(query.bucket, Some("my-bucket".to_string()));
+    }
+
+    #[test]
+    fn test_read_request() {
+        let request = ReadRequest {
+            bucket: "test-bucket".to_string(),
+            path: "folder/file.txt".to_string(),
+        };
+
+        assert_eq!(request.bucket, "test-bucket");
+        assert_eq!(request.path, "folder/file.txt");
+    }
+
+    #[test]
+    fn test_write_request() {
+        let request = WriteRequest {
+            bucket: "test-bucket".to_string(),
+            path: "folder/newfile.txt".to_string(),
+            content: "Hello, World!".to_string(),
+        };
+
+        assert_eq!(request.bucket, "test-bucket");
+        assert_eq!(request.content, "Hello, World!");
+    }
+
+    #[test]
+    fn test_delete_request() {
+        let request = DeleteRequest {
+            bucket: "test-bucket".to_string(),
+            path: "folder/delete-me.txt".to_string(),
+        };
+
+        assert_eq!(request.bucket, "test-bucket");
+        assert_eq!(request.path, "folder/delete-me.txt");
+    }
+
+    #[test]
+    fn test_create_folder_request() {
+        let request = CreateFolderRequest {
+            bucket: "test-bucket".to_string(),
+            path: "/documents".to_string(),
+            name: "new-folder".to_string(),
+        };
+
+        assert_eq!(request.name, "new-folder");
+        assert_eq!(request.path, "/documents");
+    }
+
+    #[test]
+    fn test_copy_request() {
+        let request = CopyRequest {
+            source_bucket: "bucket-a".to_string(),
+            source_path: "file.txt".to_string(),
+            dest_bucket: "bucket-b".to_string(),
+            dest_path: "copied-file.txt".to_string(),
+        };
+
+        assert_eq!(request.source_bucket, "bucket-a");
+        assert_eq!(request.dest_bucket, "bucket-b");
+    }
+
+    #[test]
+    fn test_move_request() {
+        let request = MoveRequest {
+            source_bucket: "bucket-a".to_string(),
+            source_path: "old-location/file.txt".to_string(),
+            dest_bucket: "bucket-a".to_string(),
+            dest_path: "new-location/file.txt".to_string(),
+        };
+
+        assert_eq!(request.source_path, "old-location/file.txt");
+        assert_eq!(request.dest_path, "new-location/file.txt");
+    }
+
+    #[test]
+    fn test_search_query() {
+        let query = SearchQuery {
+            bucket: Some("test-bucket".to_string()),
+            query: "report".to_string(),
+            file_type: Some("pdf".to_string()),
+        };
+
+        assert_eq!(query.query, "report");
+        assert_eq!(query.file_type, Some("pdf".to_string()));
+    }
+
+    #[test]
+    fn test_share_request() {
+        let request = ShareRequest {
+            bucket: "test-bucket".to_string(),
+            path: "shared-folder".to_string(),
+            users: vec![
+                "user1@example.com".to_string(),
+                "user2@example.com".to_string(),
+            ],
+            permissions: "read".to_string(),
+        };
+
+        assert_eq!(request.users.len(), 2);
+        assert_eq!(request.permissions, "read");
+    }
+
+    #[test]
+    fn test_success_response() {
+        let response = SuccessResponse {
+            success: true,
+            message: Some("Operation completed successfully".to_string()),
+        };
+
+        assert!(response.success);
+        assert!(response
+            .message
+            .as_ref()
+            .is_some_and(|m| m.contains("successfully")));
+    }
+
+    #[test]
+    fn test_quota_response() {
+        let response = QuotaResponse {
+            total_bytes: 1_073_741_824,   // 1 GB
+            used_bytes: 536_870_912,      // 512 MB
+            available_bytes: 536_870_912, // 512 MB
+            percentage_used: 50.0,
+        };
+
+        assert_eq!(response.percentage_used, 50.0);
+        assert_eq!(
+            response.total_bytes,
+            response.used_bytes + response.available_bytes
+        );
+    }
+
+    #[test]
+    fn test_share_response() {
+        let response = ShareResponse {
+            share_id: "share-12345".to_string(),
+            url: "https://example.com/share/share-12345".to_string(),
+            expires_at: Some("2024-12-31T23:59:59Z".to_string()),
+        };
+
+        assert!(response.url.contains("share-12345"));
+        assert!(response.expires_at.is_some());
+    }
+
+    #[test]
+    fn test_sync_status() {
+        let status = SyncStatus {
+            status: "syncing".to_string(),
+            last_sync: Some("2024-01-15T10:30:00Z".to_string()),
+            files_synced: 150,
+            bytes_synced: 52_428_800,
+            is_desktop: true,
+            message: Some("Syncing in progress...".to_string()),
+        };
+
+        assert_eq!(status.status, "syncing");
+        assert_eq!(status.files_synced, 150);
+        assert!(status.is_desktop);
+    }
+
+    #[test]
+    fn test_file_version() {
+        let version = FileVersion {
+            version_id: "v1234567890".to_string(),
+            modified: "2024-01-15T10:30:00Z".to_string(),
+            size: 2048,
+            is_latest: true,
+            etag: Some("abc123def456".to_string()),
+        };
+
+        assert!(version.is_latest);
+        assert_eq!(version.size, 2048);
+    }
+
+    #[test]
+    fn test_versions_response() {
+        let versions = vec![
+            FileVersion {
+                version_id: "v2".to_string(),
+                modified: "2024-01-15T12:00:00Z".to_string(),
+                size: 2048,
+                is_latest: true,
+                etag: Some("etag2".to_string()),
+            },
+            FileVersion {
+                version_id: "v1".to_string(),
+                modified: "2024-01-15T10:00:00Z".to_string(),
+                size: 1024,
+                is_latest: false,
+                etag: Some("etag1".to_string()),
+            },
+        ];
+
+        let response = VersionsResponse {
+            path: "documents/report.pdf".to_string(),
+            versions,
+        };
+
+        assert_eq!(response.versions.len(), 2);
+        assert!(response.versions[0].is_latest);
+        assert!(!response.versions[1].is_latest);
+    }
+
+    #[test]
+    fn test_restore_request() {
+        let request = RestoreRequest {
+            bucket: Some("test-bucket".to_string()),
+            path: "documents/file.txt".to_string(),
+            version_id: "v1234567890".to_string(),
+        };
+
+        assert_eq!(request.version_id, "v1234567890");
+    }
+
+    #[test]
+    fn test_restore_response() {
+        let response = RestoreResponse {
+            success: true,
+            message: "File restored successfully".to_string(),
+            restored_version: "v1234567890".to_string(),
+            new_version_id: Some("v9876543210".to_string()),
+        };
+
+        assert!(response.success);
+        assert!(response.new_version_id.is_some());
+    }
+
+    #[test]
+    fn test_get_file_icon() {
+        assert_eq!(get_file_icon("document.pdf"), "file-text");
+        assert_eq!(get_file_icon("image.png"), "image");
+        assert_eq!(get_file_icon("image.jpg"), "image");
+        assert_eq!(get_file_icon("video.mp4"), "video");
+        assert_eq!(get_file_icon("music.mp3"), "music");
+        assert_eq!(get_file_icon("archive.zip"), "archive");
+        assert_eq!(get_file_icon("unknown.xyz"), "file");
+    }
+
+    #[test]
+    fn test_default_minio_credentials() {
+        let config = MinioTestConfig::default();
+        assert_eq!(config.access_key, "minioadmin");
+        assert_eq!(config.secret_key, "minioadmin");
+    }
+
+    #[test]
+    fn test_custom_port_configuration() {
+        let config = MinioTestConfig {
+            api_port: 19000,
+            console_port: 19001,
+            ..Default::default()
+        };
+
+        assert!(config.endpoint().contains("19000"));
+        assert!(config.console_url().contains("19001"));
+    }
+
+    #[test]
+    fn test_download_request() {
+        let request = DownloadRequest {
+            bucket: "my-bucket".to_string(),
+            path: "downloads/file.zip".to_string(),
+        };
+
+        assert_eq!(request.bucket, "my-bucket");
+        assert!(request.path.ends_with(".zip"));
+    }
 }

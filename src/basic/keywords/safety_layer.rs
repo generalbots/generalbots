@@ -1,29 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -34,28 +8,19 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstraintCheckResult {
-
     pub passed: bool,
-
     pub results: Vec<ConstraintResult>,
-
     pub risk_score: f64,
-
     pub blocking: Vec<String>,
-
     pub warnings: Vec<String>,
-
     pub suggestions: Vec<String>,
 }
 
 impl Default for ConstraintCheckResult {
     fn default() -> Self {
-        ConstraintCheckResult {
+        Self {
             passed: true,
             results: Vec::new(),
             risk_score: 0.0,
@@ -66,150 +31,101 @@ impl Default for ConstraintCheckResult {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConstraintResult {
-
     pub constraint_id: String,
-
     pub constraint_type: ConstraintType,
-
     pub passed: bool,
-
     pub severity: ConstraintSeverity,
-
     pub message: String,
-
     pub details: Option<serde_json::Value>,
-
     pub remediation: Option<String>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ConstraintType {
-
     Budget,
-
     Permission,
-
     Policy,
-
     Compliance,
-
     Technical,
-
     RateLimit,
-
     TimeWindow,
-
     DataAccess,
-
     Security,
-
     Resource,
-
     Custom(String),
 }
 
 impl Default for ConstraintType {
     fn default() -> Self {
-        ConstraintType::Custom("unknown".to_string())
+        Self::Custom("unknown".to_string())
     }
 }
 
 impl std::fmt::Display for ConstraintType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            ConstraintType::Budget => write!(f, "budget"),
-            ConstraintType::Permission => write!(f, "permission"),
-            ConstraintType::Policy => write!(f, "policy"),
-            ConstraintType::Compliance => write!(f, "compliance"),
-            ConstraintType::Technical => write!(f, "technical"),
-            ConstraintType::RateLimit => write!(f, "rate_limit"),
-            ConstraintType::TimeWindow => write!(f, "time_window"),
-            ConstraintType::DataAccess => write!(f, "data_access"),
-            ConstraintType::Security => write!(f, "security"),
-            ConstraintType::Resource => write!(f, "resource"),
-            ConstraintType::Custom(s) => write!(f, "{}", s),
+            Self::Budget => write!(f, "budget"),
+            Self::Permission => write!(f, "permission"),
+            Self::Policy => write!(f, "policy"),
+            Self::Compliance => write!(f, "compliance"),
+            Self::Technical => write!(f, "technical"),
+            Self::RateLimit => write!(f, "rate_limit"),
+            Self::TimeWindow => write!(f, "time_window"),
+            Self::DataAccess => write!(f, "data_access"),
+            Self::Security => write!(f, "security"),
+            Self::Resource => write!(f, "resource"),
+            Self::Custom(s) => write!(f, "{s}"),
         }
     }
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
 pub enum ConstraintSeverity {
-
     Info = 0,
-
     Warning = 1,
-
     Error = 2,
-
     Critical = 3,
 }
 
 impl Default for ConstraintSeverity {
     fn default() -> Self {
-        ConstraintSeverity::Warning
+        Self::Warning
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraint {
-
     pub id: String,
-
     pub name: String,
-
     pub constraint_type: ConstraintType,
-
     pub description: String,
-
     pub expression: Option<String>,
-
     pub threshold: Option<serde_json::Value>,
-
     pub severity: ConstraintSeverity,
-
     pub enabled: bool,
-
     pub applies_to: Vec<String>,
-
     pub bot_id: String,
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SimulationResult {
-
     pub id: String,
-
     pub success: bool,
-
     pub step_outcomes: Vec<StepSimulationOutcome>,
-
     pub impact: ImpactAssessment,
-
     pub resource_usage: PredictedResourceUsage,
-
     pub side_effects: Vec<SideEffect>,
-
     pub recommendations: Vec<Recommendation>,
-
     pub confidence: f64,
-
     pub simulated_at: DateTime<Utc>,
-
     pub simulation_duration_ms: i64,
 }
 
 impl Default for SimulationResult {
     fn default() -> Self {
-        SimulationResult {
+        Self {
             id: Uuid::new_v4().to_string(),
             success: true,
             step_outcomes: Vec::new(),
@@ -224,64 +140,41 @@ impl Default for SimulationResult {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepSimulationOutcome {
-
     pub step_id: String,
-
     pub step_name: String,
-
     pub would_succeed: bool,
-
     pub success_probability: f64,
-
     pub predicted_outputs: serde_json::Value,
-
     pub failure_modes: Vec<FailureMode>,
-
     pub estimated_duration_seconds: i32,
-
     pub affected_dependencies: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FailureMode {
-
     pub failure_type: String,
-
     pub probability: f64,
-
     pub impact: String,
-
     pub mitigation: Option<String>,
-
     pub recoverable: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ImpactAssessment {
-
     pub risk_score: f64,
-
     pub risk_level: RiskLevel,
-
     pub data_impact: DataImpact,
-
     pub cost_impact: CostImpact,
-
     pub time_impact: TimeImpact,
-
     pub security_impact: SecurityImpact,
-
     pub summary: String,
 }
 
 impl Default for ImpactAssessment {
     fn default() -> Self {
-        ImpactAssessment {
+        Self {
             risk_score: 0.0,
             risk_level: RiskLevel::Low,
             data_impact: DataImpact::default(),
@@ -293,8 +186,7 @@ impl Default for ImpactAssessment {
     }
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Ord, PartialOrd)]
 pub enum RiskLevel {
     None = 0,
     Low = 1,
@@ -305,44 +197,36 @@ pub enum RiskLevel {
 
 impl Default for RiskLevel {
     fn default() -> Self {
-        RiskLevel::Low
+        Self::Low
     }
 }
 
 impl std::fmt::Display for RiskLevel {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RiskLevel::None => write!(f, "None"),
-            RiskLevel::Low => write!(f, "Low"),
-            RiskLevel::Medium => write!(f, "Medium"),
-            RiskLevel::High => write!(f, "High"),
-            RiskLevel::Critical => write!(f, "Critical"),
+            Self::None => write!(f, "None"),
+            Self::Low => write!(f, "Low"),
+            Self::Medium => write!(f, "Medium"),
+            Self::High => write!(f, "High"),
+            Self::Critical => write!(f, "Critical"),
         }
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DataImpact {
-
     pub records_created: i32,
-
     pub records_modified: i32,
-
     pub records_deleted: i32,
-
     pub tables_affected: Vec<String>,
-
     pub data_sources_affected: Vec<String>,
-
     pub reversible: bool,
-
     pub backup_required: bool,
 }
 
 impl Default for DataImpact {
     fn default() -> Self {
-        DataImpact {
+        Self {
             records_created: 0,
             records_modified: 0,
             records_deleted: 0,
@@ -354,28 +238,20 @@ impl Default for DataImpact {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CostImpact {
-
     pub api_costs: f64,
-
     pub compute_costs: f64,
-
     pub storage_costs: f64,
-
     pub total_estimated_cost: f64,
-
     pub currency: String,
-
     pub exceeds_budget: bool,
-
     pub budget_remaining: Option<f64>,
 }
 
 impl Default for CostImpact {
     fn default() -> Self {
-        CostImpact {
+        Self {
             api_costs: 0.0,
             compute_costs: 0.0,
             storage_costs: 0.0,
@@ -387,22 +263,17 @@ impl Default for CostImpact {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeImpact {
-
     pub estimated_duration_seconds: i32,
-
     pub blocking: bool,
-
     pub delayed_tasks: Vec<String>,
-
     pub affects_deadline: bool,
 }
 
 impl Default for TimeImpact {
     fn default() -> Self {
-        TimeImpact {
+        Self {
             estimated_duration_seconds: 0,
             blocking: false,
             delayed_tasks: Vec::new(),
@@ -411,26 +282,19 @@ impl Default for TimeImpact {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityImpact {
-
     pub risk_level: RiskLevel,
-
     pub credentials_accessed: Vec<String>,
-
     pub external_systems: Vec<String>,
-
     pub data_exposure_risk: bool,
-
     pub requires_elevation: bool,
-
     pub concerns: Vec<String>,
 }
 
 impl Default for SecurityImpact {
     fn default() -> Self {
-        SecurityImpact {
+        Self {
             risk_level: RiskLevel::Low,
             credentials_accessed: Vec::new(),
             external_systems: Vec::new(),
@@ -441,28 +305,20 @@ impl Default for SecurityImpact {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PredictedResourceUsage {
-
     pub cpu_percent: f64,
-
     pub memory_mb: f64,
-
     pub network_kbps: f64,
-
     pub disk_io_kbps: f64,
-
     pub api_calls: i32,
-
     pub db_queries: i32,
-
     pub llm_tokens: i32,
 }
 
 impl Default for PredictedResourceUsage {
     fn default() -> Self {
-        PredictedResourceUsage {
+        Self {
             cpu_percent: 0.0,
             memory_mb: 0.0,
             network_kbps: 0.0,
@@ -474,103 +330,60 @@ impl Default for PredictedResourceUsage {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SideEffect {
-
     pub effect_type: String,
-
     pub description: String,
-
     pub severity: ConstraintSeverity,
-
     pub affected_systems: Vec<String>,
-
     pub intentional: bool,
-
     pub mitigation: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Recommendation {
-
     pub recommendation_type: RecommendationType,
-
     pub priority: i32,
-
     pub description: String,
-
     pub action: Option<String>,
-
     pub basic_code: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum RecommendationType {
-
     AddSafetyCheck,
-
     AddErrorHandling,
-
     RequestApproval,
-
     AddBackup,
-
     Optimize,
-
     SplitSteps,
-
     AddMonitoring,
-
     Custom(String),
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEntry {
-
     pub id: String,
-
     pub timestamp: DateTime<Utc>,
-
     pub event_type: AuditEventType,
-
     pub actor: AuditActor,
-
     pub action: String,
-
     pub target: AuditTarget,
-
     pub outcome: AuditOutcome,
-
     pub details: serde_json::Value,
-
     pub related_entities: Vec<RelatedEntity>,
-
     pub session_id: String,
-
     pub bot_id: String,
-
     pub task_id: Option<String>,
-
     pub step_id: Option<String>,
-
     pub ip_address: Option<String>,
-
     pub user_agent: Option<String>,
-
     pub risk_level: RiskLevel,
-
     pub auto_executed: bool,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AuditEventType {
-
     TaskCreated,
     TaskStarted,
     TaskCompleted,
@@ -578,118 +391,93 @@ pub enum AuditEventType {
     TaskCancelled,
     TaskPaused,
     TaskResumed,
-
-
     StepStarted,
     StepCompleted,
     StepFailed,
     StepSkipped,
     StepRolledBack,
-
-
     ApprovalRequested,
     ApprovalGranted,
     ApprovalDenied,
     ApprovalExpired,
-
-
     DecisionRequested,
     DecisionMade,
     DecisionTimeout,
-
-
     SimulationStarted,
     SimulationCompleted,
-
-
     ConstraintChecked,
     ConstraintViolated,
     ConstraintOverridden,
-
-
     DataRead,
     DataCreated,
     DataModified,
     DataDeleted,
-
-
     ApiCalled,
     McpInvoked,
     WebhookTriggered,
-
-
     PermissionChecked,
     PermissionDenied,
     CredentialAccessed,
-
-
     ConfigChanged,
     ErrorOccurred,
     WarningRaised,
-
-
     Custom(String),
 }
 
 impl std::fmt::Display for AuditEventType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AuditEventType::TaskCreated => write!(f, "task_created"),
-            AuditEventType::TaskStarted => write!(f, "task_started"),
-            AuditEventType::TaskCompleted => write!(f, "task_completed"),
-            AuditEventType::TaskFailed => write!(f, "task_failed"),
-            AuditEventType::TaskCancelled => write!(f, "task_cancelled"),
-            AuditEventType::TaskPaused => write!(f, "task_paused"),
-            AuditEventType::TaskResumed => write!(f, "task_resumed"),
-            AuditEventType::StepStarted => write!(f, "step_started"),
-            AuditEventType::StepCompleted => write!(f, "step_completed"),
-            AuditEventType::StepFailed => write!(f, "step_failed"),
-            AuditEventType::StepSkipped => write!(f, "step_skipped"),
-            AuditEventType::StepRolledBack => write!(f, "step_rolled_back"),
-            AuditEventType::ApprovalRequested => write!(f, "approval_requested"),
-            AuditEventType::ApprovalGranted => write!(f, "approval_granted"),
-            AuditEventType::ApprovalDenied => write!(f, "approval_denied"),
-            AuditEventType::ApprovalExpired => write!(f, "approval_expired"),
-            AuditEventType::DecisionRequested => write!(f, "decision_requested"),
-            AuditEventType::DecisionMade => write!(f, "decision_made"),
-            AuditEventType::DecisionTimeout => write!(f, "decision_timeout"),
-            AuditEventType::SimulationStarted => write!(f, "simulation_started"),
-            AuditEventType::SimulationCompleted => write!(f, "simulation_completed"),
-            AuditEventType::ConstraintChecked => write!(f, "constraint_checked"),
-            AuditEventType::ConstraintViolated => write!(f, "constraint_violated"),
-            AuditEventType::ConstraintOverridden => write!(f, "constraint_overridden"),
-            AuditEventType::DataRead => write!(f, "data_read"),
-            AuditEventType::DataCreated => write!(f, "data_created"),
-            AuditEventType::DataModified => write!(f, "data_modified"),
-            AuditEventType::DataDeleted => write!(f, "data_deleted"),
-            AuditEventType::ApiCalled => write!(f, "api_called"),
-            AuditEventType::McpInvoked => write!(f, "mcp_invoked"),
-            AuditEventType::WebhookTriggered => write!(f, "webhook_triggered"),
-            AuditEventType::PermissionChecked => write!(f, "permission_checked"),
-            AuditEventType::PermissionDenied => write!(f, "permission_denied"),
-            AuditEventType::CredentialAccessed => write!(f, "credential_accessed"),
-            AuditEventType::ConfigChanged => write!(f, "config_changed"),
-            AuditEventType::ErrorOccurred => write!(f, "error_occurred"),
-            AuditEventType::WarningRaised => write!(f, "warning_raised"),
-            AuditEventType::Custom(s) => write!(f, "{}", s),
+            Self::TaskCreated => write!(f, "task_created"),
+            Self::TaskStarted => write!(f, "task_started"),
+            Self::TaskCompleted => write!(f, "task_completed"),
+            Self::TaskFailed => write!(f, "task_failed"),
+            Self::TaskCancelled => write!(f, "task_cancelled"),
+            Self::TaskPaused => write!(f, "task_paused"),
+            Self::TaskResumed => write!(f, "task_resumed"),
+            Self::StepStarted => write!(f, "step_started"),
+            Self::StepCompleted => write!(f, "step_completed"),
+            Self::StepFailed => write!(f, "step_failed"),
+            Self::StepSkipped => write!(f, "step_skipped"),
+            Self::StepRolledBack => write!(f, "step_rolled_back"),
+            Self::ApprovalRequested => write!(f, "approval_requested"),
+            Self::ApprovalGranted => write!(f, "approval_granted"),
+            Self::ApprovalDenied => write!(f, "approval_denied"),
+            Self::ApprovalExpired => write!(f, "approval_expired"),
+            Self::DecisionRequested => write!(f, "decision_requested"),
+            Self::DecisionMade => write!(f, "decision_made"),
+            Self::DecisionTimeout => write!(f, "decision_timeout"),
+            Self::SimulationStarted => write!(f, "simulation_started"),
+            Self::SimulationCompleted => write!(f, "simulation_completed"),
+            Self::ConstraintChecked => write!(f, "constraint_checked"),
+            Self::ConstraintViolated => write!(f, "constraint_violated"),
+            Self::ConstraintOverridden => write!(f, "constraint_overridden"),
+            Self::DataRead => write!(f, "data_read"),
+            Self::DataCreated => write!(f, "data_created"),
+            Self::DataModified => write!(f, "data_modified"),
+            Self::DataDeleted => write!(f, "data_deleted"),
+            Self::ApiCalled => write!(f, "api_called"),
+            Self::McpInvoked => write!(f, "mcp_invoked"),
+            Self::WebhookTriggered => write!(f, "webhook_triggered"),
+            Self::PermissionChecked => write!(f, "permission_checked"),
+            Self::PermissionDenied => write!(f, "permission_denied"),
+            Self::CredentialAccessed => write!(f, "credential_accessed"),
+            Self::ConfigChanged => write!(f, "config_changed"),
+            Self::ErrorOccurred => write!(f, "error_occurred"),
+            Self::WarningRaised => write!(f, "warning_raised"),
+            Self::Custom(s) => write!(f, "{s}"),
         }
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditActor {
-
     pub actor_type: ActorType,
-
     pub id: String,
-
     pub name: Option<String>,
-
     pub role: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ActorType {
     User,
     Bot,
@@ -698,47 +486,29 @@ pub enum ActorType {
     Anonymous,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditTarget {
-
     pub target_type: String,
-
     pub id: String,
-
     pub name: Option<String>,
-
     pub properties: HashMap<String, String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditOutcome {
-
     pub success: bool,
-
     pub result_code: Option<String>,
-
     pub message: Option<String>,
-
     pub duration_ms: Option<i64>,
-
     pub error: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RelatedEntity {
-
     pub entity_type: String,
-
     pub entity_id: String,
-
     pub relationship: String,
 }
-
-
-
 
 pub struct SafetyLayer {
     state: Arc<AppState>,
@@ -746,36 +516,24 @@ pub struct SafetyLayer {
     constraints: Vec<Constraint>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SafetyConfig {
-
     pub enabled: bool,
-
     pub check_constraints: bool,
-
     pub simulate_impact: bool,
-
     pub audit_enabled: bool,
-
     pub approval_threshold: RiskLevel,
-
     pub max_auto_execute_risk: RiskLevel,
-
     pub default_budget_limit: f64,
-
     pub rate_limit_per_minute: i32,
-
     pub circuit_breaker_threshold: i32,
-
     pub audit_retention_days: i32,
-
     pub require_simulation_for: Vec<String>,
 }
 
 impl Default for SafetyConfig {
     fn default() -> Self {
-        SafetyConfig {
+        Self {
             enabled: true,
             check_constraints: true,
             simulate_impact: true,
@@ -804,31 +562,28 @@ impl std::fmt::Debug for SafetyLayer {
         f.debug_struct("SafetyLayer")
             .field("config", &self.config)
             .field("constraints_count", &self.constraints.len())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl SafetyLayer {
-
     pub fn new(state: Arc<AppState>) -> Self {
-        SafetyLayer {
+        Self {
             state,
             config: SafetyConfig::default(),
             constraints: Vec::new(),
         }
     }
 
-
     pub fn with_config(state: Arc<AppState>, config: SafetyConfig) -> Self {
-        SafetyLayer {
+        Self {
             state,
             config,
             constraints: Vec::new(),
         }
     }
 
-
-    pub async fn load_constraints(
+    pub fn load_constraints(
         &mut self,
         bot_id: &Uuid,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -836,7 +591,7 @@ impl SafetyLayer {
             .state
             .conn
             .get()
-            .map_err(|e| format!("DB error: {}", e))?;
+            .map_err(|e| format!("DB error: {e}"))?;
         let bot_id_str = bot_id.to_string();
 
         let query = diesel::sql_query(
@@ -907,15 +662,13 @@ impl SafetyLayer {
             .collect();
 
         info!(
-            "Loaded {} constraints for bot {}",
-            self.constraints.len(),
-            bot_id
+            "Loaded {} constraints for bot {bot_id}",
+            self.constraints.len()
         );
         Ok(())
     }
 
-
-    pub async fn check_constraints(
+    pub fn check_constraints(
         &self,
         action: &str,
         context: &serde_json::Value,
@@ -934,7 +687,7 @@ impl SafetyLayer {
                 continue;
             }
 
-            let check_result = self.evaluate_constraint(constraint, context).await;
+            let check_result = Self::evaluate_constraint(constraint, context);
 
             match check_result {
                 Ok(passed) => {
@@ -973,28 +726,24 @@ impl SafetyLayer {
                     result.results.push(constraint_result);
                 }
                 Err(e) => {
-                    warn!("Failed to evaluate constraint {}: {}", constraint.id, e);
+                    warn!("Failed to evaluate constraint {}: {e}", constraint.id);
                 }
             }
         }
 
-        result.risk_score = self.calculate_risk_score(&result);
+        result.risk_score = Self::calculate_risk_score(&result);
         Ok(result)
     }
 
-    async fn evaluate_constraint(
-        &self,
-        constraint: &Constraint,
+    fn evaluate_constraint(
+        _constraint: &Constraint,
         _context: &serde_json::Value,
     ) -> Result<bool, Box<dyn std::error::Error + Send + Sync>> {
-        if let Some(ref _expression) = constraint.expression {
-            Ok(true)
-        } else {
-            Ok(true)
-        }
+        // Constraint evaluation always passes for now
+        Ok(true)
     }
 
-    fn calculate_risk_score(&self, result: &ConstraintCheckResult) -> f64 {
+    fn calculate_risk_score(result: &ConstraintCheckResult) -> f64 {
         let blocking_weight = 0.5;
         let warning_weight = 0.3;
         let suggestion_weight = 0.1;
@@ -1006,12 +755,12 @@ impl SafetyLayer {
         (blocking_score + warning_score + suggestion_score).min(1.0)
     }
 
-    pub async fn simulate_execution(
+    pub fn simulate_execution(
         &self,
         task_id: &str,
         _session: &UserSession,
     ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
-        info!("Simulating execution for task_id={}", task_id);
+        info!("Simulating execution for task_id={task_id}");
 
         let start_time = std::time::Instant::now();
 
@@ -1031,7 +780,7 @@ impl SafetyLayer {
         Ok(result)
     }
 
-    pub async fn log_audit(
+    pub fn log_audit(
         &self,
         entry: AuditEntry,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -1043,7 +792,7 @@ impl SafetyLayer {
             .state
             .conn
             .get()
-            .map_err(|e| format!("DB error: {}", e))?;
+            .map_err(|e| format!("DB error: {e}"))?;
 
         let details_json = serde_json::to_string(&entry.details)?;
         let now = entry.timestamp.to_rfc3339();
@@ -1073,7 +822,7 @@ impl SafetyLayer {
 
         query
             .execute(&mut *conn)
-            .map_err(|e| format!("Failed to log audit: {}", e))?;
+            .map_err(|e| format!("Failed to log audit: {e}"))?;
 
         trace!("Audit logged: {} - {}", entry.event_type, entry.action);
         Ok(())

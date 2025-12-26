@@ -1,17 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use diesel::prelude::*;
 use log::{debug, warn};
 use serde::{Deserialize, Serialize};
@@ -19,11 +5,9 @@ use uuid::Uuid;
 
 use crate::shared::utils::DbPool;
 
-
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Default)]
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum RoutingStrategy {
-
     #[default]
     Default,
 
@@ -41,12 +25,12 @@ pub enum RoutingStrategy {
 impl From<&str> for RoutingStrategy {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "task-based" | "taskbased" | "task" => RoutingStrategy::TaskBased,
-            "round-robin" | "roundrobin" | "robin" => RoutingStrategy::RoundRobin,
-            "latency" | "fast" | "speed" => RoutingStrategy::Latency,
-            "cost" | "cheap" | "economy" => RoutingStrategy::Cost,
-            "custom" => RoutingStrategy::Custom,
-            _ => RoutingStrategy::Default,
+            "task-based" | "taskbased" | "task" => Self::TaskBased,
+            "round-robin" | "roundrobin" | "robin" => Self::RoundRobin,
+            "latency" | "fast" | "speed" => Self::Latency,
+            "cost" | "cheap" | "economy" => Self::Cost,
+            "custom" => Self::Custom,
+            _ => Self::Default,
         }
     }
 }
@@ -54,23 +38,18 @@ impl From<&str> for RoutingStrategy {
 impl std::fmt::Display for RoutingStrategy {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RoutingStrategy::Default => write!(f, "default"),
-            RoutingStrategy::TaskBased => write!(f, "task-based"),
-            RoutingStrategy::RoundRobin => write!(f, "round-robin"),
-            RoutingStrategy::Latency => write!(f, "latency"),
-            RoutingStrategy::Cost => write!(f, "cost"),
-            RoutingStrategy::Custom => write!(f, "custom"),
+            Self::Default => write!(f, "default"),
+            Self::TaskBased => write!(f, "task-based"),
+            Self::RoundRobin => write!(f, "round-robin"),
+            Self::Latency => write!(f, "latency"),
+            Self::Cost => write!(f, "cost"),
+            Self::Custom => write!(f, "custom"),
         }
     }
 }
 
-
-
-
-
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct ModelRoutingConfig {
-
     pub routing_strategy: RoutingStrategy,
 
     pub default_model: String,
@@ -105,17 +84,6 @@ impl Default for ModelRoutingConfig {
 }
 
 impl ModelRoutingConfig {
-
-
-
-
-
-
-
-
-
-
-
     pub fn from_bot_config(pool: &DbPool, target_bot_id: &Uuid) -> Self {
         let mut config = Self::default();
 
@@ -205,7 +173,6 @@ impl ModelRoutingConfig {
         config
     }
 
-
     pub fn get_model_for_task(&self, task_type: TaskType) -> &str {
         match self.routing_strategy {
             RoutingStrategy::Default => &self.default_model,
@@ -215,12 +182,12 @@ impl ModelRoutingConfig {
                 TaskType::Code => self.code_model.as_deref().unwrap_or(&self.default_model),
                 TaskType::Default => &self.default_model,
             },
-            RoutingStrategy::Latency => self.fast_model.as_deref().unwrap_or(&self.default_model),
-            RoutingStrategy::Cost => self.fast_model.as_deref().unwrap_or(&self.default_model),
-            _ => &self.default_model,
+            RoutingStrategy::Latency
+            | RoutingStrategy::Cost
+            | RoutingStrategy::RoundRobin
+            | RoutingStrategy::Custom => self.fast_model.as_deref().unwrap_or(&self.default_model),
         }
     }
-
 
     pub fn get_fallback_model(&self, current_model: &str) -> Option<&str> {
         if !self.fallback_enabled {
@@ -234,7 +201,6 @@ impl ModelRoutingConfig {
 
         self.fallback_order.get(current_idx + 1).map(|s| s.as_str())
     }
-
 
     pub fn get_all_models(&self) -> Vec<&str> {
         let mut models = vec![self.default_model.as_str()];
@@ -267,10 +233,8 @@ impl ModelRoutingConfig {
     }
 }
 
-
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TaskType {
-
     Simple,
 
     Complex,

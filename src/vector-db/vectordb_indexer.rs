@@ -193,6 +193,7 @@ impl VectorDBIndexer {
         let mut jobs = self.jobs.write().await;
         let job = jobs.entry(user_id).or_insert_with(|| {
             let workspace = UserWorkspace::new(self.work_root.clone(), &bot_id, &user_id);
+            info!("User workspace path: {:?}", workspace.get_path());
 
             UserIndexingJob {
                 user_id,
@@ -213,7 +214,10 @@ impl VectorDBIndexer {
         });
 
         if job.status == IndexingStatus::Running {
-            warn!("Job already running for user {}", user_id);
+            warn!(
+                "Job already running for user {} (bot: {})",
+                job.user_id, job.bot_id
+            );
             return Ok(());
         }
 
@@ -485,11 +489,13 @@ impl VectorDBIndexer {
                     from_name: row.from_address,
                     to_email: row.to_addresses,
                     subject: row.subject,
-                    body_text: row.body_text.unwrap_or_default(),
+                    body_text: row
+                        .body_html
+                        .unwrap_or_else(|| row.body_text.unwrap_or_default()),
                     date: row.received_at,
                     folder: row.folder,
                     has_attachments: false,
-                    thread_id: None,
+                    thread_id: Some(row.message_id),
                 })
                 .collect();
 

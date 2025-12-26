@@ -14,9 +14,14 @@ pub struct InstagramAdapter {
     instagram_account_id: String,
 }
 
+impl Default for InstagramAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl InstagramAdapter {
     pub fn new() -> Self {
-
         let access_token = String::new();
         let verify_token = "webhook_verify".to_string();
         let page_id = String::new();
@@ -75,7 +80,6 @@ impl InstagramAdapter {
             self.instagram_account_id.clone()
         };
 
-
         let container_url = format!(
             "https://graph.facebook.com/{}/{}/media",
             self.api_version, account_id
@@ -100,7 +104,6 @@ impl InstagramAdapter {
         let creation_id = container_result["id"]
             .as_str()
             .ok_or("No creation_id in response")?;
-
 
         let publish_url = format!(
             "https://graph.facebook.com/{}/{}/media_publish",
@@ -220,7 +223,6 @@ impl InstagramAdapter {
         recipient_id: &str,
         message: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-
         self.send_instagram_message(recipient_id, message).await
     }
 
@@ -256,7 +258,7 @@ impl InstagramAdapter {
         token == self.verify_token
     }
 
-    pub async fn handle_webhook_verification(
+    pub fn handle_webhook_verification(
         &self,
         mode: &str,
         token: &str,
@@ -272,7 +274,7 @@ impl InstagramAdapter {
 
 #[async_trait]
 impl ChannelAdapter for InstagramAdapter {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Instagram"
     }
 
@@ -305,12 +307,10 @@ impl ChannelAdapter for InstagramAdapter {
         &self,
         payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-
         if let Some(entry) = payload["entry"].as_array() {
             if let Some(first_entry) = entry.first() {
                 if let Some(messaging) = first_entry["messaging"].as_array() {
                     if let Some(first_message) = messaging.first() {
-
                         if let Some(message) = first_message["message"].as_object() {
                             if let Some(text) = message["text"].as_str() {
                                 return Ok(Some(text.to_string()));
@@ -331,7 +331,6 @@ impl ChannelAdapter for InstagramAdapter {
                         }
                     }
                 } else if let Some(changes) = first_entry["changes"].as_array() {
-
                     if let Some(first_change) = changes.first() {
                         let field = first_change["field"].as_str().unwrap_or("");
                         match field {
@@ -433,8 +432,6 @@ pub struct InstagramChange {
     pub field: String,
     pub value: serde_json::Value,
 }
-
-
 
 pub fn create_quick_reply(text: &str, replies: Vec<(&str, &str)>) -> serde_json::Value {
     let quick_replies: Vec<serde_json::Value> = replies

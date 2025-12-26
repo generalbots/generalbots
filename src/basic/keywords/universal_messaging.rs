@@ -13,7 +13,7 @@ pub fn register_universal_messaging(state: Arc<AppState>, user: UserSession, eng
     register_talk_to(state.clone(), user.clone(), engine);
     register_send_file_to(state.clone(), user.clone(), engine);
     register_send_to(state.clone(), user.clone(), engine);
-    register_broadcast(state.clone(), user.clone(), engine);
+    register_broadcast(state, user, engine);
 }
 
 fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -21,7 +21,7 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
     engine
         .register_custom_syntax(
-            &["TALK", "TO", "$expr$", ",", "$expr$"],
+            ["TALK", "TO", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -58,7 +58,7 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
     let user_clone = Arc::clone(&user_arc);
     engine
         .register_custom_syntax(
-            &["SEND", "FILE", "TO", "$expr$", ",", "$expr$"],
+            ["SEND", "FILE", "TO", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -82,13 +82,12 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = Arc::clone(&user_arc);
 
     engine
         .register_custom_syntax(
-            &["SEND", "FILE", "TO", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["SEND", "FILE", "TO", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let recipient = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -123,10 +122,9 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
 fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-
     engine
         .register_custom_syntax(
-            &["SEND", "TO", "$expr$", ",", "$expr$"],
+            ["SEND", "TO", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let target = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -154,10 +152,9 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
 
-
     engine
         .register_custom_syntax(
-            &["BROADCAST", "$expr$", "TO", "$expr$"],
+            ["BROADCAST", "$expr$", "TO", "$expr$"],
             false,
             move |context, inputs| {
                 let message = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -182,14 +179,12 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
         .unwrap();
 }
 
-
 async fn send_message_to_recipient(
     state: Arc<AppState>,
     user: &UserSession,
     recipient: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     let (channel, recipient_id) = parse_recipient(state.clone(), recipient).await?;
 
     match channel.as_str() {
@@ -248,11 +243,9 @@ async fn send_message_to_recipient(
             adapter.send_message(response).await?;
         }
         "web" => {
-
             send_web_message(state.clone(), &recipient_id, message).await?;
         }
         "email" => {
-
             send_email(state.clone(), &recipient_id, message).await?;
         }
         _ => {
@@ -282,9 +275,7 @@ async fn send_file_with_caption_to_recipient(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let (channel, recipient_id) = parse_recipient(state.clone(), recipient).await?;
 
-
     let file_data = if file.is_string() {
-
         let file_path = file.to_string();
         std::fs::read(&file_path)?
     } else {
@@ -319,7 +310,6 @@ async fn parse_recipient(
     state: Arc<AppState>,
     recipient: &str,
 ) -> Result<(String, String), Box<dyn std::error::Error + Send + Sync>> {
-
     if recipient.contains(':') {
         let parts: Vec<&str> = recipient.splitn(2, ':').collect();
         if parts.len() == 2 {
@@ -327,20 +317,16 @@ async fn parse_recipient(
         }
     }
 
-
     if recipient.starts_with('+') || recipient.chars().all(|c| c.is_numeric()) {
-
         return Ok(("whatsapp".to_string(), recipient.to_string()));
     }
 
     if recipient.contains('@') {
-
         if recipient.ends_with("@teams.ms") || recipient.contains("@microsoft") {
             return Ok(("teams".to_string(), recipient.to_string()));
         }
         return Ok(("email".to_string(), recipient.to_string()));
     }
-
 
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
@@ -355,7 +341,6 @@ async fn parse_recipient(
         }
     }
 
-
     Ok(("whatsapp".to_string(), recipient.to_string()))
 }
 
@@ -365,7 +350,6 @@ async fn send_to_specific_channel(
     target: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     send_message_to_recipient(state, user, target, message).await
 }
 
@@ -404,7 +388,6 @@ async fn broadcast_message(
     Ok(Dynamic::from(serde_json::to_string(&results)?))
 }
 
-
 async fn send_whatsapp_file(
     state: Arc<AppState>,
     user: &UserSession,
@@ -415,8 +398,6 @@ async fn send_whatsapp_file(
     use reqwest::Client;
 
     let _adapter = WhatsAppAdapter::new(state.conn.clone(), user.bot_id);
-
-
 
     let phone_number_id = "";
     let upload_url = format!("https://graph.facebook.com/v17.0/{}/media", phone_number_id);
@@ -440,7 +421,6 @@ async fn send_whatsapp_file(
 
     let upload_result: serde_json::Value = upload_response.json().await?;
     let media_id = upload_result["id"].as_str().ok_or("No media ID returned")?;
-
 
     let send_url = format!(
         "https://graph.facebook.com/v17.0/{}/messages",
@@ -476,7 +456,6 @@ async fn send_instagram_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let adapter = InstagramAdapter::new();
 
-
     let file_key = format!("temp/instagram/{}_{}.bin", user.id, uuid::Uuid::new_v4());
 
     if let Some(s3) = &state.s3_client {
@@ -489,7 +468,6 @@ async fn send_instagram_file(
 
         let file_url = format!("https://s3.amazonaws.com/uploads/{}", file_key);
 
-
         adapter
             .send_media_message(recipient_id, &file_url, "file")
             .await?;
@@ -499,7 +477,6 @@ async fn send_instagram_file(
                 .send_instagram_message(recipient_id, caption)
                 .await?;
         }
-
 
         tokio::spawn(async move {
             tokio::time::sleep(tokio::time::Duration::from_secs(3600)).await;
@@ -526,10 +503,7 @@ async fn send_teams_file(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let _adapter = TeamsAdapter::new(state.conn.clone(), user.bot_id);
 
-
     let conversation_id = get_teams_conversation_id(&state, recipient_id).await?;
-
-
 
     let access_token = "";
     let service_url = "https://smba.trafficmanager.net/apis".to_string();
@@ -538,7 +512,6 @@ async fn send_teams_file(
         service_url.trim_end_matches('/'),
         conversation_id
     );
-
 
     use base64::{engine::general_purpose::STANDARD, Engine};
     let attachment = json!({
@@ -567,7 +540,7 @@ async fn send_teams_file(
     let client = Client::new();
     client
         .post(&url)
-        .bearer_auth(&access_token)
+        .bearer_auth(access_token)
         .json(&activity)
         .send()
         .await?;
@@ -580,7 +553,6 @@ async fn send_web_message(
     session_id: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     let web_adapter = Arc::clone(&state.web_adapter);
 
     let response = crate::shared::models::BotResponse {
@@ -611,10 +583,8 @@ async fn send_web_file(
     file_data: Vec<u8>,
     caption: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     let file_id = uuid::Uuid::new_v4().to_string();
     let file_url = format!("/api/files/{}", file_id);
-
 
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
@@ -628,7 +598,6 @@ async fn send_web_file(
             .query_async::<()>(&mut conn)
             .await?;
     }
-
 
     let message = if caption.is_empty() {
         format!("[File: {}]", file_url)
@@ -644,15 +613,12 @@ async fn send_email(
     email: &str,
     message: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-
     #[cfg(feature = "email")]
     {
         use crate::email::EmailService;
 
         let email_service = EmailService::new(state);
-        email_service
-            .send_email(email, "Message from Bot", message, None)
-            .await?;
+        email_service.send_email(email, "Message from Bot", message, None)?;
         Ok(())
     }
 
@@ -675,9 +641,13 @@ async fn send_email_attachment(
         use crate::email::EmailService;
 
         let email_service = EmailService::new(state);
-        email_service
-            .send_email_with_attachment(email, "File from Bot", caption, file_data, "attachment")
-            .await?;
+        email_service.send_email_with_attachment(
+            email,
+            "File from Bot",
+            caption,
+            file_data,
+            "attachment",
+        )?;
         Ok(())
     }
 
@@ -693,7 +663,6 @@ async fn get_teams_conversation_id(
     state: &Arc<AppState>,
     user_id: &str,
 ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-
     if let Some(redis_client) = &state.cache {
         let mut conn = redis_client.get_multiplexed_async_connection().await?;
         let key = format!("teams_conversation:{}", user_id);
@@ -706,7 +675,6 @@ async fn get_teams_conversation_id(
             return Ok(conversation);
         }
     }
-
 
     Ok(user_id.to_string())
 }

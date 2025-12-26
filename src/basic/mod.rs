@@ -12,7 +12,6 @@ use std::sync::Arc;
 pub mod compiler;
 pub mod keywords;
 
-
 #[derive(QueryableByName)]
 struct ParamConfigRow {
     #[diesel(sql_type = diesel::sql_types::Text)]
@@ -82,7 +81,6 @@ impl ScriptService {
         engine.set_allow_anonymous_fn(true);
         engine.set_allow_looping(true);
 
-
         create_draft_keyword(&state, user.clone(), &mut engine);
         set_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
         get_bot_memory_keyword(state.clone(), user.clone(), &mut engine);
@@ -115,7 +113,6 @@ impl ScriptService {
         clear_websites_keyword(state.clone(), user.clone(), &mut engine);
         add_suggestion_keyword(state.clone(), user.clone(), &mut engine);
 
-
         remember_keyword(state.clone(), user.clone(), &mut engine);
         book_keyword(state.clone(), user.clone(), &mut engine);
         send_mail_keyword(state.clone(), user.clone(), &mut engine);
@@ -123,12 +120,9 @@ impl ScriptService {
         create_task_keyword(state.clone(), user.clone(), &mut engine);
         add_member_keyword(state.clone(), user.clone(), &mut engine);
 
-
         register_bot_keywords(&state, &user, &mut engine);
 
-
         register_model_routing_keywords(state.clone(), user.clone(), &mut engine);
-
 
         keywords::universal_messaging::register_universal_messaging(
             state.clone(),
@@ -136,99 +130,48 @@ impl ScriptService {
             &mut engine,
         );
 
-
-
         register_multimodal_keywords(state.clone(), user.clone(), &mut engine);
-
 
         register_string_functions(state.clone(), user.clone(), &mut engine);
 
-
         switch_keyword(&state, user.clone(), &mut engine);
-
-
-
-
-
 
         register_http_operations(state.clone(), user.clone(), &mut engine);
 
-
-
         register_data_operations(state.clone(), user.clone(), &mut engine);
-
-
 
         register_file_operations(state.clone(), user.clone(), &mut engine);
 
-
         webhook_keyword(&state, user.clone(), &mut engine);
-
-
-
-
-
-
 
         register_social_media_keywords(state.clone(), user.clone(), &mut engine);
 
-
         register_send_template_keywords(state.clone(), user.clone(), &mut engine);
-
 
         on_form_submit_keyword(state.clone(), user.clone(), &mut engine);
 
-
         register_lead_scoring_keywords(state.clone(), user.clone(), &mut engine);
-
-
-
-
-
-
 
         register_transfer_to_human_keyword(state.clone(), user.clone(), &mut engine);
 
-
-
-
         register_ai_tools_keywords(state.clone(), user.clone(), &mut engine);
-
-
-
 
         register_web_data_keywords(state.clone(), user.clone(), &mut engine);
 
-
-
-
         register_sms_keywords(state.clone(), user.clone(), &mut engine);
-
-
-
-
-
-
-
-
-
 
         register_core_functions(state.clone(), user, &mut engine);
 
-        ScriptService { engine, scope }
+        Self { engine, scope }
     }
-
-
 
     pub fn inject_config_variables(&mut self, config_vars: HashMap<String, String>) {
         for (key, value) in config_vars {
-
             let var_name = if key.starts_with("param-") {
                 key.strip_prefix("param-").unwrap_or(&key).to_lowercase()
             } else {
                 key.to_lowercase()
             };
-
 
             if let Ok(int_val) = value.parse::<i64>() {
                 self.scope.push(&var_name, int_val);
@@ -244,10 +187,8 @@ impl ScriptService {
         }
     }
 
-
     pub fn load_bot_config_params(&mut self, state: &AppState, bot_id: uuid::Uuid) {
         if let Ok(mut conn) = state.conn.get() {
-
             let result = diesel::sql_query(
                 "SELECT config_key, config_value FROM bot_configuration WHERE bot_id = $1 AND config_key LIKE 'param-%'"
             )
@@ -264,9 +205,8 @@ impl ScriptService {
         }
     }
     fn preprocess_basic_script(&self, script: &str) -> String {
-
+        let _ = self; // silence unused self warning - kept for API consistency
         let script = preprocess_switch(script);
-
 
         let script = Self::normalize_variables_to_lowercase(&script);
 
@@ -275,7 +215,7 @@ impl ScriptService {
         let mut current_indent = 0;
         for line in script.lines() {
             let trimmed = line.trim();
-            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with("'") {
+            if trimmed.is_empty() || trimmed.starts_with("//") || trimmed.starts_with('\'') {
                 continue;
             }
             if trimmed.starts_with("FOR EACH") {
@@ -290,10 +230,11 @@ impl ScriptService {
             }
             if trimmed.starts_with("NEXT") {
                 if let Some(expected_indent) = for_stack.pop() {
-                    if (current_indent - 4) != expected_indent {
-                        panic!("NEXT without matching FOR EACH");
-                    }
-                    current_indent = current_indent - 4;
+                    assert!(
+                        (current_indent - 4) == expected_indent,
+                        "NEXT without matching FOR EACH"
+                    );
+                    current_indent -= 4;
                     result.push_str(&" ".repeat(current_indent));
                     result.push_str("}\n");
                     result.push_str(&" ".repeat(current_indent));
@@ -302,7 +243,8 @@ impl ScriptService {
                     result.push('\n');
                     continue;
                 }
-                panic!("NEXT without matching FOR EACH");
+                log::error!("NEXT without matching FOR EACH");
+                return result;
             }
             if trimmed == "EXIT FOR" {
                 result.push_str(&" ".repeat(current_indent));
@@ -312,7 +254,6 @@ impl ScriptService {
             }
             result.push_str(&" ".repeat(current_indent));
             let basic_commands = [
-
                 "SET",
                 "CREATE",
                 "PRINT",
@@ -352,7 +293,6 @@ impl ScriptService {
                 "INSTR",
                 "IS_NUMERIC",
                 "IS NUMERIC",
-
                 "POST",
                 "PUT",
                 "PATCH",
@@ -361,7 +301,6 @@ impl ScriptService {
                 "CLEAR HEADERS",
                 "GRAPHQL",
                 "SOAP",
-
                 "SAVE",
                 "INSERT",
                 "UPDATE",
@@ -374,7 +313,6 @@ impl ScriptService {
                 "JOIN",
                 "PIVOT",
                 "GROUP BY",
-
                 "READ",
                 "WRITE",
                 "COPY",
@@ -386,9 +324,7 @@ impl ScriptService {
                 "DOWNLOAD",
                 "GENERATE PDF",
                 "MERGE PDF",
-
                 "WEBHOOK",
-
                 "POST TO",
                 "POST TO INSTAGRAM",
                 "POST TO FACEBOOK",
@@ -399,25 +335,20 @@ impl ScriptService {
                 "GET LINKEDIN METRICS",
                 "GET TWITTER METRICS",
                 "DELETE POST",
-
                 "SEND MAIL",
                 "SEND TEMPLATE",
                 "CREATE TEMPLATE",
                 "GET TEMPLATE",
-
                 "ON ERROR RESUME NEXT",
                 "ON ERROR GOTO",
                 "CLEAR ERROR",
                 "ERROR MESSAGE",
-
                 "ON FORM SUBMIT",
-
                 "SCORE LEAD",
                 "GET LEAD SCORE",
                 "QUALIFY LEAD",
                 "UPDATE LEAD SCORE",
                 "AI SCORE LEAD",
-
                 "ABS",
                 "ROUND",
                 "INT",
@@ -440,7 +371,6 @@ impl ScriptService {
                 "TAN",
                 "SUM",
                 "AVG",
-
                 "NOW",
                 "TODAY",
                 "DATE",
@@ -456,7 +386,6 @@ impl ScriptService {
                 "DATEDIFF",
                 "FORMAT_DATE",
                 "ISDATE",
-
                 "VAL",
                 "STR",
                 "CINT",
@@ -471,7 +400,6 @@ impl ScriptService {
                 "ISNUMBER",
                 "NVL",
                 "IIF",
-
                 "ARRAY",
                 "UBOUND",
                 "LBOUND",
@@ -489,7 +417,6 @@ impl ScriptService {
                 "CONCAT",
                 "FLATTEN",
                 "RANGE",
-
                 "THROW",
                 "ERROR",
                 "IS_ERROR",
@@ -502,20 +429,16 @@ impl ScriptService {
             let is_control_flow = trimmed.starts_with("IF")
                 || trimmed.starts_with("ELSE")
                 || trimmed.starts_with("END IF");
+            result.push_str(trimmed);
             if is_basic_command || !for_stack.is_empty() || is_control_flow {
-                result.push_str(trimmed);
                 result.push(';');
-            } else {
-                result.push_str(trimmed);
-                if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}') {
-                    result.push(';');
-                }
+            } else if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}')
+            {
+                result.push(';');
             }
             result.push('\n');
         }
-        if !for_stack.is_empty() {
-            panic!("Unclosed FOR EACH loop");
-        }
+        assert!(for_stack.is_empty(), "Unclosed FOR EACH loop");
         result
     }
     pub fn compile(&self, script: &str) -> Result<rhai::AST, Box<EvalAltResult>> {
@@ -530,14 +453,10 @@ impl ScriptService {
         self.engine.eval_ast_with_scope(&mut self.scope, ast)
     }
 
-
-
-
     fn normalize_variables_to_lowercase(script: &str) -> String {
         use regex::Regex;
 
         let mut result = String::new();
-
 
         let keywords = [
             "SET",
@@ -766,19 +685,17 @@ impl ScriptService {
             "REQUIRED",
         ];
 
-
         let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
 
         for line in script.lines() {
             let trimmed = line.trim();
 
-
-            if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
+            if trimmed.starts_with("REM") || trimmed.starts_with('\'') || trimmed.starts_with("//")
+            {
                 result.push_str(line);
                 result.push('\n');
                 continue;
             }
-
 
             let mut processed_line = String::new();
             let mut chars = line.chars().peekable();
@@ -792,14 +709,12 @@ impl ScriptService {
                     if c == string_char {
                         in_string = false;
                     } else if c == '\\' {
-
                         if let Some(&next) = chars.peek() {
                             processed_line.push(next);
                             chars.next();
                         }
                     }
                 } else if c == '"' || c == '\'' {
-
                     if !current_word.is_empty() {
                         processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
                         current_word.clear();
@@ -810,7 +725,6 @@ impl ScriptService {
                 } else if c.is_alphanumeric() || c == '_' {
                     current_word.push(c);
                 } else {
-
                     if !current_word.is_empty() {
                         processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
                         current_word.clear();
@@ -818,7 +732,6 @@ impl ScriptService {
                     processed_line.push(c);
                 }
             }
-
 
             if !current_word.is_empty() {
                 processed_line.push_str(&Self::normalize_word(&current_word, &keywords));
@@ -831,13 +744,10 @@ impl ScriptService {
         result
     }
 
-
     fn normalize_word(word: &str, keywords: &[&str]) -> String {
         let upper = word.to_uppercase();
 
-
         if keywords.contains(&upper.as_str()) {
-
             upper
         } else if word
             .chars()
@@ -845,11 +755,326 @@ impl ScriptService {
             .map(|c| c.is_ascii_digit())
             .unwrap_or(false)
         {
-
             word.to_string()
         } else {
-
             word.to_lowercase()
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+    use std::time::Duration;
+
+    // Test script constants from bottest/fixtures/scripts/mod.rs
+
+    const GREETING_SCRIPT: &str = r#"
+' Greeting Flow Script
+' Simple greeting and response pattern
+
+REM Initialize greeting
+greeting$ = "Hello! Welcome to our service."
+TALK greeting$
+
+REM Wait for user response
+HEAR userInput$
+
+REM Check for specific keywords
+IF INSTR(UCASE$(userInput$), "HELP") > 0 THEN
+    TALK "I can help you with: Products, Support, or Billing. What would you like to know?"
+ELSEIF INSTR(UCASE$(userInput$), "BYE") > 0 THEN
+    TALK "Goodbye! Have a great day!"
+    END
+ELSE
+    TALK "Thank you for your message. How can I assist you today?"
+END IF
+"#;
+
+    const SIMPLE_ECHO_SCRIPT: &str = r#"
+' Simple Echo Script
+' Echoes back whatever the user says
+
+TALK "Echo Bot: I will repeat everything you say. Type 'quit' to exit."
+
+echo_loop:
+HEAR input$
+
+IF UCASE$(input$) = "QUIT" THEN
+    TALK "Goodbye!"
+    END
+END IF
+
+TALK "You said: " + input$
+GOTO echo_loop
+"#;
+
+    const VARIABLES_SCRIPT: &str = r#"
+' Variables and Expressions Script
+' Demonstrates variable types and operations
+
+REM String variables
+firstName$ = "John"
+lastName$ = "Doe"
+fullName$ = firstName$ + " " + lastName$
+TALK "Full name: " + fullName$
+
+REM Numeric variables
+price = 99.99
+quantity = 3
+subtotal = price * quantity
+tax = subtotal * 0.08
+total = subtotal + tax
+TALK "Total: $" + STR$(total)
+"#;
+
+    fn get_script(name: &str) -> Option<&'static str> {
+        match name {
+            "greeting" => Some(GREETING_SCRIPT),
+            "simple_echo" => Some(SIMPLE_ECHO_SCRIPT),
+            "variables" => Some(VARIABLES_SCRIPT),
+            _ => None,
+        }
+    }
+
+    fn available_scripts() -> Vec<&'static str> {
+        vec!["greeting", "simple_echo", "variables"]
+    }
+
+    fn all_scripts() -> HashMap<&'static str, &'static str> {
+        let mut scripts = HashMap::new();
+        for name in available_scripts() {
+            if let Some(content) = get_script(name) {
+                scripts.insert(name, content);
+            }
+        }
+        scripts
+    }
+
+    // Runner types from bottest/bot/runner.rs
+
+    #[derive(Debug, Clone)]
+    pub struct BotRunnerConfig {
+        pub working_dir: std::path::PathBuf,
+        pub timeout: Duration,
+        pub use_mocks: bool,
+        pub env_vars: HashMap<String, String>,
+        pub capture_logs: bool,
+        pub log_level: LogLevel,
+    }
+
+    impl Default for BotRunnerConfig {
+        fn default() -> Self {
+            Self {
+                working_dir: std::env::temp_dir().join("bottest"),
+                timeout: Duration::from_secs(30),
+                use_mocks: true,
+                env_vars: HashMap::new(),
+                capture_logs: true,
+                log_level: LogLevel::Info,
+            }
+        }
+    }
+
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+    pub enum LogLevel {
+        Trace,
+        Debug,
+        #[default]
+        Info,
+        Warn,
+        Error,
+    }
+
+    #[derive(Debug, Default, Clone)]
+    pub struct RunnerMetrics {
+        pub total_requests: u64,
+        pub successful_requests: u64,
+        pub failed_requests: u64,
+        pub total_latency_ms: u64,
+        pub min_latency_ms: u64,
+        pub max_latency_ms: u64,
+        pub script_executions: u64,
+        pub transfer_to_human_count: u64,
+    }
+
+    impl RunnerMetrics {
+        pub const fn avg_latency_ms(&self) -> u64 {
+            if self.total_requests > 0 {
+                self.total_latency_ms / self.total_requests
+            } else {
+                0
+            }
+        }
+
+        pub fn success_rate(&self) -> f64 {
+            if self.total_requests > 0 {
+                (self.successful_requests as f64 / self.total_requests as f64) * 100.0
+            } else {
+                0.0
+            }
+        }
+    }
+
+    // Tests
+
+    #[test]
+    fn test_get_script() {
+        assert!(get_script("greeting").is_some());
+        assert!(get_script("simple_echo").is_some());
+        assert!(get_script("nonexistent").is_none());
+    }
+
+    #[test]
+    fn test_available_scripts() {
+        let scripts = available_scripts();
+        assert!(!scripts.is_empty());
+        assert!(scripts.contains(&"greeting"));
+    }
+
+    #[test]
+    fn test_all_scripts() {
+        let scripts = all_scripts();
+        assert_eq!(scripts.len(), available_scripts().len());
+    }
+
+    #[test]
+    fn test_greeting_script_content() {
+        let script = get_script("greeting").unwrap();
+        assert!(script.contains("TALK"));
+        assert!(script.contains("HEAR"));
+        assert!(script.contains("greeting"));
+    }
+
+    #[test]
+    fn test_simple_echo_script_content() {
+        let script = get_script("simple_echo").unwrap();
+        assert!(script.contains("HEAR"));
+        assert!(script.contains("TALK"));
+        assert!(script.contains("GOTO"));
+    }
+
+    #[test]
+    fn test_variables_script_content() {
+        let script = get_script("variables").unwrap();
+        assert!(script.contains("firstName$"));
+        assert!(script.contains("price"));
+        assert!(script.contains("STR$"));
+    }
+
+    #[test]
+    fn test_bot_runner_config_default() {
+        let config = BotRunnerConfig::default();
+        assert_eq!(config.timeout, Duration::from_secs(30));
+        assert!(config.use_mocks);
+        assert!(config.capture_logs);
+    }
+
+    #[test]
+    fn test_runner_metrics_avg_latency() {
+        let mut metrics = RunnerMetrics::default();
+        metrics.total_requests = 10;
+        metrics.total_latency_ms = 1000;
+
+        assert_eq!(metrics.avg_latency_ms(), 100);
+    }
+
+    #[test]
+    fn test_runner_metrics_success_rate() {
+        let mut metrics = RunnerMetrics::default();
+        metrics.total_requests = 100;
+        metrics.successful_requests = 95;
+
+        assert_eq!(metrics.success_rate(), 95.0);
+    }
+
+    #[test]
+    fn test_runner_metrics_zero_requests() {
+        let metrics = RunnerMetrics::default();
+        assert_eq!(metrics.avg_latency_ms(), 0);
+        assert_eq!(metrics.success_rate(), 0.0);
+    }
+
+    #[test]
+    fn test_log_level_default() {
+        let level = LogLevel::default();
+        assert_eq!(level, LogLevel::Info);
+    }
+
+    #[test]
+    fn test_runner_config_env_vars() {
+        let mut config = BotRunnerConfig::default();
+        config
+            .env_vars
+            .insert("API_KEY".to_string(), "test123".to_string());
+        config
+            .env_vars
+            .insert("DEBUG".to_string(), "true".to_string());
+
+        assert_eq!(config.env_vars.get("API_KEY"), Some(&"test123".to_string()));
+        assert_eq!(config.env_vars.get("DEBUG"), Some(&"true".to_string()));
+    }
+
+    #[test]
+    fn test_runner_config_timeout() {
+        let mut config = BotRunnerConfig::default();
+        config.timeout = Duration::from_secs(60);
+
+        assert_eq!(config.timeout, Duration::from_secs(60));
+    }
+
+    #[test]
+    fn test_metrics_tracking() {
+        let mut metrics = RunnerMetrics::default();
+        metrics.total_requests = 50;
+        metrics.successful_requests = 45;
+        metrics.failed_requests = 5;
+        metrics.total_latency_ms = 5000;
+        metrics.min_latency_ms = 10;
+        metrics.max_latency_ms = 500;
+
+        assert_eq!(metrics.avg_latency_ms(), 100);
+        assert_eq!(metrics.success_rate(), 90.0);
+        assert_eq!(
+            metrics.total_requests,
+            metrics.successful_requests + metrics.failed_requests
+        );
+    }
+
+    #[test]
+    fn test_script_execution_tracking() {
+        let mut metrics = RunnerMetrics::default();
+        metrics.script_executions = 25;
+        metrics.transfer_to_human_count = 3;
+
+        assert_eq!(metrics.script_executions, 25);
+        assert_eq!(metrics.transfer_to_human_count, 3);
+    }
+
+    #[test]
+    fn test_log_levels() {
+        assert!(matches!(LogLevel::Trace, LogLevel::Trace));
+        assert!(matches!(LogLevel::Debug, LogLevel::Debug));
+        assert!(matches!(LogLevel::Info, LogLevel::Info));
+        assert!(matches!(LogLevel::Warn, LogLevel::Warn));
+        assert!(matches!(LogLevel::Error, LogLevel::Error));
+    }
+
+    #[test]
+    fn test_script_contains_basic_keywords() {
+        for name in available_scripts() {
+            if let Some(script) = get_script(name) {
+                // All scripts should have some form of output
+                let has_output = script.contains("TALK") || script.contains("PRINT");
+                assert!(has_output, "Script {} should have output keyword", name);
+            }
+        }
+    }
+
+    #[test]
+    fn test_runner_config_working_dir() {
+        let config = BotRunnerConfig::default();
+        assert!(config.working_dir.to_str().unwrap().contains("bottest"));
     }
 }

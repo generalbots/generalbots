@@ -76,7 +76,7 @@ impl InputType {
     }
 
     #[must_use]
-    pub fn from_str(s: &str) -> Self {
+    pub fn parse_type(s: &str) -> Self {
         match s.to_uppercase().as_str() {
             "EMAIL" => Self::Email,
             "DATE" => Self::Date,
@@ -149,11 +149,11 @@ impl ValidationResult {
 }
 
 pub fn hear_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    register_hear_basic(state.clone(), user.clone(), engine);
+    register_hear_basic(Arc::clone(&state), user.clone(), engine);
 
-    register_hear_as_type(state.clone(), user.clone(), engine);
+    register_hear_as_type(Arc::clone(&state), user.clone(), engine);
 
-    register_hear_as_menu(state.clone(), user.clone(), engine);
+    register_hear_as_menu(state, user, engine);
 }
 
 fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -161,7 +161,7 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
     let state_clone = Arc::clone(&state);
 
     engine
-        .register_custom_syntax(&["HEAR", "$ident$"], true, move |_context, inputs| {
+        .register_custom_syntax(["HEAR", "$ident$"], true, move |_context, inputs| {
             let variable_name = inputs[0]
                 .get_string_value()
                 .expect("Expected identifier as string")
@@ -174,29 +174,30 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
 
             let state_for_spawn = Arc::clone(&state_clone);
             let session_id_clone = session_id;
-            let var_name_clone = variable_name.clone();
 
             tokio::spawn(async move {
                 trace!(
                     "HEAR: Setting session {} to wait for input for variable '{}'",
                     session_id_clone,
-                    var_name_clone
+                    variable_name
                 );
 
-                let mut session_manager = state_for_spawn.session_manager.lock().await;
-                session_manager.mark_waiting(session_id_clone);
+                {
+                    let mut session_manager = state_for_spawn.session_manager.lock().await;
+                    session_manager.mark_waiting(session_id_clone);
+                }
 
                 if let Some(redis_client) = &state_for_spawn.cache {
                     if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await {
-                        let key = format!("hear:{session_id_clone}:{var_name_clone}");
+                        let key = format!("hear:{session_id_clone}:{variable_name}");
                         let wait_data = serde_json::json!({
-                            "variable": var_name_clone,
+                            "variable": variable_name,
                             "type": "any",
                             "waiting": true,
                             "retry_count": 0
                         });
                         let _: Result<(), _> = redis::cmd("SET")
-                            .arg(&key)
+                            .arg(key)
                             .arg(wait_data.to_string())
                             .arg("EX")
                             .arg(3600)
@@ -220,7 +221,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
 
     engine
         .register_custom_syntax(
-            &["HEAR", "$ident$", "AS", "$ident$"],
+            ["HEAR", "$ident$", "AS", "$ident$"],
             true,
             move |_context, inputs| {
                 let variable_name = inputs[0]
@@ -232,18 +233,20 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                     .expect("Expected identifier for type")
                     .to_string();
 
-                let _input_type = InputType::from_str(&type_name);
+                let _input_type = InputType::parse_type(&type_name);
 
                 trace!("HEAR {variable_name} AS {type_name} - waiting for validated input");
 
                 let state_for_spawn = Arc::clone(&state_clone);
                 let session_id_clone = session_id;
-                let var_name_clone = variable_name.clone();
-                let type_clone = type_name.clone();
+                let var_name_clone = variable_name;
+                let type_clone = type_name;
 
                 tokio::spawn(async move {
-                    let mut session_manager = state_for_spawn.session_manager.lock().await;
-                    session_manager.mark_waiting(session_id_clone);
+                    {
+                        let mut session_manager = state_for_spawn.session_manager.lock().await;
+                        session_manager.mark_waiting(session_id_clone);
+                    }
 
                     if let Some(redis_client) = &state_for_spawn.cache {
                         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
@@ -257,7 +260,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                                 "max_retries": 3
                             });
                             let _: Result<(), _> = redis::cmd("SET")
-                                .arg(&key)
+                                .arg(key)
                                 .arg(wait_data.to_string())
                                 .arg("EX")
                                 .arg(3600)
@@ -282,7 +285,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
 
     engine
         .register_custom_syntax(
-            &["HEAR", "$ident$", "AS", "$expr$"],
+            ["HEAR", "$ident$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let variable_name = inputs[0]
@@ -293,7 +296,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 let options_expr = context.eval_expression_tree(&inputs[1])?;
                 let options_str = options_expr.to_string();
 
-                let input_type = InputType::from_str(&options_str);
+                let input_type = InputType::parse_type(&options_str);
                 if input_type != InputType::Any {
                     return Err(Box::new(EvalAltResult::ErrorRuntime(
                         "Use HEAR AS TYPE syntax".into(),
@@ -322,12 +325,14 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
 
                 let state_for_spawn = Arc::clone(&state_clone);
                 let session_id_clone = session_id;
-                let var_name_clone = variable_name.clone();
-                let options_clone = options.clone();
+                let var_name_clone = variable_name;
+                let options_clone = options;
 
                 tokio::spawn(async move {
-                    let mut session_manager = state_for_spawn.session_manager.lock().await;
-                    session_manager.mark_waiting(session_id_clone);
+                    {
+                        let mut session_manager = state_for_spawn.session_manager.lock().await;
+                        session_manager.mark_waiting(session_id_clone);
+                    }
 
                     if let Some(redis_client) = &state_for_spawn.cache {
                         if let Ok(mut conn) = redis_client.get_multiplexed_async_connection().await
@@ -341,7 +346,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                                 "retry_count": 0
                             });
                             let _: Result<(), _> = redis::cmd("SET")
-                                .arg(&key)
+                                .arg(key)
                                 .arg(wait_data.to_string())
                                 .arg("EX")
                                 .arg(3600)
@@ -493,12 +498,7 @@ fn validate_name(input: &str) -> ValidationResult {
 }
 
 fn validate_integer(input: &str) -> ValidationResult {
-    let cleaned = input
-        .replace(',', "")
-        .replace('.', "")
-        .replace(' ', "")
-        .trim()
-        .to_string();
+    let cleaned = input.replace([',', '.', ' '], "").trim().to_string();
 
     match cleaned.parse::<i64>() {
         Ok(num) => ValidationResult::valid_with_metadata(
@@ -510,7 +510,7 @@ fn validate_integer(input: &str) -> ValidationResult {
 }
 
 fn validate_float(input: &str) -> ValidationResult {
-    let cleaned = input.replace(" ", "").replace(",", ".").trim().to_string();
+    let cleaned = input.replace(' ', "").replace(',', ".").trim().to_string();
 
     match cleaned.parse::<f64>() {
         Ok(num) => ValidationResult::valid_with_metadata(
@@ -602,11 +602,7 @@ fn validate_hour(input: &str) -> ValidationResult {
 fn validate_money(input: &str) -> ValidationResult {
     let cleaned = input
         .replace("R$", "")
-        .replace("$", "")
-        .replace("€", "")
-        .replace("£", "")
-        .replace("¥", "")
-        .replace(" ", "")
+        .replace(['$', '€', '£', '¥', ' '], "")
         .trim()
         .to_string();
 
@@ -617,10 +613,10 @@ fn validate_money(input: &str) -> ValidationResult {
         if last_comma > last_dot {
             cleaned.replace('.', "").replace(',', ".")
         } else {
-            cleaned.replace(",", "")
+            cleaned.replace(',', "")
         }
     } else if cleaned.contains(',') {
-        cleaned.replace(",", ".")
+        cleaned.replace(',', ".")
     } else {
         cleaned
     };
@@ -641,14 +637,10 @@ fn validate_mobile(input: &str) -> ValidationResult {
         return ValidationResult::invalid(InputType::Mobile.error_message());
     }
 
-    let formatted = if digits.len() == 11 && digits.starts_with('9') {
-        format!("({}) {}-{}", &digits[0..2], &digits[2..7], &digits[7..11])
-    } else if digits.len() == 11 {
-        format!("({}) {}-{}", &digits[0..2], &digits[2..7], &digits[7..11])
-    } else if digits.len() == 10 {
-        format!("({}) {}-{}", &digits[0..3], &digits[3..6], &digits[6..10])
-    } else {
-        format!("+{}", digits)
+    let formatted = match digits.len() {
+        11 => format!("({}) {}-{}", &digits[0..2], &digits[2..7], &digits[7..11]),
+        10 => format!("({}) {}-{}", &digits[0..3], &digits[3..6], &digits[6..10]),
+        _ => format!("+{digits}"),
     };
 
     ValidationResult::valid_with_metadata(
@@ -886,7 +878,7 @@ fn validate_color(input: &str) -> ValidationResult {
     for (name, hex) in &named_colors {
         if lower == *name {
             return ValidationResult::valid_with_metadata(
-                hex.to_string(),
+                (*hex).to_owned(),
                 serde_json::json!({ "name": name, "hex": hex }),
             );
         }
@@ -896,9 +888,12 @@ fn validate_color(input: &str) -> ValidationResult {
     if let Some(caps) = hex_regex.captures(&lower) {
         let hex = caps[1].to_uppercase();
         let full_hex = if hex.len() == 3 {
-            hex.chars()
-                .map(|c| format!("{}{}", c, c))
-                .collect::<String>()
+            let mut result = String::with_capacity(6);
+            for c in hex.chars() {
+                result.push(c);
+                result.push(c);
+            }
+            result
         } else {
             hex
         };
@@ -1106,10 +1101,10 @@ pub async fn execute_talk(
 
 pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["TALK", "$expr$"], true, move |context, inputs| {
+        .register_custom_syntax(["TALK", "$expr$"], true, move |context, inputs| {
             let message = context.eval_expression_tree(&inputs[0])?.to_string();
             let state_for_talk = Arc::clone(&state_clone);
             let user_for_talk = user_clone.clone();
@@ -1168,7 +1163,7 @@ pub async fn process_hear_input(
     let validation_type = if let Some(opts) = options {
         InputType::Menu(opts)
     } else {
-        InputType::from_str(input_type)
+        InputType::parse_type(input_type)
     };
 
     match validation_type {

@@ -51,43 +51,39 @@ fn register_on_email(state: &AppState, user: UserSession, engine: &mut Engine) {
     let bot_id = user.bot_id;
 
     engine
-        .register_custom_syntax(
-            &["ON", "EMAIL", "$string$"],
-            true,
-            move |context, inputs| {
-                let email_address = context
-                    .eval_expression_tree(&inputs[0])?
-                    .to_string()
-                    .trim_matches('"')
-                    .to_string();
+        .register_custom_syntax(["ON", "EMAIL", "$string$"], true, move |context, inputs| {
+            let email_address = context
+                .eval_expression_tree(&inputs[0])?
+                .to_string()
+                .trim_matches('"')
+                .to_string();
 
-                trace!("ON EMAIL '{}' for bot: {}", email_address, bot_id);
+            trace!("ON EMAIL '{}' for bot: {}", email_address, bot_id);
 
-                let script_name = format!(
-                    "on_email_{}.rhai",
-                    email_address.replace('@', "_at_").replace('.', "_")
-                );
+            let script_name = format!(
+                "on_email_{}.rhai",
+                email_address.replace('@', "_at_").replace('.', "_")
+            );
 
-                let mut conn = state_clone
-                    .conn
-                    .get()
+            let mut conn = state_clone
+                .conn
+                .get()
+                .map_err(|e| format!("DB error: {}", e))?;
+
+            let result =
+                execute_on_email(&mut conn, bot_id, &email_address, &script_name, None, None)
                     .map_err(|e| format!("DB error: {}", e))?;
 
-                let result =
-                    execute_on_email(&mut *conn, bot_id, &email_address, &script_name, None, None)
-                        .map_err(|e| format!("DB error: {}", e))?;
-
-                if let Some(rows_affected) = result.get("rows_affected") {
-                    info!(
-                        "Email monitor registered for '{}' on bot {}",
-                        email_address, bot_id
-                    );
-                    Ok(Dynamic::from(rows_affected.as_i64().unwrap_or(0)))
-                } else {
-                    Err("Failed to register email monitor".into())
-                }
-            },
-        )
+            if let Some(rows_affected) = result.get("rows_affected") {
+                info!(
+                    "Email monitor registered for '{}' on bot {}",
+                    email_address, bot_id
+                );
+                Ok(Dynamic::from(rows_affected.as_i64().unwrap_or(0)))
+            } else {
+                Err("Failed to register email monitor".into())
+            }
+        })
         .unwrap();
 }
 
@@ -97,7 +93,7 @@ fn register_on_email_from(state: &AppState, user: UserSession, engine: &mut Engi
 
     engine
         .register_custom_syntax(
-            &["ON", "EMAIL", "$string$", "FROM", "$string$"],
+            ["ON", "EMAIL", "$string$", "FROM", "$string$"],
             true,
             move |context, inputs| {
                 let email_address = context
@@ -131,7 +127,7 @@ fn register_on_email_from(state: &AppState, user: UserSession, engine: &mut Engi
                     .map_err(|e| format!("DB error: {}", e))?;
 
                 let result = execute_on_email(
-                    &mut *conn,
+                    &mut conn,
                     bot_id,
                     &email_address,
                     &script_name,
@@ -160,7 +156,7 @@ fn register_on_email_subject(state: &AppState, user: UserSession, engine: &mut E
 
     engine
         .register_custom_syntax(
-            &["ON", "EMAIL", "$string$", "SUBJECT", "$string$"],
+            ["ON", "EMAIL", "$string$", "SUBJECT", "$string$"],
             true,
             move |context, inputs| {
                 let email_address = context
@@ -193,7 +189,7 @@ fn register_on_email_subject(state: &AppState, user: UserSession, engine: &mut E
                     .map_err(|e| format!("DB error: {}", e))?;
 
                 let result = execute_on_email(
-                    &mut *conn,
+                    &mut conn,
                     bot_id,
                     &email_address,
                     &script_name,
@@ -373,8 +369,7 @@ pub async fn process_email_event(
 }
 
 pub fn parse_email_path(path: &str) -> Option<(String, Option<String>)> {
-    if path.starts_with("email://") {
-        let rest = &path[8..];
+    if let Some(rest) = path.strip_prefix("email://") {
         if let Some(slash_pos) = rest.find('/') {
             let email = &rest[..slash_pos];
             let folder = &rest[slash_pos + 1..];

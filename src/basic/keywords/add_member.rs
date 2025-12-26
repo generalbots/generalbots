@@ -14,7 +14,7 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
 
     engine
         .register_custom_syntax(
-            &["ADD_MEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["ADD_MEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let group_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -83,13 +83,12 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
+    let user_clone2 = user;
 
     engine
         .register_custom_syntax(
-            &["CREATE_TEAM", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["CREATE_TEAM", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -172,12 +171,9 @@ async fn execute_add_member(
 ) -> Result<String, String> {
     let member_id = Uuid::new_v4().to_string();
 
-
     let valid_role = validate_role(role);
 
-
     let permissions = get_permissions_for_role(&valid_role);
-
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
@@ -204,9 +200,7 @@ async fn execute_add_member(
         format!("Failed to add member: {}", e)
     })?;
 
-
     send_member_invitation(state, group_id, user_email, &valid_role).await?;
-
 
     log_group_activity(state, group_id, "member_added", user_email).await?;
 
@@ -229,7 +223,6 @@ async fn execute_create_team(
     workspace_template: &str,
 ) -> Result<String, String> {
     let team_id = Uuid::new_v4().to_string();
-
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
@@ -261,9 +254,7 @@ async fn execute_create_team(
         format!("Failed to create team: {}", e)
     })?;
 
-
     execute_add_member(state, user, &team_id, &user.user_id.to_string(), "admin").await?;
-
 
     for member_email in &members {
         let role = if member_email == &user.user_id.to_string() {
@@ -274,9 +265,7 @@ async fn execute_create_team(
         execute_add_member(state, user, &team_id, member_email, role).await?;
     }
 
-
     create_workspace_structure(state, &team_id, name, workspace_template).await?;
-
 
     create_team_channel(state, &team_id, name).await?;
 
@@ -292,26 +281,19 @@ async fn execute_create_team(
 
 fn validate_role(role: &str) -> String {
     match role.to_lowercase().as_str() {
-        "admin" | "administrator" => "admin".to_string(),
-        "contributor" | "editor" => "contributor".to_string(),
-        "member" | "user" => "member".to_string(),
-        "viewer" | "read" | "readonly" => "viewer".to_string(),
-        "owner" => "owner".to_string(),
-        _ => "member".to_string(),
+        "admin" | "administrator" => "admin",
+        "contributor" | "editor" => "contributor",
+        "member" | "user" => "member",
+        "viewer" | "read" | "readonly" => "viewer",
+        "owner" => "owner",
+        _ => "member",
     }
+    .to_string()
 }
 
 fn get_permissions_for_role(role: &str) -> serde_json::Value {
     match role {
-        "owner" => json!({
-            "read": true,
-            "write": true,
-            "delete": true,
-            "manage_members": true,
-            "manage_settings": true,
-            "export_data": true
-        }),
-        "admin" => json!({
+        "owner" | "admin" => json!({
             "read": true,
             "write": true,
             "delete": true,
@@ -335,15 +317,7 @@ fn get_permissions_for_role(role: &str) -> serde_json::Value {
             "manage_settings": false,
             "export_data": false
         }),
-        "viewer" => json!({
-            "read": true,
-            "write": false,
-            "delete": false,
-            "manage_members": false,
-            "manage_settings": false,
-            "export_data": false
-        }),
-        _ => json!({
+        "viewer" | _ => json!({
             "read": true,
             "write": false,
             "delete": false,
@@ -360,7 +334,6 @@ async fn send_member_invitation(
     user_email: &str,
     role: &str,
 ) -> Result<(), String> {
-
     trace!(
         "Invitation sent to {} for group {} with role {}",
         user_email,
@@ -407,7 +380,6 @@ async fn create_workspace_structure(
     template: &str,
 ) -> Result<(), String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
-
 
     let folders = match template {
         "project" => vec![
@@ -482,4 +454,35 @@ async fn create_team_channel(
 
     trace!("Created communication channel for team {}", team_name);
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_validate_role() {
+        assert_eq!(validate_role("admin"), "admin");
+        assert_eq!(validate_role("ADMIN"), "admin");
+        assert_eq!(validate_role("contributor"), "contributor");
+        assert_eq!(validate_role("viewer"), "viewer");
+        assert_eq!(validate_role("unknown"), "member");
+    }
+
+    #[test]
+    fn test_get_permissions_for_role() {
+        let admin_perms = get_permissions_for_role("admin");
+        assert!(admin_perms.get("read").unwrap().as_bool().unwrap());
+        assert!(admin_perms.get("write").unwrap().as_bool().unwrap());
+        assert!(admin_perms
+            .get("manage_members")
+            .unwrap()
+            .as_bool()
+            .unwrap());
+
+        let viewer_perms = get_permissions_for_role("viewer");
+        assert!(viewer_perms.get("read").unwrap().as_bool().unwrap());
+        assert!(!viewer_perms.get("write").unwrap().as_bool().unwrap());
+        assert!(!viewer_perms.get("delete").unwrap().as_bool().unwrap());
+    }
 }

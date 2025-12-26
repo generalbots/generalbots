@@ -7,12 +7,12 @@ pub use cache::{CacheResult, DownloadCache};
 pub use installer::PackageManager;
 pub mod cli;
 pub mod facade;
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InstallMode {
     Local,
     Container,
 }
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OsType {
     Linux,
     MacOS,

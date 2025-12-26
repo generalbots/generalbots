@@ -90,12 +90,12 @@ impl CertPinningConfig {
 
     pub fn load_from_file(path: &Path) -> Result<Self> {
         let content = fs::read_to_string(path)
-            .with_context(|| format!("Failed to read pin config from {:?}", path))?;
+            .with_context(|| format!("Failed to read pin config from {}", path.display()))?;
 
         let config: Self =
             serde_json::from_str(&content).context("Failed to parse pin configuration")?;
 
-        info!("Loaded certificate pinning config from {:?}", path);
+        info!("Loaded certificate pinning config from {}", path.display());
         Ok(config)
     }
 
@@ -104,9 +104,9 @@ impl CertPinningConfig {
             serde_json::to_string_pretty(self).context("Failed to serialize pin configuration")?;
 
         fs::write(path, content)
-            .with_context(|| format!("Failed to write pin config to {:?}", path))?;
+            .with_context(|| format!("Failed to write pin config to {}", path.display()))?;
 
-        info!("Saved certificate pinning config to {:?}", path);
+        info!("Saved certificate pinning config to {}", path.display());
         Ok(())
     }
 }
@@ -309,33 +309,30 @@ impl CertPinningManager {
         let actual_hash = compute_spki_fingerprint(cert_der)?;
         let actual_fingerprint = format!("sha256//{}", BASE64.encode(&actual_hash));
 
-        let pins = match config.get_pins(hostname) {
-            Some(pins) => pins,
-            None => {
-                if config.require_pins {
-                    let result = PinValidationResult::failure(
-                        hostname,
-                        &actual_fingerprint,
-                        "No pins configured for hostname",
+        let Some(pins) = config.get_pins(hostname) else {
+            if config.require_pins {
+                let result = PinValidationResult::failure(
+                    hostname,
+                    &actual_fingerprint,
+                    "No pins configured for hostname",
+                );
+
+                if config.report_only {
+                    warn!(
+                        "Certificate pinning violation (report-only): {} - {}",
+                        hostname, "No pins configured"
                     );
-
-                    if config.report_only {
-                        warn!(
-                            "Certificate pinning violation (report-only): {} - {}",
-                            hostname, "No pins configured"
-                        );
-                        return Ok(PinValidationResult::success(hostname, "report-only", false));
-                    }
-
-                    return Ok(result);
+                    return Ok(PinValidationResult::success(hostname, "report-only", false));
                 }
 
-                return Ok(PinValidationResult::success(
-                    hostname,
-                    "no-pins-required",
-                    false,
-                ));
+                return Ok(result);
             }
+
+            return Ok(PinValidationResult::success(
+                hostname,
+                "no-pins-required",
+                false,
+            ));
         };
 
         for pin in pins {
@@ -436,7 +433,7 @@ impl CertPinningManager {
         pem_path: &Path,
     ) -> Result<PinValidationResult> {
         let pem_data = fs::read(pem_path)
-            .with_context(|| format!("Failed to read PEM file: {:?}", pem_path))?;
+            .with_context(|| format!("Failed to read PEM file: {}", pem_path.display()))?;
 
         let der = pem_to_der(&pem_data)?;
         self.validate_certificate(hostname, &der)
@@ -444,7 +441,7 @@ impl CertPinningManager {
 
     pub fn generate_pin_from_file(hostname: &str, cert_path: &Path) -> Result<PinnedCert> {
         let cert_data = fs::read(cert_path)
-            .with_context(|| format!("Failed to read certificate: {:?}", cert_path))?;
+            .with_context(|| format!("Failed to read certificate: {}", cert_path.display()))?;
 
         let der = if cert_data.starts_with(b"-----BEGIN") {
             pem_to_der(&cert_data)?
