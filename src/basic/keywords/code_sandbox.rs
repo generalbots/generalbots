@@ -11,7 +11,7 @@ use std::time::Duration;
 use tokio::time::timeout;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SandboxRuntime {
     LXC,
 
@@ -24,22 +24,22 @@ pub enum SandboxRuntime {
 
 impl Default for SandboxRuntime {
     fn default() -> Self {
-        SandboxRuntime::Process
+        Self::Process
     }
 }
 
 impl From<&str> for SandboxRuntime {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "lxc" => SandboxRuntime::LXC,
-            "docker" => SandboxRuntime::Docker,
-            "firecracker" => SandboxRuntime::Firecracker,
-            _ => SandboxRuntime::Process,
+            "lxc" => Self::LXC,
+            "docker" => Self::Docker,
+            "firecracker" => Self::Firecracker,
+            _ => Self::Process,
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum CodeLanguage {
     Python,
     JavaScript,
@@ -49,10 +49,13 @@ pub enum CodeLanguage {
 impl From<&str> for CodeLanguage {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "python" | "py" => CodeLanguage::Python,
-            "javascript" | "js" | "node" => CodeLanguage::JavaScript,
-            "bash" | "sh" | "shell" => CodeLanguage::Bash,
-            _ => CodeLanguage::Python,
+            "python" | "py" | "javascript" | "js" | "node" | "bash" | "sh" | "shell" => {}
+            _ => {}
+        }
+        match s.to_lowercase().as_str() {
+            "python" | "py" => Self::Python,
+            "javascript" | "js" | "node" => Self::JavaScript,
+            "bash" | "sh" | "shell" | _ => Self::Bash,
         }
     }
 }
@@ -60,25 +63,25 @@ impl From<&str> for CodeLanguage {
 impl CodeLanguage {
     pub fn file_extension(&self) -> &str {
         match self {
-            CodeLanguage::Python => "py",
-            CodeLanguage::JavaScript => "js",
-            CodeLanguage::Bash => "sh",
+            Self::Python => "py",
+            Self::JavaScript => "js",
+            Self::Bash => "sh",
         }
     }
 
     pub fn interpreter(&self) -> &str {
         match self {
-            CodeLanguage::Python => "python3",
-            CodeLanguage::JavaScript => "node",
-            CodeLanguage::Bash => "bash",
+            Self::Python => "python3",
+            Self::JavaScript => "node",
+            Self::Bash => "bash",
         }
     }
 
     pub fn lxc_image(&self) -> &str {
         match self {
-            CodeLanguage::Python => "gb-sandbox-python",
-            CodeLanguage::JavaScript => "gb-sandbox-node",
-            CodeLanguage::Bash => "gb-sandbox-base",
+            Self::Python => "gb-sandbox-python",
+            Self::JavaScript => "gb-sandbox-node",
+            Self::Bash => "gb-sandbox-base",
         }
     }
 }
@@ -406,7 +409,7 @@ impl CodeSandbox {
             "--memory".to_string(),
             format!("{}m", self.config.memory_limit_mb),
             "--cpus".to_string(),
-            format!("{:.2}", self.config.cpu_limit_percent as f64 / 100.0),
+            format!("{:.2}", f64::from(self.config.cpu_limit_percent) / 100.0),
             "--read-only".to_string(),
             "--security-opt".to_string(),
             "no-new-privileges".to_string(),
@@ -468,10 +471,10 @@ impl CodeSandbox {
         std::fs::write(&code_file, code)
             .map_err(|e| format!("Failed to write code file: {}", e))?;
 
-        let (cmd_name, cmd_args): (&str, Vec<&str>) = match language {
-            CodeLanguage::Python => ("python3", vec![&code_file]),
-            CodeLanguage::JavaScript => ("node", vec![&code_file]),
-            CodeLanguage::Bash => ("bash", vec![&code_file]),
+        let (cmd_name, cmd_args): (&str, Vec<&str>) = match *language {
+            CodeLanguage::Python => ("python3", vec![code_file.as_str()]),
+            CodeLanguage::JavaScript => ("node", vec![code_file.as_str()]),
+            CodeLanguage::Bash => ("bash", vec![code_file.as_str()]),
         };
 
         let timeout_duration = Duration::from_secs(self.config.timeout_seconds);
@@ -520,19 +523,19 @@ impl CodeSandbox {
 }
 
 pub fn register_sandbox_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    run_python_keyword(state.clone(), user.clone(), engine);
-    run_javascript_keyword(state.clone(), user.clone(), engine);
-    run_bash_keyword(state.clone(), user.clone(), engine);
-    run_file_keyword(state.clone(), user.clone(), engine);
+    run_python_keyword(Arc::clone(&state), user.clone(), engine);
+    run_javascript_keyword(Arc::clone(&state), user.clone(), engine);
+    run_bash_keyword(Arc::clone(&state), user.clone(), engine);
+    run_file_keyword(state, user, engine);
 }
 
 pub fn run_python_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["RUN", "PYTHON", "$expr$"],
+            ["RUN", "PYTHON", "$expr$"],
             false,
             move |context, inputs| {
                 let code = context
@@ -577,7 +580,7 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
 
     engine
         .register_custom_syntax(
-            &["RUN", "JAVASCRIPT", "$expr$"],
+            ["RUN", "JAVASCRIPT", "$expr$"],
             false,
             move |context, inputs| {
                 let code = context
@@ -615,20 +618,17 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
         )
         .expect("Failed to register RUN JAVASCRIPT syntax");
 
-    let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
-
     engine
-        .register_custom_syntax(&["RUN", "JS", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["RUN", "JS", "$expr$"], false, move |context, inputs| {
             let code = context
                 .eval_expression_tree(&inputs[0])?
                 .to_string()
                 .trim_matches('"')
                 .to_string();
 
-            let state_for_task = Arc::clone(&state_clone2);
-            let session_id = user_clone2.id;
-            let bot_id = user_clone2.bot_id;
+            let state_for_task = Arc::clone(&state);
+            let session_id = user.id;
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -654,22 +654,19 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
 }
 
 pub fn run_bash_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["RUN", "BASH", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["RUN", "BASH", "$expr$"], false, move |context, inputs| {
             let code = context
                 .eval_expression_tree(&inputs[0])?
                 .to_string()
                 .trim_matches('"')
                 .to_string();
 
-            trace!("RUN BASH for session: {}", user_clone.id);
+            trace!("RUN BASH for session: {}", user.id);
 
-            let state_for_task = Arc::clone(&state_clone);
-            let session_id = user_clone.id;
-            let bot_id = user_clone.bot_id;
+            let state_for_task = Arc::clone(&state);
+            let session_id = user.id;
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -700,7 +697,7 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
 
     engine
         .register_custom_syntax(
-            &["RUN", "PYTHON", "WITH", "FILE", "$expr$"],
+            ["RUN", "PYTHON", "WITH", "FILE", "$expr$"],
             false,
             move |context, inputs| {
                 let file_path = context
@@ -742,12 +739,9 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         )
         .expect("Failed to register RUN PYTHON WITH FILE syntax");
 
-    let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
-
     engine
         .register_custom_syntax(
-            &["RUN", "JAVASCRIPT", "WITH", "FILE", "$expr$"],
+            ["RUN", "JAVASCRIPT", "WITH", "FILE", "$expr$"],
             false,
             move |context, inputs| {
                 let file_path = context
@@ -756,9 +750,9 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     .trim_matches('"')
                     .to_string();
 
-                let state_for_task = Arc::clone(&state_clone2);
-                let session_id = user_clone2.id;
-                let bot_id = user_clone2.bot_id;
+                let state_for_task = Arc::clone(&state);
+                let session_id = user.id;
+                let bot_id = user.bot_id;
 
                 let (tx, rx) = std::sync::mpsc::channel();
 

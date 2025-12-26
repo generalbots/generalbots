@@ -1,5 +1,6 @@
 use crate::shared::state::AppState;
 use color_eyre::Result;
+use std::path::Path;
 use std::sync::Arc;
 #[derive(Debug, Clone)]
 pub enum TreeNode {
@@ -15,6 +16,13 @@ pub struct FileTree {
     current_bucket: Option<String>,
     current_path: Vec<String>,
 }
+
+fn has_extension_ci(name: &str, ext: &str) -> bool {
+    Path::new(name)
+        .extension()
+        .is_some_and(|e| e.eq_ignore_ascii_case(ext))
+}
+
 impl FileTree {
     pub fn new(app_state: Arc<AppState>) -> Self {
         Self {
@@ -36,7 +44,7 @@ impl FileTree {
                     let buckets = response.buckets();
                     for bucket in buckets {
                         if let Some(name) = bucket.name() {
-                            let icon = if name.ends_with(".gbai") {
+                            let icon = if has_extension_ci(name, "gbai") {
                                 ""
                             } else {
                                 "📦"
@@ -91,7 +99,7 @@ impl FileTree {
             .split('/')
             .filter(|s| !s.is_empty())
             .collect();
-        self.current_path = parts.iter().map(|s| s.to_string()).collect();
+        self.current_path = parts.iter().map(|s| (*s).to_string()).collect();
         self.load_bucket_contents(&bucket, &path).await
     }
     pub fn go_up(&mut self) -> bool {
@@ -194,15 +202,13 @@ impl FileTree {
             }
             files.sort_by(|(a, _), (b, _)| a.cmp(b));
             for (name, full_path) in files {
-                let icon = if name.ends_with(".bas") {
+                let icon = if has_extension_ci(&name, "bas")
+                    || has_extension_ci(&name, "ast")
+                    || has_extension_ci(&name, "csv")
+                    || has_extension_ci(&name, "gbkb")
+                {
                     ""
-                } else if name.ends_with(".ast") {
-                    ""
-                } else if name.ends_with(".csv") {
-                    ""
-                } else if name.ends_with(".gbkb") {
-                    ""
-                } else if name.ends_with(".json") {
+                } else if has_extension_ci(&name, "json") {
                     "🔖"
                 } else {
                     "📄"
@@ -244,18 +250,13 @@ impl FileTree {
     }
     pub fn get_selected_bot(&self) -> Option<String> {
         if let Some(bucket) = &self.current_bucket {
-            if bucket.ends_with(".gbai") {
+            if has_extension_ci(bucket, "gbai") {
                 return Some(bucket.trim_end_matches(".gbai").to_string());
             }
         }
-        if let Some((_, node)) = self.items.get(self.selected) {
-            match node {
-                TreeNode::Bucket { name } => {
-                    if name.ends_with(".gbai") {
-                        return Some(name.trim_end_matches(".gbai").to_string());
-                    }
-                }
-                _ => {}
+        if let Some((_, TreeNode::Bucket { name })) = self.items.get(self.selected) {
+            if has_extension_ci(name, "gbai") {
+                return Some(name.trim_end_matches(".gbai").to_string());
             }
         }
         None

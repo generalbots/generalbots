@@ -12,21 +12,15 @@ struct CountResult {
     count: i64,
 }
 
-
-
-
-
-
 pub fn register_clear_kb_keyword(
     engine: &mut Engine,
     state: Arc<AppState>,
     session: Arc<UserSession>,
 ) -> Result<(), Box<EvalAltResult>> {
-
     let state_clone = Arc::clone(&state);
     let session_clone = Arc::clone(&session);
 
-    engine.register_custom_syntax(&["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
+    engine.register_custom_syntax(["CLEAR", "KB", "$expr$"], true, move |context, inputs| {
         let kb_name = context.eval_expression_tree(&inputs[0])?.to_string();
 
         info!(
@@ -60,11 +54,10 @@ pub fn register_clear_kb_keyword(
         }
     })?;
 
-
     let state_clone2 = Arc::clone(&state);
     let session_clone2 = Arc::clone(&session);
 
-    engine.register_custom_syntax(&["CLEAR", "KB"], true, move |_context, _inputs| {
+    engine.register_custom_syntax(["CLEAR", "KB"], true, move |_context, _inputs| {
         info!(
             "CLEAR KB (all) keyword executed - Session: {}",
             session_clone2.id
@@ -77,7 +70,6 @@ pub fn register_clear_kb_keyword(
 
         match result {
             Ok(Ok(count)) => {
-
                 let remaining_count =
                     get_active_kb_count(&state_clone2.conn, session_clone2.id).unwrap_or(0);
                 info!(
@@ -100,7 +92,6 @@ pub fn register_clear_kb_keyword(
     Ok(())
 }
 
-
 fn clear_specific_kb(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -109,7 +100,6 @@ fn clear_specific_kb(
     let mut conn = conn_pool
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
-
 
     let rows_affected = diesel::sql_query(
         "UPDATE session_kb_associations
@@ -120,7 +110,6 @@ fn clear_specific_kb(
     .bind::<diesel::sql_types::Text, _>(kb_name)
     .execute(&mut conn)
     .map_err(|e| format!("Failed to clear KB: {}", e))?;
-
 
     let remaining_count = get_active_kb_count(&conn_pool, session_id).unwrap_or(0);
 
@@ -139,7 +128,6 @@ fn clear_specific_kb(
     Ok(())
 }
 
-
 fn clear_all_kbs(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -147,7 +135,6 @@ fn clear_all_kbs(
     let mut conn = conn_pool
         .get()
         .map_err(|e| format!("Failed to get DB connection: {}", e))?;
-
 
     let rows_affected = diesel::sql_query(
         "UPDATE session_kb_associations
@@ -169,7 +156,6 @@ fn clear_all_kbs(
 
     Ok(rows_affected)
 }
-
 
 pub fn get_active_kb_count(
     conn_pool: &crate::shared::utils::DbPool,

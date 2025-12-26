@@ -11,7 +11,7 @@ pub fn delete_post_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
 
     engine
         .register_custom_syntax(
-            &["DELETE", "POST", "$expr$"],
+            ["DELETE", "POST", "$expr$"],
             false,
             move |context, inputs| {
                 let post_id = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -25,7 +25,7 @@ pub fn delete_post_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     .map_err(|e| format!("DB error: {}", e))?;
 
                 let result =
-                    delete_social_post(&mut *conn, user_clone.bot_id, post_id).map_err(|e| {
+                    delete_social_post(&mut conn, user_clone.bot_id, post_id).map_err(|e| {
                         Box::new(rhai::EvalAltResult::ErrorRuntime(
                             format!("DELETE POST failed: {}", e).into(),
                             rhai::Position::NONE,

@@ -8,7 +8,6 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModelConfig {
     pub name: String,
@@ -19,8 +18,7 @@ pub struct ModelConfig {
     pub temperature: Option<f32>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum RoutingStrategy {
     Manual,
     Auto,
@@ -30,10 +28,9 @@ pub enum RoutingStrategy {
 
 impl Default for RoutingStrategy {
     fn default() -> Self {
-        RoutingStrategy::Manual
+        Self::Manual
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ModelRouter {
@@ -42,16 +39,20 @@ pub struct ModelRouter {
     pub routing_strategy: RoutingStrategy,
 }
 
-impl ModelRouter {
-    pub fn new() -> Self {
+impl Default for ModelRouter {
+    fn default() -> Self {
         Self {
             models: HashMap::new(),
             default_model: "default".to_string(),
             routing_strategy: RoutingStrategy::Manual,
         }
     }
+}
 
-
+impl ModelRouter {
+    pub fn new() -> Self {
+        Self::default()
+    }
 
     pub fn from_config(config_models: &str, bot_id: Uuid, state: &AppState) -> Self {
         let mut router = Self::new();
@@ -64,8 +65,6 @@ impl ModelRouter {
                 continue;
             }
 
-
-
             if let Ok(mut conn) = state.conn.get() {
                 let model_config = load_model_config(&mut conn, bot_id, name);
                 if let Some(config) = model_config {
@@ -74,7 +73,6 @@ impl ModelRouter {
             }
         }
 
-
         if let Some(first_name) = config_models.split(';').next() {
             router.default_model = first_name.trim().to_string();
         }
@@ -82,76 +80,62 @@ impl ModelRouter {
         router
     }
 
-
     pub fn get_model(&self, name: &str) -> Option<&ModelConfig> {
         self.models.get(name)
     }
-
 
     pub fn get_default(&self) -> Option<&ModelConfig> {
         self.models.get(&self.default_model)
     }
 
-
     pub fn route_query(&self, query: &str) -> &str {
         match self.routing_strategy {
             RoutingStrategy::Auto => self.auto_route(query),
             RoutingStrategy::LoadBalanced => self.load_balanced_route(),
-            RoutingStrategy::Fallback => &self.default_model,
-            RoutingStrategy::Manual => &self.default_model,
+            RoutingStrategy::Fallback | RoutingStrategy::Manual => &self.default_model,
         }
     }
-
 
     fn auto_route(&self, query: &str) -> &str {
         let query_lower = query.to_lowercase();
 
-
-        if query_lower.contains("code")
+        if (query_lower.contains("code")
             || query_lower.contains("program")
             || query_lower.contains("function")
             || query_lower.contains("debug")
             || query_lower.contains("error")
-            || query_lower.contains("syntax")
+            || query_lower.contains("syntax"))
+            && self.models.contains_key("code")
         {
-            if self.models.contains_key("code") {
-                return "code";
-            }
+            return "code";
         }
 
-
-        if query_lower.contains("analyze")
+        if (query_lower.contains("analyze")
             || query_lower.contains("explain")
             || query_lower.contains("compare")
             || query_lower.contains("evaluate")
-            || query.len() > 500
+            || query.len() > 500)
+            && self.models.contains_key("quality")
         {
-            if self.models.contains_key("quality") {
-                return "quality";
-            }
+            return "quality";
         }
 
-
-        if query.len() < 100
+        if (query.len() < 100
             || query_lower.contains("what is")
             || query_lower.contains("define")
-            || query_lower.contains("hello")
+            || query_lower.contains("hello"))
+            && self.models.contains_key("fast")
         {
-            if self.models.contains_key("fast") {
-                return "fast";
-            }
+            return "fast";
         }
 
         &self.default_model
     }
 
-
     fn load_balanced_route(&self) -> &str {
-
         &self.default_model
     }
 }
-
 
 fn load_model_config(
     conn: &mut diesel::PgConnection,
@@ -165,7 +149,6 @@ fn load_model_config(
         #[diesel(sql_type = diesel::sql_types::Text)]
         config_value: String,
     }
-
 
     let suffix = if model_name == "default" {
         "".to_string()
@@ -216,76 +199,67 @@ fn load_model_config(
     })
 }
 
-
 pub fn register_model_routing_keywords(
     state: Arc<AppState>,
     user: UserSession,
     engine: &mut Engine,
 ) {
-    use_model_keyword(state.clone(), user.clone(), engine);
-    set_model_routing_keyword(state.clone(), user.clone(), engine);
-    get_current_model_keyword(state.clone(), user.clone(), engine);
-    list_models_keyword(state.clone(), user.clone(), engine);
+    use_model_keyword(Arc::clone(&state), user.clone(), engine);
+    set_model_routing_keyword(Arc::clone(&state), user.clone(), engine);
+    get_current_model_keyword(Arc::clone(&state), user.clone(), engine);
+    list_models_keyword(state, user, engine);
 }
-
-
 
 pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(
-            &["USE", "MODEL", "$expr$"],
-            false,
-            move |context, inputs| {
-                let model_name = context
-                    .eval_expression_tree(&inputs[0])?
-                    .to_string()
-                    .trim_matches('"')
-                    .to_string();
+        .register_custom_syntax(["USE", "MODEL", "$expr$"], false, move |context, inputs| {
+            let model_name = context
+                .eval_expression_tree(&inputs[0])?
+                .to_string()
+                .trim_matches('"')
+                .to_string();
 
-                trace!("USE MODEL '{}' for session: {}", model_name, user_clone.id);
+            trace!("USE MODEL '{}' for session: {}", model_name, user_clone.id);
 
-                let state_for_task = Arc::clone(&state_clone);
-                let session_id = user_clone.id;
-                let model_name_clone = model_name.clone();
+            let state_for_task = Arc::clone(&state_clone);
+            let session_id = user_clone.id;
+            let model_name_clone = model_name;
 
-                let (tx, rx) = std::sync::mpsc::channel();
+            let (tx, rx) = std::sync::mpsc::channel();
 
-                std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-                    let result = rt.block_on(async {
-                        set_session_model(&state_for_task, session_id, &model_name_clone).await
-                    });
-                    let _ = tx.send(result);
+            std::thread::spawn(move || {
+                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let result = rt.block_on(async {
+                    set_session_model(&state_for_task, session_id, &model_name_clone).await
                 });
+                let _ = tx.send(result);
+            });
 
-                match rx.recv_timeout(std::time::Duration::from_secs(10)) {
-                    Ok(Ok(msg)) => Ok(Dynamic::from(msg)),
-                    Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        e.into(),
-                        rhai::Position::NONE,
-                    ))),
-                    Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        "USE MODEL timed out".into(),
-                        rhai::Position::NONE,
-                    ))),
-                }
-            },
-        )
+            match rx.recv_timeout(std::time::Duration::from_secs(10)) {
+                Ok(Ok(msg)) => Ok(Dynamic::from(msg)),
+                Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    e.into(),
+                    rhai::Position::NONE,
+                ))),
+                Err(_) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    "USE MODEL timed out".into(),
+                    rhai::Position::NONE,
+                ))),
+            }
+        })
         .expect("Failed to register USE MODEL syntax");
 }
 
-
-
 pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SET", "MODEL", "ROUTING", "$expr$"],
+            ["SET", "MODEL", "ROUTING", "$expr$"],
             false,
             move |context, inputs| {
                 let strategy_str = context
@@ -309,13 +283,15 @@ pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine
 
                 let state_for_task = Arc::clone(&state_clone);
                 let session_id = user_clone.id;
+                let strategy_clone = strategy;
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                     let result = rt.block_on(async {
-                        set_session_routing_strategy(&state_for_task, session_id, strategy).await
+                        set_session_routing_strategy(&state_for_task, session_id, strategy_clone)
+                            .await
                     });
                     let _ = tx.send(result);
                 });
@@ -336,14 +312,12 @@ pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register SET MODEL ROUTING syntax");
 }
 
-
-
 pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_fn("GET CURRENT MODEL", move || -> String {
-        let state = Arc::clone(&state_clone);
+        let state = state_clone.clone();
 
         if let Ok(mut conn) = state.conn.get() {
             get_session_model_sync(&mut conn, user_clone.id)
@@ -354,14 +328,12 @@ pub fn get_current_model_keyword(state: Arc<AppState>, user: UserSession, engine
     });
 }
 
-
-
 pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_fn("LIST MODELS", move || -> rhai::Array {
-        let state = Arc::clone(&state_clone);
+        let state = state_clone.clone();
 
         if let Ok(mut conn) = state.conn.get() {
             list_available_models_sync(&mut conn, user_clone.bot_id)
@@ -375,9 +347,6 @@ pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     });
 }
 
-
-
-
 async fn set_session_model(
     state: &AppState,
     session_id: Uuid,
@@ -389,7 +358,6 @@ async fn set_session_model(
         .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
 
     let now = chrono::Utc::now();
-
 
     diesel::sql_query(
         "INSERT INTO session_preferences (session_id, preference_key, preference_value, updated_at) \
@@ -408,7 +376,6 @@ async fn set_session_model(
 
     Ok(format!("Now using model: {}", model_name))
 }
-
 
 async fn set_session_routing_strategy(
     state: &AppState,
@@ -449,7 +416,6 @@ async fn set_session_routing_strategy(
     Ok(format!("Model routing set to: {}", strategy_str))
 }
 
-
 fn get_session_model_sync(
     conn: &mut diesel::PgConnection,
     session_id: Uuid,
@@ -474,7 +440,6 @@ fn get_session_model_sync(
         .unwrap_or_else(|| "default".to_string()))
 }
 
-
 fn list_available_models_sync(
     conn: &mut diesel::PgConnection,
     bot_id: Uuid,
@@ -484,7 +449,6 @@ fn list_available_models_sync(
         #[diesel(sql_type = diesel::sql_types::Text)]
         config_value: String,
     }
-
 
     let result: Option<ConfigRow> = diesel::sql_query(
         "SELECT config_value FROM bot_configuration \
@@ -503,11 +467,9 @@ fn list_available_models_sync(
             .filter(|s| !s.is_empty())
             .collect())
     } else {
-
         Ok(vec!["default".to_string()])
     }
 }
-
 
 pub fn get_session_model(state: &AppState, session_id: Uuid) -> String {
     if let Ok(mut conn) = state.conn.get() {
@@ -516,7 +478,6 @@ pub fn get_session_model(state: &AppState, session_id: Uuid) -> String {
         "default".to_string()
     }
 }
-
 
 pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> RoutingStrategy {
     if let Ok(mut conn) = state.conn.get() {
@@ -550,5 +511,3 @@ pub fn get_session_routing_strategy(state: &AppState, session_id: Uuid) -> Routi
         RoutingStrategy::Manual
     }
 }
-
-

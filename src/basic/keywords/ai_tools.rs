@@ -15,7 +15,7 @@ pub fn register_ai_tools_keywords(state: Arc<AppState>, user: UserSession, engin
 fn register_translate_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["TRANSLATE", "$expr$", ",", "$expr$"],
+            ["TRANSLATE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let text = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -47,7 +47,7 @@ fn register_translate_keyword(_state: Arc<AppState>, _user: UserSession, engine:
 
 fn register_ocr_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["OCR", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["OCR", "$expr$"], false, move |context, inputs| {
             let image_path = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("OCR {}", image_path);
             let (tx, rx) = std::sync::mpsc::channel();
@@ -75,7 +75,7 @@ fn register_ocr_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
 
 fn register_sentiment_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["SENTIMENT", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["SENTIMENT", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("SENTIMENT analysis");
             let (tx, rx) = std::sync::mpsc::channel();
@@ -106,7 +106,7 @@ fn register_sentiment_keyword(_state: Arc<AppState>, _user: UserSession, engine:
 fn register_classify_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["CLASSIFY", "$expr$", ",", "$expr$"],
+            ["CLASSIFY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let text = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -291,12 +291,10 @@ fn analyze_sentiment_quick(text: &str) -> Dynamic {
     let pos_count = positive.iter().filter(|w| text_lower.contains(*w)).count();
     let neg_count = negative.iter().filter(|w| text_lower.contains(*w)).count();
     let is_urgent = urgent.iter().any(|w| text_lower.contains(*w));
-    let sentiment = if pos_count > neg_count {
-        "positive"
-    } else if neg_count > pos_count {
-        "negative"
-    } else {
-        "neutral"
+    let sentiment = match pos_count.cmp(&neg_count) {
+        std::cmp::Ordering::Greater => "positive",
+        std::cmp::Ordering::Less => "negative",
+        std::cmp::Ordering::Equal => "neutral",
     };
     let score = ((pos_count as i64 - neg_count as i64) * 100)
         / (pos_count as i64 + neg_count as i64 + 1).max(1);
@@ -340,7 +338,9 @@ Text: {}"#,
                 Dynamic::from(
                     parsed["category"]
                         .as_str()
-                        .unwrap_or(categories.first().map(|s| s.as_str()).unwrap_or("unknown"))
+                        .unwrap_or_else(|| {
+                            categories.first().map(|s| s.as_str()).unwrap_or("unknown")
+                        })
                         .to_string(),
                 ),
             );

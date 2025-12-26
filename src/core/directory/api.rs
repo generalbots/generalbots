@@ -46,12 +46,10 @@ pub struct ServiceStatusResponse {
     pub git: bool,
 }
 
-
 pub async fn provision_user_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CreateUserRequest>,
 ) -> impl IntoResponse {
-
     let mut account = UserAccount {
         username: request.username.clone(),
         email: request.email,
@@ -61,7 +59,6 @@ pub async fn provision_user_handler(
         is_admin: request.is_admin,
         bots: Vec::new(),
     };
-
 
     for bot_req in request.bots {
         let role = match bot_req.role.to_lowercase().as_str() {
@@ -78,7 +75,6 @@ pub async fn provision_user_handler(
         });
     }
 
-
     let s3_client = state.s3_client.clone().map(Arc::new);
     let base_url = state
         .config
@@ -87,7 +83,6 @@ pub async fn provision_user_handler(
         .unwrap_or_else(|| "http://localhost:8300".to_string());
 
     let provisioning = UserProvisioningService::new(state.conn.clone(), s3_client, base_url);
-
 
     match provisioning.provision_user(&account).await {
         Ok(_) => (
@@ -108,7 +103,6 @@ pub async fn provision_user_handler(
         ),
     }
 }
-
 
 pub async fn deprovision_user_handler(
     State(state): State<Arc<AppState>>,
@@ -143,7 +137,6 @@ pub async fn deprovision_user_handler(
     }
 }
 
-
 pub async fn get_user_handler(
     State(state): State<Arc<AppState>>,
     Path(id): Path<String>,
@@ -163,16 +156,13 @@ pub async fn get_user_handler(
         }
     };
 
-    let user_uuid = match uuid::Uuid::parse_str(&id) {
-        Ok(u) => u,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "error": "Invalid user ID format"
-                })),
-            );
-        }
+    let Ok(user_uuid) = uuid::Uuid::parse_str(&id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "error": "Invalid user ID format"
+            })),
+        );
     };
 
     let user_result: Result<(uuid::Uuid, String, String, bool), _> = users::table
@@ -198,7 +188,6 @@ pub async fn get_user_handler(
         ),
     }
 }
-
 
 pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     use crate::shared::models::schema::users;
@@ -248,7 +237,6 @@ pub async fn list_users_handler(State(state): State<Arc<AppState>>) -> impl Into
     }
 }
 
-
 pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let mut status = ServiceStatusResponse {
         directory: false,
@@ -258,16 +246,13 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         git: false,
     };
 
-
     status.database = state.conn.get().is_ok();
-
 
     if let Some(s3_client) = &state.s3_client {
         if let Ok(result) = s3_client.list_buckets().send().await {
             status.drive = result.buckets.is_some();
         }
     }
-
 
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
@@ -279,11 +264,9 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         status.directory = response.status().is_success();
     }
 
-
     if let Ok(response) = client.get("https://localhost:8025/health").send().await {
         status.email = response.status().is_success();
     }
-
 
     if let Ok(response) = client
         .get("https://localhost:3000/api/v1/version")
@@ -296,14 +279,11 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
     (StatusCode::OK, Json(status))
 }
 
-
 pub fn configure_user_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route(ApiUrls::USERS, get(list_users_handler))
         .route(ApiUrls::USER_BY_ID, get(get_user_handler))
         .route(ApiUrls::USER_PROVISION, post(provision_user_handler))
         .route(ApiUrls::USER_DEPROVISION, delete(deprovision_user_handler))
-
         .route(ApiUrls::SERVICES_STATUS, get(check_services_status))
 }

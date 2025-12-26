@@ -28,27 +28,6 @@
 |                                                                             |
 \*****************************************************************************/
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -59,7 +38,6 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FieldDefinition {
@@ -74,14 +52,12 @@ pub struct FieldDefinition {
     pub field_order: i32,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableDefinition {
     pub name: String,
     pub connection_name: String,
     pub fields: Vec<FieldDefinition>,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ExternalConnection {
@@ -94,7 +70,6 @@ pub struct ExternalConnection {
     pub password: String,
 }
 
-
 pub fn parse_table_definition(
     source: &str,
 ) -> Result<Vec<TableDefinition>, Box<dyn Error + Send + Sync>> {
@@ -104,7 +79,6 @@ pub fn parse_table_definition(
 
     while i < lines.len() {
         let line = lines[i].trim();
-
 
         if line.starts_with("TABLE ") {
             let table_def = parse_single_table(&lines, &mut i)?;
@@ -117,13 +91,11 @@ pub fn parse_table_definition(
     Ok(tables)
 }
 
-
 fn parse_single_table(
     lines: &[&str],
     index: &mut usize,
 ) -> Result<TableDefinition, Box<dyn Error + Send + Sync>> {
     let header_line = lines[*index].trim();
-
 
     let parts: Vec<&str> = header_line.split_whitespace().collect();
 
@@ -138,7 +110,6 @@ fn parse_single_table(
 
     let table_name = parts[1].to_string();
 
-
     let connection_name = if parts.len() >= 4 && parts[2].eq_ignore_ascii_case("ON") {
         parts[3].to_string()
     } else {
@@ -151,13 +122,11 @@ fn parse_single_table(
     let mut fields = Vec::new();
     let mut field_order = 0;
 
-
     while *index < lines.len() {
         let line = lines[*index].trim();
 
-
         if line.is_empty()
-            || line.starts_with("'")
+            || line.starts_with('\'')
             || line.starts_with("REM")
             || line.starts_with("//")
         {
@@ -165,12 +134,10 @@ fn parse_single_table(
             continue;
         }
 
-
         if line.eq_ignore_ascii_case("END TABLE") {
             *index += 1;
             break;
         }
-
 
         if let Ok(field) = parse_field_definition(line, field_order) {
             fields.push(field);
@@ -188,8 +155,6 @@ fn parse_single_table(
         fields,
     })
 }
-
-
 
 fn parse_field_definition(
     line: &str,
@@ -211,7 +176,6 @@ fn parse_field_definition(
     if parts.len() >= 2 {
         let type_part = parts[1];
 
-
         if let Some(paren_start) = type_part.find('(') {
             field_type = type_part[..paren_start].to_lowercase();
             let params = &type_part[paren_start + 1..type_part.len() - 1];
@@ -228,7 +192,6 @@ fn parse_field_definition(
         }
     }
 
-
     for i in 2..parts.len() {
         let part = parts[i].to_lowercase();
         match part.as_str() {
@@ -236,10 +199,7 @@ fn parse_field_definition(
             _ if parts
                 .get(i - 1)
                 .map(|p| p.eq_ignore_ascii_case("references"))
-                .unwrap_or(false) =>
-            {
-
-            }
+                .unwrap_or(false) => {}
             "references" => {
                 if i + 1 < parts.len() {
                     reference_table = Some(parts[i + 1].to_string());
@@ -261,7 +221,6 @@ fn parse_field_definition(
         field_order: order,
     })
 }
-
 
 fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
     let base_type = match field.field_type.as_str() {
@@ -307,7 +266,6 @@ fn map_type_to_sql(field: &FieldDefinition, driver: &str) -> String {
     base_type
 }
 
-
 pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> String {
     let mut sql = format!(
         "CREATE TABLE IF NOT EXISTS {} (\n",
@@ -338,29 +296,30 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
 
     sql.push_str(&column_defs.join(",\n"));
 
-
     if !primary_keys.is_empty() {
-        sql.push_str(&format!(",\n    PRIMARY KEY ({})", primary_keys.join(", ")));
+        use std::fmt::Write;
+        let _ = write!(&mut sql, ",\n    PRIMARY KEY ({})", primary_keys.join(", "));
     }
 
     sql.push_str("\n)");
 
-
     if driver == "mysql" || driver == "mariadb" {
-        sql.push_str(" ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci");
+        use std::fmt::Write;
+        let _ = write!(
+            &mut sql,
+            " ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci"
+        );
     }
 
     sql.push(';');
     sql
 }
 
-
 fn sanitize_identifier(name: &str) -> String {
     name.chars()
         .filter(|c| c.is_alphanumeric() || *c == '_')
         .collect()
 }
-
 
 pub fn load_connection_config(
     state: &AppState,
@@ -419,7 +378,6 @@ pub fn load_connection_config(
     })
 }
 
-
 pub fn build_connection_string(conn: &ExternalConnection) -> String {
     let port = conn.port.unwrap_or(match conn.driver.as_str() {
         "mysql" | "mariadb" => 3306,
@@ -435,19 +393,13 @@ pub fn build_connection_string(conn: &ExternalConnection) -> String {
                 conn.username, conn.password, conn.server, port, conn.database
             )
         }
-        "postgres" | "postgresql" => {
-            format!(
-                "postgres://{}:{}@{}:{}/{}",
-                conn.username, conn.password, conn.server, port, conn.database
-            )
-        }
         "mssql" | "sqlserver" => {
             format!(
                 "mssql://{}:{}@{}:{}/{}",
                 conn.username, conn.password, conn.server, port, conn.database
             )
         }
-        _ => {
+        "postgres" | "postgresql" | _ => {
             format!(
                 "postgres://{}:{}@{}:{}/{}",
                 conn.username, conn.password, conn.server, port, conn.database
@@ -456,13 +408,11 @@ pub fn build_connection_string(conn: &ExternalConnection) -> String {
     }
 }
 
-
 pub fn store_table_definition(
     conn: &mut diesel::PgConnection,
     bot_id: Uuid,
     table: &TableDefinition,
 ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
-
     let table_id: Uuid = diesel::sql_query(
         "INSERT INTO dynamic_table_definitions (bot_id, table_name, connection_name)
          VALUES ($1, $2, $3)
@@ -476,11 +426,9 @@ pub fn store_table_definition(
     .get_result::<IdResult>(conn)?
     .id;
 
-
     diesel::sql_query("DELETE FROM dynamic_table_fields WHERE table_definition_id = $1")
         .bind::<diesel::sql_types::Uuid, _>(table_id)
         .execute(conn)?;
-
 
     for field in &table.fields {
         diesel::sql_query(
@@ -511,32 +459,29 @@ struct IdResult {
     id: Uuid,
 }
 
-
-pub async fn create_table_on_external_db(
+pub fn create_table_on_external_db(
     connection_string: &str,
     create_sql: &str,
     driver: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     match driver {
-        "mysql" | "mariadb" => create_table_mysql(connection_string, create_sql).await,
-        "postgres" | "postgresql" => create_table_postgres(connection_string, create_sql).await,
+        "mysql" | "mariadb" => create_table_mysql(connection_string, create_sql),
+        "postgres" | "postgresql" => create_table_postgres(connection_string, create_sql),
         _ => {
             warn!("Unsupported driver: {}, attempting postgres", driver);
-            create_table_postgres(connection_string, create_sql).await
+            create_table_postgres(connection_string, create_sql)
         }
     }
 }
 
-async fn create_table_mysql(
+fn create_table_mysql(
     _connection_string: &str,
     _sql: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-
-
     Err("MySQL support is disabled. Please use PostgreSQL for dynamic tables.".into())
 }
 
-async fn create_table_postgres(
+fn create_table_postgres(
     connection_string: &str,
     sql: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
@@ -548,7 +493,6 @@ async fn create_table_postgres(
     info!("PostgreSQL table created successfully");
     Ok(())
 }
-
 
 pub fn process_table_definitions(
     state: Arc<AppState>,
@@ -569,11 +513,15 @@ pub fn process_table_definitions(
             table.name, table.connection_name
         );
 
-
         store_table_definition(&mut conn, bot_id, table)?;
 
+        if table.connection_name == "default" {
+            let create_sql = generate_create_table_sql(table, "postgres");
+            info!("Creating table {} on default connection", table.name);
+            trace!("SQL: {}", create_sql);
 
-        if table.connection_name != "default" {
+            sql_query(&create_sql).execute(&mut conn)?;
+        } else {
             match load_connection_config(&state, bot_id, &table.connection_name) {
                 Ok(ext_conn) => {
                     let create_sql = generate_create_table_sql(table, &ext_conn.driver);
@@ -585,18 +533,11 @@ pub fn process_table_definitions(
                     );
                     trace!("SQL: {}", create_sql);
 
-
                     let driver = ext_conn.driver.clone();
-                    tokio::task::block_in_place(|| {
-                        tokio::runtime::Handle::current().block_on(async {
-                            if let Err(e) =
-                                create_table_on_external_db(&conn_string, &create_sql, &driver)
-                                    .await
-                            {
-                                error!("Failed to create table on external DB: {}", e);
-                            }
-                        })
-                    });
+                    if let Err(e) = create_table_on_external_db(&conn_string, &create_sql, &driver)
+                    {
+                        error!("Failed to create table on external DB: {}", e);
+                    }
                 }
                 Err(e) => {
                     error!(
@@ -605,26 +546,16 @@ pub fn process_table_definitions(
                     );
                 }
             }
-        } else {
-
-            let create_sql = generate_create_table_sql(table, "postgres");
-            info!("Creating table {} on default connection", table.name);
-            trace!("SQL: {}", create_sql);
-
-            sql_query(&create_sql).execute(&mut conn)?;
         }
     }
 
     Ok(tables)
 }
 
-
 pub fn register_table_keywords(
     _state: Arc<AppState>,
     _user: UserSession,
     _engine: &mut rhai::Engine,
 ) {
-
-
     trace!("TABLE keyword registered (compile-time only)");
 }

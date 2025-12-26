@@ -1,99 +1,41 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CompiledIntent {
-
     pub id: String,
-
     pub original_intent: String,
-
     pub entities: IntentEntities,
-
     pub plan: ExecutionPlan,
-
     pub basic_program: String,
-
     pub confidence: f64,
-
     pub alternatives: Vec<AlternativeInterpretation>,
-
     pub risk_assessment: RiskAssessment,
-
     pub resource_estimate: ResourceEstimate,
-
     pub compiled_at: DateTime<Utc>,
-
     pub session_id: String,
-
     pub bot_id: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct IntentEntities {
-
     pub action: String,
-
     pub target: String,
-
     pub domain: Option<String>,
-
     pub client: Option<String>,
-
     pub features: Vec<String>,
-
     pub constraints: Vec<Constraint>,
-
     pub technologies: Vec<String>,
-
     pub data_sources: Vec<String>,
-
     pub integrations: Vec<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Constraint {
@@ -102,7 +44,7 @@ pub struct Constraint {
     pub is_hard: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ConstraintType {
     Budget,
     Timeline,
@@ -113,7 +55,6 @@ pub enum ConstraintType {
     Scalability,
     Custom(String),
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionPlan {
@@ -127,7 +68,6 @@ pub struct ExecutionPlan {
     pub approval_levels: Vec<ApprovalLevel>,
     pub rollback_plan: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlanStep {
@@ -148,7 +88,7 @@ pub struct PlanStep {
     pub api_calls: Vec<ApiCallSpec>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum StepPriority {
     Critical,
     High,
@@ -159,11 +99,11 @@ pub enum StepPriority {
 
 impl Default for StepPriority {
     fn default() -> Self {
-        StepPriority::Medium
+        Self::Medium
     }
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 pub enum RiskLevel {
     None,
     Low,
@@ -174,10 +114,9 @@ pub enum RiskLevel {
 
 impl Default for RiskLevel {
     fn default() -> Self {
-        RiskLevel::Low
+        Self::Low
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiCallSpec {
@@ -212,7 +151,7 @@ pub enum AuthType {
 
 impl Default for AuthType {
     fn default() -> Self {
-        AuthType::None
+        Self::None
     }
 }
 
@@ -225,14 +164,13 @@ pub struct RetryConfig {
 
 impl Default for RetryConfig {
     fn default() -> Self {
-        RetryConfig {
+        Self {
             max_retries: 3,
             backoff_ms: 1000,
             retry_on_status: vec![429, 500, 502, 503, 504],
         }
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApprovalLevel {
@@ -253,10 +191,9 @@ pub enum DefaultApprovalAction {
 
 impl Default for DefaultApprovalAction {
     fn default() -> Self {
-        DefaultApprovalAction::Pause
+        Self::Pause
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlternativeInterpretation {
@@ -269,7 +206,6 @@ pub struct AlternativeInterpretation {
     pub estimated_cost: Option<f64>,
     pub estimated_time_hours: Option<f64>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskAssessment {
@@ -311,7 +247,6 @@ pub struct RiskMitigation {
     pub fallback_plan: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ResourceEstimate {
     pub compute_hours: f64,
@@ -326,7 +261,7 @@ pub struct ResourceEstimate {
 
 impl Default for ResourceEstimate {
     fn default() -> Self {
-        ResourceEstimate {
+        Self {
             compute_hours: 0.0,
             storage_gb: 0.0,
             api_calls: 0,
@@ -339,42 +274,28 @@ impl Default for ResourceEstimate {
     }
 }
 
-
-
-
 pub struct IntentCompiler {
     _state: Arc<AppState>,
     config: IntentCompilerConfig,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntentCompilerConfig {
-
     pub enabled: bool,
-
     pub model: String,
-
     pub temperature: f64,
-
     pub max_tokens: i32,
-
     pub auto_execute_low_risk: bool,
-
     pub require_approval_above: RiskLevel,
-
     pub simulate_before_execute: bool,
-
     pub max_plan_steps: i32,
-
     pub available_keywords: Vec<String>,
-
     pub available_mcp_servers: Vec<String>,
 }
 
 impl Default for IntentCompilerConfig {
     fn default() -> Self {
-        IntentCompilerConfig {
+        Self {
             enabled: true,
             model: "gpt-4".to_string(),
             temperature: 0.3,
@@ -393,25 +314,24 @@ impl std::fmt::Debug for IntentCompiler {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("IntentCompiler")
             .field("config", &self.config)
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl IntentCompiler {
     pub fn new(state: Arc<AppState>) -> Self {
-        IntentCompiler {
+        Self {
             _state: state,
             config: IntentCompilerConfig::default(),
         }
     }
 
     pub fn with_config(state: Arc<AppState>, config: IntentCompilerConfig) -> Self {
-        IntentCompiler {
+        Self {
             _state: state,
             config,
         }
     }
-
 
     pub async fn compile(
         &self,
@@ -424,29 +344,23 @@ impl IntentCompiler {
             &intent[..intent.len().min(100)]
         );
 
-
         let entities = self.extract_entities(intent).await?;
-        trace!("Extracted entities: {:?}", entities);
-
+        trace!("Extracted entities: {entities:?}");
 
         let plan = self.generate_plan(intent, &entities).await?;
         trace!("Generated plan with {} steps", plan.steps.len());
 
-
-        let basic_program = self.generate_basic_program(&plan, &entities).await?;
+        let basic_program = Self::generate_basic_program(&plan, &entities);
         trace!(
             "Generated BASIC program: {} lines",
             basic_program.lines().count()
         );
 
+        let risk_assessment = Self::assess_risks(&plan);
 
-        let risk_assessment = self.assess_risks(&plan).await?;
+        let resource_estimate = Self::estimate_resources(&plan);
 
-
-        let resource_estimate = self.estimate_resources(&plan).await?;
-
-
-        let (confidence, alternatives) = self.check_ambiguity(intent, &entities, &plan).await?;
+        let (confidence, alternatives) = Self::check_ambiguity();
 
         let compiled = CompiledIntent {
             id: Uuid::new_v4().to_string(),
@@ -463,12 +377,10 @@ impl IntentCompiler {
             bot_id: session.bot_id.to_string(),
         };
 
-
-        self.store_compiled_intent(&compiled).await?;
+        Self::store_compiled_intent(&compiled);
 
         Ok(compiled)
     }
-
 
     async fn extract_entities(
         &self,
@@ -477,7 +389,7 @@ impl IntentCompiler {
         let prompt = format!(
             r#"Analyze this user request and extract structured information.
 
-User Request: "{}"
+User Request: "{intent}"
 
 Extract the following as JSON:
 {{
@@ -494,13 +406,12 @@ Extract the following as JSON:
     "integrations": ["external systems to integrate with"]
 }}
 
-Respond ONLY with valid JSON, no explanation."#,
-            intent
+Respond ONLY with valid JSON, no explanation."#
         );
 
         let response = self.call_llm(&prompt).await?;
         let entities: IntentEntities = serde_json::from_str(&response).unwrap_or_else(|e| {
-            warn!("Failed to parse entity extraction response: {}", e);
+            warn!("Failed to parse entity extraction response: {e}");
             IntentEntities {
                 action: "create".to_string(),
                 target: intent.to_string(),
@@ -510,7 +421,6 @@ Respond ONLY with valid JSON, no explanation."#,
 
         Ok(entities)
     }
-
 
     async fn generate_plan(
         &self,
@@ -523,7 +433,7 @@ Respond ONLY with valid JSON, no explanation."#,
         let prompt = format!(
             r#"Generate an execution plan for this task.
 
-Original Request: "{}"
+Original Request: "{intent}"
 
 Extracted Information:
 - Action: {}
@@ -534,8 +444,8 @@ Extracted Information:
 - Technologies: {:?}
 - Integrations: {:?}
 
-Available BASIC Keywords: {}
-Available MCP Servers: {}
+Available BASIC Keywords: {keywords_list}
+Available MCP Servers: {mcp_servers_list}
 
 Generate a detailed execution plan as JSON:
 {{
@@ -566,7 +476,6 @@ Generate a detailed execution plan as JSON:
 
 Maximum {} steps. Focus on practical, executable steps.
 Respond ONLY with valid JSON."#,
-            intent,
             entities.action,
             entities.target,
             entities.domain.as_deref().unwrap_or("general"),
@@ -574,8 +483,6 @@ Respond ONLY with valid JSON."#,
             entities.features,
             entities.technologies,
             entities.integrations,
-            keywords_list,
-            mcp_servers_list,
             self.config.max_plan_steps
         );
 
@@ -624,18 +531,16 @@ Respond ONLY with valid JSON."#,
                 priority: match s.priority.as_deref() {
                     Some("CRITICAL") => StepPriority::Critical,
                     Some("HIGH") => StepPriority::High,
-                    Some("MEDIUM") => StepPriority::Medium,
                     Some("LOW") => StepPriority::Low,
                     Some("OPTIONAL") => StepPriority::Optional,
-                    _ => StepPriority::Medium,
+                    Some("MEDIUM") | None | _ => StepPriority::Medium,
                 },
                 risk_level: match s.risk_level.as_deref() {
                     Some("NONE") => RiskLevel::None,
-                    Some("LOW") => RiskLevel::Low,
                     Some("MEDIUM") => RiskLevel::Medium,
                     Some("HIGH") => RiskLevel::High,
                     Some("CRITICAL") => RiskLevel::Critical,
-                    _ => RiskLevel::Low,
+                    Some("LOW") | None | _ => RiskLevel::Low,
                 },
                 estimated_minutes: s.estimated_minutes.unwrap_or(5),
                 requires_approval: s.requires_approval.unwrap_or(false),
@@ -647,14 +552,12 @@ Respond ONLY with valid JSON."#,
             })
             .collect();
 
-
         let mut dependencies: HashMap<String, Vec<String>> = HashMap::new();
         for step in &steps {
             dependencies.insert(step.id.clone(), step.dependencies.clone());
         }
 
-
-        let approval_levels = self.determine_approval_levels(&steps);
+        let approval_levels = Self::determine_approval_levels(&steps);
 
         Ok(ExecutionPlan {
             id: Uuid::new_v4().to_string(),
@@ -669,35 +572,31 @@ Respond ONLY with valid JSON."#,
         })
     }
 
-
-    async fn generate_basic_program(
-        &self,
-        plan: &ExecutionPlan,
-        entities: &IntentEntities,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    fn generate_basic_program(plan: &ExecutionPlan, entities: &IntentEntities) -> String {
         let mut program = String::new();
 
-
-        program.push_str(&format!(
-            "' =============================================================================\n"
-        ));
-        program.push_str(&format!("' AUTO-GENERATED BASIC PROGRAM\n"));
-        program.push_str(&format!("' Plan: {}\n", plan.name));
-        program.push_str(&format!("' Description: {}\n", plan.description));
-        program.push_str(&format!(
-            "' Generated: {}\n",
+        let _ = writeln!(
+            program,
+            "' ============================================================================="
+        );
+        let _ = writeln!(program, "' AUTO-GENERATED BASIC PROGRAM");
+        let _ = writeln!(program, "' Plan: {}", plan.name);
+        let _ = writeln!(program, "' Description: {}", plan.description);
+        let _ = writeln!(
+            program,
+            "' Generated: {}",
             Utc::now().format("%Y-%m-%d %H:%M:%S")
-        ));
-        program.push_str(&format!(
-            "' =============================================================================\n\n"
-        ));
+        );
+        let _ = writeln!(
+            program,
+            "' =============================================================================\n"
+        );
 
-
-        program.push_str(&format!(
-            "PLAN_START \"{}\", \"{}\"\n",
+        let _ = writeln!(
+            program,
+            "PLAN_START \"{}\", \"{}\"",
             plan.name, plan.description
-        ));
-
+        );
 
         for step in &plan.steps {
             let priority_str = match step.priority {
@@ -707,190 +606,193 @@ Respond ONLY with valid JSON."#,
                 StepPriority::Low => "LOW",
                 StepPriority::Optional => "OPTIONAL",
             };
-            program.push_str(&format!(
-                "  STEP {}, \"{}\", {}\n",
+            let _ = writeln!(
+                program,
+                "  STEP {}, \"{}\", {}",
                 step.order, step.name, priority_str
-            ));
+            );
         }
-        program.push_str("PLAN_END\n\n");
+        let _ = writeln!(program, "PLAN_END\n");
 
-
-        program.push_str("' Initialize context variables\n");
-        program.push_str(&format!("SET action = \"{}\"\n", entities.action));
-        program.push_str(&format!("SET target = \"{}\"\n", entities.target));
+        let _ = writeln!(program, "' Initialize context variables");
+        let _ = writeln!(program, "SET action = \"{}\"", entities.action);
+        let _ = writeln!(program, "SET target = \"{}\"", entities.target);
         if let Some(ref client) = entities.client {
-            program.push_str(&format!("SET client = \"{}\"\n", client));
+            let _ = writeln!(program, "SET client = \"{client}\"");
         }
         if let Some(ref domain) = entities.domain {
-            program.push_str(&format!("SET domain = \"{}\"\n", domain));
+            let _ = writeln!(program, "SET domain = \"{domain}\"");
         }
-        program.push_str("\n");
+        program.push('\n');
 
-
-        program.push_str("' Set LLM context\n");
-        program.push_str(&format!(
-            "SET CONTEXT \"Task: {} {} for {}\"\n\n",
+        let _ = writeln!(program, "' Set LLM context");
+        let _ = writeln!(
+            program,
+            "SET CONTEXT \"Task: {} {} for {}\"\n",
             entities.action,
             entities.target,
             entities.client.as_deref().unwrap_or("general use")
-        ));
-
+        );
 
         for step in &plan.steps {
-            program.push_str(&format!(
-                "' -----------------------------------------------------------------------------\n"
-            ));
-            program.push_str(&format!("' STEP {}: {}\n", step.order, step.name));
-            program.push_str(&format!("' {}\n", step.description));
-            program.push_str(&format!(
-                "' Risk: {:?}, Approval Required: {}\n",
+            let _ = writeln!(
+                program,
+                "' -----------------------------------------------------------------------------"
+            );
+            let _ = writeln!(program, "' STEP {}: {}", step.order, step.name);
+            let _ = writeln!(program, "' {}", step.description);
+            let _ = writeln!(
+                program,
+                "' Risk: {:?}, Approval Required: {}",
                 step.risk_level, step.requires_approval
-            ));
-            program.push_str(&format!(
-                "' -----------------------------------------------------------------------------\n"
-            ));
+            );
+            let _ = writeln!(
+                program,
+                "' -----------------------------------------------------------------------------"
+            );
 
-
-            let step_code = self.generate_step_code(step, entities).await?;
-            program.push_str(&step_code);
-            program.push_str("\n");
+            let step_code = Self::generate_step_code(step);
+            let _ = writeln!(program, "{step_code}");
         }
 
-
-        program.push_str("' Task completed\n");
-        program.push_str("TALK \"Task completed successfully!\"\n");
-        program.push_str(&format!(
-            "AUDIT_LOG \"plan-complete\", \"{}\", \"success\"\n",
+        let _ = writeln!(program, "' Task completed");
+        let _ = writeln!(program, "TALK \"Task completed successfully!\"");
+        let _ = writeln!(
+            program,
+            "AUDIT_LOG \"plan-complete\", \"{}\", \"success\"",
             plan.id
-        ));
+        );
 
-        Ok(program)
+        program
     }
 
-
-    async fn generate_step_code(
-        &self,
-        step: &PlanStep,
-        _entities: &IntentEntities,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    fn generate_step_code(step: &PlanStep) -> String {
         let mut code = String::new();
 
-
         if step.requires_approval {
-            code.push_str(&format!(
-                "REQUIRE_APPROVAL \"step-{}\", \"{}\"\n",
+            let _ = writeln!(
+                code,
+                "REQUIRE_APPROVAL \"step-{}\", \"{}\"",
                 step.order, step.description
-            ));
-            code.push_str("IF NOT approved THEN\n");
-            code.push_str(&format!(
-                "  TALK \"Step {} was not approved, skipping...\"\n",
+            );
+            let _ = writeln!(code, "IF NOT approved THEN");
+            let _ = writeln!(
+                code,
+                "  TALK \"Step {} was not approved, skipping...\"",
                 step.order
-            ));
-            code.push_str(&format!("  GOTO step_{}_end\n", step.order));
-            code.push_str("END IF\n\n");
+            );
+            let _ = writeln!(code, "  GOTO step_{}_end", step.order);
+            let _ = writeln!(code, "END IF\n");
         }
-
 
         if matches!(step.risk_level, RiskLevel::High | RiskLevel::Critical) {
-            code.push_str(&format!(
-                "simulation_result = SIMULATE_IMPACT \"step-{}\"\n",
+            let _ = writeln!(
+                code,
+                "simulation_result = SIMULATE_IMPACT \"step-{}\"",
                 step.order
-            ));
-            code.push_str("IF simulation_result.risk_score > 0.7 THEN\n");
-            code.push_str(&format!(
-                "  TALK \"High risk detected in step {}, requesting manual review...\"\n",
+            );
+            let _ = writeln!(code, "IF simulation_result.risk_score > 0.7 THEN");
+            let _ = writeln!(
+                code,
+                "  TALK \"High risk detected in step {}, requesting manual review...\"",
                 step.order
-            ));
-            code.push_str("  REQUIRE_APPROVAL \"high-risk-override\", simulation_result.summary\n");
-            code.push_str("END IF\n\n");
+            );
+            let _ = writeln!(
+                code,
+                "  REQUIRE_APPROVAL \"high-risk-override\", simulation_result.summary"
+            );
+            let _ = writeln!(code, "END IF\n");
         }
 
-
-        code.push_str(&format!(
-            "AUDIT_LOG \"step-start\", \"step-{}\", \"{}\"\n",
+        let _ = writeln!(
+            code,
+            "AUDIT_LOG \"step-start\", \"step-{}\", \"{}\"",
             step.order, step.name
-        ));
-
+        );
 
         for keyword in &step.keywords {
             match keyword.to_uppercase().as_str() {
                 "CREATE_TASK" => {
-                    code.push_str(&format!(
-                        "task_{} = CREATE_TASK \"{}\", \"auto\", \"+1 day\", null\n",
+                    let _ = writeln!(
+                        code,
+                        "task_{} = CREATE_TASK \"{}\", \"auto\", \"+1 day\", null",
                         step.order, step.name
-                    ));
+                    );
                 }
                 "LLM" => {
-                    code.push_str(&format!(
-                        "llm_result_{} = LLM \"{}\"\n",
+                    let _ = writeln!(
+                        code,
+                        "llm_result_{} = LLM \"{}\"",
                         step.order, step.description
-                    ));
+                    );
                 }
                 "RUN_PYTHON" => {
-                    code.push_str(&format!(
-                        "python_result_{} = RUN_PYTHON \"# {}\nprint('Step {} executed')\"\n",
+                    let _ = writeln!(
+                        code,
+                        "python_result_{} = RUN_PYTHON \"# {}\nprint('Step {} executed')\"",
                         step.order, step.description, step.order
-                    ));
+                    );
                 }
                 "RUN_JAVASCRIPT" => {
-                    code.push_str(&format!(
-                        "js_result_{} = RUN_JAVASCRIPT \"console.log('Step {} executed');\"\n",
+                    let _ = writeln!(
+                        code,
+                        "js_result_{} = RUN_JAVASCRIPT \"console.log('Step {} executed');\"",
                         step.order, step.order
-                    ));
+                    );
                 }
                 "GET" => {
-                    code.push_str(&format!("data_{} = GET \"{}_data\"\n", step.order, step.id));
+                    let _ = writeln!(code, "data_{} = GET \"{}_data\"", step.order, step.id);
                 }
                 "SET" => {
-                    code.push_str(&format!("SET step_{}_complete = true\n", step.order));
+                    let _ = writeln!(code, "SET step_{}_complete = true", step.order);
                 }
                 "SAVE" => {
-                    code.push_str(&format!("SAVE step_{}_result TO \"results\"\n", step.order));
+                    let _ = writeln!(code, "SAVE step_{}_result TO \"results\"", step.order);
                 }
                 "POST" | "PUT" | "PATCH" | "DELETE HTTP" => {
                     for api_call in &step.api_calls {
-                        code.push_str(&format!(
-                            "{} \"{}\" INTO api_result_{}\n",
-                            keyword, api_call.url_template, step.order
-                        ));
+                        let _ = writeln!(
+                            code,
+                            "{keyword} \"{}\" INTO api_result_{}",
+                            api_call.url_template, step.order
+                        );
                     }
                 }
                 "USE_MCP" => {
                     for mcp_server in &step.mcp_servers {
-                        code.push_str(&format!(
-                            "mcp_result_{} = USE_MCP \"{}\", \"{}\"\n",
+                        let _ = writeln!(
+                            code,
+                            "mcp_result_{} = USE_MCP \"{}\", \"{}\"",
                             step.order, mcp_server, step.description
-                        ));
+                        );
                     }
                 }
                 "SEND_MAIL" => {
-                    code.push_str(&format!(
-                        "SEND_MAIL \"status@bot.local\", \"Step {} Complete\", \"{}\"\n",
+                    let _ = writeln!(
+                        code,
+                        "SEND_MAIL \"status@bot.local\", \"Step {} Complete\", \"{}\"",
                         step.order, step.description
-                    ));
+                    );
                 }
                 _ => {
-
-                    code.push_str(&format!("' Using keyword: {}\n", keyword));
+                    let _ = writeln!(code, "' Using keyword: {keyword}");
                 }
             }
         }
 
-
         for output in &step.outputs {
-            code.push_str(&format!("SET output_{} = result_{}\n", output, step.order));
+            let _ = writeln!(code, "SET output_{output} = result_{}", step.order);
         }
 
-
-        code.push_str(&format!(
-            "AUDIT_LOG \"step-end\", \"step-{}\", \"complete\"\n",
+        let _ = writeln!(
+            code,
+            "AUDIT_LOG \"step-end\", \"step-{}\", \"complete\"",
             step.order
-        ));
+        );
 
+        let _ = writeln!(code, "step_{}_end:\n", step.order);
 
-        code.push_str(&format!("step_{}_end:\n\n", step.order));
-
-        Ok(code)
+        code
     }
 
     async fn call_llm(
@@ -914,28 +816,25 @@ Respond ONLY with valid JSON."#,
         Ok(response.to_string())
     }
 
-    async fn assess_risks(
-        &self,
-        plan: &ExecutionPlan,
-    ) -> Result<RiskAssessment, Box<dyn std::error::Error + Send + Sync>> {
+    fn assess_risks(plan: &ExecutionPlan) -> RiskAssessment {
         let mut risks = Vec::new();
         let mut overall_risk = RiskLevel::Low;
 
         for step in &plan.steps {
             if step.risk_level >= RiskLevel::High {
-                overall_risk = step.risk_level.clone();
+                overall_risk = step.risk_level;
                 risks.push(IdentifiedRisk {
                     id: format!("risk-{}", step.id),
                     category: RiskCategory::DependencyFailure,
                     description: format!("Step '{}' has high risk level", step.name),
                     probability: 0.3,
-                    impact: step.risk_level.clone(),
+                    impact: step.risk_level,
                     affected_steps: vec![step.id.clone()],
                 });
             }
         }
 
-        Ok(RiskAssessment {
+        RiskAssessment {
             overall_risk,
             risks,
             mitigations: Vec::new(),
@@ -945,17 +844,14 @@ Respond ONLY with valid JSON."#,
             } else {
                 None
             },
-        })
+        }
     }
 
-    async fn estimate_resources(
-        &self,
-        plan: &ExecutionPlan,
-    ) -> Result<ResourceEstimate, Box<dyn std::error::Error + Send + Sync>> {
+    fn estimate_resources(plan: &ExecutionPlan) -> ResourceEstimate {
         let mut estimate = ResourceEstimate::default();
 
         for step in &plan.steps {
-            estimate.compute_hours += (step.estimated_minutes as f64) / 60.0;
+            estimate.compute_hours += f64::from(step.estimated_minutes) / 60.0;
             estimate.api_calls += step.api_calls.len() as i32;
 
             for keyword in &step.keywords {
@@ -971,32 +867,24 @@ Respond ONLY with valid JSON."#,
             }
         }
 
-        let llm_cost = (estimate.llm_tokens as f64) * 0.00002;
-        estimate.estimated_cost_usd =
-            estimate.compute_hours * 0.10 + (estimate.api_calls as f64) * 0.001 + llm_cost;
+        let llm_cost = f64::from(estimate.llm_tokens).mul_add(0.00002, 0.0);
+        estimate.estimated_cost_usd = estimate
+            .compute_hours
+            .mul_add(0.10, f64::from(estimate.api_calls) * 0.001)
+            + llm_cost;
 
-        Ok(estimate)
+        estimate
     }
 
-    async fn check_ambiguity(
-        &self,
-        _intent: &str,
-        _entities: &IntentEntities,
-        _plan: &ExecutionPlan,
-    ) -> Result<(f64, Vec<AlternativeInterpretation>), Box<dyn std::error::Error + Send + Sync>>
-    {
-        Ok((0.85, Vec::new()))
+    fn check_ambiguity() -> (f64, Vec<AlternativeInterpretation>) {
+        (0.85, Vec::new())
     }
 
-    async fn store_compiled_intent(
-        &self,
-        _compiled: &CompiledIntent,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn store_compiled_intent(_compiled: &CompiledIntent) {
         info!("Storing compiled intent (stub)");
-        Ok(())
     }
 
-    fn determine_approval_levels(&self, steps: &[PlanStep]) -> Vec<ApprovalLevel> {
+    fn determine_approval_levels(steps: &[PlanStep]) -> Vec<ApprovalLevel> {
         let mut levels = Vec::new();
 
         let has_high_risk = steps.iter().any(|s| s.risk_level >= RiskLevel::High);

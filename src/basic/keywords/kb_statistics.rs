@@ -1,15 +1,9 @@
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionStats {
@@ -23,7 +17,6 @@ pub struct CollectionStats {
     pub status: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KBStatistics {
     pub total_collections: u64,
@@ -36,11 +29,9 @@ pub struct KBStatistics {
     pub collections: Vec<CollectionStats>,
 }
 
-
 pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
-
 
     engine.register_fn("KB STATISTICS", move || -> Dynamic {
         let state = Arc::clone(&state_clone);
@@ -76,7 +67,6 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             }
         }
     });
-
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
@@ -121,7 +111,6 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         },
     );
 
-
     let state_clone3 = Arc::clone(&state);
     let user_clone3 = user.clone();
 
@@ -141,13 +130,10 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return 0;
         }
 
-        let result = rt
-            .unwrap()
-            .block_on(async { get_documents_count(&state, &user).await });
+        let result = get_documents_count(&state, &user);
 
         result.unwrap_or(0)
     });
-
 
     let state_clone4 = Arc::clone(&state);
     let user_clone4 = user.clone();
@@ -169,13 +155,10 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             return 0;
         }
 
-        let result = rt
-            .unwrap()
-            .block_on(async { get_documents_added_since(&state, &user, days).await });
+        let result = get_documents_added_since(&state, &user, days);
 
         result.unwrap_or(0)
     });
-
 
     let state_clone5 = Arc::clone(&state);
     let user_clone5 = user.clone();
@@ -212,9 +195,8 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         }
     });
 
-
     let state_clone6 = Arc::clone(&state);
-    let user_clone6 = user.clone();
+    let user_clone6 = user;
 
     engine.register_fn("KB STORAGE SIZE", move || -> f64 {
         let state = Arc::clone(&state_clone6);
@@ -240,7 +222,6 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     });
 }
 
-
 async fn get_kb_statistics(
     state: &AppState,
     user: &UserSession,
@@ -250,7 +231,6 @@ async fn get_kb_statistics(
     let client = reqwest::Client::builder()
         .danger_accept_invalid_certs(true)
         .build()?;
-
 
     let collections_response = client
         .get(format!("{}/collections", qdrant_url))
@@ -282,12 +262,8 @@ async fn get_kb_statistics(
         }
     }
 
-
-    let documents_added_last_week =
-        get_documents_added_since(state, user, 7).await.unwrap_or(0) as u64;
-    let documents_added_last_month = get_documents_added_since(state, user, 30)
-        .await
-        .unwrap_or(0) as u64;
+    let documents_added_last_week = get_documents_added_since(state, user, 7).unwrap_or(0) as u64;
+    let documents_added_last_month = get_documents_added_since(state, user, 30).unwrap_or(0) as u64;
 
     Ok(KBStatistics {
         total_collections: collection_names.len() as u64,
@@ -300,7 +276,6 @@ async fn get_kb_statistics(
         collections,
     })
 }
-
 
 async fn get_collection_statistics(
     _state: &AppState,
@@ -332,8 +307,7 @@ async fn get_collection_statistics(
     })
 }
 
-
-async fn get_documents_count(
+fn get_documents_count(
     state: &AppState,
     user: &UserSession,
 ) -> Result<i64, Box<dyn std::error::Error + Send + Sync>> {
@@ -358,8 +332,7 @@ async fn get_documents_count(
     Ok(result.count)
 }
 
-
-async fn get_documents_added_since(
+fn get_documents_added_since(
     state: &AppState,
     user: &UserSession,
     days: i64,
@@ -389,7 +362,6 @@ async fn get_documents_added_since(
     Ok(result.count)
 }
 
-
 async fn list_collections(
     _state: &AppState,
     user: &UserSession,
@@ -416,7 +388,6 @@ async fn list_collections(
 
     Ok(collections)
 }
-
 
 async fn get_storage_size(
     state: &AppState,

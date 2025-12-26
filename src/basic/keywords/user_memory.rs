@@ -6,49 +6,41 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
 pub fn register_user_memory_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    set_user_memory_keyword(state.clone(), user.clone(), engine);
-    get_user_memory_keyword(state.clone(), user.clone(), engine);
-    remember_user_fact_keyword(state.clone(), user.clone(), engine);
-    get_user_facts_keyword(state.clone(), user.clone(), engine);
-    clear_user_memory_keyword(state.clone(), user.clone(), engine);
+    set_user_memory_keyword(Arc::clone(&state), user.clone(), engine);
+    get_user_memory_keyword(Arc::clone(&state), user.clone(), engine);
+    remember_user_fact_keyword(Arc::clone(&state), user.clone(), engine);
+    get_user_facts_keyword(Arc::clone(&state), user.clone(), engine);
+    clear_user_memory_keyword(state, user, engine);
 }
-
-
 
 pub fn set_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_id = user.user_id;
 
     engine
         .register_custom_syntax(
-            &["SET", "USER", "MEMORY", "$expr$", ",", "$expr$"],
+            ["SET", "USER", "MEMORY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let key = context.eval_expression_tree(&inputs[0])?.to_string();
                 let value = context.eval_expression_tree(&inputs[1])?.to_string();
                 let state_for_spawn = Arc::clone(&state_clone);
-                let user_clone_spawn = user_clone.clone();
-                let key_clone = key.clone();
-                let value_clone = value.clone();
+                let key_clone = key;
+                let value_clone = value;
 
                 tokio::spawn(async move {
-                    if let Err(e) = set_user_memory_async(
+                    if let Err(e) = set_user_memory(
                         &state_for_spawn,
-                        user_clone_spawn.user_id,
+                        user_id,
                         &key_clone,
                         &value_clone,
                         "preference",
-                    )
-                    .await
-                    {
-                        error!("Failed to set user memory: {}", e);
+                    ) {
+                        error!("Failed to set user memory: {e}");
                     } else {
                         trace!(
-                            "Set user memory for key: {} with value length: {}",
-                            key_clone,
+                            "Set user memory for key: {key_clone} with value length: {}",
                             value_clone.len()
                         );
                     }
@@ -60,51 +52,40 @@ pub fn set_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .expect("Failed to register SET USER MEMORY syntax");
 }
 
-
-
 pub fn get_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_id = user.user_id;
 
     engine.register_fn("GET USER MEMORY", move |key_param: String| -> String {
         let state = Arc::clone(&state_clone);
         let conn_result = state.conn.get();
 
         if let Ok(mut conn) = conn_result {
-            get_user_memory_sync(&mut conn, user_clone.user_id, &key_param).unwrap_or_default()
+            get_user_memory_sync(&mut conn, user_id, &key_param).unwrap_or_default()
         } else {
             String::new()
         }
     });
 }
 
-
-
 pub fn remember_user_fact_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_id = user.user_id;
 
     engine
         .register_custom_syntax(
-            &["REMEMBER", "USER", "FACT", "$expr$"],
+            ["REMEMBER", "USER", "FACT", "$expr$"],
             false,
             move |context, inputs| {
                 let fact = context.eval_expression_tree(&inputs[0])?.to_string();
                 let state_for_spawn = Arc::clone(&state_clone);
-                let user_clone_spawn = user_clone.clone();
-                let fact_clone = fact.clone();
+                let fact_clone = fact;
 
                 tokio::spawn(async move {
-                    if let Err(e) = add_user_fact_async(
-                        &state_for_spawn,
-                        user_clone_spawn.user_id,
-                        &fact_clone,
-                    )
-                    .await
-                    {
-                        error!("Failed to remember user fact: {}", e);
+                    if let Err(e) = add_user_fact(&state_for_spawn, user_id, &fact_clone) {
+                        error!("Failed to remember user fact: {e}");
                     } else {
-                        trace!("Remembered user fact: {}", fact_clone);
+                        trace!("Remembered user fact: {fact_clone}");
                     }
                 });
 
@@ -114,18 +95,16 @@ pub fn remember_user_fact_keyword(state: Arc<AppState>, user: UserSession, engin
         .expect("Failed to register REMEMBER USER FACT syntax");
 }
 
-
-
 pub fn get_user_facts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_id = user.user_id;
 
     engine.register_fn("GET USER FACTS", move || -> rhai::Array {
         let state = Arc::clone(&state_clone);
         let conn_result = state.conn.get();
 
         if let Ok(mut conn) = conn_result {
-            get_user_facts_sync(&mut conn, user_clone.user_id)
+            get_user_facts_sync(&mut conn, user_id)
                 .unwrap_or_default()
                 .into_iter()
                 .map(Dynamic::from)
@@ -136,34 +115,32 @@ pub fn get_user_facts_keyword(state: Arc<AppState>, user: UserSession, engine: &
     });
 }
 
-
-
 pub fn clear_user_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_id = user.user_id;
 
     engine
-        .register_custom_syntax(&["CLEAR", "USER", "MEMORY"], false, move |_context, _inputs| {
-            let state_for_spawn = Arc::clone(&state_clone);
-            let user_clone_spawn = user_clone.clone();
+        .register_custom_syntax(
+            ["CLEAR", "USER", "MEMORY"],
+            false,
+            move |_context, _inputs| {
+                let state_for_spawn = Arc::clone(&state_clone);
 
-            tokio::spawn(async move {
-                if let Err(e) = clear_user_memory_async(&state_for_spawn, user_clone_spawn.user_id).await {
-                    error!("Failed to clear user memory: {}", e);
-                } else {
-                    trace!("Cleared all user memory for user: {}", user_clone_spawn.user_id);
-                }
-            });
+                tokio::spawn(async move {
+                    if let Err(e) = clear_user_memory(&state_for_spawn, user_id) {
+                        error!("Failed to clear user memory: {e}");
+                    } else {
+                        trace!("Cleared all user memory for user: {user_id}");
+                    }
+                });
 
-            Ok(Dynamic::UNIT)
-        })
+                Ok(Dynamic::UNIT)
+            },
+        )
         .expect("Failed to register CLEAR USER MEMORY syntax");
 }
 
-
-
-
-async fn set_user_memory_async(
+fn set_user_memory(
     state: &AppState,
     user_id: Uuid,
     key: &str,
@@ -173,11 +150,10 @@ async fn set_user_memory_async(
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
+        .map_err(|e| format!("Failed to acquire database connection: {e}"))?;
 
     let now = chrono::Utc::now();
     let new_id = Uuid::new_v4();
-
 
     diesel::sql_query(
         "INSERT INTO user_memories (id, user_id, key, value, memory_type, created_at, updated_at) \
@@ -195,11 +171,10 @@ async fn set_user_memory_async(
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .execute(&mut conn)
-    .map_err(|e| format!("Failed to set user memory: {}", e))?;
+    .map_err(|e| format!("Failed to set user memory: {e}"))?;
 
     Ok(())
 }
-
 
 fn get_user_memory_sync(
     conn: &mut diesel::PgConnection,
@@ -219,21 +194,16 @@ fn get_user_memory_sync(
     .bind::<diesel::sql_types::Text, _>(key)
     .get_result(conn)
     .optional()
-    .map_err(|e| format!("Failed to get user memory: {}", e))?;
+    .map_err(|e| format!("Failed to get user memory: {e}"))?;
 
     Ok(result.map(|r| r.value).unwrap_or_default())
 }
 
-
-async fn add_user_fact_async(
-    state: &AppState,
-    user_id: Uuid,
-    fact: &str,
-) -> Result<(), String> {
+fn add_user_fact(state: &AppState, user_id: Uuid, fact: &str) -> Result<(), String> {
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
+        .map_err(|e| format!("Failed to acquire database connection: {e}"))?;
 
     let now = chrono::Utc::now();
     let new_id = Uuid::new_v4();
@@ -250,11 +220,10 @@ async fn add_user_fact_async(
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .bind::<diesel::sql_types::Timestamptz, _>(now)
     .execute(&mut conn)
-    .map_err(|e| format!("Failed to add user fact: {}", e))?;
+    .map_err(|e| format!("Failed to add user fact: {e}"))?;
 
     Ok(())
 }
-
 
 fn get_user_facts_sync(
     conn: &mut diesel::PgConnection,
@@ -271,24 +240,21 @@ fn get_user_facts_sync(
     )
     .bind::<diesel::sql_types::Uuid, _>(user_id)
     .load(conn)
-    .map_err(|e| format!("Failed to get user facts: {}", e))?;
+    .map_err(|e| format!("Failed to get user facts: {e}"))?;
 
     Ok(results.into_iter().map(|r| r.value).collect())
 }
 
-
-async fn clear_user_memory_async(state: &AppState, user_id: Uuid) -> Result<(), String> {
+fn clear_user_memory(state: &AppState, user_id: Uuid) -> Result<(), String> {
     let mut conn = state
         .conn
         .get()
-        .map_err(|e| format!("Failed to acquire database connection: {}", e))?;
+        .map_err(|e| format!("Failed to acquire database connection: {e}"))?;
 
     diesel::sql_query("DELETE FROM user_memories WHERE user_id = $1")
         .bind::<diesel::sql_types::Uuid, _>(user_id)
         .execute(&mut conn)
-        .map_err(|e| format!("Failed to clear user memory: {}", e))?;
+        .map_err(|e| format!("Failed to clear user memory: {e}"))?;
 
     Ok(())
 }
-
-

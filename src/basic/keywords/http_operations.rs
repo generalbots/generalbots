@@ -1,33 +1,3 @@
-/*****************************************************************************\
-|  █████  █████ ██    █ █████ █████   ████  ██      ████   █████ █████  ███ ® |
-| ██      █     ███   █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █   █      |
-| ██  ███ ████  █ ██  █ ████  █████  ██████ ██      ████   █   █   █    ██    |
-| ██   ██ █     █  ██ █ █     ██  ██ ██  ██ ██      ██  █ ██   ██  █      █   |
-|  █████  █████ █   ███ █████ ██  ██ ██  ██ █████   ████   █████   █   ███    |
-|                                                                             |
-| General Bots Copyright (c) pragmatismo.com.br. All rights reserved.         |
-| Licensed under the AGPL-3.0.                                                |
-|                                                                             |
-| According to our dual licensing model, this program can be used either      |
-| under the terms of the GNU Affero General Public License, version 3,        |
-| or under a proprietary license.                                             |
-|                                                                             |
-| The texts of the GNU Affero General Public License with an additional       |
-| permission and of our proprietary license can be found at and               |
-| in the LICENSE file you have received along with this program.              |
-|                                                                             |
-| This program is distributed in the hope that it will be useful,             |
-| but WITHOUT ANY WARRANTY, without even the implied warranty of              |
-| MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the                |
-| GNU Affero General Public License for more details.                         |
-|                                                                             |
-| "General Bots" is a registered trademark of pragmatismo.com.br.             |
-| The licensing of the program under the AGPLv3 does not imply a              |
-| trademark license. Therefore any rights, title and interest in              |
-| our trademarks remain entirely with us.                                     |
-|                                                                             |
-\*****************************************************************************/
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -40,39 +10,35 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 thread_local! {
-
     static HTTP_HEADERS: std::cell::RefCell<HashMap<String, String>> = std::cell::RefCell::new(HashMap::new());
 }
 
-
 pub fn register_http_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    register_post_keyword(state.clone(), user.clone(), engine);
-    register_put_keyword(state.clone(), user.clone(), engine);
-    register_patch_keyword(state.clone(), user.clone(), engine);
-    register_delete_http_keyword(state.clone(), user.clone(), engine);
-    register_set_header_keyword(state.clone(), user.clone(), engine);
-    register_graphql_keyword(state.clone(), user.clone(), engine);
-    register_soap_keyword(state.clone(), user.clone(), engine);
-    register_clear_headers_keyword(state.clone(), user.clone(), engine);
+    register_post_keyword(Arc::clone(&state), user.clone(), engine);
+    register_put_keyword(Arc::clone(&state), user.clone(), engine);
+    register_patch_keyword(Arc::clone(&state), user.clone(), engine);
+    register_delete_http_keyword(Arc::clone(&state), user.clone(), engine);
+    register_set_header_keyword(Arc::clone(&state), user.clone(), engine);
+    register_graphql_keyword(Arc::clone(&state), user.clone(), engine);
+    register_soap_keyword(Arc::clone(&state), user.clone(), engine);
+    register_clear_headers_keyword(state, user, engine);
 }
 
-
-
 pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
+    let _state_clone = state;
 
     engine
         .register_custom_syntax(
-            &["POST", "$expr$", ",", "$expr$"],
+            ["POST", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
 
-                trace!("POST request to: {}", url);
+                trace!("POST request to: {url}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let url_clone = url.clone();
+                let url_clone = url;
                 let data_clone = dynamic_to_json(&data);
 
                 std::thread::spawn(move || {
@@ -99,7 +65,7 @@ pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("POST failed: {}", e).into(),
+                        format!("POST failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -109,7 +75,7 @@ pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("POST thread failed: {}", e).into(),
+                        format!("POST thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -118,23 +84,21 @@ pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-
-
 pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
+    let _state_clone = state;
 
     engine
         .register_custom_syntax(
-            &["PUT", "$expr$", ",", "$expr$"],
+            ["PUT", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
 
-                trace!("PUT request to: {}", url);
+                trace!("PUT request to: {url}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let url_clone = url.clone();
+                let url_clone = url;
                 let data_clone = dynamic_to_json(&data);
 
                 std::thread::spawn(move || {
@@ -161,7 +125,7 @@ pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &m
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("PUT failed: {}", e).into(),
+                        format!("PUT failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -171,7 +135,7 @@ pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &m
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("PUT thread failed: {}", e).into(),
+                        format!("PUT thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -180,23 +144,21 @@ pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &m
         .unwrap();
 }
 
-
-
 pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
+    let _state_clone = state;
 
     engine
         .register_custom_syntax(
-            &["PATCH", "$expr$", ",", "$expr$"],
+            ["PATCH", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
 
-                trace!("PATCH request to: {}", url);
+                trace!("PATCH request to: {url}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let url_clone = url.clone();
+                let url_clone = url;
                 let data_clone = dynamic_to_json(&data);
 
                 std::thread::spawn(move || {
@@ -223,7 +185,7 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("PATCH failed: {}", e).into(),
+                        format!("PATCH failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -233,7 +195,7 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("PATCH thread failed: {}", e).into(),
+                        format!("PATCH thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -242,28 +204,22 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
         .unwrap();
 }
 
-
-
-
-
 pub fn register_delete_http_keyword(
     _state: Arc<AppState>,
     _user: UserSession,
     engine: &mut Engine,
 ) {
-
-
     engine
         .register_custom_syntax(
-            &["DELETE", "HTTP", "$expr$"],
+            ["DELETE", "HTTP", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
 
-                trace!("DELETE HTTP request to: {}", url);
+                trace!("DELETE HTTP request to: {url}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let url_clone = url.clone();
+                let url_clone = url;
 
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Builder::new_multi_thread()
@@ -288,7 +244,7 @@ pub fn register_delete_http_keyword(
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE failed: {}", e).into(),
+                        format!("DELETE failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -298,7 +254,7 @@ pub fn register_delete_http_keyword(
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE thread failed: {}", e).into(),
+                        format!("DELETE thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -307,30 +263,24 @@ pub fn register_delete_http_keyword(
         .unwrap();
 }
 
-
-
 pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-
     let headers: Arc<Mutex<HashMap<String, String>>> = Arc::new(Mutex::new(HashMap::new()));
     let headers_clone = Arc::clone(&headers);
     let headers_clone2 = Arc::clone(&headers);
 
-
     engine
         .register_custom_syntax(
-            &["SET", "HEADER", "$expr$", ",", "$expr$"],
+            ["SET", "HEADER", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let value = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("SET HEADER: {} = {}", name, value);
-
+                trace!("SET HEADER: {name} = {value}");
 
                 HTTP_HEADERS.with(|h| {
                     h.borrow_mut().insert(name.clone(), value.clone());
                 });
-
 
                 if let Ok(mut h) = headers_clone.lock() {
                     h.insert(name, value);
@@ -341,22 +291,19 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
         )
         .unwrap();
 
-
     engine
         .register_custom_syntax(
-            &["SET_HEADER", "$expr$", ",", "$expr$"],
+            ["SET_HEADER", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let value = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("SET_HEADER: {} = {}", name, value);
-
+                trace!("SET_HEADER: {name} = {value}");
 
                 HTTP_HEADERS.with(|h| {
                     h.borrow_mut().insert(name.clone(), value.clone());
                 });
-
 
                 if let Ok(mut h) = headers_clone2.lock() {
                     h.insert(name, value);
@@ -368,16 +315,13 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
         .unwrap();
 }
 
-
-
 pub fn register_clear_headers_keyword(
     _state: Arc<AppState>,
     _user: UserSession,
     engine: &mut Engine,
 ) {
-
     engine
-        .register_custom_syntax(&["CLEAR", "HEADERS"], false, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR", "HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR HEADERS");
 
             HTTP_HEADERS.with(|h| {
@@ -388,9 +332,8 @@ pub fn register_clear_headers_keyword(
         })
         .unwrap();
 
-
     engine
-        .register_custom_syntax(&["CLEAR_HEADERS"], false, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR_HEADERS"], false, move |_context, _inputs| {
             trace!("CLEAR_HEADERS");
 
             HTTP_HEADERS.with(|h| {
@@ -402,25 +345,23 @@ pub fn register_clear_headers_keyword(
         .unwrap();
 }
 
-
-
 pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
+    let _state_clone = state;
 
     engine
         .register_custom_syntax(
-            &["GRAPHQL", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["GRAPHQL", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let endpoint = context.eval_expression_tree(&inputs[0])?.to_string();
                 let query = context.eval_expression_tree(&inputs[1])?.to_string();
                 let variables = context.eval_expression_tree(&inputs[2])?;
 
-                trace!("GRAPHQL request to: {}", endpoint);
+                trace!("GRAPHQL request to: {endpoint}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let endpoint_clone = endpoint.clone();
-                let query_clone = query.clone();
+                let endpoint_clone = endpoint;
+                let query_clone = query;
                 let variables_json = dynamic_to_json(&variables);
 
                 std::thread::spawn(move || {
@@ -446,7 +387,7 @@ pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GRAPHQL failed: {}", e).into(),
+                        format!("GRAPHQL failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -456,7 +397,7 @@ pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GRAPHQL thread failed: {}", e).into(),
+                        format!("GRAPHQL thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -465,25 +406,23 @@ pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine
         .unwrap();
 }
 
-
-
 pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-    let _state_clone = Arc::clone(&state);
+    let _state_clone = state;
 
     engine
         .register_custom_syntax(
-            &["SOAP", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["SOAP", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let wsdl = context.eval_expression_tree(&inputs[0])?.to_string();
                 let operation = context.eval_expression_tree(&inputs[1])?.to_string();
                 let params = context.eval_expression_tree(&inputs[2])?;
 
-                trace!("SOAP request to: {}, operation: {}", wsdl, operation);
+                trace!("SOAP request to: {wsdl}, operation: {operation}");
 
                 let (tx, rx) = std::sync::mpsc::channel();
-                let wsdl_clone = wsdl.clone();
-                let operation_clone = operation.clone();
+                let wsdl_clone = wsdl;
+                let operation_clone = operation;
                 let params_json = dynamic_to_json(&params);
 
                 std::thread::spawn(move || {
@@ -509,7 +448,7 @@ pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                 match rx.recv_timeout(std::time::Duration::from_secs(120)) {
                     Ok(Ok(response)) => Ok(json_to_dynamic(&response)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SOAP failed: {}", e).into(),
+                        format!("SOAP failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -519,7 +458,7 @@ pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("SOAP thread failed: {}", e).into(),
+                        format!("SOAP thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -527,7 +466,6 @@ pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         )
         .unwrap();
 }
-
 
 async fn execute_http_request(
     method: Method,
@@ -540,13 +478,11 @@ async fn execute_http_request(
         .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| {
-            error!("Failed to build HTTP client: {}", e);
+            error!("Failed to build HTTP client: {e}");
             e
         })?;
 
-
     let mut headers = HeaderMap::new();
-
 
     HTTP_HEADERS.with(|h| {
         for (name, value) in h.borrow().iter() {
@@ -559,7 +495,6 @@ async fn execute_http_request(
         }
     });
 
-
     if let Some(custom) = custom_headers {
         for (name, value) in custom {
             if let (Ok(header_name), Ok(header_value)) = (
@@ -570,7 +505,6 @@ async fn execute_http_request(
             }
         }
     }
-
 
     if body.is_some() && !headers.contains_key("content-type") {
         headers.insert(
@@ -586,7 +520,7 @@ async fn execute_http_request(
     }
 
     let response = request.send().await.map_err(|e| {
-        error!("HTTP {} request failed for URL {}: {}", method, url, e);
+        error!("HTTP {method} request failed for URL {url}: {e}");
         e
     })?;
 
@@ -599,15 +533,9 @@ async fn execute_http_request(
 
     let body_text = response.text().await.unwrap_or_default();
 
-
     let body_value: Value = serde_json::from_str(&body_text).unwrap_or(Value::String(body_text));
 
-    trace!(
-        "HTTP {} request to {} completed with status: {}",
-        method,
-        url,
-        status
-    );
+    trace!("HTTP {method} request to {url} completed with status: {status}");
 
     Ok(json!({
         "status": status.as_u16(),
@@ -616,7 +544,6 @@ async fn execute_http_request(
         "data": body_value
     }))
 }
-
 
 async fn execute_graphql(
     endpoint: &str,
@@ -631,12 +558,12 @@ async fn execute_graphql(
     execute_http_request(Method::POST, endpoint, Some(graphql_body), None).await
 }
 
-
 async fn execute_soap(
     endpoint: &str,
     operation: &str,
     params: Value,
 ) -> Result<Value, Box<dyn Error + Send + Sync>> {
+    use std::fmt::Write;
 
     let soap_body = build_soap_envelope(operation, &params);
 
@@ -645,14 +572,16 @@ async fn execute_soap(
         "Content-Type".to_string(),
         "text/xml; charset=utf-8".to_string(),
     );
-    headers.insert("SOAPAction".to_string(), format!("\"{}\"", operation));
+    let mut soap_action = String::new();
+    let _ = write!(soap_action, "\"{operation}\"");
+    headers.insert("SOAPAction".to_string(), soap_action);
 
     let client = Client::builder()
         .timeout(Duration::from_secs(120))
         .connect_timeout(Duration::from_secs(10))
         .build()
         .map_err(|e| {
-            error!("Failed to build HTTP client: {}", e);
+            error!("Failed to build HTTP client: {e}");
             e
         })?;
 
@@ -673,21 +602,16 @@ async fn execute_soap(
         .send()
         .await
         .map_err(|e| {
-            error!("SOAP request failed for endpoint {}: {}", endpoint, e);
+            error!("SOAP request failed for endpoint {endpoint}: {e}");
             e
         })?;
 
     let status = response.status();
     let body_text = response.text().await.unwrap_or_default();
 
-
     let parsed_response = parse_soap_response(&body_text);
 
-    trace!(
-        "SOAP request to {} completed with status: {}",
-        endpoint,
-        status
-    );
+    trace!("SOAP request to {endpoint} completed with status: {status}");
 
     Ok(json!({
         "status": status.as_u16(),
@@ -695,8 +619,9 @@ async fn execute_soap(
     }))
 }
 
-
 fn build_soap_envelope(operation: &str, params: &Value) -> String {
+    use std::fmt::Write;
+
     let mut params_xml = String::new();
 
     if let Value::Object(obj) = params {
@@ -707,7 +632,7 @@ fn build_soap_envelope(operation: &str, params: &Value) -> String {
                 Value::Bool(b) => b.to_string(),
                 _ => value.to_string(),
             };
-            params_xml.push_str(&format!("<{}>{}</{}>", key, value_str, key));
+            let _ = write!(params_xml, "<{key}>{value_str}</{key}>");
         }
     }
 
@@ -719,15 +644,11 @@ fn build_soap_envelope(operation: &str, params: &Value) -> String {
             {params_xml}
         </{operation}>
     </soap:Body>
-</soap:Envelope>"#,
-        operation = operation,
-        params_xml = params_xml
+</soap:Envelope>"#
     )
 }
 
-
 fn parse_soap_response(xml: &str) -> Value {
-
     if let Some(body_start) = xml.find("<soap:Body>") {
         if let Some(body_end) = xml.find("</soap:Body>") {
             let body_content = &xml[body_start + 11..body_end];
@@ -737,7 +658,6 @@ fn parse_soap_response(xml: &str) -> Value {
             });
         }
     }
-
 
     if let Some(body_start) = xml.find("<soap12:Body>") {
         if let Some(body_end) = xml.find("</soap12:Body>") {
@@ -755,7 +675,6 @@ fn parse_soap_response(xml: &str) -> Value {
     })
 }
 
-
 fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
         Value::Null
@@ -764,7 +683,7 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
     } else if value.is_int() {
         Value::Number(value.as_int().unwrap_or(0).into())
     } else if value.is_float() {
-        if let Some(f) = value.as_float().ok() {
+        if let Ok(f) = value.as_float() {
             serde_json::Number::from_f64(f)
                 .map(Value::Number)
                 .unwrap_or(Value::Null)
@@ -787,7 +706,6 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
         Value::String(value.to_string())
     }
 }
-
 
 fn json_to_dynamic(value: &Value) -> Dynamic {
     match value {

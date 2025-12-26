@@ -78,7 +78,6 @@ pub struct CalendarEventInput {
 }
 
 impl CalendarEvent {
-
     pub fn to_ical(&self) -> IcalEvent {
         let mut event = IcalEvent::new();
         event.uid(&self.id.to_string());
@@ -110,7 +109,6 @@ impl CalendarEvent {
         event.done()
     }
 
-
     pub fn from_ical(ical: &IcalEvent, organizer: &str) -> Option<Self> {
         let uid = ical.get_uid()?;
         let summary = ical.get_summary()?;
@@ -137,31 +135,21 @@ impl CalendarEvent {
     }
 }
 
-
 fn date_perhaps_time_to_utc(dpt: DatePerhapsTime) -> Option<DateTime<Utc>> {
     match dpt {
-        DatePerhapsTime::DateTime(cal_dt) => {
-
-            match cal_dt {
-                CalendarDateTime::Utc(dt) => Some(dt),
-                CalendarDateTime::Floating(naive) => {
-
-                    Some(Utc.from_utc_datetime(&naive))
-                }
-                CalendarDateTime::WithTimezone { date_time, .. } => {
-
-                    Some(Utc.from_utc_datetime(&date_time))
-                }
+        DatePerhapsTime::DateTime(cal_dt) => match cal_dt {
+            CalendarDateTime::Utc(dt) => Some(dt),
+            CalendarDateTime::Floating(naive) => Some(Utc.from_utc_datetime(&naive)),
+            CalendarDateTime::WithTimezone { date_time, .. } => {
+                Some(Utc.from_utc_datetime(&date_time))
             }
-        }
+        },
         DatePerhapsTime::Date(date) => {
-
             let naive = NaiveDateTime::new(date, chrono::NaiveTime::from_hms_opt(0, 0, 0)?);
             Some(Utc.from_utc_datetime(&naive))
         }
     }
 }
-
 
 pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
     let mut calendar = Calendar::new();
@@ -174,7 +162,6 @@ pub fn export_to_ical(events: &[CalendarEvent], calendar_name: &str) -> String {
 
     calendar.done().to_string()
 }
-
 
 pub fn import_from_ical(ical_str: &str, organizer: &str) -> Vec<CalendarEvent> {
     let Ok(calendar) = ical_str.parse::<Calendar>() else {
@@ -312,7 +299,6 @@ pub async fn list_events(
     Json(result)
 }
 
-
 pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "calendars": [
@@ -325,7 +311,6 @@ pub async fn list_calendars_api(State(_state): State<Arc<AppState>>) -> Json<ser
         ]
     }))
 }
-
 
 pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(r#"
@@ -344,14 +329,12 @@ pub async fn list_calendars(State(_state): State<Arc<AppState>>) -> axum::respon
     "#.to_string())
 }
 
-
 pub async fn upcoming_events_api(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
         "events": [],
         "message": "No upcoming events"
     }))
 }
-
 
 pub async fn upcoming_events(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(
@@ -469,7 +452,6 @@ pub async fn import_ical(
     Ok(Json(serde_json::json!({ "imported": events.len() })))
 }
 
-
 pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::response::Html<String> {
     axum::response::Html(
         r#"
@@ -480,7 +462,6 @@ pub async fn new_event_form(State(_state): State<Arc<AppState>>) -> axum::respon
         .to_string(),
     )
 }
-
 
 pub async fn new_calendar_form(
     State(_state): State<Arc<AppState>>,
@@ -509,12 +490,10 @@ pub async fn new_calendar_form(
     "##.to_string())
 }
 
-
 pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
     info!("Starting calendar reminder job");
 
     loop {
-
         tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
 
         let now = Utc::now();
@@ -528,13 +507,11 @@ pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
                         "Reminder: Event '{}' starts in {} minutes",
                         event.title, reminder_minutes
                     );
-
                 }
             }
         }
     }
 }
-
 
 pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
     Router::new()
@@ -548,12 +525,59 @@ pub fn configure_calendar_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/calendar/export.ics", get(export_ical))
         .route("/api/calendar/import", post(import_ical))
-
         .route("/api/calendar/calendars", get(list_calendars_api))
         .route("/api/calendar/events/upcoming", get(upcoming_events_api))
-
         .route("/ui/calendar/list", get(list_calendars))
         .route("/ui/calendar/upcoming", get(upcoming_events))
         .route("/ui/calendar/event/new", get(new_event_form))
         .route("/ui/calendar/new", get(new_calendar_form))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use chrono::Utc;
+    use uuid::Uuid;
+
+    #[test]
+    fn test_event_to_ical_roundtrip() {
+        let event = CalendarEvent {
+            id: Uuid::new_v4(),
+            title: "Test Meeting".to_string(),
+            description: Some("A test meeting".to_string()),
+            start_time: Utc::now(),
+            end_time: Utc::now() + chrono::Duration::hours(1),
+            location: Some("Room 101".to_string()),
+            attendees: vec!["user@example.com".to_string()],
+            organizer: "organizer@example.com".to_string(),
+            reminder_minutes: Some(15),
+            recurrence: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        };
+
+        let ical = event.to_ical();
+        assert_eq!(ical.get_summary(), Some("Test Meeting"));
+        assert_eq!(ical.get_location(), Some("Room 101"));
+    }
+
+    #[test]
+    fn test_export_import_ical() {
+        let mut engine = CalendarEngine::default();
+        engine.create_event(CalendarEventInput {
+            title: "Event 1".to_string(),
+            description: None,
+            start_time: Utc::now(),
+            end_time: Utc::now() + chrono::Duration::hours(1),
+            location: None,
+            attendees: vec![],
+            organizer: "test@example.com".to_string(),
+            reminder_minutes: None,
+            recurrence: None,
+        });
+
+        let ical = engine.export_ical("Test Calendar");
+        assert!(ical.contains("BEGIN:VCALENDAR"));
+        assert!(ical.contains("Event 1"));
+    }
 }

@@ -28,7 +28,7 @@ pub struct KgEntity {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum EntitySource {
     Manual,
@@ -39,7 +39,7 @@ pub enum EntitySource {
 
 impl Default for EntitySource {
     fn default() -> Self {
-        EntitySource::Manual
+        Self::Manual
     }
 }
 
@@ -148,7 +148,7 @@ pub struct KnowledgeGraphConfig {
 
 impl Default for KnowledgeGraphConfig {
     fn default() -> Self {
-        KnowledgeGraphConfig {
+        Self {
             enabled: true,
             backend: "postgresql".to_string(),
             extract_entities: true,
@@ -176,7 +176,7 @@ pub struct KnowledgeGraphManager {
 
 impl KnowledgeGraphManager {
     pub fn new(config: KnowledgeGraphConfig) -> Self {
-        KnowledgeGraphManager { config }
+        Self { config }
     }
 
     pub fn from_config(config_map: &HashMap<String, String>) -> Self {
@@ -214,7 +214,7 @@ impl KnowledgeGraphManager {
                 .map(|v| v.split(',').map(|s| s.trim().to_string()).collect())
                 .unwrap_or_else(|| KnowledgeGraphConfig::default().entity_types),
         };
-        KnowledgeGraphManager::new(config)
+        Self::new(config)
     }
 
     pub fn generate_extraction_prompt(&self, text: &str) -> String {

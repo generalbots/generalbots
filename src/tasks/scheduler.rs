@@ -119,7 +119,6 @@ impl TaskScheduler {
             handlers.insert(
                 "cache_cleanup".to_string(),
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
-                    let state = state.clone();
                     Box::pin(async move {
                         if let Some(cache) = &state.cache {
                             let mut conn = cache.get_connection()?;
@@ -137,7 +136,6 @@ impl TaskScheduler {
             handlers.insert(
                 "backup".to_string(),
                 Arc::new(move |state: Arc<AppState>, payload: serde_json::Value| {
-                    let state = state.clone();
                     Box::pin(async move {
                         let backup_type = payload["type"].as_str().unwrap_or("full");
                         let timestamp = Utc::now().format("%Y%m%d_%H%M%S");
@@ -146,7 +144,7 @@ impl TaskScheduler {
                             "database" => {
                                 let backup_file = format!("/tmp/backup_db_{}.sql", timestamp);
                                 std::process::Command::new("pg_dump")
-                                    .env("DATABASE_URL", &state.database_url)
+                                    .env("DATABASE_URL", state.database_url.clone())
                                     .arg("-f")
                                     .arg(&backup_file)
                                     .output()?;
@@ -156,7 +154,7 @@ impl TaskScheduler {
                                     let body = tokio::fs::read(&backup_file).await?;
                                     s3.put_object()
                                         .bucket("backups")
-                                        .key(&format!("db/{}.sql", timestamp))
+                                        .key(format!("db/{}.sql", timestamp))
                                         .body(aws_sdk_s3::primitives::ByteStream::from(body))
                                         .send()
                                         .await?;
@@ -224,7 +222,6 @@ impl TaskScheduler {
             handlers.insert(
                 "health_check".to_string(),
                 Arc::new(move |state: Arc<AppState>, _payload: serde_json::Value| {
-                    let state = state.clone();
                     Box::pin(async move {
                         let mut health = serde_json::json!({
                             "status": "healthy",
@@ -294,7 +291,7 @@ impl TaskScheduler {
         Ok(task)
     }
 
-    pub async fn start(&self) {
+    pub fn start(&self) {
         info!("Starting task scheduler");
         let scheduler = self.clone();
 
@@ -494,7 +491,7 @@ impl TaskScheduler {
         let cutoff = Utc::now() - Duration::days(days);
         let mut executions = self.task_executions.write().await;
         let before_count = executions.len();
-        executions.retain(|e| e.completed_at.map_or(true, |completed| completed > cutoff));
+        executions.retain(|e| e.completed_at.is_none_or(|completed| completed > cutoff));
         let deleted = before_count - executions.len();
         info!("Cleaned up {} old task executions", deleted);
         Ok(deleted)

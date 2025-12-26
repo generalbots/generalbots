@@ -22,6 +22,7 @@ impl std::fmt::Debug for Editor {
             .field("content_len", &self.content.len())
             .field("cursor_pos", &self.cursor_pos)
             .field("scroll_offset", &self.scroll_offset)
+            .field("visible_lines", &self.visible_lines)
             .field("modified", &self.modified)
             .finish()
     }
@@ -82,11 +83,9 @@ impl Editor {
     fn ensure_cursor_visible(&mut self) {
         let cursor_line = self.get_cursor_line();
 
-
         if cursor_line < self.scroll_offset {
             self.scroll_offset = cursor_line;
         }
-
 
         let visible = self.visible_lines.saturating_sub(3);
         if cursor_line >= self.scroll_offset + visible {
@@ -94,7 +93,7 @@ impl Editor {
         }
     }
 
-    pub fn render(&mut self, cursor_blink: bool) -> String {
+    pub fn render(&self, cursor_blink: bool) -> String {
         let lines: Vec<&str> = self.content.lines().collect();
         let total_lines = lines.len().max(1);
         let visible_lines = self.visible_lines();

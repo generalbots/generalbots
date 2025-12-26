@@ -45,8 +45,6 @@ pub struct EmailConfig {
     pub smtp_port: u16,
 }
 
-
-
 #[derive(Clone, Debug, Default)]
 pub struct CustomDatabaseConfig {
     pub server: String,
@@ -57,7 +55,6 @@ pub struct CustomDatabaseConfig {
 }
 
 impl CustomDatabaseConfig {
-
     pub fn from_bot_config(
         pool: &DbPool,
         target_bot_id: &Uuid,
@@ -71,7 +68,6 @@ impl CustomDatabaseConfig {
             )
         })?;
 
-
         let database: Option<String> = bot_configuration
             .filter(bot_id.eq(target_bot_id))
             .filter(config_key.eq("custom-database"))
@@ -80,9 +76,8 @@ impl CustomDatabaseConfig {
             .ok()
             .filter(|s| !s.is_empty());
 
-        let database = match database {
-            Some(db) => db,
-            None => return Ok(None),
+        let Some(database) = database else {
+            return Ok(None);
         };
 
         let server: String = bot_configuration
@@ -119,7 +114,7 @@ impl CustomDatabaseConfig {
             .ok()
             .unwrap_or_default();
 
-        Ok(Some(CustomDatabaseConfig {
+        Ok(Some(Self {
             server,
             port,
             database,
@@ -128,7 +123,6 @@ impl CustomDatabaseConfig {
         }))
     }
 
-
     pub fn connection_string(&self) -> String {
         format!(
             "mysql://{}:{}@{}:{}/{}",
@@ -136,15 +130,12 @@ impl CustomDatabaseConfig {
         )
     }
 
-
     pub fn is_valid(&self) -> bool {
         !self.database.is_empty() && !self.server.is_empty()
     }
 }
 
 impl EmailConfig {
-
-
     pub fn from_bot_config(
         pool: &DbPool,
         target_bot_id: &Uuid,
@@ -155,7 +146,6 @@ impl EmailConfig {
                 Box::new(e.to_string()),
             )
         })?;
-
 
         fn get_config_value(
             conn: &mut diesel::r2d2::PooledConnection<
@@ -193,17 +183,16 @@ impl EmailConfig {
                 .unwrap_or(default)
         }
 
-
         let new_smtp_server = get_config_value(&mut conn, target_bot_id, "email-server", "");
-        let smtp_server = if !new_smtp_server.is_empty() {
-            new_smtp_server
-        } else {
+        let smtp_server = if new_smtp_server.is_empty() {
             get_config_value(
                 &mut conn,
                 target_bot_id,
                 "EMAIL_SMTP_SERVER",
                 "smtp.gmail.com",
             )
+        } else {
+            new_smtp_server
         };
 
         let new_smtp_port = get_port_value(&mut conn, target_bot_id, "email-port", 0);
@@ -214,24 +203,24 @@ impl EmailConfig {
         };
 
         let new_from = get_config_value(&mut conn, target_bot_id, "email-from", "");
-        let from = if !new_from.is_empty() {
-            new_from
-        } else {
+        let from = if new_from.is_empty() {
             get_config_value(&mut conn, target_bot_id, "EMAIL_FROM", "")
+        } else {
+            new_from
         };
 
         let new_user = get_config_value(&mut conn, target_bot_id, "email-user", "");
-        let username = if !new_user.is_empty() {
-            new_user
-        } else {
+        let username = if new_user.is_empty() {
             get_config_value(&mut conn, target_bot_id, "EMAIL_USERNAME", "")
+        } else {
+            new_user
         };
 
         let new_pass = get_config_value(&mut conn, target_bot_id, "email-pass", "");
-        let password = if !new_pass.is_empty() {
-            new_pass
-        } else {
+        let password = if new_pass.is_empty() {
             get_config_value(&mut conn, target_bot_id, "EMAIL_PASSWORD", "")
+        } else {
+            new_pass
         };
 
         let server = get_config_value(
@@ -242,7 +231,7 @@ impl EmailConfig {
         );
         let port = get_port_value(&mut conn, target_bot_id, "EMAIL_IMAP_PORT", 993);
 
-        Ok(EmailConfig {
+        Ok(Self {
             server,
             port,
             username,
@@ -265,14 +254,12 @@ impl AppConfig {
             )
         })?;
 
-
         let config_map: HashMap<String, String> = bot_configuration
             .select((config_key, config_value))
             .load::<(String, String)>(&mut conn)
             .unwrap_or_default()
             .into_iter()
             .collect();
-
 
         let get_str = |key: &str, default: &str| -> String {
             config_map
@@ -301,7 +288,7 @@ impl AppConfig {
             smtp_server: get_str("EMAIL_SMTP_SERVER", "smtp.gmail.com"),
             smtp_port: get_u16("EMAIL_SMTP_PORT", 587),
         };
-        Ok(AppConfig {
+        Ok(Self {
             drive,
             email,
             server: ServerConfig {
@@ -310,9 +297,11 @@ impl AppConfig {
                 base_url: get_str("server_base_url", "http://localhost:8080"),
             },
             site_path: {
-                ConfigManager::new(pool.clone())
-                    .get_config(&Uuid::nil(), "SITES_ROOT", Some("./botserver-stack/sites"))?
-                    .to_string()
+                ConfigManager::new(pool.clone()).get_config(
+                    &Uuid::nil(),
+                    "SITES_ROOT",
+                    Some("./botserver-stack/sites"),
+                )?
             },
             data_dir: get_str("DATA_DIR", "./botserver-stack/data"),
         })
@@ -332,7 +321,7 @@ impl AppConfig {
             smtp_server: "smtp.gmail.com".to_string(),
             smtp_port: 587,
         };
-        Ok(AppConfig {
+        Ok(Self {
             drive: minio,
             email,
             server: ServerConfig {
@@ -340,7 +329,6 @@ impl AppConfig {
                 port: 8080,
                 base_url: "http://localhost:8080".to_string(),
             },
-
 
             site_path: "./botserver-stack/sites".to_string(),
             data_dir: "./botserver-stack/data".to_string(),
@@ -388,7 +376,7 @@ impl ConfigManager {
                     .filter(config_key.eq(key))
                     .select(config_value)
                     .first::<String>(&mut conn)
-                    .unwrap_or(fallback_str.to_string())
+                    .unwrap_or_else(|_| fallback_str.to_string())
             }
         };
         Ok(value)

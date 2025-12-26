@@ -9,7 +9,7 @@ use crate::shared::models::TriggerKind;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum FolderProvider {
     GDrive,
     OneDrive,
@@ -17,15 +17,23 @@ pub enum FolderProvider {
     Local,
 }
 
-impl FolderProvider {
-    pub fn from_str(s: &str) -> Option<Self> {
+impl std::str::FromStr for FolderProvider {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s.to_lowercase().as_str() {
-            "gdrive" | "googledrive" | "google" => Some(Self::GDrive),
-            "onedrive" | "microsoft" | "ms" => Some(Self::OneDrive),
-            "dropbox" | "dbx" => Some(Self::Dropbox),
-            "local" | "filesystem" | "fs" => Some(Self::Local),
-            _ => None,
+            "gdrive" | "googledrive" | "google" => Ok(Self::GDrive),
+            "onedrive" | "microsoft" | "ms" => Ok(Self::OneDrive),
+            "dropbox" | "dbx" => Ok(Self::Dropbox),
+            "local" | "filesystem" | "fs" => Ok(Self::Local),
+            _ => Err(()),
         }
+    }
+}
+
+impl FolderProvider {
+    pub fn parse(s: &str) -> Option<Self> {
+        s.parse().ok()
     }
 
     pub fn as_str(&self) -> &'static str {
@@ -38,7 +46,7 @@ impl FolderProvider {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ChangeEventType {
     Create,
     Modify,
@@ -58,7 +66,7 @@ impl ChangeEventType {
         }
     }
 
-    pub fn from_str(s: &str) -> Option<Self> {
+    pub fn parse(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
             "create" | "created" | "new" => Some(Self::Create),
             "modify" | "modified" | "change" | "changed" => Some(Self::Modify),
@@ -98,8 +106,7 @@ pub struct FolderChangeEvent {
 }
 
 pub fn parse_folder_path(path: &str) -> (FolderProvider, Option<String>, String) {
-    if path.starts_with("account://") {
-        let rest = &path[10..];
+    if let Some(rest) = path.strip_prefix("account://") {
         if let Some(slash_pos) = rest.find('/') {
             let email = &rest[..slash_pos];
             let folder_path = &rest[slash_pos..];
@@ -108,18 +115,15 @@ pub fn parse_folder_path(path: &str) -> (FolderProvider, Option<String>, String)
         }
     }
 
-    if path.starts_with("gdrive://") {
-        let folder_path = &path[9..];
+    if let Some(folder_path) = path.strip_prefix("gdrive://") {
         return (FolderProvider::GDrive, None, folder_path.to_string());
     }
 
-    if path.starts_with("onedrive://") {
-        let folder_path = &path[11..];
+    if let Some(folder_path) = path.strip_prefix("onedrive://") {
         return (FolderProvider::OneDrive, None, folder_path.to_string());
     }
 
-    if path.starts_with("dropbox://") {
-        let folder_path = &path[10..];
+    if let Some(folder_path) = path.strip_prefix("dropbox://") {
         return (FolderProvider::Dropbox, None, folder_path.to_string());
     }
 
@@ -158,7 +162,7 @@ fn register_on_change_basic(state: &AppState, user: UserSession, engine: &mut En
 
     engine
         .register_custom_syntax(
-            &["ON", "CHANGE", "$string$"],
+            ["ON", "CHANGE", "$string$"],
             true,
             move |context, inputs| {
                 let path = context
@@ -188,7 +192,7 @@ fn register_on_change_basic(state: &AppState, user: UserSession, engine: &mut En
                     .map_err(|e| format!("DB error: {}", e))?;
 
                 let result = execute_on_change(
-                    &mut *conn,
+                    &mut conn,
                     bot_id,
                     provider,
                     account_email.as_deref(),
@@ -221,7 +225,7 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
 
     engine
         .register_custom_syntax(
-            &["ON", "CHANGE", "$string$", "EVENTS", "$expr$"],
+            ["ON", "CHANGE", "$string$", "EVENTS", "$expr$"],
             true,
             move |context, inputs| {
                 let path = context
@@ -260,7 +264,7 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
                     .map_err(|e| format!("DB error: {}", e))?;
 
                 let result = execute_on_change(
-                    &mut *conn,
+                    &mut conn,
                     bot_id,
                     provider,
                     account_email.as_deref(),
@@ -286,11 +290,12 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
 }
 
 pub fn sanitize_path_for_filename(path: &str) -> String {
-    path.replace('/', "_")
-        .replace('\\', "_")
-        .replace(':', "_")
-        .replace(' ', "_")
-        .replace('.', "_")
+    let mut result = path.to_string();
+    for ch in ['/', '\\', ':'] {
+        result = result.replace(ch, "_");
+    }
+    result
+        .replace([' ', '.'], "_")
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
         .collect::<String>()
@@ -415,7 +420,7 @@ pub async fn check_folder_monitors(
         let event_types: Vec<String> = monitor
             .event_types_json
             .as_ref()
-            .and_then(|j| serde_json::from_str(j).ok())
+            .and_then(|j| serde_json::from_str(j.as_str()).ok())
             .unwrap_or_else(|| {
                 vec![
                     "create".to_string(),
@@ -434,7 +439,7 @@ pub async fn check_folder_monitors(
             monitor.watch_subfolders
         );
 
-        let provider = FolderProvider::from_str(&monitor.provider).unwrap_or(FolderProvider::Local);
+        let provider = monitor.provider.parse().unwrap_or(FolderProvider::Local);
 
         let new_events = fetch_folder_changes(
             state,

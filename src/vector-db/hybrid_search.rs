@@ -684,6 +684,11 @@ pub struct QueryDecomposer {
 
 impl QueryDecomposer {
     pub fn new(llm_endpoint: &str, api_key: &str) -> Self {
+        log::trace!(
+            "Creating QueryDecomposer with endpoint={} api_key_len={}",
+            llm_endpoint,
+            api_key.len()
+        );
         Self {
             llm_endpoint: llm_endpoint.to_string(),
             api_key: api_key.to_string(),
@@ -691,6 +696,11 @@ impl QueryDecomposer {
     }
 
     pub async fn decompose(&self, query: &str) -> Result<Vec<String>, String> {
+        log::trace!(
+            "Decomposing query using endpoint={} (api_key configured: {})",
+            self.llm_endpoint,
+            !self.api_key.is_empty()
+        );
         let mut sub_queries = Vec::new();
 
         let conjunctions = ["and", "also", "as well as", "in addition to"];

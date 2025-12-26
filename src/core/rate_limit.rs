@@ -1,8 +1,3 @@
-
-
-
-
-
 use axum::{
     extract::{ConnectInfo, Request, State},
     http::StatusCode,
@@ -18,9 +13,7 @@ use governor::{
 use std::{collections::HashMap, net::SocketAddr, num::NonZeroU32, sync::Arc};
 use tokio::sync::RwLock;
 
-
 type Limiter = RateLimiter<NotKeyed, InMemoryState, DefaultClock, NoOpMiddleware>;
-
 
 pub struct KeyedRateLimiter {
     limiters: RwLock<HashMap<String, Arc<Limiter>>>,
@@ -29,7 +22,6 @@ pub struct KeyedRateLimiter {
 }
 
 impl KeyedRateLimiter {
-
     pub fn new(requests_per_second: u32, burst_size: u32) -> Self {
         let quota =
             Quota::per_second(NonZeroU32::new(requests_per_second).unwrap_or(NonZeroU32::MIN))
@@ -42,7 +34,6 @@ impl KeyedRateLimiter {
         }
     }
 
-
     pub async fn check(&self, key: &str) -> bool {
         let limiter = {
             let limiters = self.limiters.read().await;
@@ -53,7 +44,6 @@ impl KeyedRateLimiter {
             Some(l) => l,
             None => {
                 let mut limiters = self.limiters.write().await;
-
 
                 if limiters.len() > self.cleanup_threshold {
                     limiters.clear();
@@ -68,7 +58,6 @@ impl KeyedRateLimiter {
         limiter.check().is_ok()
     }
 
-
     pub async fn remaining(&self, key: &str) -> Option<u32> {
         let limiters = self.limiters.read().await;
         limiters.get(key).map(|l| l.check().map(|_| 1).unwrap_or(0))
@@ -79,14 +68,16 @@ impl std::fmt::Debug for KeyedRateLimiter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("KeyedRateLimiter")
             .field("cleanup_threshold", &self.cleanup_threshold)
+            .field(
+                "limiters",
+                &format!("<{} entries>", self.limiters.blocking_read().len()),
+            )
             .finish()
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct RateLimitConfig {
-
     pub api_rps: u32,
 
     pub api_burst: u32,
@@ -115,7 +106,6 @@ impl Default for RateLimitConfig {
         }
     }
 }
-
 
 #[derive(Debug)]
 pub struct RateLimitState {
@@ -169,9 +159,7 @@ impl RateLimitState {
     }
 }
 
-
 fn get_client_ip(req: &Request) -> String {
-
     if let Some(forwarded) = req.headers().get("x-forwarded-for") {
         if let Ok(value) = forwarded.to_str() {
             if let Some(ip) = value.split(',').next() {
@@ -180,20 +168,17 @@ fn get_client_ip(req: &Request) -> String {
         }
     }
 
-
     if let Some(real_ip) = req.headers().get("x-real-ip") {
         if let Ok(value) = real_ip.to_str() {
             return value.to_string();
         }
     }
 
-
     req.extensions()
         .get::<ConnectInfo<SocketAddr>>()
         .map(|ci| ci.0.ip().to_string())
         .unwrap_or_else(|| "unknown".to_string())
 }
-
 
 fn get_limiter_type(path: &str) -> LimiterType {
     if path.contains("/auth") || path.contains("/login") || path.contains("/token") {
@@ -211,7 +196,6 @@ enum LimiterType {
     Auth,
     Llm,
 }
-
 
 pub async fn rate_limit_middleware(
     State(state): State<Arc<RateLimitState>>,
@@ -238,7 +222,6 @@ pub async fn rate_limit_middleware(
         rate_limit_response(limiter_type)
     }
 }
-
 
 fn rate_limit_response(limiter_type: LimiterType) -> Response {
     let (retry_after, message) = match limiter_type {
@@ -269,7 +252,6 @@ fn rate_limit_response(limiter_type: LimiterType) -> Response {
     )
         .into_response()
 }
-
 
 pub fn create_rate_limit_state(config: RateLimitConfig) -> Arc<RateLimitState> {
     Arc::new(RateLimitState::new(config))

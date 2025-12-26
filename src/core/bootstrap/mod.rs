@@ -27,7 +27,7 @@ pub struct BootstrapManager {
     pub stack_path: PathBuf,
 }
 impl BootstrapManager {
-    pub async fn new(mode: InstallMode, tenant: Option<String>) -> Self {
+    pub fn new(mode: InstallMode, tenant: Option<String>) -> Self {
         let stack_path = std::env::var("BOTSERVER_STACK_PATH")
             .map(PathBuf::from)
             .unwrap_or_else(|_| PathBuf::from("./botserver-stack"));
@@ -144,7 +144,7 @@ impl BootstrapManager {
             return false;
         }
 
-        let indicators = vec![
+        let indicators = [
             stack_dir.join("bin/vault/vault"),
             stack_dir.join("data/vault"),
             stack_dir.join("conf/vault/config.hcl"),
@@ -331,7 +331,7 @@ impl BootstrapManager {
         Ok(())
     }
 
-    fn generate_secure_password(&self, length: usize) -> String {
+    fn generate_secure_password(length: usize) -> String {
         let mut rng = rand::rng();
         let base: String = (0..length.saturating_sub(4))
             .map(|_| {
@@ -378,7 +378,9 @@ impl BootstrapManager {
                 .map(|s| s.success())
                 .unwrap_or(false);
 
-            if !vault_running {
+            if vault_running {
+                info!("Vault is already running");
+            } else {
                 info!("Starting Vault secrets service...");
                 match installer.start("vault") {
                     Ok(_child) => {
@@ -390,8 +392,6 @@ impl BootstrapManager {
                         warn!("Vault might already be running or failed to start: {}", e);
                     }
                 }
-            } else {
-                info!("Vault is already running");
             }
 
             if let Err(e) = self.ensure_vault_unsealed().await {
@@ -403,7 +403,6 @@ impl BootstrapManager {
                     if let Err(e) = pm.start("vault") {
                         warn!("Failed to start Vault: {}", e);
                     }
-                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                 } else {
                     warn!("Vault unseal failed: {} - attempting Vault restart only", e);
 
@@ -417,9 +416,9 @@ impl BootstrapManager {
                     if let Err(e) = pm.start("vault") {
                         warn!("Failed to restart Vault: {}", e);
                     }
-
-                    tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                 }
+
+                tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 
                 if let Err(e) = self.ensure_vault_unsealed().await {
                     warn!("Vault still not responding after restart: {}", e);
@@ -698,19 +697,19 @@ impl BootstrapManager {
         Self::kill_stack_processes();
 
         info!("Generating TLS certificates...");
-        if let Err(e) = self.generate_certificates().await {
+        if let Err(e) = self.generate_certificates() {
             error!("Failed to generate certificates: {}", e);
         }
 
         info!("Creating Vault configuration...");
-        if let Err(e) = self.create_vault_config().await {
+        if let Err(e) = self.create_vault_config() {
             error!("Failed to create Vault config: {}", e);
         }
 
-        let db_password = self.generate_secure_password(24);
-        let drive_accesskey = self.generate_secure_password(20);
-        let drive_secret = self.generate_secure_password(40);
-        let cache_password = self.generate_secure_password(24);
+        let db_password = Self::generate_secure_password(24);
+        let drive_accesskey = Self::generate_secure_password(20);
+        let drive_secret = Self::generate_secure_password(40);
+        let cache_password = Self::generate_secure_password(24);
 
         info!("Configuring services through Vault...");
 
@@ -795,7 +794,7 @@ impl BootstrapManager {
                     }
 
                     info!("Creating Directory configuration files...");
-                    if let Err(e) = self.configure_services_in_directory(&db_password).await {
+                    if let Err(e) = self.configure_services_in_directory(&db_password) {
                         error!("Failed to create Directory config files: {}", e);
                     }
                 }
@@ -824,10 +823,10 @@ impl BootstrapManager {
 
                     let vault_bin = self.stack_dir("bin/vault/vault");
                     if !vault_bin.exists() {
-                        error!("Vault binary not found at {:?}", vault_bin);
+                        error!("Vault binary not found at {}", vault_bin.display());
                         return Err(anyhow::anyhow!("Vault binary not found after installation"));
                     }
-                    info!("Vault binary verified at {:?}", vault_bin);
+                    info!("Vault binary verified at {}", vault_bin.display());
 
                     let vault_log_path = self.stack_dir("logs/vault/vault.log");
                     if let Some(parent) = vault_log_path.parent() {
@@ -859,10 +858,7 @@ impl BootstrapManager {
                         .output();
                     if let Ok(output) = &check {
                         let pids = String::from_utf8_lossy(&output.stdout);
-                        if !pids.trim().is_empty() {
-                            info!("Vault server started");
-                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
-                        } else {
+                        if pids.trim().is_empty() {
                             debug!("Direct start failed, trying pm.start...");
                             match pm.start("vault") {
                                 Ok(_) => {
@@ -877,6 +873,9 @@ impl BootstrapManager {
                                     ));
                                 }
                             }
+                        } else {
+                            info!("Vault server started");
+                            tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
                         }
                     }
 
@@ -945,14 +944,14 @@ impl BootstrapManager {
 
                 if component == "proxy" {
                     info!("Configuring Caddy reverse proxy...");
-                    if let Err(e) = self.setup_caddy_proxy().await {
+                    if let Err(e) = self.setup_caddy_proxy() {
                         error!("Failed to setup Caddy: {}", e);
                     }
                 }
 
                 if component == "dns" {
                     info!("Configuring CoreDNS for dynamic DNS...");
-                    if let Err(e) = self.setup_coredns().await {
+                    if let Err(e) = self.setup_coredns() {
                         error!("Failed to setup CoreDNS: {}", e);
                     }
                 }
@@ -962,7 +961,7 @@ impl BootstrapManager {
         Ok(())
     }
 
-    async fn configure_services_in_directory(&self, db_password: &str) -> Result<()> {
+    fn configure_services_in_directory(&self, db_password: &str) -> Result<()> {
         info!("Creating Zitadel configuration files...");
 
         let zitadel_config_path = self.stack_dir("conf/directory/zitadel.yaml");
@@ -976,7 +975,7 @@ impl BootstrapManager {
 
         fs::create_dir_all(zitadel_config_path.parent().unwrap())?;
 
-        let zitadel_db_password = self.generate_secure_password(24);
+        let zitadel_db_password = Self::generate_secure_password(24);
 
         let zitadel_config = format!(
             r#"Log:
@@ -1048,7 +1047,7 @@ DefaultInstance:
       PasswordChangeRequired: false
 "#,
             pat_path.to_string_lossy(),
-            self.generate_secure_password(16),
+            Self::generate_secure_password(16),
         );
 
         fs::write(&steps_config_path, steps_config)?;
@@ -1090,7 +1089,7 @@ DefaultInstance:
         Ok(())
     }
 
-    async fn setup_caddy_proxy(&self) -> Result<()> {
+    fn setup_caddy_proxy(&self) -> Result<()> {
         let caddy_config = self.stack_dir("conf/proxy/Caddyfile");
         fs::create_dir_all(caddy_config.parent().unwrap())?;
 
@@ -1142,7 +1141,7 @@ meet.botserver.local {{
         Ok(())
     }
 
-    async fn setup_coredns(&self) -> Result<()> {
+    fn setup_coredns(&self) -> Result<()> {
         let dns_config = self.stack_dir("conf/dns/Corefile");
         fs::create_dir_all(dns_config.parent().unwrap())?;
 
@@ -1262,7 +1261,7 @@ meet        IN      A       127.0.0.1
             Ok(org_id) => {
                 info!("Created default organization: {}", org_name);
 
-                let user_password = self.generate_secure_password(16);
+                let user_password = Self::generate_secure_password(16);
 
                 match setup
                     .create_user(
@@ -1407,7 +1406,10 @@ meet        IN      A       127.0.0.1
                     }
                 }
             } else {
-                error!("Vault log file does not exist at {:?}", vault_log_path);
+                error!(
+                    "Vault log file does not exist at {}",
+                    vault_log_path.display()
+                );
             }
             return Err(anyhow::anyhow!(
                 "Vault not ready after {} seconds. Check ./botserver-stack/logs/vault/vault.log for details.",
@@ -1608,7 +1610,9 @@ VAULT_CACHE_TTL=300
             output.map(|o| o.status.success()).unwrap_or(false)
         };
 
-        if !secret_exists("secret/gbo/tables") {
+        if secret_exists("secret/gbo/tables") {
+            info!("  Database credentials already exist - preserving");
+        } else {
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1617,11 +1621,11 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Stored database credentials");
-        } else {
-            info!("  Database credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/drive") {
+        if secret_exists("secret/gbo/drive") {
+            info!("  Drive credentials already exist - preserving");
+        } else {
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1630,11 +1634,11 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Stored drive credentials");
-        } else {
-            info!("  Drive credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/cache") {
+        if secret_exists("secret/gbo/cache") {
+            info!("  Cache credentials already exist - preserving");
+        } else {
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1643,11 +1647,11 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Stored cache credentials");
-        } else {
-            info!("  Cache credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/directory") {
+        if secret_exists("secret/gbo/directory") {
+            info!("  Directory credentials already exist - preserving");
+        } else {
             use rand::Rng;
             let masterkey: String = rand::rng()
                 .sample_iter(&rand::distr::Alphanumeric)
@@ -1662,11 +1666,11 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Created directory placeholder with masterkey");
-        } else {
-            info!("  Directory credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/llm") {
+        if secret_exists("secret/gbo/llm") {
+            info!("  LLM credentials already exist - preserving");
+        } else {
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1675,11 +1679,11 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Created LLM placeholder");
-        } else {
-            info!("  LLM credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/email") {
+        if secret_exists("secret/gbo/email") {
+            info!("  Email credentials already exist - preserving");
+        } else {
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1688,12 +1692,12 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Created email placeholder");
-        } else {
-            info!("  Email credentials already exist - preserving");
         }
 
-        if !secret_exists("secret/gbo/encryption") {
-            let encryption_key = self.generate_secure_password(32);
+        if secret_exists("secret/gbo/encryption") {
+            info!("  Encryption key already exists - preserving (CRITICAL)");
+        } else {
+            let encryption_key = Self::generate_secure_password(32);
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
@@ -1702,8 +1706,6 @@ VAULT_CACHE_TTL=300
                 ))
                 .output()?;
             info!("  Generated and stored encryption key");
-        } else {
-            info!("  Encryption key already exists - preserving (CRITICAL)");
         }
 
         info!("Vault setup complete!");
@@ -1791,7 +1793,7 @@ VAULT_CACHE_TTL=300
 
     pub fn sync_templates_to_database(&self) -> Result<()> {
         let mut conn = establish_pg_connection()?;
-        self.create_bots_from_templates(&mut conn)?;
+        Self::create_bots_from_templates(&mut conn)?;
         Ok(())
     }
 
@@ -1807,7 +1809,7 @@ VAULT_CACHE_TTL=300
 
         let templates_dir = match templates_dir {
             Some(dir) => {
-                info!("Using templates from: {:?}", dir);
+                info!("Using templates from: {}", dir.display());
                 dir
             }
             None => {
@@ -1831,8 +1833,7 @@ VAULT_CACHE_TTL=300
                 if client.head_bucket().bucket(&bucket).send().await.is_err() {
                     match client.create_bucket().bucket(&bucket).send().await {
                         Ok(_) => {
-                            self.upload_directory_recursive(&client, &path, &bucket, "/")
-                                .await?;
+                            Self::upload_directory_recursive(&client, &path, &bucket, "/").await?;
                         }
                         Err(e) => {
                             error!("Failed to create bucket {}: {:?}", bucket, e);
@@ -1844,7 +1845,7 @@ VAULT_CACHE_TTL=300
         }
         Ok(())
     }
-    fn create_bots_from_templates(&self, conn: &mut diesel::PgConnection) -> Result<()> {
+    fn create_bots_from_templates(conn: &mut diesel::PgConnection) -> Result<()> {
         use crate::shared::models::schema::bots;
         use diesel::prelude::*;
 
@@ -1857,12 +1858,12 @@ VAULT_CACHE_TTL=300
 
         let templates_dir = possible_paths
             .iter()
-            .map(|p| PathBuf::from(p))
+            .map(PathBuf::from)
             .find(|p| p.exists());
 
         let templates_dir = match templates_dir {
             Some(dir) => {
-                info!("Loading templates from: {:?}", dir);
+                info!("Loading templates from: {}", dir.display());
                 dir
             }
             None => {
@@ -1880,12 +1881,9 @@ VAULT_CACHE_TTL=300
             .first(conn)
             .optional()?;
 
-        let (default_bot_id, default_bot_name) = match default_bot {
-            Some((id, name)) => (id, name),
-            None => {
-                error!("No active bot found in database - cannot sync template configs");
-                return Ok(());
-            }
+        let Some((default_bot_id, default_bot_name)) = default_bot else {
+            error!("No active bot found in database - cannot sync template configs");
+            return Ok(());
         };
 
         info!(
@@ -1894,16 +1892,19 @@ VAULT_CACHE_TTL=300
         );
 
         let default_template = templates_dir.join("default.gbai");
-        info!("Looking for default template at: {:?}", default_template);
+        info!(
+            "Looking for default template at: {}",
+            default_template.display()
+        );
         if default_template.exists() {
             let config_path = default_template.join("default.gbot").join("config.csv");
 
             if config_path.exists() {
                 match std::fs::read_to_string(&config_path) {
                     Ok(csv_content) => {
-                        debug!("Syncing config.csv from {:?}", config_path);
+                        debug!("Syncing config.csv from {}", config_path.display());
                         if let Err(e) =
-                            self.sync_config_csv_to_db(conn, &default_bot_id, &csv_content)
+                            Self::sync_config_csv_to_db(conn, &default_bot_id, &csv_content)
                         {
                             error!("Failed to sync config.csv: {}", e);
                         }
@@ -1913,7 +1914,7 @@ VAULT_CACHE_TTL=300
                     }
                 }
             } else {
-                debug!("No config.csv found at {:?}", config_path);
+                debug!("No config.csv found at {}", config_path.display());
             }
         } else {
             debug!("default.gbai template not found");
@@ -1923,7 +1924,6 @@ VAULT_CACHE_TTL=300
     }
 
     fn sync_config_csv_to_db(
-        &self,
         conn: &mut diesel::PgConnection,
         bot_id: &uuid::Uuid,
         content: &str,
@@ -1991,7 +1991,6 @@ VAULT_CACHE_TTL=300
         Ok(())
     }
     fn upload_directory_recursive<'a>(
-        &'a self,
         client: &'a Client,
         local_path: &'a Path,
         bucket: &'a str,
@@ -2022,8 +2021,7 @@ VAULT_CACHE_TTL=300
                         .send()
                         .await?;
                 } else if path.is_dir() {
-                    self.upload_directory_recursive(client, &path, bucket, &key)
-                        .await?;
+                    Self::upload_directory_recursive(client, &path, bucket, &key).await?;
                 }
             }
             Ok(())
@@ -2042,7 +2040,7 @@ VAULT_CACHE_TTL=300
         Ok(())
     }
 
-    async fn create_vault_config(&self) -> Result<()> {
+    fn create_vault_config(&self) -> Result<()> {
         let vault_conf_dir = self.stack_dir("conf/vault");
         let config_path = vault_conf_dir.join("config.hcl");
 
@@ -2094,7 +2092,7 @@ log_level = "info"
         Ok(())
     }
 
-    async fn generate_certificates(&self) -> Result<()> {
+    fn generate_certificates(&self) -> Result<()> {
         let cert_dir = self.stack_dir("conf/system/certificates");
 
         fs::create_dir_all(&cert_dir)?;
@@ -2255,7 +2253,7 @@ log_level = "info"
             let mut dn = DistinguishedName::new();
             dn.push(DnType::CountryName, "BR");
             dn.push(DnType::OrganizationName, "BotServer");
-            dn.push(DnType::CommonName, &format!("{}.botserver.local", service));
+            dn.push(DnType::CommonName, format!("{service}.botserver.local"));
             params.distinguished_name = dn;
 
             for san in sans {

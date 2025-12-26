@@ -1,59 +1,23 @@
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-
-
 pub use super::schema;
 
-
 pub use super::schema::{
-    basic_tools,
-    bot_configuration,
-    bot_memories,
-    bots,
-    clicks,
-
-    distribution_lists,
-    email_auto_responders,
-    email_drafts,
-    email_folders,
-    email_label_assignments,
-    email_labels,
-    email_rules,
-    email_signatures,
-    email_templates,
-    global_email_signatures,
-    kb_collections,
-    kb_documents,
-    message_history,
-    organizations,
-    scheduled_emails,
-    session_tool_associations,
-    shared_mailbox_members,
-    shared_mailboxes,
-    system_automations,
-    tasks,
-    user_email_accounts,
-    user_kb_associations,
-    user_login_tokens,
-    user_preferences,
-    user_sessions,
-    users,
+    basic_tools, bot_configuration, bot_memories, bots, clicks, distribution_lists,
+    email_auto_responders, email_drafts, email_folders, email_label_assignments, email_labels,
+    email_rules, email_signatures, email_templates, global_email_signatures, kb_collections,
+    kb_documents, message_history, organizations, scheduled_emails, session_tool_associations,
+    shared_mailbox_members, shared_mailboxes, system_automations, tasks, user_email_accounts,
+    user_kb_associations, user_login_tokens, user_preferences, user_sessions, users,
 };
-
 
 pub use botlib::message_types::MessageType;
 pub use botlib::models::{ApiResponse, Attachment, BotResponse, Session, Suggestion, UserMessage};
 
-
-#[derive(Debug, Clone, Copy, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TriggerKind {
     Scheduled = 0,
     TableUpdate = 1,
@@ -79,7 +43,6 @@ impl TriggerKind {
     }
 }
 
-
 #[derive(Debug, Queryable, Serialize, Deserialize, Identifiable)]
 #[diesel(table_name = system_automations)]
 pub struct Automation {
@@ -92,7 +55,6 @@ pub struct Automation {
     pub is_active: bool,
     pub last_triggered: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Selectable)]
 #[diesel(table_name = user_sessions)]
@@ -107,7 +69,6 @@ pub struct UserSession {
     pub updated_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable, Insertable)]
 #[diesel(table_name = bot_memories)]
 pub struct BotMemory {
@@ -118,7 +79,6 @@ pub struct BotMemory {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = users)]
@@ -132,7 +92,6 @@ pub struct User {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = bots)]
@@ -150,7 +109,6 @@ pub struct Bot {
     pub tenant_id: Option<Uuid>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = organizations)]
 #[diesel(primary_key(org_id))]
@@ -160,7 +118,6 @@ pub struct Organization {
     pub slug: String,
     pub created_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = message_history)]
@@ -175,7 +132,6 @@ pub struct MessageHistory {
     pub created_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = bot_configuration)]
 pub struct BotConfiguration {
@@ -188,7 +144,6 @@ pub struct BotConfiguration {
     pub created_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_login_tokens)]
@@ -204,7 +159,6 @@ pub struct UserLoginToken {
     pub is_active: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = user_preferences)]
 pub struct UserPreference {
@@ -216,7 +170,6 @@ pub struct UserPreference {
     pub updated_at: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = clicks)]
 pub struct Click {
@@ -225,7 +178,6 @@ pub struct Click {
     pub email: String,
     pub updated_at: DateTime<Utc>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, Queryable, Identifiable)]
 #[diesel(table_name = tasks)]
@@ -248,7 +200,6 @@ pub struct Task {
     pub updated_at: DateTime<Utc>,
     pub completed_at: Option<DateTime<Utc>>,
 }
-
 
 #[derive(Debug, Clone, Insertable)]
 #[diesel(table_name = tasks)]

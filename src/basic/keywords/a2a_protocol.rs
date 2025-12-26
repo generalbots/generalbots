@@ -8,11 +8,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum A2AMessageType {
-
     Request,
 
     Response,
@@ -30,20 +27,20 @@ pub enum A2AMessageType {
 
 impl Default for A2AMessageType {
     fn default() -> Self {
-        A2AMessageType::Request
+        Self::Request
     }
 }
 
 impl std::fmt::Display for A2AMessageType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            A2AMessageType::Request => write!(f, "request"),
-            A2AMessageType::Response => write!(f, "response"),
-            A2AMessageType::Broadcast => write!(f, "broadcast"),
-            A2AMessageType::Delegate => write!(f, "delegate"),
-            A2AMessageType::Collaborate => write!(f, "collaborate"),
-            A2AMessageType::Ack => write!(f, "ack"),
-            A2AMessageType::Error => write!(f, "error"),
+            Self::Request => write!(f, "request"),
+            Self::Response => write!(f, "response"),
+            Self::Broadcast => write!(f, "broadcast"),
+            Self::Delegate => write!(f, "delegate"),
+            Self::Collaborate => write!(f, "collaborate"),
+            Self::Ack => write!(f, "ack"),
+            Self::Error => write!(f, "error"),
         }
     }
 }
@@ -51,22 +48,19 @@ impl std::fmt::Display for A2AMessageType {
 impl From<&str> for A2AMessageType {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "request" => A2AMessageType::Request,
-            "response" => A2AMessageType::Response,
-            "broadcast" => A2AMessageType::Broadcast,
-            "delegate" => A2AMessageType::Delegate,
-            "collaborate" => A2AMessageType::Collaborate,
-            "ack" => A2AMessageType::Ack,
-            "error" => A2AMessageType::Error,
-            _ => A2AMessageType::Request,
+            "response" => Self::Response,
+            "broadcast" => Self::Broadcast,
+            "delegate" => Self::Delegate,
+            "collaborate" => Self::Collaborate,
+            "ack" => Self::Ack,
+            "error" => Self::Error,
+            _ => Self::Request,
         }
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct A2AMessage {
-
     pub id: Uuid,
 
     pub from_agent: String,
@@ -113,7 +107,6 @@ impl A2AMessage {
         }
     }
 
-
     pub fn create_response(&self, from_agent: &str, payload: serde_json::Value) -> Self {
         Self {
             id: Uuid::new_v4(),
@@ -130,26 +123,22 @@ impl A2AMessage {
         }
     }
 
-
     pub fn is_expired(&self) -> bool {
         if self.ttl_seconds == 0 {
             return false;
         }
         let now = chrono::Utc::now();
-        let expiry = self.timestamp + chrono::Duration::seconds(self.ttl_seconds as i64);
+        let expiry = self.timestamp + chrono::Duration::seconds(i64::from(self.ttl_seconds));
         now > expiry
     }
-
 
     pub fn max_hops_exceeded(&self, max_hops: u32) -> bool {
         self.hop_count >= max_hops
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct A2AConfig {
-
     pub enabled: bool,
 
     pub timeout_seconds: u32,
@@ -178,7 +167,6 @@ impl Default for A2AConfig {
         }
     }
 }
-
 
 pub fn load_a2a_config(state: &AppState, bot_id: Uuid) -> A2AConfig {
     let mut config = A2AConfig::default();
@@ -231,25 +219,22 @@ pub fn load_a2a_config(state: &AppState, bot_id: Uuid) -> A2AConfig {
     config
 }
 
-
 pub fn register_a2a_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    send_to_bot_keyword(state.clone(), user.clone(), engine);
-    broadcast_message_keyword(state.clone(), user.clone(), engine);
-    collaborate_with_keyword(state.clone(), user.clone(), engine);
-    wait_for_bot_keyword(state.clone(), user.clone(), engine);
-    delegate_conversation_keyword(state.clone(), user.clone(), engine);
-    get_a2a_messages_keyword(state.clone(), user.clone(), engine);
+    send_to_bot_keyword(Arc::clone(&state), user.clone(), engine);
+    broadcast_message_keyword(Arc::clone(&state), user.clone(), engine);
+    collaborate_with_keyword(Arc::clone(&state), user.clone(), engine);
+    wait_for_bot_keyword(Arc::clone(&state), user.clone(), engine);
+    delegate_conversation_keyword(Arc::clone(&state), user.clone(), engine);
+    get_a2a_messages_keyword(state, user, engine);
 }
-
-
 
 pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SEND", "TO", "BOT", "$expr$", "MESSAGE", "$expr$"],
+            ["SEND", "TO", "BOT", "$expr$", "MESSAGE", "$expr$"],
             false,
             move |context, inputs| {
                 let target_bot = context
@@ -287,7 +272,6 @@ pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                             A2AMessageType::Request,
                             serde_json::json!({ "content": message_content }),
                         )
-                        .await
                     });
                     let _ = tx.send(result);
                 });
@@ -308,15 +292,13 @@ pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .expect("Failed to register SEND TO BOT syntax");
 }
 
-
-
 pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["BROADCAST", "MESSAGE", "$expr$"],
+            ["BROADCAST", "MESSAGE", "$expr$"],
             false,
             move |context, inputs| {
                 let message_content = context
@@ -345,7 +327,6 @@ pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine
                             A2AMessageType::Broadcast,
                             serde_json::json!({ "content": message_content }),
                         )
-                        .await
                     });
                     let _ = tx.send(result);
                 });
@@ -366,15 +347,13 @@ pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine
         .expect("Failed to register BROADCAST MESSAGE syntax");
 }
 
-
-
 pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["COLLABORATE", "WITH", "$expr$", "ON", "$expr$"],
+            ["COLLABORATE", "WITH", "$expr$", "ON", "$expr$"],
             false,
             move |context, inputs| {
                 let bots_str = context
@@ -423,9 +402,7 @@ pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine:
                                     "task": task,
                                     "collaborators": bots.clone()
                                 }),
-                            )
-                            .await
-                            {
+                            ) {
                                 Ok(id) => message_ids.push(id.to_string()),
                                 Err(e) => {
                                     warn!(
@@ -459,15 +436,13 @@ pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine:
         .expect("Failed to register COLLABORATE WITH syntax");
 }
 
-
-
 pub fn wait_for_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["WAIT", "FOR", "BOT", "$expr$", "TIMEOUT", "$expr$"],
+            ["WAIT", "FOR", "BOT", "$expr$", "TIMEOUT", "$expr$"],
             false,
             move |context, inputs| {
                 let target_bot = context
@@ -520,15 +495,13 @@ pub fn wait_for_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         .expect("Failed to register WAIT FOR BOT syntax");
 }
 
-
-
 pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["DELEGATE", "CONVERSATION", "TO", "$expr$"],
+            ["DELEGATE", "CONVERSATION", "TO", "$expr$"],
             false,
             move |context, inputs| {
                 let target_bot = context
@@ -553,7 +526,6 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
                 std::thread::spawn(move || {
                     let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
                     let result = rt.block_on(async {
-
                         send_a2a_message(
                             &state_for_task,
                             session_id,
@@ -561,14 +533,12 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
                             Some(&target_bot),
                             A2AMessageType::Delegate,
                             serde_json::json!({
-                                "action": "take_over",
-                                "reason": "delegation_request"
+                                "action": "delegate",
+                                "from_bot": from_bot
                             }),
-                        )
-                        .await?;
+                        )?;
 
-
-                        set_session_active_bot(&state_for_task, session_id, &target_bot).await
+                        set_session_active_bot(&state_for_task, session_id, &target_bot)
                     });
                     let _ = tx.send(result);
                 });
@@ -589,11 +559,9 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
         .expect("Failed to register DELEGATE CONVERSATION syntax");
 }
 
-
-
 pub fn get_a2a_messages_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_fn("GET A2A MESSAGES", move || -> rhai::Array {
         let state = Arc::clone(&state_clone);
@@ -613,10 +581,7 @@ pub fn get_a2a_messages_keyword(state: Arc<AppState>, user: UserSession, engine:
     });
 }
 
-
-
-
-async fn send_a2a_message(
+fn send_a2a_message(
     state: &AppState,
     session_id: Uuid,
     from_agent: &str,
@@ -666,7 +631,6 @@ async fn send_a2a_message(
     Ok(message_id)
 }
 
-
 async fn wait_for_bot_response(
     state: &AppState,
     session_id: Uuid,
@@ -681,7 +645,6 @@ async fn wait_for_bot_response(
         if start.elapsed() > timeout {
             return Err("Timeout waiting for bot response".to_string());
         }
-
 
         if let Ok(mut conn) = state.conn.get() {
             #[derive(QueryableByName)]
@@ -706,11 +669,9 @@ async fn wait_for_bot_response(
             .map_err(|e| format!("Failed to query messages: {}", e))?;
 
             if let Some(msg) = result {
-
                 let _ = diesel::sql_query("UPDATE a2a_messages SET processed = true WHERE id = $1")
                     .bind::<diesel::sql_types::Uuid, _>(msg.id)
                     .execute(&mut conn);
-
 
                 if let Ok(payload) = serde_json::from_str::<serde_json::Value>(&msg.payload) {
                     if let Some(content) = payload.get("content").and_then(|c| c.as_str()) {
@@ -721,13 +682,11 @@ async fn wait_for_bot_response(
             }
         }
 
-
         tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
     }
 }
 
-
-async fn set_session_active_bot(
+fn set_session_active_bot(
     state: &AppState,
     session_id: Uuid,
     bot_name: &str,
@@ -756,7 +715,6 @@ async fn set_session_active_bot(
 
     Ok(format!("Conversation delegated to {}", bot_name))
 }
-
 
 fn get_pending_messages_sync(
     conn: &mut diesel::PgConnection,
@@ -807,7 +765,7 @@ fn get_pending_messages_sync(
             from_agent: row.from_agent,
             to_agent: row.to_agent,
             message_type: A2AMessageType::from(row.message_type.as_str()),
-            payload: serde_json::from_str(&row.payload).unwrap_or(serde_json::json!({})),
+            payload: serde_json::from_str(&row.payload).unwrap_or_else(|_| serde_json::json!({})),
             correlation_id: row.correlation_id,
             timestamp: row.timestamp,
             metadata: HashMap::new(),
@@ -820,8 +778,7 @@ fn get_pending_messages_sync(
     Ok(messages)
 }
 
-
-pub async fn respond_to_a2a_message(
+pub fn respond_to_a2a_message(
     state: &AppState,
     original_message: &A2AMessage,
     from_agent: &str,
@@ -835,7 +792,4 @@ pub async fn respond_to_a2a_message(
         A2AMessageType::Response,
         serde_json::json!({ "content": response_content }),
     )
-    .await
 }
-
-

@@ -10,7 +10,7 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, Mutex};
 #[async_trait]
 pub trait ChannelAdapter: Send + Sync {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "Unknown"
     }
 
@@ -44,6 +44,12 @@ pub trait ChannelAdapter: Send + Sync {
 pub struct WebChannelAdapter {
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
+impl Default for WebChannelAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl WebChannelAdapter {
     pub fn new() -> Self {
         Self {
@@ -97,6 +103,12 @@ pub struct VoiceAdapter {
     rooms: Arc<Mutex<HashMap<String, String>>>,
     connections: Arc<Mutex<HashMap<String, mpsc::Sender<BotResponse>>>>,
 }
+impl Default for VoiceAdapter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl VoiceAdapter {
     pub fn new() -> Self {
         Self {

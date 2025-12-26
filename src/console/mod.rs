@@ -45,7 +45,13 @@ pub struct XtreeUI {
     state_channel: Option<Arc<tokio::sync::Mutex<tokio::sync::mpsc::Receiver<Arc<AppState>>>>>,
     bootstrap_status: String,
 }
-#[derive(Debug, Clone, Copy, PartialEq)]
+impl Default for XtreeUI {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum ActivePanel {
     FileTree,
     Editor,
@@ -60,7 +66,7 @@ impl XtreeUI {
             app_state: None,
             file_tree: None,
             status_panel: None,
-            log_panel: log_panel.clone(),
+            log_panel,
             chat_panel: None,
             editor: None,
             active_panel: ActivePanel::Logs,
@@ -103,7 +109,7 @@ impl XtreeUI {
         let mut terminal = Terminal::new(backend)?;
 
         if let Err(e) = init_logger(self.log_panel.clone()) {
-            eprintln!("Warning: Could not initialize UI logger: {}", e);
+            eprintln!("Warning: Could not initialize UI logger: {e}");
         }
         log::set_max_level(log::LevelFilter::Trace);
         let result = self.run_event_loop(&mut terminal);
@@ -149,10 +155,10 @@ impl XtreeUI {
                                 "Starting bootstrap...".to_string()
                             }
                             crate::BootstrapProgress::InstallingComponent(name) => {
-                                format!("Installing: {}", name)
+                                format!("Installing: {name}")
                             }
                             crate::BootstrapProgress::StartingComponent(name) => {
-                                format!("Starting: {}", name)
+                                format!("Starting: {name}")
                             }
                             crate::BootstrapProgress::UploadingTemplates => {
                                 "Uploading templates...".to_string()
@@ -167,7 +173,7 @@ impl XtreeUI {
                                 "Bootstrap complete".to_string()
                             }
                             crate::BootstrapProgress::BootstrapError(msg) => {
-                                format!("Error: {}", msg)
+                                format!("Error: {msg}")
                             }
                         };
                     }
@@ -180,16 +186,18 @@ impl XtreeUI {
             terminal.draw(|f| self.render(f, cursor_blink))?;
             if self.app_state.is_some() && last_update.elapsed() >= update_interval {
                 if let Err(e) = rt.block_on(self.update_data()) {
-                    let mut log_panel = self.log_panel.lock().unwrap();
-                    log_panel.add_log(&format!("Update error: {}", e));
+                    if let Ok(mut log_panel) = self.log_panel.lock() {
+                        log_panel.add_log(&format!("Update error: {e}"));
+                    }
                 }
                 last_update = std::time::Instant::now();
             }
             if event::poll(std::time::Duration::from_millis(50))? {
                 if let Event::Key(key) = event::read()? {
                     if let Err(e) = rt.block_on(self.handle_input(key.code, key.modifiers)) {
-                        let mut log_panel = self.log_panel.lock().unwrap();
-                        log_panel.add_log(&format!("Input error: {}", e));
+                        if let Ok(mut log_panel) = self.log_panel.lock() {
+                            log_panel.add_log(&format!("Input error: {e}"));
+                        }
                     }
                     if self.should_quit {
                         break;
@@ -208,7 +216,14 @@ impl XtreeUI {
         let header_bg_color = Color::Rgb(170, 170, 170);
         let header_text_color = Color::Rgb(0, 0, 0);
         if self.app_state.is_none() {
-            self.render_loading(f, bg, text, border_focused, header_bg_color, header_text_color);
+            self.render_loading(
+                f,
+                bg,
+                text,
+                border_focused,
+                header_bg_color,
+                header_text_color,
+            );
             return;
         }
         let main_chunks = Layout::default()
@@ -220,26 +235,29 @@ impl XtreeUI {
             ])
             .split(f.area());
         self.render_header(f, main_chunks[0], bg, header_bg_color, header_text_color);
+
+        let content_chunks = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([
+                Constraint::Percentage(25),
+                Constraint::Percentage(40),
+                Constraint::Percentage(35),
+            ])
+            .split(main_chunks[1]);
+
+        self.render_file_tree(
+            f,
+            content_chunks[0],
+            bg,
+            text,
+            border_focused,
+            border_dim,
+            highlight,
+            header_bg_color,
+            header_text_color,
+        );
+
         if self.editor.is_some() {
-            let content_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(40),
-                    Constraint::Percentage(35),
-                ])
-                .split(main_chunks[1]);
-            self.render_file_tree(
-                f,
-                content_chunks[0],
-                bg,
-                text,
-                border_focused,
-                border_dim,
-                highlight,
-                header_bg_color,
-                header_text_color,
-            );
             if let Some(editor) = &mut self.editor {
                 let area = content_chunks[1];
                 editor.set_visible_lines(area.height.saturating_sub(4) as usize);
@@ -282,25 +300,6 @@ impl XtreeUI {
                 header_text_color,
             );
         } else {
-            let content_chunks = Layout::default()
-                .direction(Direction::Horizontal)
-                .constraints([
-                    Constraint::Percentage(25),
-                    Constraint::Percentage(40),
-                    Constraint::Percentage(35),
-                ])
-                .split(main_chunks[1]);
-            self.render_file_tree(
-                f,
-                content_chunks[0],
-                bg,
-                text,
-                border_focused,
-                border_dim,
-                highlight,
-                header_bg_color,
-                header_text_color,
-            );
             let right_chunks = Layout::default()
                 .direction(Direction::Vertical)
                 .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
@@ -318,7 +317,7 @@ impl XtreeUI {
             );
             self.render_status(
                 f,
-                content_chunks[1],
+                content_chunks[2],
                 bg,
                 text,
                 border_focused,
@@ -351,7 +350,7 @@ impl XtreeUI {
         let block = Block::default().style(Style::default().bg(header_bg_color));
         f.render_widget(block, area);
         let title = if self.app_state.is_some() {
-            let components = vec![
+            let components = [
                 ("Tables", "postgres", "5432"),
                 ("Cache", "valkey-server", "6379"),
                 ("Drive", "minio", "9000"),
@@ -360,12 +359,9 @@ impl XtreeUI {
             let statuses: Vec<String> = components
                 .iter()
                 .map(|(comp_name, process, _port)| {
-                    let status = if status_panel::StatusPanel::check_component_running(process) {
-                        format!(" {}", comp_name)
-                    } else {
-                        format!(" {}", comp_name)
-                    };
-                    status
+                    let running = status_panel::StatusPanel::check_component_running(process);
+                    let icon = if running { "●" } else { "○" };
+                    format!("{icon} {comp_name}")
                 })
                 .collect();
             format!(" GENERAL BOTS ┃ {} ", statuses.join(" ┃ "))
@@ -510,10 +506,12 @@ impl XtreeUI {
             .style(Style::default().bg(bg));
 
         let logs_visible_lines = main_chunks[2].height.saturating_sub(2) as usize;
-        let logs_content = if let Ok(panel) = self.log_panel.lock() {
-            panel.render(logs_visible_lines)
-        } else {
-            String::from("  Waiting for logs...")
+        let logs_content = {
+            if let Ok(panel) = self.log_panel.lock() {
+                panel.render(logs_visible_lines)
+            } else {
+                String::from("  Waiting for logs...")
+            }
         };
 
         let logs_para = Paragraph::new(logs_content)
@@ -653,11 +651,11 @@ impl XtreeUI {
             let selected_bot = if let Some(file_tree) = &self.file_tree {
                 file_tree
                     .get_selected_bot()
-                    .unwrap_or("No bot selected".to_string())
+                    .unwrap_or_else(|| "No bot selected".to_string())
             } else {
                 "No bot selected".to_string()
             };
-            let title_text = format!(" CHAT: {} ", selected_bot);
+            let title_text = format!(" CHAT: {selected_bot} ");
             let block = Block::default()
                 .title(Span::styled(title_text, title_style))
                 .borders(Borders::ALL)
@@ -685,8 +683,8 @@ impl XtreeUI {
     ) {
         let visible_lines = area.height.saturating_sub(2) as usize;
 
-        let log_panel = self.log_panel.try_lock();
-        let (log_lines, can_scroll_up, can_scroll_down, logs_count, auto_scroll) =
+        let (log_lines, can_scroll_up, can_scroll_down, logs_count, auto_scroll) = {
+            let log_panel = self.log_panel.try_lock();
             if let Ok(panel) = log_panel {
                 let (content, up, down) = panel.render_with_scroll_indicator(visible_lines);
                 (
@@ -698,7 +696,8 @@ impl XtreeUI {
                 )
             } else {
                 ("Loading logs...".to_string(), false, false, 0, true)
-            };
+            }
+        };
 
         let is_active = self.active_panel == ActivePanel::Logs;
         let border_color = if is_active {
@@ -726,10 +725,7 @@ impl XtreeUI {
         };
 
         let auto_indicator = if auto_scroll { "" } else { " [SCROLL] " };
-        let title_text = format!(
-            " SYSTEM LOGS ({}) {}{}",
-            logs_count, scroll_indicator, auto_indicator
-        );
+        let title_text = format!(" SYSTEM LOGS ({logs_count}) {scroll_indicator}{auto_indicator}");
 
         let block = Block::default()
             .title(Span::styled(title_text, title_style))
@@ -753,10 +749,10 @@ impl XtreeUI {
                     if let Some(editor) = &mut self.editor {
                         if let Some(app_state) = &self.app_state {
                             if let Err(e) = editor.save(app_state).await {
-                                let mut log_panel = self.log_panel.lock().unwrap();
-                                log_panel.add_log(&format!("Save failed: {}", e));
-                            } else {
-                                let mut log_panel = self.log_panel.lock().unwrap();
+                                if let Ok(mut log_panel) = self.log_panel.lock() {
+                                    log_panel.add_log(&format!("Save failed: {e}"));
+                                }
+                            } else if let Ok(mut log_panel) = self.log_panel.lock() {
                                 log_panel.add_log(&format!("Saved: {}", editor.file_path()));
                             }
                         }
@@ -767,8 +763,9 @@ impl XtreeUI {
                     if self.editor.is_some() {
                         self.editor = None;
                         self.active_panel = ActivePanel::FileTree;
-                        let mut log_panel = self.log_panel.lock().unwrap();
-                        log_panel.add_log("Closed editor");
+                        if let Ok(mut log_panel) = self.log_panel.lock() {
+                            log_panel.add_log("Closed editor");
+                        }
                     }
                     return Ok(());
                 }
@@ -792,16 +789,18 @@ impl XtreeUI {
                 }
                 KeyCode::Enter => {
                     if let Err(e) = self.handle_tree_enter().await {
-                        let mut log_panel = self.log_panel.lock().unwrap();
-                        log_panel.add_log(&format!("Enter error: {}", e));
+                        if let Ok(mut log_panel) = self.log_panel.lock() {
+                            log_panel.add_log(&format!("Enter error: {e}"));
+                        }
                     }
                 }
                 KeyCode::Backspace => {
                     if let Some(file_tree) = &mut self.file_tree {
                         if file_tree.go_up() {
                             if let Err(e) = file_tree.refresh_current().await {
-                                let mut log_panel = self.log_panel.lock().unwrap();
-                                log_panel.add_log(&format!("Navigation error: {}", e));
+                                if let Ok(mut log_panel) = self.log_panel.lock() {
+                                    log_panel.add_log(&format!("Navigation error: {e}"));
+                                }
                             }
                         }
                     }
@@ -819,10 +818,10 @@ impl XtreeUI {
                 KeyCode::F(5) => {
                     if let Some(file_tree) = &mut self.file_tree {
                         if let Err(e) = file_tree.refresh_current().await {
-                            let mut log_panel = self.log_panel.lock().unwrap();
-                            log_panel.add_log(&format!("Refresh failed: {}", e));
-                        } else {
-                            let mut log_panel = self.log_panel.lock().unwrap();
+                            if let Ok(mut log_panel) = self.log_panel.lock() {
+                                log_panel.add_log(&format!("Refresh failed: {e}"));
+                            }
+                        } else if let Ok(mut log_panel) = self.log_panel.lock() {
                             log_panel.add_log("Refreshed");
                         }
                     }
@@ -858,8 +857,9 @@ impl XtreeUI {
                         KeyCode::Esc => {
                             self.editor = None;
                             self.active_panel = ActivePanel::FileTree;
-                            let mut log_panel = self.log_panel.lock().unwrap();
-                            log_panel.add_log("Closed editor");
+                            if let Ok(mut log_panel) = self.log_panel.lock() {
+                                log_panel.add_log("Closed editor");
+                            }
                         }
                         _ => {}
                     }
@@ -918,8 +918,9 @@ impl XtreeUI {
                     {
                         if let Some(bot_name) = file_tree.get_selected_bot() {
                             if let Err(e) = chat_panel.send_message(&bot_name, app_state).await {
-                                let mut log_panel = self.log_panel.lock().unwrap();
-                                log_panel.add_log(&format!("Chat error: {}", e));
+                                if let Ok(mut log_panel) = self.log_panel.lock() {
+                                    log_panel.add_log(&format!("Chat error: {e}"));
+                                }
                             }
                         }
                     }
@@ -936,12 +937,11 @@ impl XtreeUI {
                 }
                 _ => {}
             },
-            ActivePanel::Status => match key {
-                KeyCode::Tab => {
+            ActivePanel::Status => {
+                if key == KeyCode::Tab {
                     self.active_panel = ActivePanel::Chat;
                 }
-                _ => {}
-            },
+            }
         }
         Ok(())
     }
@@ -951,25 +951,29 @@ impl XtreeUI {
                 match node {
                     TreeNode::Bucket { name, .. } => {
                         file_tree.enter_bucket(name.clone()).await?;
-                        let mut log_panel = self.log_panel.lock().unwrap();
-                        log_panel.add_log(&format!("Opened bucket: {}", name));
+                        if let Ok(mut log_panel) = self.log_panel.lock() {
+                            log_panel.add_log(&format!("Opened bucket: {name}"));
+                        }
                     }
                     TreeNode::Folder { bucket, path, .. } => {
                         file_tree.enter_folder(bucket.clone(), path.clone()).await?;
-                        let mut log_panel = self.log_panel.lock().unwrap();
-                        log_panel.add_log(&format!("Opened folder: {}", path));
+                        if let Ok(mut log_panel) = self.log_panel.lock() {
+                            log_panel.add_log(&format!("Opened folder: {path}"));
+                        }
                     }
                     TreeNode::File { bucket, path, .. } => {
                         match Editor::load(app_state, &bucket, &path).await {
                             Ok(editor) => {
                                 self.editor = Some(editor);
                                 self.active_panel = ActivePanel::Editor;
-                                let mut log_panel = self.log_panel.lock().unwrap();
-                                log_panel.add_log(&format!("Editing: {}", path));
+                                if let Ok(mut log_panel) = self.log_panel.lock() {
+                                    log_panel.add_log(&format!("Editing: {path}"));
+                                }
                             }
                             Err(e) => {
-                                let mut log_panel = self.log_panel.lock().unwrap();
-                                log_panel.add_log(&format!("Failed to load file: {}", e));
+                                if let Ok(mut log_panel) = self.log_panel.lock() {
+                                    log_panel.add_log(&format!("Failed to load file: {e}"));
+                                }
                             }
                         }
                     }
@@ -980,7 +984,7 @@ impl XtreeUI {
     }
     async fn update_data(&mut self) -> Result<()> {
         if let Some(status_panel) = &mut self.status_panel {
-            status_panel.update().await?;
+            status_panel.update()?;
         }
         if let Some(file_tree) = &self.file_tree {
             if file_tree.render_items().is_empty() {
@@ -991,7 +995,7 @@ impl XtreeUI {
         }
         if let (Some(chat_panel), Some(file_tree)) = (&mut self.chat_panel, &self.file_tree) {
             if let Some(bot_name) = file_tree.get_selected_bot() {
-                chat_panel.poll_response(&bot_name).await?;
+                chat_panel.poll_response(&bot_name)?;
             }
         }
         Ok(())

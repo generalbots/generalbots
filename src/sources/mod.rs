@@ -1,21 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub mod mcp;
 
 use crate::basic::keywords::mcp_directory::{generate_example_configs, McpCsvLoader, McpCsvRow};
 use crate::shared::state::AppState;
+use std::fmt::Write;
+
 use axum::{
     extract::{Json, Path, Query, State},
     http::StatusCode,
@@ -26,8 +14,6 @@ use axum::{
 use log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
-
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchQuery {
@@ -160,19 +146,15 @@ pub struct AppInfo {
     pub status: String,
 }
 
-
 pub fn configure_sources_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/api/sources/prompts", get(handle_prompts))
         .route("/api/sources/templates", get(handle_templates))
         .route("/api/sources/news", get(handle_news))
         .route("/api/sources/mcp-servers", get(handle_mcp_servers))
         .route("/api/sources/llm-tools", get(handle_llm_tools))
         .route("/api/sources/models", get(handle_models))
-
         .route("/api/sources/search", get(handle_search))
-
         .route("/api/sources/repositories", get(handle_list_repositories))
         .route(
             "/api/sources/repositories/:id/connect",
@@ -182,9 +164,7 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
             "/api/sources/repositories/:id/disconnect",
             post(handle_disconnect_repository),
         )
-
         .route("/api/sources/apps", get(handle_list_apps))
-
         .route("/api/sources/mcp", get(handle_list_mcp_servers_json))
         .route("/api/sources/mcp", post(handle_add_mcp_server))
         .route("/api/sources/mcp/:name", get(handle_get_mcp_server))
@@ -205,13 +185,9 @@ pub fn configure_sources_routes() -> Router<Arc<AppState>> {
         .route("/api/sources/mcp/:name/test", post(handle_test_mcp_server))
         .route("/api/sources/mcp/scan", post(handle_scan_mcp_directory))
         .route("/api/sources/mcp/examples", get(handle_get_mcp_examples))
-
         .route("/api/sources/mentions", get(handle_mentions_autocomplete))
-
         .route("/api/sources/tools", get(handle_list_all_tools))
 }
-
-
 
 pub async fn handle_list_mcp_servers_json(
     State(_state): State<Arc<AppState>>,
@@ -246,7 +222,6 @@ pub async fn handle_list_mcp_servers_json(
     Json(ApiResponse::success(servers))
 }
 
-
 pub async fn handle_add_mcp_server(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -256,7 +231,6 @@ pub async fn handle_add_mcp_server(
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
-
 
     let (conn_type, command, args) = match &request.connection {
         McpConnectionRequest::Stdio { command, args } => {
@@ -314,7 +288,6 @@ pub async fn handle_add_mcp_server(
     }
 }
 
-
 pub async fn handle_get_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -355,7 +328,6 @@ pub async fn handle_get_mcp_server(
     }
 }
 
-
 pub async fn handle_update_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -367,9 +339,7 @@ pub async fn handle_update_mcp_server(
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
 
-
     let _ = loader.remove_server(&name);
-
 
     let (conn_type, command, args) = match &request.connection {
         McpConnectionRequest::Stdio { command, args } => {
@@ -416,7 +386,6 @@ pub async fn handle_update_mcp_server(
     }
 }
 
-
 pub async fn handle_delete_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -452,7 +421,6 @@ pub async fn handle_delete_mcp_server(
     }
 }
 
-
 pub async fn handle_enable_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -464,7 +432,6 @@ pub async fn handle_enable_mcp_server(
     )))
 }
 
-
 pub async fn handle_disable_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -475,7 +442,6 @@ pub async fn handle_disable_mcp_server(
         name
     )))
 }
-
 
 pub async fn handle_list_mcp_server_tools(
     State(_state): State<Arc<AppState>>,
@@ -514,7 +480,6 @@ pub async fn handle_list_mcp_server_tools(
     }
 }
 
-
 pub async fn handle_test_mcp_server(
     State(_state): State<Arc<AppState>>,
     Path(name): Path<String>,
@@ -543,7 +508,6 @@ pub async fn handle_test_mcp_server(
     }
 }
 
-
 pub async fn handle_scan_mcp_directory(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<BotQuery>,
@@ -571,14 +535,10 @@ pub async fn handle_scan_mcp_directory(
     })))
 }
 
-
 pub async fn handle_get_mcp_examples(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let examples = generate_example_configs();
     Json(ApiResponse::success(examples))
 }
-
-
-
 
 pub async fn handle_list_all_tools(
     State(_state): State<Arc<AppState>>,
@@ -588,7 +548,6 @@ pub async fn handle_list_all_tools(
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
 
     let mut all_tools: Vec<McpToolResponse> = Vec::new();
-
 
     let keywords = crate::basic::keywords::get_all_keywords();
     for keyword in keywords {
@@ -601,7 +560,6 @@ pub async fn handle_list_all_tools(
             source: "basic".to_string(),
         });
     }
-
 
     let loader = McpCsvLoader::new(&work_path, &bot_id);
     let scan_result = loader.load();
@@ -627,9 +585,6 @@ pub async fn handle_list_all_tools(
     Json(ApiResponse::success(all_tools))
 }
 
-
-
-
 pub async fn handle_mentions_autocomplete(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<SearchQuery>,
@@ -647,7 +602,6 @@ pub async fn handle_mentions_autocomplete(
     }
 
     let mut mentions: Vec<MentionItem> = Vec::new();
-
 
     let repos = vec![
         ("botserver", "Main bot server", "repo"),
@@ -668,7 +622,6 @@ pub async fn handle_mentions_autocomplete(
         }
     }
 
-
     let apps = vec![
         ("crm", "Customer management app", "app"),
         ("dashboard", "Analytics dashboard", "app"),
@@ -685,7 +638,6 @@ pub async fn handle_mentions_autocomplete(
             });
         }
     }
-
 
     let bot_id = "default".to_string();
     let work_path = std::env::var("WORK_PATH").unwrap_or_else(|_| "./work".to_string());
@@ -708,8 +660,6 @@ pub async fn handle_mentions_autocomplete(
     Json(mentions)
 }
 
-
-
 pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let repos: Vec<RepositoryInfo> = vec![RepositoryInfo {
         id: "1".to_string(),
@@ -727,14 +677,12 @@ pub async fn handle_list_repositories(State(_state): State<Arc<AppState>>) -> im
     Json(ApiResponse::success(repos))
 }
 
-
 pub async fn handle_connect_repository(
     State(_state): State<Arc<AppState>>,
     Path(id): Path<String>,
 ) -> impl IntoResponse {
     Json(ApiResponse::success(format!("Repository {} connected", id)))
 }
-
 
 pub async fn handle_disconnect_repository(
     State(_state): State<Arc<AppState>>,
@@ -745,8 +693,6 @@ pub async fn handle_disconnect_repository(
         id
     )))
 }
-
-
 
 pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let apps: Vec<AppInfo> = vec![AppInfo {
@@ -761,8 +707,6 @@ pub async fn handle_list_apps(State(_state): State<Arc<AppState>>) -> impl IntoR
 
     Json(ApiResponse::success(apps))
 }
-
-
 
 pub async fn handle_prompts(
     State(_state): State<Arc<AppState>>,
@@ -789,20 +733,22 @@ pub async fn handle_prompts(
 
     for (id, name, icon) in &categories {
         let active = if *id == category { " active" } else { "" };
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<button class=\"category-item{}\" hx-get=\"/api/sources/prompts?category={}\" hx-target=\"#content-area\" hx-swap=\"innerHTML\"><span class=\"category-icon\">{}</span><span class=\"category-name\">{}</span></button>",
             active, id, icon, name
-        ));
+        );
     }
 
     html.push_str("</div></aside>");
     html.push_str("<div class=\"content-main\"><div class=\"prompts-grid\" id=\"prompts-grid\">");
 
     for prompt in &prompts {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"prompt-card\"><div class=\"prompt-header\"><span class=\"prompt-icon\">{}</span><h4>{}</h4></div><p class=\"prompt-description\">{}</p><div class=\"prompt-footer\"><span class=\"prompt-category\">{}</span><button class=\"btn-use\" onclick=\"usePrompt('{}')\">Use</button></div></div>",
             prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description), html_escape(&prompt.category), html_escape(&prompt.id)
-        ));
+        );
     }
 
     if prompts.is_empty() {
@@ -813,7 +759,6 @@ pub async fn handle_prompts(
     Html(html)
 }
 
-
 pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let templates = get_templates_data();
 
@@ -823,16 +768,16 @@ pub async fn handle_templates(State(_state): State<Arc<AppState>>) -> impl IntoR
     html.push_str("<div class=\"templates-grid\">");
 
     for template in &templates {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"template-card\"><div class=\"template-icon\">{}</div><div class=\"template-info\"><h4>{}</h4><p>{}</p><div class=\"template-meta\"><span class=\"template-category\">{}</span></div></div><div class=\"template-actions\"><button class=\"btn-preview\">Preview</button><button class=\"btn-use-template\">Use Template</button></div></div>",
             template.icon, html_escape(&template.name), html_escape(&template.description), html_escape(&template.category)
-        ));
+        );
     }
 
     html.push_str("</div></div>");
     Html(html)
 }
-
 
 pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let news_items = vec![
@@ -868,16 +813,16 @@ pub async fn handle_news(State(_state): State<Arc<AppState>>) -> impl IntoRespon
     html.push_str("<div class=\"news-list\">");
 
     for (icon, title, description, time) in &news_items {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"news-item\"><div class=\"news-icon\">{}</div><div class=\"news-content\"><h4>{}</h4><p>{}</p><span class=\"news-time\">{}</span></div></div>",
             icon, html_escape(title), html_escape(description), time
-        ));
+        );
     }
 
     html.push_str("</div></div>");
     Html(html)
 }
-
 
 pub async fn handle_mcp_servers(
     State(_state): State<Arc<AppState>>,
@@ -901,11 +846,12 @@ pub async fn handle_mcp_servers(
     );
     html.push_str("</div></div>");
 
-    html.push_str(&format!(
+    let _ = write!(
+        html,
         "<div class=\"mcp-directory-info\"><span class=\"label\">MCP Config:</span><code>{}</code>{}</div>",
         scan_result.file_path.to_string_lossy(),
-        if !loader.csv_exists() { "<span class=\"badge badge-warning\">Not Found</span>" } else { "" }
-    ));
+        if loader.csv_exists() { "" } else { "<span class=\"badge badge-warning\">Not Found</span>" }
+    );
 
     html.push_str("<div class=\"mcp-grid\" id=\"mcp-grid\">");
 
@@ -924,24 +870,24 @@ pub async fn handle_mcp_servers(
             };
             let status_text = if is_active { "Active" } else { "Inactive" };
 
-            html.push_str(&format!(
+            let _ = write!(
+                html,
                 "<div class=\"mcp-card\"><div class=\"mcp-card-header\"><div class=\"mcp-icon\">{}</div><div class=\"mcp-title\"><h4>{}</h4><span class=\"mcp-type\">{}</span></div><div class=\"mcp-status {}\">{}</div></div><p class=\"mcp-description\">{}</p><div class=\"mcp-tools-count\"><span class=\"tools-badge\">{} tools</span></div><div class=\"mcp-actions\"><button class=\"btn-test\" hx-post=\"/api/sources/mcp/{}/test\">Test</button></div></div>",
                 mcp::get_server_type_icon(&server.server_type.to_string()),
                 html_escape(&server.name),
-                server.server_type.to_string(),
+                server.server_type,
                 status_class,
                 status_text,
                 if server.description.is_empty() { "<em>No description</em>".to_string() } else { html_escape(&server.description) },
                 server.tools.len(),
                 html_escape(&server.name)
-            ));
+            );
         }
     }
 
     html.push_str("</div></div>");
     Html(html)
 }
-
 
 pub async fn handle_llm_tools(
     State(_state): State<Arc<AppState>>,
@@ -957,29 +903,31 @@ pub async fn handle_llm_tools(
 
     let mut html = String::new();
     html.push_str("<div class=\"tools-container\">");
-    html.push_str(&format!(
+    let _ = write!(
+        html,
         "<div class=\"tools-header\"><h3>LLM Tools</h3><p>All tools available for Tasks and LLM invocation</p><div class=\"tools-stats\"><span class=\"stat\"><strong>{}</strong> BASIC keywords</span><span class=\"stat\"><strong>{}</strong> MCP tools</span></div></div>",
         keywords.len(), mcp_tools_count
-    ));
+    );
 
     html.push_str("<div class=\"tools-grid\">");
     for keyword in keywords.iter().take(20) {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<span class=\"keyword-tag\">{}</span>",
             html_escape(keyword)
-        ));
+        );
     }
     if keywords.len() > 20 {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<span class=\"keyword-more\">+{} more...</span>",
             keywords.len() - 20
-        ));
+        );
     }
     html.push_str("</div></div>");
 
     Html(html)
 }
-
 
 pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let models = vec![
@@ -1024,16 +972,16 @@ pub async fn handle_models(State(_state): State<Arc<AppState>>) -> impl IntoResp
         } else {
             "model-available"
         };
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"model-card {}\"><div class=\"model-icon\">{}</div><div class=\"model-info\"><div class=\"model-header\"><h4>{}</h4><span class=\"model-provider\">{}</span></div><p>{}</p><div class=\"model-footer\"><span class=\"model-status\">{}</span></div></div></div>",
             status_class, icon, html_escape(name), html_escape(provider), html_escape(description), status
-        ));
+        );
     }
 
     html.push_str("</div></div>");
     Html(html)
 }
-
 
 pub async fn handle_search(
     State(_state): State<Arc<AppState>>,
@@ -1056,20 +1004,22 @@ pub async fn handle_search(
         .collect();
 
     let mut html = String::new();
-    html.push_str(&format!("<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query)));
+    let _ = write!(html, "<div class=\"search-results\"><div class=\"search-header\"><h3>Search Results for \"{}\"</h3></div>", html_escape(&query));
 
     if matching_prompts.is_empty() {
         html.push_str("<div class=\"no-results\"><p>No results found</p></div>");
     } else {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"result-section\"><h4>Prompts ({})</h4><div class=\"results-grid\">",
             matching_prompts.len()
-        ));
+        );
         for prompt in matching_prompts {
-            html.push_str(&format!(
+            let _ = write!(
+                html,
                 "<div class=\"result-item\"><span class=\"result-icon\">{}</span><div class=\"result-info\"><strong>{}</strong><p>{}</p></div></div>",
                 prompt.icon, html_escape(&prompt.title), html_escape(&prompt.description)
-            ));
+            );
         }
         html.push_str("</div></div>");
     }
@@ -1077,7 +1027,6 @@ pub async fn handle_search(
     html.push_str("</div>");
     Html(html)
 }
-
 
 struct PromptData {
     id: String,

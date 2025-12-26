@@ -93,7 +93,7 @@ impl BotOrchestrator {
                         let mut sm = state_clone.session_manager.blocking_lock();
                         sm.get_session_by_id(session_id)?
                     }
-                    .ok_or_else(|| "Session not found")?;
+                    .ok_or("Session not found")?;
 
                     {
                         let mut sm = state_clone.session_manager.blocking_lock();
@@ -102,11 +102,7 @@ impl BotOrchestrator {
 
                     let context_data = {
                         let sm = state_clone.session_manager.blocking_lock();
-                        let rt = tokio::runtime::Handle::current();
-                        rt.block_on(async {
-                            sm.get_session_context_data(&session.id, &session.user_id)
-                                .await
-                        })?
+                        sm.get_session_context_data(&session.id, &session.user_id)?
                     };
 
                     let history = {
@@ -151,7 +147,6 @@ impl BotOrchestrator {
         let mut in_analysis = false;
         let handler = llm_models::get_handler(&model);
 
-
         trace!("Using model handler for {}", model);
 
         #[cfg(feature = "nvidia")]
@@ -178,9 +173,7 @@ impl BotOrchestrator {
         while let Some(chunk) = stream_rx.recv().await {
             trace!("Received LLM chunk: {:?}", chunk);
 
-
             analysis_buffer.push_str(&chunk);
-
 
             if !in_analysis && handler.has_analysis_markers(&analysis_buffer) {
                 in_analysis = true;
@@ -189,12 +182,9 @@ impl BotOrchestrator {
                     model
                 );
 
-
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() && processed != analysis_buffer {
-
                     full_response.push_str(&processed);
-
 
                     let response = BotResponse {
                         bot_id: message.bot_id.clone(),
@@ -219,7 +209,6 @@ impl BotOrchestrator {
                 continue;
             }
 
-
             if in_analysis && handler.is_analysis_complete(&analysis_buffer) {
                 in_analysis = false;
                 log::debug!(
@@ -227,11 +216,9 @@ impl BotOrchestrator {
                     model
                 );
 
-
                 let processed = handler.process_content(&analysis_buffer);
                 if !processed.is_empty() {
                     full_response.push_str(&processed);
-
 
                     let response = BotResponse {
                         bot_id: message.bot_id.clone(),
@@ -258,12 +245,10 @@ impl BotOrchestrator {
                 continue;
             }
 
-
             if in_analysis {
                 trace!("Accumulating thinking content, not sending to user");
                 continue;
             }
-
 
             if !in_analysis {
                 full_response.push_str(&chunk);
@@ -396,11 +381,7 @@ async fn handle_websocket(
     });
 
     if let Ok(welcome_str) = serde_json::to_string(&welcome) {
-        if sender
-            .send(Message::Text(welcome_str.into()))
-            .await
-            .is_err()
-        {
+        if sender.send(Message::Text(welcome_str)).await.is_err() {
             error!("Failed to send welcome message");
         }
     }
@@ -408,7 +389,7 @@ async fn handle_websocket(
     let mut send_task = tokio::spawn(async move {
         while let Some(response) = rx.recv().await {
             if let Ok(json_str) = serde_json::to_string(&response) {
-                if sender.send(Message::Text(json_str.into())).await.is_err() {
+                if sender.send(Message::Text(json_str)).await.is_err() {
                     break;
                 }
             }
@@ -596,7 +577,6 @@ pub async fn send_warning_handler(
 
     let orchestrator = BotOrchestrator::new(state);
     info!("Orchestrator created for warning");
-
 
     if let Ok(sessions) = orchestrator.get_user_sessions(Uuid::nil()).await {
         info!("Current active sessions: {}", sessions.len());

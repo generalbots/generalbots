@@ -21,7 +21,6 @@ impl WhatsAppAdapter {
     pub fn new(pool: DbPool, bot_id: Uuid) -> Self {
         let config_manager = ConfigManager::new(pool);
 
-
         let api_key = config_manager
             .get_config(&bot_id, "whatsapp-api-key", None)
             .unwrap_or_default();
@@ -157,7 +156,7 @@ impl WhatsAppAdapter {
         );
 
         let media_object = match media_type {
-            "image" => {
+            "image" | "video" => {
                 let mut obj = serde_json::json!({
                     "link": media_url
                 });
@@ -166,18 +165,6 @@ impl WhatsAppAdapter {
                 }
                 obj
             }
-            "video" => {
-                let mut obj = serde_json::json!({
-                    "link": media_url
-                });
-                if let Some(cap) = caption {
-                    obj["caption"] = serde_json::Value::String(cap.to_string());
-                }
-                obj
-            }
-            "audio" => serde_json::json!({
-                "link": media_url
-            }),
             "document" => {
                 let mut obj = serde_json::json!({
                     "link": media_url
@@ -187,6 +174,7 @@ impl WhatsAppAdapter {
                 }
                 obj
             }
+            // audio and any other type
             _ => serde_json::json!({
                 "link": media_url
             }),
@@ -384,7 +372,7 @@ impl WhatsAppAdapter {
         token == self.webhook_verify_token
     }
 
-    pub async fn handle_webhook_verification(
+    pub fn handle_webhook_verification(
         &self,
         mode: &str,
         token: &str,
@@ -400,7 +388,7 @@ impl WhatsAppAdapter {
 
 #[async_trait]
 impl ChannelAdapter for WhatsAppAdapter {
-    fn name(&self) -> &str {
+    fn name(&self) -> &'static str {
         "WhatsApp"
     }
 
@@ -433,18 +421,15 @@ impl ChannelAdapter for WhatsAppAdapter {
         &self,
         payload: serde_json::Value,
     ) -> Result<Option<String>, Box<dyn std::error::Error + Send + Sync>> {
-
         if let Some(entry) = payload["entry"].as_array() {
             if let Some(first_entry) = entry.first() {
                 if let Some(changes) = first_entry["changes"].as_array() {
                     if let Some(first_change) = changes.first() {
                         if let Some(messages) = first_change["value"]["messages"].as_array() {
                             if let Some(first_message) = messages.first() {
-
                                 if let Some(message_id) = first_message["id"].as_str() {
                                     let _ = self.mark_message_as_read(message_id).await;
                                 }
-
 
                                 let message_type =
                                     first_message["type"].as_str().unwrap_or("unknown");
@@ -503,8 +488,6 @@ impl ChannelAdapter for WhatsAppAdapter {
         &self,
         user_id: &str,
     ) -> Result<serde_json::Value, Box<dyn std::error::Error + Send + Sync>> {
-
-
         Ok(serde_json::json!({
             "id": user_id,
             "platform": "whatsapp"
@@ -640,8 +623,6 @@ pub struct WhatsAppStatus {
     pub recipient_id: String,
 }
 
-
-
 pub fn create_interactive_buttons(text: &str, buttons: Vec<(&str, &str)>) -> serde_json::Value {
     let button_list: Vec<serde_json::Value> = buttons
         .into_iter()
@@ -668,10 +649,13 @@ pub fn create_interactive_buttons(text: &str, buttons: Vec<(&str, &str)>) -> ser
     })
 }
 
+/// Type alias for interactive list sections: (title, rows) where rows are (id, title, description)
+pub type InteractiveListSections = Vec<(String, Vec<(String, String, Option<String>)>)>;
+
 pub fn create_interactive_list(
     text: &str,
     button_text: &str,
-    sections: Vec<(String, Vec<(String, String, Option<String>)>)>,
+    sections: InteractiveListSections,
 ) -> serde_json::Value {
     let section_list: Vec<serde_json::Value> = sections
         .into_iter()

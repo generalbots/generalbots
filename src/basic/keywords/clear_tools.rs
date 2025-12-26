@@ -7,11 +7,10 @@ use std::sync::Arc;
 
 pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["CLEAR", "TOOLS"], false, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR", "TOOLS"], false, move |_context, _inputs| {
             trace!(
                 "CLEAR TOOLS command executed for session: {}",
                 user_clone.id
@@ -63,16 +62,13 @@ pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-async fn clear_all_tools_from_session(
-    state: &AppState,
-    user: &UserSession,
-) -> Result<String, String> {
+async fn clear_all_tools_from_session(state: &AppState, user: &UserSession) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| {
         error!("Failed to acquire database lock: {}", e);
         format!("Database connection error: {}", e)
     })?;
 
-    let delete_result = clear_session_tools(&mut *conn, &user.id);
+    let delete_result = clear_session_tools(&mut conn, &user.id);
 
     match delete_result {
         Ok(rows_affected) => {
@@ -98,4 +94,3 @@ async fn clear_all_tools_from_session(
         }
     }
 }
-

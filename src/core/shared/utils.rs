@@ -11,7 +11,6 @@ use diesel::{
 use futures_util::StreamExt;
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
-use once_cell::sync::Lazy;
 use reqwest::Client;
 use rhai::{Array, Dynamic};
 use serde_json::Value;
@@ -22,10 +21,8 @@ use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::RwLock;
 
-
-static SECRETS_MANAGER: Lazy<Arc<RwLock<Option<SecretsManager>>>> =
-    Lazy::new(|| Arc::new(RwLock::new(None)));
-
+static SECRETS_MANAGER: std::sync::LazyLock<Arc<RwLock<Option<SecretsManager>>>> =
+    std::sync::LazyLock::new(|| Arc::new(RwLock::new(None)));
 
 pub async fn init_secrets_manager() -> Result<()> {
     let manager = SecretsManager::from_env()?;
@@ -33,7 +30,6 @@ pub async fn init_secrets_manager() -> Result<()> {
     *guard = Some(manager);
     Ok(())
 }
-
 
 pub async fn get_database_url() -> Result<String> {
     let guard = SECRETS_MANAGER.read().await;
@@ -48,18 +44,14 @@ pub async fn get_database_url() -> Result<String> {
     ))
 }
 
-
 pub fn get_database_url_sync() -> Result<String> {
-
     if let Ok(handle) = tokio::runtime::Handle::try_current() {
-
         let result =
             tokio::task::block_in_place(|| handle.block_on(async { get_database_url().await }));
         if let Ok(url) = result {
             return Ok(url);
         }
     } else {
-
         let rt = tokio::runtime::Runtime::new()
             .map_err(|e| anyhow::anyhow!("Failed to create runtime: {}", e))?;
         if let Ok(url) = rt.block_on(async { get_database_url().await }) {
@@ -72,7 +64,6 @@ pub fn get_database_url_sync() -> Result<String> {
     ))
 }
 
-
 pub async fn get_secrets_manager() -> Option<SecretsManager> {
     let guard = SECRETS_MANAGER.read().await;
     guard.clone()
@@ -81,15 +72,13 @@ pub async fn get_secrets_manager() -> Option<SecretsManager> {
 pub async fn create_s3_operator(
     config: &DriveConfig,
 ) -> Result<S3Client, Box<dyn std::error::Error>> {
-    let endpoint = if !config.server.ends_with('/') {
-        format!("{}/", config.server)
-    } else {
+    let endpoint = if config.server.ends_with('/') {
         config.server.clone()
+    } else {
+        format!("{}/", config.server)
     };
 
-
     let (access_key, secret_key) = if config.access_key.is_empty() || config.secret_key.is_empty() {
-
         let guard = SECRETS_MANAGER.read().await;
         if let Some(ref manager) = *guard {
             if manager.is_enabled() {
@@ -161,7 +150,6 @@ pub fn to_array(value: Dynamic) -> Array {
     }
 }
 
-
 #[cfg(feature = "progress-bars")]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
     use std::time::Duration;
@@ -181,7 +169,7 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
             let pb = ProgressBar::new(total_size);
             pb.set_style(ProgressStyle::default_bar()
                 .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
-                .unwrap()
+                .expect("Invalid progress bar template")
                 .progress_chars("#>-"));
             pb.set_message(format!("Downloading {}", url));
             let mut file = TokioFile::create(&output_path).await?;
@@ -201,7 +189,6 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
     });
     download_handle.await?
 }
-
 
 #[cfg(not(feature = "progress-bars"))]
 pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::Error> {
@@ -269,7 +256,6 @@ pub fn create_conn() -> Result<DbPool, anyhow::Error> {
         .map_err(|e| anyhow::anyhow!("Failed to create database pool: {}", e))
 }
 
-
 pub async fn create_conn_async() -> Result<DbPool, anyhow::Error> {
     let database_url = get_database_url().await?;
     let manager = ConnectionManager::<PgConnection>::new(database_url);
@@ -307,7 +293,6 @@ pub fn parse_database_url(url: &str) -> (String, String, String, u32, String) {
     )
 }
 
-
 pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     use diesel_migrations::{embed_migrations, EmbeddedMigrations, MigrationHarness};
 
@@ -316,10 +301,7 @@ pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + S
     let mut conn = pool.get()?;
     conn.run_pending_migrations(MIGRATIONS).map_err(
         |e| -> Box<dyn std::error::Error + Send + Sync> {
-            Box::new(std::io::Error::new(
-                std::io::ErrorKind::Other,
-                format!("Migration error: {}", e),
-            ))
+            Box::new(std::io::Error::other(format!("Migration error: {}", e)))
         },
     )?;
     Ok(())

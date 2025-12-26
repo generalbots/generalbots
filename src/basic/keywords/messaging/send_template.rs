@@ -1,35 +1,14 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{debug, info, trace};
 use rhai::{Array, Dynamic, Engine, Map};
 use std::sync::Arc;
 
-
-
-
-
-
 pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
-
+    let user_clone2 = user.clone();
+    let user_clone3 = user;
 
     engine.register_fn(
         "SEND_TEMPLATE",
@@ -47,8 +26,6 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     );
 
     let _state_clone2 = state.clone();
-    let user_clone2 = user.clone();
-
 
     engine.register_fn(
         "send_template",
@@ -65,9 +42,7 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         },
     );
 
-    let _state_clone3 = state.clone();
-    let user_clone3 = user.clone();
-
+    let _state_clone3 = state;
 
     engine.register_fn(
         "SEND_TEMPLATE",
@@ -87,15 +62,11 @@ pub fn send_template_keyword(state: Arc<AppState>, user: UserSession, engine: &m
     debug!("Registered SEND_TEMPLATE keyword");
 }
 
-
-
-
-
-
 pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let _state_clone = state.clone();
     let user_clone = user.clone();
-
+    let user_clone2 = user.clone();
+    let user_clone3 = user;
+    let _state_clone = state.clone();
 
     engine.register_fn(
         "SEND_TEMPLATE_TO",
@@ -113,8 +84,6 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
     );
 
     let _state_clone2 = state.clone();
-    let user_clone2 = user.clone();
-
 
     engine.register_fn(
         "SEND_TEMPLATE_TO",
@@ -131,9 +100,7 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
         },
     );
 
-
-    let _state_clone3 = state.clone();
-    let user_clone3 = user.clone();
+    let _state_clone3 = state;
 
     engine.register_fn(
         "BULK_SEND",
@@ -153,15 +120,11 @@ pub fn send_template_to_keyword(state: Arc<AppState>, user: UserSession, engine:
     debug!("Registered SEND_TEMPLATE_TO keyword");
 }
 
-
-
-
-
-
 pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let _state_clone = state.clone();
     let user_clone = user.clone();
-
+    let user_clone2 = user.clone();
+    let user_clone3 = user;
+    let _state_clone = state.clone();
 
     engine.register_fn(
         "CREATE_TEMPLATE",
@@ -178,8 +141,6 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
     );
 
     let _state_clone2 = state.clone();
-    let user_clone2 = user.clone();
-
 
     engine.register_fn(
         "CREATE_TEMPLATE",
@@ -195,9 +156,7 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
         },
     );
 
-
-    let _state_clone3 = state.clone();
-    let user_clone3 = user.clone();
+    let _state_clone3 = state;
 
     engine.register_fn(
         "create_template",
@@ -216,15 +175,12 @@ pub fn create_template_keyword(state: Arc<AppState>, user: UserSession, engine: 
     debug!("Registered CREATE_TEMPLATE keyword");
 }
 
-
-
-
-
-
 pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let _state_clone = state.clone();
     let user_clone = user.clone();
-
+    let user_clone2 = user.clone();
+    let user_clone3 = user.clone();
+    let user_clone4 = user;
 
     engine.register_fn("GET_TEMPLATE", move |name: &str| -> Map {
         trace!(
@@ -237,8 +193,6 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
     });
 
     let _state_clone2 = state.clone();
-    let user_clone2 = user.clone();
-
 
     engine.register_fn("GET_TEMPLATE", move |name: &str, channel: &str| -> Map {
         trace!(
@@ -251,9 +205,7 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         get_message_template(name, Some(channel))
     });
 
-
     let _state_clone3 = state.clone();
-    let user_clone3 = user.clone();
 
     engine.register_fn("get_template", move |name: &str| -> Map {
         trace!(
@@ -265,25 +217,23 @@ pub fn get_template_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
         get_message_template(name, None)
     });
 
-
-    let _state_clone4 = state.clone();
-    let user_clone4 = user.clone();
+    let _state_clone4 = state;
 
     engine.register_fn("LIST_TEMPLATES", move || -> Array {
         trace!("LIST_TEMPLATES called by user {}", user_clone4.user_id);
 
         debug!("Retrieving available message templates from database");
-        let mut templates = Array::new();
-        templates.push(Dynamic::from("welcome"));
-        templates.push(Dynamic::from("order_confirmation"));
-        templates.push(Dynamic::from("password_reset"));
+        let templates = vec![
+            Dynamic::from("welcome"),
+            Dynamic::from("order_confirmation"),
+            Dynamic::from("password_reset"),
+        ];
         debug!("Returned {} templates", templates.len());
         templates
     });
 
     debug!("Registered GET_TEMPLATE keyword");
 }
-
 
 fn send_template_message(
     template: &str,
@@ -292,7 +242,6 @@ fn send_template_message(
     variables: Option<&Map>,
 ) -> Map {
     let mut result = Map::new();
-
 
     let valid_channels = ["email", "whatsapp", "sms", "telegram", "push"];
     let channel_lower = channel.to_lowercase();
@@ -309,15 +258,13 @@ fn send_template_message(
         return result;
     }
 
-
     let recipient_valid = match channel_lower.as_str() {
         "email" => recipient.contains('@'),
         "whatsapp" | "sms" => {
             recipient.starts_with('+') || recipient.chars().all(|c| c.is_numeric())
         }
-        "telegram" => !recipient.is_empty(),
-        "push" => !recipient.is_empty(),
-        _ => false,
+        "telegram" | "push" => !recipient.is_empty(),
+        _ => !recipient.is_empty(),
     };
 
     if !recipient_valid {
@@ -341,7 +288,6 @@ fn send_template_message(
         template, recipient, channel
     );
 
-
     result.insert("success".into(), Dynamic::from(true));
     result.insert("template".into(), Dynamic::from(template.to_string()));
     result.insert("recipient".into(), Dynamic::from(recipient.to_string()));
@@ -355,7 +301,6 @@ fn send_template_message(
 
     result
 }
-
 
 fn send_template_batch(
     template: &str,
@@ -401,10 +346,8 @@ fn send_template_batch(
     result
 }
 
-
 fn create_message_template(name: &str, channel: &str, subject: Option<&str>, content: &str) -> Map {
     let mut result = Map::new();
-
 
     if name.is_empty() {
         result.insert("success".into(), Dynamic::from(false));
@@ -414,7 +357,6 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
         );
         return result;
     }
-
 
     if content.is_empty() {
         result.insert("success".into(), Dynamic::from(false));
@@ -440,13 +382,11 @@ fn create_message_template(name: &str, channel: &str, subject: Option<&str>, con
         result.insert("subject".into(), Dynamic::from(subj.to_string()));
     }
 
-
     let variables = extract_template_variables(content);
     result.insert("variables".into(), Dynamic::from(variables));
 
     result
 }
-
 
 fn get_message_template(name: &str, channel: Option<&str>) -> Map {
     let mut result = Map::new();
@@ -461,7 +401,6 @@ fn get_message_template(name: &str, channel: Option<&str>) -> Map {
         result.insert("channel".into(), Dynamic::from(ch.to_string()));
     }
 
-
     result.insert(
         "content".into(),
         Dynamic::from(format!("Template '{}' content placeholder", name)),
@@ -469,7 +408,6 @@ fn get_message_template(name: &str, channel: Option<&str>) -> Map {
 
     result
 }
-
 
 fn extract_template_variables(content: &str) -> Array {
     let mut variables = Array::new();
@@ -500,7 +438,6 @@ fn extract_template_variables(content: &str) -> Array {
     variables
 }
 
-
 fn generate_message_id() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -510,4 +447,70 @@ fn generate_message_id() -> String {
         .as_millis();
 
     format!("msg_{}", timestamp)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_send_template_valid_email() {
+        let result = send_template_message("welcome", "user@example.com", "email", None);
+        assert!(result.get("success").unwrap().as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_send_template_invalid_email() {
+        let result = send_template_message("welcome", "invalid-email", "email", None);
+        assert!(!result.get("success").unwrap().as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_send_template_invalid_channel() {
+        let result = send_template_message("welcome", "user@example.com", "invalid", None);
+        assert!(!result.get("success").unwrap().as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_send_template_batch() {
+        let mut recipients = Array::new();
+        recipients.push(Dynamic::from("user1@example.com"));
+        recipients.push(Dynamic::from("user2@example.com"));
+
+        let result = send_template_batch("welcome", &recipients, "email", None);
+        assert_eq!(result.get("total").unwrap().as_int().unwrap(), 2);
+        assert_eq!(result.get("sent").unwrap().as_int().unwrap(), 2);
+    }
+
+    #[test]
+    fn test_create_template() {
+        let result = create_message_template("test", "email", Some("Subject"), "Hello {{name}}!");
+        assert!(result.get("success").unwrap().as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_create_template_empty_name() {
+        let result = create_message_template("", "email", None, "Content");
+        assert!(!result.get("success").unwrap().as_bool().unwrap());
+    }
+
+    #[test]
+    fn test_extract_template_variables() {
+        let content = "Hello {{name}}, your order {{order_id}} is ready!";
+        let vars = extract_template_variables(content);
+        assert_eq!(vars.len(), 2);
+    }
+
+    #[test]
+    fn test_extract_template_variables_empty() {
+        let content = "Hello, no variables here!";
+        let vars = extract_template_variables(content);
+        assert!(vars.is_empty());
+    }
+
+    #[test]
+    fn test_generate_message_id() {
+        let id = generate_message_id();
+        assert!(id.starts_with("msg_"));
+    }
 }

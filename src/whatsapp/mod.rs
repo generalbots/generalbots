@@ -14,7 +14,7 @@ use botlib::MessageType;
 use chrono::Utc;
 use diesel::prelude::*;
 use log::{debug, error, info, warn};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use tokio::sync::broadcast;
 use uuid::Uuid;
@@ -31,27 +31,27 @@ pub struct WebhookVerifyQuery {
     pub challenge: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppWebhook {
     pub object: String,
     #[serde(default)]
     pub entry: Vec<WhatsAppEntry>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppEntry {
     pub id: String,
     #[serde(default)]
     pub changes: Vec<WhatsAppChange>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppChange {
     pub field: String,
     pub value: WhatsAppValue,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppValue {
     pub messaging_product: String,
     #[serde(default)]
@@ -64,24 +64,24 @@ pub struct WhatsAppValue {
     pub statuses: Vec<WhatsAppStatus>,
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Debug, Default, Deserialize, Serialize)]
 pub struct WhatsAppMetadata {
     pub display_phone_number: Option<String>,
     pub phone_number_id: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppContact {
     pub wa_id: String,
     pub profile: WhatsAppProfile,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppProfile {
     pub name: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppMessage {
     pub id: String,
     pub from: String,
@@ -106,12 +106,12 @@ pub struct WhatsAppMessage {
     pub button: Option<WhatsAppButton>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppText {
     pub body: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppMedia {
     pub id: String,
     #[serde(default)]
@@ -122,7 +122,7 @@ pub struct WhatsAppMedia {
     pub caption: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppLocation {
     pub latitude: f64,
     pub longitude: f64,
@@ -132,7 +132,7 @@ pub struct WhatsAppLocation {
     pub address: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppInteractive {
     #[serde(rename = "type")]
     pub interactive_type: String,
@@ -142,13 +142,13 @@ pub struct WhatsAppInteractive {
     pub list_reply: Option<WhatsAppListReply>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppButtonReply {
     pub id: String,
     pub title: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppListReply {
     pub id: String,
     pub title: String,
@@ -156,13 +156,13 @@ pub struct WhatsAppListReply {
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppButton {
     pub payload: String,
     pub text: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct WhatsAppStatus {
     pub id: String,
     pub status: String,
@@ -592,8 +592,8 @@ async fn route_to_bot(
     tokio::spawn(async move {
         while let Some(response) = rx.recv().await {
             if !response.content.is_empty() {
-                let mut wa_response = response.clone();
-                wa_response.user_id = phone.clone();
+                let mut wa_response = response;
+                wa_response.user_id.clone_from(&phone);
                 wa_response.channel = "whatsapp".to_string();
 
                 if let Err(e) = adapter_for_send.send_message(wa_response).await {
@@ -740,7 +740,7 @@ async fn update_queue_item(
             .first(&mut db_conn)
             .map_err(|e| format!("Find error: {}", e))?;
 
-        let mut ctx = current.context_data.clone();
+        let mut ctx = current.context_data;
         ctx["last_message"] = serde_json::json!(last_msg);
         ctx["last_message_time"] = serde_json::json!(Utc::now().to_rfc3339());
 
@@ -826,17 +826,14 @@ pub async fn attendant_respond(
         request.attendant_id, request.session_id
     );
 
-    let session_id = match Uuid::parse_str(&request.session_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(serde_json::json!({
-                    "success": false,
-                    "error": "Invalid session ID"
-                })),
-            )
-        }
+    let Ok(session_id) = Uuid::parse_str(&request.session_id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Invalid session ID"
+            })),
+        );
     };
 
     let conn = state.conn.clone();
@@ -852,17 +849,14 @@ pub async fn attendant_respond(
     .ok()
     .flatten();
 
-    let session = match session_result {
-        Some(s) => s,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(serde_json::json!({
-                    "success": false,
-                    "error": "Session not found"
-                })),
-            )
-        }
+    let Some(session) = session_result else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Session not found"
+            })),
+        );
     };
 
     let channel = session
@@ -983,4 +977,493 @@ async fn get_default_bot_id(state: &Arc<AppState>) -> Uuid {
     .ok()
     .flatten()
     .unwrap_or_else(Uuid::nil)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_text_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "text".to_string(),
+            text: Some(WhatsAppText {
+                body: "Hello, world!".to_string(),
+            }),
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "Hello, world!");
+    }
+
+    #[test]
+    fn test_extract_interactive_button() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "interactive".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: Some(WhatsAppInteractive {
+                interactive_type: "button_reply".to_string(),
+                button_reply: Some(WhatsAppButtonReply {
+                    id: "btn1".to_string(),
+                    title: "Yes".to_string(),
+                }),
+                list_reply: None,
+            }),
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "Yes");
+    }
+
+    #[test]
+    fn test_extract_list_reply() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "interactive".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: Some(WhatsAppInteractive {
+                interactive_type: "list_reply".to_string(),
+                button_reply: None,
+                list_reply: Some(WhatsAppListReply {
+                    id: "list1".to_string(),
+                    title: "Option A".to_string(),
+                    description: Some("First option".to_string()),
+                }),
+            }),
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "Option A");
+    }
+
+    #[test]
+    fn test_extract_button_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "button".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: None,
+            button: Some(WhatsAppButton {
+                payload: "btn_payload".to_string(),
+                text: "Click me".to_string(),
+            }),
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "Click me");
+    }
+
+    #[test]
+    fn test_extract_location_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "location".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: Some(WhatsAppLocation {
+                latitude: 40.7128,
+                longitude: -74.0060,
+                name: Some("New York".to_string()),
+                address: None,
+            }),
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert!(content.contains("40.7128"));
+        assert!(content.contains("-74.006"));
+        assert!(content.contains("New York"));
+    }
+
+    #[test]
+    fn test_extract_media_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "image".to_string(),
+            text: None,
+            image: Some(WhatsAppMedia {
+                id: "media123".to_string(),
+                mime_type: Some("image/jpeg".to_string()),
+                sha256: None,
+                caption: Some("My photo".to_string()),
+            }),
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "[image message]");
+    }
+
+    // Additional tests from bottest/mocks/whatsapp.rs
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    pub struct SentMessage {
+        pub id: String,
+        pub to: String,
+        pub message_type: MessageType,
+        pub content: MessageContent,
+        pub timestamp: chrono::DateTime<chrono::Utc>,
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    #[serde(rename_all = "snake_case")]
+    pub enum MessageType {
+        Text,
+        Template,
+        Image,
+        Document,
+        Audio,
+        Video,
+        Location,
+        Contacts,
+        Interactive,
+        Reaction,
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    #[serde(untagged)]
+    pub enum MessageContent {
+        Text {
+            body: String,
+        },
+        Template {
+            name: String,
+            language: String,
+            components: Vec<serde_json::Value>,
+        },
+        Media {
+            url: Option<String>,
+            caption: Option<String>,
+        },
+        Location {
+            latitude: f64,
+            longitude: f64,
+            name: Option<String>,
+        },
+        Interactive {
+            r#type: String,
+            body: serde_json::Value,
+        },
+        Reaction {
+            message_id: String,
+            emoji: String,
+        },
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    struct ErrorResponseTest {
+        error: ErrorDetailTest,
+    }
+
+    #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+    struct ErrorDetailTest {
+        message: String,
+        #[serde(rename = "type")]
+        error_type: String,
+        code: i32,
+        fbtrace_id: String,
+    }
+
+    #[test]
+    fn test_message_type_serialization() {
+        let msg_type = MessageType::Template;
+        let json = serde_json::to_string(&msg_type).unwrap();
+        assert_eq!(json, "\"template\"");
+    }
+
+    #[test]
+    fn test_webhook_event_serialization() {
+        let event = WhatsAppWebhook {
+            object: "whatsapp_business_account".to_string(),
+            entry: vec![],
+        };
+
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("whatsapp_business_account"));
+    }
+
+    #[test]
+    fn test_incoming_message_text_full() {
+        let msg = WhatsAppMessage {
+            id: "wamid.123".to_string(),
+            from: "15551234567".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "text".to_string(),
+            text: Some(WhatsAppText {
+                body: "Hello!".to_string(),
+            }),
+            image: None,
+            audio: None,
+            video: None,
+            document: None,
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let json = serde_json::to_string(&msg).unwrap();
+        assert!(json.contains("Hello!"));
+        assert!(json.contains("15551234567"));
+    }
+
+    #[test]
+    fn test_message_status_serialization() {
+        let status = WhatsAppStatus {
+            id: "wamid.123".to_string(),
+            status: "delivered".to_string(),
+            timestamp: "1234567890".to_string(),
+            recipient_id: "15551234567".to_string(),
+        };
+
+        let json = serde_json::to_string(&status).unwrap();
+        assert!(json.contains("delivered"));
+    }
+
+    #[test]
+    fn test_error_response_whatsapp() {
+        let error = ErrorResponseTest {
+            error: ErrorDetailTest {
+                message: "Test error".to_string(),
+                error_type: "OAuthException".to_string(),
+                code: 100,
+                fbtrace_id: "trace123".to_string(),
+            },
+        };
+
+        let json = serde_json::to_string(&error).unwrap();
+        assert!(json.contains("Test error"));
+        assert!(json.contains("100"));
+    }
+
+    #[test]
+    fn test_whatsapp_webhook_deserialization() {
+        let json = r#"{
+            "object": "whatsapp_business_account",
+            "entry": [{
+                "id": "123456789",
+                "changes": [{
+                    "field": "messages",
+                    "value": {
+                        "messaging_product": "whatsapp",
+                        "metadata": {
+                            "display_phone_number": "15551234567",
+                            "phone_number_id": "987654321"
+                        }
+                    }
+                }]
+            }]
+        }"#;
+
+        let webhook: WhatsAppWebhook = serde_json::from_str(json).unwrap();
+        assert_eq!(webhook.object, "whatsapp_business_account");
+        assert_eq!(webhook.entry.len(), 1);
+        assert_eq!(webhook.entry[0].id, "123456789");
+    }
+
+    #[test]
+    fn test_whatsapp_contact_profile() {
+        let json = r#"{
+            "wa_id": "15551234567",
+            "profile": {
+                "name": "John Doe"
+            }
+        }"#;
+
+        let contact: WhatsAppContact = serde_json::from_str(json).unwrap();
+        assert_eq!(contact.wa_id, "15551234567");
+        assert_eq!(contact.profile.name, "John Doe");
+    }
+
+    #[test]
+    fn test_whatsapp_media_with_caption() {
+        let media = WhatsAppMedia {
+            id: "media123".to_string(),
+            mime_type: Some("image/jpeg".to_string()),
+            sha256: Some("abc123hash".to_string()),
+            caption: Some("My vacation photo".to_string()),
+        };
+
+        let json = serde_json::to_string(&media).unwrap();
+        assert!(json.contains("media123"));
+        assert!(json.contains("image/jpeg"));
+        assert!(json.contains("My vacation photo"));
+    }
+
+    #[test]
+    fn test_whatsapp_location_with_address() {
+        let location = WhatsAppLocation {
+            latitude: 37.7749,
+            longitude: -122.4194,
+            name: Some("San Francisco".to_string()),
+            address: Some("California, USA".to_string()),
+        };
+
+        let json = serde_json::to_string(&location).unwrap();
+        assert!(json.contains("37.7749"));
+        assert!(json.contains("-122.4194"));
+        assert!(json.contains("San Francisco"));
+        assert!(json.contains("California, USA"));
+    }
+
+    #[test]
+    fn test_whatsapp_list_reply_with_description() {
+        let list_reply = WhatsAppListReply {
+            id: "list_option_1".to_string(),
+            title: "Option 1".to_string(),
+            description: Some("This is the first option".to_string()),
+        };
+
+        let json = serde_json::to_string(&list_reply).unwrap();
+        assert!(json.contains("list_option_1"));
+        assert!(json.contains("Option 1"));
+        assert!(json.contains("This is the first option"));
+    }
+
+    #[test]
+    fn test_extract_audio_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "audio".to_string(),
+            text: None,
+            image: None,
+            audio: Some(WhatsAppMedia {
+                id: "audio123".to_string(),
+                mime_type: Some("audio/ogg".to_string()),
+                sha256: None,
+                caption: None,
+            }),
+            video: None,
+            document: None,
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "[audio message]");
+    }
+
+    #[test]
+    fn test_extract_video_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "video".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: Some(WhatsAppMedia {
+                id: "video123".to_string(),
+                mime_type: Some("video/mp4".to_string()),
+                sha256: None,
+                caption: Some("Check this out!".to_string()),
+            }),
+            document: None,
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "[video message]");
+    }
+
+    #[test]
+    fn test_extract_document_message() {
+        let message = WhatsAppMessage {
+            id: "msg123".to_string(),
+            from: "+1234567890".to_string(),
+            timestamp: "1234567890".to_string(),
+            message_type: "document".to_string(),
+            text: None,
+            image: None,
+            audio: None,
+            video: None,
+            document: Some(WhatsAppMedia {
+                id: "doc123".to_string(),
+                mime_type: Some("application/pdf".to_string()),
+                sha256: None,
+                caption: Some("Invoice".to_string()),
+            }),
+            location: None,
+            interactive: None,
+            button: None,
+        };
+
+        let content = extract_message_content(&message);
+        assert_eq!(content, "[document message]");
+    }
+
+    #[test]
+    fn test_whatsapp_value_with_statuses() {
+        let json = r#"{
+            "messaging_product": "whatsapp",
+            "metadata": {
+                "display_phone_number": "15551234567",
+                "phone_number_id": "987654321"
+            },
+            "statuses": [{
+                "id": "wamid.123",
+                "status": "sent",
+                "timestamp": "1234567890",
+                "recipient_id": "15559876543"
+            }]
+        }"#;
+
+        let value: WhatsAppValue = serde_json::from_str(json).unwrap();
+        assert_eq!(value.messaging_product, "whatsapp");
+        assert!(!value.statuses.is_empty());
+        assert_eq!(value.statuses.len(), 1);
+        assert_eq!(value.statuses[0].status, "sent");
+    }
 }

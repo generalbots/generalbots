@@ -101,7 +101,6 @@ pub async fn run() -> Result<()> {
             let result = pm.install(component).await?;
             println!("* Component '{}' installed successfully", component);
 
-
             if let Some(install_result) = result {
                 install_result.print();
             }
@@ -223,7 +222,7 @@ pub async fn run() -> Result<()> {
                     vault_get(path, key).await?;
                 }
                 "list" => {
-                    vault_list().await?;
+                    vault_list()?;
                 }
                 "health" => {
                     vault_health().await?;
@@ -318,10 +317,8 @@ fn print_vault_usage() {
 async fn vault_migrate(env_file: &str) -> Result<()> {
     println!("Migrating secrets from {} to Vault...", env_file);
 
-
     let content = std::fs::read_to_string(env_file)
         .map_err(|e| anyhow::anyhow!("Failed to read {}: {}", env_file, e))?;
-
 
     let mut env_vars: HashMap<String, String> = HashMap::new();
     for line in content.lines() {
@@ -334,14 +331,12 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         }
     }
 
-
     let manager = SecretsManager::from_env()?;
     if !manager.is_enabled() {
         return Err(anyhow::anyhow!(
             "Vault not configured. Set VAULT_ADDR and VAULT_TOKEN"
         ));
     }
-
 
     let mut tables: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("TABLES_SERVER") {
@@ -364,7 +359,6 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         println!("  * Migrated tables credentials");
     }
 
-
     let mut custom: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("CUSTOM_SERVER") {
         custom.insert("host".into(), v.clone());
@@ -385,7 +379,6 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         manager.put_secret("gbo/custom", custom).await?;
         println!("  * Migrated custom database credentials");
     }
-
 
     let mut drive: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("DRIVE_SERVER") {
@@ -411,7 +404,6 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         println!("  * Migrated drive credentials");
     }
 
-
     let mut email: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("EMAIL_FROM") {
         email.insert("from".into(), v.clone());
@@ -436,7 +428,6 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         println!("  * Migrated email credentials");
     }
 
-
     let mut stripe: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("STRIPE_SECRET_KEY") {
         stripe.insert("secret_key".into(), v.clone());
@@ -451,7 +442,6 @@ async fn vault_migrate(env_file: &str) -> Result<()> {
         manager.put_secret("gbo/stripe", stripe).await?;
         println!("  * Migrated stripe credentials");
     }
-
 
     let mut llm: HashMap<String, String> = HashMap::new();
     if let Some(v) = env_vars.get("AI_KEY") {
@@ -550,7 +540,6 @@ async fn vault_get(path: &str, key: Option<&str>) -> Result<()> {
     } else {
         println!("Secrets at {}:", path);
         for (k, v) in &secrets {
-
             let masked = if k.contains("password")
                 || k.contains("secret")
                 || k.contains("key")
@@ -567,7 +556,7 @@ async fn vault_get(path: &str, key: Option<&str>) -> Result<()> {
     Ok(())
 }
 
-async fn vault_list() -> Result<()> {
+fn vault_list() -> Result<()> {
     println!("Configured secret paths:");
     println!("  {} - Database credentials", SecretPaths::TABLES);
     println!("  {} - S3/MinIO credentials", SecretPaths::DRIVE);
@@ -597,7 +586,6 @@ async fn print_version(show_all: bool) -> Result<()> {
         println!("  os: {}", std::env::consts::OS);
         println!();
 
-
         let mode = InstallMode::Local;
         if let Ok(pm) = PackageManager::new(mode, None) {
             println!("Installed Components:");
@@ -615,7 +603,6 @@ async fn print_version(show_all: bool) -> Result<()> {
             println!();
             println!("Available Components: {}", components.len());
         }
-
 
         println!();
         println!("Secrets:");
@@ -907,7 +894,6 @@ async fn rotate_all_secrets() -> Result<()> {
     println!("Generating new credentials...");
     println!();
 
-
     let tables_password = generate_password(32);
     let mut tables = manager
         .get_secret(SecretPaths::TABLES)
@@ -917,12 +903,12 @@ async fn rotate_all_secrets() -> Result<()> {
     manager
         .put_secret(SecretPaths::TABLES, tables.clone())
         .await?;
+    let default_username = "postgres".to_string();
     println!(
         "✓ tables: ALTER USER {} WITH PASSWORD '{}';",
-        tables.get("username").unwrap_or(&"postgres".to_string()),
+        tables.get("username").unwrap_or(&default_username),
         tables_password
     );
-
 
     let drive_accesskey = generate_access_key();
     let drive_secret = generate_secret_key();
@@ -938,7 +924,6 @@ async fn rotate_all_secrets() -> Result<()> {
         drive_accesskey, drive_secret
     );
 
-
     let cache_password = generate_password(32);
     let mut cache: HashMap<String, String> = HashMap::new();
     cache.insert("password".to_string(), cache_password.clone());
@@ -948,7 +933,6 @@ async fn rotate_all_secrets() -> Result<()> {
         cache_password
     );
 
-
     let email_password = generate_password(24);
     let mut email = manager
         .get_secret(SecretPaths::EMAIL)
@@ -957,7 +941,6 @@ async fn rotate_all_secrets() -> Result<()> {
     email.insert("password".to_string(), email_password.clone());
     manager.put_secret(SecretPaths::EMAIL, email).await?;
     println!("✓ email: new password = {}", email_password);
-
 
     let directory_secret = generate_password(48);
     let mut directory = manager

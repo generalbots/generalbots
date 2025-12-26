@@ -4,56 +4,18 @@ use log::trace;
 use serde_json::{json, Value};
 use uuid::Uuid;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 pub fn parse_natural_schedule(input: &str) -> Result<String, String> {
     let input = input.trim().to_lowercase();
-
 
     let parts: Vec<&str> = input.split_whitespace().collect();
     if parts.len() == 5 && is_cron_expression(&parts) {
         return Ok(input);
     }
 
-
     parse_natural_language(&input)
 }
 
 fn is_cron_expression(parts: &[&str]) -> bool {
-
     parts.iter().all(|part| {
         part.chars()
             .all(|c| c.is_ascii_digit() || c == '*' || c == '/' || c == '-' || c == ',')
@@ -61,7 +23,6 @@ fn is_cron_expression(parts: &[&str]) -> bool {
 }
 
 fn parse_natural_language(input: &str) -> Result<String, String> {
-
     let input = input
         .replace("every ", "every_")
         .replace(" at ", "_at_")
@@ -71,26 +32,21 @@ fn parse_natural_language(input: &str) -> Result<String, String> {
 
     let input = input.trim();
 
-
     if let Some(cron) = parse_simple_interval(input) {
         return Ok(cron);
     }
-
 
     if let Some(cron) = parse_at_time(input) {
         return Ok(cron);
     }
 
-
     if let Some(cron) = parse_day_pattern(input) {
         return Ok(cron);
     }
 
-
     if let Some(cron) = parse_combined_pattern(input) {
         return Ok(cron);
     }
-
 
     if let Some(cron) = parse_business_hours(input) {
         return Ok(cron);
@@ -104,11 +60,9 @@ fn parse_natural_language(input: &str) -> Result<String, String> {
 }
 
 fn parse_simple_interval(input: &str) -> Option<String> {
-
     if input == "every_minute" || input == "every_1_minute" {
         return Some("* * * * *".to_string());
     }
-
 
     if let Some(rest) = input.strip_prefix("every_") {
         if let Some(num_str) = rest.strip_suffix("_minutes") {
@@ -119,11 +73,9 @@ fn parse_simple_interval(input: &str) -> Option<String> {
             }
         }
 
-
         if rest == "hour" || rest == "1_hour" {
             return Some("0 * * * *".to_string());
         }
-
 
         if let Some(num_str) = rest.strip_suffix("_hours") {
             if let Ok(n) = num_str.parse::<u32>() {
@@ -133,27 +85,22 @@ fn parse_simple_interval(input: &str) -> Option<String> {
             }
         }
 
-
         if rest == "day" {
             return Some("0 0 * * *".to_string());
         }
-
 
         if rest == "week" {
             return Some("0 0 * * 0".to_string());
         }
 
-
         if rest == "month" {
             return Some("0 0 1 * *".to_string());
         }
-
 
         if rest == "year" {
             return Some("0 0 1 1 *".to_string());
         }
     }
-
 
     match input {
         "daily" => Some("0 0 * * *".to_string()),
@@ -166,11 +113,10 @@ fn parse_simple_interval(input: &str) -> Option<String> {
 }
 
 fn parse_at_time(input: &str) -> Option<String> {
-
-    let time_str = if input.starts_with("_at_") {
-        &input[4..]
-    } else if input.starts_with("at_") {
-        &input[3..]
+    let time_str = if let Some(rest) = input.strip_prefix("_at_") {
+        rest
+    } else if let Some(rest) = input.strip_prefix("at_") {
+        rest
     } else {
         return None;
     };
@@ -179,16 +125,13 @@ fn parse_at_time(input: &str) -> Option<String> {
 }
 
 fn parse_time_to_cron(time_str: &str, _hour_default: &str, dow: &str) -> Option<String> {
-
     if time_str == "midnight" {
         return Some(format!("0 0 * * {}", dow));
     }
 
-
     if time_str == "noon" {
         return Some(format!("0 12 * * {}", dow));
     }
-
 
     let (hour, minute) = parse_time_value(time_str)?;
 
@@ -198,15 +141,13 @@ fn parse_time_to_cron(time_str: &str, _hour_default: &str, dow: &str) -> Option<
 fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
     let time_str = time_str.trim();
 
-
-    let (time_part, is_pm) = if time_str.ends_with("am") {
-        (&time_str[..time_str.len() - 2], false)
-    } else if time_str.ends_with("pm") {
-        (&time_str[..time_str.len() - 2], true)
+    let (time_part, is_pm) = if let Some(rest) = time_str.strip_suffix("am") {
+        (rest, false)
+    } else if let Some(rest) = time_str.strip_suffix("pm") {
+        (rest, true)
     } else {
         (time_str, false)
     };
-
 
     let (hour, minute) = if time_part.contains(':') {
         let parts: Vec<&str> = time_part.split(':').collect();
@@ -221,11 +162,9 @@ fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
         (h, 0)
     };
 
-
     if minute > 59 {
         return None;
     }
-
 
     let hour = if is_pm && hour < 12 {
         hour + 12
@@ -245,12 +184,10 @@ fn parse_time_value(time_str: &str) -> Option<(u32, u32)> {
 fn parse_day_pattern(input: &str) -> Option<String> {
     let dow = get_day_of_week(input)?;
 
-
     if let Some(at_pos) = input.find("_at_") {
         let time_str = &input[at_pos + 4..];
-        return parse_time_to_cron(time_str, "0", &dow.to_string());
+        return parse_time_to_cron(time_str, "0", &dow);
     }
-
 
     Some(format!("0 0 * * {}", dow))
 }
@@ -258,9 +195,7 @@ fn parse_day_pattern(input: &str) -> Option<String> {
 fn get_day_of_week(input: &str) -> Option<String> {
     let input_lower = input.to_lowercase();
 
-
     let day_part = input_lower.strip_prefix("every_").unwrap_or(&input_lower);
-
 
     let day_part = if let Some(at_pos) = day_part.find("_at_") {
         &day_part[..at_pos]
@@ -283,35 +218,25 @@ fn get_day_of_week(input: &str) -> Option<String> {
 }
 
 fn parse_combined_pattern(input: &str) -> Option<String> {
-
-    if input.starts_with("every_day_at_") {
-        let time_str = &input[13..];
+    if let Some(time_str) = input.strip_prefix("every_day_at_") {
         return parse_time_to_cron(time_str, "0", "*");
     }
 
-
-    if input.starts_with("every_weekday_at_") || input.starts_with("weekdays_at_") {
-        let time_str = if input.starts_with("every_weekday_at_") {
-            &input[17..]
-        } else {
-            &input[12..]
-        };
+    if let Some(time_str) = input
+        .strip_prefix("every_weekday_at_")
+        .or_else(|| input.strip_prefix("weekdays_at_"))
+    {
         return parse_time_to_cron(time_str, "0", "1-5");
     }
 
-
-    if input.starts_with("every_weekend_at_") || input.starts_with("weekends_at_") {
-        let time_str = if input.starts_with("every_weekend_at_") {
-            &input[17..]
-        } else {
-            &input[12..]
-        };
+    if let Some(time_str) = input
+        .strip_prefix("every_weekend_at_")
+        .or_else(|| input.strip_prefix("weekends_at_"))
+    {
         return parse_time_to_cron(time_str, "0", "0,6");
     }
 
-
-    if input.starts_with("every_hour_from_") {
-        let rest = &input[16..];
+    if let Some(rest) = input.strip_prefix("every_hour_from_") {
         if let Some(to_pos) = rest.find("_to_") {
             let start: u32 = rest[..to_pos].parse().ok()?;
             let end: u32 = rest[to_pos + 4..].parse().ok()?;
@@ -325,13 +250,8 @@ fn parse_combined_pattern(input: &str) -> Option<String> {
 }
 
 fn parse_business_hours(input: &str) -> Option<String> {
-
     if input.contains("business_hours") || input.contains("business hours") {
-
-
-
         if input.starts_with("every_") {
-
             if let Some(rest) = input.strip_prefix("every_") {
                 if let Some(minutes_pos) = rest.find("_minutes") {
                     let num_str = &rest[..minutes_pos];
@@ -342,13 +262,11 @@ fn parse_business_hours(input: &str) -> Option<String> {
                     }
                 }
 
-
                 if rest.starts_with("hour") {
                     return Some("0 9-17 * * 1-5".to_string());
                 }
             }
         }
-
 
         return Some("0 9-17 * * 1-5".to_string());
     }
@@ -362,7 +280,6 @@ pub fn execute_set_schedule(
     script_name: &str,
     bot_uuid: Uuid,
 ) -> Result<Value, Box<dyn std::error::Error>> {
-
     let cron = parse_natural_schedule(cron_or_natural)?;
 
     trace!(

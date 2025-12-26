@@ -8,6 +8,7 @@ use axum::{
 };
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::Write as FmtWrite;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
@@ -284,10 +285,10 @@ pub async fn handle_storage_usage(State(_state): State<Arc<AppState>>) -> impl I
     html.push_str("</div>");
     html.push_str("<div class=\"metric-content\">");
     html.push_str("<span class=\"metric-value\">");
-    html.push_str(&format!("{:.1} GB", usage_gb));
+    let _ = write!(html, "{:.1} GB", usage_gb);
     html.push_str("</span>");
     html.push_str("<span class=\"metric-label\">Storage (");
-    html.push_str(&percentage.to_string());
+    let _ = write!(html, "{percentage}");
     html.push_str("%)</span>");
     html.push_str("</div>");
 
@@ -384,17 +385,18 @@ pub async fn handle_timeseries_messages(State(state): State<Arc<AppState>>) -> i
 
     for (i, count) in counts.iter().enumerate() {
         let height_pct = (*count as f64 / max_count as f64) * 100.0;
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"chart-bar\" style=\"height: {}%\" title=\"{}: {} messages\"></div>",
             height_pct, labels[i], count
-        ));
+        );
     }
 
     html.push_str("</div>");
     html.push_str("<div class=\"chart-labels\">");
     for (i, label) in labels.iter().enumerate() {
         if i % 4 == 0 {
-            html.push_str(&format!("<span>{}</span>", label));
+            let _ = write!(html, "<span>{label}</span>");
         }
     }
     html.push_str("</div>");
@@ -448,7 +450,7 @@ pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> i
     }
 
     let labels: Vec<String> = (0..24).map(|h| format!("{}:00", h)).collect();
-    let max_avg = avgs.iter().cloned().fold(0.0f64, f64::max).max(0.1);
+    let max_avg = avgs.iter().copied().fold(0.0f64, f64::max).max(0.1);
 
     let mut html = String::new();
     html.push_str("<div class=\"chart-container line-chart\">");
@@ -457,15 +459,15 @@ pub async fn handle_timeseries_response(State(state): State<Arc<AppState>>) -> i
 
     for (i, avg) in avgs.iter().enumerate() {
         let x = (i as f64 / 23.0) * 480.0;
-        let y = 200.0 - (*avg / max_avg) * 180.0;
-        html.push_str(&format!("{},{} ", x, y));
+        let y = 180.0f64.mul_add(-(*avg / max_avg), 200.0);
+        let _ = write!(html, "{x},{y} ");
     }
 
     html.push_str("\"/></svg>");
     html.push_str("<div class=\"chart-labels\">");
     for (i, label) in labels.iter().enumerate() {
         if i % 4 == 0 {
-            html.push_str(&format!("<span>{}</span>", label));
+            let _ = write!(html, "<span>{label}</span>");
         }
     }
     html.push_str("</div>");
@@ -524,10 +526,11 @@ pub async fn handle_channels_distribution(State(state): State<Arc<AppState>>) ->
             0.0
         };
         let color = colors[i % colors.len()];
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"pie-segment\" style=\"--offset: {}; --value: {}; --color: {};\"></div>",
             offset, pct, color
-        ));
+        );
         offset += pct;
     }
 
@@ -541,10 +544,11 @@ pub async fn handle_channels_distribution(State(state): State<Arc<AppState>>) ->
             0.0
         };
         let color = colors[i % colors.len()];
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<div class=\"legend-item\"><span class=\"legend-color\" style=\"background: {};\"></span>{} ({:.0}%)</div>",
             color, html_escape(&data.channel), pct
-        ));
+        );
     }
 
     html.push_str("</div>");
@@ -598,15 +602,16 @@ pub async fn handle_bots_performance(State(state): State<Arc<AppState>>) -> impl
     for data in bot_data.iter() {
         let pct = (data.count as f64 / max_count as f64) * 100.0;
         html.push_str("<div class=\"bar-row\">");
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<span class=\"bar-label\">{}</span>",
             html_escape(&data.name)
-        ));
-        html.push_str(&format!(
-            "<div class=\"bar-track\"><div class=\"bar-fill\" style=\"width: {}%;\"></div></div>",
-            pct
-        ));
-        html.push_str(&format!("<span class=\"bar-value\">{}</span>", data.count));
+        );
+        let _ = write!(
+            html,
+            "<div class=\"bar-track\"><div class=\"bar-fill\" style=\"width: {pct}%;\"></div></div>"
+        );
+        let _ = write!(html, "<span class=\"bar-value\">{}</span>", data.count);
         html.push_str("</div>");
     }
 
@@ -673,16 +678,18 @@ pub async fn handle_recent_activity(State(state): State<Arc<AppState>>) -> impl 
         };
 
         html.push_str("<div class=\"activity-item\">");
-        html.push_str(&format!("<span class=\"activity-icon\">{}</span>", icon));
+        let _ = write!(html, "<span class=\"activity-icon\">{icon}</span>");
         html.push_str("<div class=\"activity-content\">");
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<span class=\"activity-desc\">{}</span>",
             html_escape(&activity.description)
-        ));
-        html.push_str(&format!(
+        );
+        let _ = write!(
+            html,
             "<span class=\"activity-time\">{}</span>",
             html_escape(&activity.time_ago)
-        ));
+        );
         html.push_str("</div>");
         html.push_str("</div>");
     }
@@ -736,12 +743,13 @@ pub async fn handle_top_queries(State(state): State<Arc<AppState>>) -> impl Into
 
     for (i, q) in queries.iter().enumerate() {
         html.push_str("<div class=\"query-item\">");
-        html.push_str(&format!("<span class=\"query-rank\">{}</span>", i + 1));
-        html.push_str(&format!(
+        let _ = write!(html, "<span class=\"query-rank\">{}</span>", i + 1);
+        let _ = write!(
+            html,
             "<span class=\"query-text\">{}</span>",
             html_escape(&q.query)
-        ));
-        html.push_str(&format!("<span class=\"query-count\">{}</span>", q.count));
+        );
+        let _ = write!(html, "<span class=\"query-count\">{}</span>", q.count);
         html.push_str("</div>");
     }
 
@@ -782,27 +790,29 @@ pub async fn handle_llm_stats(State(_state): State<Arc<AppState>>) -> impl IntoR
 
     let mut html = String::new();
     html.push_str("<div class=\"llm-stats\">");
-    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Total Requests</span><span class=\"value\">{}</span></div>", stats.total_requests));
-    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Total Tokens</span><span class=\"value\">{}</span></div>", stats.total_tokens));
-    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Cache Hits</span><span class=\"value\">{}</span></div>", stats.cache_hits));
-    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Cache Hit Rate</span><span class=\"value\">{:.1}%</span></div>", stats.cache_hit_rate * 100.0));
-    html.push_str(&format!("<div class=\"stat\"><span class=\"label\">Error Rate</span><span class=\"value\">{:.1}%</span></div>", stats.error_rate * 100.0));
+    let _ = write!(html, "<div class=\"stat\"><span class=\"label\">Total Requests</span><span class=\"value\">{}</span></div>", stats.total_requests);
+    let _ = write!(html, "<div class=\"stat\"><span class=\"label\">Total Tokens</span><span class=\"value\">{}</span></div>", stats.total_tokens);
+    let _ = write!(html, "<div class=\"stat\"><span class=\"label\">Cache Hits</span><span class=\"value\">{}</span></div>", stats.cache_hits);
+    let _ = write!(html, "<div class=\"stat\"><span class=\"label\">Cache Hit Rate</span><span class=\"value\">{:.1}%</span></div>", stats.cache_hit_rate * 100.0);
+    let _ = write!(html, "<div class=\"stat\"><span class=\"label\">Error Rate</span><span class=\"value\">{:.1}%</span></div>", stats.error_rate * 100.0);
     html.push_str("</div>");
 
     Html(html)
 }
 
 pub async fn handle_budget_status(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
-    let service = AnalyticsService::new();
-    let manager = service.get_observability_manager().await;
-    let status = manager.get_budget_status().await;
+    let status = {
+        let service = AnalyticsService::new();
+        let manager = service.get_observability_manager().await;
+        manager.get_budget_status().await
+    };
 
     let mut html = String::new();
     html.push_str("<div class=\"budget-status\">");
-    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Daily Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.daily_spend, status.daily_limit));
-    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Monthly Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.monthly_spend, status.monthly_limit));
-    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Daily Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.daily_remaining, status.daily_percentage * 100.0));
-    html.push_str(&format!("<div class=\"budget-item\"><span class=\"label\">Monthly Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.monthly_remaining, status.monthly_percentage * 100.0));
+    let _ = write!(html, "<div class=\"budget-item\"><span class=\"label\">Daily Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.daily_spend, status.daily_limit);
+    let _ = write!(html, "<div class=\"budget-item\"><span class=\"label\">Monthly Spend</span><span class=\"value\">${:.2} / ${:.2}</span></div>", status.monthly_spend, status.monthly_limit);
+    let _ = write!(html, "<div class=\"budget-item\"><span class=\"label\">Daily Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.daily_remaining, status.daily_percentage * 100.0);
+    let _ = write!(html, "<div class=\"budget-item\"><span class=\"label\">Monthly Remaining</span><span class=\"value\">${:.2} ({:.0}%)</span></div>", status.monthly_remaining, status.monthly_percentage * 100.0);
     html.push_str("</div>");
 
     Html(html)

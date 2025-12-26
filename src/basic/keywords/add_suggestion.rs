@@ -1,16 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{error, trace};
@@ -18,12 +5,9 @@ use rhai::{Dynamic, Engine};
 use serde_json::json;
 use std::sync::Arc;
 
-
 #[derive(Debug, Clone)]
 pub enum SuggestionType {
-
     Context(String),
-
 
     Tool {
         name: String,
@@ -38,9 +22,8 @@ pub fn clear_suggestions_keyword(
 ) {
     let cache = state.cache.clone();
 
-
     engine
-        .register_custom_syntax(&["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR", "SUGGESTIONS"], true, move |_context, _inputs| {
             if let Some(cache_client) = &cache {
                 let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
                 let mut conn = match cache_client.get_connection() {
@@ -84,11 +67,9 @@ pub fn add_suggestion_keyword(
     let user_session2 = user_session.clone();
     let user_session3 = user_session.clone();
 
-
-
     engine
         .register_custom_syntax(
-            &["ADD", "SUGGESTION", "$expr$", "AS", "$expr$"],
+            ["ADD", "SUGGESTION", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let context_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -101,11 +82,9 @@ pub fn add_suggestion_keyword(
         )
         .unwrap();
 
-
-
     engine
         .register_custom_syntax(
-            &["ADD", "SUGGESTION", "TOOL", "$expr$", "AS", "$expr$"],
+            ["ADD", "SUGGESTION", "TOOL", "$expr$", "AS", "$expr$"],
             true,
             move |context, inputs| {
                 let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -124,11 +103,9 @@ pub fn add_suggestion_keyword(
         )
         .unwrap();
 
-
-
     engine
         .register_custom_syntax(
-            &[
+            [
                 "ADD",
                 "SUGGESTION",
                 "TOOL",
@@ -143,7 +120,6 @@ pub fn add_suggestion_keyword(
                 let tool_name = context.eval_expression_tree(&inputs[0])?.to_string();
                 let params_value = context.eval_expression_tree(&inputs[1])?;
                 let button_text = context.eval_expression_tree(&inputs[2])?.to_string();
-
 
                 let params = if params_value.is_array() {
                     params_value
@@ -173,7 +149,6 @@ pub fn add_suggestion_keyword(
         .unwrap();
 }
 
-
 fn add_context_suggestion(
     cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
@@ -182,7 +157,6 @@ fn add_context_suggestion(
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
-
 
         let suggestion = json!({
             "type": "context",
@@ -216,7 +190,6 @@ fn add_context_suggestion(
                     length
                 );
 
-
                 let active_key = format!(
                     "active_context:{}:{}",
                     user_session.user_id, user_session.id
@@ -237,10 +210,6 @@ fn add_context_suggestion(
     Ok(())
 }
 
-
-
-
-
 fn add_tool_suggestion(
     cache: Option<&Arc<redis::Client>>,
     user_session: &UserSession,
@@ -250,7 +219,6 @@ fn add_tool_suggestion(
 ) -> Result<(), Box<rhai::EvalAltResult>> {
     if let Some(cache_client) = cache {
         let redis_key = format!("suggestions:{}:{}", user_session.user_id, user_session.id);
-
 
         let suggestion = json!({
             "type": "tool",
@@ -296,4 +264,63 @@ fn add_tool_suggestion(
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    #[test]
+    fn test_suggestion_json_context() {
+        let suggestion = json!({
+            "type": "context",
+            "context": "products",
+            "text": "View Products",
+            "action": {
+                "type": "select_context",
+                "context": "products"
+            }
+        });
+
+        assert_eq!(suggestion["type"], "context");
+        assert_eq!(suggestion["action"]["type"], "select_context");
+    }
+
+    #[test]
+    fn test_suggestion_json_tool_no_params() {
+        let suggestion = json!({
+            "type": "tool",
+            "tool": "search_kb",
+            "text": "Search Knowledge Base",
+            "action": {
+                "type": "invoke_tool",
+                "tool": "search_kb",
+                "params": Option::<Vec<String>>::None,
+                "prompt_for_params": true
+            }
+        });
+
+        assert_eq!(suggestion["type"], "tool");
+        assert_eq!(suggestion["action"]["prompt_for_params"], true);
+    }
+
+    #[test]
+    fn test_suggestion_json_tool_with_params() {
+        let params = vec!["query".to_string(), "products".to_string()];
+        let suggestion = json!({
+            "type": "tool",
+            "tool": "search_kb",
+            "text": "Search Products",
+            "action": {
+                "type": "invoke_tool",
+                "tool": "search_kb",
+                "params": params,
+                "prompt_for_params": false
+            }
+        });
+
+        assert_eq!(suggestion["type"], "tool");
+        assert_eq!(suggestion["action"]["prompt_for_params"], false);
+        assert!(suggestion["action"]["params"].is_array());
+    }
 }

@@ -58,21 +58,21 @@ pub enum RequestType {
 
 impl Default for RequestType {
     fn default() -> Self {
-        RequestType::Chat
+        Self::Chat
     }
 }
 
 impl std::fmt::Display for RequestType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            RequestType::Chat => write!(f, "chat"),
-            RequestType::Completion => write!(f, "completion"),
-            RequestType::Embedding => write!(f, "embedding"),
-            RequestType::Rerank => write!(f, "rerank"),
-            RequestType::Moderation => write!(f, "moderation"),
-            RequestType::ImageGeneration => write!(f, "image_generation"),
-            RequestType::AudioTranscription => write!(f, "audio_transcription"),
-            RequestType::AudioGeneration => write!(f, "audio_generation"),
+            Self::Chat => write!(f, "chat"),
+            Self::Completion => write!(f, "completion"),
+            Self::Embedding => write!(f, "embedding"),
+            Self::Rerank => write!(f, "rerank"),
+            Self::Moderation => write!(f, "moderation"),
+            Self::ImageGeneration => write!(f, "image_generation"),
+            Self::AudioTranscription => write!(f, "audio_transcription"),
+            Self::AudioGeneration => write!(f, "audio_generation"),
         }
     }
 }
@@ -139,7 +139,7 @@ pub struct ModelPricing {
 
 impl Default for ModelPricing {
     fn default() -> Self {
-        ModelPricing {
+        Self {
             model: "default".to_string(),
             input_cost_per_1k: 0.0,
             output_cost_per_1k: 0.0,
@@ -173,7 +173,7 @@ pub struct Budget {
 impl Default for Budget {
     fn default() -> Self {
         let now = Utc::now();
-        Budget {
+        Self {
             daily_limit: 100.0,
             monthly_limit: 2000.0,
             alert_threshold: 0.8,
@@ -214,7 +214,7 @@ pub struct TraceEvent {
     pub error: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum TraceEventType {
     Span,
@@ -223,7 +223,7 @@ pub enum TraceEventType {
     Metric,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum TraceStatus {
     Ok,
@@ -233,7 +233,7 @@ pub enum TraceStatus {
 
 impl Default for TraceStatus {
     fn default() -> Self {
-        TraceStatus::InProgress
+        Self::InProgress
     }
 }
 
@@ -260,7 +260,7 @@ pub struct ObservabilityConfig {
 
 impl Default for ObservabilityConfig {
     fn default() -> Self {
-        ObservabilityConfig {
+        Self {
             enabled: true,
             metrics_interval: 60,
             cost_tracking: true,
@@ -385,7 +385,7 @@ impl ObservabilityManager {
             ..Default::default()
         };
 
-        ObservabilityManager {
+        Self {
             config,
             metrics_buffer: Arc::new(RwLock::new(Vec::new())),
             current_metrics: Arc::new(RwLock::new(AggregatedMetrics::default())),
@@ -435,7 +435,25 @@ impl ObservabilityManager {
                 .unwrap_or(0.8),
             model_pricing: default_model_pricing(),
         };
-        ObservabilityManager::new(config)
+        Self::new(config)
+    }
+
+    fn calculate_budget_status(budget: &Budget) -> BudgetStatus {
+        BudgetStatus {
+            daily_limit: budget.daily_limit,
+            daily_spend: budget.daily_spend,
+            daily_remaining: budget.daily_limit - budget.daily_spend,
+            daily_percentage: (budget.daily_spend / budget.daily_limit) * 100.0,
+            monthly_limit: budget.monthly_limit,
+            monthly_spend: budget.monthly_spend,
+            monthly_remaining: budget.monthly_limit - budget.monthly_spend,
+            monthly_percentage: (budget.monthly_spend / budget.monthly_limit) * 100.0,
+            daily_exceeded: budget.daily_spend > budget.daily_limit,
+            monthly_exceeded: budget.monthly_spend > budget.monthly_limit,
+            near_daily_limit: budget.daily_spend >= budget.daily_limit * budget.alert_threshold,
+            near_monthly_limit: budget.monthly_spend
+                >= budget.monthly_limit * budget.alert_threshold,
+        }
     }
 
     pub async fn record_request(&self, metrics: LLMRequestMetrics) {
@@ -486,26 +504,10 @@ impl ObservabilityManager {
 
     pub async fn get_budget_status(&self) -> BudgetStatus {
         let budget = self.budget.read().await;
-        BudgetStatus {
-            daily_limit: budget.daily_limit,
-            daily_spend: budget.daily_spend,
-            daily_remaining: budget.daily_limit - budget.daily_spend,
-            daily_percentage: (budget.daily_spend / budget.daily_limit) * 100.0,
-            monthly_limit: budget.monthly_limit,
-            monthly_spend: budget.monthly_spend,
-            monthly_remaining: budget.monthly_limit - budget.monthly_spend,
-            monthly_percentage: (budget.monthly_spend / budget.monthly_limit) * 100.0,
-            daily_exceeded: budget.daily_spend > budget.daily_limit,
-            monthly_exceeded: budget.monthly_spend > budget.monthly_limit,
-            near_daily_limit: budget.daily_spend >= budget.daily_limit * budget.alert_threshold,
-            near_monthly_limit: budget.monthly_spend
-                >= budget.monthly_limit * budget.alert_threshold,
-        }
+        Self::calculate_budget_status(&budget)
     }
 
-    pub async fn check_budget(&self, estimated_cost: f64) -> BudgetCheckResult {
-        let budget = self.budget.read().await;
-
+    fn check_budget_internal(budget: &Budget, estimated_cost: f64) -> BudgetCheckResult {
         let daily_after = budget.daily_spend + estimated_cost;
         let monthly_after = budget.monthly_spend + estimated_cost;
 
@@ -526,6 +528,11 @@ impl ObservabilityManager {
         }
 
         BudgetCheckResult::Ok
+    }
+
+    pub async fn check_budget(&self, estimated_cost: f64) -> BudgetCheckResult {
+        let budget = self.budget.read().await;
+        Self::check_budget_internal(&budget, estimated_cost)
     }
 
     pub async fn reset_daily_budget(&self) {
@@ -598,12 +605,14 @@ impl ObservabilityManager {
         start: DateTime<Utc>,
         end: DateTime<Utc>,
     ) -> AggregatedMetrics {
-        let buffer = self.metrics_buffer.read().await;
-
-        let filtered: Vec<&LLMRequestMetrics> = buffer
-            .iter()
-            .filter(|m| m.timestamp >= start && m.timestamp <= end)
-            .collect();
+        let filtered: Vec<LLMRequestMetrics> = {
+            let buffer = self.metrics_buffer.read().await;
+            buffer
+                .iter()
+                .filter(|m| m.timestamp >= start && m.timestamp <= end)
+                .cloned()
+                .collect()
+        };
 
         if filtered.is_empty() {
             return AggregatedMetrics {
@@ -659,7 +668,7 @@ impl ObservabilityManager {
         }
 
         if !latencies.is_empty() {
-            latencies.sort();
+            latencies.sort_unstable();
             let len = latencies.len();
 
             metrics.avg_latency_ms = latencies.iter().sum::<u64>() as f64 / len as f64;
@@ -745,7 +754,7 @@ pub struct BudgetStatus {
     pub near_monthly_limit: bool,
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum BudgetCheckResult {
     Ok,
     NearDailyLimit,

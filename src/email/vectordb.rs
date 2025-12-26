@@ -57,6 +57,12 @@ pub struct UserEmailVectorDB {
 impl UserEmailVectorDB {
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("emails_{}_{}", bot_id, user_id);
+        log::trace!(
+            "Creating UserEmailVectorDB for user={} bot={} path={:?}",
+            user_id,
+            bot_id,
+            db_path
+        );
 
         Self {
             user_id,
@@ -70,6 +76,12 @@ impl UserEmailVectorDB {
 
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
+        log::info!(
+            "Initializing email vector DB for user={} bot={} at {:?}",
+            self.user_id,
+            self.bot_id,
+            self.db_path
+        );
         let client = Qdrant::from_url(qdrant_url).build()?;
 
         let collections = client.list_collections().await?;
@@ -394,7 +406,21 @@ impl EmailEmbeddingGenerator {
 
     pub async fn generate_text_embedding(&self, text: &str) -> Result<Vec<f32>> {
         let embedding_url = "http://localhost:8082".to_string();
-        self.generate_local_embedding(text, &embedding_url).await
+        match self.generate_local_embedding(text, &embedding_url).await {
+            Ok(embedding) => Ok(embedding),
+            Err(e) => {
+                log::warn!("Local embedding failed: {e}, falling back to hash embedding");
+                self.generate_hash_embedding(text)
+            }
+        }
+    }
+
+    pub async fn generate_text_embedding_with_openai(
+        &self,
+        text: &str,
+        api_key: &str,
+    ) -> Result<Vec<f32>> {
+        self.generate_openai_embedding(text, api_key).await
     }
 
     async fn generate_openai_embedding(&self, text: &str, api_key: &str) -> Result<Vec<f32>> {

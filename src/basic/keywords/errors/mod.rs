@@ -7,7 +7,6 @@ use log::debug;
 use rhai::{Dynamic, Engine, EvalAltResult, Map, Position};
 use std::sync::Arc;
 
-
 pub use on_error::{
     clear_last_error, get_error_number, get_last_error, handle_error, handle_string_error,
     is_error_resume_next_active, set_error_resume_next, set_last_error,
@@ -19,7 +18,6 @@ pub fn register_error_functions(state: Arc<AppState>, user: UserSession, engine:
     is_error_keyword(&state, user.clone(), engine);
     assert_keyword(&state, user.clone(), engine);
     log_error_keyword(&state, user.clone(), engine);
-
 
     on_error::register_on_error_keywords(state, user, engine);
 
@@ -81,7 +79,7 @@ pub fn error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut En
 pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine.register_fn("IS_ERROR", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Some(map) = v.clone().try_cast::<Map>() {
+            if let Some(map) = v.try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -94,7 +92,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("is_error", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Some(map) = v.clone().try_cast::<Map>() {
+            if let Some(map) = v.try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -107,7 +105,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("ISERROR", |v: Dynamic| -> bool {
         if v.is_map() {
-            if let Some(map) = v.clone().try_cast::<Map>() {
+            if let Some(map) = v.try_cast::<Map>() {
                 return map.contains_key("error")
                     && map
                         .get("error")
@@ -120,7 +118,7 @@ pub fn is_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut
 
     engine.register_fn("GET_ERROR_MESSAGE", |v: Dynamic| -> String {
         if v.is_map() {
-            if let Some(map) = v.clone().try_cast::<Map>() {
+            if let Some(map) = v.try_cast::<Map>() {
                 if let Some(msg) = map.get("message") {
                     return msg.to_string();
                 }
@@ -186,4 +184,19 @@ pub fn log_error_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mu
     });
 
     debug!("Registered LOG_ERROR keyword");
+}
+
+#[cfg(test)]
+mod tests {
+    use rhai::{Dynamic, Map};
+
+    #[test]
+    fn test_error_map() {
+        let mut map = Map::new();
+        map.insert("error".into(), Dynamic::from(true));
+        map.insert("message".into(), Dynamic::from("test error"));
+
+        assert!(map.contains_key("error"));
+        assert_eq!(map.get("error").unwrap().as_bool().unwrap_or(false), true);
+    }
 }

@@ -1,25 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use anyhow::{anyhow, Result};
 use log::{debug, info, warn};
 use std::collections::HashMap;
@@ -30,7 +8,6 @@ use std::sync::Arc as StdArc;
 use tokio::sync::RwLock;
 use vaultrs::client::{VaultClient, VaultClientSettingsBuilder};
 use vaultrs::kv2;
-
 
 #[derive(Debug)]
 pub struct SecretPaths;
@@ -49,12 +26,10 @@ impl SecretPaths {
     pub const OBSERVABILITY: &'static str = "gbo/observability";
 }
 
-
 struct CachedSecret {
     data: HashMap<String, String>,
     expires_at: std::time::Instant,
 }
-
 
 #[derive(Clone)]
 pub struct SecretsManager {
@@ -67,23 +42,15 @@ pub struct SecretsManager {
 impl std::fmt::Debug for SecretsManager {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("SecretsManager")
-            .field("enabled", &self.enabled)
+            .field("client", &self.client.is_some())
+            .field("cache", &"<RwLock<HashMap>>")
             .field("cache_ttl", &self.cache_ttl)
+            .field("enabled", &self.enabled)
             .finish()
     }
 }
 
 impl SecretsManager {
-
-
-
-
-
-
-
-
-
-
     pub fn from_env() -> Result<Self> {
         let addr = env::var("VAULT_ADDR").unwrap_or_default();
         let token = env::var("VAULT_TOKEN").unwrap_or_default();
@@ -94,7 +61,6 @@ impl SecretsManager {
             .ok()
             .and_then(|v| v.parse().ok())
             .unwrap_or(300);
-
 
         let ca_cert = env::var("VAULT_CACERT")
             .unwrap_or_else(|_| "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string());
@@ -117,14 +83,12 @@ impl SecretsManager {
             });
         }
 
-
         let ca_path = PathBuf::from(&ca_cert);
         let cert_path = PathBuf::from(&client_cert);
         let key_path = PathBuf::from(&client_key);
 
         let mut settings_builder = VaultClientSettingsBuilder::default();
         settings_builder.address(&addr).token(&token);
-
 
         if skip_verify {
             warn!("TLS verification disabled - NOT RECOMMENDED FOR PRODUCTION");
@@ -134,10 +98,9 @@ impl SecretsManager {
 
             if ca_path.exists() {
                 info!("Using CA certificate for Vault: {}", ca_cert);
-                settings_builder.ca_certs(vec![ca_cert.clone()]);
+                settings_builder.ca_certs(vec![ca_cert]);
             }
         }
-
 
         if cert_path.exists() && key_path.exists() && !skip_verify {
             info!("Using mTLS client certificate for Vault: {}", client_cert);
@@ -160,17 +123,14 @@ impl SecretsManager {
         self.enabled
     }
 
-
     pub async fn get_secret(&self, path: &str) -> Result<HashMap<String, String>> {
         if !self.enabled {
-            return self.get_from_env(path);
+            return Self::get_from_env(path);
         }
-
 
         if let Some(cached) = self.get_cached(path).await {
             return Ok(cached);
         }
-
 
         let client = self
             .client
@@ -187,10 +147,9 @@ impl SecretsManager {
                     "Vault read failed for '{}': {}, falling back to env",
                     path, e
                 );
-                return self.get_from_env(path);
+                return Self::get_from_env(path);
             }
         };
-
 
         if self.cache_ttl > 0 {
             self.cache_secret(path, data.clone()).await;
@@ -206,8 +165,6 @@ impl SecretsManager {
             .cloned()
             .ok_or_else(|| anyhow!("Key '{}' not found in '{}'", key, path))
     }
-
-
 
     pub async fn get_drive_credentials(&self) -> Result<(String, String)> {
         let s = self.get_secret(SecretPaths::DRIVE).await?;
@@ -367,13 +324,7 @@ impl SecretsManager {
         self.cache.write().await.remove(path);
     }
 
-
-
-    fn get_from_env(&self, _path: &str) -> Result<HashMap<String, String>> {
-
-
-
-
+    fn get_from_env(_path: &str) -> Result<HashMap<String, String>> {
         Err(anyhow!("Vault not configured. All secrets must be stored in Vault. Set VAULT_ADDR and VAULT_TOKEN in .env"))
     }
 }

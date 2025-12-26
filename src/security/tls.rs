@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use anyhow::{Context, Result};
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::server::WebPkiClientVerifier;
@@ -21,39 +13,27 @@ use tokio::net::TcpListener;
 use tokio_rustls::TlsAcceptor;
 use tracing::{info, warn};
 
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct TlsConfig {
-
     pub enabled: bool,
-
 
     pub cert_path: PathBuf,
 
-
     pub key_path: PathBuf,
-
 
     pub ca_cert_path: Option<PathBuf>,
 
-
     pub client_cert_path: Option<PathBuf>,
-
 
     pub client_key_path: Option<PathBuf>,
 
-
     pub require_client_cert: bool,
-
 
     pub min_tls_version: Option<String>,
 
-
     pub cipher_suites: Option<Vec<String>>,
 
-
     pub ocsp_stapling: bool,
-
 
     pub renewal_check_hours: u64,
 }
@@ -76,7 +56,6 @@ impl Default for TlsConfig {
     }
 }
 
-
 #[derive(Debug)]
 pub struct TlsManager {
     config: TlsConfig,
@@ -85,7 +64,6 @@ pub struct TlsManager {
 }
 
 impl TlsManager {
-
     pub fn new(config: TlsConfig) -> Result<Self> {
         let server_config = Self::create_server_config(&config)?;
         let client_config = if config.client_cert_path.is_some() {
@@ -101,14 +79,11 @@ impl TlsManager {
         })
     }
 
-
     fn create_server_config(config: &TlsConfig) -> Result<ServerConfig> {
-
         let cert_chain = Self::load_certs(&config.cert_path)?;
         let key = Self::load_private_key(&config.key_path)?;
 
         let server_config = if config.require_client_cert {
-
             info!("Configuring mTLS - client certificates required");
             if let Some(ca_path) = &config.ca_cert_path {
                 let ca_certs = Self::load_certs(ca_path)?;
@@ -129,7 +104,6 @@ impl TlsManager {
                 ));
             }
         } else if let Some(ca_path) = &config.ca_cert_path {
-
             info!("Configuring TLS with optional client certificates");
             let ca_certs = Self::load_certs(ca_path)?;
             let mut root_store = RootCertStore::empty();
@@ -145,7 +119,6 @@ impl TlsManager {
                 .with_client_cert_verifier(client_cert_verifier)
                 .with_single_cert(cert_chain, key)?
         } else {
-
             info!("Configuring standard TLS without client certificates");
             ServerConfig::builder()
                 .with_no_client_auth()
@@ -155,10 +128,8 @@ impl TlsManager {
         Ok(server_config)
     }
 
-
     fn create_client_config(config: &TlsConfig) -> Result<rustls::ClientConfig> {
         let mut root_store = RootCertStore::empty();
-
 
         if let Some(ca_path) = &config.ca_cert_path {
             let ca_certs = Self::load_certs(ca_path)?;
@@ -166,7 +137,6 @@ impl TlsManager {
                 root_store.add(cert)?;
             }
         } else {
-
             Self::load_system_certs(&mut root_store)?;
         }
 
@@ -175,7 +145,6 @@ impl TlsManager {
         let client_config = if let (Some(cert_path), Some(key_path)) =
             (&config.client_cert_path, &config.client_key_path)
         {
-
             let cert_chain = Self::load_certs(cert_path)?;
             let key = Self::load_private_key(key_path)?;
             builder.with_client_auth_cert(cert_chain, key)?
@@ -186,21 +155,18 @@ impl TlsManager {
         Ok(client_config)
     }
 
-
     fn load_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
         let file = File::open(path)
-            .with_context(|| format!("Failed to open certificate file: {:?}", path))?;
+            .with_context(|| format!("Failed to open certificate file: {}", path.display()))?;
         let mut reader = BufReader::new(file);
         let certs: Result<Vec<_>, _> = certs(&mut reader).collect();
-        certs.with_context(|| format!("Failed to parse certificates from {:?}", path))
+        certs.with_context(|| format!("Failed to parse certificates from {}", path.display()))
     }
 
-
     fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
-        let file =
-            File::open(path).with_context(|| format!("Failed to open key file: {:?}", path))?;
+        let file = File::open(path)
+            .with_context(|| format!("Failed to open key file: {}", path.display()))?;
         let mut reader = BufReader::new(file);
-
 
         let keys: Vec<_> = pkcs8_private_keys(&mut reader)
             .filter_map(|k| k.ok())
@@ -208,7 +174,6 @@ impl TlsManager {
         if !keys.is_empty() {
             return Ok(PrivateKeyDer::Pkcs8(keys[0].clone_key()));
         }
-
 
         let file = File::open(path)?;
         let mut reader = BufReader::new(file);
@@ -219,12 +184,13 @@ impl TlsManager {
             return Ok(PrivateKeyDer::Pkcs1(keys[0].clone_key()));
         }
 
-        Err(anyhow::anyhow!("No private key found in file: {:?}", path))
+        Err(anyhow::anyhow!(
+            "No private key found in file: {}",
+            path.display()
+        ))
     }
 
-
     fn load_system_certs(root_store: &mut RootCertStore) -> Result<()> {
-
         let system_cert_paths = vec![
             "/etc/ssl/certs/ca-certificates.crt",
             "/etc/ssl/certs/ca-bundle.crt",
@@ -255,27 +221,22 @@ impl TlsManager {
         Ok(())
     }
 
-
     pub fn server_config(&self) -> Arc<ServerConfig> {
         Arc::clone(&self.server_config)
     }
-
 
     pub fn client_config(&self) -> Option<Arc<rustls::ClientConfig>> {
         self.client_config.clone()
     }
 
-
     pub fn acceptor(&self) -> TlsAcceptor {
         TlsAcceptor::from(self.server_config())
     }
-
 
     pub fn create_https_client(&self) -> Result<reqwest::Client> {
         let mut builder = reqwest::Client::builder().use_rustls_tls().https_only(true);
 
         if let Some(_client_config) = &self.client_config {
-
             if let (Some(cert_path), Some(key_path)) =
                 (&self.config.client_cert_path, &self.config.client_key_path)
             {
@@ -284,7 +245,6 @@ impl TlsManager {
                 let identity = reqwest::Identity::from_pem(&[&cert[..], &key[..]].concat())?;
                 builder = builder.identity(identity);
             }
-
 
             if let Some(ca_path) = &self.config.ca_cert_path {
                 let ca_cert = std::fs::read(ca_path)?;
@@ -296,22 +256,16 @@ impl TlsManager {
         Ok(builder.build()?)
     }
 
-
-    pub async fn check_certificate_renewal(&self) -> Result<bool> {
-
+    pub fn check_certificate_renewal(&self) -> Result<bool> {
         let certs = Self::load_certs(&self.config.cert_path)?;
         if certs.is_empty() {
             return Err(anyhow::anyhow!("No certificate found"));
         }
 
-
-
-
         Ok(false)
     }
 
-
-    pub async fn reload_certificates(&mut self) -> Result<()> {
+    pub fn reload_certificates(&mut self) -> Result<()> {
         info!("Reloading TLS certificates");
 
         let new_server_config = Self::create_server_config(&self.config)?;
@@ -327,7 +281,6 @@ impl TlsManager {
     }
 }
 
-
 pub async fn create_https_server(
     addr: SocketAddr,
     _tls_manager: &TlsManager,
@@ -336,7 +289,6 @@ pub async fn create_https_server(
     info!("HTTPS server listening on {}", addr);
     Ok(listener)
 }
-
 
 #[derive(Debug, Clone)]
 pub struct ServiceTlsConfig {
@@ -350,7 +302,6 @@ impl ServiceTlsConfig {
         let mut config = TlsConfig::default();
         let name = service_name.into();
 
-
         config.cert_path = PathBuf::from(format!("certs/{}/server.crt", name));
         config.key_path = PathBuf::from(format!("certs/{}/server.key", name));
         config.client_cert_path = Some(PathBuf::from(format!("certs/{}/client.crt", name)));
@@ -363,12 +314,10 @@ impl ServiceTlsConfig {
         }
     }
 
-
     pub fn with_mtls(mut self) -> Self {
         self.tls_config.require_client_cert = true;
         self
     }
-
 
     pub fn with_ca(mut self, ca_path: PathBuf) -> Self {
         self.tls_config.ca_cert_path = Some(ca_path);
@@ -376,10 +325,15 @@ impl ServiceTlsConfig {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct TlsRegistry {
     services: Vec<ServiceTlsConfig>,
+}
+
+impl Default for TlsRegistry {
+    fn default() -> Self {
+        Self::new()
+    }
 }
 
 impl TlsRegistry {
@@ -389,55 +343,37 @@ impl TlsRegistry {
         }
     }
 
-
     pub fn register_defaults(&mut self) {
-
         self.services
             .push(ServiceTlsConfig::new("api", 8443).with_mtls());
-
 
         self.services
             .push(ServiceTlsConfig::new("llm", 8081).with_mtls());
 
-
         self.services
             .push(ServiceTlsConfig::new("embedding", 8082).with_mtls());
-
 
         self.services
             .push(ServiceTlsConfig::new("qdrant", 6334).with_mtls());
 
+        self.services
+            .push(ServiceTlsConfig::new("redis", 6380).with_mtls());
 
-        self.services.push(
-            ServiceTlsConfig::new("redis", 6380)
-                .with_mtls(),
-        );
-
-
-        self.services.push(
-            ServiceTlsConfig::new("postgres", 5433)
-                .with_mtls(),
-        );
-
+        self.services
+            .push(ServiceTlsConfig::new("postgres", 5433).with_mtls());
 
         self.services
             .push(ServiceTlsConfig::new("minio", 9001).with_mtls());
 
-
         self.services
             .push(ServiceTlsConfig::new("directory", 8443).with_mtls());
 
-
-        self.services.push(
-            ServiceTlsConfig::new("email", 465)
-                .with_mtls(),
-        );
-
+        self.services
+            .push(ServiceTlsConfig::new("email", 465).with_mtls());
 
         self.services
             .push(ServiceTlsConfig::new("meet", 7881).with_mtls());
     }
-
 
     pub fn get_manager(&self, service_name: &str) -> Result<TlsManager> {
         let config = self
@@ -448,7 +384,6 @@ impl TlsRegistry {
 
         TlsManager::new(config.tls_config.clone())
     }
-
 
     pub fn services(&self) -> &[ServiceTlsConfig] {
         &self.services

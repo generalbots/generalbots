@@ -17,22 +17,17 @@ use tower_http::trace::TraceLayer;
 use botserver::core;
 use botserver::shared;
 
-
 use botserver::core::automation;
 use botserver::core::bootstrap;
 use botserver::core::bot;
 use botserver::core::package_manager;
 use botserver::core::session;
 
-
 #[cfg(feature = "attendance")]
 use botserver::attendance;
 
 #[cfg(feature = "calendar")]
 use botserver::calendar;
-
-#[cfg(feature = "compliance")]
-use botserver::compliance;
 
 #[cfg(feature = "directory")]
 use botserver::directory;
@@ -55,11 +50,6 @@ use botserver::core::bot::channels::{VoiceAdapter, WebChannelAdapter};
 use botserver::core::bot::websocket_handler;
 use botserver::core::bot::BotOrchestrator;
 use botserver::core::config::AppConfig;
-#[cfg(feature = "email")]
-use email::{
-    add_email_account, delete_email_account, get_emails, get_latest_email_from,
-    list_email_accounts, list_emails, list_folders, save_click, save_draft, send_email,
-};
 
 #[cfg(feature = "directory")]
 use directory::auth_handler;
@@ -71,13 +61,9 @@ use shared::state::AppState;
 use shared::utils::create_conn;
 use shared::utils::create_s3_operator;
 
-
 use botserver::BootstrapProgress;
 
-
-
 async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<serde_json::Value>) {
-
     let db_ok = state.conn.get().is_ok();
 
     let status = if db_ok { "healthy" } else { "degraded" };
@@ -98,7 +84,6 @@ async fn health_check(State(state): State<Arc<AppState>>) -> (StatusCode, Json<s
     )
 }
 
-
 async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
     (
         StatusCode::OK,
@@ -110,14 +95,12 @@ async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
     )
 }
 
-
 fn print_shutdown_message() {
     println!();
     println!("\x1b[33m✨ Thank you for using General Bots!\x1b[0m");
     println!("\x1b[36m   pragmatismo.com.br\x1b[0m");
     println!();
 }
-
 
 async fn shutdown_signal() {
     let ctrl_c = async {
@@ -146,7 +129,6 @@ async fn shutdown_signal() {
         }
     }
 
-
     print_shutdown_message();
 }
 
@@ -155,7 +137,6 @@ async fn run_axum_server(
     port: u16,
     _worker_count: usize,
 ) -> std::io::Result<()> {
-
     let cors = CorsLayer::new()
         .allow_origin(tower_http::cors::Any)
         .allow_methods(tower_http::cors::Any)
@@ -164,9 +145,7 @@ async fn run_axum_server(
 
     use crate::core::urls::ApiUrls;
 
-
     let mut api_router = Router::new()
-
         .route("/health", get(health_check_simple))
         .route(ApiUrls::HEALTH, get(health_check))
         .route(ApiUrls::SESSIONS, post(create_session))
@@ -179,11 +158,8 @@ async fn run_axum_server(
             &ApiUrls::SESSION_START.replace(":id", "{session_id}"),
             post(start_session),
         )
-
         .route(ApiUrls::WS, get(websocket_handler))
-
         .merge(botserver::drive::configure());
-
 
     #[cfg(feature = "directory")]
     {
@@ -207,33 +183,27 @@ async fn run_axum_server(
         api_router = api_router.merge(crate::email::configure());
     }
 
-
     #[cfg(feature = "calendar")]
     {
         let calendar_engine =
             Arc::new(crate::calendar::CalendarEngine::new(app_state.conn.clone()));
-
 
         let reminder_engine = Arc::clone(&calendar_engine);
         tokio::spawn(async move {
             crate::calendar::start_reminder_job(reminder_engine).await;
         });
 
-
         api_router = api_router.merge(crate::calendar::caldav::create_caldav_router(
             calendar_engine,
         ));
     }
 
-
     api_router = api_router.merge(botserver::tasks::configure_task_routes());
-
 
     #[cfg(feature = "calendar")]
     {
         api_router = api_router.merge(crate::calendar::configure_calendar_routes());
     }
-
 
     api_router = api_router.merge(botserver::analytics::configure_analytics_routes());
     api_router = api_router.merge(botserver::paper::configure_paper_routes());
@@ -241,21 +211,17 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
 
-
     #[cfg(feature = "whatsapp")]
     {
         api_router = api_router.merge(crate::whatsapp::configure());
     }
-
 
     #[cfg(feature = "attendance")]
     {
         api_router = api_router.merge(crate::attendance::configure_attendance_routes());
     }
 
-
     api_router = api_router.merge(crate::core::oauth::routes::configure());
-
 
     let site_path = app_state
         .config
@@ -266,40 +232,31 @@ async fn run_axum_server(
     info!("Serving apps from: {}", site_path);
 
     let app = Router::new()
-
         .merge(api_router.with_state(app_state.clone()))
-
         .nest_service("/apps", ServeDir::new(&site_path))
         .layer(Extension(app_state.clone()))
-
         .layer(cors)
         .layer(TraceLayer::new_for_http());
-
 
     let cert_dir = std::path::Path::new("./botserver-stack/conf/system/certificates");
     let cert_path = cert_dir.join("api/server.crt");
     let key_path = cert_dir.join("api/server.key");
 
-
     let addr = SocketAddr::from(([0, 0, 0, 0], port));
-
 
     let disable_tls = std::env::var("BOTSERVER_DISABLE_TLS")
         .map(|v| v == "true" || v == "1")
         .unwrap_or(false);
 
-
     if !disable_tls && cert_path.exists() && key_path.exists() {
-
         let tls_config = axum_server::tls_rustls::RustlsConfig::from_pem_file(cert_path, key_path)
             .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            .map_err(std::io::Error::other)?;
 
         info!("HTTPS server listening on {} with TLS", addr);
 
         let handle = axum_server::Handle::new();
         let handle_clone = handle.clone();
-
 
         tokio::spawn(async move {
             shutdown_signal().await;
@@ -312,7 +269,6 @@ async fn run_axum_server(
             .serve(app.into_make_service())
             .await
     } else {
-
         if disable_tls {
             info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
         } else {
@@ -324,24 +280,19 @@ async fn run_axum_server(
         axum::serve(listener, app.into_make_service())
             .with_graceful_shutdown(shutdown_signal())
             .await
-            .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))
+            .map_err(std::io::Error::other)
     }
 }
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
     let no_console = args.contains(&"--noconsole".to_string());
 
-
-
     let _ = rustls::crypto::ring::default_provider().install_default();
 
-
     dotenvy::dotenv().ok();
-
 
     let env_path_early = std::path::Path::new("./.env");
     let vault_init_path_early = std::path::Path::new("./botserver-stack/conf/vault/init.json");
@@ -350,8 +301,6 @@ async fn main() -> std::io::Result<()> {
             .map(|content| content.contains("VAULT_TOKEN="))
             .unwrap_or(false)
     };
-
-
 
     if bootstrap_ready {
         if let Err(e) = crate::shared::utils::init_secrets_manager().await {
@@ -366,10 +315,7 @@ async fn main() -> std::io::Result<()> {
         trace!("Bootstrap not complete - skipping early SecretsManager init");
     }
 
-
     let rust_log = {
-
-
         "info,botserver=info,\
          vaultrs=off,rustify=off,rustify_derive=off,\
          aws_sigv4=off,aws_smithy_checksums=off,aws_runtime=off,aws_smithy_http_client=off,\
@@ -395,31 +341,21 @@ async fn main() -> std::io::Result<()> {
             .to_string()
     };
 
-
     std::env::set_var("RUST_LOG", &rust_log);
 
     use crate::llm::local::ensure_llama_servers_running;
     use botserver::config::ConfigManager;
-
-
 
     if no_console || no_ui {
         env_logger::Builder::from_env(env_logger::Env::default())
             .write_style(env_logger::WriteStyle::Always)
             .init();
 
-        println!(
-            "Starting {} {}...",
-            "General Bots".to_string(),
-            env!("CARGO_PKG_VERSION")
-        );
+        println!("Starting General Bots {}...", env!("CARGO_PKG_VERSION"));
     }
-
-
 
     let (progress_tx, _progress_rx) = tokio::sync::mpsc::unbounded_channel::<BootstrapProgress>();
     let (state_tx, _state_rx) = tokio::sync::mpsc::channel::<Arc<AppState>>(1);
-
 
     if args.len() > 1 {
         let command = &args[1];
@@ -428,18 +364,13 @@ async fn main() -> std::io::Result<()> {
             | "-h" => match package_manager::cli::run().await {
                 Ok(_) => return Ok(()),
                 Err(e) => {
-                    eprintln!("CLI error: {}", e);
-                    return Err(std::io::Error::new(
-                        std::io::ErrorKind::Other,
-                        format!("CLI command failed: {}", e),
-                    ));
+                    eprintln!("CLI error: {e}");
+                    return Err(std::io::Error::other(format!("CLI command failed: {e}")));
                 }
             },
             _ => {}
         }
     }
-
-
 
     let ui_handle: Option<std::thread::JoinHandle<()>> = if !no_console && !no_ui {
         #[cfg(feature = "console")]
@@ -452,13 +383,11 @@ async fn main() -> std::io::Result<()> {
                     .name("ui-thread".to_string())
                     .spawn(move || {
                         let mut ui = botserver::console::XtreeUI::new();
-                        ui.set_progress_channel(progress_rx.clone());
-                        ui.set_state_channel(state_rx.clone());
-
-
+                        ui.set_progress_channel(progress_rx);
+                        ui.set_state_channel(state_rx);
 
                         if let Err(e) = ui.start_ui() {
-                            eprintln!("UI error: {}", e);
+                            eprintln!("UI error: {e}");
                         }
                     })
                     .expect("Failed to spawn UI thread"),
@@ -487,14 +416,12 @@ async fn main() -> std::io::Result<()> {
         None
     };
 
-
     if let Some(idx) = args.iter().position(|a| a == "--stack-path") {
         if let Some(path) = args.get(idx + 1) {
             std::env::set_var("BOTSERVER_STACK_PATH", path);
             info!("Using custom stack path: {}", path);
         }
     }
-
 
     trace!("Starting bootstrap process...");
     let progress_tx_clone = progress_tx.clone();
@@ -504,16 +431,11 @@ async fn main() -> std::io::Result<()> {
             .ok();
 
         trace!("Creating BootstrapManager...");
-        let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone()).await;
-
-
-
-
+        let mut bootstrap = BootstrapManager::new(install_mode.clone(), tenant.clone());
 
         let env_path = std::path::Path::new("./.env");
         let vault_init_path = std::path::Path::new("./botserver-stack/conf/vault/init.json");
         let bootstrap_completed = env_path.exists() && vault_init_path.exists() && {
-
             std::fs::read_to_string(env_path)
                 .map(|content| content.contains("VAULT_TOKEN="))
                 .unwrap_or(false)
@@ -537,15 +459,11 @@ async fn main() -> std::io::Result<()> {
                 .ok();
             trace!("Calling bootstrap.start_all()...");
 
-
             if let Err(e) = bootstrap.ensure_services_running().await {
                 warn!("Some services might not be running: {}", e);
             }
 
-            bootstrap
-                .start_all()
-                .await
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            bootstrap.start_all().await.map_err(std::io::Error::other)?;
             trace!("bootstrap.start_all() completed");
 
             trace!("Connecting to database...");
@@ -574,10 +492,7 @@ async fn main() -> std::io::Result<()> {
             trace!(".env file not found, running bootstrap.bootstrap()...");
             if let Err(e) = bootstrap.bootstrap().await {
                 error!("Bootstrap failed: {}", e);
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::Other,
-                    format!("Bootstrap failed: {}", e),
-                ));
+                return Err(std::io::Error::other(format!("Bootstrap failed: {e}")));
             }
             trace!("bootstrap.bootstrap() completed");
             progress_tx_clone
@@ -585,10 +500,7 @@ async fn main() -> std::io::Result<()> {
                     "all services".to_string(),
                 ))
                 .ok();
-            bootstrap
-                .start_all()
-                .await
-                .map_err(|e| std::io::Error::new(std::io::ErrorKind::Other, e))?;
+            bootstrap.start_all().await.map_err(std::io::Error::other)?;
 
             match create_conn() {
                 Ok(pool) => AppConfig::from_database(&pool)
@@ -602,13 +514,11 @@ async fn main() -> std::io::Result<()> {
             .send(BootstrapProgress::UploadingTemplates)
             .ok();
 
-
         if let Err(e) = bootstrap.sync_templates_to_database() {
             warn!("Failed to sync templates to database: {}", e);
         } else {
             trace!("Templates synced to database");
         }
-
 
         match tokio::time::timeout(
             std::time::Duration::from_secs(30),
@@ -640,7 +550,6 @@ async fn main() -> std::io::Result<()> {
 
     let pool = match create_conn() {
         Ok(pool) => {
-
             trace!("Running database migrations...");
             info!("Running database migrations...");
             if let Err(e) = crate::shared::utils::run_migrations(&pool) {
@@ -666,7 +575,6 @@ async fn main() -> std::io::Result<()> {
             ));
         }
     };
-
 
     info!("Loading config from database after template sync...");
     let refreshed_cfg = AppConfig::from_database(&pool).unwrap_or_else(|e| {
@@ -703,7 +611,6 @@ async fn main() -> std::io::Result<()> {
         redis_client.clone(),
     )));
 
-
     #[cfg(feature = "directory")]
     let zitadel_config = botserver::directory::client::ZitadelConfig {
         issuer_url: "https://localhost:8080".to_string(),
@@ -735,15 +642,12 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "http://localhost:8081".to_string());
     info!("LLM URL: {}", llm_url);
 
-
     let base_llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
         "empty".to_string(),
         Some(llm_url.clone()),
     )) as Arc<dyn botserver::llm::LLMProvider>;
 
-
     let llm_provider: Arc<dyn botserver::llm::LLMProvider> = if let Some(ref cache) = redis_client {
-
         let embedding_url = config_manager
             .get_config(
                 &default_bot_id,
@@ -762,7 +666,6 @@ async fn main() -> std::io::Result<()> {
             embedding_model,
         ))
             as Arc<dyn botserver::llm::cache::EmbeddingService>);
-
 
         let cache_config = botserver::llm::cache::CacheConfig {
             ttl: 3600,
@@ -783,18 +686,13 @@ async fn main() -> std::io::Result<()> {
         base_llm_provider
     };
 
-
     let kb_manager = Arc::new(botserver::core::kb::KnowledgeBaseManager::new("work"));
-
 
     let task_engine = Arc::new(botserver::tasks::TaskEngine::new(pool.clone()));
 
-
     let metrics_collector = botserver::core::shared::analytics::MetricsCollector::new();
 
-
     let task_scheduler = None;
-
 
     let (attendant_tx, _attendant_rx) = tokio::sync::broadcast::channel::<
         botserver::core::shared::state::AttendantNotification,
@@ -826,21 +724,16 @@ async fn main() -> std::io::Result<()> {
         web_adapter: web_adapter.clone(),
         voice_adapter: voice_adapter.clone(),
         kb_manager: Some(kb_manager.clone()),
-        task_engine: task_engine,
+        task_engine,
         extensions: botserver::core::shared::state::Extensions::new(),
         attendant_broadcast: Some(attendant_tx),
     });
-
 
     let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(
         app_state.clone(),
     ));
 
-
-
-
-    task_scheduler.start().await;
-
+    task_scheduler.start();
 
     if let Err(e) = botserver::core::kb::ensure_crawler_service_running(app_state.clone()).await {
         log::warn!("Failed to start website crawler service: {}", e);
@@ -858,11 +751,9 @@ async fn main() -> std::io::Result<()> {
         .map(|n| n.get())
         .unwrap_or(4);
 
-
     let _automation_service =
         botserver::core::automation::AutomationService::new(app_state.clone());
     info!("Automation service initialized with episodic memory scheduler");
-
 
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
     tokio::spawn(async move {
@@ -871,13 +762,11 @@ async fn main() -> std::io::Result<()> {
         }
     });
 
-
     let automation_state = app_state.clone();
     tokio::spawn(async move {
         let automation = AutomationService::new(automation_state);
         automation.spawn().await.ok();
     });
-
 
     let app_state_for_llm = app_state.clone();
     tokio::spawn(async move {
@@ -887,10 +776,8 @@ async fn main() -> std::io::Result<()> {
     });
     trace!("Initial data setup task spawned");
 
-
     trace!("Starting HTTP server on port {}...", config.server.port);
     run_axum_server(app_state, config.server.port, worker_count).await?;
-
 
     if let Some(handle) = ui_handle {
         handle.join().ok();

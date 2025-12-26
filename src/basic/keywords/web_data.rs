@@ -18,7 +18,7 @@ pub fn register_web_data_keywords(state: Arc<AppState>, user: UserSession, engin
 
 fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["RSS", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["RSS", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?.to_string();
             trace!("RSS {}", url);
             let (tx, rx) = std::sync::mpsc::channel();
@@ -43,7 +43,7 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
 
     engine
         .register_custom_syntax(
-            &["RSS", "$expr$", ",", "$expr$"],
+            ["RSS", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -120,7 +120,7 @@ async fn fetch_rss(
 fn register_scrape_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["SCRAPE", "$expr$", ",", "$expr$"],
+            ["SCRAPE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -153,7 +153,7 @@ fn register_scrape_keyword(_state: Arc<AppState>, _user: UserSession, engine: &m
 fn register_scrape_all_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["SCRAPE_ALL", "$expr$", ",", "$expr$"],
+            ["SCRAPE_ALL", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -186,7 +186,7 @@ fn register_scrape_all_keyword(_state: Arc<AppState>, _user: UserSession, engine
 fn register_scrape_table_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["SCRAPE_TABLE", "$expr$", ",", "$expr$"],
+            ["SCRAPE_TABLE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -219,7 +219,7 @@ fn register_scrape_table_keyword(_state: Arc<AppState>, _user: UserSession, engi
 fn register_scrape_links_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["SCRAPE_LINKS", "$expr$"],
+            ["SCRAPE_LINKS", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -251,7 +251,7 @@ fn register_scrape_links_keyword(_state: Arc<AppState>, _user: UserSession, engi
 fn register_scrape_images_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["SCRAPE_IMAGES", "$expr$"],
+            ["SCRAPE_IMAGES", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();

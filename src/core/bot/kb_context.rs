@@ -8,7 +8,6 @@ use uuid::Uuid;
 use crate::core::kb::KnowledgeBaseManager;
 use crate::shared::utils::DbPool;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionKbAssociation {
     pub kb_name: String,
@@ -17,14 +16,12 @@ pub struct SessionKbAssociation {
     pub is_active: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbContext {
     pub kb_name: String,
     pub search_results: Vec<KbSearchResult>,
     pub total_tokens: usize,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct KbSearchResult {
@@ -34,7 +31,6 @@ pub struct KbSearchResult {
     pub chunk_tokens: usize,
 }
 
-
 #[derive(Debug)]
 pub struct KbContextManager {
     kb_manager: Arc<KnowledgeBaseManager>,
@@ -42,7 +38,6 @@ pub struct KbContextManager {
 }
 
 impl KbContextManager {
-
     pub fn new(kb_manager: Arc<KnowledgeBaseManager>, db_pool: DbPool) -> Self {
         Self {
             kb_manager,
@@ -50,10 +45,8 @@ impl KbContextManager {
         }
     }
 
-
     pub async fn get_active_kbs(&self, session_id: Uuid) -> Result<Vec<SessionKbAssociation>> {
         let mut conn = self.db_pool.get()?;
-
 
         let query = diesel::sql_query(
             "SELECT kb_name, qdrant_collection, kb_folder_path, is_active
@@ -86,7 +79,6 @@ impl KbContextManager {
             })
             .collect())
     }
-
 
     pub async fn search_active_kbs(
         &self,
@@ -141,14 +133,12 @@ impl KbContextManager {
                 }
                 Err(e) => {
                     error!("Failed to search KB '{}': {}", kb_assoc.kb_name, e);
-
                 }
             }
         }
 
         Ok(kb_contexts)
     }
-
 
     async fn search_single_kb(
         &self,
@@ -160,7 +150,6 @@ impl KbContextManager {
     ) -> Result<KbContext> {
         debug!("Searching KB '{}' with query: {}", kb_name, query);
 
-
         let search_results = self
             .kb_manager
             .search(bot_name, kb_name, query, max_results)
@@ -171,7 +160,6 @@ impl KbContextManager {
 
         for result in search_results {
             let tokens = estimate_tokens(&result.content);
-
 
             if total_tokens + tokens > max_tokens {
                 debug!(
@@ -190,7 +178,6 @@ impl KbContextManager {
 
             total_tokens += tokens;
 
-
             if result.score < 0.7 {
                 debug!("Skipping low-relevance result (score: {})", result.score);
                 break;
@@ -203,7 +190,6 @@ impl KbContextManager {
             total_tokens,
         })
     }
-
 
     pub fn build_context_string(&self, kb_contexts: &[KbContext]) -> String {
         if kb_contexts.is_empty() {
@@ -240,7 +226,6 @@ impl KbContextManager {
         context_parts.join("\n")
     }
 
-
     pub async fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
         let mut conn = self.db_pool.get()?;
 
@@ -262,13 +247,9 @@ impl KbContextManager {
     }
 }
 
-
 fn estimate_tokens(text: &str) -> usize {
-
-
     text.len() / 4
 }
-
 
 pub async fn inject_kb_context(
     kb_manager: Arc<KnowledgeBaseManager>,
@@ -281,22 +262,14 @@ pub async fn inject_kb_context(
 ) -> Result<()> {
     let context_manager = KbContextManager::new(kb_manager, db_pool);
 
-
     let kb_contexts = context_manager
-        .search_active_kbs(
-            session_id,
-            bot_name,
-            user_query,
-            5,
-            max_context_tokens,
-        )
+        .search_active_kbs(session_id, bot_name, user_query, 5, max_context_tokens)
         .await?;
 
     if kb_contexts.is_empty() {
         debug!("No KB context found for session {}", session_id);
         return Ok(());
     }
-
 
     let context_string = context_manager.build_context_string(&kb_contexts);
 
@@ -310,20 +283,15 @@ pub async fn inject_kb_context(
         session_id
     );
 
-
-
     if let Some(messages_array) = messages.as_array_mut() {
-
         let system_msg_idx = messages_array.iter().position(|m| m["role"] == "system");
 
         if let Some(idx) = system_msg_idx {
-
             if let Some(content) = messages_array[idx]["content"].as_str() {
                 let new_content = format!("{}\n{}", content, context_string);
                 messages_array[idx]["content"] = serde_json::Value::String(new_content);
             }
         } else {
-
             messages_array.insert(
                 0,
                 serde_json::json!({

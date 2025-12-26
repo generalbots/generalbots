@@ -54,3 +54,60 @@ pub fn pi_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engin
 
     debug!("Registered PI keyword");
 }
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn test_sin() {
+        assert!((0.0_f64.sin() - 0.0).abs() < 0.0001);
+        assert!((std::f64::consts::FRAC_PI_2.sin() - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_cos() {
+        assert!((0.0_f64.cos() - 1.0).abs() < 0.0001);
+        assert!((std::f64::consts::PI.cos() - (-1.0)).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_tan() {
+        assert!((0.0_f64.tan() - 0.0).abs() < 0.0001);
+        assert!((std::f64::consts::FRAC_PI_4.tan() - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_log() {
+        assert!((100.0_f64.log10() - 2.0).abs() < 0.0001);
+        assert!((std::f64::consts::E.ln() - 1.0).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_exp() {
+        assert!((0.0_f64.exp() - 1.0).abs() < 0.0001);
+        assert!((1.0_f64.exp() - std::f64::consts::E).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_pi() {
+        assert!(std::f64::consts::PI > 3.14);
+        assert!(std::f64::consts::PI < 3.15);
+    }
+
+    #[test]
+    fn test_asin() {
+        assert!((0.0_f64.asin() - 0.0).abs() < 0.0001);
+        assert!((1.0_f64.asin() - std::f64::consts::FRAC_PI_2).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_acos() {
+        assert!((1.0_f64.acos() - 0.0).abs() < 0.0001);
+        assert!((0.0_f64.acos() - std::f64::consts::FRAC_PI_2).abs() < 0.0001);
+    }
+
+    #[test]
+    fn test_atan() {
+        assert!((0.0_f64.atan() - 0.0).abs() < 0.0001);
+        assert!((1.0_f64.atan() - std::f64::consts::FRAC_PI_4).abs() < 0.0001);
+    }
+}

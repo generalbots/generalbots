@@ -1,19 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::{debug, trace};
@@ -23,31 +7,27 @@ use std::sync::Arc;
 
 thread_local! {
 
-    static ERROR_RESUME_NEXT: RefCell<bool> = RefCell::new(false);
+    static ERROR_RESUME_NEXT: RefCell<bool> = const { RefCell::new(false) };
 
 
-    static LAST_ERROR: RefCell<Option<String>> = RefCell::new(None);
+    static LAST_ERROR: RefCell<Option<String>> = const { RefCell::new(None) };
 
 
-    static ERROR_NUMBER: RefCell<i64> = RefCell::new(0);
+    static ERROR_NUMBER: RefCell<i64> = const { RefCell::new(0) };
 }
-
 
 pub fn is_error_resume_next_active() -> bool {
     ERROR_RESUME_NEXT.with(|flag| *flag.borrow())
 }
-
 
 pub fn set_error_resume_next(active: bool) {
     ERROR_RESUME_NEXT.with(|flag| {
         *flag.borrow_mut() = active;
     });
     if !active {
-
         clear_last_error();
     }
 }
-
 
 pub fn set_last_error(message: &str, error_num: i64) {
     LAST_ERROR.with(|err| {
@@ -58,7 +38,6 @@ pub fn set_last_error(message: &str, error_num: i64) {
     });
 }
 
-
 pub fn clear_last_error() {
     LAST_ERROR.with(|err| {
         *err.borrow_mut() = None;
@@ -68,22 +47,18 @@ pub fn clear_last_error() {
     });
 }
 
-
 pub fn get_last_error() -> Option<String> {
     LAST_ERROR.with(|err| err.borrow().clone())
 }
-
 
 pub fn get_error_number() -> i64 {
     ERROR_NUMBER.with(|num| *num.borrow())
 }
 
-
 pub fn register_on_error_keywords(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
-
     engine
         .register_custom_syntax(
-            &["ON", "ERROR", "RESUME", "NEXT"],
+            ["ON", "ERROR", "RESUME", "NEXT"],
             false,
             move |_context, _inputs| {
                 trace!("ON ERROR RESUME NEXT activated");
@@ -94,10 +69,9 @@ pub fn register_on_error_keywords(_state: Arc<AppState>, _user: UserSession, eng
         )
         .expect("Failed to register ON ERROR RESUME NEXT");
 
-
     engine
         .register_custom_syntax(
-            &["ON", "ERROR", "GOTO", "0"],
+            ["ON", "ERROR", "GOTO", "0"],
             false,
             move |_context, _inputs| {
                 trace!("ON ERROR GOTO 0 - Error handling disabled");
@@ -107,39 +81,30 @@ pub fn register_on_error_keywords(_state: Arc<AppState>, _user: UserSession, eng
         )
         .expect("Failed to register ON ERROR GOTO 0");
 
-
     engine
-        .register_custom_syntax(&["CLEAR", "ERROR"], false, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR", "ERROR"], false, move |_context, _inputs| {
             trace!("CLEAR ERROR executed");
             clear_last_error();
             Ok(Dynamic::UNIT)
         })
         .expect("Failed to register CLEAR ERROR");
 
-
-
     engine.register_fn("ERROR", || -> bool { get_last_error().is_some() });
 
-
-
     engine
-        .register_custom_syntax(&["ERROR", "MESSAGE"], false, move |_context, _inputs| {
+        .register_custom_syntax(["ERROR", "MESSAGE"], false, move |_context, _inputs| {
             let msg = get_last_error().unwrap_or_default();
             Ok(Dynamic::from(msg))
         })
         .expect("Failed to register ERROR MESSAGE");
 
-
     engine.register_fn("ERR", || -> i64 { get_error_number() });
 
-
     engine.register_fn("ERR_NUMBER", || -> i64 { get_error_number() });
-
 
     engine.register_fn("ERR_DESCRIPTION", || -> String {
         get_last_error().unwrap_or_default()
     });
-
 
     engine.register_fn("ERR_CLEAR", || {
         clear_last_error();
@@ -148,15 +113,12 @@ pub fn register_on_error_keywords(_state: Arc<AppState>, _user: UserSession, eng
     debug!("Registered ON ERROR keywords");
 }
 
-
-
 pub fn try_execute<F, T>(operation: F) -> Result<T, String>
 where
     F: FnOnce() -> Result<T, Box<dyn std::error::Error + Send + Sync>>,
 {
     match operation() {
         Ok(result) => {
-
             if is_error_resume_next_active() {
                 clear_last_error();
             }
@@ -165,19 +127,13 @@ where
         Err(e) => {
             let error_msg = e.to_string();
             if is_error_resume_next_active() {
-
                 set_last_error(&error_msg, 1);
                 trace!("Error caught by ON ERROR RESUME NEXT: {}", error_msg);
-                Err(error_msg)
-            } else {
-
-                Err(error_msg)
             }
+            Err(error_msg)
         }
     }
 }
-
-
 
 #[macro_export]
 macro_rules! with_error_handling {
@@ -203,7 +159,6 @@ macro_rules! with_error_handling {
     };
 }
 
-
 pub fn handle_error<T: Into<Dynamic>>(
     result: Result<T, Box<dyn std::error::Error + Send + Sync>>,
 ) -> Result<Dynamic, Box<EvalAltResult>> {
@@ -228,7 +183,6 @@ pub fn handle_error<T: Into<Dynamic>>(
     }
 }
 
-
 pub fn handle_string_error(error_msg: &str) -> Result<Dynamic, Box<EvalAltResult>> {
     if is_error_resume_next_active() {
         set_last_error(error_msg, 1);
@@ -239,5 +193,109 @@ pub fn handle_string_error(error_msg: &str) -> Result<Dynamic, Box<EvalAltResult
             error_msg.to_string().into(),
             Position::NONE,
         )))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_error_resume_next_flag() {
+        set_error_resume_next(false);
+        assert!(!is_error_resume_next_active());
+
+        set_error_resume_next(true);
+        assert!(is_error_resume_next_active());
+
+        set_error_resume_next(false);
+        assert!(!is_error_resume_next_active());
+    }
+
+    #[test]
+    fn test_error_storage() {
+        clear_last_error();
+        assert!(get_last_error().is_none());
+        assert_eq!(get_error_number(), 0);
+
+        set_last_error("Test error", 42);
+        assert_eq!(get_last_error(), Some("Test error".to_string()));
+        assert_eq!(get_error_number(), 42);
+
+        clear_last_error();
+        assert!(get_last_error().is_none());
+        assert_eq!(get_error_number(), 0);
+    }
+
+    #[test]
+    fn test_handle_error_without_resume_next() {
+        set_error_resume_next(false);
+        clear_last_error();
+
+        let result: Result<String, Box<dyn std::error::Error + Send + Sync>> =
+            Err("Test error".into());
+        let handled = handle_error(result);
+
+        assert!(handled.is_err());
+    }
+
+    #[test]
+    fn test_handle_error_with_resume_next() {
+        set_error_resume_next(true);
+        clear_last_error();
+
+        let result: Result<String, Box<dyn std::error::Error + Send + Sync>> =
+            Err("Test error".into());
+        let handled = handle_error(result);
+
+        assert!(handled.is_ok());
+        assert_eq!(get_last_error(), Some("Test error".to_string()));
+
+        set_error_resume_next(false);
+    }
+
+    #[test]
+    fn test_handle_string_error_without_resume_next() {
+        set_error_resume_next(false);
+        clear_last_error();
+
+        let handled = handle_string_error("String error");
+        assert!(handled.is_err());
+    }
+
+    #[test]
+    fn test_handle_string_error_with_resume_next() {
+        set_error_resume_next(true);
+        clear_last_error();
+
+        let handled = handle_string_error("String error");
+        assert!(handled.is_ok());
+        assert_eq!(get_last_error(), Some("String error".to_string()));
+
+        set_error_resume_next(false);
+    }
+
+    #[test]
+    fn test_try_execute_success() {
+        set_error_resume_next(false);
+        clear_last_error();
+
+        let result = try_execute(|| Ok::<_, Box<dyn std::error::Error + Send + Sync>>("success"));
+        assert!(result.is_ok());
+        assert_eq!(result.unwrap(), "success");
+    }
+
+    #[test]
+    fn test_try_execute_error() {
+        set_error_resume_next(false);
+        clear_last_error();
+
+        let result = try_execute(|| {
+            Err::<String, _>(
+                Box::new(std::io::Error::new(std::io::ErrorKind::Other, "test error"))
+                    as Box<dyn std::error::Error + Send + Sync>,
+            )
+        });
+        assert!(result.is_err());
     }
 }

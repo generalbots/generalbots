@@ -14,7 +14,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
 
     engine
         .register_custom_syntax(
-            &["REMEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["REMEMBER", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let key = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -28,9 +28,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     user_clone.user_id
                 );
 
-
                 let expiry = parse_duration(&duration_str)?;
-
 
                 let json_value = if value.is_string() {
                     json!(value.to_string())
@@ -41,22 +39,10 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 } else if value.is_bool() {
                     json!(value.as_bool().unwrap_or(false))
                 } else if value.is_array() {
-
                     let arr = value.cast::<rhai::Array>();
-                    let json_arr: Vec<serde_json::Value> = arr
-                        .iter()
-                        .map(|v| {
-                            if v.is_string() {
-                                json!(v.to_string())
-                            } else {
-                                json!(v.to_string())
-                            }
-                        })
-                        .collect();
+                    let json_arr: Vec<serde_json::Value> =
+                        arr.iter().map(|v| json!(v.to_string())).collect();
                     json!(json_arr)
-                } else if value.is_map() {
-
-                    json!(value.to_string())
                 } else {
                     json!(value.to_string())
                 };
@@ -82,7 +68,6 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                                 json_value,
                                 expiry,
                             )
-                            .await
                         });
                         tx.send(result).err()
                     } else {
@@ -119,12 +104,11 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
+    let user_clone2 = user;
 
     engine
-        .register_custom_syntax(&["RECALL", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["RECALL", "$expr$"], false, move |context, inputs| {
             let key = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("RECALL: key={} for user={}", key, user_clone2.user_id);
@@ -142,7 +126,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
 
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
-                        retrieve_memory(&state_for_task, &user_for_task, &key).await
+                        retrieve_memory(&state_for_task, &user_for_task, &key)
                     });
                     tx.send(result).err()
                 } else {
@@ -157,7 +141,6 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
 
             match rx.recv_timeout(std::time::Duration::from_secs(5)) {
                 Ok(Ok(value)) => {
-
                     if value.is_string() {
                         Ok(Dynamic::from(value.as_str().unwrap_or("").to_string()))
                     } else if value.is_number() {
@@ -199,10 +182,8 @@ fn parse_duration(
         return Ok(None);
     }
 
-
     let parts: Vec<&str> = duration_lower.split_whitespace().collect();
     if parts.len() != 2 {
-
         if let Ok(days) = duration_str.parse::<i64>() {
             return Ok(Some(Utc::now() + Duration::days(days)));
         }
@@ -240,7 +221,7 @@ fn parse_duration(
     Ok(Some(Utc::now() + duration))
 }
 
-async fn store_memory(
+fn store_memory(
     state: &AppState,
     user: &UserSession,
     key: &str,
@@ -249,14 +230,12 @@ async fn store_memory(
 ) -> Result<(), String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-
     let memory_id = Uuid::new_v4().to_string();
     let user_id = user.user_id.to_string();
     let bot_id = user.bot_id.to_string();
     let session_id = user.id.to_string();
     let created_at = Utc::now().to_rfc3339();
     let expires_at = expiry.map(|e| e.to_rfc3339());
-
 
     let query = diesel::sql_query(
         "INSERT INTO bot_memories (id, user_id, bot_id, session_id, key, value, created_at, expires_at)
@@ -282,7 +261,7 @@ async fn store_memory(
     Ok(())
 }
 
-async fn retrieve_memory(
+fn retrieve_memory(
     state: &AppState,
     user: &UserSession,
     key: &str,
@@ -292,7 +271,6 @@ async fn retrieve_memory(
     let user_id = user.user_id.to_string();
     let bot_id = user.bot_id.to_string();
     let now = Utc::now().to_rfc3339();
-
 
     let query = diesel::sql_query(
         "SELECT value FROM bot_memories
@@ -328,4 +306,18 @@ async fn retrieve_memory(
 struct MemoryRecord {
     #[diesel(sql_type = diesel::sql_types::Jsonb)]
     value: serde_json::Value,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_duration() {
+        assert!(parse_duration("30 days").is_ok());
+        assert!(parse_duration("1 hour").is_ok());
+        assert!(parse_duration("forever").is_ok());
+        assert!(parse_duration("5 minutes").is_ok());
+        assert!(parse_duration("invalid").is_err());
+    }
 }

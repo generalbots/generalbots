@@ -57,25 +57,21 @@ pub struct CollectionRow {
 
 pub fn configure_research_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/api/research/collections", get(handle_list_collections))
         .route(
             "/api/research/collections/new",
             post(handle_create_collection),
         )
         .route("/api/research/collections/{id}", get(handle_get_collection))
-
         .route("/api/research/search", post(handle_search))
         .route("/api/research/recent", get(handle_recent_searches))
         .route("/api/research/trending", get(handle_trending_tags))
         .route("/api/research/prompts", get(handle_prompts))
-
         .route(
             "/api/research/export-citations",
             get(handle_export_citations),
         )
 }
-
 
 pub async fn handle_list_collections(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
@@ -156,7 +152,6 @@ fn get_default_collections() -> Vec<(String, String, String)> {
     ]
 }
 
-
 pub async fn handle_create_collection(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<NewCollectionRequest>,
@@ -206,7 +201,6 @@ pub async fn handle_create_collection(
 
     Html(html)
 }
-
 
 pub async fn handle_get_collection(
     State(state): State<Arc<AppState>>,
@@ -265,7 +259,6 @@ pub async fn handle_get_collection(
     Html(html)
 }
 
-
 pub async fn handle_search(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<SearchRequest>,
@@ -283,14 +276,14 @@ pub async fn handle_search(
         let mut db_conn = match conn.get() {
             Ok(c) => c,
             Err(e) => {
-                log::error!("DB connection error: {}", e);
+                log::error!("DB connection error: {e}");
                 return Vec::new();
             }
         };
 
         let search_pattern = format!("%{}%", query.to_lowercase());
 
-        let docs = if let Some(coll) = collection {
+        let docs: Vec<KbDocumentRow> = if let Some(coll) = collection {
             diesel::sql_query(
                 "SELECT id, title, content, collection_id, source_path FROM kb_documents WHERE (LOWER(title) LIKE $1 OR LOWER(content) LIKE $1) AND collection_id = $2 ORDER BY title ASC LIMIT 20",
             )
@@ -377,7 +370,6 @@ fn format_search_result(id: &str, title: &str, content: &str, source: &str) -> S
     html
 }
 
-
 pub async fn handle_recent_searches(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let recent_searches = vec![
         "How to get started",
@@ -411,7 +403,6 @@ pub async fn handle_recent_searches(State(_state): State<Arc<AppState>>) -> impl
     Html(html)
 }
 
-
 pub async fn handle_trending_tags(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let tags = vec![
         ("getting-started", 42),
@@ -444,7 +435,6 @@ pub async fn handle_trending_tags(State(_state): State<Arc<AppState>>) -> impl I
 
     Html(html)
 }
-
 
 pub async fn handle_prompts(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     let prompts = vec![
@@ -491,7 +481,6 @@ pub async fn handle_prompts(State(_state): State<Arc<AppState>>) -> impl IntoRes
 
     Html(html)
 }
-
 
 pub async fn handle_export_citations(State(_state): State<Arc<AppState>>) -> impl IntoResponse {
     Html("<script>alert('Citations exported. Download will begin shortly.');</script>".to_string())

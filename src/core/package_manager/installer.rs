@@ -6,9 +6,7 @@ use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::path::PathBuf;
 
-
 const LLAMA_CPP_VERSION: &str = "b7345";
-
 
 fn get_llama_cpp_url() -> Option<String> {
     let base_url = format!(
@@ -20,12 +18,10 @@ fn get_llama_cpp_url() -> Option<String> {
     {
         #[cfg(target_arch = "x86_64")]
         {
-
             if std::path::Path::new("/usr/local/cuda").exists()
                 || std::path::Path::new("/opt/cuda").exists()
                 || std::env::var("CUDA_HOME").is_ok()
             {
-
                 if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
                     if version_str.contains("13.") {
@@ -44,7 +40,6 @@ fn get_llama_cpp_url() -> Option<String> {
                 }
             }
 
-
             if std::path::Path::new("/usr/share/vulkan").exists()
                 || std::env::var("VULKAN_SDK").is_ok()
             {
@@ -54,7 +49,6 @@ fn get_llama_cpp_url() -> Option<String> {
                     base_url, LLAMA_CPP_VERSION
                 ));
             }
-
 
             info!("Using standard Ubuntu x64 build (CPU)");
             return Some(format!(
@@ -106,7 +100,6 @@ fn get_llama_cpp_url() -> Option<String> {
     {
         #[cfg(target_arch = "x86_64")]
         {
-
             if std::env::var("CUDA_PATH").is_ok() {
                 if let Ok(output) = std::process::Command::new("nvcc").arg("--version").output() {
                     let version_str = String::from_utf8_lossy(&output.stdout);
@@ -126,7 +119,6 @@ fn get_llama_cpp_url() -> Option<String> {
                 }
             }
 
-
             if std::env::var("VULKAN_SDK").is_ok() {
                 info!("Detected Vulkan SDK on Windows");
                 return Some(format!(
@@ -134,7 +126,6 @@ fn get_llama_cpp_url() -> Option<String> {
                     base_url, LLAMA_CPP_VERSION
                 ));
             }
-
 
             info!("Using standard Windows x64 CPU build");
             return Some(format!(
@@ -152,7 +143,6 @@ fn get_llama_cpp_url() -> Option<String> {
             ));
         }
     }
-
 
     #[allow(unreachable_code)]
     {
@@ -182,7 +172,7 @@ impl PackageManager {
         };
         let tenant = tenant.unwrap_or_else(|| "default".to_string());
 
-        let mut pm = PackageManager {
+        let mut pm = Self {
             mode,
             os_type,
             base_path,
@@ -193,7 +183,6 @@ impl PackageManager {
         Ok(pm)
     }
 
-
     pub fn with_base_path(
         mode: InstallMode,
         tenant: Option<String>,
@@ -202,7 +191,7 @@ impl PackageManager {
         let os_type = detect_os();
         let tenant = tenant.unwrap_or_else(|| "default".to_string());
 
-        let mut pm = PackageManager {
+        let mut pm = Self {
             mode,
             os_type,
             base_path,
@@ -320,8 +309,6 @@ impl PackageManager {
     }
 
     fn register_cache(&mut self) {
-
-
         self.components.insert(
             "cache".to_string(),
             ComponentConfig {
@@ -354,7 +341,6 @@ impl PackageManager {
     }
 
     fn register_llm(&mut self) {
-
         let download_url = get_llama_cpp_url();
 
         if download_url.is_none() {
@@ -496,7 +482,7 @@ impl PackageManager {
                 env_vars: HashMap::from([
                     ("ZITADEL_EXTERNALSECURE".to_string(), "false".to_string()),
                     ("ZITADEL_EXTERNALDOMAIN".to_string(), "localhost".to_string()),
-                    ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string().to_string()),
+                    ("ZITADEL_EXTERNALPORT".to_string(), "8300".to_string()),
                     ("ZITADEL_TLS_ENABLED".to_string(), "false".to_string()),
                 ]),
                 data_download_list: Vec::new(),
@@ -876,9 +862,6 @@ impl PackageManager {
         );
     }
 
-
-
-
     fn register_vault(&mut self) {
         self.components.insert(
             "vault".to_string(),
@@ -957,10 +940,6 @@ EOF"#.to_string(),
             },
         );
     }
-
-
-
-
 
     fn register_observability(&mut self) {
         self.components.insert(
@@ -1043,7 +1022,6 @@ EOF"#.to_string(),
             let conf_path = self.base_path.join("conf");
             let logs_path = self.base_path.join("logs").join(&component.name);
 
-
             let check_cmd = component
                 .check_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -1070,7 +1048,6 @@ EOF"#.to_string(),
                     .spawn()?);
             }
 
-
             let rendered_cmd = component
                 .exec_cmd
                 .replace("{{BIN_PATH}}", &bin_path.to_string_lossy())
@@ -1083,27 +1060,25 @@ EOF"#.to_string(),
                 component.name, rendered_cmd
             );
             eprintln!(
-                "[START DEBUG] Working directory: {:?}, logs_path: {:?}",
-                bin_path, logs_path
+                "[START DEBUG] Working directory: {}, logs_path: {}",
+                bin_path.display(),
+                logs_path.display()
             );
             info!(
                 "Starting component {} with command: {}",
                 component.name, rendered_cmd
             );
             info!(
-                "Working directory: {:?}, logs_path: {:?}",
-                bin_path, logs_path
+                "Working directory: {}, logs_path: {}",
+                bin_path.display(),
+                logs_path.display()
             );
-
 
             let vault_credentials = Self::fetch_vault_credentials();
 
-
             let mut evaluated_envs = HashMap::new();
             for (k, v) in &component.env_vars {
-                if v.starts_with('$') {
-                    let var_name = &v[1..];
-
+                if let Some(var_name) = v.strip_prefix('$') {
                     let value = vault_credentials
                         .get(var_name)
                         .cloned()
@@ -1115,14 +1090,11 @@ EOF"#.to_string(),
                 }
             }
 
-
-
-
             info!(
                 "[START] About to spawn shell command for {}: {}",
                 component.name, rendered_cmd
             );
-            info!("[START] Working dir: {:?}", bin_path);
+            info!("[START] Working dir: {}", bin_path.display());
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
@@ -1136,7 +1108,6 @@ EOF"#.to_string(),
                 child.is_ok()
             );
             std::thread::sleep(std::time::Duration::from_secs(2));
-
 
             info!(
                 "[START] Checking if {} process exists after 2s sleep...",
@@ -1184,11 +1155,8 @@ EOF"#.to_string(),
         }
     }
 
-
-
     fn fetch_vault_credentials() -> HashMap<String, String> {
         let mut credentials = HashMap::new();
-
 
         let vault_addr =
             std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://localhost:8200".to_string());
@@ -1198,7 +1166,6 @@ EOF"#.to_string(),
             trace!("VAULT_TOKEN not set, skipping Vault credential fetch");
             return credentials;
         }
-
 
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")
@@ -1223,7 +1190,6 @@ EOF"#.to_string(),
                 }
             }
         }
-
 
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")

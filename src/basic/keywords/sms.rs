@@ -37,7 +37,7 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SmsProvider {
     Twilio,
     AwsSns,
@@ -46,7 +46,7 @@ pub enum SmsProvider {
     Custom(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum SmsPriority {
     Low,
     Normal,
@@ -56,17 +56,17 @@ pub enum SmsPriority {
 
 impl Default for SmsPriority {
     fn default() -> Self {
-        SmsPriority::Normal
+        Self::Normal
     }
 }
 
 impl From<&str> for SmsPriority {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "low" => SmsPriority::Low,
-            "high" => SmsPriority::High,
-            "urgent" | "critical" => SmsPriority::Urgent,
-            _ => SmsPriority::Normal,
+            "low" => Self::Low,
+            "high" => Self::High,
+            "urgent" | "critical" => Self::Urgent,
+            _ => Self::Normal,
         }
     }
 }
@@ -74,10 +74,10 @@ impl From<&str> for SmsPriority {
 impl std::fmt::Display for SmsPriority {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            SmsPriority::Low => write!(f, "low"),
-            SmsPriority::Normal => write!(f, "normal"),
-            SmsPriority::High => write!(f, "high"),
-            SmsPriority::Urgent => write!(f, "urgent"),
+            Self::Low => write!(f, "low"),
+            Self::Normal => write!(f, "normal"),
+            Self::High => write!(f, "high"),
+            Self::Urgent => write!(f, "urgent"),
         }
     }
 }
@@ -85,11 +85,11 @@ impl std::fmt::Display for SmsPriority {
 impl From<&str> for SmsProvider {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "twilio" => SmsProvider::Twilio,
-            "aws" | "aws_sns" | "sns" => SmsProvider::AwsSns,
-            "vonage" | "nexmo" => SmsProvider::Vonage,
-            "messagebird" => SmsProvider::MessageBird,
-            other => SmsProvider::Custom(other.to_string()),
+            "twilio" => Self::Twilio,
+            "aws" | "aws_sns" | "sns" => Self::AwsSns,
+            "vonage" | "nexmo" => Self::Vonage,
+            "messagebird" => Self::MessageBird,
+            other => Self::Custom(other.to_string()),
         }
     }
 }
@@ -105,18 +105,18 @@ pub struct SmsSendResult {
 }
 
 pub fn register_sms_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    register_send_sms_keyword(state.clone(), user.clone(), engine);
-    register_send_sms_with_third_arg_keyword(state.clone(), user.clone(), engine);
+    register_send_sms_keyword(Arc::clone(&state), user.clone(), engine);
+    register_send_sms_with_third_arg_keyword(Arc::clone(&state), user.clone(), engine);
     register_send_sms_full_keyword(state, user, engine);
 }
 
 pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SEND_SMS", "$expr$", ",", "$expr$"],
+            ["SEND_SMS", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let phone = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -199,11 +199,11 @@ pub fn register_send_sms_with_third_arg_keyword(
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let phone = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -307,7 +307,7 @@ pub fn register_send_sms_full_keyword(
 
     engine
         .register_custom_syntax(
-            &["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let phone = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -391,11 +391,11 @@ pub fn register_send_sms_full_keyword(
         .unwrap();
 
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
+    let user_clone2 = user;
 
     engine
         .register_custom_syntax(
-            &[
+            [
                 "SEND_SMS", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
             ],
             false,
@@ -579,9 +579,8 @@ fn normalize_phone_number(phone: &str) -> String {
         format!("+{}", digits)
     } else if digits.len() == 10 {
         format!("+1{}", digits)
-    } else if digits.len() == 11 && digits.starts_with('1') {
-        format!("+{}", digits)
     } else {
+        // Both 11-digit starting with '1' and other cases get the same format
         format!("+{}", digits)
     }
 }
@@ -667,7 +666,6 @@ async fn send_via_aws_sns(
     let url = format!("https://sns.{}.amazonaws.com/", region);
 
     let timestamp = chrono::Utc::now().format("%Y%m%dT%H%M%SZ").to_string();
-    let _date = &timestamp[..8];
 
     let sms_type = match priority {
         SmsPriority::High | SmsPriority::Urgent => "Transactional",
@@ -868,10 +866,13 @@ async fn send_via_custom_webhook(
     let response = request.send().await?;
 
     if response.status().is_success() {
-        let json: serde_json::Value = response.json().await.unwrap_or(serde_json::json!({}));
+        let json: serde_json::Value = response
+            .json()
+            .await
+            .unwrap_or_else(|_| serde_json::json!({}));
         Ok(json["message_id"]
             .as_str()
-            .or(json["id"].as_str())
+            .or_else(|| json["id"].as_str())
             .map(|s| s.to_string()))
     } else {
         let error_text = response.text().await?;

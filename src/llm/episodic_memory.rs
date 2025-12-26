@@ -1,9 +1,9 @@
-
 use crate::core::config::ConfigManager;
 use crate::llm::llm_models;
 use crate::shared::state::AppState;
 use log::{error, info, trace};
 use std::collections::HashSet;
+use std::fmt::Write;
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 use uuid::Uuid;
@@ -24,10 +24,9 @@ pub fn start_episodic_memory_scheduler(state: Arc<AppState>) {
 async fn process_episodic_memory(
     state: &Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    use once_cell::sync::Lazy;
     use scopeguard::guard;
-    static SESSION_IN_PROGRESS: Lazy<tokio::sync::Mutex<HashSet<Uuid>>> =
-        Lazy::new(|| tokio::sync::Mutex::new(HashSet::new()));
+    static SESSION_IN_PROGRESS: std::sync::LazyLock<tokio::sync::Mutex<HashSet<Uuid>>> =
+        std::sync::LazyLock::new(|| tokio::sync::Mutex::new(HashSet::new()));
 
     let sessions = {
         let mut session_manager = state.session_manager.lock().await;
@@ -108,11 +107,7 @@ async fn process_episodic_memory(
         );
 
         let total_messages = history.len() - start_index;
-        let messages_to_summarize = if total_messages > history_to_keep {
-            total_messages - history_to_keep
-        } else {
-            0
-        };
+        let messages_to_summarize = total_messages.saturating_sub(history_to_keep);
 
         if messages_to_summarize == 0 {
             trace!(
@@ -130,11 +125,12 @@ async fn process_episodic_memory(
             if role == "episodic" || role == "compact" {
                 continue;
             }
-            conversation.push_str(&format!(
-                "{}: {}\n",
+            let _ = writeln!(
+                conversation,
+                "{}: {}",
                 if role == "user" { "user" } else { "assistant" },
                 content
-            ));
+            );
         }
         conversation.push_str("\n *****]]] \n Give me full points only, no explanations.");
 

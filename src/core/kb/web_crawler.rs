@@ -5,7 +5,6 @@ use std::collections::HashSet;
 use std::time::Duration;
 use tokio::time::sleep;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WebsiteCrawlConfig {
     pub url: String,
@@ -18,7 +17,6 @@ pub struct WebsiteCrawlConfig {
 }
 
 impl WebsiteCrawlConfig {
-
     pub fn calculate_next_crawl(&mut self) {
         let now = chrono::Utc::now();
         self.last_crawled = Some(now);
@@ -36,33 +34,32 @@ impl WebsiteCrawlConfig {
             "6m" => chrono::Duration::days(180),
             "1y" | "365d" => chrono::Duration::days(365),
             custom => {
-
-                if custom.ends_with('h') {
-                    if let Ok(hours) = custom[..custom.len() - 1].parse::<i64>() {
+                if let Some(hours_str) = custom.strip_suffix('h') {
+                    if let Ok(hours) = hours_str.parse::<i64>() {
                         chrono::Duration::hours(hours)
                     } else {
                         chrono::Duration::days(1)
                     }
-                } else if custom.ends_with('d') {
-                    if let Ok(days) = custom[..custom.len() - 1].parse::<i64>() {
+                } else if let Some(days_str) = custom.strip_suffix('d') {
+                    if let Ok(days) = days_str.parse::<i64>() {
                         chrono::Duration::days(days)
                     } else {
                         chrono::Duration::days(1)
                     }
-                } else if custom.ends_with('w') {
-                    if let Ok(weeks) = custom[..custom.len() - 1].parse::<i64>() {
+                } else if let Some(weeks_str) = custom.strip_suffix('w') {
+                    if let Ok(weeks) = weeks_str.parse::<i64>() {
                         chrono::Duration::weeks(weeks)
                     } else {
                         chrono::Duration::days(1)
                     }
-                } else if custom.ends_with('m') {
-                    if let Ok(months) = custom[..custom.len() - 1].parse::<i64>() {
+                } else if let Some(months_str) = custom.strip_suffix('m') {
+                    if let Ok(months) = months_str.parse::<i64>() {
                         chrono::Duration::days(months * 30)
                     } else {
                         chrono::Duration::days(1)
                     }
-                } else if custom.ends_with('y') {
-                    if let Ok(years) = custom[..custom.len() - 1].parse::<i64>() {
+                } else if let Some(years_str) = custom.strip_suffix('y') {
+                    if let Ok(years) = years_str.parse::<i64>() {
                         chrono::Duration::days(years * 365)
                     } else {
                         chrono::Duration::days(1)
@@ -76,7 +73,6 @@ impl WebsiteCrawlConfig {
         self.next_crawl = Some(now + duration);
     }
 
-
     pub fn needs_crawl(&self) -> bool {
         match self.next_crawl {
             Some(next) => chrono::Utc::now() >= next,
@@ -84,7 +80,6 @@ impl WebsiteCrawlConfig {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct WebPage {
@@ -94,7 +89,6 @@ pub struct WebPage {
     pub meta_description: Option<String>,
     pub crawled_at: chrono::DateTime<chrono::Utc>,
 }
-
 
 #[derive(Debug)]
 pub struct WebCrawler {
@@ -120,10 +114,8 @@ impl WebCrawler {
         }
     }
 
-
     pub async fn crawl(&mut self) -> Result<Vec<WebPage>> {
         info!("Starting crawl of website: {}", self.config.url);
-
 
         self.crawl_recursive(&self.config.url.clone(), 0).await?;
 
@@ -136,9 +128,7 @@ impl WebCrawler {
         Ok(self.pages.clone())
     }
 
-
     async fn crawl_recursive(&mut self, url: &str, depth: usize) -> Result<()> {
-
         if depth > self.config.max_depth {
             trace!(
                 "Reached max depth {} for URL: {}",
@@ -148,25 +138,20 @@ impl WebCrawler {
             return Ok(());
         }
 
-
         if self.pages.len() >= self.config.max_pages {
             trace!("Reached max pages limit: {}", self.config.max_pages);
             return Ok(());
         }
 
-
         if self.visited_urls.contains(url) {
             return Ok(());
         }
 
-
         self.visited_urls.insert(url.to_string());
-
 
         if !self.visited_urls.is_empty() {
             sleep(Duration::from_millis(self.config.crawl_delay_ms)).await;
         }
-
 
         let response = match self.client.get(url).send().await {
             Ok(resp) => resp,
@@ -175,7 +160,6 @@ impl WebCrawler {
                 return Ok(());
             }
         };
-
 
         let content_type = response
             .headers()
@@ -188,7 +172,6 @@ impl WebCrawler {
             return Ok(());
         }
 
-
         let html_text = match response.text().await {
             Ok(text) => text,
             Err(e) => {
@@ -197,16 +180,13 @@ impl WebCrawler {
             }
         };
 
-
-        let page = self.extract_page_content(&html_text, url);
+        let page = Self::extract_page_content(&html_text, url);
         self.pages.push(page);
 
-
         if depth < self.config.max_depth {
-            let links = self.extract_links(&html_text, url);
+            let links = Self::extract_links(&html_text, url);
             for link in links {
-
-                if self.is_same_domain(url, &link) {
+                if Self::is_same_domain(url, &link) {
                     Box::pin(self.crawl_recursive(&link, depth + 1)).await?;
                 }
             }
@@ -215,11 +195,8 @@ impl WebCrawler {
         Ok(())
     }
 
-
-    fn extract_page_content(&self, html: &str, url: &str) -> WebPage {
-
+    fn extract_page_content(html: &str, url: &str) -> WebPage {
         let mut text = html.to_string();
-
 
         while let Some(start) = text.find("<script") {
             if let Some(end) = text.find("</script>") {
@@ -237,17 +214,12 @@ impl WebCrawler {
             }
         }
 
-
         let title = if let Some(title_start) = text.find("<title>") {
-            if let Some(title_end) = text.find("</title>") {
-                Some(text[title_start + 7..title_end].to_string())
-            } else {
-                None
-            }
+            text.find("</title>")
+                .map(|title_end| text[title_start + 7..title_end].to_string())
         } else {
             None
         };
-
 
         while let Some(start) = text.find('<') {
             if let Some(end) = text.find('>') {
@@ -261,7 +233,6 @@ impl WebCrawler {
             }
         }
 
-
         let content = text.split_whitespace().collect::<Vec<_>>().join(" ");
 
         WebPage {
@@ -273,41 +244,33 @@ impl WebCrawler {
         }
     }
 
-
-    fn extract_links(&self, html: &str, base_url: &str) -> Vec<String> {
+    fn extract_links(html: &str, base_url: &str) -> Vec<String> {
         let mut links = Vec::new();
         let mut search_pos = 0;
-
 
         while let Some(href_pos) = html[search_pos..].find("href=\"") {
             let href_start = search_pos + href_pos + 6;
             if let Some(href_end) = html[href_start..].find('"') {
                 let href = &html[href_start..href_start + href_end];
 
-
                 if !href.starts_with('#')
                     && !href.starts_with("javascript:")
                     && !href.starts_with("mailto:")
                     && !href.starts_with("tel:")
                 {
-
                     let absolute_url =
                         if href.starts_with("http://") || href.starts_with("https://") {
                             href.to_string()
                         } else if href.starts_with('/') {
-
                             if let Some(domain_end) = base_url[8..].find('/') {
                                 format!("{}{}", &base_url[..8 + domain_end], href)
                             } else {
                                 format!("{}{}", base_url, href)
                             }
+                        } else if let Some(last_slash) = base_url.rfind('/') {
+                            format!("{}/{}", &base_url[..last_slash], href)
                         } else {
-
-                            if let Some(last_slash) = base_url.rfind('/') {
-                                format!("{}/{}", &base_url[..last_slash], href)
-                            } else {
-                                format!("{}/{}", base_url, href)
-                            }
+                            format!("{}/{}", base_url, href)
                         };
 
                     links.push(absolute_url);
@@ -321,22 +284,17 @@ impl WebCrawler {
         links
     }
 
-
-    fn is_same_domain(&self, url1: &str, url2: &str) -> bool {
-        let domain1 = self.extract_domain(url1);
-        let domain2 = self.extract_domain(url2);
+    fn is_same_domain(url1: &str, url2: &str) -> bool {
+        let domain1 = Self::extract_domain(url1);
+        let domain2 = Self::extract_domain(url2);
         domain1 == domain2
     }
 
-
-    fn extract_domain(&self, url: &str) -> String {
-        let without_protocol = if url.starts_with("https://") {
-            &url[8..]
-        } else if url.starts_with("http://") {
-            &url[7..]
-        } else {
-            url
-        };
+    fn extract_domain(url: &str) -> String {
+        let without_protocol = url
+            .strip_prefix("https://")
+            .or_else(|| url.strip_prefix("http://"))
+            .unwrap_or(url);
 
         if let Some(slash_pos) = without_protocol.find('/') {
             without_protocol[..slash_pos].to_string()

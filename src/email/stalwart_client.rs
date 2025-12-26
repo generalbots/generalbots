@@ -63,11 +63,11 @@ pub enum DeliveryStatus {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct QueueListResponse {
+pub struct QueueListResponse {
     #[serde(default)]
-    total: u64,
+    pub total: u64,
     #[serde(default)]
-    items: Vec<QueuedMessage>,
+    pub items: Vec<QueuedMessage>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -408,10 +408,19 @@ pub struct SpamTest {
 
 #[derive(Debug, Deserialize)]
 #[serde(untagged)]
-enum ApiResponse<T> {
+pub enum ApiResponse<T> {
     Success { data: T },
     SuccessDirect(T),
     Error { error: String },
+}
+
+impl<T> ApiResponse<T> {
+    pub fn into_result(self) -> Result<T, String> {
+        match self {
+            Self::Success { data } | Self::SuccessDirect(data) => Ok(data),
+            Self::Error { error } => Err(error),
+        }
+    }
 }
 
 #[derive(Debug, Clone)]

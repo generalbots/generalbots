@@ -2,6 +2,7 @@ use anyhow::Result;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::fs;
 use std::net::IpAddr;
 use std::path::PathBuf;
@@ -66,11 +67,9 @@ impl DynamicDnsService {
     }
 
     pub async fn register_hostname(&self, hostname: &str, ip: IpAddr) -> Result<()> {
-
-        if !self.is_valid_hostname(hostname) {
+        if !Self::is_valid_hostname(hostname) {
             return Err(anyhow::anyhow!("Invalid hostname format"));
         }
-
 
         if !self.check_rate_limit(&ip).await {
             return Err(anyhow::anyhow!("Rate limit exceeded for IP"));
@@ -87,12 +86,10 @@ impl DynamicDnsService {
             ttl: self.config.ttl_seconds,
         };
 
-
         {
             let mut entries = self.entries.write().await;
             entries.insert(hostname.to_string(), entry.clone());
         }
-
 
         {
             let mut by_ip = self.entries_by_ip.write().await;
@@ -100,7 +97,6 @@ impl DynamicDnsService {
                 .entry(ip)
                 .or_insert_with(Vec::new)
                 .push(hostname.to_string());
-
 
             if let Some(ip_entries) = by_ip.get_mut(&ip) {
                 if ip_entries.len() > self.config.max_entries_per_ip {
@@ -110,7 +106,6 @@ impl DynamicDnsService {
                 }
             }
         }
-
 
         self.update_zone_file().await?;
 
@@ -122,7 +117,6 @@ impl DynamicDnsService {
         let mut entries = self.entries.write().await;
 
         if let Some(entry) = entries.remove(hostname) {
-
             let mut by_ip = self.entries_by_ip.write().await;
             if let Some(ip_entries) = by_ip.get_mut(&entry.ip) {
                 ip_entries.retain(|h| h != hostname);
@@ -176,19 +170,22 @@ impl DynamicDnsService {
         let entries = self.entries.read().await;
 
         let mut zone_content = String::new();
-        zone_content.push_str(&format!(
-            "$ORIGIN {}.\n$TTL {}\n",
+        let _ = writeln!(
+            zone_content,
+            "$ORIGIN {}.\n$TTL {}",
             self.config.domain, self.config.ttl_seconds
-        ));
+        );
 
-        zone_content.push_str(&format!(
-            "@       IN      SOA     ns1.{}. admin.{}. (\n",
+        let _ = writeln!(
+            zone_content,
+            "@       IN      SOA     ns1.{}. admin.{}. (",
             self.config.domain, self.config.domain
-        ));
-        zone_content.push_str(&format!(
-            "                        {}      ; Serial\n",
+        );
+        let _ = writeln!(
+            zone_content,
+            "                        {}      ; Serial",
             Utc::now().timestamp()
-        ));
+        );
         zone_content.push_str(
             "                        3600            ; Refresh\n\
              \x20                       1800            ; Retry\n\
@@ -196,12 +193,12 @@ impl DynamicDnsService {
              \x20                       60              ; Minimum TTL\n\
              )\n",
         );
-        zone_content.push_str(&format!(
-            "        IN      NS      ns1.{}.\n",
+        let _ = writeln!(
+            zone_content,
+            "        IN      NS      ns1.{}.",
             self.config.domain
-        ));
+        );
         zone_content.push_str("ns1     IN      A       127.0.0.1\n\n");
-
 
         zone_content.push_str("; Static service entries\n");
         zone_content.push_str("api     IN      A       127.0.0.1\n");
@@ -210,11 +207,14 @@ impl DynamicDnsService {
         zone_content.push_str("mail    IN      A       127.0.0.1\n");
         zone_content.push_str("meet    IN      A       127.0.0.1\n\n");
 
-
         if !entries.is_empty() {
             zone_content.push_str("; Dynamic entries\n");
             for (hostname, entry) in entries.iter() {
-                zone_content.push_str(&format!("{:<16} IN      A       {}\n", hostname, entry.ip));
+                let _ = writeln!(
+                    zone_content,
+                    "{:<16} IN      A       {}",
+                    hostname, entry.ip
+                );
             }
         }
 
@@ -222,7 +222,7 @@ impl DynamicDnsService {
         Ok(())
     }
 
-    fn is_valid_hostname(&self, hostname: &str) -> bool {
+    fn is_valid_hostname(hostname: &str) -> bool {
         if hostname.is_empty() || hostname.len() > 63 {
             return false;
         }
@@ -243,7 +243,7 @@ impl DynamicDnsService {
         }
     }
 
-    pub async fn start_cleanup_task(self: Arc<Self>) {
+    pub fn start_cleanup_task(self: Arc<Self>) {
         let service = Arc::clone(&self);
         tokio::spawn(async move {
             let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(
@@ -259,7 +259,6 @@ impl DynamicDnsService {
         });
     }
 }
-
 
 use axum::{
     extract::{Query, State},

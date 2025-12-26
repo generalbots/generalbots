@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 pub fn find_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
     let connection = state.conn.clone();
     engine
-        .register_custom_syntax(&["FIND", "$expr$", ",", "$expr$"], false, {
+        .register_custom_syntax(["FIND", "$expr$", ",", "$expr$"], false, {
             move |context, inputs| {
                 let table_name = context.eval_expression_tree(&inputs[0])?;
                 let filter = context.eval_expression_tree(&inputs[1])?;
@@ -21,7 +21,7 @@ pub fn find_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
                 let binding3 = filter.to_string();
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current()
-                        .block_on(async { execute_find(&mut binding, &binding2, &binding3).await })
+                        .block_on(async { execute_find(&mut binding, &binding2, &binding3) })
                 })
                 .map_err(|e| format!("DB error: {}", e))?;
                 if let Some(results) = result.get("results") {
@@ -34,7 +34,7 @@ pub fn find_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
         })
         .unwrap();
 }
-pub async fn execute_find(
+pub fn execute_find(
     conn: &mut PgConnection,
     table_str: &str,
     filter_str: &str,

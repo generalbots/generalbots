@@ -13,10 +13,9 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
-
     engine
         .register_custom_syntax(
-            &[
+            [
                 "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
             ],
             false,
@@ -100,13 +99,12 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
     engine
         .register_custom_syntax(
-            &[
+            [
                 "SEND", "MAIL", "$expr$", ",", "$expr$", ",", "$expr$", "USING", "$expr$",
             ],
             false,
@@ -177,19 +175,17 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
+    let user_clone2 = user;
 
     engine
         .register_custom_syntax(
-            &["SEND_TEMPLATE", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["SEND_TEMPLATE", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let recipients_input = context.eval_expression_tree(&inputs[0])?;
                 let template = context.eval_expression_tree(&inputs[1])?.to_string();
                 let variables = context.eval_expression_tree(&inputs[2])?;
-
 
                 let mut recipients = Vec::new();
                 if recipients_input.is_array() {
@@ -201,9 +197,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     recipients.push(recipients_input.to_string());
                 }
 
-
                 let vars_json = if variables.is_map() {
-
                     json!(variables.to_string())
                 } else {
                     json!({})
@@ -276,7 +270,7 @@ async fn execute_send_mail(
 ) -> Result<String, String> {
     let message_id = Uuid::new_v4().to_string();
 
-    track_email(state, user, &message_id, to, subject, "sent").await?;
+    track_email(state, user, &message_id, to, subject, "sent")?;
 
     if let Some(account_email) = using_account {
         let creds = get_account_credentials(&state.conn, &account_email, user.bot_id)
@@ -292,25 +286,22 @@ async fn execute_send_mail(
 
         let email_service = EmailService::new(Arc::new(state.clone()));
 
-        if let Ok(_) = email_service
-            .send_email(
-                &to,
-                &subject,
-                &body,
-                if attachments.is_empty() {
-                    None
-                } else {
-                    Some(attachments.clone())
-                },
-            )
-            .await
-        {
+        if let Ok(_) = email_service.send_email(
+            &to,
+            &subject,
+            &body,
+            if attachments.is_empty() {
+                None
+            } else {
+                Some(attachments.clone())
+            },
+        ) {
             trace!("Email sent successfully: {}", message_id);
             return Ok(format!("Email sent: {}", message_id));
         }
     }
 
-    save_email_draft(state, user, to, subject, body, attachments).await?;
+    save_email_draft(state, user, to, subject, body, attachments)?;
 
     Ok(format!("Email saved as draft: {}", message_id))
 }
@@ -425,7 +416,7 @@ async fn execute_send_template(
     template_name: &str,
     variables: serde_json::Value,
 ) -> Result<i32, String> {
-    let template_content = load_template(state, template_name).await?;
+    let template_content = load_template(state, template_name)?;
 
     let mut sent_count = 0;
 
@@ -436,7 +427,7 @@ async fn execute_send_template(
         let subject = extract_template_subject(&personalized_content)
             .unwrap_or_else(|| format!("Message from {}", user.user_id));
 
-        if let Ok(_) = execute_send_mail(
+        if execute_send_mail(
             state,
             user,
             &recipient,
@@ -446,6 +437,7 @@ async fn execute_send_template(
             None,
         )
         .await
+        .is_ok()
         {
             sent_count += 1;
         }
@@ -457,7 +449,7 @@ async fn execute_send_template(
     Ok(sent_count)
 }
 
-async fn track_email(
+fn track_email(
     state: &AppState,
     user: &UserSession,
     message_id: &str,
@@ -493,7 +485,7 @@ async fn track_email(
     Ok(())
 }
 
-async fn save_email_draft(
+fn save_email_draft(
     state: &AppState,
     user: &UserSession,
     to: &str,
@@ -533,8 +525,7 @@ async fn save_email_draft(
     Ok(())
 }
 
-async fn load_template(state: &AppState, template_name: &str) -> Result<String, String> {
-
+fn load_template(state: &AppState, template_name: &str) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query =
@@ -552,7 +543,6 @@ async fn load_template(state: &AppState, template_name: &str) -> Result<String, 
     match result {
         Ok(records) if !records.is_empty() => Ok(records[0].content.clone()),
         _ => {
-
             let template_path = format!(".gbdrive/templates/{}.html", template_name);
             std::fs::read_to_string(&template_path)
                 .map_err(|e| format!("Template not found: {}", e))
@@ -567,9 +557,7 @@ fn apply_template_variables(
 ) -> Result<String, String> {
     let mut content = template.to_string();
 
-
     content = content.replace("{{recipient}}", recipient);
-
 
     if let Some(obj) = variables.as_object() {
         for (key, value) in obj {
@@ -584,11 +572,36 @@ fn apply_template_variables(
 }
 
 fn extract_template_subject(content: &str) -> Option<String> {
-
     for line in content.lines() {
         if line.starts_with("Subject:") {
             return Some(line.trim_start_matches("Subject:").trim().to_string());
         }
     }
     None
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    #[test]
+    fn test_apply_template_variables() {
+        let template = "Hello {{name}}, your order {{order_id}} is ready!";
+        let vars = json!({
+            "name": "John",
+            "order_id": "12345"
+        });
+
+        let result = apply_template_variables(template, &vars, "john@example.com").unwrap();
+        assert!(result.contains("John"));
+        assert!(result.contains("12345"));
+    }
+
+    #[test]
+    fn test_extract_template_subject() {
+        let content = "Subject: Welcome to our service\n\nHello there!";
+        let subject = extract_template_subject(content);
+        assert_eq!(subject, Some("Welcome to our service".to_string()));
+    }
 }

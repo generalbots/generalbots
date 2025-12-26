@@ -1,4 +1,3 @@
-
 use crate::basic::compiler::BasicCompiler;
 use crate::config::ConfigManager;
 use crate::core::kb::KnowledgeBaseManager;
@@ -45,13 +44,10 @@ impl DriveMonitor {
     pub async fn start_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Starting DriveMonitor for bot {}", self.bot_id);
 
-
         self.is_processing
             .store(true, std::sync::atomic::Ordering::SeqCst);
 
-
         self.check_for_changes().await?;
-
 
         let self_clone = Arc::new(self.clone());
         tokio::spawn(async move {
@@ -76,10 +72,8 @@ impl DriveMonitor {
     pub async fn stop_monitoring(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Stopping DriveMonitor for bot {}", self.bot_id);
 
-
         self.is_processing
             .store(false, std::sync::atomic::Ordering::SeqCst);
-
 
         self.file_states.write().await.clear();
 
@@ -96,7 +90,6 @@ impl DriveMonitor {
             loop {
                 tick.tick().await;
 
-
                 if self.is_processing.load(Ordering::Acquire) {
                     log::warn!(
                         "Drive monitor is still processing previous changes, skipping this tick"
@@ -104,23 +97,19 @@ impl DriveMonitor {
                     continue;
                 }
 
-
                 self.is_processing.store(true, Ordering::Release);
-
 
                 if let Err(e) = self.check_for_changes().await {
                     log::error!("Error checking for drive changes: {}", e);
                 }
-
 
                 self.is_processing.store(false, Ordering::Release);
             }
         })
     }
     async fn check_for_changes(&self) -> Result<(), Box<dyn Error + Send + Sync>> {
-        let client = match &self.state.drive {
-            Some(client) => client,
-            None => return Ok(()),
+        let Some(client) = &self.state.drive else {
+            return Ok(());
         };
         self.check_gbdialog_changes(client).await?;
         self.check_gbot(client).await?;
@@ -139,7 +128,7 @@ impl DriveMonitor {
                 Duration::from_secs(30),
                 client
                     .list_objects_v2()
-                    .bucket(&self.bucket_name.to_lowercase())
+                    .bucket(self.bucket_name.to_lowercase())
                     .set_continuation_token(continuation_token)
                     .send(),
             )
@@ -158,7 +147,7 @@ impl DriveMonitor {
                 if path_parts.len() < 2 || !path_parts[0].ends_with(".gbdialog") {
                     continue;
                 }
-                if path.ends_with('/') || !path.ends_with(".bas") {
+                if path.ends_with('/') || !path.to_ascii_lowercase().ends_with(".bas") {
                     continue;
                 }
                 let file_state = FileState {
@@ -179,10 +168,8 @@ impl DriveMonitor {
                         log::error!("Failed to compile tool {}: {}", path, e);
                     }
                 }
-            } else {
-                if let Err(e) = self.compile_tool(client, path).await {
-                    log::error!("Failed to compile tool {}: {}", path, e);
-                }
+            } else if let Err(e) = self.compile_tool(client, path).await {
+                log::error!("Failed to compile tool {}: {}", path, e);
             }
         }
         let previous_paths: Vec<String> = file_states
@@ -208,7 +195,7 @@ impl DriveMonitor {
                 Duration::from_secs(30),
                 client
                     .list_objects_v2()
-                    .bucket(&self.bucket_name.to_lowercase())
+                    .bucket(self.bucket_name.to_lowercase())
                     .set_continuation_token(continuation_token)
                     .send(),
             )
@@ -227,7 +214,8 @@ impl DriveMonitor {
                 if path_parts.len() < 2 || !path_parts[0].ends_with(".gbot") {
                     continue;
                 }
-                if !path.ends_with("config.csv") {
+                let path_lower = path.to_ascii_lowercase();
+                if !path_lower.ends_with("config.csv") {
                     continue;
                 }
                 match client
@@ -251,7 +239,9 @@ impl DriveMonitor {
                             .lines()
                             .filter(|line| line.trim_start().starts_with("llm-"))
                             .collect();
-                        if !llm_lines.is_empty() {
+                        if llm_lines.is_empty() {
+                            let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
+                        } else {
                             use crate::llm::local::ensure_llama_servers_running;
                             let mut restart_needed = false;
                             for line in llm_lines {
@@ -283,8 +273,6 @@ impl DriveMonitor {
                                     log::error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
                             }
-                        } else {
-                            let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
                         }
                         if csv_content.lines().any(|line| line.starts_with("theme-")) {
                             self.broadcast_theme_change(&csv_content).await?;
@@ -317,21 +305,21 @@ impl DriveMonitor {
                 let value = parts[1].trim();
                 match key {
                     "theme-color1" => {
-                        theme_data["data"]["color1"] = serde_json::Value::String(value.to_string())
+                        theme_data["data"]["color1"] = serde_json::Value::String(value.to_string());
                     }
                     "theme-color2" => {
-                        theme_data["data"]["color2"] = serde_json::Value::String(value.to_string())
+                        theme_data["data"]["color2"] = serde_json::Value::String(value.to_string());
                     }
                     "theme-logo" => {
                         theme_data["data"]["logo_url"] =
-                            serde_json::Value::String(value.to_string())
+                            serde_json::Value::String(value.to_string());
                     }
                     "theme-title" => {
-                        theme_data["data"]["title"] = serde_json::Value::String(value.to_string())
+                        theme_data["data"]["title"] = serde_json::Value::String(value.to_string());
                     }
                     "theme-logo-text" => {
                         theme_data["data"]["logo_text"] =
-                            serde_json::Value::String(value.to_string())
+                            serde_json::Value::String(value.to_string());
                     }
                     _ => {}
                 }
@@ -355,6 +343,7 @@ impl DriveMonitor {
             };
             let _ = tx.try_send(theme_response);
         }
+        drop(response_channels);
         Ok(())
     }
     async fn compile_tool(
@@ -395,8 +384,8 @@ impl DriveMonitor {
         let bytes = response.body.collect().await?.into_bytes();
         let source_content = String::from_utf8(bytes.to_vec())?;
         let tool_name = file_path
-            .split('/')
-            .last()
+            .rsplit('/')
+            .next()
             .unwrap_or(file_path)
             .strip_suffix(".bas")
             .unwrap_or(file_path)
@@ -442,7 +431,6 @@ impl DriveMonitor {
         let mut current_files = HashMap::new();
         let mut continuation_token = None;
 
-
         let mut files_processed = 0;
         let mut files_to_process = Vec::new();
         let mut pdf_files_found = 0;
@@ -452,7 +440,7 @@ impl DriveMonitor {
                 Duration::from_secs(30),
                 client
                     .list_objects_v2()
-                    .bucket(&self.bucket_name.to_lowercase())
+                    .bucket(self.bucket_name.to_lowercase())
                     .prefix(&gbkb_prefix)
                     .set_continuation_token(continuation_token)
                     .send(),
@@ -473,7 +461,6 @@ impl DriveMonitor {
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
 
-
                 if path.ends_with('/') {
                     continue;
                 }
@@ -492,7 +479,6 @@ impl DriveMonitor {
 
         let mut file_states = self.file_states.write().await;
 
-
         for (path, current_state) in current_files.iter() {
             let is_new = !file_states.contains_key(path);
             let is_modified = file_states
@@ -501,7 +487,6 @@ impl DriveMonitor {
                 .unwrap_or(false);
 
             if is_new || is_modified {
-
                 if path.to_lowercase().ends_with(".pdf") {
                     pdf_files_found += 1;
                     info!(
@@ -517,22 +502,18 @@ impl DriveMonitor {
                     );
                 }
 
-
                 files_to_process.push(path.clone());
                 files_processed += 1;
 
-
                 if files_to_process.len() >= 10 {
-                    for file_path in files_to_process.drain(..) {
+                    for file_path in std::mem::take(&mut files_to_process) {
                         if let Err(e) = self.download_gbkb_file(client, &file_path).await {
                             log::error!("Failed to download .gbkb file {}: {}", file_path, e);
                         }
                     }
 
-
                     tokio::time::sleep(Duration::from_millis(100)).await;
                 }
-
 
                 let path_parts: Vec<&str> = path.split('/').collect();
                 if path_parts.len() >= 2 {
@@ -543,10 +524,9 @@ impl DriveMonitor {
                         .join(&gbkb_prefix)
                         .join(kb_name);
 
-
                     info!(
-                        "Triggering KB indexing for folder: {:?} (PDF text extraction enabled)",
-                        kb_folder_path
+                        "Triggering KB indexing for folder: {} (PDF text extraction enabled)",
+                        kb_folder_path.display()
                     );
                     match self
                         .kb_manager
@@ -572,13 +552,11 @@ impl DriveMonitor {
             }
         }
 
-
         let paths_to_remove: Vec<String> = file_states
             .keys()
             .filter(|path| path.starts_with(&gbkb_prefix) && !current_files.contains_key(*path))
             .cloned()
             .collect();
-
 
         for file_path in files_to_process {
             if let Err(e) = self.download_gbkb_file(client, &file_path).await {
@@ -593,7 +571,6 @@ impl DriveMonitor {
             );
         }
 
-
         for (path, state) in current_files {
             file_states.insert(path, state);
         }
@@ -602,15 +579,12 @@ impl DriveMonitor {
             info!("Detected deletion in .gbkb: {}", path);
             file_states.remove(&path);
 
-
             let path_parts: Vec<&str> = path.split('/').collect();
             if path_parts.len() >= 2 {
                 let kb_name = path_parts[1];
 
-
                 let kb_prefix = format!("{}{}/", gbkb_prefix, kb_name);
                 if !file_states.keys().any(|k| k.starts_with(&kb_prefix)) {
-
                     if let Err(e) = self.kb_manager.clear_kb(bot_name, kb_name).await {
                         log::error!("Failed to clear KB {}: {}", kb_name, e);
                     }
@@ -633,16 +607,13 @@ impl DriveMonitor {
 
         let local_path = self.work_root.join(bot_name).join(file_path);
 
-
         if file_path.to_lowercase().ends_with(".pdf") {
             debug!("Downloading PDF file for text extraction: {}", file_path);
         }
 
-
         if let Some(parent) = local_path.parent() {
             tokio::fs::create_dir_all(parent).await?;
         }
-
 
         let response = client
             .get_object()
@@ -654,7 +625,11 @@ impl DriveMonitor {
         let bytes = response.body.collect().await?.into_bytes();
         tokio::fs::write(&local_path, bytes).await?;
 
-        info!("Downloaded .gbkb file {} to {:?}", file_path, local_path);
+        info!(
+            "Downloaded .gbkb file {} to {}",
+            file_path,
+            local_path.display()
+        );
 
         Ok(())
     }

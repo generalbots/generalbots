@@ -7,7 +7,6 @@ use std::time::Duration;
 use tokio::fs;
 use tokio::time::sleep;
 
-
 #[derive(Debug)]
 pub struct DirectorySetup {
     base_url: String,
@@ -17,22 +16,18 @@ pub struct DirectorySetup {
 }
 
 impl DirectorySetup {
-
     pub fn set_admin_token(&mut self, token: String) {
         self.admin_token = Some(token);
     }
 
-
     pub async fn ensure_admin_token(&mut self) -> Result<()> {
         if self.admin_token.is_none() {
-
             return Err(anyhow::anyhow!("Admin token must be configured"));
         }
         Ok(())
     }
 
-
-    fn generate_secure_password(&self) -> String {
+    fn generate_secure_password() -> String {
         use rand::distr::Alphanumeric;
         use rand::Rng;
         let mut rng = rand::rng();
@@ -86,7 +81,6 @@ impl DirectorySetup {
         }
     }
 
-
     pub async fn wait_for_ready(&self, max_attempts: u32) -> Result<()> {
         log::info!("Waiting for Directory service to be ready...");
 
@@ -115,34 +109,26 @@ impl DirectorySetup {
         anyhow::bail!("Directory service did not become ready in time")
     }
 
-
     pub async fn initialize(&mut self) -> Result<DirectoryConfig> {
         log::info!(" Initializing Directory (Zitadel) with defaults...");
-
 
         if let Ok(existing_config) = self.load_existing_config().await {
             log::info!("Directory already initialized, using existing config");
             return Ok(existing_config);
         }
 
-
         self.wait_for_ready(30).await?;
 
-
         self.ensure_admin_token().await?;
-
 
         let org = self.create_default_organization().await?;
         log::info!(" Created default organization: {}", org.name);
 
-
         let user = self.create_default_user(&org.id).await?;
         log::info!(" Created default user: {}", user.username);
 
-
         let (project_id, client_id, client_secret) = self.create_oauth_application(&org.id).await?;
         log::info!(" Created OAuth2 application");
-
 
         self.grant_user_permissions(&org.id, &user.id).await?;
         log::info!(" Granted admin permissions to default user");
@@ -156,7 +142,6 @@ impl DirectorySetup {
             client_id,
             client_secret,
         };
-
 
         self.save_config_internal(&config).await?;
         log::info!(" Saved Directory configuration");
@@ -172,9 +157,7 @@ impl DirectorySetup {
         Ok(config)
     }
 
-
     pub async fn create_organization(&mut self, name: &str, description: &str) -> Result<String> {
-
         self.ensure_admin_token().await?;
 
         let response = self
@@ -196,7 +179,6 @@ impl DirectorySetup {
         let result: serde_json::Value = response.json().await?;
         Ok(result["id"].as_str().unwrap_or("").to_string())
     }
-
 
     async fn create_default_organization(&self) -> Result<DefaultOrganization> {
         let org_name = "BotServer".to_string();
@@ -225,7 +207,6 @@ impl DirectorySetup {
         })
     }
 
-
     pub async fn create_user(
         &mut self,
         org_id: &str,
@@ -236,7 +217,6 @@ impl DirectorySetup {
         last_name: &str,
         is_admin: bool,
     ) -> Result<DefaultUser> {
-
         self.ensure_admin_token().await?;
 
         let response = self
@@ -278,7 +258,6 @@ impl DirectorySetup {
             last_name: last_name.to_string(),
         };
 
-
         if is_admin {
             self.grant_user_permissions(org_id, &user.id).await?;
         }
@@ -286,9 +265,7 @@ impl DirectorySetup {
         Ok(user)
     }
 
-
     async fn create_default_user(&self, org_id: &str) -> Result<DefaultUser> {
-
         let username = format!(
             "admin_{}",
             uuid::Uuid::new_v4()
@@ -298,7 +275,7 @@ impl DirectorySetup {
                 .collect::<String>()
         );
         let email = format!("{}@botserver.local", username);
-        let password = self.generate_secure_password();
+        let password = Self::generate_secure_password();
 
         let response = self
             .client
@@ -340,14 +317,12 @@ impl DirectorySetup {
         })
     }
 
-
     pub async fn create_oauth_application(
         &self,
         _org_id: &str,
     ) -> Result<(String, String, String)> {
         let app_name = "BotServer";
         let redirect_uri = "http://localhost:8080/auth/callback".to_string();
-
 
         let project_response = self
             .client
@@ -361,7 +336,6 @@ impl DirectorySetup {
 
         let project_result: serde_json::Value = project_response.json().await?;
         let project_id = project_result["id"].as_str().unwrap_or("").to_string();
-
 
         let app_response = self.client
             .post(format!("{}/management/v1/projects/{}/apps/oidc", self.base_url, project_id))
@@ -388,9 +362,7 @@ impl DirectorySetup {
         Ok((project_id, client_id, client_secret))
     }
 
-
     pub async fn grant_user_permissions(&self, org_id: &str, user_id: &str) -> Result<()> {
-
         let _response = self
             .client
             .post(format!(
@@ -408,7 +380,6 @@ impl DirectorySetup {
         Ok(())
     }
 
-
     pub async fn save_config(
         &mut self,
         org_id: String,
@@ -417,7 +388,6 @@ impl DirectorySetup {
         client_id: String,
         client_secret: String,
     ) -> Result<DirectoryConfig> {
-
         self.ensure_admin_token().await?;
 
         let config = DirectoryConfig {
@@ -434,14 +404,15 @@ impl DirectorySetup {
             client_secret,
         };
 
-
         let json = serde_json::to_string_pretty(&config)?;
         fs::write(&self.config_path, json).await?;
 
-        log::info!("Saved Directory configuration to {:?}", self.config_path);
+        log::info!(
+            "Saved Directory configuration to {}",
+            self.config_path.display()
+        );
         Ok(config)
     }
-
 
     async fn save_config_internal(&self, config: &DirectoryConfig) -> Result<()> {
         let json = serde_json::to_string_pretty(config)?;
@@ -449,23 +420,19 @@ impl DirectorySetup {
         Ok(())
     }
 
-
     async fn load_existing_config(&self) -> Result<DirectoryConfig> {
         let content = fs::read_to_string(&self.config_path).await?;
         let config: DirectoryConfig = serde_json::from_str(&content)?;
         Ok(config)
     }
 
-
     pub async fn get_config(&self) -> Result<DirectoryConfig> {
         self.load_existing_config().await
     }
 }
 
-
 pub async fn generate_directory_config(config_path: PathBuf, _db_path: PathBuf) -> Result<()> {
-    let yaml_config = format!(
-        r"
+    let yaml_config = r"
 Log:
   Level: info
 
@@ -491,7 +458,7 @@ ExternalSecure: false
 TLS:
   Enabled: false
 "
-    );
+    .to_string();
 
     fs::write(config_path, yaml_config).await?;
     Ok(())
