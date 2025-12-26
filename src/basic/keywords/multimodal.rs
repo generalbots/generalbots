@@ -1,11 +1,3 @@
-
-
-
-
-
-
-
-
 use crate::multimodal::BotModelsClient;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
@@ -14,28 +6,22 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use std::time::Duration;
 
-
 pub fn register_multimodal_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     image_keyword(state.clone(), user.clone(), engine);
     video_keyword(state.clone(), user.clone(), engine);
     audio_keyword(state.clone(), user.clone(), engine);
-    see_keyword(state.clone(), user.clone(), engine);
+    see_keyword(state, user, engine);
 }
 
-
-
 pub fn image_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["IMAGE", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["IMAGE", "$expr$"], false, move |context, inputs| {
             let prompt = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("IMAGE keyword: generating image for prompt: {}", prompt);
 
-            let state_for_thread = Arc::clone(&state_clone);
-            let bot_id = user_clone.bot_id;
+            let state_for_thread = state.clone();
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -94,20 +80,15 @@ async fn execute_image_generation(
     client.generate_image(&prompt).await
 }
 
-
-
 pub fn video_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["VIDEO", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["VIDEO", "$expr$"], false, move |context, inputs| {
             let prompt = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("VIDEO keyword: generating video for prompt: {}", prompt);
 
-            let state_for_thread = Arc::clone(&state_clone);
-            let bot_id = user_clone.bot_id;
+            let state_for_thread = state.clone();
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -130,7 +111,6 @@ pub fn video_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                     error!("Failed to send VIDEO result");
                 }
             });
-
 
             match rx.recv_timeout(Duration::from_secs(600)) {
                 Ok(Ok(result)) => Ok(Dynamic::from(result)),
@@ -167,20 +147,15 @@ async fn execute_video_generation(
     client.generate_video(&prompt).await
 }
 
-
-
 pub fn audio_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["AUDIO", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["AUDIO", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("AUDIO keyword: generating speech for text: {}", text);
 
-            let state_for_thread = Arc::clone(&state_clone);
-            let bot_id = user_clone.bot_id;
+            let state_for_thread = state.clone();
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -239,20 +214,15 @@ async fn execute_audio_generation(
     client.generate_audio(&text, None, None).await
 }
 
-
-
 pub fn see_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["SEE", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["SEE", "$expr$"], false, move |context, inputs| {
             let file_path = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("SEE keyword: getting caption for file: {}", file_path);
 
-            let state_for_thread = Arc::clone(&state_clone);
-            let bot_id = user_clone.bot_id;
+            let state_for_thread = state.clone();
+            let bot_id = user.bot_id;
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -308,14 +278,22 @@ async fn execute_see_caption(
         return Err("BotModels is not enabled. Set botmodels-enabled=true in config.csv".into());
     }
 
+    use std::path::Path;
+    let path = Path::new(&file_path);
+    let is_video = path
+        .extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| {
+            let ext_lower = ext.to_lowercase();
+            ext_lower == "mp4"
+                || ext_lower == "avi"
+                || ext_lower == "mov"
+                || ext_lower == "webm"
+                || ext_lower == "mkv"
+        })
+        .unwrap_or(false);
 
-    let lower_path = file_path.to_lowercase();
-    if lower_path.ends_with(".mp4")
-        || lower_path.ends_with(".avi")
-        || lower_path.ends_with(".mov")
-        || lower_path.ends_with(".webm")
-        || lower_path.ends_with(".mkv")
-    {
+    if is_video {
         client.describe_video(&file_path).await
     } else {
         client.describe_image(&file_path).await

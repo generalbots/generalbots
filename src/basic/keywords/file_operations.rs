@@ -40,6 +40,7 @@ use log::{error, trace};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde_json::Value;
 use std::error::Error;
+use std::fmt::Write as FmtWrite;
 use std::fs::{self, File};
 use std::io::{Read, Write};
 use std::path::Path;
@@ -47,37 +48,30 @@ use std::sync::Arc;
 use tar::Archive;
 use zip::{write::FileOptions, ZipArchive, ZipWriter};
 
-
 pub fn register_file_operations(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    register_read_keyword(state.clone(), user.clone(), engine);
-    register_write_keyword(state.clone(), user.clone(), engine);
-    register_delete_file_keyword(state.clone(), user.clone(), engine);
-    register_copy_keyword(state.clone(), user.clone(), engine);
-    register_move_keyword(state.clone(), user.clone(), engine);
-    register_list_keyword(state.clone(), user.clone(), engine);
-    register_compress_keyword(state.clone(), user.clone(), engine);
-    register_extract_keyword(state.clone(), user.clone(), engine);
-    register_upload_keyword(state.clone(), user.clone(), engine);
-    register_download_keyword(state.clone(), user.clone(), engine);
-    register_generate_pdf_keyword(state.clone(), user.clone(), engine);
-    register_merge_pdf_keyword(state.clone(), user.clone(), engine);
+    register_read_keyword(Arc::clone(&state), user.clone(), engine);
+    register_write_keyword(Arc::clone(&state), user.clone(), engine);
+    register_delete_file_keyword(Arc::clone(&state), user.clone(), engine);
+    register_copy_keyword(Arc::clone(&state), user.clone(), engine);
+    register_move_keyword(Arc::clone(&state), user.clone(), engine);
+    register_list_keyword(Arc::clone(&state), user.clone(), engine);
+    register_compress_keyword(Arc::clone(&state), user.clone(), engine);
+    register_extract_keyword(Arc::clone(&state), user.clone(), engine);
+    register_upload_keyword(Arc::clone(&state), user.clone(), engine);
+    register_download_keyword(Arc::clone(&state), user.clone(), engine);
+    register_generate_pdf_keyword(Arc::clone(&state), user.clone(), engine);
+    register_merge_pdf_keyword(state, user, engine);
 }
 
-
-
 pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
     engine
-        .register_custom_syntax(&["READ", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["READ", "$expr$"], false, move |context, inputs| {
             let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("READ file: {}", path);
+            trace!("READ file: {path}");
 
-            let state_for_task = Arc::clone(&state_clone);
-            let user_for_task = user_clone.clone();
-            let path_clone = path.clone();
+            let state_for_task = Arc::clone(&state);
+            let user_for_task = user.clone();
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -89,7 +83,7 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
-                        execute_read(&state_for_task, &user_for_task, &path_clone).await
+                        execute_read(&state_for_task, &user_for_task, &path).await
                     });
                     tx.send(result).err()
                 } else {
@@ -104,7 +98,7 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
             match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                 Ok(Ok(content)) => Ok(Dynamic::from(content)),
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("READ failed: {}", e).into(),
+                    format!("READ failed: {e}").into(),
                     rhai::Position::NONE,
                 ))),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -114,7 +108,7 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                     )))
                 }
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("READ thread failed: {}", e).into(),
+                    format!("READ thread failed: {e}").into(),
                     rhai::Position::NONE,
                 ))),
             }
@@ -122,25 +116,22 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-
-
 pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["WRITE", "$expr$", ",", "$expr$"],
+            ["WRITE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let path = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
 
-                trace!("WRITE to file: {}", path);
+                trace!("WRITE to file: {path}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let path_clone = path.clone();
                 let data_str = if data.is_string() {
                     data.to_string()
                 } else {
@@ -157,8 +148,7 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_write(&state_for_task, &user_for_task, &path_clone, &data_str)
-                                .await
+                            execute_write(&state_for_task, &user_for_task, &path, &data_str).await
                         });
                         tx.send(result).err()
                     } else {
@@ -173,7 +163,7 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("WRITE failed: {}", e).into(),
+                        format!("WRITE failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -183,7 +173,7 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("WRITE thread failed: {}", e).into(),
+                        format!("WRITE thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -191,28 +181,24 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
         )
         .unwrap();
 }
-
-
 
 pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
     let state_clone2 = Arc::clone(&state);
-    let user_clone2 = user.clone();
-
+    let user_clone2 = user;
 
     engine
         .register_custom_syntax(
-            &["DELETE", "FILE", "$expr$"],
+            ["DELETE", "FILE", "$expr$"],
             false,
             move |context, inputs| {
                 let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
-                trace!("DELETE FILE: {}", path);
+                trace!("DELETE FILE: {path}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let path_clone = path.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -224,7 +210,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_delete_file(&state_for_task, &user_for_task, &path_clone).await
+                            execute_delete_file(&state_for_task, &user_for_task, &path).await
                         });
                         tx.send(result).err()
                     } else {
@@ -239,7 +225,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE failed: {}", e).into(),
+                        format!("DELETE FILE failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -249,7 +235,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE thread failed: {}", e).into(),
+                        format!("DELETE FILE thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -257,19 +243,17 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
         )
         .unwrap();
 
-
     engine
         .register_custom_syntax(
-            &["DELETE", "FILE", "$expr$"],
+            ["DELETE", "FILE", "$expr$"],
             false,
             move |context, inputs| {
                 let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
-                trace!("DELETE FILE: {}", path);
+                trace!("DELETE FILE: {path}");
 
                 let state_for_task = Arc::clone(&state_clone2);
                 let user_for_task = user_clone2.clone();
-                let path_clone = path.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -281,7 +265,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_delete_file(&state_for_task, &user_for_task, &path_clone).await
+                            execute_delete_file(&state_for_task, &user_for_task, &path).await
                         });
                         tx.send(result).err()
                     } else {
@@ -296,7 +280,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                 match rx.recv_timeout(std::time::Duration::from_secs(30)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE failed: {}", e).into(),
+                        format!("DELETE FILE failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -306,7 +290,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DELETE FILE thread failed: {}", e).into(),
+                        format!("DELETE FILE thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -315,26 +299,22 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
         .unwrap();
 }
 
-
-
 pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["COPY", "$expr$", ",", "$expr$"],
+            ["COPY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let source = context.eval_expression_tree(&inputs[0])?.to_string();
                 let destination = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("COPY from {} to {}", source, destination);
+                trace!("COPY from {source} to {destination}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let source_clone = source.clone();
-                let dest_clone = destination.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -346,13 +326,8 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_copy(
-                                &state_for_task,
-                                &user_for_task,
-                                &source_clone,
-                                &dest_clone,
-                            )
-                            .await
+                            execute_copy(&state_for_task, &user_for_task, &source, &destination)
+                                .await
                         });
                         tx.send(result).err()
                     } else {
@@ -367,7 +342,7 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COPY failed: {}", e).into(),
+                        format!("COPY failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -377,7 +352,7 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COPY thread failed: {}", e).into(),
+                        format!("COPY thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -386,26 +361,22 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-
-
 pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["MOVE", "$expr$", ",", "$expr$"],
+            ["MOVE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let source = context.eval_expression_tree(&inputs[0])?.to_string();
                 let destination = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("MOVE from {} to {}", source, destination);
+                trace!("MOVE from {source} to {destination}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let source_clone = source.clone();
-                let dest_clone = destination.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -417,13 +388,8 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_move(
-                                &state_for_task,
-                                &user_for_task,
-                                &source_clone,
-                                &dest_clone,
-                            )
-                            .await
+                            execute_move(&state_for_task, &user_for_task, &source, &destination)
+                                .await
                         });
                         tx.send(result).err()
                     } else {
@@ -438,7 +404,7 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 match rx.recv_timeout(std::time::Duration::from_secs(60)) {
                     Ok(Ok(_)) => Ok(Dynamic::UNIT),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MOVE failed: {}", e).into(),
+                        format!("MOVE failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -448,7 +414,7 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MOVE thread failed: {}", e).into(),
+                        format!("MOVE thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -457,21 +423,18 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-
-
 pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["LIST", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["LIST", "$expr$"], false, move |context, inputs| {
             let path = context.eval_expression_tree(&inputs[0])?.to_string();
 
-            trace!("LIST directory: {}", path);
+            trace!("LIST directory: {path}");
 
             let state_for_task = Arc::clone(&state_clone);
             let user_for_task = user_clone.clone();
-            let path_clone = path.clone();
 
             let (tx, rx) = std::sync::mpsc::channel();
 
@@ -483,7 +446,7 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
                 let send_err = if let Ok(rt) = rt {
                     let result = rt.block_on(async move {
-                        execute_list(&state_for_task, &user_for_task, &path_clone).await
+                        execute_list(&state_for_task, &user_for_task, &path).await
                     });
                     tx.send(result).err()
                 } else {
@@ -501,7 +464,7 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                     Ok(Dynamic::from(array))
                 }
                 Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("LIST failed: {}", e).into(),
+                    format!("LIST failed: {e}").into(),
                     rhai::Position::NONE,
                 ))),
                 Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -511,7 +474,7 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                     )))
                 }
                 Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                    format!("LIST thread failed: {}", e).into(),
+                    format!("LIST thread failed: {e}").into(),
                     rhai::Position::NONE,
                 ))),
             }
@@ -519,30 +482,25 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         .unwrap();
 }
 
-
-
 pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["COMPRESS", "$expr$", ",", "$expr$"],
+            ["COMPRESS", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let files = context.eval_expression_tree(&inputs[0])?;
                 let archive_name = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("COMPRESS to: {}", archive_name);
+                trace!("COMPRESS to: {archive_name}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let archive_clone = archive_name.clone();
-
 
                 let file_list: Vec<String> = if files.is_array() {
                     files
-                        .clone()
                         .into_array()
                         .unwrap_or_default()
                         .iter()
@@ -566,7 +524,7 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
                                 &state_for_task,
                                 &user_for_task,
                                 &file_list,
-                                &archive_clone,
+                                &archive_name,
                             )
                             .await
                         });
@@ -583,7 +541,7 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
                 match rx.recv_timeout(std::time::Duration::from_secs(120)) {
                     Ok(Ok(path)) => Ok(Dynamic::from(path)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COMPRESS failed: {}", e).into(),
+                        format!("COMPRESS failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -593,7 +551,7 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("COMPRESS thread failed: {}", e).into(),
+                        format!("COMPRESS thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -602,26 +560,22 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-
-
 pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["EXTRACT", "$expr$", ",", "$expr$"],
+            ["EXTRACT", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let archive = context.eval_expression_tree(&inputs[0])?.to_string();
                 let destination = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("EXTRACT {} to {}", archive, destination);
+                trace!("EXTRACT {archive} to {destination}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let archive_clone = archive.clone();
-                let dest_clone = destination.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -633,13 +587,8 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_extract(
-                                &state_for_task,
-                                &user_for_task,
-                                &archive_clone,
-                                &dest_clone,
-                            )
-                            .await
+                            execute_extract(&state_for_task, &user_for_task, &archive, &destination)
+                                .await
                         });
                         tx.send(result).err()
                     } else {
@@ -657,7 +606,7 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
                         Ok(Dynamic::from(array))
                     }
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("EXTRACT failed: {}", e).into(),
+                        format!("EXTRACT failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -667,7 +616,7 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("EXTRACT thread failed: {}", e).into(),
+                        format!("EXTRACT thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -676,25 +625,22 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
         .unwrap();
 }
 
-
-
 pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["UPLOAD", "$expr$", ",", "$expr$"],
+            ["UPLOAD", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let file = context.eval_expression_tree(&inputs[0])?;
                 let destination = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("UPLOAD to: {}", destination);
+                trace!("UPLOAD to: {destination}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let dest_clone = destination.clone();
                 let file_data = dynamic_to_file_data(&file);
 
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -707,7 +653,7 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_upload(&state_for_task, &user_for_task, file_data, &dest_clone)
+                            execute_upload(&state_for_task, &user_for_task, file_data, &destination)
                                 .await
                         });
                         tx.send(result).err()
@@ -723,7 +669,7 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 match rx.recv_timeout(std::time::Duration::from_secs(300)) {
                     Ok(Ok(url)) => Ok(Dynamic::from(url)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("UPLOAD failed: {}", e).into(),
+                        format!("UPLOAD failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -733,7 +679,7 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("UPLOAD thread failed: {}", e).into(),
+                        format!("UPLOAD thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -742,26 +688,22 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .unwrap();
 }
 
-
-
 pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["DOWNLOAD", "$expr$", ",", "$expr$"],
+            ["DOWNLOAD", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?.to_string();
                 let local_path = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("DOWNLOAD {} to {}", url, local_path);
+                trace!("DOWNLOAD {url} to {local_path}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let url_clone = url.clone();
-                let path_clone = local_path.clone();
 
                 let (tx, rx) = std::sync::mpsc::channel();
 
@@ -773,13 +715,8 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_download(
-                                &state_for_task,
-                                &user_for_task,
-                                &url_clone,
-                                &path_clone,
-                            )
-                            .await
+                            execute_download(&state_for_task, &user_for_task, &url, &local_path)
+                                .await
                         });
                         tx.send(result).err()
                     } else {
@@ -794,7 +731,7 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
                 match rx.recv_timeout(std::time::Duration::from_secs(300)) {
                     Ok(Ok(path)) => Ok(Dynamic::from(path)),
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DOWNLOAD failed: {}", e).into(),
+                        format!("DOWNLOAD failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -804,7 +741,7 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("DOWNLOAD thread failed: {}", e).into(),
+                        format!("DOWNLOAD thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -813,30 +750,23 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
         .unwrap();
 }
 
-
-
-
-
 pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["GENERATE", "PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["GENERATE", "PDF", "$expr$", ",", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let template = context.eval_expression_tree(&inputs[0])?.to_string();
                 let data = context.eval_expression_tree(&inputs[1])?;
                 let output = context.eval_expression_tree(&inputs[2])?.to_string();
 
-                trace!("GENERATE PDF template: {}, output: {}", template, output);
+                trace!("GENERATE PDF template: {template}, output: {output}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let template_clone = template.clone();
-                let output_clone = output.clone();
                 let data_json = dynamic_to_json(&data);
 
                 let (tx, rx) = std::sync::mpsc::channel();
@@ -852,9 +782,9 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                             execute_generate_pdf(
                                 &state_for_task,
                                 &user_for_task,
-                                &template_clone,
+                                &template,
                                 data_json,
-                                &output_clone,
+                                &output,
                             )
                             .await
                         });
@@ -876,7 +806,7 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                         Ok(Dynamic::from(map))
                     }
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GENERATE PDF failed: {}", e).into(),
+                        format!("GENERATE PDF failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -886,7 +816,7 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("GENERATE PDF thread failed: {}", e).into(),
+                        format!("GENERATE PDF thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -895,31 +825,25 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
         .unwrap();
 }
 
-
-
 pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
-
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["MERGE", "PDF", "$expr$", ",", "$expr$"],
+            ["MERGE", "PDF", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let files = context.eval_expression_tree(&inputs[0])?;
                 let output = context.eval_expression_tree(&inputs[1])?.to_string();
 
-                trace!("MERGE PDF to: {}", output);
+                trace!("MERGE PDF to: {output}");
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let output_clone = output.clone();
-
 
                 let file_list: Vec<String> = if files.is_array() {
                     files
-                        .clone()
                         .into_array()
                         .unwrap_or_default()
                         .iter()
@@ -939,13 +863,8 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
 
                     let send_err = if let Ok(rt) = rt {
                         let result = rt.block_on(async move {
-                            execute_merge_pdf(
-                                &state_for_task,
-                                &user_for_task,
-                                &file_list,
-                                &output_clone,
-                            )
-                            .await
+                            execute_merge_pdf(&state_for_task, &user_for_task, &file_list, &output)
+                                .await
                         });
                         tx.send(result).err()
                     } else {
@@ -965,7 +884,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                         Ok(Dynamic::from(map))
                     }
                     Ok(Err(e)) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MERGE PDF failed: {}", e).into(),
+                        format!("MERGE PDF failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                     Err(std::sync::mpsc::RecvTimeoutError::Timeout) => {
@@ -975,7 +894,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                         )))
                     }
                     Err(e) => Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
-                        format!("MERGE PDF thread failed: {}", e).into(),
+                        format!("MERGE PDF thread failed: {e}").into(),
                         rhai::Position::NONE,
                     ))),
                 }
@@ -983,9 +902,6 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
         )
         .unwrap();
 }
-
-
-
 
 async fn execute_read(
     state: &AppState,
@@ -995,18 +911,18 @@ async fn execute_read(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
 
     let response = client
         .get_object()
@@ -1014,7 +930,7 @@ async fn execute_read(
         .key(&key)
         .send()
         .await
-        .map_err(|e| format!("S3 get failed: {}", e))?;
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
     let data = response.body.collect().await?.into_bytes();
     let content =
@@ -1023,7 +939,6 @@ async fn execute_read(
     trace!("READ successful: {} bytes", content.len());
     Ok(content)
 }
-
 
 async fn execute_write(
     state: &AppState,
@@ -1034,18 +949,18 @@ async fn execute_write(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
 
     client
         .put_object()
@@ -1054,12 +969,11 @@ async fn execute_write(
         .body(content.as_bytes().to_vec().into())
         .send()
         .await
-        .map_err(|e| format!("S3 put failed: {}", e))?;
+        .map_err(|e| format!("S3 put failed: {e}"))?;
 
-    trace!("WRITE successful: {} bytes to {}", content.len(), path);
+    trace!("WRITE successful: {} bytes to {path}", content.len());
     Ok(())
 }
-
 
 async fn execute_delete_file(
     state: &AppState,
@@ -1069,18 +983,18 @@ async fn execute_delete_file(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
 
     client
         .delete_object()
@@ -1088,12 +1002,11 @@ async fn execute_delete_file(
         .key(&key)
         .send()
         .await
-        .map_err(|e| format!("S3 delete failed: {}", e))?;
+        .map_err(|e| format!("S3 delete failed: {e}"))?;
 
-    trace!("DELETE_FILE successful: {}", path);
+    trace!("DELETE_FILE successful: {path}");
     Ok(())
 }
-
 
 async fn execute_copy(
     state: &AppState,
@@ -1111,21 +1024,21 @@ async fn execute_copy(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let source_key = format!("{}.gbdrive/{}", bot_name, source);
-    let dest_key = format!("{}.gbdrive/{}", bot_name, destination);
+    let bucket_name = format!("{bot_name}.gbai");
+    let source_key = format!("{bot_name}.gbdrive/{source}");
+    let dest_key = format!("{bot_name}.gbdrive/{destination}");
 
-    let copy_source = format!("{}/{}", bucket_name, source_key);
+    let copy_source = format!("{bucket_name}/{source_key}");
 
     client
         .copy_object()
@@ -1134,9 +1047,9 @@ async fn execute_copy(
         .copy_source(&copy_source)
         .send()
         .await
-        .map_err(|e| format!("S3 copy failed: {}", e))?;
+        .map_err(|e| format!("S3 copy failed: {e}"))?;
 
-    trace!("COPY successful: {} -> {}", source, destination);
+    trace!("COPY successful: {source} -> {destination}");
     Ok(())
 }
 
@@ -1153,7 +1066,7 @@ async fn execute_copy_with_account(
         let (email, path) = parse_account_path(source).ok_or("Invalid account:// path format")?;
         let creds = get_account_credentials(&state.conn, &email, user.bot_id)
             .await
-            .map_err(|e| format!("Failed to get credentials: {}", e))?;
+            .map_err(|e| format!("Failed to get credentials: {e}"))?;
         download_from_account(&creds, &path).await?
     } else {
         read_from_local(state, user, source).await?
@@ -1164,17 +1077,13 @@ async fn execute_copy_with_account(
             parse_account_path(destination).ok_or("Invalid account:// path format")?;
         let creds = get_account_credentials(&state.conn, &email, user.bot_id)
             .await
-            .map_err(|e| format!("Failed to get credentials: {}", e))?;
+            .map_err(|e| format!("Failed to get credentials: {e}"))?;
         upload_to_account(&creds, &path, &content).await?;
     } else {
         write_to_local(state, user, destination, &content).await?;
     }
 
-    trace!(
-        "COPY with account successful: {} -> {}",
-        source,
-        destination
-    );
+    trace!("COPY with account successful: {source} -> {destination}");
     Ok(())
 }
 
@@ -1274,8 +1183,8 @@ async fn read_from_local(
             .select(name)
             .first(&mut *db_conn)?
     };
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
 
     let result = client
         .get_object()
@@ -1300,8 +1209,8 @@ async fn write_to_local(
             .select(name)
             .first(&mut *db_conn)?
     };
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{path}");
 
     client
         .put_object()
@@ -1313,23 +1222,19 @@ async fn write_to_local(
     Ok(())
 }
 
-
 async fn execute_move(
     state: &AppState,
     user: &UserSession,
     source: &str,
     destination: &str,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
-
     execute_copy(state, user, source, destination).await?;
-
 
     execute_delete_file(state, user, source).await?;
 
-    trace!("MOVE successful: {} -> {}", source, destination);
+    trace!("MOVE successful: {source} -> {destination}");
     Ok(())
 }
-
 
 async fn execute_list(
     state: &AppState,
@@ -1339,18 +1244,18 @@ async fn execute_list(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let prefix = format!("{}.gbdrive/{}", bot_name, path);
+    let bucket_name = format!("{bot_name}.gbai");
+    let prefix = format!("{bot_name}.gbdrive/{path}");
 
     let response = client
         .list_objects_v2()
@@ -1358,14 +1263,14 @@ async fn execute_list(
         .prefix(&prefix)
         .send()
         .await
-        .map_err(|e| format!("S3 list failed: {}", e))?;
+        .map_err(|e| format!("S3 list failed: {e}"))?;
 
     let files: Vec<String> = response
         .contents()
         .iter()
         .filter_map(|obj| {
             obj.key().map(|k| {
-                k.strip_prefix(&format!("{}.gbdrive/", bot_name))
+                k.strip_prefix(&format!("{bot_name}.gbdrive/"))
                     .unwrap_or(k)
                     .to_string()
             })
@@ -1376,7 +1281,6 @@ async fn execute_list(
     Ok(files)
 }
 
-
 async fn execute_compress(
     state: &AppState,
     user: &UserSession,
@@ -1384,16 +1288,15 @@ async fn execute_compress(
     archive_name: &str,
 ) -> Result<String, Box<dyn Error + Send + Sync>> {
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
-
 
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive_name);
@@ -1415,11 +1318,10 @@ async fn execute_compress(
 
     zip.finish()?;
 
-
     let archive_content = fs::read(&archive_path)?;
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, archive_name);
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{archive_name}");
 
     client
         .put_object()
@@ -1428,15 +1330,36 @@ async fn execute_compress(
         .body(archive_content.into())
         .send()
         .await
-        .map_err(|e| format!("S3 put failed: {}", e))?;
-
+        .map_err(|e| format!("S3 put failed: {e}"))?;
 
     fs::remove_file(&archive_path).ok();
 
-    trace!("COMPRESS successful: {}", archive_name);
+    trace!("COMPRESS successful: {archive_name}");
     Ok(archive_name.to_string())
 }
 
+fn has_zip_extension(archive: &str) -> bool {
+    Path::new(archive)
+        .extension()
+        .is_some_and(|ext| ext.eq_ignore_ascii_case("zip"))
+}
+
+fn has_tar_gz_extension(archive: &str) -> bool {
+    let path = Path::new(archive);
+    if let Some(ext) = path.extension() {
+        if ext.eq_ignore_ascii_case("tgz") {
+            return true;
+        }
+        if ext.eq_ignore_ascii_case("gz") {
+            if let Some(stem) = path.file_stem() {
+                return Path::new(stem)
+                    .extension()
+                    .is_some_and(|e| e.eq_ignore_ascii_case("tar"));
+            }
+        }
+    }
+    false
+}
 
 async fn execute_extract(
     state: &AppState,
@@ -1447,19 +1370,18 @@ async fn execute_extract(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let archive_key = format!("{}.gbdrive/{}", bot_name, archive);
-
+    let bucket_name = format!("{bot_name}.gbai");
+    let archive_key = format!("{bot_name}.gbdrive/{archive}");
 
     let response = client
         .get_object()
@@ -1467,10 +1389,9 @@ async fn execute_extract(
         .key(&archive_key)
         .send()
         .await
-        .map_err(|e| format!("S3 get failed: {}", e))?;
+        .map_err(|e| format!("S3 get failed: {e}"))?;
 
     let data = response.body.collect().await?.into_bytes();
-
 
     let temp_dir = std::env::temp_dir();
     let archive_path = temp_dir.join(archive);
@@ -1478,8 +1399,7 @@ async fn execute_extract(
 
     let mut extracted_files = Vec::new();
 
-
-    if archive.ends_with(".zip") {
+    if has_zip_extension(archive) {
         let file = File::open(&archive_path)?;
         let mut zip = ZipArchive::new(file)?;
 
@@ -1490,10 +1410,9 @@ async fn execute_extract(
             let mut content = Vec::new();
             zip_file.read_to_end(&mut content)?;
 
-            let dest_path = format!("{}/{}", destination.trim_end_matches('/'), file_name);
+            let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
-
-            let dest_key = format!("{}.gbdrive/{}", bot_name, dest_path);
+            let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
             client
                 .put_object()
                 .bucket(&bucket_name)
@@ -1501,11 +1420,11 @@ async fn execute_extract(
                 .body(content.into())
                 .send()
                 .await
-                .map_err(|e| format!("S3 put failed: {}", e))?;
+                .map_err(|e| format!("S3 put failed: {e}"))?;
 
             extracted_files.push(dest_path);
         }
-    } else if archive.ends_with(".tar.gz") || archive.ends_with(".tgz") {
+    } else if has_tar_gz_extension(archive) {
         let file = File::open(&archive_path)?;
         let decoder = GzDecoder::new(file);
         let mut tar = Archive::new(decoder);
@@ -1517,10 +1436,9 @@ async fn execute_extract(
             let mut content = Vec::new();
             entry.read_to_end(&mut content)?;
 
-            let dest_path = format!("{}/{}", destination.trim_end_matches('/'), file_name);
+            let dest_path = format!("{}/{file_name}", destination.trim_end_matches('/'));
 
-
-            let dest_key = format!("{}.gbdrive/{}", bot_name, dest_path);
+            let dest_key = format!("{bot_name}.gbdrive/{dest_path}");
             client
                 .put_object()
                 .bucket(&bucket_name)
@@ -1528,12 +1446,11 @@ async fn execute_extract(
                 .body(content.into())
                 .send()
                 .await
-                .map_err(|e| format!("S3 put failed: {}", e))?;
+                .map_err(|e| format!("S3 put failed: {e}"))?;
 
             extracted_files.push(dest_path);
         }
     }
-
 
     fs::remove_file(&archive_path).ok();
 
@@ -1541,12 +1458,10 @@ async fn execute_extract(
     Ok(extracted_files)
 }
 
-
 struct FileData {
     content: Vec<u8>,
     filename: String,
 }
-
 
 async fn execute_upload(
     state: &AppState,
@@ -1557,27 +1472,24 @@ async fn execute_upload(
     let client = state.drive.as_ref().ok_or("S3 client not configured")?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)
             .map_err(|e| {
-                error!("Failed to query bot name: {}", e);
+                error!("Failed to query bot name: {e}");
                 e
             })?
     };
 
-    let bucket_name = format!("{}.gbai", bot_name);
-    let key = format!("{}.gbdrive/{}", bot_name, destination);
-
+    let bucket_name = format!("{bot_name}.gbai");
+    let key = format!("{bot_name}.gbdrive/{destination}");
 
     let content_disposition = format!("attachment; filename=\"{}\"", file_data.filename);
 
     trace!(
-        "Uploading file '{}' to {}/{} ({} bytes)",
+        "Uploading file '{}' to {bucket_name}/{key} ({} bytes)",
         file_data.filename,
-        bucket_name,
-        key,
         file_data.content.len()
     );
 
@@ -1589,17 +1501,15 @@ async fn execute_upload(
         .body(file_data.content.into())
         .send()
         .await
-        .map_err(|e| format!("S3 put failed: {}", e))?;
+        .map_err(|e| format!("S3 put failed: {e}"))?;
 
-    let url = format!("s3://{}/{}", bucket_name, key);
+    let url = format!("s3://{bucket_name}/{key}");
     trace!(
-        "UPLOAD successful: {} (original filename: {})",
-        url,
+        "UPLOAD successful: {url} (original filename: {})",
         file_data.filename
     );
     Ok(url)
 }
-
 
 async fn execute_download(
     state: &AppState,
@@ -1612,23 +1522,20 @@ async fn execute_download(
         .get(url)
         .send()
         .await
-        .map_err(|e| format!("Download failed: {}", e))?;
+        .map_err(|e| format!("Download failed: {e}"))?;
 
     let content = response.bytes().await?;
 
-
     execute_write(state, user, local_path, &String::from_utf8_lossy(&content)).await?;
 
-    trace!("DOWNLOAD successful: {} -> {}", url, local_path);
+    trace!("DOWNLOAD successful: {url} -> {local_path}");
     Ok(local_path.to_string())
 }
-
 
 struct PdfResult {
     url: String,
     local_name: String,
 }
-
 
 async fn execute_generate_pdf(
     state: &AppState,
@@ -1637,14 +1544,12 @@ async fn execute_generate_pdf(
     data: Value,
     output: &str,
 ) -> Result<PdfResult, Box<dyn Error + Send + Sync>> {
-
     let template_content = execute_read(state, user, template).await?;
-
 
     let mut html_content = template_content;
     if let Value::Object(obj) = &data {
         for (key, value) in obj {
-            let placeholder = format!("{{{{{}}}}}", key);
+            let placeholder = format!("{{{{{key}}}}}");
             let value_str = match value {
                 Value::String(s) => s.clone(),
                 _ => value.to_string(),
@@ -1653,32 +1558,26 @@ async fn execute_generate_pdf(
         }
     }
 
-
-
-    let pdf_content = format!(
-        "<!-- PDF Content Generated from Template: {} -->\n{}",
-        template, html_content
-    );
-
+    let mut pdf_content = String::from("<!-- PDF Content Generated from Template: ");
+    let _ = writeln!(pdf_content, "{template} -->\n{html_content}");
 
     execute_write(state, user, output, &pdf_content).await?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)?
     };
 
-    let url = format!("s3://{}.gbai/{}.gbdrive/{}", bot_name, bot_name, output);
+    let url = format!("s3://{bot_name}.gbai/{bot_name}.gbdrive/{output}");
 
-    trace!("GENERATE_PDF successful: {}", output);
+    trace!("GENERATE_PDF successful: {output}");
     Ok(PdfResult {
         url,
         local_name: output.to_string(),
     })
 }
-
 
 async fn execute_merge_pdf(
     state: &AppState,
@@ -1690,34 +1589,29 @@ async fn execute_merge_pdf(
 
     for file in files {
         let content = execute_read(state, user, file).await?;
-        merged_content.push_str(&format!("\n<!-- From: {} -->\n{}\n", file, content));
+        let _ = writeln!(merged_content, "\n<!-- From: {file} -->\n{content}");
     }
-
 
     execute_write(state, user, output, &merged_content).await?;
 
     let bot_name: String = {
-        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        let mut db_conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
         bots.filter(id.eq(&user.bot_id))
             .select(name)
             .first(&mut *db_conn)?
     };
 
-    let url = format!("s3://{}.gbai/{}.gbdrive/{}", bot_name, bot_name, output);
+    let url = format!("s3://{bot_name}.gbai/{bot_name}.gbdrive/{output}");
 
     trace!(
-        "MERGE_PDF successful: {} files merged to {}",
-        files.len(),
-        output
+        "MERGE_PDF successful: {} files merged to {output}",
+        files.len()
     );
     Ok(PdfResult {
         url,
         local_name: output.to_string(),
     })
 }
-
-
-
 
 fn dynamic_to_json(value: &Dynamic) -> Value {
     if value.is_unit() {
@@ -1751,7 +1645,6 @@ fn dynamic_to_json(value: &Dynamic) -> Value {
     }
 }
 
-
 fn dynamic_to_file_data(value: &Dynamic) -> FileData {
     if value.is_map() {
         let map = value.clone().try_cast::<Map>().unwrap_or_default();
@@ -1770,5 +1663,27 @@ fn dynamic_to_file_data(value: &Dynamic) -> FileData {
             content: value.to_string().into_bytes(),
             filename: "file".to_string(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rhai::Dynamic;
+    use serde_json::Value;
+
+    #[test]
+    fn test_dynamic_to_json() {
+        let dynamic = Dynamic::from("hello");
+        let json = dynamic_to_json(&dynamic);
+        assert_eq!(json, Value::String("hello".to_string()));
+    }
+
+    #[test]
+    fn test_dynamic_to_file_data() {
+        let dynamic = Dynamic::from("test content");
+        let file_data = dynamic_to_file_data(&dynamic);
+        assert_eq!(file_data.filename, "file");
+        assert!(!file_data.content.is_empty());
     }
 }

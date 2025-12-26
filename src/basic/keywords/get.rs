@@ -12,7 +12,7 @@ use std::time::Duration;
 pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     engine
-        .register_custom_syntax(&["GET", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["GET", "$expr$"], false, move |context, inputs| {
             let url = context.eval_expression_tree(&inputs[0])?;
             let url_str = url.to_string();
             if !is_safe_path(&url_str) {
@@ -22,7 +22,7 @@ pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut
                 )));
             }
             let state_for_blocking = Arc::clone(&state_clone);
-            let url_for_blocking = url_str.clone();
+            let url_for_blocking = url_str;
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
                 let rt = tokio::runtime::Builder::new_multi_thread()
@@ -79,7 +79,7 @@ fn is_safe_path(path: &str) -> bool {
     if path.len() >= 2 && path.chars().nth(1) == Some(':') {
         return false;
     }
-    if path.contains("//") || path.contains("~") || path.contains("*") || path.contains("?") {
+    if path.contains("//") || path.contains('~') || path.contains('*') || path.contains('?') {
         return false;
     }
     if !path.starts_with("http") {
@@ -175,7 +175,7 @@ pub async fn get_from_bucket(
     })
     .await
     {
-        Ok(Ok(data)) => data.to_vec(),
+        Ok(Ok(data)) => data,
         Ok(Err(e)) => {
             error!("drive read failed: {}", e);
             return Err(format!("S3 operation failed: {}", e).into());

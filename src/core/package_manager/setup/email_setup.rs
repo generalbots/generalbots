@@ -67,7 +67,7 @@ impl EmailSetup {
         log::info!("Waiting for Email service to be ready...");
 
         for attempt in 1..=max_attempts {
-            if let Ok(_) = tokio::net::TcpStream::connect("127.0.0.1:25").await {
+            if tokio::net::TcpStream::connect("127.0.0.1:25").await.is_ok() {
                 log::info!("Email service is ready!");
                 return Ok(());
             }
@@ -170,6 +170,7 @@ impl EmailSetup {
             .send()
             .await;
 
+        // All branches return Ok(()) - just log appropriate messages
         match response {
             Ok(resp) => {
                 if resp.status().is_success() {
@@ -177,20 +178,11 @@ impl EmailSetup {
                         "Admin email account created successfully: {}",
                         self.admin_user
                     );
-                    Ok(())
                 } else if resp.status().as_u16() == 409 {
                     log::info!("Admin email account already exists: {}", self.admin_user);
-                    Ok(())
                 } else {
                     let status = resp.status();
-                    let error_text = resp.text().await.unwrap_or_default();
-                    log::warn!(
-                        "Failed to create admin account via API (status {}): {}",
-                        status,
-                        error_text
-                    );
-
-                    Ok(())
+                    log::warn!("Failed to create admin account via API (status {})", status);
                 }
             }
             Err(e) => {
@@ -198,10 +190,9 @@ impl EmailSetup {
                     "Could not connect to Stalwart management API: {}. Account may need manual setup.",
                     e
                 );
-
-                Ok(())
             }
         }
+        Ok(())
     }
 
     async fn setup_directory_integration(&self, directory_config_path: &PathBuf) -> Result<()> {

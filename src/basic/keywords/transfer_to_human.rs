@@ -62,7 +62,7 @@ pub struct Attendant {
     pub status: AttendantStatus,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum AttendantStatus {
     Online,
@@ -73,7 +73,7 @@ pub enum AttendantStatus {
 
 impl Default for AttendantStatus {
     fn default() -> Self {
-        AttendantStatus::Offline
+        Self::Offline
     }
 }
 
@@ -87,7 +87,7 @@ pub fn is_crm_enabled(bot_id: Uuid, work_path: &str) -> bool {
         if alt_path.exists() {
             return check_config_for_crm(&alt_path);
         }
-        warn!("Config file not found: {:?}", config_path);
+        warn!("Config file not found: {}", config_path.display());
         return false;
     }
 
@@ -129,7 +129,7 @@ pub fn read_attendants(bot_id: Uuid, work_path: &str) -> Vec<Attendant> {
         if alt_path.exists() {
             return parse_attendants_csv(&alt_path);
         }
-        warn!("Attendant file not found: {:?}", attendant_path);
+        warn!("Attendants file not found: {}", attendant_path.display());
         return Vec::new();
     }
 
@@ -159,17 +159,17 @@ fn parse_attendants_csv(path: &PathBuf) -> Vec<Attendant> {
 
                 let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
                 if parts.len() >= 4 {
-                    let department = dept_idx.and_then(|i| parts.get(i).map(|s| s.to_string()));
+                    let department = dept_idx.and_then(|i| parts.get(i).map(|s| (*s).to_string()));
                     let aliases = alias_idx
                         .and_then(|i| parts.get(i))
                         .map(|s| s.split(';').map(|a| a.trim().to_lowercase()).collect())
                         .unwrap_or_default();
 
                     attendants.push(Attendant {
-                        id: parts.get(id_idx).unwrap_or(&"").to_string(),
-                        name: parts.get(name_idx).unwrap_or(&"").to_string(),
-                        channel: parts.get(channel_idx).unwrap_or(&"all").to_string(),
-                        preferences: parts.get(pref_idx).unwrap_or(&"").to_string(),
+                        id: (*parts.get(id_idx).unwrap_or(&"")).to_string(),
+                        name: (*parts.get(name_idx).unwrap_or(&"")).to_string(),
+                        channel: (*parts.get(channel_idx).unwrap_or(&"all")).to_string(),
+                        preferences: (*parts.get(pref_idx).unwrap_or(&"")).to_string(),
                         department,
                         aliases,
                         status: AttendantStatus::Online,
@@ -254,9 +254,9 @@ fn priority_to_int(priority: Option<&str>) -> i32 {
     match priority.map(|p| p.to_lowercase()).as_deref() {
         Some("urgent") => 3,
         Some("high") => 2,
-        Some("normal") | None => 1,
         Some("low") => 0,
-        _ => 1,
+        Some("normal") | None => 1,
+        Some(_) => 1,
     }
 }
 
@@ -488,10 +488,7 @@ async fn calculate_queue_position(state: &Arc<AppState>, current_session_id: Uui
     })
     .await;
 
-    match result {
-        Ok(pos) => pos,
-        Err(_) => 1,
-    }
+    result.unwrap_or(1)
 }
 
 pub fn register_transfer_to_human_keyword(
@@ -611,8 +608,8 @@ pub fn register_transfer_to_human_keyword(
         },
     );
 
-    let state_clone = state.clone();
-    let user_clone = user.clone();
+    let state_clone = state;
+    let user_clone = user;
     engine.register_fn("transfer_to_human_ex", move |params: Map| -> Dynamic {
         let state = state_clone.clone();
         let session = user_clone.clone();

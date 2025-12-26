@@ -1,13 +1,3 @@
-
-
-
-
-
-
-
-
-
-
 #[cfg(feature = "llm")]
 use crate::llm::OpenAIClient;
 use crate::shared::state::AppState;
@@ -22,9 +12,9 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -87,10 +77,8 @@ pub struct UserRow {
     pub username: String,
 }
 
-
 pub fn configure_paper_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/api/paper/new", post(handle_new_document))
         .route("/api/paper/list", get(handle_list_documents))
         .route("/api/paper/search", get(handle_search_documents))
@@ -98,7 +86,6 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route("/api/paper/autosave", post(handle_autosave))
         .route("/api/paper/{id}", get(handle_get_document))
         .route("/api/paper/{id}/delete", post(handle_delete_document))
-
         .route("/api/paper/template/blank", post(handle_template_blank))
         .route("/api/paper/template/meeting", post(handle_template_meeting))
         .route("/api/paper/template/todo", post(handle_template_todo))
@@ -106,14 +93,12 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
             "/api/paper/template/research",
             post(handle_template_research),
         )
-
         .route("/api/paper/ai/summarize", post(handle_ai_summarize))
         .route("/api/paper/ai/expand", post(handle_ai_expand))
         .route("/api/paper/ai/improve", post(handle_ai_improve))
         .route("/api/paper/ai/simplify", post(handle_ai_simplify))
         .route("/api/paper/ai/translate", post(handle_ai_translate))
         .route("/api/paper/ai/custom", post(handle_ai_custom))
-
         .route("/api/paper/export/pdf", get(handle_export_pdf))
         .route("/api/paper/export/docx", get(handle_export_docx))
         .route("/api/paper/export/md", get(handle_export_md))
@@ -121,15 +106,10 @@ pub fn configure_paper_routes() -> Router<Arc<AppState>> {
         .route("/api/paper/export/txt", get(handle_export_txt))
 }
 
-
-
-
-
 async fn get_current_user(
     state: &Arc<AppState>,
     headers: &HeaderMap,
 ) -> Result<(Uuid, String), String> {
-
     let session_id = headers
         .get("x-session-id")
         .and_then(|v| v.to_str().ok())
@@ -151,7 +131,6 @@ async fn get_current_user(
             let result = tokio::task::spawn_blocking(move || {
                 let mut db_conn = conn.get().map_err(|e| e.to_string())?;
 
-
                 let user_id: Option<Uuid> =
                     diesel::sql_query("SELECT user_id FROM user_sessions WHERE id = $1")
                         .bind::<diesel::sql_types::Uuid, _>(session_uuid)
@@ -161,7 +140,6 @@ async fn get_current_user(
                         .map(|r| r.user_id);
 
                 if let Some(uid) = user_id {
-
                     let user: Option<UserRow> =
                         diesel::sql_query("SELECT id, email, username FROM users WHERE id = $1")
                             .bind::<diesel::sql_types::Uuid, _>(uid)
@@ -181,7 +159,6 @@ async fn get_current_user(
             return result;
         }
     }
-
 
     let conn = state.conn.clone();
     tokio::task::spawn_blocking(move || {
@@ -227,18 +204,12 @@ struct UserIdRow {
     user_id: Uuid,
 }
 
-
-
-
-
 fn get_user_papers_path(user_identifier: &str) -> String {
-
     let safe_id = user_identifier
         .replace(['/', '\\', ':', '*', '?', '"', '<', '>', '|'], "_")
         .to_lowercase();
     format!("users/{}/papers", safe_id)
 }
-
 
 async fn save_document_to_drive(
     state: &Arc<AppState>,
@@ -252,7 +223,6 @@ async fn save_document_to_drive(
 
     let base_path = get_user_papers_path(user_identifier);
     let storage_type = if is_named { "named" } else { "current" };
-
 
     let (doc_path, metadata_path) = if is_named {
         let safe_title = title
@@ -275,7 +245,6 @@ async fn save_document_to_drive(
         )
     };
 
-
     s3_client
         .put_object()
         .bucket(&state.bucket_name)
@@ -285,7 +254,6 @@ async fn save_document_to_drive(
         .send()
         .await
         .map_err(|e| format!("Failed to save document: {}", e))?;
-
 
     if let Some(meta_path) = metadata_path {
         let metadata = serde_json::json!({
@@ -310,7 +278,6 @@ async fn save_document_to_drive(
     Ok(doc_path)
 }
 
-
 async fn load_document_from_drive(
     state: &Arc<AppState>,
     user_identifier: &str,
@@ -320,53 +287,43 @@ async fn load_document_from_drive(
 
     let base_path = get_user_papers_path(user_identifier);
 
-
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
 
-    match s3_client
+    if let Ok(result) = s3_client
         .get_object()
         .bucket(&state.bucket_name)
         .key(&current_path)
         .send()
         .await
     {
-        Ok(result) => {
-            let bytes = result
-                .body
-                .collect()
-                .await
-                .map_err(|e| e.to_string())?
-                .into_bytes();
-            let content = String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())?;
+        let bytes = result
+            .body
+            .collect()
+            .await
+            .map_err(|e| e.to_string())?
+            .into_bytes();
+        let content = String::from_utf8(bytes.to_vec()).map_err(|e| e.to_string())?;
 
+        let title = content
+            .lines()
+            .next()
+            .map(|l| l.trim_start_matches('#').trim())
+            .unwrap_or("Untitled")
+            .to_string();
 
-            let title = content
-                .lines()
-                .next()
-                .map(|l| l.trim_start_matches('#').trim())
-                .unwrap_or("Untitled")
-                .to_string();
-
-            return Ok(Some(Document {
-                id: doc_id.to_string(),
-                title,
-                content,
-                owner_id: user_identifier.to_string(),
-                storage_path: current_path,
-                created_at: Utc::now(),
-                updated_at: Utc::now(),
-            }));
-        }
-        Err(_) => {
-
-        }
+        return Ok(Some(Document {
+            id: doc_id.to_string(),
+            title,
+            content,
+            owner_id: user_identifier.to_string(),
+            storage_path: current_path,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }));
     }
-
-
 
     Ok(None)
 }
-
 
 async fn list_documents_from_drive(
     state: &Arc<AppState>,
@@ -376,7 +333,6 @@ async fn list_documents_from_drive(
 
     let base_path = get_user_papers_path(user_identifier);
     let mut documents = Vec::new();
-
 
     let current_prefix = format!("{}/current/", base_path);
     if let Ok(result) = s3_client
@@ -388,7 +344,7 @@ async fn list_documents_from_drive(
     {
         for obj in result.contents() {
             if let Some(key) = obj.key() {
-                if key.ends_with(".md") {
+                if key.to_lowercase().ends_with(".md") {
                     let id = key
                         .trim_start_matches(&current_prefix)
                         .trim_end_matches(".md")
@@ -414,7 +370,6 @@ async fn list_documents_from_drive(
         }
     }
 
-
     let named_prefix = format!("{}/named/", base_path);
     if let Ok(result) = s3_client
         .list_objects_v2()
@@ -429,7 +384,6 @@ async fn list_documents_from_drive(
                 let folder_name = folder
                     .trim_start_matches(&named_prefix)
                     .trim_end_matches('/');
-
 
                 let meta_key = format!("{}metadata.json", folder);
                 if let Ok(meta_result) = s3_client
@@ -468,7 +422,6 @@ async fn list_documents_from_drive(
                     }
                 }
 
-
                 documents.push(DocumentMetadata {
                     id: folder_name.to_string(),
                     title: folder_name.to_string(),
@@ -482,12 +435,10 @@ async fn list_documents_from_drive(
         }
     }
 
-
     documents.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
 
     Ok(documents)
 }
-
 
 async fn delete_document_from_drive(
     state: &Arc<AppState>,
@@ -498,7 +449,6 @@ async fn delete_document_from_drive(
 
     let base_path = get_user_papers_path(user_identifier);
 
-
     let current_path = format!("{}/current/{}.md", base_path, doc_id);
     let _ = s3_client
         .delete_object()
@@ -506,7 +456,6 @@ async fn delete_document_from_drive(
         .key(&current_path)
         .send()
         .await;
-
 
     let named_prefix = format!("{}/named/{}/", base_path, doc_id);
     if let Ok(result) = s3_client
@@ -531,8 +480,6 @@ async fn delete_document_from_drive(
     Ok(())
 }
 
-
-
 #[cfg(feature = "llm")]
 async fn call_llm(
     state: &Arc<AppState>,
@@ -546,7 +493,6 @@ async fn call_llm(
         "",
         &[("user".to_string(), user_content.to_string())],
     );
-
 
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let model = config_manager
@@ -567,14 +513,11 @@ async fn call_llm(
     _system_prompt: &str,
     user_content: &str,
 ) -> Result<String, String> {
-
     Ok(format!(
         "[LLM not available] Processing: {}...",
         &user_content[..50.min(user_content.len())]
     ))
 }
-
-
 
 pub async fn handle_new_document(
     State(state): State<Arc<AppState>>,
@@ -592,12 +535,10 @@ pub async fn handle_new_document(
     let title = "Untitled".to_string();
     let content = String::new();
 
-
     if let Err(e) =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await
     {
         log::error!("Failed to save new document: {}", e);
-
     }
 
     let mut html = String::new();
@@ -605,11 +546,9 @@ pub async fn handle_new_document(
     html.push_str(&html_escape(&doc_id));
     html.push_str("\">");
 
-
     html.push_str(&format_document_list_item(
         &doc_id, &title, "just now", true,
     ));
-
 
     html.push_str("<script>");
     html.push_str("htmx.trigger('#paper-list', 'refresh');");
@@ -622,7 +561,6 @@ pub async fn handle_new_document(
     log::info!("New document created: {} for user {}", doc_id, user_id);
     Html(html)
 }
-
 
 pub async fn handle_list_documents(
     State(state): State<Arc<AppState>>,
@@ -673,7 +611,6 @@ pub async fn handle_list_documents(
     Html(html)
 }
 
-
 pub async fn handle_search_documents(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -689,10 +626,9 @@ pub async fn handle_search_documents(
 
     let query = params.q.unwrap_or_default().to_lowercase();
 
-    let documents = match list_documents_from_drive(&state, &user_identifier).await {
-        Ok(docs) => docs,
-        Err(_) => Vec::new(),
-    };
+    let documents = list_documents_from_drive(&state, &user_identifier)
+        .await
+        .unwrap_or_default();
 
     let filtered: Vec<_> = if query.is_empty() {
         documents
@@ -723,7 +659,6 @@ pub async fn handle_search_documents(
     Html(html)
 }
 
-
 pub async fn handle_get_document(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -746,7 +681,6 @@ pub async fn handle_get_document(
         }
     }
 }
-
 
 pub async fn handle_save_document(
     State(state): State<Arc<AppState>>,
@@ -792,7 +726,6 @@ pub async fn handle_save_document(
     }
 }
 
-
 pub async fn handle_autosave(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -810,7 +743,6 @@ pub async fn handle_autosave(
     let title = payload.title.unwrap_or_else(|| "Untitled".to_string());
     let content = payload.content.unwrap_or_default();
 
-
     if let Err(e) =
         save_document_to_drive(&state, &user_identifier, &doc_id, &title, &content, false).await
     {
@@ -819,7 +751,6 @@ pub async fn handle_autosave(
 
     Html("<span class=\"autosave-indicator\">Auto-saved</span>".to_string())
 }
-
 
 pub async fn handle_delete_document(
     State(state): State<Arc<AppState>>,
@@ -846,15 +777,12 @@ pub async fn handle_delete_document(
     }
 }
 
-
-
 pub async fn handle_template_blank(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
 ) -> impl IntoResponse {
     handle_new_document(State(state), headers).await
 }
-
 
 pub async fn handle_template_meeting(
     State(state): State<Arc<AppState>>,
@@ -874,7 +802,7 @@ pub async fn handle_template_meeting(
 
     let mut content = String::new();
     content.push_str("# Meeting Notes\n\n");
-    content.push_str(&format!("**Date:** {}\n\n", now.format("%Y-%m-%d")));
+    let _ = writeln!(content, "**Date:** {}\n", now.format("%Y-%m-%d"));
     content.push_str("**Attendees:**\n- \n\n");
     content.push_str("## Agenda\n\n1. \n\n");
     content.push_str("## Discussion\n\n\n\n");
@@ -886,7 +814,6 @@ pub async fn handle_template_meeting(
 
     Html(format_document_content(&title, &content))
 }
-
 
 pub async fn handle_template_todo(
     State(state): State<Arc<AppState>>,
@@ -915,7 +842,6 @@ pub async fn handle_template_todo(
 
     Html(format_document_content(&title, &content))
 }
-
 
 pub async fn handle_template_research(
     State(state): State<Arc<AppState>>,
@@ -948,8 +874,6 @@ pub async fn handle_template_research(
     Html(format_document_content(&title, &content))
 }
 
-
-
 pub async fn handle_ai_summarize(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -978,7 +902,6 @@ pub async fn handle_ai_summarize(
     }
 }
 
-
 pub async fn handle_ai_expand(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1004,7 +927,6 @@ pub async fn handle_ai_expand(
     }
 }
 
-
 pub async fn handle_ai_improve(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1025,7 +947,6 @@ pub async fn handle_ai_improve(
         }
     }
 }
-
 
 pub async fn handle_ai_simplify(
     State(state): State<Arc<AppState>>,
@@ -1050,7 +971,6 @@ pub async fn handle_ai_simplify(
         }
     }
 }
-
 
 pub async fn handle_ai_translate(
     State(state): State<Arc<AppState>>,
@@ -1095,7 +1015,6 @@ pub async fn handle_ai_translate(
     }
 }
 
-
 pub async fn handle_ai_custom(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<AiRequest>,
@@ -1127,22 +1046,17 @@ pub async fn handle_ai_custom(
     }
 }
 
-
-
 pub async fn handle_export_pdf(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(_) => return Html(format_error("Authentication required")),
+    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
+        return Html(format_error("Authentication required"));
     };
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(_doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-
-
             return Html("<script>alert('PDF export started. The file will be saved to your exports folder.');</script>".to_string());
         }
     }
@@ -1150,15 +1064,13 @@ pub async fn handle_export_pdf(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-
 pub async fn handle_export_docx(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(_) => return Html(format_error("Authentication required")),
+    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
+        return Html(format_error("Authentication required"));
     };
 
     if let Some(doc_id) = params.id {
@@ -1170,20 +1082,17 @@ pub async fn handle_export_docx(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-
 pub async fn handle_export_md(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(_) => return Html(format_error("Authentication required")),
+    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
+        return Html(format_error("Authentication required"));
     };
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-
             let export_path = format!(
                 "users/{}/exports/{}.md",
                 user_identifier
@@ -1213,26 +1122,22 @@ pub async fn handle_export_md(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-
 pub async fn handle_export_html(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(_) => return Html(format_error("Authentication required")),
+    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
+        return Html(format_error("Authentication required"));
     };
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-
             let html_content = format!(
                 "<!DOCTYPE html>\n<html>\n<head>\n<title>{}</title>\n<meta charset=\"utf-8\">\n</head>\n<body>\n<article>\n{}\n</article>\n</body>\n</html>",
                 html_escape(&doc.title),
                 markdown_to_html(&doc.content)
             );
-
 
             let export_path = format!(
                 "users/{}/exports/{}.html",
@@ -1263,22 +1168,18 @@ pub async fn handle_export_html(
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
 
-
 pub async fn handle_export_txt(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
     Query(params): Query<ExportQuery>,
 ) -> impl IntoResponse {
-    let (_user_id, user_identifier) = match get_current_user(&state, &headers).await {
-        Ok(u) => u,
-        Err(_) => return Html(format_error("Authentication required")),
+    let Ok((_user_id, user_identifier)) = get_current_user(&state, &headers).await else {
+        return Html(format_error("Authentication required"));
     };
 
     if let Some(doc_id) = params.id {
         if let Ok(Some(doc)) = load_document_from_drive(&state, &user_identifier, &doc_id).await {
-
             let plain_text = strip_markdown(&doc.content);
-
 
             let export_path = format!(
                 "users/{}/exports/{}.txt",
@@ -1308,7 +1209,6 @@ pub async fn handle_export_txt(
 
     Html("<script>alert('Please save your document first.');</script>".to_string())
 }
-
 
 fn format_document_list_item(id: &str, title: &str, time: &str, is_new: bool) -> String {
     let mut html = String::new();
@@ -1350,7 +1250,6 @@ fn format_document_content(title: &str, content: &str) -> String {
     if content.is_empty() {
         html.push_str("<p data-placeholder=\"Start writing...\"></p>");
     } else {
-
         html.push_str(&markdown_to_html(content));
     }
     html.push_str("</div>");
@@ -1420,7 +1319,6 @@ fn html_escape(s: &str) -> String {
         .replace('\'', "&#39;")
 }
 
-
 fn markdown_to_html(markdown: &str) -> String {
     let mut html = String::new();
     let mut in_list = false;
@@ -1428,7 +1326,6 @@ fn markdown_to_html(markdown: &str) -> String {
 
     for line in markdown.lines() {
         let trimmed = line.trim();
-
 
         if trimmed.starts_with("```") {
             if in_code_block {
@@ -1447,56 +1344,51 @@ fn markdown_to_html(markdown: &str) -> String {
             continue;
         }
 
-
-        if trimmed.starts_with("# ") {
+        if let Some(rest) = trimmed.strip_prefix("# ") {
             html.push_str("<h1>");
-            html.push_str(&html_escape(&trimmed[2..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</h1>");
-        } else if trimmed.starts_with("## ") {
+        } else if let Some(rest) = trimmed.strip_prefix("## ") {
             html.push_str("<h2>");
-            html.push_str(&html_escape(&trimmed[3..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</h2>");
-        } else if trimmed.starts_with("### ") {
+        } else if let Some(rest) = trimmed.strip_prefix("### ") {
             html.push_str("<h3>");
-            html.push_str(&html_escape(&trimmed[4..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</h3>");
-        }
-
-        else if trimmed.starts_with("- [ ] ") {
+        } else if let Some(rest) = trimmed.strip_prefix("- [ ] ") {
             if !in_list {
                 html.push_str("<ul class=\"todo-list\">");
                 in_list = true;
             }
             html.push_str("<li><input type=\"checkbox\"> ");
-            html.push_str(&html_escape(&trimmed[6..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</li>");
-        } else if trimmed.starts_with("- [x] ") {
+        } else if let Some(rest) = trimmed.strip_prefix("- [x] ") {
             if !in_list {
                 html.push_str("<ul class=\"todo-list\">");
                 in_list = true;
             }
             html.push_str("<li><input type=\"checkbox\" checked> ");
-            html.push_str(&html_escape(&trimmed[6..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</li>");
-        } else if trimmed.starts_with("- ") {
+        } else if let Some(rest) = trimmed.strip_prefix("- ") {
             if !in_list {
                 html.push_str("<ul>");
                 in_list = true;
             }
             html.push_str("<li>");
-            html.push_str(&html_escape(&trimmed[2..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</li>");
-        } else if trimmed.starts_with("* ") {
+        } else if let Some(rest) = trimmed.strip_prefix("* ") {
             if !in_list {
                 html.push_str("<ul>");
                 in_list = true;
             }
             html.push_str("<li>");
-            html.push_str(&html_escape(&trimmed[2..]));
+            html.push_str(&html_escape(rest));
             html.push_str("</li>");
-        }
-
-        else if trimmed
+        } else if trimmed
             .chars()
             .next()
             .map(|c| c.is_ascii_digit())
@@ -1512,17 +1404,13 @@ fn markdown_to_html(markdown: &str) -> String {
                 html.push_str(&html_escape(&trimmed[pos + 2..]));
                 html.push_str("</li>");
             }
-        }
-
-        else if trimmed.is_empty() {
+        } else if trimmed.is_empty() {
             if in_list {
                 html.push_str("</ul>");
                 in_list = false;
             }
             html.push_str("<br>");
-        }
-
-        else {
+        } else {
             if in_list {
                 html.push_str("</ul>");
                 in_list = false;
@@ -1544,16 +1432,12 @@ fn markdown_to_html(markdown: &str) -> String {
     html
 }
 
-
 fn format_inline_markdown(text: &str) -> String {
     let escaped = html_escape(text);
 
-
     let re_bold = escaped.replace("**", "<b>").replace("__", "<b>");
 
-
-    let re_italic = re_bold.replace("*", "<i>").replace("_", "<i>");
-
+    let re_italic = re_bold.replace(['*', '_'], "<i>");
 
     let mut result = String::new();
     let mut in_code = false;
@@ -1573,44 +1457,38 @@ fn format_inline_markdown(text: &str) -> String {
     result
 }
 
-
 fn strip_markdown(markdown: &str) -> String {
     let mut result = String::new();
 
     for line in markdown.lines() {
         let trimmed = line.trim();
 
-
         if trimmed.starts_with("```") {
             continue;
         }
 
-
-        let content = if trimmed.starts_with("### ") {
-            &trimmed[4..]
-        } else if trimmed.starts_with("## ") {
-            &trimmed[3..]
-        } else if trimmed.starts_with("# ") {
-            &trimmed[2..]
-        } else if trimmed.starts_with("- [ ] ") {
-            &trimmed[6..]
-        } else if trimmed.starts_with("- [x] ") {
-            &trimmed[6..]
-        } else if trimmed.starts_with("- ") {
-            &trimmed[2..]
-        } else if trimmed.starts_with("* ") {
-            &trimmed[2..]
+        let content = if let Some(rest) = trimmed.strip_prefix("### ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("## ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("# ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- [ ] ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- [x] ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("- ") {
+            rest
+        } else if let Some(rest) = trimmed.strip_prefix("* ") {
+            rest
         } else {
             trimmed
         };
 
-
         let clean = content
             .replace("**", "")
             .replace("__", "")
-            .replace("*", "")
-            .replace("_", "")
-            .replace("`", "");
+            .replace(['*', '_', '`'], "");
 
         result.push_str(&clean);
         result.push('\n');

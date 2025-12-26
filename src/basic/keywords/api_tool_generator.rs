@@ -1,24 +1,12 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::state::AppState;
 use diesel::prelude::*;
 use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::HashMap;
+use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OpenAPISpec {
@@ -99,7 +87,6 @@ pub struct OpenAPIResponse {
     pub content: Option<HashMap<String, OpenAPIMediaType>>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct GeneratedEndpoint {
     pub operation_id: String,
@@ -119,7 +106,6 @@ pub struct EndpointParameter {
     pub required: bool,
     pub example: Option<String>,
 }
-
 
 pub struct ApiToolGenerator {
     state: Arc<AppState>,
@@ -145,12 +131,9 @@ impl ApiToolGenerator {
         }
     }
 
-
-
     pub async fn sync_all_api_tools(&self) -> Result<SyncResult, String> {
-        let api_configs = self.get_api_configs().await?;
+        let api_configs = self.get_api_configs()?;
         let mut result = SyncResult::default();
-
 
         let api_configs_for_cleanup = api_configs.clone();
 
@@ -170,32 +153,25 @@ impl ApiToolGenerator {
             }
         }
 
-
-        let removed = self.cleanup_removed_apis(&api_configs_for_cleanup).await?;
+        let removed = self.cleanup_removed_apis(&api_configs_for_cleanup)?;
         result.tools_removed = removed;
 
         Ok(result)
     }
 
-
     pub async fn sync_api_tools(&self, api_name: &str, spec_url: &str) -> Result<usize, String> {
-
         let spec_content = self.fetch_spec(spec_url).await?;
-        let spec_hash = self.calculate_hash(&spec_content);
+        let spec_hash = Self::calculate_hash(&spec_content);
 
-
-        if !self.has_spec_changed(api_name, &spec_hash).await? {
+        if !self.has_spec_changed(api_name, &spec_hash)? {
             trace!("API spec unchanged for {}, skipping", api_name);
             return Ok(0);
         }
 
-
         let spec: OpenAPISpec = serde_json::from_str(&spec_content)
             .map_err(|e| format!("Failed to parse OpenAPI spec: {}", e))?;
 
-
-        let endpoints = self.extract_endpoints(&spec)?;
-
+        let endpoints = Self::extract_endpoints(&spec)?;
 
         let api_folder = format!(
             "{}/{}.gbai/.gbdialog/{}",
@@ -204,10 +180,9 @@ impl ApiToolGenerator {
         std::fs::create_dir_all(&api_folder)
             .map_err(|e| format!("Failed to create API folder: {}", e))?;
 
-
         let mut generated_count = 0;
         for endpoint in &endpoints {
-            let bas_content = self.generate_bas_file(&api_name, endpoint)?;
+            let bas_content = Self::generate_bas_file(&api_name, endpoint)?;
             let file_path = format!("{}/{}.bas", api_folder, endpoint.operation_id);
 
             std::fs::write(&file_path, &bas_content)
@@ -216,21 +191,16 @@ impl ApiToolGenerator {
             generated_count += 1;
         }
 
-
-        self.update_api_record(api_name, spec_url, &spec_hash, generated_count)
-            .await?;
+        self.update_api_record(api_name, spec_url, &spec_hash, generated_count)?;
 
         Ok(generated_count)
     }
 
-
     async fn fetch_spec(&self, spec_url: &str) -> Result<String, String> {
-
-        if spec_url.starts_with("./") || spec_url.starts_with("/") {
+        if spec_url.starts_with("./") || spec_url.starts_with('/') {
             return std::fs::read_to_string(spec_url)
                 .map_err(|e| format!("Failed to read local spec file: {}", e));
         }
-
 
         let client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
@@ -254,10 +224,8 @@ impl ApiToolGenerator {
             .map_err(|e| format!("Failed to read spec body: {}", e))
     }
 
-
-    fn extract_endpoints(&self, spec: &OpenAPISpec) -> Result<Vec<GeneratedEndpoint>, String> {
+    fn extract_endpoints(spec: &OpenAPISpec) -> Result<Vec<GeneratedEndpoint>, String> {
         let mut endpoints = Vec::new();
-
 
         let base_url = spec
             .servers
@@ -268,12 +236,10 @@ impl ApiToolGenerator {
 
         for (path, methods) in &spec.paths {
             for (method, operation) in methods {
-
                 let operation_id = match &operation.operation_id {
-                    Some(id) => self.sanitize_operation_id(id),
-                    None => self.generate_operation_id(&method, &path),
+                    Some(id) => Self::sanitize_operation_id(id),
+                    None => Self::generate_operation_id(method, path),
                 };
-
 
                 let description = operation
                     .summary
@@ -281,22 +247,19 @@ impl ApiToolGenerator {
                     .or_else(|| operation.description.clone())
                     .unwrap_or_else(|| format!("{} {}", method.to_uppercase(), path));
 
-
                 let mut parameters = Vec::new();
-
 
                 if let Some(params) = &operation.parameters {
                     for param in params {
-                        parameters.push(self.convert_parameter(param));
+                        parameters.push(Self::convert_parameter(param));
                     }
                 }
-
 
                 if let Some(body) = &operation.request_body {
                     if let Some(content) = &body.content {
                         if let Some(json_content) = content.get("application/json") {
                             if let Some(schema) = &json_content.schema {
-                                let body_params = self.extract_body_parameters(
+                                let body_params = Self::extract_body_parameters(
                                     schema,
                                     body.required.unwrap_or(false),
                                 );
@@ -320,23 +283,23 @@ impl ApiToolGenerator {
         Ok(endpoints)
     }
 
-
-    fn convert_parameter(&self, param: &OpenAPIParameter) -> EndpointParameter {
+    fn convert_parameter(param: &OpenAPIParameter) -> EndpointParameter {
         let param_type = param
             .schema
             .as_ref()
-            .and_then(|s| s.schema_type.clone())
+            .and_then(|s| s.schema_type.as_ref())
+            .map(|t| Self::map_openapi_type(t.as_str()))
             .unwrap_or_else(|| "string".to_string());
 
         let example = param
             .example
             .as_ref()
             .or_else(|| param.schema.as_ref().and_then(|s| s.example.as_ref()))
-            .map(|v| self.value_to_string(v));
+            .map(Self::value_to_string);
 
         EndpointParameter {
             name: param.name.clone(),
-            param_type: self.map_openapi_type(&param_type),
+            param_type,
             location: param.location.clone(),
             description: param.description.clone().unwrap_or_default(),
             required: param.required.unwrap_or(false),
@@ -344,12 +307,7 @@ impl ApiToolGenerator {
         }
     }
 
-
-    fn extract_body_parameters(
-        &self,
-        schema: &OpenAPISchema,
-        required: bool,
-    ) -> Vec<EndpointParameter> {
+    fn extract_body_parameters(schema: &OpenAPISchema, required: bool) -> Vec<EndpointParameter> {
         let mut params = Vec::new();
 
         if let Some(properties) = &schema.properties {
@@ -359,16 +317,13 @@ impl ApiToolGenerator {
                 let param_type = prop_schema
                     .schema_type
                     .clone()
-                    .unwrap_or_else(|| "string".to_string());
+                    .unwrap_or_else(|| "string".to_owned());
 
-                let example = prop_schema
-                    .example
-                    .as_ref()
-                    .map(|v| self.value_to_string(v));
+                let example = prop_schema.example.as_ref().map(Self::value_to_string);
 
                 params.push(EndpointParameter {
                     name: name.clone(),
-                    param_type: self.map_openapi_type(&param_type),
+                    param_type: Self::map_openapi_type(&param_type),
                     location: "body".to_string(),
                     description: String::new(),
                     required: required && required_fields.contains(name),
@@ -380,46 +335,33 @@ impl ApiToolGenerator {
         params
     }
 
-
-    fn generate_bas_file(
-        &self,
-        api_name: &str,
-        endpoint: &GeneratedEndpoint,
-    ) -> Result<String, String> {
+    fn generate_bas_file(api_name: &str, endpoint: &GeneratedEndpoint) -> Result<String, String> {
         let mut bas = String::new();
 
-
-        bas.push_str(&format!("' Auto-generated tool for {} API\n", api_name));
-        bas.push_str(&format!(
-            "' Endpoint: {} {}\n",
-            endpoint.method, endpoint.path
-        ));
-        bas.push_str(&format!(
-            "' Generated at: {}\n\n",
-            chrono::Utc::now().to_rfc3339()
-        ));
-
+        let _ = writeln!(bas, "' Auto-generated tool for {} API", api_name);
+        let _ = writeln!(bas, "' Endpoint: {} {}", endpoint.method, endpoint.path);
+        let _ = writeln!(bas, "' Generated at: {}\n", chrono::Utc::now().to_rfc3339());
 
         for param in &endpoint.parameters {
             let example = param.example.as_deref().unwrap_or("");
             let required_marker = if param.required { "" } else { " ' optional" };
 
-            bas.push_str(&format!(
-                "PARAM {} AS {} LIKE \"{}\" DESCRIPTION \"{}\"{}\n",
-                self.sanitize_param_name(&param.name),
+            let _ = writeln!(
+                bas,
+                "PARAM {} AS {} LIKE \"{}\" DESCRIPTION \"{}\"{}",
+                Self::sanitize_param_name(&param.name),
                 param.param_type,
                 example,
-                self.escape_description(&param.description),
+                Self::escape_description(&param.description),
                 required_marker
-            ));
+            );
         }
 
-
-        bas.push_str(&format!(
-            "\nDESCRIPTION \"{}\"\n\n",
-            self.escape_description(&endpoint.description)
-        ));
-
+        let _ = writeln!(
+            bas,
+            "\nDESCRIPTION \"{}\"\n",
+            Self::escape_description(&endpoint.description)
+        );
 
         let mut url = format!("{}{}", endpoint.base_url, endpoint.path);
         let path_params: Vec<&EndpointParameter> = endpoint
@@ -431,10 +373,9 @@ impl ApiToolGenerator {
         for param in &path_params {
             url = url.replace(
                 &format!("{{{}}}", param.name),
-                &format!("\" + {} + \"", self.sanitize_param_name(&param.name)),
+                &format!("\" + {} + \"", Self::sanitize_param_name(&param.name)),
             );
         }
-
 
         let query_params: Vec<&EndpointParameter> = endpoint
             .parameters
@@ -446,16 +387,16 @@ impl ApiToolGenerator {
             bas.push_str("' Build query string\n");
             bas.push_str("query_params = \"\"\n");
             for (i, param) in query_params.iter().enumerate() {
-                let name = self.sanitize_param_name(&param.name);
+                let name = Self::sanitize_param_name(&param.name);
                 let sep = if i == 0 { "?" } else { "&" };
-                bas.push_str(&format!(
-                    "IF NOT ISEMPTY({}) THEN query_params = query_params + \"{}{}=\" + {}\n",
+                let _ = writeln!(
+                    bas,
+                    "IF NOT ISEMPTY({}) THEN query_params = query_params + \"{}{}=\" + {}",
                     name, sep, param.name, name
-                ));
+                );
             }
             bas.push('\n');
         }
-
 
         let body_params: Vec<&EndpointParameter> = endpoint
             .parameters
@@ -467,15 +408,15 @@ impl ApiToolGenerator {
             bas.push_str("' Build request body\n");
             bas.push_str("body = {}\n");
             for param in &body_params {
-                let name = self.sanitize_param_name(&param.name);
-                bas.push_str(&format!(
-                    "IF NOT ISEMPTY({}) THEN body.{} = {}\n",
+                let name = Self::sanitize_param_name(&param.name);
+                let _ = writeln!(
+                    bas,
+                    "IF NOT ISEMPTY({}) THEN body.{} = {}",
                     name, param.name, name
-                ));
+                );
             }
             bas.push('\n');
         }
-
 
         bas.push_str("' Make API request\n");
         let full_url = if query_params.is_empty() {
@@ -485,14 +426,14 @@ impl ApiToolGenerator {
         };
 
         if body_params.is_empty() {
-            bas.push_str(&format!("result = {} HTTP {}\n", endpoint.method, full_url));
+            let _ = writeln!(bas, "result = {} HTTP {}", endpoint.method, full_url);
         } else {
-            bas.push_str(&format!(
-                "result = {} HTTP {} WITH body\n",
+            let _ = writeln!(
+                bas,
+                "result = {} HTTP {} WITH body",
                 endpoint.method, full_url
-            ));
+            );
         }
-
 
         bas.push_str("\n' Return result\n");
         bas.push_str("RETURN result\n");
@@ -500,8 +441,7 @@ impl ApiToolGenerator {
         Ok(bas)
     }
 
-
-    async fn get_api_configs(&self) -> Result<Vec<(String, String)>, String> {
+    fn get_api_configs(&self) -> Result<Vec<(String, String)>, String> {
         let mut conn = self
             .state
             .conn
@@ -535,8 +475,7 @@ impl ApiToolGenerator {
         Ok(result)
     }
 
-
-    async fn has_spec_changed(&self, api_name: &str, current_hash: &str) -> Result<bool, String> {
+    fn has_spec_changed(&self, api_name: &str, current_hash: &str) -> Result<bool, String> {
         let mut conn = self
             .state
             .conn
@@ -565,8 +504,7 @@ impl ApiToolGenerator {
         }
     }
 
-
-    async fn update_api_record(
+    fn update_api_record(
         &self,
         api_name: &str,
         spec_url: &str,
@@ -605,11 +543,7 @@ impl ApiToolGenerator {
         Ok(())
     }
 
-
-    async fn cleanup_removed_apis(
-        &self,
-        current_apis: &[(String, String)],
-    ) -> Result<usize, String> {
+    fn cleanup_removed_apis(&self, current_apis: &[(String, String)]) -> Result<usize, String> {
         let mut conn = self
             .state
             .conn
@@ -633,7 +567,6 @@ impl ApiToolGenerator {
 
         for api in existing {
             if !current_names.contains(&api.api_name.as_str()) {
-
                 diesel::sql_query(
                     "DELETE FROM generated_api_tools WHERE bot_id = $1 AND api_name = $2",
                 )
@@ -641,7 +574,6 @@ impl ApiToolGenerator {
                 .bind::<diesel::sql_types::Text, _>(&api.api_name)
                 .execute(&mut conn)
                 .ok();
-
 
                 let api_folder = format!(
                     "{}/{}.gbai/.gbdialog/{}",
@@ -659,15 +591,13 @@ impl ApiToolGenerator {
         Ok(removed_count)
     }
 
-
-
-    fn calculate_hash(&self, content: &str) -> String {
+    fn calculate_hash(content: &str) -> String {
         let mut hasher = Sha256::new();
         hasher.update(content.as_bytes());
         format!("{:x}", hasher.finalize())
     }
 
-    fn sanitize_operation_id(&self, id: &str) -> String {
+    fn sanitize_operation_id(id: &str) -> String {
         id.chars()
             .map(|c| {
                 if c.is_alphanumeric() || c == '_' {
@@ -680,16 +610,12 @@ impl ApiToolGenerator {
             .to_lowercase()
     }
 
-    fn generate_operation_id(&self, method: &str, path: &str) -> String {
-        let path_part = path
-            .trim_matches('/')
-            .replace('/', "_")
-            .replace('{', "")
-            .replace('}', "");
+    fn generate_operation_id(method: &str, path: &str) -> String {
+        let path_part = path.trim_matches('/').replace(['/', '{', '}'], "_");
         format!("{}_{}", method.to_lowercase(), path_part)
     }
 
-    fn sanitize_param_name(&self, name: &str) -> String {
+    fn sanitize_param_name(name: &str) -> String {
         name.chars()
             .map(|c| {
                 if c.is_alphanumeric() || c == '_' {
@@ -702,7 +628,7 @@ impl ApiToolGenerator {
             .to_lowercase()
     }
 
-    fn map_openapi_type(&self, openapi_type: &str) -> String {
+    fn map_openapi_type(openapi_type: &str) -> String {
         match openapi_type.to_lowercase().as_str() {
             "integer" | "number" => "number".to_string(),
             "boolean" => "boolean".to_string(),
@@ -712,7 +638,7 @@ impl ApiToolGenerator {
         }
     }
 
-    fn value_to_string(&self, value: &serde_json::Value) -> String {
+    fn value_to_string(value: &serde_json::Value) -> String {
         match value {
             serde_json::Value::String(s) => s.clone(),
             serde_json::Value::Number(n) => n.to_string(),
@@ -721,11 +647,10 @@ impl ApiToolGenerator {
         }
     }
 
-    fn escape_description(&self, desc: &str) -> String {
+    fn escape_description(desc: &str) -> String {
         desc.replace('"', "'").replace('\n', " ").trim().to_string()
     }
 }
-
 
 #[derive(Debug, Default)]
 pub struct SyncResult {

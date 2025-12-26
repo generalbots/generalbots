@@ -51,7 +51,7 @@ pub struct ActionItem {
     pub completed: bool,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum Priority {
     Low,
@@ -62,7 +62,7 @@ pub enum Priority {
 
 impl Default for Priority {
     fn default() -> Self {
-        Priority::Medium
+        Self::Medium
     }
 }
 
@@ -75,7 +75,7 @@ pub struct Sentiment {
     pub confidence: f64,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum SentimentLabel {
     VeryNegative,
@@ -87,13 +87,13 @@ pub enum SentimentLabel {
 
 impl Default for SentimentLabel {
     fn default() -> Self {
-        SentimentLabel::Neutral
+        Self::Neutral
     }
 }
 
 impl Default for Sentiment {
     fn default() -> Self {
-        Sentiment {
+        Self {
             score: 0.0,
             label: SentimentLabel::Neutral,
             confidence: 0.5,
@@ -101,7 +101,7 @@ impl Default for Sentiment {
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "lowercase")]
 pub enum ResolutionStatus {
     Resolved,
@@ -113,7 +113,7 @@ pub enum ResolutionStatus {
 
 impl Default for ResolutionStatus {
     fn default() -> Self {
-        ResolutionStatus::Unknown
+        Self::Unknown
     }
 }
 
@@ -136,7 +136,7 @@ pub struct EpisodicMemoryConfig {
 
 impl Default for EpisodicMemoryConfig {
     fn default() -> Self {
-        EpisodicMemoryConfig {
+        Self {
             enabled: true,
             threshold: 4,
             history: 2,
@@ -163,7 +163,7 @@ pub struct EpisodicMemoryManager {
 
 impl EpisodicMemoryManager {
     pub fn new(config: EpisodicMemoryConfig) -> Self {
-        EpisodicMemoryManager { config }
+        Self { config }
     }
 
     pub fn from_config(config_map: &std::collections::HashMap<String, String>) -> Self {
@@ -197,7 +197,7 @@ impl EpisodicMemoryManager {
                 .map(|v| v == "true")
                 .unwrap_or(true),
         };
-        EpisodicMemoryManager::new(config)
+        Self::new(config)
     }
 
     pub fn should_summarize(&self, message_count: usize) -> bool {
@@ -359,7 +359,7 @@ Respond with valid JSON only:
     }
 
     pub fn get_retention_cutoff(&self) -> DateTime<Utc> {
-        Utc::now() - Duration::days(self.config.retention_days as i64)
+        Utc::now() - Duration::days(i64::from(self.config.retention_days))
     }
 }
 

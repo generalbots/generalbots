@@ -1,19 +1,8 @@
-
-
-
-
-
-
-
-
-
-
 pub mod providers;
 pub mod routes;
 
 use serde::{Deserialize, Serialize};
 use std::fmt;
-
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -27,64 +16,59 @@ pub enum OAuthProvider {
 }
 
 impl OAuthProvider {
-
-    pub fn all() -> Vec<OAuthProvider> {
+    pub fn all() -> Vec<Self> {
         vec![
-            OAuthProvider::Google,
-            OAuthProvider::Discord,
-            OAuthProvider::Reddit,
-            OAuthProvider::Twitter,
-            OAuthProvider::Microsoft,
-            OAuthProvider::Facebook,
+            Self::Google,
+            Self::Discord,
+            Self::Reddit,
+            Self::Twitter,
+            Self::Microsoft,
+            Self::Facebook,
         ]
     }
 
-
-    pub fn from_str(s: &str) -> Option<OAuthProvider> {
+    pub fn from_str(s: &str) -> Option<Self> {
         match s.to_lowercase().as_str() {
-            "google" => Some(OAuthProvider::Google),
-            "discord" => Some(OAuthProvider::Discord),
-            "reddit" => Some(OAuthProvider::Reddit),
-            "twitter" | "x" => Some(OAuthProvider::Twitter),
-            "microsoft" => Some(OAuthProvider::Microsoft),
-            "facebook" => Some(OAuthProvider::Facebook),
+            "google" => Some(Self::Google),
+            "discord" => Some(Self::Discord),
+            "reddit" => Some(Self::Reddit),
+            "twitter" | "x" => Some(Self::Twitter),
+            "microsoft" => Some(Self::Microsoft),
+            "facebook" => Some(Self::Facebook),
             _ => None,
         }
     }
 
-
     pub fn config_prefix(&self) -> &'static str {
         match self {
-            OAuthProvider::Google => "oauth-google",
-            OAuthProvider::Discord => "oauth-discord",
-            OAuthProvider::Reddit => "oauth-reddit",
-            OAuthProvider::Twitter => "oauth-twitter",
-            OAuthProvider::Microsoft => "oauth-microsoft",
-            OAuthProvider::Facebook => "oauth-facebook",
+            Self::Google => "oauth-google",
+            Self::Discord => "oauth-discord",
+            Self::Reddit => "oauth-reddit",
+            Self::Twitter => "oauth-twitter",
+            Self::Microsoft => "oauth-microsoft",
+            Self::Facebook => "oauth-facebook",
         }
     }
-
 
     pub fn display_name(&self) -> &'static str {
         match self {
-            OAuthProvider::Google => "Google",
-            OAuthProvider::Discord => "Discord",
-            OAuthProvider::Reddit => "Reddit",
-            OAuthProvider::Twitter => "Twitter",
-            OAuthProvider::Microsoft => "Microsoft",
-            OAuthProvider::Facebook => "Facebook",
+            Self::Google => "Google",
+            Self::Discord => "Discord",
+            Self::Reddit => "Reddit",
+            Self::Twitter => "Twitter",
+            Self::Microsoft => "Microsoft",
+            Self::Facebook => "Facebook",
         }
     }
 
-
     pub fn icon(&self) -> &'static str {
         match self {
-            OAuthProvider::Google => "",
-            OAuthProvider::Discord => "",
-            OAuthProvider::Reddit => "",
-            OAuthProvider::Twitter => "",
-            OAuthProvider::Microsoft => "",
-            OAuthProvider::Facebook => "",
+            Self::Google
+            | Self::Discord
+            | Self::Reddit
+            | Self::Twitter
+            | Self::Microsoft
+            | Self::Facebook => "",
         }
     }
 }
@@ -94,7 +78,6 @@ impl fmt::Display for OAuthProvider {
         write!(f, "{}", self.display_name())
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthConfig {
@@ -106,7 +89,6 @@ pub struct OAuthConfig {
 }
 
 impl OAuthConfig {
-
     pub fn new(
         provider: OAuthProvider,
         client_id: String,
@@ -122,7 +104,6 @@ impl OAuthConfig {
         }
     }
 
-
     pub fn is_valid(&self) -> bool {
         self.enabled
             && !self.client_id.is_empty()
@@ -131,10 +112,8 @@ impl OAuthConfig {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthUserInfo {
-
     pub provider_id: String,
 
     pub provider: OAuthProvider,
@@ -149,7 +128,6 @@ pub struct OAuthUserInfo {
     pub raw: Option<serde_json::Value>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthTokenResponse {
     pub access_token: String,
@@ -162,7 +140,6 @@ pub struct OAuthTokenResponse {
     #[serde(default)]
     pub scope: Option<String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthError {
@@ -182,10 +159,8 @@ impl fmt::Display for OAuthError {
 
 impl std::error::Error for OAuthError {}
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct OAuthState {
-
     pub token: String,
 
     pub provider: OAuthProvider,
@@ -196,7 +171,6 @@ pub struct OAuthState {
 }
 
 impl OAuthState {
-
     pub fn new(provider: OAuthProvider, redirect_after: Option<String>) -> Self {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -214,7 +188,6 @@ impl OAuthState {
         }
     }
 
-
     pub fn is_expired(&self) -> bool {
         use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -226,13 +199,11 @@ impl OAuthState {
         now - self.created_at > 600
     }
 
-
     pub fn encode(&self) -> String {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};
         let json = serde_json::to_string(self).unwrap_or_default();
         URL_SAFE_NO_PAD.encode(json.as_bytes())
     }
-
 
     pub fn decode(encoded: &str) -> Option<Self> {
         use base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine};

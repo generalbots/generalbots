@@ -1,4 +1,3 @@
-
 use anyhow::{anyhow, Result};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -37,29 +36,24 @@ impl ZitadelClient {
         })
     }
 
-
     pub fn api_url(&self) -> &str {
         &self.config.api_url
     }
-
 
     pub async fn http_get(&self, url: String) -> reqwest::RequestBuilder {
         let token = self.get_access_token().await.unwrap_or_default();
         self.http_client.get(url).bearer_auth(token)
     }
 
-
     pub async fn http_post(&self, url: String) -> reqwest::RequestBuilder {
         let token = self.get_access_token().await.unwrap_or_default();
         self.http_client.post(url).bearer_auth(token)
     }
 
-
     pub async fn http_put(&self, url: String) -> reqwest::RequestBuilder {
         let token = self.get_access_token().await.unwrap_or_default();
         self.http_client.put(url).bearer_auth(token)
     }
-
 
     pub async fn http_patch(&self, url: String) -> reqwest::RequestBuilder {
         let token = self.get_access_token().await.unwrap_or_default();
@@ -67,14 +61,12 @@ impl ZitadelClient {
     }
 
     pub async fn get_access_token(&self) -> Result<String> {
-
         {
             let token = self.access_token.read().await;
             if let Some(t) = token.as_ref() {
                 return Ok(t.clone());
             }
         }
-
 
         let token_url = format!("{}/oauth/v2/token", self.config.api_url);
 
@@ -103,7 +95,6 @@ impl ZitadelClient {
             .and_then(|t| t.as_str())
             .ok_or_else(|| anyhow!("No access token in response"))?
             .to_string();
-
 
         {
             let mut token = self.access_token.write().await;
@@ -217,7 +208,7 @@ impl ZitadelClient {
         let users = data
             .get("result")
             .and_then(|r| r.as_array())
-            .map(|arr| arr.iter().cloned().collect())
+            .cloned()
             .unwrap_or_default();
 
         Ok(users)
@@ -258,7 +249,7 @@ impl ZitadelClient {
         let users = data
             .get("result")
             .and_then(|r| r.as_array())
-            .map(|arr| arr.iter().cloned().collect())
+            .cloned()
             .unwrap_or_default();
 
         Ok(users)
@@ -382,7 +373,7 @@ impl ZitadelClient {
         let members = data
             .get("result")
             .and_then(|r| r.as_array())
-            .map(|arr| arr.iter().cloned().collect())
+            .cloned()
             .unwrap_or_default();
 
         Ok(members)
@@ -449,7 +440,6 @@ impl ZitadelClient {
         permission: &str,
         resource: &str,
     ) -> Result<bool> {
-
         let token = self.get_access_token().await?;
         let url = format!(
             "{}/v2/users/{}/permissions/check",
@@ -474,7 +464,6 @@ impl ZitadelClient {
         if !response.status().is_success() {
             return Ok(false);
         }
-
 
         Ok(true)
     }

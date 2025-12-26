@@ -8,7 +8,7 @@ use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ContentType {
     Video,
     Audio,
@@ -27,73 +27,73 @@ pub enum ContentType {
 impl ContentType {
     pub fn from_extension(ext: &str) -> Self {
         match ext.to_lowercase().as_str() {
-            "mp4" | "webm" | "ogg" | "mov" | "avi" | "mkv" | "m4v" => ContentType::Video,
+            "mp4" | "webm" | "ogg" | "mov" | "avi" | "mkv" | "m4v" => Self::Video,
 
-            "mp3" | "wav" | "flac" | "aac" | "m4a" | "wma" => ContentType::Audio,
+            "mp3" | "wav" | "flac" | "aac" | "m4a" | "wma" => Self::Audio,
 
-            "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "ico" => ContentType::Image,
+            "jpg" | "jpeg" | "png" | "gif" | "webp" | "svg" | "bmp" | "ico" => Self::Image,
 
-            "pptx" | "ppt" | "odp" | "key" => ContentType::Presentation,
+            "pptx" | "ppt" | "odp" | "key" => Self::Presentation,
 
-            "docx" | "doc" | "odt" | "rtf" => ContentType::Document,
+            "docx" | "doc" | "odt" | "rtf" => Self::Document,
 
-            "xlsx" | "xls" | "csv" | "ods" => ContentType::Spreadsheet,
+            "xlsx" | "xls" | "csv" | "ods" => Self::Spreadsheet,
 
-            "pdf" => ContentType::Pdf,
+            "pdf" => Self::Pdf,
 
             "rs" | "py" | "js" | "ts" | "java" | "c" | "cpp" | "h" | "go" | "rb" | "php"
             | "swift" | "kt" | "scala" | "r" | "sql" | "sh" | "bash" | "zsh" | "ps1" | "yaml"
-            | "yml" | "toml" | "json" | "xml" | "bas" | "basic" => ContentType::Code,
+            | "yml" | "toml" | "json" | "xml" | "bas" | "basic" => Self::Code,
 
-            "md" | "markdown" => ContentType::Markdown,
+            "md" | "markdown" => Self::Markdown,
 
-            "html" | "htm" => ContentType::Html,
-            _ => ContentType::Unknown,
+            "html" | "htm" => Self::Html,
+            _ => Self::Unknown,
         }
     }
 
     pub fn from_mime(mime: &str) -> Self {
         if mime.starts_with("video/") {
-            ContentType::Video
+            Self::Video
         } else if mime.starts_with("audio/") {
-            ContentType::Audio
+            Self::Audio
         } else if mime.starts_with("image/") {
-            ContentType::Image
+            Self::Image
         } else if mime == "application/pdf" {
-            ContentType::Pdf
+            Self::Pdf
         } else if mime.contains("presentation") || mime.contains("powerpoint") {
-            ContentType::Presentation
+            Self::Presentation
         } else if mime.contains("spreadsheet") || mime.contains("excel") {
-            ContentType::Spreadsheet
+            Self::Spreadsheet
         } else if mime.contains("document") || mime.contains("word") {
-            ContentType::Document
+            Self::Document
         } else if mime.starts_with("text/") {
             if mime.contains("html") {
-                ContentType::Html
+                Self::Html
             } else if mime.contains("markdown") {
-                ContentType::Markdown
+                Self::Markdown
             } else {
-                ContentType::Code
+                Self::Code
             }
         } else {
-            ContentType::Unknown
+            Self::Unknown
         }
     }
 
     pub fn player_component(&self) -> &'static str {
         match self {
-            ContentType::Video => "video-player",
-            ContentType::Audio => "audio-player",
-            ContentType::Image => "image-viewer",
-            ContentType::Presentation => "presentation-viewer",
-            ContentType::Document => "document-viewer",
-            ContentType::Code => "code-viewer",
-            ContentType::Spreadsheet => "spreadsheet-viewer",
-            ContentType::Pdf => "pdf-viewer",
-            ContentType::Markdown => "markdown-viewer",
-            ContentType::Html => "html-viewer",
-            ContentType::Iframe => "iframe-viewer",
-            ContentType::Unknown => "generic-viewer",
+            Self::Video => "video-player",
+            Self::Audio => "audio-player",
+            Self::Image => "image-viewer",
+            Self::Presentation => "presentation-viewer",
+            Self::Document => "document-viewer",
+            Self::Code => "code-viewer",
+            Self::Spreadsheet => "spreadsheet-viewer",
+            Self::Pdf => "pdf-viewer",
+            Self::Markdown => "markdown-viewer",
+            Self::Html => "html-viewer",
+            Self::Iframe => "iframe-viewer",
+            Self::Unknown => "generic-viewer",
         }
     }
 }
@@ -119,8 +119,10 @@ pub struct PlayOptions {
 
 impl PlayOptions {
     pub fn from_string(options_str: &str) -> Self {
-        let mut opts = PlayOptions::default();
-        opts.controls = true;
+        let mut opts = Self {
+            controls: true,
+            ..Self::default()
+        };
 
         for opt in options_str.split(',').map(|s| s.trim().to_lowercase()) {
             match opt.as_str() {
@@ -179,20 +181,20 @@ pub struct PlayResponse {
 }
 
 pub fn play_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
-    if let Err(e) = play_simple_keyword(state.clone(), user.clone(), engine) {
-        log::error!("Failed to register PLAY keyword: {}", e);
+    if let Err(e) = play_simple_keyword(Arc::clone(&state), user.clone(), engine) {
+        log::error!("Failed to register PLAY keyword: {e}");
     }
-    if let Err(e) = play_with_options_keyword(state.clone(), user.clone(), engine) {
-        log::error!("Failed to register PLAY WITH OPTIONS keyword: {}", e);
+    if let Err(e) = play_with_options_keyword(Arc::clone(&state), user.clone(), engine) {
+        log::error!("Failed to register PLAY WITH OPTIONS keyword: {e}");
     }
-    if let Err(e) = stop_keyword(state.clone(), user.clone(), engine) {
-        log::error!("Failed to register STOP keyword: {}", e);
+    if let Err(e) = stop_keyword(Arc::clone(&state), user.clone(), engine) {
+        log::error!("Failed to register STOP keyword: {e}");
     }
-    if let Err(e) = pause_keyword(state.clone(), user.clone(), engine) {
-        log::error!("Failed to register PAUSE keyword: {}", e);
+    if let Err(e) = pause_keyword(Arc::clone(&state), user.clone(), engine) {
+        log::error!("Failed to register PAUSE keyword: {e}");
     }
-    if let Err(e) = resume_keyword(state.clone(), user.clone(), engine) {
-        log::error!("Failed to register RESUME keyword: {}", e);
+    if let Err(e) = resume_keyword(state, user, engine) {
+        log::error!("Failed to register RESUME keyword: {e}");
     }
 }
 
@@ -202,16 +204,16 @@ fn play_simple_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
-    engine.register_custom_syntax(&["PLAY", "$expr$"], false, move |context, inputs| {
+    engine.register_custom_syntax(["PLAY", "$expr$"], false, move |context, inputs| {
         let source = context
             .eval_expression_tree(&inputs[0])?
             .to_string()
             .trim_matches('"')
             .to_string();
 
-        trace!("PLAY '{}' for session: {}", source, user_clone.id);
+        trace!("PLAY '{source}' for session: {}", user_clone.id);
 
         let state_for_task = Arc::clone(&state_clone);
         let session_id = user_clone.id;
@@ -250,10 +252,10 @@ fn play_with_options_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["PLAY", "$expr$", "WITH", "OPTIONS", "$expr$"],
+        ["PLAY", "$expr$", "WITH", "OPTIONS", "$expr$"],
         false,
         move |context, inputs| {
             let source = context
@@ -270,9 +272,7 @@ fn play_with_options_keyword(
             let options = PlayOptions::from_string(&options_str);
 
             trace!(
-                "PLAY '{}' WITH OPTIONS '{}' for session: {}",
-                source,
-                options_str,
+                "PLAY '{source}' WITH OPTIONS '{options_str}' for session: {}",
                 user_clone.id
             );
 
@@ -314,9 +314,9 @@ fn stop_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
-    engine.register_custom_syntax(&["STOP"], false, move |_context, _inputs| {
+    engine.register_custom_syntax(["STOP"], false, move |_context, _inputs| {
         trace!("STOP playback for session: {}", user_clone.id);
 
         let state_for_task = Arc::clone(&state_clone);
@@ -352,9 +352,9 @@ fn pause_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
-    engine.register_custom_syntax(&["PAUSE"], false, move |_context, _inputs| {
+    engine.register_custom_syntax(["PAUSE"], false, move |_context, _inputs| {
         trace!("PAUSE playback for session: {}", user_clone.id);
 
         let state_for_task = Arc::clone(&state_clone);
@@ -391,9 +391,9 @@ fn resume_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
-    engine.register_custom_syntax(&["RESUME"], false, move |_context, _inputs| {
+    engine.register_custom_syntax(["RESUME"], false, move |_context, _inputs| {
         trace!("RESUME playback for session: {}", user_clone.id);
 
         let state_for_task = Arc::clone(&state_clone);
@@ -432,9 +432,9 @@ async fn execute_play(
 ) -> Result<PlayResponse, String> {
     let content_type = detect_content_type(source);
 
-    let source_url = resolve_source_url(state, session_id, source).await?;
+    let source_url = resolve_source_url(state, session_id, source)?;
 
-    let metadata = get_content_metadata(state, &source_url, &content_type).await?;
+    let metadata = get_content_metadata(state, &source_url, &content_type);
 
     let player_id = Uuid::new_v4();
 
@@ -456,8 +456,8 @@ async fn execute_play(
     send_play_to_client(state, session_id, &response).await?;
 
     info!(
-        "Playing {:?} content: {} for session {}",
-        response.content_type, source, session_id
+        "Playing {:?} content: {source} for session {session_id}",
+        response.content_type
     );
 
     Ok(response)
@@ -495,48 +495,39 @@ pub fn detect_content_type(source: &str) -> ContentType {
     ContentType::Unknown
 }
 
-async fn resolve_source_url(
-    _state: &AppState,
-    session_id: Uuid,
-    source: &str,
-) -> Result<String, String> {
+fn resolve_source_url(_state: &AppState, session_id: Uuid, source: &str) -> Result<String, String> {
     if source.starts_with("http://") || source.starts_with("https://") {
         return Ok(source.to_string());
     }
 
-    if source.starts_with("/") || source.contains(".gbdrive") {
+    if source.starts_with('/') || source.contains(".gbdrive") {
         let file_url = format!(
-            "/api/drive/file/{}?session={}",
-            urlencoding::encode(source),
-            session_id
+            "/api/drive/file/{}?session={session_id}",
+            urlencoding::encode(source)
         );
         return Ok(file_url);
     }
 
     let file_url = format!(
-        "/api/drive/file/{}?session={}",
-        urlencoding::encode(source),
-        session_id
+        "/api/drive/file/{}?session={session_id}",
+        urlencoding::encode(source)
     );
 
     Ok(file_url)
 }
 
-async fn get_content_metadata(
+fn get_content_metadata(
     _state: &AppState,
     source_url: &str,
     content_type: &ContentType,
-) -> Result<HashMap<String, String>, String> {
+) -> HashMap<String, String> {
     let mut metadata = HashMap::new();
 
     metadata.insert("source".to_string(), source_url.to_string());
-    metadata.insert("type".to_string(), format!("{:?}", content_type));
+    metadata.insert("type".to_string(), format!("{content_type:?}"));
 
     match content_type {
-        ContentType::Video => {
-            metadata.insert("player".to_string(), "html5".to_string());
-        }
-        ContentType::Audio => {
+        ContentType::Video | ContentType::Audio => {
             metadata.insert("player".to_string(), "html5".to_string());
         }
         ContentType::Image => {
@@ -557,7 +548,7 @@ async fn get_content_metadata(
         _ => {}
     }
 
-    Ok(metadata)
+    metadata
 }
 
 pub fn extract_title_from_source(source: &str) -> String {
@@ -580,7 +571,7 @@ async fn send_play_to_client(
     });
 
     let message_str =
-        serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
+        serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {e}"))?;
 
     let bot_response = crate::shared::models::BotResponse {
         bot_id: String::new(),
@@ -601,7 +592,7 @@ async fn send_play_to_client(
         .web_adapter
         .send_message_to_session(&session_id.to_string(), bot_response)
         .await
-        .map_err(|e| format!("Failed to send to client: {}", e))?;
+        .map_err(|e| format!("Failed to send to client: {e}"))?;
 
     Ok(())
 }
@@ -617,7 +608,7 @@ async fn send_player_command(
     });
 
     let message_str =
-        serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {}", e))?;
+        serde_json::to_string(&message).map_err(|e| format!("Failed to serialize: {e}"))?;
 
     let _ = state
         .web_adapter

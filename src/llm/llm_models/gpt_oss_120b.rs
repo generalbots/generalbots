@@ -2,6 +2,12 @@
 use super::ModelHandler;
 #[derive(Debug)]
 pub struct GptOss120bHandler {}
+impl Default for GptOss120bHandler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl GptOss120bHandler {
     pub fn new() -> Self {
         Self {}

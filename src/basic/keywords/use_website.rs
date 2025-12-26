@@ -6,16 +6,13 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["USE", "WEBSITE", "$expr$"],
+            ["USE", "WEBSITE", "$expr$"],
             false,
             move |context, inputs| {
                 let url = context.eval_expression_tree(&inputs[0])?;
@@ -27,7 +24,6 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     user_clone.id
                 );
 
-
                 let is_valid = url_str.starts_with("http://") || url_str.starts_with("https://");
                 if !is_valid {
                     return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
@@ -38,7 +34,7 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let url_for_task = url_str.clone();
+                let url_for_task = url_str;
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
@@ -89,8 +85,6 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-
-
 async fn associate_website_with_session(
     state: &AppState,
     user: &UserSession,
@@ -100,9 +94,7 @@ async fn associate_website_with_session(
 
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
-
     let collection_name = format!("website_{}", sanitize_url_for_collection(url));
-
 
     let website_status = check_website_crawl_status(&mut conn, &user.bot_id, url)?;
 
@@ -114,11 +106,9 @@ async fn associate_website_with_session(
             ));
         }
         WebsiteCrawlStatus::Pending => {
-
             info!("Website {} is pending crawl, associating anyway", url);
         }
         WebsiteCrawlStatus::Crawled => {
-
             info!("Website {} is already crawled and ready", url);
         }
         WebsiteCrawlStatus::Failed => {
@@ -129,7 +119,6 @@ async fn associate_website_with_session(
         }
     }
 
-
     add_website_to_session(&mut conn, &user.id, &user.bot_id, url, &collection_name)?;
 
     Ok(format!(
@@ -138,14 +127,12 @@ async fn associate_website_with_session(
     ))
 }
 
-
 enum WebsiteCrawlStatus {
     NotRegistered,
     Pending,
     Crawled,
     Failed,
 }
-
 
 fn check_website_crawl_status(
     conn: &mut PgConnection,
@@ -176,14 +163,11 @@ fn check_website_crawl_status(
     }
 }
 
-
-
 pub fn register_website_for_crawling(
     conn: &mut PgConnection,
     bot_id: &Uuid,
     url: &str,
 ) -> Result<(), String> {
-
     let expires_policy = "1d";
 
     let query = diesel::sql_query(
@@ -207,15 +191,12 @@ pub fn register_website_for_crawling(
     Ok(())
 }
 
-
-
 pub fn execute_use_website_preprocessing(
     conn: &mut PgConnection,
     url: &str,
     bot_id: Uuid,
 ) -> Result<serde_json::Value, Box<dyn std::error::Error>> {
     trace!("Preprocessing USE_WEBSITE: {}, bot_id: {:?}", url, bot_id);
-
 
     if !url.starts_with("http://") && !url.starts_with("https://") {
         return Err(format!(
@@ -224,7 +205,6 @@ pub fn execute_use_website_preprocessing(
         )
         .into());
     }
-
 
     register_website_for_crawling(conn, &bot_id, url)?;
 
@@ -236,7 +216,6 @@ pub fn execute_use_website_preprocessing(
     }))
 }
 
-
 fn add_website_to_session(
     conn: &mut PgConnection,
     session_id: &Uuid,
@@ -244,7 +223,6 @@ fn add_website_to_session(
     url: &str,
     collection_name: &str,
 ) -> Result<(), String> {
-
     let assoc_id = Uuid::new_v4();
 
     diesel::sql_query(
@@ -270,13 +248,12 @@ fn add_website_to_session(
     Ok(())
 }
 
-
 pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
-        .register_custom_syntax(&["CLEAR", "WEBSITES"], true, move |_context, _inputs| {
+        .register_custom_syntax(["CLEAR", "WEBSITES"], true, move |_context, _inputs| {
             info!(
                 "CLEAR WEBSITES keyword executed for session: {}",
                 user_clone.id
@@ -311,7 +288,6 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
         .unwrap();
 }
 
-
 fn clear_all_websites(
     conn_pool: crate::shared::utils::DbPool,
     session_id: Uuid,
@@ -331,7 +307,6 @@ fn clear_all_websites(
 
     Ok(rows_affected)
 }
-
 
 pub fn get_active_websites_for_session(
     conn_pool: &crate::shared::utils::DbPool,
@@ -365,15 +340,29 @@ pub fn get_active_websites_for_session(
         .collect())
 }
 
-
 fn sanitize_url_for_collection(url: &str) -> String {
     url.replace("http://", "")
         .replace("https://", "")
-        .replace('/', "_")
-        .replace(':', "_")
-        .replace('.', "_")
+        .replace(['/', ':', '.'], "_")
         .chars()
         .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
         .collect::<String>()
         .to_lowercase()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_url_sanitization() {
+        assert_eq!(
+            sanitize_url_for_collection("https://docs.example.com/path"),
+            "docs_example_com_path"
+        );
+        assert_eq!(
+            sanitize_url_for_collection("http://test.site:8080"),
+            "test_site_8080"
+        );
+    }
 }

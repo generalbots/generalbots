@@ -1,63 +1,43 @@
-
-
-
-
-
 use anyhow::Result;
 use rcgen::{
     BasicConstraints, CertificateParams, DistinguishedName, DnType, IsCa, Issuer, KeyPair, SanType,
 };
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
 use std::fs;
 use std::path::PathBuf;
 use time::{Duration, OffsetDateTime};
 use tracing::{debug, info, warn};
 
-
 #[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct CaConfig {
-
     pub ca_cert_path: PathBuf,
-
 
     pub ca_key_path: PathBuf,
 
-
     pub intermediate_cert_path: Option<PathBuf>,
-
 
     pub intermediate_key_path: Option<PathBuf>,
 
-
     pub validity_days: i64,
-
 
     pub key_size: usize,
 
-
     pub organization: String,
-
 
     pub country: String,
 
-
     pub state: String,
-
 
     pub locality: String,
 
-
     pub external_ca_enabled: bool,
-
 
     pub external_ca_url: Option<String>,
 
-
     pub external_ca_api_key: Option<String>,
 
-
     pub crl_path: Option<PathBuf>,
-
 
     pub ocsp_url: Option<String>,
 }
@@ -84,7 +64,6 @@ impl Default for CaConfig {
     }
 }
 
-
 pub struct CaManager {
     config: CaConfig,
     ca_params: Option<CertificateParams>,
@@ -98,13 +77,14 @@ impl std::fmt::Debug for CaManager {
         f.debug_struct("CaManager")
             .field("config", &self.config)
             .field("ca_params", &self.ca_params.is_some())
+            .field("ca_key", &self.ca_key.is_some())
             .field("intermediate_params", &self.intermediate_params.is_some())
+            .field("intermediate_key", &self.intermediate_key.is_some())
             .finish()
     }
 }
 
 impl CaManager {
-
     pub fn new(config: CaConfig) -> Result<Self> {
         let mut manager = Self {
             config,
@@ -114,22 +94,17 @@ impl CaManager {
             intermediate_key: None,
         };
 
-
         manager.load_ca()?;
 
         Ok(manager)
     }
 
-
     pub fn init_ca(&mut self) -> Result<()> {
         info!("Initializing new Certificate Authority");
 
-
         self.create_ca_directories()?;
 
-
         self.generate_root_ca()?;
-
 
         if self.config.intermediate_cert_path.is_some() {
             self.generate_intermediate_ca()?;
@@ -139,14 +114,12 @@ impl CaManager {
         Ok(())
     }
 
-
     fn load_ca(&mut self) -> Result<()> {
         if self.config.ca_cert_path.exists() && self.config.ca_key_path.exists() {
             debug!("Loading existing CA from {:?}", self.config.ca_cert_path);
 
             let key_pem = fs::read_to_string(&self.config.ca_key_path)?;
             let key_pair = KeyPair::from_pem(&key_pem)?;
-
 
             let mut params = CertificateParams::default();
             params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
@@ -160,7 +133,6 @@ impl CaManager {
             self.ca_params = Some(params);
             self.ca_key = Some(key_pair);
 
-
             if let (Some(cert_path), Some(key_path)) = (
                 &self.config.intermediate_cert_path,
                 &self.config.intermediate_key_path,
@@ -168,7 +140,6 @@ impl CaManager {
                 if cert_path.exists() && key_path.exists() {
                     let key_pem = fs::read_to_string(key_path)?;
                     let key_pair = KeyPair::from_pem(&key_pem)?;
-
 
                     let mut params = CertificateParams::default();
                     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
@@ -192,13 +163,10 @@ impl CaManager {
         Ok(())
     }
 
-
     fn generate_root_ca(&mut self) -> Result<()> {
         let mut params = CertificateParams::default();
 
-
         params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
-
 
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
@@ -208,17 +176,13 @@ impl CaManager {
         dn.push(DnType::CommonName, "BotServer Root CA");
         params.distinguished_name = dn;
 
-
         params.not_before = OffsetDateTime::now_utc();
         params.not_after =
             OffsetDateTime::now_utc() + Duration::days(self.config.validity_days * 2);
 
-
         let key_pair = KeyPair::generate()?;
 
-
         let cert = params.self_signed(&key_pair)?;
-
 
         fs::write(&self.config.ca_cert_path, cert.pem())?;
         fs::write(&self.config.ca_key_path, key_pair.serialize_pem())?;
@@ -229,7 +193,6 @@ impl CaManager {
         info!("Generated root CA certificate");
         Ok(())
     }
-
 
     fn generate_intermediate_ca(&mut self) -> Result<()> {
         let ca_params = self
@@ -243,9 +206,7 @@ impl CaManager {
 
         let mut params = CertificateParams::default();
 
-
         params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
-
 
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
@@ -255,19 +216,14 @@ impl CaManager {
         dn.push(DnType::CommonName, "BotServer Intermediate CA");
         params.distinguished_name = dn;
 
-
         params.not_before = OffsetDateTime::now_utc();
         params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days);
 
-
         let key_pair = KeyPair::generate()?;
-
 
         let issuer = Issuer::from_params(ca_params, ca_key);
 
-
         let cert = params.signed_by(&key_pair, &issuer)?;
-
 
         if let (Some(cert_path), Some(key_path)) = (
             &self.config.intermediate_cert_path,
@@ -283,7 +239,6 @@ impl CaManager {
         info!("Generated intermediate CA certificate");
         Ok(())
     }
-
 
     pub fn issue_certificate(
         &self,
@@ -302,7 +257,6 @@ impl CaManager {
 
         let mut params = CertificateParams::default();
 
-
         let mut dn = DistinguishedName::new();
         dn.push(DnType::CountryName, &self.config.country);
         dn.push(DnType::StateOrProvinceName, &self.config.state);
@@ -310,7 +264,6 @@ impl CaManager {
         dn.push(DnType::OrganizationName, &self.config.organization);
         dn.push(DnType::CommonName, common_name);
         params.distinguished_name = dn;
-
 
         for san in san_names {
             if san.parse::<std::net::IpAddr>().is_ok() {
@@ -324,10 +277,8 @@ impl CaManager {
             }
         }
 
-
         params.not_before = OffsetDateTime::now_utc();
         params.not_after = OffsetDateTime::now_utc() + Duration::days(self.config.validity_days);
-
 
         if is_client {
             params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ClientAuth];
@@ -335,12 +286,9 @@ impl CaManager {
             params.extended_key_usages = vec![rcgen::ExtendedKeyUsagePurpose::ServerAuth];
         }
 
-
         let key_pair = KeyPair::generate()?;
 
-
         let issuer = Issuer::from_params(signing_params, signing_key);
-
 
         let cert = params.signed_by(&key_pair, &issuer)?;
         let cert_pem = cert.pem();
@@ -348,8 +296,6 @@ impl CaManager {
 
         Ok((cert_pem, key_pem))
     }
-
-
 
     pub fn issue_service_certificates(&self) -> Result<()> {
         let services = vec![
@@ -372,7 +318,6 @@ impl CaManager {
         Ok(())
     }
 
-
     pub fn issue_service_certificate(
         &self,
         service_name: &str,
@@ -381,16 +326,14 @@ impl CaManager {
         let cert_dir = PathBuf::from(format!("certs/{}", service_name));
         fs::create_dir_all(&cert_dir)?;
 
-
         let (cert_pem, key_pem) = self.issue_certificate(
             &format!("{}.botserver.local", service_name),
-            san_names.iter().map(|s| s.to_string()).collect(),
+            san_names.iter().map(|s| (*s).to_string()).collect(),
             false,
         )?;
 
         fs::write(cert_dir.join("server.crt"), cert_pem)?;
         fs::write(cert_dir.join("server.key"), key_pem)?;
-
 
         let (client_cert_pem, client_key_pem) = self.issue_certificate(
             &format!("{}-client.botserver.local", service_name),
@@ -401,7 +344,6 @@ impl CaManager {
         fs::write(cert_dir.join("client.crt"), client_cert_pem)?;
         fs::write(cert_dir.join("client.key"), client_key_pem)?;
 
-
         if let Ok(ca_cert) = fs::read_to_string(&self.config.ca_cert_path) {
             fs::write(cert_dir.join("ca.crt"), ca_cert)?;
         }
@@ -409,8 +351,6 @@ impl CaManager {
         info!("Issued certificates for service: {}", service_name);
         Ok(())
     }
-
-
 
     fn create_ca_directories(&self) -> Result<()> {
         let ca_dir = self
@@ -497,17 +437,18 @@ impl CaManager {
         let crl_path = self.config.ca_cert_path.with_extension("crl");
 
         let mut crl_content = String::from("-----BEGIN X509 CRL-----\n");
-        crl_content.push_str(&format!(
-            "# CRL Generated: {}\n",
+        let _ = writeln!(
+            crl_content,
+            "# CRL Generated: {}",
             OffsetDateTime::now_utc().format(&time::format_description::well_known::Rfc3339)?
-        ));
-        crl_content.push_str(&format!("# Issuer: {}\n", self.config.organization));
+        );
+        let _ = writeln!(crl_content, "# Issuer: {}", self.config.organization);
 
         if revoked_path.exists() {
             let revoked = fs::read_to_string(&revoked_path)?;
             for line in revoked.lines() {
                 if !line.is_empty() {
-                    crl_content.push_str(&format!("# Revoked: {}\n", line));
+                    let _ = writeln!(crl_content, "# Revoked: {}", line);
                 }
             }
         }
@@ -525,12 +466,11 @@ impl CaManager {
             return Ok(());
         }
 
-        let (url, api_key) = match (
+        let (Some(url), Some(api_key)) = (
             &self.config.external_ca_url,
             &self.config.external_ca_api_key,
-        ) {
-            (Some(u), Some(k)) => (u, k),
-            _ => return Ok(()),
+        ) else {
+            return Ok(());
         };
 
         info!("Syncing with external CA at {}", url);
@@ -554,7 +494,6 @@ impl CaManager {
     }
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CertificateRequest {
     pub common_name: String,
@@ -564,7 +503,6 @@ pub struct CertificateRequest {
     pub key_size: Option<usize>,
 }
 
-
 #[derive(Debug, Serialize, Deserialize)]
 pub struct CertificateResponse {
     pub certificate: String,
@@ -572,4 +510,87 @@ pub struct CertificateResponse {
     pub ca_certificate: String,
     pub expires_at: String,
     pub serial_number: String,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use tempfile::TempDir;
+
+    #[test]
+    fn test_ca_config_default() {
+        let config = CaConfig::default();
+        assert_eq!(config.validity_days, 365);
+        assert_eq!(config.key_size, 4096);
+        assert!(!config.external_ca_enabled);
+        assert_eq!(config.country, "BR");
+        assert_eq!(config.organization, "BotServer Internal CA");
+    }
+
+    #[test]
+    fn test_ca_config_paths() {
+        let config = CaConfig::default();
+        assert_eq!(config.ca_cert_path, PathBuf::from("certs/ca/ca.crt"));
+        assert_eq!(config.ca_key_path, PathBuf::from("certs/ca/ca.key"));
+        assert!(config.intermediate_cert_path.is_some());
+        assert!(config.intermediate_key_path.is_some());
+    }
+
+    #[test]
+    fn test_ca_manager_creation() {
+        let temp_dir = TempDir::new().unwrap();
+        let mut config = CaConfig::default();
+        config.ca_cert_path = temp_dir.path().join("ca.crt");
+        config.ca_key_path = temp_dir.path().join("ca.key");
+        config.intermediate_cert_path = Some(temp_dir.path().join("intermediate.crt"));
+        config.intermediate_key_path = Some(temp_dir.path().join("intermediate.key"));
+        config.crl_path = Some(temp_dir.path().join("crl.pem"));
+
+        let manager = CaManager::new(config);
+        assert!(manager.is_ok());
+    }
+
+    #[test]
+    fn test_certificate_request_structure() {
+        let request = CertificateRequest {
+            common_name: "test.example.com".to_string(),
+            san_names: vec!["alt.example.com".to_string()],
+            is_client: false,
+            validity_days: Some(365),
+            key_size: Some(2048),
+        };
+
+        assert_eq!(request.common_name, "test.example.com");
+        assert_eq!(request.san_names.len(), 1);
+        assert!(!request.is_client);
+    }
+
+    #[test]
+    fn test_certificate_response_structure() {
+        let response = CertificateResponse {
+            certificate: "-----BEGIN CERTIFICATE-----".to_string(),
+            private_key: "-----BEGIN PRIVATE KEY-----".to_string(),
+            ca_certificate: "-----BEGIN CERTIFICATE-----".to_string(),
+            expires_at: "2026-01-01T00:00:00Z".to_string(),
+            serial_number: "1234567890".to_string(),
+        };
+
+        assert!(response.certificate.starts_with("-----BEGIN"));
+        assert!(response.private_key.starts_with("-----BEGIN"));
+        assert!(!response.serial_number.is_empty());
+    }
+
+    #[test]
+    fn test_ca_config_external_ca() {
+        let mut config = CaConfig::default();
+        config.external_ca_enabled = true;
+        config.external_ca_url = Some("https://ca.example.com".to_string());
+        config.external_ca_api_key = Some("secret-key".to_string());
+
+        assert!(config.external_ca_enabled);
+        assert_eq!(
+            config.external_ca_url,
+            Some("https://ca.example.com".to_string())
+        );
+    }
 }

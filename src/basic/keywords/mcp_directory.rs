@@ -1,40 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::Utc;
 use log::{debug, info};
 use serde::{Deserialize, Serialize};
@@ -47,10 +10,8 @@ use super::mcp_client::{
     McpServerStatus, McpServerType,
 };
 
-
 #[derive(Debug, Clone)]
 pub struct McpCsvRow {
-
     pub name: String,
 
     pub connection_type: String,
@@ -72,47 +33,35 @@ pub struct McpCsvRow {
     pub requires_approval: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServerConfig {
-
     pub name: String,
-
 
     #[serde(default)]
     pub description: String,
 
-
     #[serde(rename = "type")]
     pub server_type: String,
-
 
     #[serde(default = "default_enabled")]
     pub enabled: bool,
 
-
     pub connection: McpConnectionConfig,
-
 
     #[serde(default)]
     pub auth: Option<McpAuthConfig>,
 
-
     #[serde(default)]
     pub tools: Vec<McpToolConfig>,
-
 
     #[serde(default)]
     pub env: HashMap<String, String>,
 
-
     #[serde(default)]
     pub tags: Vec<String>,
 
-
     #[serde(default)]
     pub risk_level: String,
-
 
     #[serde(default)]
     pub requires_approval: bool,
@@ -122,14 +71,11 @@ fn default_enabled() -> bool {
     true
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum McpConnectionConfig {
-
     #[serde(rename = "stdio")]
     Stdio {
-
         command: String,
 
         #[serde(default)]
@@ -139,10 +85,8 @@ pub enum McpConnectionConfig {
         cwd: Option<String>,
     },
 
-
     #[serde(rename = "http")]
     Http {
-
         url: String,
 
         #[serde(default = "default_timeout")]
@@ -152,59 +96,41 @@ pub enum McpConnectionConfig {
         headers: HashMap<String, String>,
     },
 
-
     #[serde(rename = "websocket")]
     WebSocket {
-
         url: String,
 
         #[serde(default = "default_timeout")]
         timeout: u32,
     },
 
-
     #[serde(rename = "tcp")]
-    Tcp {
-
-        host: String,
-
-        port: u16,
-    },
+    Tcp { host: String, port: u16 },
 }
 
 fn default_timeout() -> u32 {
     30
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum McpAuthConfig {
-
     #[serde(rename = "none")]
     None,
 
-
     #[serde(rename = "api_key")]
     ApiKey {
-
         #[serde(default = "default_api_key_header")]
         header: String,
 
         key_env: String,
     },
 
-
     #[serde(rename = "bearer")]
-    Bearer {
-
-        token_env: String,
-    },
-
+    Bearer { token_env: String },
 
     #[serde(rename = "basic")]
     Basic {
-
         username_env: String,
 
         password_env: String,
@@ -215,78 +141,57 @@ fn default_api_key_header() -> String {
     "X-API-Key".to_string()
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpToolConfig {
-
     pub name: String,
-
 
     #[serde(default)]
     pub description: String,
 
-
     #[serde(default)]
     pub input_schema: Option<serde_json::Value>,
-
 
     #[serde(default)]
     pub output_schema: Option<serde_json::Value>,
 
-
     #[serde(default)]
     pub risk_level: Option<String>,
 
-
     #[serde(default)]
     pub requires_approval: bool,
-
 
     #[serde(default)]
     pub rate_limit: Option<u32>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct McpLoadResult {
-
     pub servers: Vec<McpServer>,
-
 
     pub errors: Vec<McpLoadError>,
 
-
     pub lines_processed: usize,
-
 
     pub file_path: PathBuf,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct McpLoadError {
-
     pub line: usize,
 
-
     pub message: String,
-
 
     pub recoverable: bool,
 }
 
-
 #[derive(Debug)]
 pub struct McpCsvLoader {
-
     work_path: String,
-
 
     bot_id: String,
 }
 
 impl McpCsvLoader {
-
     pub fn new(work_path: &str, bot_id: &str) -> Self {
         Self {
             work_path: work_path.to_string(),
@@ -294,23 +199,20 @@ impl McpCsvLoader {
         }
     }
 
-
     pub fn get_csv_path(&self) -> PathBuf {
         PathBuf::from(&self.work_path)
             .join(format!("{}.gbai", self.bot_id))
             .join("mcp.csv")
     }
 
-
     pub fn csv_exists(&self) -> bool {
         self.get_csv_path().exists()
     }
 
-
     pub fn load(&self) -> McpLoadResult {
         let csv_path = self.get_csv_path();
 
-        info!("Loading MCP servers from: {:?}", csv_path);
+        info!("Loading MCP servers from: {}", csv_path.display());
 
         let mut result = McpLoadResult {
             servers: Vec::new(),
@@ -320,7 +222,7 @@ impl McpCsvLoader {
         };
 
         if !csv_path.exists() {
-            debug!("MCP CSV file does not exist: {:?}", csv_path);
+            debug!("MCP CSV file does not exist: {}", csv_path.display());
             return result;
         }
 
@@ -336,14 +238,11 @@ impl McpCsvLoader {
             }
         };
 
-
         let mut lines = content.lines().enumerate();
-
 
         if let Some((_, header)) = lines.next() {
             let header_lower = header.to_lowercase();
             if !header_lower.starts_with("name,") && !header_lower.contains(",type,") {
-
                 if let Some(server) = self.parse_csv_line(1, header, &mut result.errors) {
                     result.servers.push(server);
                 }
@@ -351,11 +250,9 @@ impl McpCsvLoader {
             result.lines_processed += 1;
         }
 
-
         for (line_num, line) in lines {
             let line_number = line_num + 1;
             result.lines_processed += 1;
-
 
             let trimmed = line.trim();
             if trimmed.is_empty() || trimmed.starts_with('#') || trimmed.starts_with("//") {
@@ -377,15 +274,13 @@ impl McpCsvLoader {
         result
     }
 
-
     fn parse_csv_line(
         &self,
         line_num: usize,
         line: &str,
         errors: &mut Vec<McpLoadError>,
     ) -> Option<McpServer> {
-
-        let columns = self.parse_csv_columns(line);
+        let columns = Self::parse_csv_columns(line);
 
         if columns.len() < 3 {
             errors.push(McpLoadError {
@@ -449,14 +344,12 @@ impl McpCsvLoader {
             return None;
         }
 
-
         let connection = match conn_type.as_str() {
             "stdio" => {
                 let args_vec: Vec<String> = if args.is_empty() {
                     Vec::new()
                 } else {
-
-                    self.parse_args(&args)
+                    Self::parse_args(&args)
                 };
                 McpConnection {
                     connection_type: ConnectionType::Stdio,
@@ -490,9 +383,11 @@ impl McpCsvLoader {
                 tls_config: None,
             },
             "tcp" => {
-
                 let parts: Vec<&str> = command.split(':').collect();
-                let host = parts.get(0).unwrap_or(&"localhost").to_string();
+                let host = parts
+                    .first()
+                    .map(|s| (*s).to_string())
+                    .unwrap_or_else(|| "localhost".to_string());
                 let port: u16 = parts.get(1).and_then(|p| p.parse().ok()).unwrap_or(9000);
                 McpConnection {
                     connection_type: ConnectionType::Tcp,
@@ -518,7 +413,6 @@ impl McpCsvLoader {
             }
         };
 
-
         let auth = match (auth_type.as_deref(), auth_env.as_ref()) {
             (Some("api_key"), Some(env)) => {
                 use super::mcp_client::{McpAuthType, McpCredentials};
@@ -542,9 +436,7 @@ impl McpCsvLoader {
             _ => McpAuth::default(),
         };
 
-
-        let server_type = self.infer_server_type(&name, &conn_type, &command);
-
+        let server_type = Self::infer_server_type(&name, &conn_type, &command);
 
         let status = if enabled {
             McpServerStatus::Active
@@ -583,8 +475,7 @@ impl McpCsvLoader {
         })
     }
 
-
-    fn parse_csv_columns(&self, line: &str) -> Vec<String> {
+    fn parse_csv_columns(line: &str) -> Vec<String> {
         let mut columns = Vec::new();
         let mut current = String::new();
         let mut in_quotes = false;
@@ -596,7 +487,6 @@ impl McpCsvLoader {
                     in_quotes = true;
                 }
                 '"' if in_quotes => {
-
                     if chars.peek() == Some(&'"') {
                         chars.next();
                         current.push('"');
@@ -618,8 +508,7 @@ impl McpCsvLoader {
         columns
     }
 
-
-    fn parse_args(&self, args: &str) -> Vec<String> {
+    fn parse_args(args: &str) -> Vec<String> {
         let mut result = Vec::new();
         let mut current = String::new();
         let mut in_quotes = false;
@@ -652,8 +541,7 @@ impl McpCsvLoader {
         result
     }
 
-
-    fn infer_server_type(&self, name: &str, conn_type: &str, command: &str) -> McpServerType {
+    fn infer_server_type(name: &str, conn_type: &str, command: &str) -> McpServerType {
         let name_lower = name.to_lowercase();
         let cmd_lower = command.to_lowercase();
 
@@ -695,16 +583,13 @@ impl McpCsvLoader {
         }
     }
 
-
     pub fn load_server(&self, name: &str) -> Option<McpServer> {
         let result = self.load();
         result.servers.into_iter().find(|s| s.name == name)
     }
 
-
     pub fn create_example_csv(&self) -> std::io::Result<PathBuf> {
         let csv_path = self.get_csv_path();
-
 
         if let Some(parent) = csv_path.parent() {
             std::fs::create_dir_all(parent)?;
@@ -727,15 +612,13 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
 "#;
 
         std::fs::write(&csv_path, example_content)?;
-        info!("Created example mcp.csv at {:?}", csv_path);
+        info!("Created example mcp.csv at {}", csv_path.display());
 
         Ok(csv_path)
     }
 
-
     pub fn add_server(&self, row: &McpCsvRow) -> std::io::Result<()> {
         let csv_path = self.get_csv_path();
-
 
         if !csv_path.exists() {
             if let Some(parent) = csv_path.parent() {
@@ -744,14 +627,13 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
             std::fs::write(&csv_path, "name,type,command,args,description,enabled,auth_type,auth_env,risk_level,requires_approval\n")?;
         }
 
-
         let line = format!(
             "{},{},{},{},{},{},{},{},{},{}\n",
-            self.escape_csv(&row.name),
-            self.escape_csv(&row.connection_type),
-            self.escape_csv(&row.command),
-            self.escape_csv(&row.args),
-            self.escape_csv(&row.description),
+            Self::escape_csv(&row.name),
+            Self::escape_csv(&row.connection_type),
+            Self::escape_csv(&row.command),
+            Self::escape_csv(&row.args),
+            Self::escape_csv(&row.description),
             row.enabled,
             row.auth_type.as_deref().unwrap_or(""),
             row.auth_env.as_deref().unwrap_or(""),
@@ -759,15 +641,13 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
             row.requires_approval
         );
 
-
         use std::io::Write;
         let mut file = std::fs::OpenOptions::new().append(true).open(&csv_path)?;
         file.write_all(line.as_bytes())?;
 
-        info!("Added MCP server '{}' to {:?}", row.name, csv_path);
+        info!("Added MCP server '{}' to {}", row.name, csv_path.display());
         Ok(())
     }
-
 
     pub fn remove_server(&self, name: &str) -> std::io::Result<bool> {
         let csv_path = self.get_csv_path();
@@ -787,7 +667,7 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
                 continue;
             }
 
-            let columns = self.parse_csv_columns(line);
+            let columns = Self::parse_csv_columns(line);
             if columns.first().map(|s| s.trim()) == Some(name) {
                 found = true;
                 continue;
@@ -798,14 +678,13 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
 
         if found {
             std::fs::write(&csv_path, new_lines.join("\n") + "\n")?;
-            info!("Removed MCP server '{}' from {:?}", name, csv_path);
+            info!("Removed MCP server '{}' from {}", name, csv_path.display());
         }
 
         Ok(found)
     }
 
-
-    fn escape_csv(&self, value: &str) -> String {
+    fn escape_csv(value: &str) -> String {
         if value.contains(',') || value.contains('"') || value.contains('\n') {
             format!("\"{}\"", value.replace('"', "\"\""))
         } else {
@@ -813,7 +692,6 @@ filesystem,stdio,npx,"-y @modelcontextprotocol/server-filesystem /data",Access l
         }
     }
 }
-
 
 pub fn generate_example_configs() -> Vec<McpServerConfig> {
     vec![
@@ -923,7 +801,6 @@ pub fn generate_example_configs() -> Vec<McpServerConfig> {
         },
     ]
 }
-
 
 pub type McpDirectoryScanner = McpCsvLoader;
 pub type McpDirectoryScanResult = McpLoadResult;

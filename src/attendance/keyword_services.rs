@@ -77,6 +77,7 @@ impl KeywordParser {
         let config = self.config.read().await;
 
         if !config.enabled {
+            drop(config);
             return None;
         }
 
@@ -101,7 +102,7 @@ impl KeywordParser {
         }
 
         let command_word = parts[0];
-        let args: Vec<String> = parts[1..].iter().map(|s| s.to_string()).collect();
+        let args: Vec<String> = parts[1..].iter().map(|s| (*s).to_string()).collect();
 
         let resolved_command = if let Some(alias) = config.aliases.get(command_word) {
             alias.as_str()
@@ -187,7 +188,7 @@ impl AttendanceService {
             AttendanceCommand::Resume => self.handle_resume(user_id, &parsed).await,
             AttendanceCommand::Status => self.handle_status(user_id).await,
             AttendanceCommand::Report => self.handle_report(user_id, &parsed).await,
-            AttendanceCommand::Override => self.handle_override(user_id, &parsed).await,
+            AttendanceCommand::Override => self.handle_override(user_id, &parsed),
         }
     }
 
@@ -200,6 +201,7 @@ impl AttendanceService {
 
         if let Some(last_record) = records.iter().rev().find(|r| r.user_id == user_id) {
             if matches!(last_record.command, AttendanceCommand::CheckIn) {
+                drop(records);
                 return Ok(AttendanceResponse::Error {
                     message: "Already checked in".to_string(),
                 });
@@ -221,6 +223,7 @@ impl AttendanceService {
 
         let time = Local::now().format("%H:%M").to_string();
         records.push(record);
+        drop(records);
 
         Ok(AttendanceResponse::Success {
             message: format!("Checked in at {}", time),
@@ -242,6 +245,7 @@ impl AttendanceService {
             .map(|r| r.timestamp);
 
         if check_in_time.is_none() {
+            drop(records);
             return Ok(AttendanceResponse::Error {
                 message: "Not checked in".to_string(),
             });
@@ -303,6 +307,7 @@ impl AttendanceService {
 
         let time = Local::now().format("%H:%M").to_string();
         records.push(record);
+        drop(records);
 
         Ok(AttendanceResponse::Success {
             message: format!("Break started at {}", time),
@@ -342,6 +347,7 @@ impl AttendanceService {
         let minutes = duration.num_minutes();
 
         records.push(record);
+        drop(records);
 
         Ok(AttendanceResponse::Success {
             message: format!("Resumed work. Break duration: {} minutes", minutes),
@@ -392,13 +398,15 @@ impl AttendanceService {
         let user_records: Vec<_> = records.iter().filter(|r| r.user_id == user_id).collect();
 
         if user_records.is_empty() {
+            drop(records);
             return Ok(AttendanceResponse::Report {
                 data: "No attendance records found".to_string(),
             });
         }
 
+        use std::fmt::Write;
         let mut report = String::new();
-        report.push_str(&format!("Attendance Report for User: {}\n", user_id));
+        let _ = writeln!(report, "Attendance Report for User: {}", user_id);
         report.push_str("========================\n");
 
         for record in user_records {
@@ -410,22 +418,20 @@ impl AttendanceService {
                 _ => "Other",
             };
 
-            report.push_str(&format!(
-                "{}: {} at {}\n",
+            let _ = writeln!(
+                report,
+                "{}: {} at {}",
                 record.timestamp.format("%Y-%m-%d %H:%M:%S"),
                 action,
                 record.location.as_deref().unwrap_or("N/A")
-            ));
+            );
         }
+        drop(records);
 
         Ok(AttendanceResponse::Report { data: report })
     }
 
-    async fn handle_override(
-        &self,
-        user_id: &str,
-        parsed: &ParsedCommand,
-    ) -> Result<AttendanceResponse> {
+    fn handle_override(&self, user_id: &str, parsed: &ParsedCommand) -> Result<AttendanceResponse> {
         if parsed.args.len() < 2 {
             return Ok(AttendanceResponse::Error {
                 message: "Override requires target user and action".to_string(),
@@ -480,7 +486,7 @@ impl AttendanceService {
                 }
                 AttendanceCommand::CheckOut => {
                     if let Some(checkin) = last_checkin {
-                        total_duration = total_duration + (record.timestamp - checkin);
+                        total_duration += record.timestamp - checkin;
                         last_checkin = None;
                     }
                 }
@@ -488,8 +494,10 @@ impl AttendanceService {
             }
         }
 
+        drop(records);
+
         if let Some(checkin) = last_checkin {
-            total_duration = total_duration + (Utc::now() - checkin);
+            total_duration += Utc::now() - checkin;
         }
 
         total_duration

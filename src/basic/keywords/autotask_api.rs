@@ -1,9 +1,3 @@
-
-
-
-
-
-
 use crate::basic::keywords::auto_task::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
@@ -22,16 +16,12 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, Deserialize)]
 pub struct CompileIntentRequest {
     pub intent: String,
     pub execution_mode: Option<String>,
     pub priority: Option<String>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct CompileIntentResponse {
@@ -96,14 +86,12 @@ pub struct RiskResponse {
     pub impact: String,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct ExecutePlanRequest {
     pub plan_id: String,
     pub execution_mode: Option<String>,
     pub priority: Option<String>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct ExecutePlanResponse {
@@ -113,7 +101,6 @@ pub struct ExecutePlanResponse {
     pub error: Option<String>,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct ListTasksQuery {
     pub filter: Option<String>,
@@ -122,7 +109,6 @@ pub struct ListTasksQuery {
     pub limit: Option<i32>,
     pub offset: Option<i32>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct AutoTaskStatsResponse {
@@ -135,14 +121,12 @@ pub struct AutoTaskStatsResponse {
     pub pending_decision: i32,
 }
 
-
 #[derive(Debug, Serialize)]
 pub struct TaskActionResponse {
     pub success: bool,
     pub message: Option<String>,
     pub error: Option<String>,
 }
-
 
 #[derive(Debug, Deserialize)]
 pub struct DecisionRequest {
@@ -151,14 +135,12 @@ pub struct DecisionRequest {
     pub skip: Option<bool>,
 }
 
-
 #[derive(Debug, Deserialize)]
 pub struct ApprovalRequest {
     pub approval_id: String,
     pub action: String,
     pub comment: Option<String>,
 }
-
 
 #[derive(Debug, Serialize)]
 pub struct SimulationResponse {
@@ -239,9 +221,6 @@ pub struct RecommendationResponse {
     pub action: Option<String>,
 }
 
-
-
-
 pub async fn compile_intent_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CompileIntentRequest>,
@@ -250,7 +229,6 @@ pub async fn compile_intent_handler(
         "Compiling intent: {}",
         &request.intent[..request.intent.len().min(100)]
     );
-
 
     let session = match get_current_session(&state).await {
         Ok(s) => s,
@@ -286,9 +264,7 @@ pub async fn compile_intent_handler(
         }
     };
 
-
     let compiler = IntentCompiler::new(Arc::clone(&state));
-
 
     match compiler.compile(&request.intent, &session).await {
         Ok(compiled) => {
@@ -392,7 +368,6 @@ pub async fn compile_intent_handler(
     }
 }
 
-
 pub async fn execute_plan_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ExecutePlanRequest>,
@@ -414,7 +389,6 @@ pub async fn execute_plan_handler(
         }
     };
 
-
     let execution_mode = match request.execution_mode.as_deref() {
         Some("fully-automatic") => ExecutionMode::FullyAutomatic,
         Some("supervised") => ExecutionMode::Supervised,
@@ -422,7 +396,6 @@ pub async fn execute_plan_handler(
         Some("dry-run") => ExecutionMode::DryRun,
         _ => ExecutionMode::SemiAutomatic,
     };
-
 
     let priority = match request.priority.as_deref() {
         Some("critical") => TaskPriority::Critical,
@@ -432,33 +405,29 @@ pub async fn execute_plan_handler(
         _ => TaskPriority::Medium,
     };
 
-
     match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority)
         .await
     {
-        Ok(task) => {
-
-            match start_task_execution(&state, &task.id).await {
-                Ok(_) => (
-                    StatusCode::OK,
-                    Json(ExecutePlanResponse {
-                        success: true,
-                        task_id: Some(task.id),
-                        status: Some(task.status.to_string()),
-                        error: None,
-                    }),
-                ),
-                Err(e) => (
-                    StatusCode::INTERNAL_SERVER_ERROR,
-                    Json(ExecutePlanResponse {
-                        success: false,
-                        task_id: Some(task.id),
-                        status: Some("failed".to_string()),
-                        error: Some(e.to_string()),
-                    }),
-                ),
-            }
-        }
+        Ok(task) => match start_task_execution(&state, &task.id).await {
+            Ok(_) => (
+                StatusCode::OK,
+                Json(ExecutePlanResponse {
+                    success: true,
+                    task_id: Some(task.id),
+                    status: Some(task.status.to_string()),
+                    error: None,
+                }),
+            ),
+            Err(e) => (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ExecutePlanResponse {
+                    success: false,
+                    task_id: Some(task.id),
+                    status: Some("failed".to_string()),
+                    error: Some(e.to_string()),
+                }),
+            ),
+        },
         Err(e) => {
             error!("Failed to create task: {}", e);
             (
@@ -474,7 +443,6 @@ pub async fn execute_plan_handler(
     }
 }
 
-
 pub async fn list_tasks_handler(
     State(state): State<Arc<AppState>>,
     Query(query): Query<ListTasksQuery>,
@@ -485,7 +453,6 @@ pub async fn list_tasks_handler(
 
     match list_auto_tasks(&state, filter, limit, offset).await {
         Ok(tasks) => {
-
             let html = render_task_list_html(&tasks);
             (StatusCode::OK, axum::response::Html(html))
         }
@@ -505,7 +472,6 @@ pub async fn list_tasks_handler(
         }
     }
 }
-
 
 pub async fn get_stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     match get_auto_task_stats(&state).await {
@@ -527,7 +493,6 @@ pub async fn get_stats_handler(State(state): State<Arc<AppState>>) -> impl IntoR
         }
     }
 }
-
 
 pub async fn pause_task_handler(
     State(state): State<Arc<AppState>>,
@@ -553,14 +518,12 @@ pub async fn pause_task_handler(
     }
 }
 
-
 pub async fn resume_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
     match update_task_status(&state, &task_id, AutoTaskStatus::Running).await {
         Ok(_) => {
-
             let _ = start_task_execution(&state, &task_id).await;
             (
                 StatusCode::OK,
@@ -581,7 +544,6 @@ pub async fn resume_task_handler(
         ),
     }
 }
-
 
 pub async fn cancel_task_handler(
     State(state): State<Arc<AppState>>,
@@ -606,7 +568,6 @@ pub async fn cancel_task_handler(
         ),
     }
 }
-
 
 pub async fn simulate_task_handler(
     State(state): State<Arc<AppState>>,
@@ -660,7 +621,7 @@ pub async fn simulate_task_handler(
 
     let safety_layer = SafetyLayer::new(Arc::clone(&state));
 
-    match simulate_task_execution(&state, &safety_layer, &task_id, &session).await {
+    match simulate_task_execution(&state, &safety_layer, &task_id, &session) {
         Ok(result) => {
             let response = SimulationResponse {
                 success: result.success,
@@ -787,7 +748,6 @@ pub async fn simulate_task_handler(
     }
 }
 
-
 pub async fn get_decisions_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -803,7 +763,6 @@ pub async fn get_decisions_handler(
         }
     }
 }
-
 
 pub async fn submit_decision_handler(
     State(state): State<Arc<AppState>>,
@@ -830,7 +789,6 @@ pub async fn submit_decision_handler(
     }
 }
 
-
 pub async fn get_approvals_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -846,7 +804,6 @@ pub async fn get_approvals_handler(
         }
     }
 }
-
 
 pub async fn submit_approval_handler(
     State(state): State<Arc<AppState>>,
@@ -872,7 +829,6 @@ pub async fn submit_approval_handler(
         ),
     }
 }
-
 
 pub async fn simulate_plan_handler(
     State(state): State<Arc<AppState>>,
@@ -926,7 +882,7 @@ pub async fn simulate_plan_handler(
 
     let safety_layer = SafetyLayer::new(Arc::clone(&state));
 
-    match simulate_plan_execution(&state, &safety_layer, &plan_id, &session).await {
+    match simulate_plan_execution(&state, &safety_layer, &plan_id, &session) {
         Ok(result) => {
             let response = SimulationResponse {
                 success: result.success,
@@ -1069,7 +1025,7 @@ async fn get_current_session(
         .first::<crate::shared::models::UserSession>(&mut conn)
         .optional()
         .map_err(|e| format!("DB query error: {}", e))?
-        .ok_or_else(|| "No active session found")?;
+        .ok_or("No active session found")?;
 
     Ok(session)
 }
@@ -1164,24 +1120,24 @@ async fn update_task_status(
     Ok(())
 }
 
-async fn simulate_task_execution(
+fn simulate_task_execution(
     _state: &Arc<AppState>,
     safety_layer: &SafetyLayer,
     task_id: &str,
     session: &crate::shared::models::UserSession,
 ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
-    info!("Simulating task execution task_id={}", task_id);
-    safety_layer.simulate_execution(task_id, session).await
+    info!("Simulating task execution task_id={task_id}");
+    safety_layer.simulate_execution(task_id, session)
 }
 
-async fn simulate_plan_execution(
+fn simulate_plan_execution(
     _state: &Arc<AppState>,
     safety_layer: &SafetyLayer,
     plan_id: &str,
     session: &crate::shared::models::UserSession,
 ) -> Result<SimulationResult, Box<dyn std::error::Error + Send + Sync>> {
-    info!("Simulating plan execution plan_id={}", plan_id);
-    safety_layer.simulate_execution(plan_id, session).await
+    info!("Simulating plan execution plan_id={plan_id}");
+    safety_layer.simulate_execution(plan_id, session)
 }
 
 async fn get_pending_decisions(
@@ -1229,9 +1185,11 @@ fn render_task_list_html(tasks: &[AutoTask]) -> String {
         return r#"<div class="empty-state"><p>No tasks found</p></div>"#.to_string();
     }
 
+    use std::fmt::Write;
     let mut html = String::from(r#"<div class="task-list">"#);
     for task in tasks {
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             r#"<div class="task-item" data-task-id="{}">
                 <div class="task-title">{}</div>
                 <div class="task-status">{}</div>
@@ -1241,7 +1199,7 @@ fn render_task_list_html(tasks: &[AutoTask]) -> String {
             html_escape(&task.title),
             html_escape(&task.status.to_string()),
             (task.progress * 100.0) as i32
-        ));
+        );
     }
     html.push_str("</div>");
     html

@@ -67,20 +67,17 @@ pub struct ValidationWarning {
 
 pub fn configure_designer_routes() -> Router<Arc<AppState>> {
     Router::new()
-
         .route("/api/v1/designer/files", get(handle_list_files))
         .route("/api/v1/designer/load", get(handle_load_file))
         .route("/api/v1/designer/save", post(handle_save))
         .route("/api/v1/designer/validate", post(handle_validate))
         .route("/api/v1/designer/export", get(handle_export))
-
         .route(
             "/api/designer/dialogs",
             get(handle_list_dialogs).post(handle_create_dialog),
         )
         .route("/api/designer/dialogs/{id}", get(handle_get_dialog))
 }
-
 
 pub async fn handle_list_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
@@ -165,7 +162,6 @@ fn get_default_files() -> Vec<(String, String, DateTime<Utc>)> {
     ]
 }
 
-
 pub async fn handle_load_file(
     State(state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
@@ -197,12 +193,10 @@ pub async fn handle_load_file(
         None => get_default_dialog_content(),
     };
 
-
     let mut html = String::new();
     html.push_str("<div class=\"canvas-loaded\" data-content=\"");
     html.push_str(&html_escape(&content));
     html.push_str("\">");
-
 
     let nodes = parse_basic_to_nodes(&content);
     for node in &nodes {
@@ -214,7 +208,6 @@ pub async fn handle_load_file(
 
     Html(html)
 }
-
 
 pub async fn handle_save(
     State(state): State<Arc<AppState>>,
@@ -276,7 +269,6 @@ pub async fn handle_save(
     }
 }
 
-
 pub async fn handle_validate(
     State(_state): State<Arc<AppState>>,
     Json(payload): Json<ValidateRequest>,
@@ -293,47 +285,48 @@ pub async fn handle_validate(
         html.push_str("<span class=\"validation-text\">Dialog is valid</span>");
         html.push_str("</div>");
     } else {
-        html.push_str("<div class=\"validation-errors\">");
-        html.push_str("<div class=\"validation-header\">");
-        html.push_str("<span class=\"validation-icon\">x</span>");
-        html.push_str("<span class=\"validation-text\">");
-        html.push_str(&validation.errors.len().to_string());
-        html.push_str(" error(s) found</span>");
-        html.push_str("</div>");
-        html.push_str("<ul class=\"error-list\">");
-        for error in &validation.errors {
-            html.push_str("<li class=\"error-item\" data-line=\"");
-            html.push_str(&error.line.to_string());
-            html.push_str("\">");
-            html.push_str("<span class=\"error-line\">Line ");
-            html.push_str(&error.line.to_string());
-            html.push_str(":</span> ");
-            html.push_str(&html_escape(&error.message));
-            html.push_str("</li>");
+        if !validation.errors.is_empty() {
+            html.push_str("<div class=\"validation-errors\">");
+            html.push_str("<div class=\"validation-header\">");
+            html.push_str("<span class=\"validation-icon\">✗</span>");
+            html.push_str("<span class=\"validation-text\">");
+            html.push_str(&validation.errors.len().to_string());
+            html.push_str(" error(s) found</span>");
+            html.push_str("</div>");
+            html.push_str("<ul class=\"error-list\">");
+            for error in &validation.errors {
+                html.push_str("<li class=\"error-item\" data-line=\"");
+                html.push_str(&error.line.to_string());
+                html.push_str("\">");
+                html.push_str("<span class=\"error-line\">Line ");
+                html.push_str(&error.line.to_string());
+                html.push_str(":</span> ");
+                html.push_str(&html_escape(&error.message));
+                html.push_str("</li>");
+            }
+        } else if !validation.warnings.is_empty() {
+            html.push_str("<div class=\"validation-warnings\">");
+            html.push_str("<div class=\"validation-header\">");
+            html.push_str("<span class=\"validation-icon\">!</span>");
+            html.push_str("<span class=\"validation-text\">");
+            html.push_str(&validation.warnings.len().to_string());
+            html.push_str(" warning(s)</span>");
+            html.push_str("</div>");
+            html.push_str("<ul class=\"warning-list\">");
+            for warning in &validation.warnings {
+                html.push_str("<li class=\"warning-item\">");
+                html.push_str("<span class=\"warning-line\">Line ");
+                html.push_str(&warning.line.to_string());
+                html.push_str(":</span> ");
+                html.push_str(&html_escape(&warning.message));
+                html.push_str("</li>");
+            }
         }
-        html.push_str("</ul>");
-        html.push_str("</div>");
-    }
 
-    if !validation.warnings.is_empty() {
-        html.push_str("<div class=\"validation-warnings\">");
-        html.push_str("<div class=\"validation-header\">");
-        html.push_str("<span class=\"validation-icon\">!</span>");
-        html.push_str("<span class=\"validation-text\">");
-        html.push_str(&validation.warnings.len().to_string());
-        html.push_str(" warning(s)</span>");
-        html.push_str("</div>");
-        html.push_str("<ul class=\"warning-list\">");
-        for warning in &validation.warnings {
-            html.push_str("<li class=\"warning-item\">");
-            html.push_str("<span class=\"warning-line\">Line ");
-            html.push_str(&warning.line.to_string());
-            html.push_str(":</span> ");
-            html.push_str(&html_escape(&warning.message));
-            html.push_str("</li>");
+        if !validation.errors.is_empty() || !validation.warnings.is_empty() {
+            html.push_str("</ul>");
+            html.push_str("</div>");
         }
-        html.push_str("</ul>");
-        html.push_str("</div>");
     }
 
     html.push_str("</div>");
@@ -341,17 +334,14 @@ pub async fn handle_validate(
     Html(html)
 }
 
-
 pub async fn handle_export(
     State(_state): State<Arc<AppState>>,
     Query(params): Query<FileQuery>,
 ) -> impl IntoResponse {
     let _file_id = params.path.unwrap_or_else(|| "dialog".to_string());
 
-
     Html("<script>alert('Export started. File will download shortly.');</script>".to_string())
 }
-
 
 pub async fn handle_list_dialogs(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let conn = state.conn.clone();
@@ -400,7 +390,6 @@ pub async fn handle_list_dialogs(State(state): State<Arc<AppState>>) -> impl Int
 
     Html(html)
 }
-
 
 pub async fn handle_create_dialog(
     State(state): State<Arc<AppState>>,
@@ -460,7 +449,6 @@ pub async fn handle_create_dialog(
     }
 }
 
-
 pub async fn handle_get_dialog(
     State(state): State<Arc<AppState>>,
     axum::extract::Path(id): axum::extract::Path<String>,
@@ -509,7 +497,6 @@ pub async fn handle_get_dialog(
     }
 }
 
-
 fn validate_basic_code(code: &str) -> ValidationResult {
     let mut errors = Vec::new();
     let mut warnings = Vec::new();
@@ -523,7 +510,6 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         if trimmed.is_empty() || trimmed.starts_with('\'') || trimmed.starts_with("REM ") {
             continue;
         }
-
 
         let upper = trimmed.to_uppercase();
 
@@ -545,7 +531,6 @@ fn validate_basic_code(code: &str) -> ValidationResult {
             });
         }
 
-
         let quote_count = trimmed.chars().filter(|c| *c == '"').count();
         if quote_count % 2 != 0 {
             errors.push(ValidationError {
@@ -555,7 +540,6 @@ fn validate_basic_code(code: &str) -> ValidationResult {
                 node_id: None,
             });
         }
-
 
         if upper.starts_with("GOTO ") {
             warnings.push(ValidationWarning {
@@ -574,7 +558,6 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         }
     }
 
-
     let mut if_count = 0i32;
     let mut for_count = 0i32;
     let mut sub_count = 0i32;
@@ -584,7 +567,6 @@ fn validate_basic_code(code: &str) -> ValidationResult {
         let trimmed = upper.trim();
 
         if trimmed.starts_with("IF ") && !trimmed.ends_with(" THEN") && trimmed.contains(" THEN") {
-
         } else if trimmed.starts_with("IF ") {
             if_count += 1;
         } else if trimmed == "END IF" || trimmed == "ENDIF" {
@@ -657,7 +639,6 @@ fn get_default_dialog_content() -> String {
      END SUB\n"
         .to_string()
 }
-
 
 struct DialogNode {
     id: String,

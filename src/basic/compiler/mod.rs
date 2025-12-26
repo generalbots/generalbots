@@ -102,7 +102,6 @@ impl BasicCompiler {
         let source_content = fs::read_to_string(source_path)
             .map_err(|e| format!("Failed to read source file: {e}"))?;
 
-
         if let Err(e) =
             process_table_definitions(Arc::clone(&self.state), self.bot_id, &source_content)
         {
@@ -120,8 +119,8 @@ impl BasicCompiler {
         let (mcp_json, tool_json) = if tool_def.parameters.is_empty() {
             (None, None)
         } else {
-            let mcp = self.generate_mcp_tool(&tool_def)?;
-            let openai = self.generate_openai_tool(&tool_def)?;
+            let mcp = Self::generate_mcp_tool(&tool_def)?;
+            let openai = Self::generate_openai_tool(&tool_def)?;
             let mcp_path = format!("{output_dir}/{file_name}.mcp.json");
             let tool_path = format!("{output_dir}/{file_name}.tool.json");
             let mcp_json_str = serde_json::to_string_pretty(&mcp)?;
@@ -134,7 +133,7 @@ impl BasicCompiler {
         };
         Ok(CompilationResult {
             mcp_tool: mcp_json,
-            _openai_tool: tool_json,
+            openai_tool: tool_json,
         })
     }
     pub fn parse_tool_definition(
@@ -149,7 +148,7 @@ impl BasicCompiler {
         while i < lines.len() {
             let line = lines[i].trim();
             if line.starts_with("PARAM ") {
-                if let Some(param) = self.parse_param_line(line)? {
+                if let Some(param) = Self::parse_param_line(line)? {
                     params.push(param);
                 }
             }
@@ -175,7 +174,6 @@ impl BasicCompiler {
         })
     }
     fn parse_param_line(
-        &self,
         line: &str,
     ) -> Result<Option<ParamDeclaration>, Box<dyn Error + Send + Sync>> {
         let line = line.trim();
@@ -198,20 +196,14 @@ impl BasicCompiler {
         } else {
             "string".to_string()
         };
-        let example = if let Some(like_pos) = line.find("LIKE") {
+        let example = line.find("LIKE").and_then(|like_pos| {
             let rest = &line[like_pos + 4..].trim();
-            if let Some(start) = rest.find('"') {
-                if let Some(end) = rest[start + 1..].find('"') {
-                    Some(rest[start + 1..start + 1 + end].to_string())
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
-        } else {
-            None
-        };
+            rest.find('"').and_then(|start| {
+                rest[start + 1..]
+                    .find('"')
+                    .map(|end| rest[start + 1..start + 1 + end].to_string())
+            })
+        });
         let description = if let Some(desc_pos) = line.find("DESCRIPTION") {
             let rest = &line[desc_pos + 11..].trim();
             if let Some(start) = rest.find('"') {
@@ -228,26 +220,24 @@ impl BasicCompiler {
         };
         Ok(Some(ParamDeclaration {
             name,
-            param_type: self.normalize_type(&param_type),
+            param_type: Self::normalize_type(&param_type),
             example,
             description,
             required: true,
         }))
     }
-    fn normalize_type(&self, basic_type: &str) -> String {
+    fn normalize_type(basic_type: &str) -> String {
         match basic_type.to_lowercase().as_str() {
-            "string" | "text" => "string".to_string(),
+            "string" | "text" | "date" | "datetime" => "string".to_string(),
             "integer" | "int" | "number" => "integer".to_string(),
             "float" | "double" | "decimal" => "number".to_string(),
             "boolean" | "bool" => "boolean".to_string(),
-            "date" | "datetime" => "string".to_string(),
             "array" | "list" => "array".to_string(),
             "object" | "map" => "object".to_string(),
             _ => "string".to_string(),
         }
     }
     fn generate_mcp_tool(
-        &self,
         tool_def: &ToolDefinition,
     ) -> Result<MCPTool, Box<dyn Error + Send + Sync>> {
         let mut properties = HashMap::new();
@@ -276,7 +266,6 @@ impl BasicCompiler {
         })
     }
     fn generate_openai_tool(
-        &self,
         tool_def: &ToolDefinition,
     ) -> Result<OpenAITool, Box<dyn Error + Send + Sync>> {
         let mut properties = HashMap::new();
@@ -316,8 +305,6 @@ impl BasicCompiler {
         let bot_uuid = bot_id;
         let mut result = String::new();
 
-
-
         let source = if goto_transform::has_goto_constructs(source) {
             trace!("GOTO constructs detected, transforming to state machine");
             goto_transform::transform_goto(source)
@@ -351,15 +338,12 @@ impl BasicCompiler {
         for line in source.lines() {
             let trimmed = line.trim();
             if trimmed.is_empty()
-                || trimmed.starts_with("'")
+                || trimmed.starts_with('\'')
                 || trimmed.starts_with("//")
                 || trimmed.starts_with("REM")
             {
                 continue;
             }
-
-
-
 
             let normalized = trimmed
                 .replace("FOR EACH", "FOR_EACH")
@@ -474,5 +458,5 @@ impl BasicCompiler {
 #[derive(Debug)]
 pub struct CompilationResult {
     pub mcp_tool: Option<MCPTool>,
-    pub _openai_tool: Option<OpenAITool>,
+    pub openai_tool: Option<OpenAITool>,
 }

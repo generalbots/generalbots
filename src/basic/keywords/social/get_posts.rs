@@ -12,7 +12,7 @@ pub fn get_posts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
 
     engine
         .register_custom_syntax(
-            &["GET", "$ident$", "POSTS"],
+            ["GET", "$ident$", "POSTS"],
             false,
             move |context, inputs| {
                 let platform = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -23,7 +23,7 @@ pub fn get_posts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                     .get()
                     .map_err(|e| format!("DB error: {}", e))?;
 
-                let posts = get_social_posts(&mut *conn, user_clone.bot_id, &platform)
+                let posts = get_social_posts(&mut conn, user_clone.bot_id, &platform)
                     .map_err(|e| format!("Failed to get posts: {}", e))?;
 
                 let posts_array: Vec<Dynamic> = posts

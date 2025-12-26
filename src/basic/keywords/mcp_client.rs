@@ -1,41 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
@@ -46,12 +8,8 @@ use std::sync::Arc;
 use std::time::Duration;
 use uuid::Uuid;
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpServer {
-
     pub id: String,
 
     pub name: String,
@@ -81,8 +39,7 @@ pub struct McpServer {
     pub health_status: HealthStatus,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum McpServerType {
     Database,
     Filesystem,
@@ -99,24 +56,24 @@ pub enum McpServerType {
 
 impl Default for McpServerType {
     fn default() -> Self {
-        McpServerType::Custom("unknown".to_string())
+        Self::Custom("unknown".to_string())
     }
 }
 
 impl From<&str> for McpServerType {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "database" | "db" => McpServerType::Database,
-            "filesystem" | "fs" | "file" => McpServerType::Filesystem,
-            "web" | "http" | "rest" | "api" => McpServerType::Web,
-            "email" | "mail" | "smtp" | "imap" => McpServerType::Email,
-            "slack" => McpServerType::Slack,
-            "teams" | "microsoft-teams" => McpServerType::Teams,
-            "analytics" | "data" => McpServerType::Analytics,
-            "search" | "elasticsearch" | "opensearch" => McpServerType::Search,
-            "storage" | "s3" | "blob" | "gcs" => McpServerType::Storage,
-            "compute" | "lambda" | "function" => McpServerType::Compute,
-            other => McpServerType::Custom(other.to_string()),
+            "database" | "db" => Self::Database,
+            "filesystem" | "fs" | "file" => Self::Filesystem,
+            "web" | "http" | "rest" | "api" => Self::Web,
+            "email" | "mail" | "smtp" | "imap" => Self::Email,
+            "slack" => Self::Slack,
+            "teams" | "microsoft-teams" => Self::Teams,
+            "analytics" | "data" => Self::Analytics,
+            "search" | "elasticsearch" | "opensearch" => Self::Search,
+            "storage" | "s3" | "blob" | "gcs" => Self::Storage,
+            "compute" | "lambda" | "function" => Self::Compute,
+            other => Self::Custom(other.to_string()),
         }
     }
 }
@@ -124,25 +81,23 @@ impl From<&str> for McpServerType {
 impl std::fmt::Display for McpServerType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            McpServerType::Database => write!(f, "database"),
-            McpServerType::Filesystem => write!(f, "filesystem"),
-            McpServerType::Web => write!(f, "web"),
-            McpServerType::Email => write!(f, "email"),
-            McpServerType::Slack => write!(f, "slack"),
-            McpServerType::Teams => write!(f, "teams"),
-            McpServerType::Analytics => write!(f, "analytics"),
-            McpServerType::Search => write!(f, "search"),
-            McpServerType::Storage => write!(f, "storage"),
-            McpServerType::Compute => write!(f, "compute"),
-            McpServerType::Custom(s) => write!(f, "{}", s),
+            Self::Database => write!(f, "database"),
+            Self::Filesystem => write!(f, "filesystem"),
+            Self::Web => write!(f, "web"),
+            Self::Email => write!(f, "email"),
+            Self::Slack => write!(f, "slack"),
+            Self::Teams => write!(f, "teams"),
+            Self::Analytics => write!(f, "analytics"),
+            Self::Search => write!(f, "search"),
+            Self::Storage => write!(f, "storage"),
+            Self::Compute => write!(f, "compute"),
+            Self::Custom(s) => write!(f, "{s}"),
         }
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpConnection {
-
     pub connection_type: ConnectionType,
 
     pub url: String,
@@ -162,7 +117,7 @@ pub struct McpConnection {
 
 impl Default for McpConnection {
     fn default() -> Self {
-        McpConnection {
+        Self {
             connection_type: ConnectionType::Http,
             url: "http://localhost:8080".to_string(),
             port: None,
@@ -175,10 +130,8 @@ impl Default for McpConnection {
     }
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ConnectionType {
-
     Http,
 
     WebSocket,
@@ -194,10 +147,9 @@ pub enum ConnectionType {
 
 impl Default for ConnectionType {
     fn default() -> Self {
-        ConnectionType::Http
+        Self::Http
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TlsConfig {
@@ -208,10 +160,8 @@ pub struct TlsConfig {
     pub client_key_path: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpAuth {
-
     pub auth_type: McpAuthType,
 
     pub credentials: McpCredentials,
@@ -219,15 +169,14 @@ pub struct McpAuth {
 
 impl Default for McpAuth {
     fn default() -> Self {
-        McpAuth {
+        Self {
             auth_type: McpAuthType::None,
             credentials: McpCredentials::None,
         }
     }
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum McpAuthType {
     None,
     ApiKey,
@@ -240,10 +189,9 @@ pub enum McpAuthType {
 
 impl Default for McpAuthType {
     fn default() -> Self {
-        McpAuthType::None
+        Self::None
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum McpCredentials {
@@ -274,14 +222,12 @@ pub enum McpCredentials {
 
 impl Default for McpCredentials {
     fn default() -> Self {
-        McpCredentials::None
+        Self::None
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpTool {
-
     pub name: String,
 
     pub description: String,
@@ -303,8 +249,7 @@ pub struct McpTool {
     pub timeout_seconds: Option<i32>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ToolRiskLevel {
     Safe,
     Low,
@@ -315,14 +260,12 @@ pub enum ToolRiskLevel {
 
 impl Default for ToolRiskLevel {
     fn default() -> Self {
-        ToolRiskLevel::Low
+        Self::Low
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct McpCapabilities {
-
     pub tools: bool,
 
     pub resources: bool,
@@ -338,8 +281,7 @@ pub struct McpCapabilities {
     pub custom: HashMap<String, bool>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum McpServerStatus {
     Active,
     Inactive,
@@ -351,10 +293,9 @@ pub enum McpServerStatus {
 
 impl Default for McpServerStatus {
     fn default() -> Self {
-        McpServerStatus::Inactive
+        Self::Inactive
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HealthStatus {
@@ -367,7 +308,7 @@ pub struct HealthStatus {
 
 impl Default for HealthStatus {
     fn default() -> Self {
-        HealthStatus {
+        Self {
             healthy: false,
             last_check: None,
             response_time_ms: None,
@@ -377,12 +318,8 @@ impl Default for HealthStatus {
     }
 }
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequest {
-
     pub id: String,
 
     pub server: String,
@@ -396,7 +333,6 @@ pub struct McpRequest {
     pub timeout_seconds: Option<i32>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpRequestContext {
     pub session_id: String,
@@ -407,10 +343,8 @@ pub struct McpRequestContext {
     pub correlation_id: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpResponse {
-
     pub id: String,
 
     pub success: bool,
@@ -422,7 +356,6 @@ pub struct McpResponse {
     pub metadata: McpResponseMetadata,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpError {
     pub code: String,
@@ -430,7 +363,6 @@ pub struct McpError {
     pub details: Option<serde_json::Value>,
     pub retryable: bool,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpResponseMetadata {
@@ -440,9 +372,6 @@ pub struct McpResponseMetadata {
     pub rate_limit_reset: Option<DateTime<Utc>>,
 }
 
-
-
-
 pub struct McpClient {
     state: Arc<AppState>,
     config: McpClientConfig,
@@ -450,10 +379,8 @@ pub struct McpClient {
     http_client: reqwest::Client,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct McpClientConfig {
-
     pub enabled: bool,
 
     pub default_timeout_seconds: i32,
@@ -475,7 +402,7 @@ pub struct McpClientConfig {
 
 impl Default for McpClientConfig {
     fn default() -> Self {
-        McpClientConfig {
+        Self {
             enabled: true,
             default_timeout_seconds: 30,
             max_concurrent_requests: 10,
@@ -494,19 +421,18 @@ impl std::fmt::Debug for McpClient {
         f.debug_struct("McpClient")
             .field("config", &self.config)
             .field("servers_count", &self.servers.len())
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 
 impl McpClient {
-
     pub fn new(state: Arc<AppState>) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(30))
             .build()
             .unwrap_or_default();
 
-        McpClient {
+        Self {
             state,
             config: McpClientConfig::default(),
             servers: HashMap::new(),
@@ -514,14 +440,13 @@ impl McpClient {
         }
     }
 
-
     pub fn with_config(state: Arc<AppState>, config: McpClientConfig) -> Self {
         let http_client = reqwest::Client::builder()
             .timeout(Duration::from_secs(config.default_timeout_seconds as u64))
             .build()
             .unwrap_or_default();
 
-        McpClient {
+        Self {
             state,
             config,
             servers: HashMap::new(),
@@ -529,8 +454,7 @@ impl McpClient {
         }
     }
 
-
-    pub async fn load_servers(
+    pub fn load_servers(
         &mut self,
         bot_id: &Uuid,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -577,9 +501,8 @@ impl McpClient {
                 capabilities: McpCapabilities::default(),
                 status: match row.status.as_str() {
                     "active" => McpServerStatus::Active,
-                    "inactive" => McpServerStatus::Inactive,
-                    "error" => McpServerStatus::Error("Unknown error".to_string()),
                     "maintenance" => McpServerStatus::Maintenance,
+                    "error" => McpServerStatus::Error("Unknown error".to_string()),
                     _ => McpServerStatus::Inactive,
                 },
                 bot_id: bot_id_str.clone(),
@@ -600,8 +523,7 @@ impl McpClient {
         Ok(())
     }
 
-
-    pub async fn register_server(
+    pub fn register_server(
         &mut self,
         server: McpServer,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -643,16 +565,13 @@ impl McpClient {
         Ok(())
     }
 
-
     pub fn get_server(&self, name: &str) -> Option<&McpServer> {
         self.servers.get(name)
     }
 
-
     pub fn list_servers(&self) -> Vec<&McpServer> {
         self.servers.values().collect()
     }
-
 
     pub async fn list_tools(
         &self,
@@ -662,7 +581,6 @@ impl McpClient {
             .servers
             .get(server_name)
             .ok_or_else(|| format!("MCP server '{}' not found", server_name))?;
-
 
         if server.connection.connection_type == ConnectionType::Http {
             let url = format!("{}/tools/list", server.connection.url);
@@ -681,10 +599,8 @@ impl McpClient {
             }
         }
 
-
         Ok(server.tools.clone())
     }
-
 
     pub async fn invoke_tool(
         &self,
@@ -692,12 +608,10 @@ impl McpClient {
     ) -> Result<McpResponse, Box<dyn std::error::Error + Send + Sync>> {
         let start_time = std::time::Instant::now();
 
-
         let server = self
             .servers
             .get(&request.server)
             .ok_or_else(|| format!("MCP server '{}' not found", request.server))?;
-
 
         if server.status != McpServerStatus::Active {
             return Ok(McpResponse {
@@ -722,14 +636,12 @@ impl McpClient {
             });
         }
 
-
         if self.config.audit_enabled {
             info!(
                 "MCP request: server={} tool={}",
                 request.server, request.tool
             );
         }
-
 
         let result = match server.connection.connection_type {
             ConnectionType::Http => self.invoke_http(server, &request).await,
@@ -746,7 +658,6 @@ impl McpClient {
         match result {
             Ok(mut response) => {
                 response.metadata.duration_ms = duration_ms;
-
 
                 if self.config.audit_enabled {
                     info!(
@@ -776,7 +687,6 @@ impl McpClient {
                     },
                 };
 
-
                 if self.config.audit_enabled {
                     info!(
                         "MCP error response: id={} error={:?}",
@@ -788,7 +698,6 @@ impl McpClient {
             }
         }
     }
-
 
     async fn invoke_http(
         &self,
@@ -812,8 +721,7 @@ impl McpClient {
             .json(&body)
             .timeout(Duration::from_secs(timeout as u64));
 
-
-        http_request = self.add_auth_headers(http_request, &server.auth);
+        http_request = Self::add_auth_headers(http_request, &server.auth);
 
         let response = http_request.send().await?;
         let status = response.status();
@@ -853,7 +761,6 @@ impl McpClient {
             })
         }
     }
-
 
     async fn invoke_stdio(
         &self,
@@ -916,9 +823,7 @@ impl McpClient {
         }
     }
 
-
     fn add_auth_headers(
-        &self,
         mut request: reqwest::RequestBuilder,
         auth: &McpAuth,
     ) -> reqwest::RequestBuilder {
@@ -927,7 +832,6 @@ impl McpClient {
                 header_name,
                 key_ref,
             } => {
-
                 request = request.header(header_name.as_str(), key_ref.as_str());
             }
             McpCredentials::Bearer { token_ref } => {
@@ -943,7 +847,6 @@ impl McpClient {
         }
         request
     }
-
 
     pub async fn health_check(
         &mut self,

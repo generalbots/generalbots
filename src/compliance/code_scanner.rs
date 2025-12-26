@@ -17,16 +17,16 @@ pub enum IssueSeverity {
 impl std::fmt::Display for IssueSeverity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IssueSeverity::Info => write!(f, "info"),
-            IssueSeverity::Low => write!(f, "low"),
-            IssueSeverity::Medium => write!(f, "medium"),
-            IssueSeverity::High => write!(f, "high"),
-            IssueSeverity::Critical => write!(f, "critical"),
+            Self::Info => write!(f, "info"),
+            Self::Low => write!(f, "low"),
+            Self::Medium => write!(f, "medium"),
+            Self::High => write!(f, "high"),
+            Self::Critical => write!(f, "critical"),
         }
     }
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum IssueType {
     PasswordInConfig,
@@ -43,15 +43,15 @@ pub enum IssueType {
 impl std::fmt::Display for IssueType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            IssueType::PasswordInConfig => write!(f, "Password in Config"),
-            IssueType::HardcodedSecret => write!(f, "Hardcoded Secret"),
-            IssueType::DeprecatedKeyword => write!(f, "Deprecated Keyword"),
-            IssueType::FragileCode => write!(f, "Fragile Code"),
-            IssueType::ConfigurationIssue => write!(f, "Configuration Issue"),
-            IssueType::UnderscoreInKeyword => write!(f, "Underscore in Keyword"),
-            IssueType::MissingVault => write!(f, "Missing Vault Config"),
-            IssueType::InsecurePattern => write!(f, "Insecure Pattern"),
-            IssueType::DeprecatedIfInput => write!(f, "Deprecated IF...input Pattern"),
+            Self::PasswordInConfig => write!(f, "Password in Config"),
+            Self::HardcodedSecret => write!(f, "Hardcoded Secret"),
+            Self::DeprecatedKeyword => write!(f, "Deprecated Keyword"),
+            Self::FragileCode => write!(f, "Fragile Code"),
+            Self::ConfigurationIssue => write!(f, "Configuration Issue"),
+            Self::UnderscoreInKeyword => write!(f, "Underscore in Keyword"),
+            Self::MissingVault => write!(f, "Missing Vault Config"),
+            Self::InsecurePattern => write!(f, "Insecure Pattern"),
+            Self::DeprecatedIfInput => write!(f, "Deprecated IF...input Pattern"),
         }
     }
 }
@@ -148,9 +148,8 @@ impl CodeScanner {
     }
 
     fn build_patterns() -> Vec<ScanPattern> {
-        let mut patterns = Vec::new();
-
-        patterns.push(ScanPattern {
+        vec![
+        ScanPattern {
             regex: Regex::new(r#"(?i)password\s*=\s*["'][^"']+["']"#).unwrap(),
             issue_type: IssueType::PasswordInConfig,
             severity: IssueSeverity::Critical,
@@ -158,9 +157,8 @@ impl CodeScanner {
             description: "A password is hardcoded in the source code. This is a critical security risk.".to_string(),
             remediation: "Move the password to Vault using: vault_password = GET VAULT SECRET \"password_key\"".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r#"(?i)(api[_-]?key|apikey|secret[_-]?key|client[_-]?secret)\s*=\s*["'][^"']{8,}["']"#).unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
@@ -168,9 +166,8 @@ impl CodeScanner {
             description: "An API key or secret is hardcoded in the source code.".to_string(),
             remediation: "Store secrets in Vault and retrieve with GET VAULT SECRET".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r#"(?i)token\s*=\s*["'][a-zA-Z0-9_\-]{20,}["']"#).unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::High,
@@ -178,9 +175,8 @@ impl CodeScanner {
             description: "A token appears to be hardcoded in the source code.".to_string(),
             remediation: "Store tokens securely in Vault".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)IF\s+.*\binput\b").unwrap(),
             issue_type: IssueType::DeprecatedIfInput,
             severity: IssueSeverity::Medium,
@@ -191,9 +187,8 @@ impl CodeScanner {
             remediation: "Replace with: HEAR response AS STRING\nIF response = \"value\" THEN"
                 .to_string(),
             category: "Code Quality".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)\b(GET_BOT_MEMORY|SET_BOT_MEMORY|GET_USER_MEMORY|SET_USER_MEMORY|USE_KB|USE_TOOL|SEND_MAIL|CREATE_TASK)\b").unwrap(),
             issue_type: IssueType::UnderscoreInKeyword,
             severity: IssueSeverity::Low,
@@ -201,9 +196,8 @@ impl CodeScanner {
             description: "Keywords should use spaces instead of underscores for consistency.".to_string(),
             remediation: "Use spaces: GET BOT MEMORY, SET BOT MEMORY, etc.".to_string(),
             category: "Naming Convention".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)POST\s+TO\s+INSTAGRAM\s+\w+\s*,\s*\w+").unwrap(),
             issue_type: IssueType::InsecurePattern,
             severity: IssueSeverity::High,
@@ -213,9 +207,8 @@ impl CodeScanner {
                     .to_string(),
             remediation: "Store Instagram credentials in Vault and retrieve securely.".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)(SELECT|INSERT|UPDATE|DELETE)\s+.*(FROM|INTO|SET)\s+").unwrap(),
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::Medium,
@@ -226,9 +219,8 @@ impl CodeScanner {
                 "Use parameterized queries or the built-in data operations (SAVE, GET, etc.)"
                     .to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)\bEVAL\s*\(").unwrap(),
             issue_type: IssueType::FragileCode,
             severity: IssueSeverity::High,
@@ -236,9 +228,8 @@ impl CodeScanner {
             description: "EVAL can execute arbitrary code and is a security risk.".to_string(),
             remediation: "Avoid EVAL. Use structured control flow instead.".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(
                 r#"(?i)(password|secret|key|token)\s*=\s*["'][A-Za-z0-9+/=]{40,}["']"#,
             )
@@ -250,9 +241,8 @@ impl CodeScanner {
             remediation: "Remove encoded secrets from code. Use Vault for secret management."
                 .to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)(AKIA[0-9A-Z]{16})").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
@@ -261,9 +251,8 @@ impl CodeScanner {
             remediation: "Remove immediately and rotate the key. Use IAM roles or Vault."
                 .to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"-----BEGIN\s+(RSA\s+)?PRIVATE\s+KEY-----").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
@@ -272,9 +261,8 @@ impl CodeScanner {
             remediation: "Remove private key immediately. Store in secure key management system."
                 .to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns.push(ScanPattern {
+        },
+        ScanPattern {
             regex: Regex::new(r"(?i)(postgres|mysql|mongodb|redis)://[^:]+:[^@]+@").unwrap(),
             issue_type: IssueType::HardcodedSecret,
             severity: IssueSeverity::Critical,
@@ -282,9 +270,8 @@ impl CodeScanner {
             description: "Database connection string contains embedded credentials.".to_string(),
             remediation: "Use environment variables or Vault for database credentials.".to_string(),
             category: "Security".to_string(),
-        });
-
-        patterns
+        },
+        ]
     }
 
     pub async fn scan_all(
@@ -301,28 +288,28 @@ impl CodeScanner {
         let mut bot_paths = Vec::new();
 
         if templates_path.exists() {
-            for entry in WalkDir::new(&templates_path).max_depth(3) {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
-                            bot_paths.push(path.to_path_buf());
-                        }
+            for entry in WalkDir::new(&templates_path)
+                .max_depth(3)
+                .into_iter()
+                .flatten()
+            {
+                let path = entry.path();
+                if path.is_dir() {
+                    let name = path.file_name().unwrap_or_default().to_string_lossy();
+                    if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
+                        bot_paths.push(path.to_path_buf());
                     }
                 }
             }
         }
 
         if work_path.exists() {
-            for entry in WalkDir::new(&work_path).max_depth(3) {
-                if let Ok(entry) = entry {
-                    let path = entry.path();
-                    if path.is_dir() {
-                        let name = path.file_name().unwrap_or_default().to_string_lossy();
-                        if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
-                            bot_paths.push(path.to_path_buf());
-                        }
+            for entry in WalkDir::new(&work_path).max_depth(3).into_iter().flatten() {
+                let path = entry.path();
+                if path.is_dir() {
+                    let name = path.file_name().unwrap_or_default().to_string_lossy();
+                    if name.ends_with(".gbai") || name.ends_with(".gbdialog") {
+                        bot_paths.push(path.to_path_buf());
                     }
                 }
             }
@@ -364,18 +351,16 @@ impl CodeScanner {
         let mut stats = ScanStats::default();
         let mut files_scanned = 0;
 
-        for entry in WalkDir::new(bot_path) {
-            if let Ok(entry) = entry {
-                let path = entry.path();
-                if path.is_file() {
-                    let extension = path.extension().unwrap_or_default().to_string_lossy();
-                    if extension == "bas" || extension == "csv" {
-                        files_scanned += 1;
-                        let file_issues = self.scan_file(path).await?;
-                        for issue in file_issues {
-                            stats.add_issue(&issue.severity);
-                            issues.push(issue);
-                        }
+        for entry in WalkDir::new(bot_path).into_iter().flatten() {
+            let path = entry.path();
+            if path.is_file() {
+                let extension = path.extension().unwrap_or_default().to_string_lossy();
+                if extension == "bas" || extension == "csv" {
+                    files_scanned += 1;
+                    let file_issues = self.scan_file(path).await?;
+                    for issue in file_issues {
+                        stats.add_issue(&issue.severity);
+                        issues.push(issue);
                     }
                 }
             }
@@ -432,13 +417,14 @@ impl CodeScanner {
             let line_num = line_number + 1;
 
             let trimmed = line.trim();
-            if trimmed.starts_with("REM") || trimmed.starts_with("'") || trimmed.starts_with("//") {
+            if trimmed.starts_with("REM") || trimmed.starts_with('\'') || trimmed.starts_with("//")
+            {
                 continue;
             }
 
             for pattern in &self.patterns {
                 if pattern.regex.is_match(line) {
-                    let snippet = self.redact_sensitive(line);
+                    let snippet = Self::redact_sensitive(line);
 
                     let issue = CodeIssue {
                         id: uuid::Uuid::new_v4().to_string(),
@@ -461,7 +447,7 @@ impl CodeScanner {
         Ok(issues)
     }
 
-    fn redact_sensitive(&self, line: &str) -> String {
+    fn redact_sensitive(line: &str) -> String {
         let mut result = line.to_string();
 
         let secret_pattern = Regex::new(r#"(["'])[^"']{8,}(["'])"#).unwrap();
@@ -524,42 +510,46 @@ impl ComplianceReporter {
         html.push_str("<style>body{font-family:system-ui;margin:20px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ddd;padding:8px;text-align:left;}.critical{color:#dc2626;}.high{color:#ea580c;}.medium{color:#d97706;}.low{color:#65a30d;}.info{color:#0891b2;}</style>");
         html.push_str("</head><body>");
 
-        html.push_str(&format!("<h1>Compliance Scan Report</h1>"));
-        html.push_str(&format!("<p>Scanned at: {}</p>", result.scanned_at));
-        html.push_str(&format!("<p>Duration: {}ms</p>", result.duration_ms));
-        html.push_str(&format!("<p>Bots scanned: {}</p>", result.bots_scanned));
-        html.push_str(&format!("<p>Files scanned: {}</p>", result.total_files));
+        html.push_str("<h1>Compliance Scan Report</h1>");
+        use std::fmt::Write;
+        let _ = write!(html, "<p>Scanned at: {}</p>", result.scanned_at);
+        let _ = write!(html, "<p>Duration: {}ms</p>", result.duration_ms);
+        let _ = write!(html, "<p>Bots scanned: {}</p>", result.bots_scanned);
+        let _ = write!(html, "<p>Files scanned: {}</p>", result.total_files);
 
         html.push_str("<h2>Summary</h2>");
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             "<p class='critical'>Critical: {}</p>",
             result.stats.critical
-        ));
-        html.push_str(&format!("<p class='high'>High: {}</p>", result.stats.high));
-        html.push_str(&format!(
+        );
+        let _ = write!(html, "<p class='high'>High: {}</p>", result.stats.high);
+        let _ = write!(
+            html,
             "<p class='medium'>Medium: {}</p>",
             result.stats.medium
-        ));
-        html.push_str(&format!("<p class='low'>Low: {}</p>", result.stats.low));
-        html.push_str(&format!("<p class='info'>Info: {}</p>", result.stats.info));
+        );
+        let _ = write!(html, "<p class='low'>Low: {}</p>", result.stats.low);
+        let _ = write!(html, "<p class='info'>Info: {}</p>", result.stats.info);
 
         html.push_str("<h2>Issues</h2>");
         html.push_str("<table><tr><th>Severity</th><th>Type</th><th>File</th><th>Line</th><th>Description</th></tr>");
 
         for bot in &result.bot_results {
             for issue in &bot.issues {
-                html.push_str(&format!(
+                let _ = write!(
+                    html,
                     "<tr><td class='{}'>{}</td><td>{}</td><td>{}</td><td>{}</td><td>{}</td></tr>",
-                    issue.severity.to_string(),
+                    issue.severity,
                     issue.severity,
                     issue.issue_type,
                     issue.file_path,
                     issue
                         .line_number
                         .map(|n| n.to_string())
-                        .unwrap_or("-".to_string()),
+                        .unwrap_or_else(|| "-".to_string()),
                     issue.description
-                ));
+                );
             }
         }
 
@@ -577,8 +567,10 @@ impl ComplianceReporter {
 
         for bot in &result.bot_results {
             for issue in &bot.issues {
-                csv.push_str(&format!(
-                    "{},{},{},{},{},{},{},{}\n",
+                use std::fmt::Write;
+                let _ = writeln!(
+                    csv,
+                    "{},{},{},{},{},{},{},{}",
                     issue.severity,
                     issue.issue_type,
                     issue.category,
@@ -586,11 +578,11 @@ impl ComplianceReporter {
                     issue
                         .line_number
                         .map(|n| n.to_string())
-                        .unwrap_or("-".to_string()),
+                        .unwrap_or_else(|| "-".to_string()),
                     escape_csv(&issue.title),
                     escape_csv(&issue.description),
                     escape_csv(&issue.remediation)
-                ));
+                );
             }
         }
 

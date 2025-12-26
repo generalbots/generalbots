@@ -1,8 +1,3 @@
-
-
-
-
-
 use axum::{
     extract::{Query, State},
     http::StatusCode,
@@ -14,8 +9,6 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
-
-
 
 #[derive(Debug, Deserialize)]
 pub struct ConfigUpdateRequest {
@@ -201,10 +194,7 @@ pub struct SuccessResponse {
     pub message: Option<String>,
 }
 
-
-
-
-pub async fn get_system_status(
+pub fn get_system_status(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemStatusResponse>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
@@ -269,8 +259,7 @@ pub async fn get_system_status(
     Ok(Json(status))
 }
 
-
-pub async fn get_system_metrics(
+pub fn get_system_metrics(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<SystemMetricsResponse>, (StatusCode, Json<serde_json::Value>)> {
     let metrics = SystemMetricsResponse {
@@ -291,8 +280,7 @@ pub async fn get_system_metrics(
     Ok(Json(metrics))
 }
 
-
-pub async fn view_logs(
+pub fn view_logs(
     State(_state): State<Arc<AppState>>,
     Query(_params): Query<LogQuery>,
 ) -> Result<Json<Vec<LogEntry>>, (StatusCode, Json<serde_json::Value>)> {
@@ -342,8 +330,7 @@ pub async fn view_logs(
     Ok(Json(logs))
 }
 
-
-pub async fn export_logs(
+pub fn export_logs(
     State(_state): State<Arc<AppState>>,
     Query(_params): Query<LogQuery>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -353,8 +340,7 @@ pub async fn export_logs(
     }))
 }
 
-
-pub async fn get_config(
+pub fn get_config(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<ConfigResponse>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
@@ -396,8 +382,7 @@ pub async fn get_config(
     Ok(Json(config))
 }
 
-
-pub async fn update_config(
+pub fn update_config(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<ConfigUpdateRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -410,8 +395,7 @@ pub async fn update_config(
     }))
 }
 
-
-pub async fn schedule_maintenance(
+pub fn schedule_maintenance(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<MaintenanceScheduleRequest>,
 ) -> Result<Json<MaintenanceResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -429,8 +413,7 @@ pub async fn schedule_maintenance(
     Ok(Json(maintenance))
 }
 
-
-pub async fn create_backup(
+pub fn create_backup(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<BackupRequest>,
 ) -> Result<Json<BackupResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -450,8 +433,7 @@ pub async fn create_backup(
     Ok(Json(backup))
 }
 
-
-pub async fn restore_backup(
+pub fn restore_backup(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<RestoreRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -461,8 +443,7 @@ pub async fn restore_backup(
     }))
 }
 
-
-pub async fn list_backups(
+pub fn list_backups(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<BackupResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
@@ -491,8 +472,7 @@ pub async fn list_backups(
     Ok(Json(backups))
 }
 
-
-pub async fn manage_users(
+pub fn manage_users(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<UserManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -510,8 +490,7 @@ pub async fn manage_users(
     }))
 }
 
-
-pub async fn get_roles(
+pub fn get_roles(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<serde_json::Value>>, (StatusCode, Json<serde_json::Value>)> {
     let roles = vec![
@@ -541,8 +520,7 @@ pub async fn get_roles(
     Ok(Json(roles))
 }
 
-
-pub async fn manage_roles(
+pub fn manage_roles(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<RoleManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -552,8 +530,7 @@ pub async fn manage_roles(
     }))
 }
 
-
-pub async fn get_quotas(
+pub fn get_quotas(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<QuotaResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let quotas = vec![
@@ -580,8 +557,7 @@ pub async fn get_quotas(
     Ok(Json(quotas))
 }
 
-
-pub async fn manage_quotas(
+pub fn manage_quotas(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<QuotaManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {
@@ -591,8 +567,7 @@ pub async fn manage_quotas(
     }))
 }
 
-
-pub async fn get_licenses(
+pub fn get_licenses(
     State(_state): State<Arc<AppState>>,
 ) -> Result<Json<Vec<LicenseResponse>>, (StatusCode, Json<serde_json::Value>)> {
     let now = Utc::now();
@@ -616,8 +591,7 @@ pub async fn get_licenses(
     Ok(Json(licenses))
 }
 
-
-pub async fn manage_licenses(
+pub fn manage_licenses(
     State(_state): State<Arc<AppState>>,
     Json(req): Json<LicenseManagementRequest>,
 ) -> Result<Json<SuccessResponse>, (StatusCode, Json<serde_json::Value>)> {

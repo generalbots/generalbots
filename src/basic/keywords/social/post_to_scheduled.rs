@@ -13,7 +13,7 @@ pub fn post_to_at_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
 
     engine
         .register_custom_syntax(
-            &[
+            [
                 "POST", "TO", "$expr$", "AT", "$expr$", "$expr$", ",", "$expr$",
             ],
             false,
@@ -40,7 +40,7 @@ pub fn post_to_at_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
 
                 let state_for_task = Arc::clone(&state_clone);
                 let user_for_task = user_clone.clone();
-                let platform_owned = platform.clone();
+                let platform_owned = platform;
                 let media_owned = media.to_string();
                 let caption_owned = caption.to_string();
 

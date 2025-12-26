@@ -2,7 +2,7 @@ use anyhow::Result;
 use calamine::Reader;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 #[cfg(feature = "vectordb")]
 use std::sync::Arc;
 use tokio::fs;
@@ -54,7 +54,7 @@ pub struct UserDriveVectorDB {
     user_id: Uuid,
     bot_id: Uuid,
     collection_name: String,
-    _db_path: PathBuf,
+    db_path: PathBuf,
     #[cfg(feature = "vectordb")]
     client: Option<Arc<Qdrant>>,
 }
@@ -67,7 +67,7 @@ impl UserDriveVectorDB {
             user_id,
             bot_id,
             collection_name,
-            _db_path: db_path,
+            db_path,
             #[cfg(feature = "vectordb")]
             client: None,
         }
@@ -85,15 +85,25 @@ impl UserDriveVectorDB {
         &self.collection_name
     }
 
+    pub fn db_path(&self) -> &std::path::Path {
+        &self.db_path
+    }
+
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
+        log::trace!(
+            "Initializing vectordb, fallback path: {}",
+            self.db_path.display()
+        );
         let client = Qdrant::from_url(qdrant_url).build()?;
 
         let collections = client.list_collections().await?;
-        let exists = collections
-            .collections
-            .iter()
-            .any(|c| c.name == self.collection_name);
+        let exists = {
+            let collections_guard = collections.collections;
+            collections_guard
+                .iter()
+                .any(|c| c.name == self.collection_name)
+        };
 
         if !exists {
             client
@@ -218,7 +228,7 @@ impl UserDriveVectorDB {
 
         let filter =
             if query.bucket.is_some() || query.file_type.is_some() || !query.tags.is_empty() {
-                let mut conditions = vec![];
+                let mut conditions = Vec::new();
 
                 if let Some(bucket) = &query.bucket {
                     conditions.push(qdrant_client::qdrant::Condition::matches(
@@ -241,10 +251,10 @@ impl UserDriveVectorDB {
                     ));
                 }
 
-                if !conditions.is_empty() {
-                    Some(qdrant_client::qdrant::Filter::must(conditions))
-                } else {
+                if conditions.is_empty() {
                     None
+                } else {
+                    Some(qdrant_client::qdrant::Filter::must(conditions))
                 }
             } else {
                 None
@@ -300,8 +310,8 @@ impl UserDriveVectorDB {
                     tags: vec![],
                 };
 
-                let snippet = self.create_snippet(&file.content_text, &query.query_text, 200);
-                let highlights = self.extract_highlights(&file.content_text, &query.query_text, 3);
+                let snippet = Self::create_snippet(&file.content_text, &query.query_text, 200);
+                let highlights = Self::extract_highlights(&file.content_text, &query.query_text, 3);
 
                 results.push(FileSearchResult {
                     file,
@@ -346,12 +356,12 @@ impl UserDriveVectorDB {
                         || file
                             .content_summary
                             .as_ref()
-                            .map_or(false, |s| s.to_lowercase().contains(&query_lower))
+                            .is_some_and(|s| s.to_lowercase().contains(&query_lower))
                     {
                         let snippet =
-                            self.create_snippet(&file.content_text, &query.query_text, 200);
+                            Self::create_snippet(&file.content_text, &query.query_text, 200);
                         let highlights =
-                            self.extract_highlights(&file.content_text, &query.query_text, 3);
+                            Self::extract_highlights(&file.content_text, &query.query_text, 3);
 
                         results.push(FileSearchResult {
                             file,
@@ -371,7 +381,7 @@ impl UserDriveVectorDB {
         Ok(results)
     }
 
-    fn create_snippet(&self, content: &str, query: &str, max_length: usize) -> String {
+    fn create_snippet(content: &str, query: &str, max_length: usize) -> String {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
 
@@ -396,7 +406,7 @@ impl UserDriveVectorDB {
         }
     }
 
-    fn extract_highlights(&self, content: &str, query: &str, max_highlights: usize) -> Vec<String> {
+    fn extract_highlights(content: &str, query: &str, max_highlights: usize) -> Vec<String> {
         let content_lower = content.to_lowercase();
         let query_lower = query.to_lowercase();
         let mut highlights = Vec::new();
@@ -546,19 +556,19 @@ impl FileContentExtractor {
             }
 
             "application/pdf" => {
-                log::info!("PDF extraction for {:?}", file_path);
+                log::info!("PDF extraction for {}", file_path.display());
                 Self::extract_pdf_text(file_path).await
             }
 
             "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             | "application/msword" => {
-                log::info!("Word document extraction for {:?}", file_path);
+                log::info!("Word document extraction for {}", file_path.display());
                 Self::extract_docx_text(file_path).await
             }
 
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             | "application/vnd.ms-excel" => {
-                log::info!("Spreadsheet extraction for {:?}", file_path);
+                log::info!("Spreadsheet extraction for {}", file_path.display());
                 Self::extract_xlsx_text(file_path).await
             }
 
@@ -612,14 +622,14 @@ impl FileContentExtractor {
                 Ok(cleaned)
             }
             Err(e) => {
-                log::warn!("PDF extraction failed for {:?}: {}", file_path, e);
+                log::warn!("PDF extraction failed for {}: {}", file_path.display(), e);
                 Ok(String::new())
             }
         }
     }
 
-    async fn extract_docx_text(file_path: &PathBuf) -> Result<String> {
-        let path = file_path.clone();
+    async fn extract_docx_text(file_path: &Path) -> Result<String> {
+        let path = file_path.to_path_buf();
 
         let result = tokio::task::spawn_blocking(move || {
             let file = std::fs::File::open(&path)?;
@@ -649,20 +659,20 @@ impl FileContentExtractor {
         match result {
             Ok(text) => Ok(text),
             Err(e) => {
-                log::warn!("DOCX extraction failed for {:?}: {}", file_path, e);
+                log::warn!("DOCX extraction failed for {}: {}", file_path.display(), e);
                 Ok(String::new())
             }
         }
     }
 
-    async fn extract_xlsx_text(file_path: &PathBuf) -> Result<String> {
-        let path = file_path.clone();
+    async fn extract_xlsx_text(file_path: &Path) -> Result<String> {
+        let path = file_path.to_path_buf();
 
         let result = tokio::task::spawn_blocking(move || {
             let mut workbook: calamine::Xlsx<_> = calamine::open_workbook(&path)?;
             let mut content = String::new();
 
-            for sheet_name in workbook.sheet_names().to_vec() {
+            for sheet_name in workbook.sheet_names() {
                 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
                     content.push_str(&format!("=== {} ===\n", sheet_name));
 
@@ -671,14 +681,14 @@ impl FileContentExtractor {
                             .iter()
                             .map(|cell| match cell {
                                 calamine::Data::Empty => String::new(),
-                                calamine::Data::String(s) => s.clone(),
+                                calamine::Data::String(s)
+                                | calamine::Data::DateTimeIso(s)
+                                | calamine::Data::DurationIso(s) => s.clone(),
                                 calamine::Data::Float(f) => f.to_string(),
                                 calamine::Data::Int(i) => i.to_string(),
                                 calamine::Data::Bool(b) => b.to_string(),
-                                calamine::Data::Error(e) => format!("{:?}", e),
+                                calamine::Data::Error(e) => format!("{e:?}"),
                                 calamine::Data::DateTime(dt) => dt.to_string(),
-                                calamine::Data::DateTimeIso(s) => s.clone(),
-                                calamine::Data::DurationIso(s) => s.clone(),
                             })
                             .collect();
 
@@ -699,7 +709,7 @@ impl FileContentExtractor {
         match result {
             Ok(text) => Ok(text),
             Err(e) => {
-                log::warn!("XLSX extraction failed for {:?}: {}", file_path, e);
+                log::warn!("XLSX extraction failed for {}: {}", file_path.display(), e);
                 Ok(String::new())
             }
         }

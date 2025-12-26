@@ -892,7 +892,7 @@ pub async fn process_attendant_command(
     command: &str,
     current_session: Option<Uuid>,
 ) -> Result<String, String> {
-    let parts: Vec<&str> = command.trim().split_whitespace().collect();
+    let parts: Vec<&str> = command.split_whitespace().collect();
     if parts.is_empty() {
         return Err("Empty command".to_string());
     }
@@ -972,14 +972,16 @@ async fn handle_queue_command(state: &Arc<AppState>) -> Result<String, String> {
             .and_then(|v| v.as_str())
             .unwrap_or("waiting");
 
-        response.push_str(&format!(
+        use std::fmt::Write;
+        let _ = write!(
+            response,
             "{}. *{}* ({})\n   Status: {} | ID: {}\n\n",
             i + 1,
             name,
             channel,
             status,
             &session.id.to_string()[..8]
-        ));
+        );
     }
 
     response.push_str("Type `/take` to take the next conversation.");
@@ -1153,7 +1155,7 @@ async fn handle_transfer_command(
             .first(&mut db_conn)
             .map_err(|e| format!("Session not found: {}", e))?;
 
-        let mut ctx = session.context_data.clone();
+        let mut ctx = session.context_data;
         let previous_attendant = ctx
             .get("assigned_to_phone")
             .and_then(|v| v.as_str())
@@ -1212,7 +1214,7 @@ async fn handle_resolve_command(
             .first(&mut db_conn)
             .map_err(|e| e.to_string())?;
 
-        let mut ctx = session.context_data.clone();
+        let mut ctx = session.context_data;
         ctx["status"] = serde_json::json!("resolved");
         ctx["needs_human"] = serde_json::json!(false);
         ctx["resolved_at"] = serde_json::json!(Utc::now().to_rfc3339());
@@ -1266,18 +1268,19 @@ async fn handle_tips_command(
         return Ok(" No specific tips for this conversation yet.".to_string());
     }
 
+    use std::fmt::Write;
     let mut result = " *Tips for this conversation*\n\n".to_string();
 
     for tip in tip_response.tips {
         let emoji = match tip.tip_type {
-            TipType::Intent => "",
-            TipType::Action => "",
-            TipType::Warning => "",
-            TipType::Knowledge => "",
-            TipType::History => "",
-            TipType::General => "",
+            TipType::Intent
+            | TipType::Action
+            | TipType::Warning
+            | TipType::Knowledge
+            | TipType::History
+            | TipType::General => "",
         };
-        result.push_str(&format!("{} {}\n\n", emoji, tip.content));
+        let _ = write!(result, "{} {}\n\n", emoji, tip.content);
     }
 
     Ok(result)
@@ -1305,16 +1308,20 @@ async fn handle_polish_command(
     if !polish_response.success {
         return Err(polish_response
             .error
-            .unwrap_or("Failed to polish message".to_string()));
+            .unwrap_or_else(|| "Failed to polish message".to_string()));
     }
 
     let mut result = " *Polished message*\n\n".to_string();
-    result.push_str(&format!("_{}_\n\n", polish_response.polished));
+    {
+        use std::fmt::Write;
+        let _ = write!(result, "_{}_\n\n", polish_response.polished);
+    }
 
     if !polish_response.changes.is_empty() {
         result.push_str("Changes:\n");
         for change in polish_response.changes {
-            result.push_str(&format!("• {}\n", change));
+            use std::fmt::Write;
+            let _ = writeln!(result, "• {}", change);
         }
     }
 
@@ -1346,12 +1353,14 @@ async fn handle_replies_command(
     let mut result = " *Suggested replies*\n\n".to_string();
 
     for (i, reply) in replies_response.replies.iter().enumerate() {
-        result.push_str(&format!(
+        use std::fmt::Write;
+        let _ = write!(
+            result,
             "*{}. {}*\n_{}_\n\n",
             i + 1,
             reply.tone.to_uppercase(),
             reply.text
-        ));
+        );
     }
 
     result.push_str("_Copy any reply or use as inspiration._");
@@ -1371,48 +1380,55 @@ async fn handle_summary_command(
     if !summary_response.success {
         return Err(summary_response
             .error
-            .unwrap_or("Failed to generate summary".to_string()));
+            .unwrap_or_else(|| "Failed to generate summary".to_string()));
     }
 
     let summary = summary_response.summary;
 
     let mut result = " *Conversation Summary*\n\n".to_string();
-    result.push_str(&format!("{}\n\n", summary.brief));
+    {
+        use std::fmt::Write;
+        let _ = write!(result, "{}\n\n", summary.brief);
+    }
 
     if !summary.key_points.is_empty() {
+        use std::fmt::Write;
         result.push_str("*Key Points:*\n");
         for point in &summary.key_points {
-            result.push_str(&format!("• {}\n", point));
+            let _ = writeln!(result, "• {}", point);
         }
         result.push('\n');
     }
 
     if !summary.customer_needs.is_empty() {
+        use std::fmt::Write;
         result.push_str("*Customer Needs:*\n");
         for need in &summary.customer_needs {
-            result.push_str(&format!("• {}\n", need));
+            let _ = writeln!(result, "• {}", need);
         }
         result.push('\n');
     }
 
     if !summary.unresolved_issues.is_empty() {
+        use std::fmt::Write;
         result.push_str("*Unresolved:*\n");
         for issue in &summary.unresolved_issues {
-            result.push_str(&format!("• {}\n", issue));
+            let _ = writeln!(result, "• {}", issue);
         }
         result.push('\n');
     }
 
-    result.push_str(&format!(
-        " {} messages | {} minutes | Sentiment: {}",
-        summary.message_count, summary.duration_minutes, summary.sentiment_trend
-    ));
+    {
+        use std::fmt::Write;
+        let _ = write!(
+            result,
+            " {} messages | {} minutes | Sentiment: {}",
+            summary.message_count, summary.duration_minutes, summary.sentiment_trend
+        );
 
-    if !summary.recommended_action.is_empty() {
-        result.push_str(&format!(
-            "\n\n *Recommended:* {}",
-            summary.recommended_action
-        ));
+        if !summary.recommended_action.is_empty() {
+            let _ = write!(result, "\n\n *Recommended:* {}", summary.recommended_action);
+        }
     }
 
     Ok(result)
@@ -1465,9 +1481,8 @@ async fn load_conversation_history(
     let conn = state.conn.clone();
 
     let result = tokio::task::spawn_blocking(move || {
-        let mut db_conn = match conn.get() {
-            Ok(c) => c,
-            Err(_) => return Vec::new(),
+        let Ok(mut db_conn) = conn.get() else {
+            return Vec::new();
         };
 
         use crate::shared::models::schema::message_history;
@@ -1539,15 +1554,15 @@ fn parse_tips_response(response: &str) -> Vec<AttendantTip> {
         }
     }
 
-    if !response.trim().is_empty() {
+    if response.trim().is_empty() {
+        Vec::new()
+    } else {
         vec![AttendantTip {
             tip_type: TipType::General,
             content: response.trim().to_string(),
             confidence: 0.7,
             priority: 2,
         }]
-    } else {
-        Vec::new()
     }
 }
 
@@ -1898,12 +1913,10 @@ fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
         .filter(|w| msg_lower.contains(*w))
         .count();
 
-    let score = if positive_count > negative_count {
-        0.3 + (positive_count as f32 * 0.2).min(0.7)
-    } else if negative_count > positive_count {
-        -0.3 - (negative_count as f32 * 0.2).min(0.7)
-    } else {
-        0.0
+    let score = match positive_count.cmp(&negative_count) {
+        std::cmp::Ordering::Greater => 0.3 + (positive_count as f32 * 0.2).min(0.7),
+        std::cmp::Ordering::Less => -0.3 - (negative_count as f32 * 0.2).min(0.7),
+        std::cmp::Ordering::Equal => 0.0,
     };
 
     let overall = if score > 0.2 {
@@ -1963,5 +1976,78 @@ fn analyze_sentiment_keywords(message: &str) -> SentimentAnalysis {
         escalation_risk: escalation_risk.to_string(),
         urgency: urgency.to_string(),
         emoji: emoji.to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_config_defaults() {
+        let config = LlmAssistConfig::default();
+        assert!(!config.tips_enabled);
+        assert!(!config.polish_enabled);
+        assert!(!config.any_enabled());
+    }
+
+    #[test]
+    fn test_fallback_tips_urgent() {
+        let tips = generate_fallback_tips("This is URGENT! I need help immediately!");
+        assert!(!tips.is_empty());
+        assert!(tips.iter().any(|t| matches!(t.tip_type, TipType::Warning)));
+    }
+
+    #[test]
+    fn test_fallback_tips_question() {
+        let tips = generate_fallback_tips("How do I reset my password?");
+        assert!(!tips.is_empty());
+        assert!(tips.iter().any(|t| matches!(t.tip_type, TipType::Intent)));
+    }
+
+    #[test]
+    fn test_sentiment_positive() {
+        let sentiment = analyze_sentiment_keywords("Thank you so much! This is great!");
+        assert_eq!(sentiment.overall, "positive");
+        assert!(sentiment.score > 0.0);
+        assert_eq!(sentiment.escalation_risk, "low");
+    }
+
+    #[test]
+    fn test_sentiment_negative() {
+        let sentiment =
+            analyze_sentiment_keywords("This is terrible! I'm very frustrated with this problem.");
+        assert_eq!(sentiment.overall, "negative");
+        assert!(sentiment.score < 0.0);
+        assert!(sentiment.escalation_risk == "medium" || sentiment.escalation_risk == "high");
+    }
+
+    #[test]
+    fn test_sentiment_urgent() {
+        let sentiment = analyze_sentiment_keywords("I need help ASAP! This is urgent!");
+        assert!(sentiment.urgency == "high" || sentiment.urgency == "urgent");
+    }
+
+    #[test]
+    fn test_extract_json() {
+        let response = "Here is the result: {\"key\": \"value\"} and some more text.";
+        let json = extract_json(response);
+        assert_eq!(json, "{\"key\": \"value\"}");
+    }
+
+    #[test]
+    fn test_fallback_replies() {
+        let replies = generate_fallback_replies();
+        assert_eq!(replies.len(), 3);
+        assert!(replies.iter().any(|r| r.category == "greeting"));
+        assert!(replies.iter().any(|r| r.category == "follow_up"));
+    }
+
+    #[test]
+    fn test_help_text() {
+        let help = get_help_text();
+        assert!(help.contains("/queue"));
+        assert!(help.contains("/tips"));
+        assert!(help.contains("/polish"));
     }
 }

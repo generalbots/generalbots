@@ -1,8 +1,3 @@
-
-
-
-
-
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
@@ -10,7 +5,6 @@ use std::collections::{HashMap, VecDeque};
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum AuditEventType {
@@ -28,7 +22,6 @@ pub enum AuditEventType {
     ComplianceViolation,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize, Hash)]
 pub enum AuditSeverity {
     Info,
@@ -36,7 +29,6 @@ pub enum AuditSeverity {
     Error,
     Critical,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditEvent {
@@ -54,7 +46,6 @@ pub struct AuditEvent {
     pub metadata: serde_json::Value,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Hash)]
 pub enum AuditOutcome {
     Success,
@@ -62,7 +53,6 @@ pub enum AuditOutcome {
     Partial,
     Unknown,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditTrail {
@@ -75,7 +65,6 @@ pub struct AuditTrail {
     pub tags: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RetentionPolicy {
     pub name: String,
@@ -84,7 +73,6 @@ pub struct RetentionPolicy {
     pub severity_threshold: Option<AuditSeverity>,
     pub archive_enabled: bool,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AuditStatistics {
@@ -96,7 +84,6 @@ pub struct AuditStatistics {
     pub time_range: (DateTime<Utc>, DateTime<Utc>),
 }
 
-
 #[derive(Clone)]
 pub struct AuditService {
     events: Arc<RwLock<VecDeque<AuditEvent>>>,
@@ -106,13 +93,11 @@ pub struct AuditService {
 }
 
 impl AuditService {
-
     pub fn new(max_events: usize) -> Self {
         Self {
             events: Arc::new(RwLock::new(VecDeque::new())),
             trails: Arc::new(RwLock::new(HashMap::new())),
             retention_policies: Arc::new(RwLock::new(vec![
-
                 RetentionPolicy {
                     name: "Security Events".to_string(),
                     retention_days: 365,
@@ -138,7 +123,6 @@ impl AuditService {
             max_events,
         }
     }
-
 
     pub async fn log_event(
         &self,
@@ -166,25 +150,19 @@ impl AuditService {
 
         let event_id = event.id;
 
+        {
+            let mut events = self.events.write().await;
+            events.push_back(event);
 
-        let mut events = self.events.write().await;
-        events.push_back(event.clone());
-
-
-        while events.len() > self.max_events {
-            events.pop_front();
+            while events.len() > self.max_events {
+                events.pop_front();
+            }
         }
 
-        log::info!(
-            "Audit event logged: {} - {:?} - {:?}",
-            event_id,
-            event_type,
-            severity
-        );
+        log::info!("Audit event logged: {event_id} - {event_type:?} - {severity:?}");
 
         Ok(event_id)
     }
-
 
     pub async fn create_trail(&self, name: String, tags: Vec<String>) -> Result<Uuid> {
         let trail = AuditTrail {
@@ -198,12 +176,13 @@ impl AuditService {
         };
 
         let trail_id = trail.trail_id;
-        let mut trails = self.trails.write().await;
-        trails.insert(trail_id, trail);
+        {
+            let mut trails = self.trails.write().await;
+            trails.insert(trail_id, trail);
+        }
 
         Ok(trail_id)
     }
-
 
     pub async fn add_to_trail(&self, trail_id: Uuid, event_id: Uuid) -> Result<()> {
         let mut trails = self.trails.write().await;
@@ -219,7 +198,6 @@ impl AuditService {
         Ok(())
     }
 
-
     pub async fn end_trail(&self, trail_id: Uuid, summary: String) -> Result<()> {
         let mut trails = self.trails.write().await;
         let trail = trails
@@ -232,33 +210,35 @@ impl AuditService {
         Ok(())
     }
 
-
     pub async fn query_events(&self, filter: AuditFilter) -> Result<Vec<AuditEvent>> {
-        let events = self.events.read().await;
-
-        let filtered: Vec<AuditEvent> = events
-            .iter()
-            .filter(|e| filter.matches(e))
-            .cloned()
-            .collect();
+        let filtered: Vec<AuditEvent> = {
+            let events = self.events.read().await;
+            events
+                .iter()
+                .filter(|e| filter.matches(e))
+                .cloned()
+                .collect()
+        };
 
         Ok(filtered)
     }
-
 
     pub async fn get_statistics(
         &self,
         since: Option<DateTime<Utc>>,
         until: Option<DateTime<Utc>>,
     ) -> AuditStatistics {
-        let events = self.events.read().await;
-        let since = since.unwrap_or(Utc::now() - Duration::days(30));
-        let until = until.unwrap_or(Utc::now());
+        let since = since.unwrap_or_else(|| Utc::now() - Duration::days(30));
+        let until = until.unwrap_or_else(Utc::now);
 
-        let filtered_events: Vec<_> = events
-            .iter()
-            .filter(|e| e.timestamp >= since && e.timestamp <= until)
-            .collect();
+        let filtered_events: Vec<AuditEvent> = {
+            let events = self.events.read().await;
+            events
+                .iter()
+                .filter(|e| e.timestamp >= since && e.timestamp <= until)
+                .cloned()
+                .collect()
+        };
 
         let mut events_by_type = HashMap::new();
         let mut events_by_severity = HashMap::new();
@@ -287,16 +267,18 @@ impl AuditService {
         }
     }
 
-
     pub async fn apply_retention_policies(&self) -> Result<usize> {
-        let policies = self.retention_policies.read().await;
+        let policies = {
+            let p = self.retention_policies.read().await;
+            p.clone()
+        };
+
         let mut events = self.events.write().await;
         let now = Utc::now();
         let mut removed_count = 0;
 
         for policy in policies.iter() {
             let cutoff = now - Duration::days(policy.retention_days);
-
 
             let initial_len = events.len();
             events.retain(|e| {
@@ -316,13 +298,9 @@ impl AuditService {
             removed_count += initial_len - events.len();
         }
 
-        log::info!(
-            "Applied retention policies, removed {} events",
-            removed_count
-        );
+        log::info!("Applied retention policies, removed {removed_count} events");
         Ok(removed_count)
     }
-
 
     pub async fn export_logs(
         &self,
@@ -339,8 +317,7 @@ impl AuditService {
             ExportFormat::Csv => {
                 let mut csv_writer = csv::Writer::from_writer(vec![]);
 
-
-                csv_writer.write_record(&[
+                csv_writer.write_record([
                     "ID",
                     "Timestamp",
                     "Type",
@@ -350,9 +327,8 @@ impl AuditService {
                     "Outcome",
                 ])?;
 
-
                 for event in events {
-                    csv_writer.write_record(&[
+                    csv_writer.write_record([
                         event.id.to_string(),
                         event.timestamp.to_rfc3339(),
                         format!("{:?}", event.event_type),
@@ -368,27 +344,36 @@ impl AuditService {
         }
     }
 
-
     pub async fn get_compliance_report(&self) -> ComplianceReport {
         let stats = self.get_statistics(None, None).await;
-        let events = self.events.read().await;
 
-        let security_incidents = events
-            .iter()
-            .filter(|e| e.event_type == AuditEventType::SecurityAlert)
-            .count();
+        let (security_incidents, compliance_violations, failed_logins) = {
+            let events = self.events.read().await;
 
-        let compliance_violations = events
-            .iter()
-            .filter(|e| e.event_type == AuditEventType::ComplianceViolation)
-            .count();
+            let security_incidents = events
+                .iter()
+                .filter(|e| e.event_type == AuditEventType::SecurityAlert)
+                .count();
 
-        let failed_logins = events
-            .iter()
-            .filter(|e| {
-                e.event_type == AuditEventType::UserLogin && e.outcome == AuditOutcome::Failure
-            })
-            .count();
+            let compliance_violations = events
+                .iter()
+                .filter(|e| e.event_type == AuditEventType::ComplianceViolation)
+                .count();
+
+            let failed_logins = events
+                .iter()
+                .filter(|e| {
+                    e.event_type == AuditEventType::UserLogin && e.outcome == AuditOutcome::Failure
+                })
+                .count();
+
+            (security_incidents, compliance_violations, failed_logins)
+        };
+
+        let audit_coverage = {
+            let events = self.events.read().await;
+            Self::calculate_audit_coverage(&events)
+        };
 
         ComplianceReport {
             generated_at: Utc::now(),
@@ -402,13 +387,11 @@ impl AuditService {
                 .get(&AuditSeverity::Critical)
                 .copied()
                 .unwrap_or(0),
-            audit_coverage: self.calculate_audit_coverage(&events),
+            audit_coverage,
         }
     }
 
-
-    fn calculate_audit_coverage(&self, events: &VecDeque<AuditEvent>) -> f64 {
-
+    fn calculate_audit_coverage(events: &VecDeque<AuditEvent>) -> f64 {
         let expected_types = 12;
         let covered_types = events
             .iter()
@@ -416,10 +399,9 @@ impl AuditService {
             .collect::<std::collections::HashSet<_>>()
             .len();
 
-        (covered_types as f64 / expected_types as f64) * 100.0
+        (f64::from(covered_types as i32) / f64::from(expected_types)) * 100.0
     }
 }
-
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct AuditFilter {
@@ -473,13 +455,11 @@ impl AuditFilter {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum ExportFormat {
     Json,
     Csv,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceReport {

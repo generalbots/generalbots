@@ -1,16 +1,9 @@
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use log::trace;
-use once_cell::sync::Lazy;
 use rhai::{Dynamic, Engine};
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-
 
 #[derive(Clone, Debug)]
 pub struct ProcedureDefinition {
@@ -20,10 +13,8 @@ pub struct ProcedureDefinition {
     pub is_function: bool,
 }
 
-
-static PROCEDURES: Lazy<Arc<Mutex<HashMap<String, ProcedureDefinition>>>> =
-    Lazy::new(|| Arc::new(Mutex::new(HashMap::new())));
-
+static PROCEDURES: std::sync::LazyLock<Arc<Mutex<HashMap<String, ProcedureDefinition>>>> =
+    std::sync::LazyLock::new(|| Arc::new(Mutex::new(HashMap::new())));
 
 pub fn register_procedure_keywords(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
     register_while_wend(engine);
@@ -32,18 +23,10 @@ pub fn register_procedure_keywords(_state: Arc<AppState>, _user: UserSession, en
     register_return_keyword(engine);
 }
 
-
-
-
-
-
-
-
-
 fn register_while_wend(engine: &mut Engine) {
     engine
         .register_custom_syntax(
-            &["WHILE", "$expr$", "$block$", "WEND"],
+            ["WHILE", "$expr$", "$block$", "WEND"],
             true,
             |context, inputs| {
                 let condition_expr = &inputs[0];
@@ -53,12 +36,10 @@ fn register_while_wend(engine: &mut Engine) {
                 let mut iterations = 0;
 
                 loop {
-
                     let condition = context.eval_expression_tree(condition_expr)?;
                     let should_continue = match condition.as_bool() {
                         Ok(b) => b,
                         Err(_) => {
-
                             if let Ok(n) = condition.as_int() {
                                 n != 0
                             } else if let Ok(f) = condition.as_float() {
@@ -74,7 +55,6 @@ fn register_while_wend(engine: &mut Engine) {
                     if !should_continue {
                         break;
                     }
-
 
                     match context.eval_expression_tree(block) {
                         Ok(_) => (),
@@ -102,39 +82,17 @@ fn register_while_wend(engine: &mut Engine) {
         )
         .expect("Failed to register WHILE/WEND syntax");
 
-
     engine
-        .register_custom_syntax(&["EXIT", "WHILE"], false, |_context, _inputs| {
+        .register_custom_syntax(["EXIT", "WHILE"], false, |_context, _inputs| {
             Err("EXIT WHILE".into())
         })
         .expect("Failed to register EXIT WHILE syntax");
 }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 fn register_do_loop(engine: &mut Engine) {
-
     engine
         .register_custom_syntax(
-            &["DO", "WHILE", "$expr$", "$block$", "LOOP"],
+            ["DO", "WHILE", "$expr$", "$block$", "LOOP"],
             true,
             |context, inputs| {
                 let condition_expr = &inputs[0];
@@ -168,10 +126,9 @@ fn register_do_loop(engine: &mut Engine) {
         )
         .expect("Failed to register DO WHILE syntax");
 
-
     engine
         .register_custom_syntax(
-            &["DO", "UNTIL", "$expr$", "$block$", "LOOP"],
+            ["DO", "UNTIL", "$expr$", "$block$", "LOOP"],
             true,
             |context, inputs| {
                 let condition_expr = &inputs[0];
@@ -205,10 +162,9 @@ fn register_do_loop(engine: &mut Engine) {
         )
         .expect("Failed to register DO UNTIL syntax");
 
-
     engine
         .register_custom_syntax(
-            &["DO", "$block$", "LOOP", "WHILE", "$expr$"],
+            ["DO", "$block$", "LOOP", "WHILE", "$expr$"],
             true,
             |context, inputs| {
                 let block = &inputs[0];
@@ -242,10 +198,9 @@ fn register_do_loop(engine: &mut Engine) {
         )
         .expect("Failed to register DO...LOOP WHILE syntax");
 
-
     engine
         .register_custom_syntax(
-            &["DO", "$block$", "LOOP", "UNTIL", "$expr$"],
+            ["DO", "$block$", "LOOP", "UNTIL", "$expr$"],
             true,
             |context, inputs| {
                 let block = &inputs[0];
@@ -279,14 +234,12 @@ fn register_do_loop(engine: &mut Engine) {
         )
         .expect("Failed to register DO...LOOP UNTIL syntax");
 
-
     engine
-        .register_custom_syntax(&["EXIT", "DO"], false, |_context, _inputs| {
+        .register_custom_syntax(["EXIT", "DO"], false, |_context, _inputs| {
             Err("EXIT DO".into())
         })
         .expect("Failed to register EXIT DO syntax");
 }
-
 
 fn eval_bool_condition(value: &Dynamic) -> bool {
     match value.as_bool() {
@@ -305,18 +258,10 @@ fn eval_bool_condition(value: &Dynamic) -> bool {
     }
 }
 
-
-
-
-
-
-
-
 fn register_call_keyword(engine: &mut Engine) {
-
     engine
         .register_custom_syntax(
-            &["CALL", "$ident$", "(", "$expr$", ")"],
+            ["CALL", "$ident$", "(", "$expr$", ")"],
             false,
             |context, inputs| {
                 let proc_name = inputs[0]
@@ -335,7 +280,6 @@ fn register_call_keyword(engine: &mut Engine) {
                         proc.is_function
                     );
 
-
                     Ok(Dynamic::UNIT)
                 } else {
                     Err(format!("Undefined procedure: {}", proc_name).into())
@@ -344,9 +288,8 @@ fn register_call_keyword(engine: &mut Engine) {
         )
         .expect("Failed to register CALL with args syntax");
 
-
     engine
-        .register_custom_syntax(&["CALL", "$ident$"], false, |_context, inputs| {
+        .register_custom_syntax(["CALL", "$ident$"], false, |_context, inputs| {
             let proc_name = inputs[0]
                 .get_string_value()
                 .unwrap_or_default()
@@ -364,17 +307,9 @@ fn register_call_keyword(engine: &mut Engine) {
         .expect("Failed to register CALL without args syntax");
 }
 
-
-
-
-
-
-
-
 fn register_return_keyword(engine: &mut Engine) {
-
     engine
-        .register_custom_syntax(&["RETURN", "$expr$"], false, |context, inputs| {
+        .register_custom_syntax(["RETURN", "$expr$"], false, |context, inputs| {
             let value = context.eval_expression_tree(&inputs[0])?;
             trace!("RETURN with value: {:?}", value);
 
@@ -382,26 +317,13 @@ fn register_return_keyword(engine: &mut Engine) {
         })
         .expect("Failed to register RETURN with value syntax");
 
-
     engine
-        .register_custom_syntax(&["RETURN"], false, |_context, _inputs| {
+        .register_custom_syntax(["RETURN"], false, |_context, _inputs| {
             trace!("RETURN (no value)");
             Err("RETURN:".into())
         })
         .expect("Failed to register RETURN syntax");
 }
-
-
-
-
-
-
-
-
-
-
-
-
 
 pub fn preprocess_subs(input: &str) -> String {
     let mut result = String::new();
@@ -419,7 +341,6 @@ pub fn preprocess_subs(input: &str) -> String {
 
         if upper_line.starts_with("SUB ") && !in_sub {
             in_sub = true;
-
 
             let rest = trimmed[4..].trim();
             if let Some(paren_start) = rest.find('(') {
@@ -442,7 +363,6 @@ pub fn preprocess_subs(input: &str) -> String {
         } else if upper_line == "END SUB" && in_sub {
             in_sub = false;
 
-
             let proc = ProcedureDefinition {
                 name: sub_name.clone(),
                 params: sub_params.clone(),
@@ -453,16 +373,13 @@ pub fn preprocess_subs(input: &str) -> String {
             trace!("Registering SUB: {}", sub_name);
             PROCEDURES.lock().unwrap().insert(sub_name.clone(), proc);
 
-
             sub_name.clear();
             sub_params.clear();
             sub_body.clear();
         } else if in_sub {
-
             sub_body.push_str(trimmed);
             sub_body.push('\n');
         } else {
-
             result.push_str(line);
             result.push('\n');
         }
@@ -471,23 +388,12 @@ pub fn preprocess_subs(input: &str) -> String {
     }
 
     if in_sub {
-
         trace!("Warning: Unclosed SUB {}", sub_name);
         result.push_str(&sub_body);
     }
 
     result
 }
-
-
-
-
-
-
-
-
-
-
 
 pub fn preprocess_functions(input: &str) -> String {
     let mut result = String::new();
@@ -505,7 +411,6 @@ pub fn preprocess_functions(input: &str) -> String {
 
         if upper_line.starts_with("FUNCTION ") && !in_function {
             in_function = true;
-
 
             let rest = trimmed[9..].trim();
             if let Some(paren_start) = rest.find('(') {
@@ -532,7 +437,6 @@ pub fn preprocess_functions(input: &str) -> String {
         } else if upper_line == "END FUNCTION" && in_function {
             in_function = false;
 
-
             let proc = ProcedureDefinition {
                 name: func_name.clone(),
                 params: func_params.clone(),
@@ -543,16 +447,13 @@ pub fn preprocess_functions(input: &str) -> String {
             trace!("Registering FUNCTION: {}", func_name);
             PROCEDURES.lock().unwrap().insert(func_name.clone(), proc);
 
-
             func_name.clear();
             func_params.clear();
             func_body.clear();
         } else if in_function {
-
             func_body.push_str(trimmed);
             func_body.push('\n');
         } else {
-
             result.push_str(line);
             result.push('\n');
         }
@@ -568,8 +469,6 @@ pub fn preprocess_functions(input: &str) -> String {
     result
 }
 
-
-
 pub fn preprocess_calls(input: &str) -> String {
     let mut result = String::new();
     let lines: Vec<&str> = input.lines().collect();
@@ -579,7 +478,6 @@ pub fn preprocess_calls(input: &str) -> String {
         let upper_line = trimmed.to_uppercase();
 
         if upper_line.starts_with("CALL ") {
-
             let rest = trimmed[5..].trim();
             let (proc_name, args) = if let Some(paren_start) = rest.find('(') {
                 let name = rest[..paren_start].trim().to_uppercase();
@@ -593,16 +491,13 @@ pub fn preprocess_calls(input: &str) -> String {
                 (rest.to_uppercase(), String::new())
             };
 
-
             let procedures = PROCEDURES.lock().unwrap();
             if let Some(proc) = procedures.get(&proc_name) {
-
                 let arg_values: Vec<&str> = if args.is_empty() {
                     Vec::new()
                 } else {
                     args.split(',').map(|a| a.trim()).collect()
                 };
-
 
                 result.push_str("// Begin inlined CALL ");
                 result.push_str(&proc_name);
@@ -610,51 +505,41 @@ pub fn preprocess_calls(input: &str) -> String {
 
                 for (i, param) in proc.params.iter().enumerate() {
                     if i < arg_values.len() && !arg_values[i].is_empty() {
-                        result.push_str(&format!("let {} = {};\n", param, arg_values[i]));
+                        use std::fmt::Write;
+                        let _ = writeln!(result, "let {} = {};", param, arg_values[i]);
                     }
                 }
-
 
                 result.push_str(&proc.body);
                 result.push_str("// End inlined CALL ");
                 result.push_str(&proc_name);
-                result.push('\n');
             } else {
-
                 result.push_str(line);
-                result.push('\n');
             }
         } else {
             result.push_str(line);
-            result.push('\n');
         }
+        result.push('\n');
     }
 
     result
 }
 
-
 pub fn preprocess_procedures(input: &str) -> String {
-
     let after_subs = preprocess_subs(input);
-
 
     let after_functions = preprocess_functions(&after_subs);
 
-
     preprocess_calls(&after_functions)
 }
-
 
 pub fn clear_procedures() {
     PROCEDURES.lock().unwrap().clear();
 }
 
-
 pub fn get_procedure_names() -> Vec<String> {
     PROCEDURES.lock().unwrap().keys().cloned().collect()
 }
-
 
 pub fn has_procedure(name: &str) -> bool {
     PROCEDURES
@@ -663,7 +548,6 @@ pub fn has_procedure(name: &str) -> bool {
         .contains_key(&name.to_uppercase())
 }
 
-
 pub fn get_procedure(name: &str) -> Option<ProcedureDefinition> {
     PROCEDURES
         .lock()
@@ -671,5 +555,3 @@ pub fn get_procedure(name: &str) -> Option<ProcedureDefinition> {
         .get(&name.to_uppercase())
         .cloned()
 }
-
-

@@ -8,38 +8,31 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ReflectionType {
     ConversationQuality,
-
     ResponseAccuracy,
-
     ToolUsage,
-
     KnowledgeRetrieval,
-
     Performance,
-
     Custom(String),
 }
 
 impl Default for ReflectionType {
     fn default() -> Self {
-        ReflectionType::ConversationQuality
+        Self::ConversationQuality
     }
 }
 
 impl From<&str> for ReflectionType {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "conversation_quality" | "conversation" | "quality" => {
-                ReflectionType::ConversationQuality
-            }
-            "response_accuracy" | "accuracy" | "response" => ReflectionType::ResponseAccuracy,
-            "tool_usage" | "tools" => ReflectionType::ToolUsage,
-            "knowledge_retrieval" | "knowledge" | "retrieval" => ReflectionType::KnowledgeRetrieval,
-            "performance" | "overall" => ReflectionType::Performance,
-            _ => ReflectionType::Custom(s.to_string()),
+            "conversation_quality" | "conversation" | "quality" => Self::ConversationQuality,
+            "response_accuracy" | "accuracy" | "response" => Self::ResponseAccuracy,
+            "tool_usage" | "tools" => Self::ToolUsage,
+            "knowledge_retrieval" | "knowledge" | "retrieval" => Self::KnowledgeRetrieval,
+            "performance" | "overall" => Self::Performance,
+            _ => Self::Custom(s.to_string()),
         }
     }
 }
@@ -47,8 +40,7 @@ impl From<&str> for ReflectionType {
 impl ReflectionType {
     pub fn prompt_template(&self) -> String {
         match self {
-            ReflectionType::ConversationQuality => {
-                r#"Analyze the following conversation and evaluate:
+            Self::ConversationQuality => r#"Analyze the following conversation and evaluate:
 1. User satisfaction indicators (positive/negative sentiment)
 2. Conversation flow and coherence
 3. Whether user's questions were fully addressed
@@ -67,9 +59,8 @@ Provide your analysis in JSON format:
     "improvements": ["..."],
     "patterns_noticed": ["..."]
 }"#
-                .to_string()
-            }
-            ReflectionType::ResponseAccuracy => {
+            .to_string(),
+            Self::ResponseAccuracy => {
                 r#"Analyze the accuracy and relevance of responses in this conversation:
 1. Were responses factually accurate?
 2. Were responses relevant to the questions?
@@ -91,7 +82,7 @@ Provide your analysis in JSON format:
 }"#
                 .to_string()
             }
-            ReflectionType::ToolUsage => r#"Analyze tool usage in this conversation:
+            Self::ToolUsage => r#"Analyze tool usage in this conversation:
 1. Were tools used appropriately?
 2. Were there missed opportunities to use tools?
 3. Did tool outputs meet user needs?
@@ -114,8 +105,7 @@ Provide your analysis in JSON format:
     "recommendations": ["..."]
 }"#
             .to_string(),
-            ReflectionType::KnowledgeRetrieval => {
-                r#"Analyze knowledge base retrieval in this conversation:
+            Self::KnowledgeRetrieval => r#"Analyze knowledge base retrieval in this conversation:
 1. Were relevant documents retrieved?
 2. Was the context provided to the LLM appropriate?
 3. Were there questions that should have used KB but didn't?
@@ -137,10 +127,8 @@ Provide your analysis in JSON format:
     "knowledge_gaps": ["..."],
     "improvements": ["..."]
 }"#
-                .to_string()
-            }
-            ReflectionType::Performance => {
-                r#"Provide an overall performance analysis of this conversation:
+            .to_string(),
+            Self::Performance => r#"Provide an overall performance analysis of this conversation:
 1. Response quality and helpfulness
 2. Efficiency (number of turns to resolve issues)
 3. User engagement level
@@ -161,9 +149,8 @@ Provide your analysis in JSON format:
     "critical_improvements": ["..."],
     "positive_patterns": ["..."]
 }"#
-                .to_string()
-            }
-            ReflectionType::Custom(prompt) => prompt.clone(),
+            .to_string(),
+            Self::Custom(prompt) => prompt.clone(),
         }
     }
 }
@@ -415,7 +402,7 @@ pub fn extract_insights_from_text(text: &str) -> Vec<String> {
     }
 
     if insights.is_empty() {
-        for sentence in text.split(|c| c == '.' || c == '!' || c == '?') {
+        for sentence in text.split(['.', '!', '?']) {
             let trimmed = sentence.trim();
             if trimmed.len() > 20 && trimmed.len() < 200 {
                 insights.push(format!("{}.", trimmed));
@@ -578,6 +565,12 @@ impl ReflectionEngine {
         Ok(prompt)
     }
 
+    fn call_llm_for_reflection_sync(&self, prompt: &str) -> Result<String, String> {
+        // Note: This is a synchronous wrapper - actual async call happens in reflect()
+        let _ = prompt;
+        Err("Use async reflect() method instead".to_string())
+    }
+
     async fn call_llm_for_reflection(&self, prompt: &str) -> Result<String, String> {
         let (llm_url, llm_model, llm_key) = self.get_llm_config().await?;
 
@@ -602,7 +595,7 @@ impl ReflectionEngine {
         });
 
         let response = client
-            .post(&format!("{}/v1/chat/completions", llm_url))
+            .post(format!("{}/v1/chat/completions", llm_url))
             .header("Authorization", format!("Bearer {}", llm_key))
             .json(&request_body)
             .send()
@@ -829,7 +822,7 @@ impl ReflectionEngine {
             .ok();
 
             if let Some(row) = result {
-                return row.count > 0 && row.count as u32 % self.config.interval == 0;
+                return row.count > 0 && (row.count as u32).is_multiple_of(self.config.interval);
             }
         }
 
@@ -847,16 +840,17 @@ struct ConversationMessage {
 pub fn register_reflection_keywords(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     set_bot_reflection_keyword(state.clone(), user.clone(), engine);
     reflect_on_keyword(state.clone(), user.clone(), engine);
-    get_reflection_insights_keyword(state.clone(), user.clone(), engine);
+    get_reflection_insights_keyword(state, user, engine);
 }
 
 pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
+    let _ = (&state, &user); // Mark as intentionally unused in registration
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["SET", "BOT", "REFLECTION", "$expr$"],
+            ["SET", "BOT", "REFLECTION", "$expr$"],
             false,
             move |context, inputs| {
                 let value = context
@@ -903,11 +897,11 @@ pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engin
 
 pub fn reflect_on_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["REFLECT", "ON", "$expr$"],
+            ["REFLECT", "ON", "$expr$"],
             false,
             move |context, inputs| {
                 let reflection_type_str = context
@@ -958,7 +952,7 @@ pub fn get_reflection_insights_keyword(
     engine: &mut Engine,
 ) {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_fn("GET REFLECTION INSIGHTS", move || -> rhai::Array {
         let state = Arc::clone(&state_clone);

@@ -40,7 +40,7 @@ pub fn register_use_account_keyword(
     let session_clone = Arc::clone(&session);
 
     engine.register_custom_syntax(
-        &["USE", "ACCOUNT", "$expr$"],
+        ["USE", "ACCOUNT", "$expr$"],
         true,
         move |context, inputs| {
             let email = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -103,14 +103,11 @@ fn add_account_to_session(
     .optional()
     .map_err(|e| format!("Failed to query account: {}", e))?;
 
-    let account = match account {
-        Some(acc) => acc,
-        None => {
-            return Err(format!(
-                "Account '{}' not found or not configured. Add it in Sources app.",
-                email
-            ));
-        }
+    let Some(account) = account else {
+        return Err(format!(
+            "Account '{}' not found or not configured. Add it in Sources app.",
+            email
+        ));
     };
 
     let qdrant_collection = format!("account_{}_{}", account.provider, account.id);
@@ -163,8 +160,7 @@ pub fn get_active_accounts_for_session(
 }
 
 pub fn parse_account_path(path: &str) -> Option<(String, String)> {
-    if path.starts_with("account://") {
-        let rest = &path[10..];
+    if let Some(rest) = path.strip_prefix("account://") {
         if let Some(slash_pos) = rest.find('/') {
             let email = &rest[..slash_pos];
             let file_path = &rest[slash_pos + 1..];
@@ -223,4 +219,31 @@ pub struct AccountCredentials {
     pub provider: String,
     pub access_token: String,
     pub refresh_token: Option<String>,
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_account_path() {
+        let result = parse_account_path("account://user@gmail.com/Documents/file.pdf");
+        assert!(result.is_some());
+        let (email, path) = result.unwrap();
+        assert_eq!(email, "user@gmail.com");
+        assert_eq!(path, "Documents/file.pdf");
+    }
+
+    #[test]
+    fn test_parse_account_path_invalid() {
+        assert!(parse_account_path("local/file.pdf").is_none());
+        assert!(parse_account_path("/absolute/path").is_none());
+    }
+
+    #[test]
+    fn test_is_account_path() {
+        assert!(is_account_path("account://user@gmail.com/file.pdf"));
+        assert!(!is_account_path("local/file.pdf"));
+        assert!(!is_account_path("file.pdf"));
+    }
 }

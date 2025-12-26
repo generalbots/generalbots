@@ -111,7 +111,7 @@ pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engi
 
     engine
         .register_custom_syntax(
-            &["CALCULATE", "$expr$", ",", "$expr$"],
+            ["CALCULATE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let formula = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -190,7 +190,7 @@ pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engin
 
     engine
         .register_custom_syntax(
-            &["VALIDATE", "$expr$", ",", "$expr$"],
+            ["VALIDATE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let data = context.eval_expression_tree(&inputs[0])?;
@@ -296,7 +296,7 @@ pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engi
 
     engine
         .register_custom_syntax(
-            &["TRANSLATE", "$expr$", ",", "$expr$"],
+            ["TRANSLATE", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let text = context.eval_expression_tree(&inputs[0])?.to_string();
@@ -335,7 +335,7 @@ pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engi
     let state_clone = Arc::clone(&state);
 
     engine
-        .register_custom_syntax(&["SUMMARIZE", "$expr$"], false, move |context, inputs| {
+        .register_custom_syntax(["SUMMARIZE", "$expr$"], false, move |context, inputs| {
             let text = context.eval_expression_tree(&inputs[0])?.to_string();
 
             trace!("SUMMARIZE: text length={}", text.len());

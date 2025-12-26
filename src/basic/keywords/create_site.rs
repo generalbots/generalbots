@@ -13,11 +13,11 @@ use std::sync::Arc;
 
 pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
     let state_clone = state.clone();
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine
         .register_custom_syntax(
-            &["CREATE", "SITE", "$expr$", ",", "$expr$", ",", "$expr$"],
+            ["CREATE", "SITE", "$expr$", ",", "$expr$", ",", "$expr$"],
             true,
             move |context, inputs| {
                 if inputs.len() < 3 {
@@ -79,7 +79,7 @@ async fn create_site(
     let generated_html = generate_html_from_prompt(llm, &combined_content, &prompt_str).await?;
 
     let drive_path = format!("apps/{}", alias_str);
-    store_to_drive(&s3, &bucket, &bot_id, &drive_path, &generated_html).await?;
+    store_to_drive(s3.as_ref(), &bucket, &bot_id, &drive_path, &generated_html).await?;
 
     let serve_path = base_path.join(&alias_str);
     sync_to_serve_path(&serve_path, &generated_html, &template_path).await?;
@@ -92,28 +92,29 @@ async fn create_site(
     Ok(format!("/apps/{}", alias_str))
 }
 
-fn load_templates(template_path: &PathBuf) -> Result<String, Box<dyn Error + Send + Sync>> {
+fn load_templates(template_path: &std::path::Path) -> Result<String, Box<dyn Error + Send + Sync>> {
     let mut combined_content = String::new();
 
     if !template_path.exists() {
-        return Err(format!("Template directory not found: {:?}", template_path).into());
+        return Err(format!("Template directory not found: {}", template_path.display()).into());
     }
 
     for entry in fs::read_dir(template_path).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
         let path = entry.path();
 
-        if path.extension().map_or(false, |ext| ext == "html") {
+        if path.extension().is_some_and(|ext| ext == "html") {
             let mut file = fs::File::open(&path).map_err(|e| e.to_string())?;
             let mut contents = String::new();
             file.read_to_string(&mut contents)
                 .map_err(|e| e.to_string())?;
 
-            combined_content.push_str(&format!("<!-- TEMPLATE: {} -->\n", path.display()));
+            use std::fmt::Write;
+            let _ = writeln!(combined_content, "<!-- TEMPLATE: {} -->", path.display());
             combined_content.push_str(&contents);
             combined_content.push_str("\n\n--- TEMPLATE SEPARATOR ---\n\n");
 
-            debug!("Loaded template: {:?}", path);
+            debug!("Loaded template: {}", path.display());
         }
     }
 
@@ -259,7 +260,7 @@ fn generate_placeholder_html(prompt: &str) -> String {
 }
 
 async fn store_to_drive(
-    s3: &Option<std::sync::Arc<aws_sdk_s3::Client>>,
+    s3: Option<&std::sync::Arc<aws_sdk_s3::Client>>,
     bucket: &str,
     bot_id: &str,
     drive_path: &str,
@@ -300,9 +301,9 @@ async fn store_to_drive(
 }
 
 async fn sync_to_serve_path(
-    serve_path: &PathBuf,
+    serve_path: &std::path::Path,
     html_content: &str,
-    template_path: &PathBuf,
+    template_path: &std::path::Path,
 ) -> Result<(), Box<dyn Error + Send + Sync>> {
     fs::create_dir_all(serve_path).map_err(|e| format!("Failed to create serve path: {}", e))?;
 
@@ -310,14 +311,14 @@ async fn sync_to_serve_path(
     fs::write(&index_path, html_content)
         .map_err(|e| format!("Failed to write index.html: {}", e))?;
 
-    info!("Written: {:?}", index_path);
+    info!("Written: {}", index_path.display());
 
     let template_assets = template_path.join("_assets");
     let serve_assets = serve_path.join("_assets");
 
     if template_assets.exists() {
         copy_dir_recursive(&template_assets, &serve_assets)?;
-        info!("Copied assets to: {:?}", serve_assets);
+        info!("Copied assets to: {}", serve_assets.display());
     } else {
         fs::create_dir_all(&serve_assets)
             .map_err(|e| format!("Failed to create assets dir: {}", e))?;
@@ -349,7 +350,8 @@ async fn sync_to_serve_path(
 }
 
 fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), Box<dyn Error + Send + Sync>> {
-    fs::create_dir_all(dst).map_err(|e| format!("Failed to create dir {:?}: {}", dst, e))?;
+    fs::create_dir_all(dst)
+        .map_err(|e| format!("Failed to create dir {}: {}", dst.display(), e))?;
 
     for entry in fs::read_dir(src).map_err(|e| e.to_string())? {
         let entry = entry.map_err(|e| e.to_string())?;
@@ -360,7 +362,7 @@ fn copy_dir_recursive(src: &PathBuf, dst: &PathBuf) -> Result<(), Box<dyn Error 
             copy_dir_recursive(&src_path, &dst_path)?;
         } else {
             fs::copy(&src_path, &dst_path)
-                .map_err(|e| format!("Failed to copy {:?}: {}", src_path, e))?;
+                .map_err(|e| format!("Failed to copy file {}: {}", src_path.display(), e))?;
         }
     }
 

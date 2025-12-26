@@ -81,7 +81,7 @@ pub mod stalwart_client;
 pub mod stalwart_sync;
 pub mod vectordb;
 
-async fn extract_user_from_session(_state: &Arc<AppState>) -> Result<Uuid, String> {
+fn extract_user_from_session(_state: &Arc<AppState>) -> Result<Uuid, String> {
     Ok(Uuid::new_v4())
 }
 
@@ -365,9 +365,8 @@ pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
     Json(request): Json<EmailAccountRequest>,
 ) -> Result<Json<ApiResponse<EmailAccountResponse>>, EmailError> {
-    let current_user_id = match extract_user_from_session(&state).await {
-        Ok(id) => id,
-        Err(_) => return Err(EmailError("Authentication required".to_string())),
+    let Ok(current_user_id) = extract_user_from_session(&state) else {
+        return Err(EmailError("Authentication required".to_string()));
     };
 
     let account_id = Uuid::new_v4();
@@ -439,15 +438,12 @@ pub async fn add_email_account(
 }
 
 pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = match extract_user_from_session(&state).await {
-        Ok(id) => id,
-        Err(_) => {
-            return axum::response::Html(r#"
-                <div class="account-item" onclick="document.getElementById('add-account-modal').showModal()">
-                    <span>+ Add email account</span>
-                </div>
-            "#.to_string());
-        }
+    let Ok(user_id) = extract_user_from_session(&state) else {
+        return axum::response::Html(r#"
+            <div class="account-item" onclick="document.getElementById('add-account-modal').showModal()">
+                <span>+ Add email account</span>
+            </div>
+        "#.to_string());
     };
 
     let conn = state.conn.clone();
@@ -506,9 +502,8 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
-    let current_user_id = match extract_user_from_session(&state).await {
-        Ok(id) => id,
-        Err(_) => return Err(EmailError("Authentication required".to_string())),
+    let Ok(current_user_id) = extract_user_from_session(&state) else {
+        return Err(EmailError("Authentication required".to_string()));
     };
 
     let conn = state.conn.clone();
@@ -687,10 +682,10 @@ pub async fn list_emails(
     let limit = request.limit.unwrap_or(50);
     let offset = request.offset.unwrap_or(0);
 
-    let recent_messages: Vec<_> = messages.iter().copied().collect();
+    let mut recent_messages: Vec<Seq> = messages.iter().copied().collect();
+    recent_messages.sort_by(|a, b| b.cmp(a));
     let recent_messages: Vec<Seq> = recent_messages
         .into_iter()
-        .rev()
         .skip(offset)
         .take(limit)
         .collect();
@@ -820,11 +815,11 @@ pub async fn send_email(
         format!("{display_name} <{from_email}>")
     };
 
-    let pixel_enabled = is_tracking_pixel_enabled(&state, None).await;
+    let pixel_enabled = is_tracking_pixel_enabled(&state, None);
     let tracking_id = Uuid::new_v4();
 
     let final_body = if pixel_enabled && request.is_html {
-        inject_tracking_pixel(&request.body, &tracking_id.to_string(), &state).await
+        inject_tracking_pixel(&request.body, &tracking_id.to_string(), &state)
     } else {
         request.body.clone()
     };
@@ -912,9 +907,8 @@ pub async fn save_draft(
     let account_uuid = Uuid::parse_str(&request.account_id)
         .map_err(|_| EmailError("Invalid account ID".to_string()))?;
 
-    let user_id = match extract_user_from_session(&state).await {
-        Ok(id) => id,
-        Err(_) => return Err(EmailError("Authentication required".to_string())),
+    let Ok(user_id) = extract_user_from_session(&state) else {
+        return Err(EmailError("Authentication required".to_string()));
     };
     let draft_id = Uuid::new_v4();
 
@@ -1055,7 +1049,7 @@ const TRACKING_PIXEL: [u8; 43] = [
     0x01, 0x00, 0x01, 0x00, 0x00, 0x02, 0x02, 0x44, 0x01, 0x00, 0x3B,
 ];
 
-async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> bool {
+fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) -> bool {
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let bot_id = bot_id.unwrap_or(Uuid::nil());
 
@@ -1065,11 +1059,7 @@ async fn is_tracking_pixel_enabled(state: &Arc<AppState>, bot_id: Option<Uuid>) 
         .unwrap_or(false)
 }
 
-async fn inject_tracking_pixel(
-    html_body: &str,
-    tracking_id: &str,
-    state: &Arc<AppState>,
-) -> String {
+fn inject_tracking_pixel(html_body: &str, tracking_id: &str, state: &Arc<AppState>) -> String {
     let config_manager = crate::core::config::ConfigManager::new(state.conn.clone());
     let base_url = config_manager
         .get_config(&Uuid::nil(), "server-url", Some("http://localhost:8080"))
@@ -1425,11 +1415,8 @@ fn calculate_tracking_stats(
     })
 }
 
-pub async fn get_emails(
-    Path(campaign_id): Path<String>,
-    State(_state): State<Arc<AppState>>,
-) -> String {
-    info!("Get emails requested for campaign: {}", campaign_id);
+pub fn get_emails(Path(campaign_id): Path<String>, State(_state): State<Arc<AppState>>) -> String {
+    info!("Get emails requested for campaign: {campaign_id}");
     "No emails tracked".to_string()
 }
 
@@ -1442,7 +1429,7 @@ impl EmailService {
         Self { state }
     }
 
-    pub async fn send_email(
+    pub fn send_email(
         &self,
         to: &str,
         subject: &str,
@@ -1484,7 +1471,7 @@ impl EmailService {
         Ok(())
     }
 
-    pub async fn send_email_with_attachment(
+    pub fn send_email_with_attachment(
         &self,
         to: &str,
         subject: &str,
@@ -1492,12 +1479,12 @@ impl EmailService {
         _attachment: Vec<u8>,
         _filename: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        self.send_email(to, subject, body, None).await
+        self.send_email(to, subject, body, None)
     }
 }
 
 pub async fn fetch_latest_sent_to(config: &EmailConfig, to: &str) -> Result<String, String> {
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1536,7 +1523,7 @@ pub async fn save_email_draft(
 ) -> Result<(), String> {
     use chrono::Utc;
 
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1583,11 +1570,11 @@ pub async fn save_email_draft(
     Ok(())
 }
 
-async fn fetch_emails_from_folder(
+fn fetch_emails_from_folder(
     config: &EmailConfig,
     folder: &str,
 ) -> Result<Vec<EmailSummary>, String> {
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1596,11 +1583,10 @@ async fn fetch_emails_from_folder(
         .map_err(|e| format!("Login failed: {:?}", e))?;
 
     let folder_name = match folder {
-        "inbox" => "INBOX",
         "sent" => "Sent",
         "drafts" => "Drafts",
         "trash" => "Trash",
-        _ => "INBOX",
+        "inbox" | _ => "INBOX",
     };
 
     session
@@ -1639,12 +1625,12 @@ async fn fetch_emails_from_folder(
     Ok(emails)
 }
 
-async fn get_folder_counts(
+fn get_folder_counts(
     config: &EmailConfig,
 ) -> Result<std::collections::HashMap<String, usize>, String> {
     use std::collections::HashMap;
 
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1654,9 +1640,9 @@ async fn get_folder_counts(
 
     let mut counts = HashMap::new();
 
-    for folder in &["INBOX", "Sent", "Drafts", "Trash"] {
+    for folder in ["INBOX", "Sent", "Drafts", "Trash"] {
         if let Ok(mailbox) = session.examine(folder) {
-            counts.insert(folder.to_string(), mailbox.exists as usize);
+            counts.insert((*folder).to_string(), mailbox.exists as usize);
         }
     }
 
@@ -1664,8 +1650,8 @@ async fn get_folder_counts(
     Ok(counts)
 }
 
-async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailContent, String> {
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1716,8 +1702,8 @@ async fn fetch_email_by_id(config: &EmailConfig, id: &str) -> Result<EmailConten
     Err("Email not found".to_string())
 }
 
-async fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
-    let client = imap::ClientBuilder::new(&config.server, config.port as u16)
+fn move_email_to_trash(config: &EmailConfig, id: &str) -> Result<(), String> {
+    let client = imap::ClientBuilder::new(&config.server, config.port)
         .connect()
         .map_err(|e| format!("Connection error: {}", e))?;
 
@@ -1764,10 +1750,12 @@ pub async fn list_emails_htmx(
     State(state): State<Arc<AppState>>,
     Query(params): Query<std::collections::HashMap<String, String>>,
 ) -> Result<impl IntoResponse, EmailError> {
-    let folder = params.get("folder").unwrap_or(&"inbox".to_string()).clone();
+    let folder = params
+        .get("folder")
+        .cloned()
+        .unwrap_or_else(|| "inbox".to_string());
 
     let user_id = extract_user_from_session(&state)
-        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
@@ -1783,8 +1771,8 @@ pub async fn list_emails_htmx(
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(|e| EmailError(e))?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
 
     let Some(account) = account else {
         return Ok(axum::response::Html(
@@ -1806,14 +1794,14 @@ pub async fn list_emails_htmx(
         smtp_port: account.smtp_port as u16,
     };
 
-    let emails = fetch_emails_from_folder(&config, &folder)
-        .await
-        .unwrap_or_default();
+    let emails = fetch_emails_from_folder(&config, &folder).unwrap_or_default();
 
     let mut html = String::new();
+    use std::fmt::Write;
     for email in &emails {
         let unread_class = if email.unread { "unread" } else { "" };
-        html.push_str(&format!(
+        let _ = write!(
+            html,
             r##"<div class="mail-item {}"
                  hx-get="/api/email/{}"
                  hx-target="#mail-content"
@@ -1826,7 +1814,7 @@ pub async fn list_emails_htmx(
                 <div class="mail-preview">{}</div>
             </div>"##,
             unread_class, email.id, email.from, email.date, email.subject, email.preview
-        ));
+        );
     }
 
     if html.is_empty() {
@@ -1846,7 +1834,6 @@ pub async fn list_folders_htmx(
     State(state): State<Arc<AppState>>,
 ) -> Result<impl IntoResponse, EmailError> {
     let user_id = extract_user_from_session(&state)
-        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
@@ -1862,8 +1849,8 @@ pub async fn list_folders_htmx(
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(|e| EmailError(e))?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
 
     if account.is_none() {
         return Ok(axum::response::Html(
@@ -1883,7 +1870,7 @@ pub async fn list_folders_htmx(
         smtp_port: account.smtp_port as u16,
     };
 
-    let folder_counts = get_folder_counts(&config).await.unwrap_or_default();
+    let folder_counts = get_folder_counts(&config).unwrap_or_default();
 
     let mut html = String::new();
     for (folder_name, icon, count) in &[
@@ -1906,7 +1893,9 @@ pub async fn list_folders_htmx(
             String::new()
         };
 
-        html.push_str(&format!(
+        use std::fmt::Write;
+        let _ = write!(
+            html,
             r##"<div class="nav-item {}"
                  hx-get="/api/email/list?folder={}"
                  hx-target="#mail-list"
@@ -1925,7 +1914,7 @@ pub async fn list_folders_htmx(
                 .collect::<String>()
                 + &folder_name[1..],
             count_badge
-        ));
+        );
     }
 
     Ok(axum::response::Html(html))
@@ -1971,7 +1960,6 @@ pub async fn get_email_content_htmx(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
     let user_id = extract_user_from_session(&state)
-        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
@@ -1987,8 +1975,8 @@ pub async fn get_email_content_htmx(
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(|e| EmailError(e))?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
 
     let Some(account) = account else {
         return Ok(axum::response::Html(
@@ -2010,7 +1998,6 @@ pub async fn get_email_content_htmx(
     };
 
     let email_content = fetch_email_by_id(&config, &id)
-        .await
         .map_err(|e| EmailError(format!("Failed to fetch email: {}", e)))?;
 
     let html = format!(
@@ -2059,7 +2046,6 @@ pub async fn delete_email_htmx(
     Path(id): Path<String>,
 ) -> Result<impl IntoResponse, EmailError> {
     let user_id = extract_user_from_session(&state)
-        .await
         .map_err(|_| EmailError("Authentication required".to_string()))?;
 
     let conn = state.conn.clone();
@@ -2075,8 +2061,8 @@ pub async fn delete_email_htmx(
             .map_err(|e| format!("Failed to get email account: {}", e))
     })
     .await
-    .map_err(|e| EmailError(format!("Task join error: {}", e)))?
-    .map_err(|e| EmailError(e))?;
+    .map_err(|e| EmailError(format!("Task join error: {e}")))?
+    .map_err(EmailError)?;
 
     if let Some(account) = account {
         let config = EmailConfig {
@@ -2090,7 +2076,6 @@ pub async fn delete_email_htmx(
         };
 
         move_email_to_trash(&config, &id)
-            .await
             .map_err(|e| EmailError(format!("Failed to delete email: {}", e)))?;
     }
 
@@ -2124,7 +2109,7 @@ pub async fn get_email(
     Ok(Json(ApiResponse {
         success: true,
         data: Some(EmailData {
-            id: campaign_id.clone(),
+            id: campaign_id,
             from: "sender@example.com".to_string(),
             to: "recipient@example.com".to_string(),
             subject: "Email Subject".to_string(),
@@ -2299,33 +2284,28 @@ pub async fn search_emails_htmx(
         );
     }
 
-    let search_term = format!("%{}%", query.to_lowercase());
+    let search_term = format!("%{query_lower}%", query_lower = query.to_lowercase());
 
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(_) => {
-            return axum::response::Html(
-                r#"
+    let Ok(mut conn) = state.conn.get() else {
+        return axum::response::Html(
+            r#"
                 <div class="empty-state error">
                     <p>Database connection error</p>
                 </div>
             "#
-                .to_string(),
-            );
-        }
+            .to_string(),
+        );
     };
 
-    let search_query = format!(
-        "SELECT id, subject, from_address, to_addresses, body_text, received_at
+    let search_query = "SELECT id, subject, from_address, to_addresses, body_text, received_at
          FROM emails
          WHERE LOWER(subject) LIKE $1
             OR LOWER(from_address) LIKE $1
             OR LOWER(body_text) LIKE $1
          ORDER BY received_at DESC
-         LIMIT 50"
-    );
+         LIMIT 50";
 
-    let results: Vec<EmailSearchRow> = match diesel::sql_query(&search_query)
+    let results: Vec<EmailSearchRow> = match diesel::sql_query(search_query)
         .bind::<diesel::sql_types::Text, _>(&search_term)
         .load::<EmailSearchRow>(&mut conn)
     {
@@ -2353,11 +2333,13 @@ pub async fn search_emails_htmx(
     }
 
     let mut html = String::from(r#"<div class="search-results">"#);
-    html.push_str(&format!(
+    use std::fmt::Write;
+    let _ = write!(
+        html,
         r#"<div class="result-stats">Found {} results for "{}"</div>"#,
         results.len(),
         query
-    ));
+    );
 
     for row in results {
         let preview = row
@@ -2369,14 +2351,18 @@ pub async fn search_emails_htmx(
             .collect::<String>();
         let formatted_date = row.received_at.format("%b %d, %Y").to_string();
 
-        html.push_str(&format!(r##"
+        let _ = write!(
+            html,
+            r##"
             <div class="email-item" hx-get="/ui/mail/view/{}" hx-target="#email-content" hx-swap="innerHTML">
                 <div class="email-sender">{}</div>
                 <div class="email-subject">{}</div>
                 <div class="email-preview">{}</div>
                 <div class="email-date">{}</div>
             </div>
-        "##, row.id, row.from_address, row.subject, preview, formatted_date));
+        "##,
+            row.id, row.from_address, row.subject, preview, formatted_date
+        );
     }
 
     html.push_str("</div>");

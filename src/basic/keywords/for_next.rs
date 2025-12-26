@@ -4,13 +4,13 @@ use rhai::Dynamic;
 use rhai::Engine;
 pub fn for_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
     engine
-        .register_custom_syntax(&["EXIT", "FOR"], false, |_context, _inputs| {
+        .register_custom_syntax(["EXIT", "FOR"], false, |_context, _inputs| {
             Err("EXIT FOR".into())
         })
         .unwrap();
     engine
         .register_custom_syntax(
-            &[
+            [
                 "FOR", "EACH", "$ident$", "IN", "$expr$", "$block$", "NEXT", "$ident$",
             ],
             true,

@@ -1,6 +1,3 @@
-
-
-
 use crate::config::ConfigManager;
 use crate::shared::state::AppState;
 use log::{error, info, trace};
@@ -8,7 +5,6 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone)]
 pub struct BotModelsConfig {
@@ -62,7 +58,6 @@ impl BotModelsConfig {
     }
 }
 
-
 #[derive(Debug, Clone)]
 pub struct ImageGeneratorConfig {
     pub model: String,
@@ -107,7 +102,6 @@ impl ImageGeneratorConfig {
         }
     }
 }
-
 
 #[derive(Debug, Clone)]
 pub struct VideoGeneratorConfig {
@@ -159,8 +153,6 @@ impl VideoGeneratorConfig {
         }
     }
 }
-
-
 
 #[derive(Debug, Serialize)]
 pub struct ImageGenerateRequest {
@@ -226,7 +218,6 @@ pub struct SpeechToTextResponse {
     pub confidence: Option<f64>,
 }
 
-
 #[derive(Debug)]
 pub struct BotModelsClient {
     client: Client,
@@ -266,7 +257,6 @@ impl BotModelsClient {
     pub fn is_enabled(&self) -> bool {
         self.config.enabled
     }
-
 
     pub async fn generate_image(
         &self,
@@ -318,7 +308,6 @@ impl BotModelsClient {
             .into())
     }
 
-
     pub async fn generate_video(
         &self,
         prompt: &str,
@@ -367,7 +356,6 @@ impl BotModelsClient {
             .unwrap_or_else(|| "Unknown error".to_string())
             .into())
     }
-
 
     pub async fn generate_audio(
         &self,
@@ -418,7 +406,6 @@ impl BotModelsClient {
             .into())
     }
 
-
     pub async fn describe_image(
         &self,
         image_url_or_path: &str,
@@ -429,7 +416,6 @@ impl BotModelsClient {
 
         let url = format!("{}/api/vision/describe", self.config.base_url());
         trace!("Describing image at {}: {}", url, image_url_or_path);
-
 
         let image_data = if image_url_or_path.starts_with("http") {
             let response = self.client.get(image_url_or_path).send().await?;
@@ -463,7 +449,6 @@ impl BotModelsClient {
         info!("Image described: {}", result.description);
         Ok(result.description)
     }
-
 
     pub async fn describe_video(
         &self,
@@ -508,7 +493,6 @@ impl BotModelsClient {
         info!("Video described: {}", result.description);
         Ok(result.description)
     }
-
 
     pub async fn speech_to_text(
         &self,
@@ -558,7 +542,6 @@ impl BotModelsClient {
         Ok(result.text)
     }
 
-
     pub async fn health_check(&self) -> bool {
         if !self.config.enabled {
             return false;
@@ -571,7 +554,6 @@ impl BotModelsClient {
         }
     }
 
-
     pub async fn download_file(
         &self,
         url: &str,
@@ -583,7 +565,6 @@ impl BotModelsClient {
         Ok(())
     }
 }
-
 
 pub async fn ensure_botmodels_running(
     app_state: Arc<AppState>,
@@ -603,8 +584,7 @@ pub async fn ensure_botmodels_running(
         .await?;
 
         let config_manager = ConfigManager::new(app_state.conn.clone());
-        let config = BotModelsConfig::from_database(&config_manager, &default_bot_id);
-        config
+        BotModelsConfig::from_database(&config_manager, &default_bot_id)
     };
 
     if !config_values.enabled {
@@ -636,7 +616,6 @@ pub async fn ensure_botmodels_running(
             batch_size: 1,
         },
     );
-
 
     if client.health_check().await {
         info!("BotModels server is already running and healthy");

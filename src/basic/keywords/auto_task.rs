@@ -1,38 +1,9 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-
-
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AutoTask {
-
     pub id: String,
 
     pub title: String,
@@ -101,10 +72,8 @@ pub struct AutoTask {
     pub estimated_completion: Option<DateTime<Utc>>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum AutoTaskStatus {
-
     Draft,
 
     Compiling,
@@ -136,35 +105,33 @@ pub enum AutoTaskStatus {
 
 impl Default for AutoTaskStatus {
     fn default() -> Self {
-        AutoTaskStatus::Draft
+        Self::Draft
     }
 }
 
 impl std::fmt::Display for AutoTaskStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            AutoTaskStatus::Draft => write!(f, "Draft"),
-            AutoTaskStatus::Compiling => write!(f, "Compiling"),
-            AutoTaskStatus::PendingApproval => write!(f, "Pending Approval"),
-            AutoTaskStatus::Simulating => write!(f, "Simulating"),
-            AutoTaskStatus::WaitingDecision => write!(f, "Waiting for Decision"),
-            AutoTaskStatus::Ready => write!(f, "Ready"),
-            AutoTaskStatus::Running => write!(f, "Running"),
-            AutoTaskStatus::Paused => write!(f, "Paused"),
-            AutoTaskStatus::Blocked => write!(f, "Blocked"),
-            AutoTaskStatus::Completed => write!(f, "Completed"),
-            AutoTaskStatus::Failed => write!(f, "Failed"),
-            AutoTaskStatus::Cancelled => write!(f, "Cancelled"),
-            AutoTaskStatus::RollingBack => write!(f, "Rolling Back"),
-            AutoTaskStatus::RolledBack => write!(f, "Rolled Back"),
+            Self::Draft => write!(f, "Draft"),
+            Self::Compiling => write!(f, "Compiling"),
+            Self::PendingApproval => write!(f, "Pending Approval"),
+            Self::Simulating => write!(f, "Simulating"),
+            Self::WaitingDecision => write!(f, "Waiting for Decision"),
+            Self::Ready => write!(f, "Ready"),
+            Self::Running => write!(f, "Running"),
+            Self::Paused => write!(f, "Paused"),
+            Self::Blocked => write!(f, "Blocked"),
+            Self::Completed => write!(f, "Completed"),
+            Self::Failed => write!(f, "Failed"),
+            Self::Cancelled => write!(f, "Cancelled"),
+            Self::RollingBack => write!(f, "Rolling Back"),
+            Self::RolledBack => write!(f, "Rolled Back"),
         }
     }
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum ExecutionMode {
-
     FullyAutomatic,
 
     SemiAutomatic,
@@ -178,10 +145,9 @@ pub enum ExecutionMode {
 
 impl Default for ExecutionMode {
     fn default() -> Self {
-        ExecutionMode::SemiAutomatic
+        Self::SemiAutomatic
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
 pub enum TaskPriority {
@@ -194,10 +160,9 @@ pub enum TaskPriority {
 
 impl Default for TaskPriority {
     fn default() -> Self {
-        TaskPriority::Medium
+        Self::Medium
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StepExecutionResult {
@@ -216,8 +181,7 @@ pub struct StepExecutionResult {
     pub rollback_data: Option<serde_json::Value>,
 }
 
-
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum StepStatus {
     Pending,
     Running,
@@ -226,7 +190,6 @@ pub enum StepStatus {
     Skipped,
     RolledBack,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ExecutionLog {
@@ -243,7 +206,6 @@ pub enum LogLevel {
     Warning,
     Error,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingDecision {
@@ -262,7 +224,6 @@ pub struct PendingDecision {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum DecisionType {
-
     ApproachSelection,
 
     RiskConfirmation,
@@ -275,7 +236,6 @@ pub enum DecisionType {
 
     Custom(String),
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DecisionOption {
@@ -307,10 +267,9 @@ pub enum TimeoutAction {
 
 impl Default for TimeoutAction {
     fn default() -> Self {
-        TimeoutAction::Pause
+        Self::Pause
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PendingApproval {
@@ -350,10 +309,9 @@ pub enum ApprovalDefault {
 
 impl Default for ApprovalDefault {
     fn default() -> Self {
-        ApprovalDefault::Pause
+        Self::Pause
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Ord, PartialOrd, Eq)]
 pub enum RiskLevel {
@@ -366,10 +324,9 @@ pub enum RiskLevel {
 
 impl Default for RiskLevel {
     fn default() -> Self {
-        RiskLevel::Low
+        Self::Low
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskSummary {
@@ -416,7 +373,7 @@ pub struct ResourceUsage {
 
 impl Default for ResourceUsage {
     fn default() -> Self {
-        ResourceUsage {
+        Self {
             compute_hours: 0.0,
             storage_gb: 0.0,
             api_calls: 0,
@@ -449,7 +406,7 @@ pub struct RollbackState {
 
 impl Default for RollbackState {
     fn default() -> Self {
-        RollbackState {
+        Self {
             available: false,
             steps_rolled_back: Vec::new(),
             rollback_data: HashMap::new(),
@@ -479,7 +436,7 @@ pub enum ScheduleType {
 
 impl Default for TaskSchedule {
     fn default() -> Self {
-        TaskSchedule {
+        Self {
             schedule_type: ScheduleType::Immediate,
             scheduled_at: None,
             cron_expression: None,

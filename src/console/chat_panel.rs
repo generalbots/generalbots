@@ -48,7 +48,7 @@ impl ChatPanel {
         let message = self.input_buffer.clone();
         self.messages.push(format!("You: {}", message));
         self.input_buffer.clear();
-        let bot_id = self.get_bot_id(bot_name, app_state).await?;
+        let bot_id = Self::get_bot_id(bot_name, app_state)?;
         let user_message = crate::shared::models::UserMessage {
             bot_id: bot_id.to_string(),
             user_id: self.user_id.to_string(),
@@ -66,7 +66,7 @@ impl ChatPanel {
         let _ = orchestrator.stream_response(user_message, tx).await;
         Ok(())
     }
-    pub async fn poll_response(&mut self, _bot_name: &str) -> Result<()> {
+    pub fn poll_response(&mut self, _bot_name: &str) -> Result<()> {
         if let Some(rx) = &mut self.response_rx {
             while let Ok(response) = rx.try_recv() {
                 if !response.content.is_empty() && !response.is_complete {
@@ -87,7 +87,7 @@ impl ChatPanel {
         }
         Ok(())
     }
-    async fn get_bot_id(&self, bot_name: &str, app_state: &Arc<AppState>) -> Result<Uuid> {
+    fn get_bot_id(bot_name: &str, app_state: &Arc<AppState>) -> Result<Uuid> {
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
         let mut conn = app_state.conn.get().unwrap();
@@ -98,24 +98,19 @@ impl ChatPanel {
         Ok(bot_id)
     }
     pub fn render(&self) -> String {
-        let mut lines = Vec::new();
-        lines.push("╔═══════════════════════════════════════╗".to_string());
-        lines.push("║         CONVERSATION                  ║".to_string());
-        lines.push("╚═══════════════════════════════════════╝".to_string());
-        lines.push("".to_string());
+        let mut lines = vec![
+            "╔═══════════════════════════════════════╗".to_string(),
+            "║         CONVERSATION                  ║".to_string(),
+            "╚═══════════════════════════════════════╝".to_string(),
+            String::new(),
+        ];
         let visible_start = if self.messages.len() > 15 {
             self.messages.len() - 15
         } else {
             0
         };
         for msg in &self.messages[visible_start..] {
-            if msg.starts_with("You: ") {
-                lines.push(format!(" {}", msg));
-            } else if msg.starts_with("Bot: ") {
-                lines.push(format!(" {}", msg));
-            } else {
-                lines.push(format!(" {}", msg));
-            }
+            lines.push(format!(" {}", msg));
         }
         lines.push("".to_string());
         lines.push("─────────────────────────────────────────".to_string());

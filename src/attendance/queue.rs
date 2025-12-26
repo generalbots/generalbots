@@ -1,8 +1,3 @@
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use axum::{
@@ -103,26 +98,22 @@ pub struct QueueFilters {
     pub assigned_to: Option<Uuid>,
 }
 
-
-
-async fn is_transfer_enabled(bot_id: Uuid, work_path: &str) -> bool {
+fn is_transfer_enabled(bot_id: Uuid, work_path: &str) -> bool {
     let config_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("config.csv");
 
     if !config_path.exists() {
-
         let alt_path = PathBuf::from(work_path).join("config.csv");
         if alt_path.exists() {
             return check_config_for_crm_enabled(&alt_path);
         }
-        warn!("Config file not found: {:?}", config_path);
+        warn!("Config file not found: {}", config_path.display());
         return false;
     }
 
     check_config_for_crm_enabled(&config_path)
 }
-
 
 fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
     match std::fs::read_to_string(config_path) {
@@ -151,14 +142,13 @@ fn check_config_for_crm_enabled(config_path: &PathBuf) -> bool {
     }
 }
 
-
-async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV> {
+fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV> {
     let attendant_path = PathBuf::from(work_path)
         .join(format!("{}.gbai", bot_id))
         .join("attendant.csv");
 
     if !attendant_path.exists() {
-        warn!("Attendant file not found: {:?}", attendant_path);
+        warn!("Attendant file not found: {}", attendant_path.display());
         return Vec::new();
     }
 
@@ -167,41 +157,40 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
             let mut attendants = Vec::new();
             let mut lines = content.lines();
 
-
             lines.next();
 
             for line in lines {
                 let parts: Vec<&str> = line.split(',').map(|s| s.trim()).collect();
                 if parts.len() >= 4 {
                     attendants.push(AttendantCSV {
-                        id: parts[0].to_string(),
-                        name: parts[1].to_string(),
-                        channel: parts[2].to_string(),
-                        preferences: parts[3].to_string(),
+                        id: (*parts[0]).to_string(),
+                        name: (*parts[1]).to_string(),
+                        channel: (*parts[2]).to_string(),
+                        preferences: (*parts[3]).to_string(),
                         department: parts
                             .get(4)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                         aliases: parts
                             .get(5)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                         phone: parts
                             .get(6)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                         email: parts
                             .get(7)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                         teams: parts
                             .get(8)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                         google: parts
                             .get(9)
                             .filter(|s| !s.is_empty())
-                            .map(|s| s.to_string()),
+                            .map(|s| (*s).to_string()),
                     });
                 }
             }
@@ -214,18 +203,15 @@ async fn read_attendants_csv(bot_id: Uuid, work_path: &str) -> Vec<AttendantCSV>
     }
 }
 
-
-
-pub async fn find_attendant_by_identifier(
+pub fn find_attendant_by_identifier(
     bot_id: Uuid,
     work_path: &str,
     identifier: &str,
 ) -> Option<AttendantCSV> {
-    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let attendants = read_attendants_csv(bot_id, work_path);
     let identifier_lower = identifier.to_lowercase().trim().to_string();
 
     for att in attendants {
-
         if att.id.to_lowercase() == identifier_lower {
             return Some(att);
         }
@@ -233,7 +219,6 @@ pub async fn find_attendant_by_identifier(
             return Some(att);
         }
         if let Some(ref phone) = att.phone {
-
             let phone_normalized = phone
                 .chars()
                 .filter(|c| c.is_numeric() || *c == '+')
@@ -274,13 +259,12 @@ pub async fn find_attendant_by_identifier(
     None
 }
 
-
-pub async fn find_attendants_by_channel(
+pub fn find_attendants_by_channel(
     bot_id: Uuid,
     work_path: &str,
     channel: &str,
 ) -> Vec<AttendantCSV> {
-    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let attendants = read_attendants_csv(bot_id, work_path);
     let channel_lower = channel.to_lowercase();
 
     attendants
@@ -291,13 +275,12 @@ pub async fn find_attendants_by_channel(
         .collect()
 }
 
-
-pub async fn find_attendants_by_department(
+pub fn find_attendants_by_department(
     bot_id: Uuid,
     work_path: &str,
     department: &str,
 ) -> Vec<AttendantCSV> {
-    let attendants = read_attendants_csv(bot_id, work_path).await;
+    let attendants = read_attendants_csv(bot_id, work_path);
     let dept_lower = department.to_lowercase();
 
     attendants
@@ -310,8 +293,6 @@ pub async fn find_attendants_by_department(
         })
         .collect()
 }
-
-
 
 pub async fn list_queue(
     State(state): State<Arc<AppState>>,
@@ -329,7 +310,6 @@ pub async fn list_queue(
             use crate::shared::models::schema::user_sessions;
             use crate::shared::models::schema::users;
 
-
             let sessions_data: Vec<UserSession> = user_sessions::table
                 .order(user_sessions::created_at.desc())
                 .limit(50)
@@ -339,7 +319,6 @@ pub async fn list_queue(
             let mut queue_items = Vec::new();
 
             for session_data in sessions_data {
-
                 let user_info: Option<(String, String)> = users::table
                     .filter(users::id.eq(session_data.user_id))
                     .select((users::username, users::email))
@@ -407,8 +386,6 @@ pub async fn list_queue(
     }
 }
 
-
-
 pub async fn list_attendants(
     State(state): State<Arc<AppState>>,
     Query(params): Query<HashMap<String, String>>,
@@ -419,7 +396,6 @@ pub async fn list_attendants(
     let bot_id = match Uuid::parse_str(&bot_id_str) {
         Ok(id) => id,
         Err(_) => {
-
             let conn = state.conn.clone();
             let result = tokio::task::spawn_blocking(move || {
                 let mut db_conn = conn.get().ok()?;
@@ -442,15 +418,13 @@ pub async fn list_attendants(
         }
     };
 
-
     let work_path = "./work";
-    if !is_transfer_enabled(bot_id, work_path).await {
+    if !is_transfer_enabled(bot_id, work_path) {
         warn!("Transfer not enabled for bot {}", bot_id);
         return (StatusCode::OK, Json(vec![] as Vec<AttendantStats>));
     }
 
-
-    let attendant_csvs = read_attendants_csv(bot_id, work_path).await;
+    let attendant_csvs = read_attendants_csv(bot_id, work_path);
 
     let attendants: Vec<AttendantStats> = attendant_csvs
         .into_iter()
@@ -470,8 +444,6 @@ pub async fn list_attendants(
     (StatusCode::OK, Json(attendants))
 }
 
-
-
 pub async fn assign_conversation(
     State(state): State<Arc<AppState>>,
     Json(request): Json<AssignRequest>,
@@ -480,7 +452,6 @@ pub async fn assign_conversation(
         "Assigning session {} to attendant {}",
         request.session_id, request.attendant_id
     );
-
 
     let result = tokio::task::spawn_blocking({
         let conn = state.conn.clone();
@@ -494,14 +465,12 @@ pub async fn assign_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-
-            let mut ctx = session.context_data.clone();
+            let mut ctx = session.context_data;
             ctx["assigned_to"] = serde_json::json!(attendant_id.to_string());
             ctx["assigned_at"] = serde_json::json!(Utc::now().to_rfc3339());
             ctx["status"] = serde_json::json!("assigned");
@@ -549,8 +518,6 @@ pub async fn assign_conversation(
     }
 }
 
-
-
 pub async fn transfer_conversation(
     State(state): State<Arc<AppState>>,
     Json(request): Json<TransferRequest>,
@@ -573,14 +540,12 @@ pub async fn transfer_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-
-            let mut ctx = session.context_data.clone();
+            let mut ctx = session.context_data;
             ctx["assigned_to"] = serde_json::json!(to_attendant.to_string());
             ctx["transferred_at"] = serde_json::json!(Utc::now().to_rfc3339());
             ctx["transfer_reason"] = serde_json::json!(reason.unwrap_or_default());
@@ -633,8 +598,6 @@ pub async fn transfer_conversation(
     }
 }
 
-
-
 pub async fn resolve_conversation(
     State(state): State<Arc<AppState>>,
     Json(payload): Json<serde_json::Value>,
@@ -657,14 +620,12 @@ pub async fn resolve_conversation(
 
             use crate::shared::models::schema::user_sessions;
 
-
             let session: UserSession = user_sessions::table
                 .filter(user_sessions::id.eq(session_id))
                 .first(&mut db_conn)
                 .map_err(|e| format!("Session not found: {}", e))?;
 
-
-            let mut ctx = session.context_data.clone();
+            let mut ctx = session.context_data;
             ctx["status"] = serde_json::json!("resolved");
             ctx["resolved_at"] = serde_json::json!(Utc::now().to_rfc3339());
             ctx["resolved"] = serde_json::json!(true);
@@ -714,8 +675,6 @@ pub async fn resolve_conversation(
     }
 }
 
-
-
 pub async fn get_insights(
     State(state): State<Arc<AppState>>,
     Path(session_id): Path<Uuid>,
@@ -731,7 +690,6 @@ pub async fn get_insights(
 
             use crate::shared::models::schema::message_history;
 
-
             let messages: Vec<(String, i32)> = message_history::table
                 .filter(message_history::session_id.eq(session_id))
                 .select((message_history::content_encrypted, message_history::role))
@@ -739,7 +697,6 @@ pub async fn get_insights(
                 .limit(10)
                 .load(&mut db_conn)
                 .map_err(|e| format!("Failed to load messages: {}", e))?;
-
 
             let user_messages: Vec<String> = messages
                 .iter()

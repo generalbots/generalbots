@@ -1,15 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -32,7 +20,6 @@ pub enum TriggerType {
 impl From<String> for TriggerType {
     fn from(s: String) -> Self {
         match s.to_lowercase().as_str() {
-            "keyword" => Self::Keyword,
             "tool" => Self::Tool,
             "schedule" => Self::Schedule,
             "event" => Self::Event,
@@ -150,10 +137,10 @@ fn add_bot_with_trigger_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["ADD", "BOT", "$expr$", "WITH", "TRIGGER", "$expr$"],
+        ["ADD", "BOT", "$expr$", "WITH", "TRIGGER", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -195,7 +182,6 @@ fn add_bot_with_trigger_keyword(
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name, trigger)
-                        .await
                 });
                 let _ = tx.send(result);
             });
@@ -222,10 +208,10 @@ fn add_bot_with_tools_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["ADD", "BOT", "$expr$", "WITH", "TOOLS", "$expr$"],
+        ["ADD", "BOT", "$expr$", "WITH", "TOOLS", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -267,7 +253,6 @@ fn add_bot_with_tools_keyword(
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name, trigger)
-                        .await
                 });
                 let _ = tx.send(result);
             });
@@ -294,10 +279,10 @@ fn add_bot_with_schedule_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["ADD", "BOT", "$expr$", "WITH", "SCHEDULE", "$expr$"],
+        ["ADD", "BOT", "$expr$", "WITH", "SCHEDULE", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -333,7 +318,6 @@ fn add_bot_with_schedule_keyword(
                 };
                 let result = rt.block_on(async {
                     add_bot_to_session(&state_for_task, session_id, bot_id, &bot_name, trigger)
-                        .await
                 });
                 let _ = tx.send(result);
             });
@@ -360,10 +344,10 @@ fn remove_bot_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["REMOVE", "BOT", "$expr$"],
+        ["REMOVE", "BOT", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -388,7 +372,7 @@ fn remove_bot_keyword(
                     }
                 };
                 let result = rt.block_on(async {
-                    remove_bot_from_session(&state_for_task, session_id, &bot_name).await
+                    remove_bot_from_session(&state_for_task, session_id, &bot_name)
                 });
                 let _ = tx.send(result);
             });
@@ -415,9 +399,9 @@ fn list_bots_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
-    engine.register_custom_syntax(&["LIST", "BOTS"], false, move |_context, _inputs| {
+    engine.register_custom_syntax(["LIST", "BOTS"], false, move |_context, _inputs| {
         trace!("LIST BOTS for session: {}", user_clone.id);
 
         let state_for_task = Arc::clone(&state_clone);
@@ -433,7 +417,7 @@ fn list_bots_keyword(
                     return;
                 }
             };
-            let result = rt.block_on(async { get_session_bots(&state_for_task, session_id).await });
+            let result = rt.block_on(async { get_session_bots(&state_for_task, session_id) });
             let _ = tx.send(result);
         });
 
@@ -474,10 +458,10 @@ fn set_bot_priority_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["SET", "BOT", "PRIORITY", "$expr$", ",", "$expr$"],
+        ["SET", "BOT", "PRIORITY", "$expr$", ",", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -510,7 +494,7 @@ fn set_bot_priority_keyword(
                     }
                 };
                 let result = rt.block_on(async {
-                    set_bot_priority(&state_for_task, session_id, &bot_name, priority).await
+                    set_bot_priority(&state_for_task, session_id, &bot_name, priority)
                 });
                 let _ = tx.send(result);
             });
@@ -537,10 +521,10 @@ fn delegate_to_keyword(
     engine: &mut Engine,
 ) -> Result<(), rhai::ParseError> {
     let state_clone = Arc::clone(&state);
-    let user_clone = user.clone();
+    let user_clone = user;
 
     engine.register_custom_syntax(
-        &["DELEGATE", "TO", "$expr$"],
+        ["DELEGATE", "TO", "$expr$"],
         false,
         move |context, inputs| {
             let bot_name = context
@@ -564,9 +548,8 @@ fn delegate_to_keyword(
                         return;
                     }
                 };
-                let result = rt.block_on(async {
-                    delegate_to_bot(&state_for_task, session_id, &bot_name).await
-                });
+                let result =
+                    rt.block_on(async { delegate_to_bot(&state_for_task, session_id, &bot_name) });
                 let _ = tx.send(result);
             });
 
@@ -586,7 +569,7 @@ fn delegate_to_keyword(
     Ok(())
 }
 
-async fn add_bot_to_session(
+fn add_bot_to_session(
     state: &AppState,
     session_id: Uuid,
     _parent_bot_id: Uuid,
@@ -652,7 +635,7 @@ async fn add_bot_to_session(
     Ok(format!("Bot '{bot_name}' added to conversation"))
 }
 
-async fn remove_bot_from_session(
+fn remove_bot_from_session(
     state: &AppState,
     session_id: Uuid,
     bot_name: &str,
@@ -675,7 +658,7 @@ async fn remove_bot_from_session(
     }
 }
 
-async fn get_session_bots(state: &AppState, session_id: Uuid) -> Result<Vec<SessionBot>, String> {
+fn get_session_bots(state: &AppState, session_id: Uuid) -> Result<Vec<SessionBot>, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
 
     let results: Vec<SessionBotRow> = diesel::sql_query(
@@ -708,7 +691,7 @@ async fn get_session_bots(state: &AppState, session_id: Uuid) -> Result<Vec<Sess
     Ok(bots)
 }
 
-async fn set_bot_priority(
+fn set_bot_priority(
     state: &AppState,
     session_id: Uuid,
     bot_name: &str,
@@ -728,11 +711,7 @@ async fn set_bot_priority(
     Ok(format!("Bot '{bot_name}' priority set to {priority}"))
 }
 
-async fn delegate_to_bot(
-    state: &AppState,
-    session_id: Uuid,
-    bot_name: &str,
-) -> Result<String, String> {
+fn delegate_to_bot(state: &AppState, session_id: Uuid, bot_name: &str) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {e}"))?;
 
     let bot_config: Option<BotConfigRow> = diesel::sql_query(
@@ -785,7 +764,7 @@ pub fn match_bot_triggers(message: &str, bots: &[SessionBot]) -> Vec<SessionBot>
         }
 
         let matches = match bot.trigger.trigger_type {
-            TriggerType::Keyword => bot.trigger.keywords.as_ref().map_or(false, |keywords| {
+            TriggerType::Keyword => bot.trigger.keywords.as_ref().is_some_and(|keywords| {
                 keywords
                     .iter()
                     .any(|kw| message_lower.contains(&kw.to_lowercase()))

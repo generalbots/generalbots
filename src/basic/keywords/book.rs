@@ -8,7 +8,6 @@ use rhai::{Dynamic, Engine};
 use std::sync::Arc;
 use uuid::Uuid;
 
-
 #[derive(Debug)]
 pub struct CalendarEngine {
     _db: crate::shared::utils::DbPool,
@@ -53,14 +52,14 @@ impl CalendarEngine {
         Self { _db: db }
     }
 
-    pub async fn create_event(
+    pub fn create_event(
         &self,
         event: CalendarEvent,
     ) -> Result<CalendarEvent, Box<dyn std::error::Error>> {
         Ok(event)
     }
 
-    pub async fn check_conflicts(
+    pub fn check_conflicts(
         &self,
         _start: DateTime<Utc>,
         _end: DateTime<Utc>,
@@ -69,7 +68,7 @@ impl CalendarEngine {
         Ok(vec![])
     }
 
-    pub async fn get_events_range(
+    pub fn get_events_range(
         &self,
         _start: DateTime<Utc>,
         _end: DateTime<Utc>,
@@ -78,14 +77,13 @@ impl CalendarEngine {
     }
 }
 
-
 pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
     let user_clone = user.clone();
 
     engine
         .register_custom_syntax(
-            &[
+            [
                 "BOOK", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$", ",", "$expr$",
             ],
             false,
@@ -96,7 +94,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 let duration_minutes = context
                     .eval_expression_tree(&inputs[3])?
                     .as_int()
-                    .unwrap_or(30) as i64;
+                    .unwrap_or(30);
                 let location = context.eval_expression_tree(&inputs[4])?.to_string();
 
                 trace!(
@@ -128,7 +126,6 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                                 duration_minutes,
                                 &location,
                             )
-                            .await
                         });
                         tx.send(result).err()
                     } else {
@@ -156,13 +153,12 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         )
         .unwrap();
 
-
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
 
     engine
         .register_custom_syntax(
-            &["BOOK_MEETING", "$expr$", ",", "$expr$"],
+            ["BOOK_MEETING", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let meeting_details = context.eval_expression_tree(&inputs[0])?;
@@ -184,17 +180,16 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
                 let state_for_task = Arc::clone(&state_clone2);
                 let user_for_task = user_clone2.clone();
-
+                let meeting_json = meeting_details.to_string();
 
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async move {
                         execute_book_meeting(
                             &state_for_task,
                             &user_for_task,
-                            meeting_details.to_string(),
+                            meeting_json,
                             attendees,
                         )
-                        .await
                     })
                 });
 
@@ -209,32 +204,28 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         )
         .unwrap();
 
-
     let state_clone3 = Arc::clone(&state);
-    let user_clone3 = user.clone();
 
     engine
         .register_custom_syntax(
-            &["CHECK_AVAILABILITY", "$expr$", ",", "$expr$"],
+            ["CHECK_AVAILABILITY", "$expr$", ",", "$expr$"],
             false,
             move |context, inputs| {
                 let date_str = context.eval_expression_tree(&inputs[0])?.to_string();
                 let duration_minutes = context
                     .eval_expression_tree(&inputs[1])?
                     .as_int()
-                    .unwrap_or(30) as i64;
+                    .unwrap_or(30);
 
                 trace!(
                     "CHECK_AVAILABILITY for {} on {} for user={}",
                     duration_minutes,
                     date_str,
-                    user_clone3.user_id
+                    user.user_id
                 );
 
                 let state_for_task = Arc::clone(&state_clone3);
-                let user_for_task = user_clone3.clone();
-                let date_str = date_str.clone();
-
+                let user_for_task = user.clone();
 
                 let result = tokio::task::block_in_place(|| {
                     tokio::runtime::Handle::current().block_on(async move {
@@ -244,7 +235,6 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                             &date_str,
                             duration_minutes,
                         )
-                        .await
                     })
                 });
 
@@ -260,7 +250,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
         .unwrap();
 }
 
-async fn execute_book(
+fn execute_book(
     state: &AppState,
     user: &UserSession,
     title: &str,
@@ -269,17 +259,13 @@ async fn execute_book(
     duration_minutes: i64,
     location: &str,
 ) -> Result<String, String> {
-
     let start_time = parse_time_string(start_time_str)?;
     let end_time = start_time + Duration::minutes(duration_minutes);
 
-
-    let calendar_engine = get_calendar_engine(state).await?;
-
+    let calendar_engine = get_calendar_engine(state)?;
 
     let conflicts = calendar_engine
         .check_conflicts(start_time, end_time, &user.user_id.to_string())
-        .await
         .map_err(|e| format!("Failed to check conflicts: {}", e))?;
 
     if !conflicts.is_empty() {
@@ -288,7 +274,6 @@ async fn execute_book(
             conflicts[0].title
         ));
     }
-
 
     let event = CalendarEvent {
         id: Uuid::new_v4(),
@@ -310,14 +295,11 @@ async fn execute_book(
         updated_at: Utc::now(),
     };
 
-
     let created_event = calendar_engine
         .create_event(event)
-        .await
         .map_err(|e| format!("Failed to create appointment: {}", e))?;
 
-
-    log_booking(state, user, &created_event.id.to_string(), title).await?;
+    log_booking(state, user, &created_event.id.to_string(), title)?;
 
     info!(
         "Appointment booked: {} at {} for user {}",
@@ -332,13 +314,12 @@ async fn execute_book(
     ))
 }
 
-async fn execute_book_meeting(
+fn execute_book_meeting(
     state: &AppState,
     user: &UserSession,
     meeting_json: String,
     attendees: Vec<String>,
 ) -> Result<String, String> {
-
     let meeting_data: serde_json::Value = serde_json::from_str(&meeting_json)
         .map_err(|e| format!("Invalid meeting details: {}", e))?;
 
@@ -356,21 +337,17 @@ async fn execute_book_meeting(
     let start_time = parse_time_string(start_time_str)?;
     let end_time = start_time + Duration::minutes(duration_minutes);
 
-
-    let calendar_engine = get_calendar_engine(state).await?;
-
+    let calendar_engine = get_calendar_engine(state)?;
 
     for attendee in &attendees {
         let conflicts = calendar_engine
             .check_conflicts(start_time, end_time, attendee)
-            .await
             .map_err(|e| format!("Failed to check conflicts: {}", e))?;
 
         if !conflicts.is_empty() {
             return Err(format!("Attendee {} has a conflict at this time", attendee));
         }
     }
-
 
     let recurrence_rule = if recurring {
         Some(RecurrenceRule {
@@ -383,7 +360,6 @@ async fn execute_book_meeting(
     } else {
         None
     };
-
 
     let event = CalendarEvent {
         id: Uuid::new_v4(),
@@ -405,15 +381,12 @@ async fn execute_book_meeting(
         updated_at: Utc::now(),
     };
 
-
     let created_event = calendar_engine
         .create_event(event)
-        .await
         .map_err(|e| format!("Failed to create meeting: {}", e))?;
 
-
     for attendee in &attendees {
-        send_meeting_invite(state, &created_event, attendee).await?;
+        send_meeting_invite(state, &created_event, attendee)?;
     }
 
     info!(
@@ -432,32 +405,27 @@ async fn execute_book_meeting(
     ))
 }
 
-async fn check_availability(
+fn check_availability(
     state: &AppState,
     _user: &UserSession,
     date_str: &str,
     duration_minutes: i64,
 ) -> Result<String, String> {
     let date = parse_date_string(date_str)?;
-    let calendar_engine = get_calendar_engine(state).await?;
-
+    let calendar_engine = get_calendar_engine(state)?;
 
     let business_start = date.with_hour(9).unwrap().with_minute(0).unwrap();
     let business_end = date.with_hour(17).unwrap().with_minute(0).unwrap();
 
-
     let events = calendar_engine
         .get_events_range(business_start, business_end)
-        .await
         .map_err(|e| format!("Failed to get events: {}", e))?;
-
 
     let mut available_slots = Vec::new();
     let mut current_time = business_start;
     let slot_duration = Duration::minutes(duration_minutes);
 
     for event in &events {
-
         if current_time + slot_duration <= event.start_time {
             available_slots.push(format!(
                 "{} - {}",
@@ -467,7 +435,6 @@ async fn check_availability(
         }
         current_time = event.end_time;
     }
-
 
     if current_time + slot_duration <= business_end {
         available_slots.push(format!(
@@ -489,7 +456,6 @@ async fn check_availability(
 }
 
 fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
-
     let formats = vec![
         "%Y-%m-%d %H:%M",
         "%Y-%m-%d %H:%M:%S",
@@ -504,7 +470,6 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
         }
     }
 
-
     if time_str.contains("tomorrow") {
         let tomorrow = Utc::now() + Duration::days(1);
         if let Some(hour) = extract_hour_from_string(time_str) {
@@ -517,7 +482,6 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
                 .unwrap());
         }
     }
-
 
     if time_str.starts_with("in ") {
         if let Ok(hours) = time_str
@@ -534,13 +498,11 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
 }
 
 fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
-
     if date_str == "today" {
         return Ok(Utc::now());
     } else if date_str == "tomorrow" {
         return Ok(Utc::now() + Duration::days(1));
     }
-
 
     let formats = vec!["%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y"];
 
@@ -554,18 +516,17 @@ fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
 }
 
 fn extract_hour_from_string(s: &str) -> Option<u32> {
-
     let s = s.to_lowercase();
 
     if s.contains("pm") {
-        if let Some(hour_str) = s.split("pm").next() {
-            if let Ok(hour) = hour_str.trim().replace(":", "").parse::<u32>() {
+        if let Some(hour_str) = s.split('p').next() {
+            if let Ok(hour) = hour_str.trim().replace(':', "").parse::<u32>() {
                 return Some(if hour < 12 { hour + 12 } else { hour });
             }
         }
     } else if s.contains("am") {
-        if let Some(hour_str) = s.split("am").next() {
-            if let Ok(hour) = hour_str.trim().replace(":", "").parse::<u32>() {
+        if let Some(hour_str) = s.split('a').next() {
+            if let Ok(hour) = hour_str.trim().replace(':', "").parse::<u32>() {
                 return Some(if hour == 12 { 0 } else { hour });
             }
         }
@@ -574,7 +535,7 @@ fn extract_hour_from_string(s: &str) -> Option<u32> {
     None
 }
 
-async fn log_booking(
+fn log_booking(
     state: &AppState,
     user: &UserSession,
     event_id: &str,
@@ -596,19 +557,16 @@ async fn log_booking(
     Ok(())
 }
 
-async fn get_calendar_engine(state: &AppState) -> Result<Arc<CalendarEngine>, String> {
-
-
+fn get_calendar_engine(state: &AppState) -> Result<Arc<CalendarEngine>, String> {
     let calendar_engine = Arc::new(CalendarEngine::new(state.conn.clone()));
     Ok(calendar_engine)
 }
 
-async fn send_meeting_invite(
+fn send_meeting_invite(
     _state: &AppState,
     event: &CalendarEvent,
     attendee: &str,
 ) -> Result<(), String> {
-
     info!(
         "Would send meeting invite for '{}' to {}",
         event.title, attendee
