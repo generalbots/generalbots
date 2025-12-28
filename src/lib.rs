@@ -1,3 +1,4 @@
+pub mod auto_task;
 pub mod basic;
 pub mod core;
 pub mod multimodal;

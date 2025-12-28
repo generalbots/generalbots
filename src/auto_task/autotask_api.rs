@@ -1,9 +1,9 @@
-use crate::basic::keywords::auto_task::{
+use crate::auto_task::auto_task::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
-use crate::basic::keywords::intent_classifier::IntentClassifier;
-use crate::basic::keywords::intent_compiler::IntentCompiler;
-use crate::basic::keywords::safety_layer::{SafetyLayer, SimulationResult};
+use crate::auto_task::intent_classifier::IntentClassifier;
+use crate::auto_task::intent_compiler::IntentCompiler;
+use crate::auto_task::safety_layer::{SafetyLayer, SimulationResult};
 use crate::shared::state::AppState;
 use axum::{
     extract::{Path, Query, State},
@@ -1340,7 +1340,7 @@ fn create_auto_task_from_plan(
         pending_decisions: Vec::new(),
         pending_approvals: Vec::new(),
         risk_summary: None,
-        resource_usage: crate::basic::keywords::auto_task::ResourceUsage::default(),
+        resource_usage: crate::auto_task::auto_task::ResourceUsage::default(),
         error: None,
         rollback_state: None,
         session_id: session.id.to_string(),
