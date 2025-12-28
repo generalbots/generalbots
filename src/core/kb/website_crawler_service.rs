@@ -244,7 +244,7 @@ pub async fn ensure_crawler_service_running(
             Arc::clone(kb_manager),
         ));
 
-        let _ = service.start();
+        drop(service.start());
 
         info!("Website crawler service initialized");
 

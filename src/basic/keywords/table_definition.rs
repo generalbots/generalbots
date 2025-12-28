@@ -286,8 +286,6 @@ fn parse_field_definition(
                     reference_table = Some(parts[i + 1].to_string());
                 }
             }
-            // Skip READ, BY, WRITE as they're handled separately
-            "read" | "by" | "write" => {}
             _ => {}
         }
     }

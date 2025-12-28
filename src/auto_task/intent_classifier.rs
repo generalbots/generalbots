@@ -208,13 +208,13 @@ impl IntentClassifier {
 
         match classification.intent_type {
             IntentType::AppCreate => self.handle_app_create(classification, session).await,
-            IntentType::Todo => self.handle_todo(classification, session).await,
-            IntentType::Monitor => self.handle_monitor(classification, session).await,
+            IntentType::Todo => self.handle_todo(classification, session),
+            IntentType::Monitor => self.handle_monitor(classification, session),
             IntentType::Action => self.handle_action(classification, session).await,
-            IntentType::Schedule => self.handle_schedule(classification, session).await,
-            IntentType::Goal => self.handle_goal(classification, session).await,
-            IntentType::Tool => self.handle_tool(classification, session).await,
-            IntentType::Unknown => self.handle_unknown(classification, session).await,
+            IntentType::Schedule => self.handle_schedule(classification, session),
+            IntentType::Goal => self.handle_goal(classification, session),
+            IntentType::Tool => self.handle_tool(classification, session),
+            IntentType::Unknown => Self::handle_unknown(classification),
         }
     }
 
@@ -274,12 +274,10 @@ Respond with JSON only:
         );
 
         let response = self.call_llm(&prompt).await?;
-        self.parse_classification_response(&response, intent)
+        Self::parse_classification_response(&response, intent)
     }
 
-    /// Parse LLM response into ClassifiedIntent
     fn parse_classification_response(
-        &self,
         response: &str,
         original_intent: &str,
     ) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
@@ -380,14 +378,12 @@ Respond with JSON only:
             }
             Err(e) => {
                 warn!("Failed to parse LLM response, using heuristic: {e}");
-                self.classify_heuristic(original_intent)
+                Self::classify_heuristic(original_intent)
             }
         }
     }
 
-    /// Fallback heuristic classification when LLM fails
     fn classify_heuristic(
-        &self,
         intent: &str,
     ) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
         let lower = intent.to_lowercase();
@@ -459,11 +455,6 @@ Respond with JSON only:
         })
     }
 
-    // =========================================================================
-    // INTENT HANDLERS
-    // =========================================================================
-
-    /// Handle APP_CREATE: Generate full application with HTMX pages, tables, tools
     async fn handle_app_create(
         &self,
         classification: &ClassifiedIntent,
@@ -550,8 +541,7 @@ Respond with JSON only:
         }
     }
 
-    /// Handle TODO: Save task to tasks table
-    async fn handle_todo(
+    fn handle_todo(
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
@@ -595,8 +585,7 @@ Respond with JSON only:
         })
     }
 
-    /// Handle MONITOR: Create ON CHANGE event handler
-    async fn handle_monitor(
+    fn handle_monitor(
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
@@ -643,7 +632,7 @@ END ON
             message: format!("Monitor created for: {subject}"),
             created_resources: vec![CreatedResource {
                 resource_type: "event".to_string(),
-                name: handler_name.clone(),
+                name: handler_name,
                 path: Some(event_path),
             }],
             app_url: None,
@@ -655,7 +644,6 @@ END ON
         })
     }
 
-    /// Handle ACTION: Execute immediately
     async fn handle_action(
         &self,
         classification: &ClassifiedIntent,
@@ -709,8 +697,7 @@ END ON
         })
     }
 
-    /// Handle SCHEDULE: Create SET SCHEDULE automation
-    async fn handle_schedule(
+    fn handle_schedule(
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
@@ -783,8 +770,7 @@ END SCHEDULE
         })
     }
 
-    /// Handle GOAL: Create autonomous LLM loop with metrics
-    async fn handle_goal(
+    fn handle_goal(
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
@@ -857,8 +843,7 @@ END GOAL
         })
     }
 
-    /// Handle TOOL: Create voice/chat command trigger
-    async fn handle_tool(
+    fn handle_tool(
         &self,
         classification: &ClassifiedIntent,
         session: &UserSession,
@@ -926,23 +911,20 @@ END TRIGGER
         })
     }
 
-    /// Handle UNKNOWN: Request clarification
-    async fn handle_unknown(
-        &self,
+    fn handle_unknown(
         classification: &ClassifiedIntent,
-        _session: &UserSession,
     ) -> Result<IntentResult, Box<dyn std::error::Error + Send + Sync>> {
         info!("Handling UNKNOWN intent - requesting clarification");
 
-        let suggestions = if !classification.alternative_types.is_empty() {
+        let suggestions = if classification.alternative_types.is_empty() {
+            "- Create an app\n- Add a task\n- Set up monitoring\n- Schedule automation".to_string()
+        } else {
             classification
                 .alternative_types
                 .iter()
                 .map(|a| format!("- {}: {}", a.intent_type, a.reason))
                 .collect::<Vec<_>>()
                 .join("\n")
-        } else {
-            "- Create an app\n- Add a task\n- Set up monitoring\n- Schedule automation".to_string()
         };
 
         Ok(IntentResult {

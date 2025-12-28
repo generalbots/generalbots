@@ -10,6 +10,8 @@ use axum::{
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
+use std::fmt::Write;
+use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -1096,13 +1098,14 @@ fn build_designer_prompt(request: &DesignerModifyRequest) -> String {
         .map(|ctx| {
             let mut info = String::new();
             if let Some(ref html) = ctx.page_html {
-                info.push_str(&format!(
-                    "\nCurrent page HTML (first 500 chars):\n{}\n",
+                let _ = writeln!(
+                    info,
+                    "\nCurrent page HTML (first 500 chars):\n{}",
                     &html[..html.len().min(500)]
-                ));
+                );
             }
             if let Some(ref tables) = ctx.tables {
-                info.push_str(&format!("\nAvailable tables: {}\n", tables.join(", ")));
+                let _ = writeln!(info, "\nAvailable tables: {}", tables.join(", "));
             }
             info
         })
@@ -1226,7 +1229,7 @@ async fn parse_and_apply_changes(
         code: Option<String>,
     }
 
-    let parsed: LlmChangeResponse = serde_json::from_str(llm_response).unwrap_or(LlmChangeResponse {
+    let parsed: LlmChangeResponse = serde_json::from_str(llm_response).unwrap_or_else(|_| LlmChangeResponse {
         _understanding: Some("Could not parse LLM response".to_string()),
         changes: None,
         message: Some("I understood your request but encountered an issue processing it. Could you try rephrasing?".to_string()),
@@ -1324,15 +1327,16 @@ async fn apply_file_change(
 }
 
 fn get_content_type(filename: &str) -> &'static str {
-    if filename.ends_with(".html") {
-        "text/html"
-    } else if filename.ends_with(".css") {
-        "text/css"
-    } else if filename.ends_with(".js") {
-        "application/javascript"
-    } else if filename.ends_with(".json") {
-        "application/json"
-    } else {
-        "text/plain"
+    match Path::new(filename)
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_lowercase())
+        .as_deref()
+    {
+        Some("html") => "text/html",
+        Some("css") => "text/css",
+        Some("js") => "application/javascript",
+        Some("json") => "application/json",
+        _ => "text/plain",
     }
 }

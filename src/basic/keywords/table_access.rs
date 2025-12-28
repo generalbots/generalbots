@@ -99,10 +99,10 @@ impl UserRoles {
         }
 
         // Also check if user is marked as admin in context
-        if let Some(Value::Bool(true)) = session.context_data.get("is_admin") {
-            if !roles.contains(&"admin".to_string()) {
-                roles.push("admin".to_string());
-            }
+        if matches!(session.context_data.get("is_admin"), Some(Value::Bool(true)))
+            && !roles.contains(&"admin".to_string())
+        {
+            roles.push("admin".to_string());
         }
 
         Self {
@@ -224,26 +224,21 @@ pub fn load_table_access_info(
     .bind::<Text, _>(table_name)
     .get_result(conn);
 
-    let table_def = match table_result {
-        Ok(row) => row,
-        Err(_) => {
-            trace!(
-                "No table definition found for '{}', allowing open access",
-                table_name
-            );
-            return None; // No definition = open access
-        }
+    let Ok(table_def) = table_result else {
+        trace!(
+            "No table definition found for '{table_name}', allowing open access"
+        );
+        return None;
     };
 
     let mut info = TableAccessInfo {
         table_name: table_def.table_name,
-        read_roles: parse_roles_string(&table_def.read_roles),
-        write_roles: parse_roles_string(&table_def.write_roles),
+        read_roles: parse_roles_string(table_def.read_roles.as_ref()),
+        write_roles: parse_roles_string(table_def.write_roles.as_ref()),
         field_read_roles: HashMap::new(),
         field_write_roles: HashMap::new(),
     };
 
-    // Query field-level permissions
     let fields_result: Result<Vec<FieldDefRow>, _> = sql_query(
         "SELECT f.field_name, f.read_roles, f.write_roles
          FROM dynamic_table_fields f
@@ -255,8 +250,8 @@ pub fn load_table_access_info(
 
     if let Ok(fields) = fields_result {
         for field in fields {
-            let field_read = parse_roles_string(&field.read_roles);
-            let field_write = parse_roles_string(&field.write_roles);
+            let field_read = parse_roles_string(field.read_roles.as_ref());
+            let field_write = parse_roles_string(field.write_roles.as_ref());
 
             if !field_read.is_empty() {
                 info.field_read_roles
@@ -279,9 +274,8 @@ pub fn load_table_access_info(
     Some(info)
 }
 
-fn parse_roles_string(roles: &Option<String>) -> Vec<String> {
+fn parse_roles_string(roles: Option<&String>) -> Vec<String> {
     roles
-        .as_ref()
         .map(|s| {
             s.split(';')
                 .map(|r| r.trim().to_string())

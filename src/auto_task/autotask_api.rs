@@ -1,4 +1,4 @@
-use crate::auto_task::auto_task::{
+use crate::auto_task::task_types::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
 use crate::auto_task::intent_classifier::IntentClassifier;
@@ -1334,7 +1334,7 @@ fn create_auto_task_from_plan(
         pending_decisions: Vec::new(),
         pending_approvals: Vec::new(),
         risk_summary: None,
-        resource_usage: crate::auto_task::auto_task::ResourceUsage::default(),
+        resource_usage: crate::auto_task::task_types::ResourceUsage::default(),
         error: None,
         rollback_state: None,
         session_id: session.id.to_string(),
@@ -1613,9 +1613,8 @@ fn update_task_status_db(
 }
 
 fn get_pending_items_for_bot(state: &Arc<AppState>, bot_id: Uuid) -> Vec<PendingItemResponse> {
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(_) => return Vec::new(),
+    let Ok(mut conn) = state.conn.get() else {
+        return Vec::new();
     };
 
     #[derive(QueryableByName)]
@@ -1860,18 +1859,15 @@ pub struct PendingItemsResponse {
 pub async fn get_pending_items_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     info!("Getting pending items");
 
-    let session = match get_current_session(&state) {
-        Ok(s) => s,
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(PendingItemsResponse {
-                    items: Vec::new(),
-                    count: 0,
-                }),
-            )
-                .into_response();
-        }
+    let Ok(session) = get_current_session(&state) else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(PendingItemsResponse {
+                items: Vec::new(),
+                count: 0,
+            }),
+        )
+            .into_response();
     };
 
     let items = get_pending_items_for_bot(&state, session.bot_id);
@@ -1898,18 +1894,15 @@ pub async fn submit_pending_item_handler(
 ) -> impl IntoResponse {
     info!("Submitting pending item {item_id}: {}", request.value);
 
-    let session = match get_current_session(&state) {
-        Ok(s) => s,
-        Err(_) => {
-            return (
-                StatusCode::UNAUTHORIZED,
-                Json(serde_json::json!({
-                    "success": false,
-                    "error": "Authentication required"
-                })),
-            )
-                .into_response();
-        }
+    let Ok(session) = get_current_session(&state) else {
+        return (
+            StatusCode::UNAUTHORIZED,
+            Json(serde_json::json!({
+                "success": false,
+                "error": "Authentication required"
+            })),
+        )
+            .into_response();
     };
 
     match resolve_pending_item(&state, &item_id, &request.value, session.bot_id) {

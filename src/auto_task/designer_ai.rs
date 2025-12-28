@@ -6,7 +6,7 @@ use diesel::sql_query;
 use diesel::sql_types::{Text, Uuid as DieselUuid};
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
-
+use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -164,7 +164,7 @@ impl DesignerAI {
                         line_number: None,
                     })
                     .collect(),
-                preview: Some(self.generate_preview(&analysis)),
+                preview: Some(Self::generate_preview(&analysis)),
                 requires_confirmation: true,
                 confirmation_message: analysis.confirmation_reason,
                 can_undo: true,
@@ -174,10 +174,10 @@ impl DesignerAI {
         }
 
         // Apply the modification
-        self.apply_modification(&analysis, session).await
+        self.apply_modification(&analysis, session)
     }
 
-    pub async fn apply_confirmed_modification(
+    pub fn apply_confirmed_modification(
         &self,
         change_id: &str,
         session: &UserSession,
@@ -186,7 +186,7 @@ impl DesignerAI {
         let pending = self.get_pending_change(change_id, session)?;
 
         match pending {
-            Some(analysis) => self.apply_modification(&analysis, session).await,
+            Some(analysis) => self.apply_modification(&analysis, session),
             None => Ok(ModificationResult {
                 success: false,
                 modification_type: ModificationType::Unknown,
@@ -202,7 +202,7 @@ impl DesignerAI {
         }
     }
 
-    pub async fn undo_change(
+    pub fn undo_change(
         &self,
         change_id: &str,
         session: &UserSession,
@@ -265,7 +265,7 @@ impl DesignerAI {
         }
     }
 
-    pub async fn get_context(
+    pub fn get_context(
         &self,
         session: &UserSession,
         current_app: Option<&str>,
@@ -335,11 +335,10 @@ Respond ONLY with valid JSON."#
         );
 
         let response = self.call_llm(&prompt).await?;
-        self.parse_analysis_response(&response, instruction)
+        Self::parse_analysis_response(&response, instruction)
     }
 
     fn parse_analysis_response(
-        &self,
         response: &str,
         instruction: &str,
     ) -> Result<AnalyzedModification, Box<dyn std::error::Error + Send + Sync>> {
@@ -393,14 +392,12 @@ Respond ONLY with valid JSON."#
             }
             Err(e) => {
                 warn!("Failed to parse LLM analysis: {e}");
-                // Fallback to heuristic analysis
-                self.analyze_modification_heuristic(instruction)
+                Self::analyze_modification_heuristic(instruction)
             }
         }
     }
 
     fn analyze_modification_heuristic(
-        &self,
         instruction: &str,
     ) -> Result<AnalyzedModification, Box<dyn std::error::Error + Send + Sync>> {
         let lower = instruction.to_lowercase();
@@ -461,7 +458,7 @@ Respond ONLY with valid JSON."#
         })
     }
 
-    async fn apply_modification(
+    fn apply_modification(
         &self,
         analysis: &AnalyzedModification,
         session: &UserSession,
@@ -476,25 +473,20 @@ Respond ONLY with valid JSON."#
         // Generate new content based on modification type
         let new_content = match analysis.modification_type {
             ModificationType::Style => {
-                self.apply_style_changes(&original_content, &analysis.changes)
-                    .await?
+                Self::apply_style_changes(&original_content, &analysis.changes)?
             }
             ModificationType::Html => {
-                self.apply_html_changes(&original_content, &analysis.changes)
-                    .await?
+                Self::apply_html_changes(&original_content, &analysis.changes)?
             }
             ModificationType::Database => {
-                self.apply_database_changes(&original_content, &analysis.changes, session)
-                    .await?
+                Self::apply_database_changes(&original_content, &analysis.changes)?
             }
-            ModificationType::Tool => self.generate_tool_file(&analysis.changes, session).await?,
+            ModificationType::Tool => Self::generate_tool_file(&analysis.changes)?,
             ModificationType::Scheduler => {
-                self.generate_scheduler_file(&analysis.changes, session)
-                    .await?
+                Self::generate_scheduler_file(&analysis.changes)?
             }
             ModificationType::Multiple => {
-                // Handle multiple changes sequentially
-                self.apply_multiple_changes(analysis, session).await?
+                Self::apply_multiple_changes()?
             }
             ModificationType::Unknown => {
                 return Ok(ModificationResult {
@@ -522,7 +514,7 @@ Respond ONLY with valid JSON."#
             description: analysis.summary.clone(),
             file_path: analysis.target_file.clone(),
             original_content,
-            new_content: new_content.clone(),
+            new_content,
             timestamp: Utc::now(),
             can_undo: true,
         };
@@ -552,8 +544,7 @@ Respond ONLY with valid JSON."#
         })
     }
 
-    async fn apply_style_changes(
-        &self,
+    fn apply_style_changes(
         original: &str,
         changes: &[CodeChange],
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -580,7 +571,7 @@ Respond ONLY with valid JSON."#
                     }
                 }
                 _ => {
-                    content.push_str("\n");
+                    content.push('\n');
                     content.push_str(&change.content);
                 }
             }
@@ -589,8 +580,7 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    async fn apply_html_changes(
-        &self,
+    fn apply_html_changes(
         original: &str,
         changes: &[CodeChange],
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
@@ -627,11 +617,9 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    async fn apply_database_changes(
-        &self,
+    fn apply_database_changes(
         original: &str,
         changes: &[CodeChange],
-        session: &UserSession,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut content = original.to_string();
 
@@ -654,28 +642,27 @@ Respond ONLY with valid JSON."#
                     content.push_str(&change.content);
                 }
                 _ => {
-                    content.push_str("\n");
+                    content.push('\n');
                     content.push_str(&change.content);
                 }
             }
         }
 
         // Sync schema to database
-        self.sync_schema_changes(session)?;
+        Self::sync_schema_changes()?;
 
         Ok(content)
     }
 
-    async fn generate_tool_file(
-        &self,
+    fn generate_tool_file(
         changes: &[CodeChange],
-        _session: &UserSession,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut content = String::new();
-        content.push_str(&format!(
+        let _ = write!(
+            content,
             "' Tool generated by Designer\n' Created: {}\n\n",
             Utc::now().format("%Y-%m-%d %H:%M")
-        ));
+        );
 
         for change in changes {
             if !change.content.is_empty() {
@@ -687,16 +674,15 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    async fn generate_scheduler_file(
-        &self,
+    fn generate_scheduler_file(
         changes: &[CodeChange],
-        _session: &UserSession,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         let mut content = String::new();
-        content.push_str(&format!(
+        let _ = write!(
+            content,
             "' Scheduler generated by Designer\n' Created: {}\n\n",
             Utc::now().format("%Y-%m-%d %H:%M")
-        ));
+        );
 
         for change in changes {
             if !change.content.is_empty() {
@@ -708,32 +694,28 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    async fn apply_multiple_changes(
-        &self,
-        _analysis: &AnalyzedModification,
-        _session: &UserSession,
-    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        // For multiple changes, each would be applied separately
-        // Return summary of changes
+    fn apply_multiple_changes() -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         Ok("Multiple changes applied".to_string())
     }
 
-    fn generate_preview(&self, analysis: &AnalyzedModification) -> String {
+    fn generate_preview(analysis: &AnalyzedModification) -> String {
         let mut preview = String::new();
-        preview.push_str(&format!("File: {}\n\nChanges:\n", analysis.target_file));
+        let _ = writeln!(preview, "File: {}\n\nChanges:", analysis.target_file);
 
         for (i, change) in analysis.changes.iter().enumerate() {
-            preview.push_str(&format!(
-                "{}. {} at '{}'\n",
+            let _ = writeln!(
+                preview,
+                "{}. {} at '{}'",
                 i + 1,
                 change.change_type,
                 change.target
-            ));
+            );
             if !change.content.is_empty() {
-                preview.push_str(&format!(
-                    "   New content: {}\n",
+                let _ = writeln!(
+                    preview,
+                    "   New content: {}",
                     &change.content[..change.content.len().min(100)]
-                ));
+                );
             }
         }
 
@@ -746,21 +728,20 @@ Respond ONLY with valid JSON."#
     ) -> Result<Vec<TableInfo>, Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.state.conn.get()?;
 
-        // Query information_schema for tables in the bot's schema
-        let query = format!(
-            "SELECT table_name FROM information_schema.tables
-             WHERE table_schema = 'public'
-             AND table_type = 'BASE TABLE'
-             LIMIT 50"
-        );
-
         #[derive(QueryableByName)]
         struct TableRow {
             #[diesel(sql_type = Text)]
             table_name: String,
         }
 
-        let tables: Vec<TableRow> = sql_query(&query).get_results(&mut conn).unwrap_or_default();
+        let tables: Vec<TableRow> = sql_query(
+            "SELECT table_name FROM information_schema.tables
+             WHERE table_schema = 'public'
+             AND table_type = 'BASE TABLE'
+             LIMIT 50",
+        )
+        .get_results(&mut conn)
+        .unwrap_or_default();
 
         Ok(tables
             .into_iter()
@@ -783,7 +764,7 @@ Respond ONLY with valid JSON."#
         if let Ok(entries) = std::fs::read_dir(&tools_path) {
             for entry in entries.flatten() {
                 if let Some(name) = entry.file_name().to_str() {
-                    if name.ends_with(".bas") {
+                    if name.to_lowercase().ends_with(".bas") {
                         tools.push(name.to_string());
                     }
                 }
@@ -804,7 +785,7 @@ Respond ONLY with valid JSON."#
         if let Ok(entries) = std::fs::read_dir(&schedulers_path) {
             for entry in entries.flatten() {
                 if let Some(name) = entry.file_name().to_str() {
-                    if name.ends_with(".bas") {
+                    if name.to_lowercase().ends_with(".bas") {
                         schedulers.push(name.to_string());
                     }
                 }
@@ -920,10 +901,7 @@ Respond ONLY with valid JSON."#
         Ok(())
     }
 
-    fn sync_schema_changes(
-        &self,
-        _session: &UserSession,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    fn sync_schema_changes() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         // This would trigger the TABLE keyword parser to sync
         // For now, just log
         info!("Schema changes need to be synced to database");
