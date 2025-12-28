@@ -101,8 +101,9 @@ pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerCo
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};
 
 pub use autotask_api::{
-    cancel_task_handler, classify_intent_handler, compile_intent_handler, execute_plan_handler,
-    get_approvals_handler, get_decisions_handler, get_stats_handler, list_tasks_handler,
+    apply_recommendation_handler, cancel_task_handler, classify_intent_handler,
+    compile_intent_handler, execute_plan_handler, execute_task_handler, get_approvals_handler,
+    get_decisions_handler, get_stats_handler, get_task_logs_handler, list_tasks_handler,
     pause_task_handler, resume_task_handler, simulate_plan_handler, simulate_task_handler,
     submit_approval_handler, submit_decision_handler,
 };
@@ -142,6 +143,12 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         .route(
             "/api/autotask/:task_id/approve",
             post(submit_approval_handler),
+        )
+        .route("/api/autotask/:task_id/execute", post(execute_task_handler))
+        .route("/api/autotask/:task_id/logs", get(get_task_logs_handler))
+        .route(
+            "/api/autotask/recommendations/:rec_id/apply",
+            post(apply_recommendation_handler),
         )
 }
 
