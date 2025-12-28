@@ -1,11 +1,9 @@
 use anyhow::{Context, Result};
+use rustls::pki_types::pem::PemObject;
 use rustls::pki_types::{CertificateDer, PrivateKeyDer};
 use rustls::server::WebPkiClientVerifier;
 use rustls::{RootCertStore, ServerConfig};
-use rustls_pemfile::{certs, pkcs8_private_keys, rsa_private_keys};
 use serde::{Deserialize, Serialize};
-use std::fs::File;
-use std::io::BufReader;
 use std::net::SocketAddr;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -156,38 +154,15 @@ impl TlsManager {
     }
 
     fn load_certs(path: &Path) -> Result<Vec<CertificateDer<'static>>> {
-        let file = File::open(path)
-            .with_context(|| format!("Failed to open certificate file: {}", path.display()))?;
-        let mut reader = BufReader::new(file);
-        let certs: Result<Vec<_>, _> = certs(&mut reader).collect();
-        certs.with_context(|| format!("Failed to parse certificates from {}", path.display()))
+        CertificateDer::pem_file_iter(path)
+            .with_context(|| format!("Failed to open certificate file: {}", path.display()))?
+            .collect::<Result<Vec<_>, _>>()
+            .with_context(|| format!("Failed to parse certificates from {}", path.display()))
     }
 
     fn load_private_key(path: &Path) -> Result<PrivateKeyDer<'static>> {
-        let file = File::open(path)
-            .with_context(|| format!("Failed to open key file: {}", path.display()))?;
-        let mut reader = BufReader::new(file);
-
-        let keys: Vec<_> = pkcs8_private_keys(&mut reader)
-            .filter_map(|k| k.ok())
-            .collect();
-        if !keys.is_empty() {
-            return Ok(PrivateKeyDer::Pkcs8(keys[0].clone_key()));
-        }
-
-        let file = File::open(path)?;
-        let mut reader = BufReader::new(file);
-        let keys: Vec<_> = rsa_private_keys(&mut reader)
-            .filter_map(|k| k.ok())
-            .collect();
-        if !keys.is_empty() {
-            return Ok(PrivateKeyDer::Pkcs1(keys[0].clone_key()));
-        }
-
-        Err(anyhow::anyhow!(
-            "No private key found in file: {}",
-            path.display()
-        ))
+        PrivateKeyDer::from_pem_file(path)
+            .with_context(|| format!("Failed to load private key from {}", path.display()))
     }
 
     fn load_system_certs(root_store: &mut RootCertStore) -> Result<()> {

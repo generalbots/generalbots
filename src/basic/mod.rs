@@ -686,7 +686,7 @@ impl ScriptService {
             "REQUIRED",
         ];
 
-        let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").unwrap();
+        let _identifier_re = Regex::new(r"([a-zA-Z_][a-zA-Z0-9_]*)").expect("valid regex");
 
         for line in script.lines() {
             let trimmed = line.trim();
@@ -1113,6 +1113,6 @@ TALK "Total: $" + STR$(total)
     #[test]
     fn test_runner_config_working_dir() {
         let config = BotRunnerConfig::default();
-        assert!(config.working_dir.to_str().unwrap().contains("bottest"));
+        assert!(config.working_dir.to_str().unwrap_or_default().contains("bottest"));
     }
 }

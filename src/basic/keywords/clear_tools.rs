@@ -57,7 +57,7 @@ pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn clear_all_tools_from_session(state: &AppState, user: &UserSession) -> Result<String, String> {

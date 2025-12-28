@@ -345,7 +345,7 @@ pub async fn websocket_handler(
     }
 
     ws.on_upgrade(move |socket| {
-        handle_websocket(socket, state, session_id.unwrap(), user_id.unwrap())
+        handle_websocket(socket, state, session_id.expect("session_id required"), user_id.expect("user_id required"))
     })
     .into_response()
 }

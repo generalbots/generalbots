@@ -94,7 +94,7 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -159,7 +159,7 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn execute_import_json(

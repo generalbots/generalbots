@@ -1826,7 +1826,11 @@ pub async fn list_folders_htmx(
         ));
     }
 
-    let account = account.unwrap();
+    let Some(account) = account else {
+        return Ok(Html(
+            r#"<div class="nav-item">Account not found</div>"#.to_string(),
+        ));
+    };
 
     let config = EmailConfig {
         username: account.username.clone(),
@@ -1877,7 +1881,7 @@ pub async fn list_folders_htmx(
             folder_name
                 .chars()
                 .next()
-                .unwrap()
+                .unwrap_or_default()
                 .to_uppercase()
                 .collect::<String>()
                 + &folder_name[1..],

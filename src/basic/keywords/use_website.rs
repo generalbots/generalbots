@@ -79,7 +79,7 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn associate_website_with_session(
@@ -282,7 +282,7 @@ pub fn clear_websites_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 }
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn clear_all_websites(

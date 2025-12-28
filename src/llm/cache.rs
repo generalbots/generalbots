@@ -344,7 +344,7 @@ impl CachedLLMProvider {
                             .await;
 
                         if similarity >= self.config.similarity_threshold
-                            && (best_match.is_none() || best_match.as_ref().unwrap().1 < similarity)
+                            && best_match.as_ref().map_or(true, |(_, s)| *s < similarity)
                         {
                             best_match = Some((cached.clone(), similarity));
                         }

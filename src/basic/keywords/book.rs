@@ -151,7 +151,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
@@ -202,7 +202,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone3 = Arc::clone(&state);
 
@@ -247,7 +247,7 @@ pub fn book_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn execute_book(
@@ -414,8 +414,8 @@ fn check_availability(
     let date = parse_date_string(date_str)?;
     let calendar_engine = get_calendar_engine(state)?;
 
-    let business_start = date.with_hour(9).unwrap().with_minute(0).unwrap();
-    let business_end = date.with_hour(17).unwrap().with_minute(0).unwrap();
+    let business_start = date.with_hour(9).expect("valid hour").with_minute(0).expect("valid minute");
+    let business_end = date.with_hour(17).expect("valid hour").with_minute(0).expect("valid minute");
 
     let events = calendar_engine
         .get_events_range(business_start, business_end)
@@ -475,11 +475,11 @@ fn parse_time_string(time_str: &str) -> Result<DateTime<Utc>, String> {
         if let Some(hour) = extract_hour_from_string(time_str) {
             return Ok(tomorrow
                 .with_hour(hour)
-                .unwrap()
+                .expect("valid hour")
                 .with_minute(0)
-                .unwrap()
+                .expect("valid minute")
                 .with_second(0)
-                .unwrap());
+                .expect("valid second"));
         }
     }
 
@@ -508,7 +508,7 @@ fn parse_date_string(date_str: &str) -> Result<DateTime<Utc>, String> {
 
     for format in formats {
         if let Ok(dt) = chrono::NaiveDate::parse_from_str(date_str, format) {
-            return Ok(dt.and_hms_opt(0, 0, 0).unwrap().and_utc());
+            return Ok(dt.and_hms_opt(0, 0, 0).expect("valid time").and_utc());
         }
     }
 

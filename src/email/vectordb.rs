@@ -329,7 +329,7 @@ impl UserEmailVectorDB {
 
         let info = client.collection_info(self.collection_name.clone()).await?;
 
-        Ok(info.result.unwrap().points_count.unwrap_or(0))
+        Ok(info.result.expect("valid result").points_count.unwrap_or(0))
     }
 
     #[cfg(not(feature = "vectordb"))]

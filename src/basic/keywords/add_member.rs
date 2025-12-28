@@ -78,7 +78,7 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
@@ -153,7 +153,7 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn execute_add_member(
@@ -236,7 +236,7 @@ fn execute_create_team(
         "chat_enabled": true,
         "file_sharing": true
     }))
-    .unwrap();
+    .expect("valid syntax registration");
 
     let query = query
         .bind::<diesel::sql_types::Text, _>(&user_id_str)

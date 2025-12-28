@@ -272,7 +272,7 @@ fn register_call_keyword(engine: &mut Engine) {
 
                 trace!("CALL {} with args: {:?}", proc_name, args);
 
-                let procedures = PROCEDURES.lock().unwrap();
+                let procedures = PROCEDURES.lock().expect("mutex not poisoned");
                 if let Some(proc) = procedures.get(&proc_name) {
                     trace!(
                         "Found procedure: {} (is_function: {})",
@@ -297,7 +297,7 @@ fn register_call_keyword(engine: &mut Engine) {
 
             trace!("CALL {} (no args)", proc_name);
 
-            let procedures = PROCEDURES.lock().unwrap();
+            let procedures = PROCEDURES.lock().expect("mutex not poisoned");
             if procedures.contains_key(&proc_name) {
                 Ok(Dynamic::UNIT)
             } else {
@@ -371,7 +371,7 @@ pub fn preprocess_subs(input: &str) -> String {
             };
 
             trace!("Registering SUB: {}", sub_name);
-            PROCEDURES.lock().unwrap().insert(sub_name.clone(), proc);
+            PROCEDURES.lock().expect("mutex not poisoned").insert(sub_name.clone(), proc);
 
             sub_name.clear();
             sub_params.clear();
@@ -445,7 +445,7 @@ pub fn preprocess_functions(input: &str) -> String {
             };
 
             trace!("Registering FUNCTION: {}", func_name);
-            PROCEDURES.lock().unwrap().insert(func_name.clone(), proc);
+            PROCEDURES.lock().expect("mutex not poisoned").insert(func_name.clone(), proc);
 
             func_name.clear();
             func_params.clear();
@@ -491,7 +491,7 @@ pub fn preprocess_calls(input: &str) -> String {
                 (rest.to_uppercase(), String::new())
             };
 
-            let procedures = PROCEDURES.lock().unwrap();
+            let procedures = PROCEDURES.lock().expect("mutex not poisoned");
             if let Some(proc) = procedures.get(&proc_name) {
                 let arg_values: Vec<&str> = if args.is_empty() {
                     Vec::new()
@@ -534,24 +534,24 @@ pub fn preprocess_procedures(input: &str) -> String {
 }
 
 pub fn clear_procedures() {
-    PROCEDURES.lock().unwrap().clear();
+    PROCEDURES.lock().expect("mutex not poisoned").clear();
 }
 
 pub fn get_procedure_names() -> Vec<String> {
-    PROCEDURES.lock().unwrap().keys().cloned().collect()
+    PROCEDURES.lock().expect("mutex not poisoned").keys().cloned().collect()
 }
 
 pub fn has_procedure(name: &str) -> bool {
     PROCEDURES
         .lock()
-        .unwrap()
+        .expect("mutex not poisoned")
         .contains_key(&name.to_uppercase())
 }
 
 pub fn get_procedure(name: &str) -> Option<ProcedureDefinition> {
     PROCEDURES
         .lock()
-        .unwrap()
+        .expect("mutex not poisoned")
         .get(&name.to_uppercase())
         .cloned()
 }

@@ -748,6 +748,10 @@ mod tests {
         );
         assert_eq!(
             AntivirusManager::classify_threat("PUP.Optional.Adware"),
+            "Adware"
+        );
+        assert_eq!(
+            AntivirusManager::classify_threat("PUP.Optional.Toolbar"),
             "PUP"
         );
         assert_eq!(
