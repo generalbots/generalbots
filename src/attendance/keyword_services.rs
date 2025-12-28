@@ -264,7 +264,7 @@ impl AttendanceService {
             },
         };
 
-        let duration = parsed.timestamp - check_in_time.unwrap();
+        let duration = parsed.timestamp - check_in_time.unwrap_or(parsed.timestamp);
         let hours = duration.num_hours();
         let minutes = duration.num_minutes() % 60;
 
@@ -343,7 +343,7 @@ impl AttendanceService {
             notes: None,
         };
 
-        let duration = parsed.timestamp - break_time.unwrap();
+        let duration = parsed.timestamp - break_time.unwrap_or(parsed.timestamp);
         let minutes = duration.num_minutes();
 
         records.push(record);
@@ -367,7 +367,11 @@ impl AttendanceService {
             });
         }
 
-        let last_record = user_records.last().unwrap();
+        let Some(last_record) = user_records.last() else {
+            return Ok(AttendanceResponse::Error {
+                message: "No attendance records found".to_string(),
+            });
+        };
         let status = match last_record.command {
             AttendanceCommand::CheckIn => "Checked in",
             AttendanceCommand::CheckOut => "Checked out",

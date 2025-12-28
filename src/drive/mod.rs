@@ -816,7 +816,7 @@ pub async fn share_folder(
         expires_at: Some(
             chrono::Utc::now()
                 .checked_add_signed(chrono::Duration::hours(24))
-                .unwrap()
+                .unwrap_or_else(chrono::Utc::now)
                 .to_rfc3339(),
         ),
     }))

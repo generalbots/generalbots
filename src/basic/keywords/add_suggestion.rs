@@ -53,7 +53,7 @@ pub fn clear_suggestions_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn add_suggestion_keyword(
@@ -80,7 +80,7 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(
@@ -101,7 +101,7 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(
@@ -146,7 +146,7 @@ pub fn add_suggestion_keyword(
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn add_context_suggestion(

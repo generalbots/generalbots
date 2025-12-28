@@ -90,7 +90,7 @@ impl ChatPanel {
     fn get_bot_id(bot_name: &str, app_state: &Arc<AppState>) -> Result<Uuid> {
         use crate::shared::models::schema::bots::dsl::*;
         use diesel::prelude::*;
-        let mut conn = app_state.conn.get().unwrap();
+        let mut conn = app_state.conn.get().expect("db connection");
         let bot_id = bots
             .filter(name.eq(bot_name))
             .select(id)

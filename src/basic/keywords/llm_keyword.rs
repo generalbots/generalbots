@@ -10,7 +10,7 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
     engine
         .register_custom_syntax(["LLM", "$expr$"], false, move |context, inputs| {
             let text = context
-                .eval_expression_tree(inputs.first().unwrap())?
+                .eval_expression_tree(inputs.first().expect("at least one input"))?
                 .to_string();
             let state_for_thread = Arc::clone(&state_clone);
             let prompt = build_llm_prompt(&text);
@@ -50,7 +50,7 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 fn build_llm_prompt(user_text: &str) -> String {
     user_text.trim().to_string()

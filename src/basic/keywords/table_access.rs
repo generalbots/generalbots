@@ -508,21 +508,21 @@ mod tests {
 
     #[test]
     fn test_parse_roles_string() {
-        assert_eq!(parse_roles_string(&None), Vec::<String>::new());
+        assert_eq!(parse_roles_string(None), Vec::<String>::new());
         assert_eq!(
-            parse_roles_string(&Some("".to_string())),
+            parse_roles_string(Some("".to_string()).as_ref()),
             Vec::<String>::new()
         );
         assert_eq!(
-            parse_roles_string(&Some("admin".to_string())),
+            parse_roles_string(Some("admin".to_string()).as_ref()),
             vec!["admin"]
         );
         assert_eq!(
-            parse_roles_string(&Some("admin;manager".to_string())),
+            parse_roles_string(Some("admin;manager".to_string()).as_ref()),
             vec!["admin", "manager"]
         );
         assert_eq!(
-            parse_roles_string(&Some(" admin ; manager ; hr ".to_string())),
+            parse_roles_string(Some(" admin ; manager ; hr ".to_string()).as_ref()),
             vec!["admin", "manager", "hr"]
         );
     }

@@ -87,7 +87,7 @@ pub fn register_qr_code_keyword(state: Arc<AppState>, user: UserSession, engine:
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_qr_code_with_size_keyword(
@@ -152,7 +152,7 @@ pub fn register_qr_code_with_size_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_qr_code_full_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -215,7 +215,7 @@ pub fn register_qr_code_full_keyword(state: Arc<AppState>, user: UserSession, en
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn execute_qr_code_generation(

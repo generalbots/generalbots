@@ -44,13 +44,12 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         );
 
         let rt = tokio::runtime::Handle::try_current();
-        if rt.is_err() {
+        let Ok(runtime) = rt else {
             error!("KB STATISTICS: No tokio runtime available");
             return Dynamic::UNIT;
-        }
+        };
 
-        let result = rt
-            .unwrap()
+        let result = runtime
             .block_on(async { get_kb_statistics(&state, &user).await });
 
         match result {
@@ -92,7 +91,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
 
             let collection = collection_name.to_string();
             let result = rt
-                .unwrap()
+                .expect("valid syntax registration")
                 .block_on(async { get_collection_statistics(&state, &collection).await });
 
             match result {
@@ -180,7 +179,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         }
 
         let result = rt
-            .unwrap()
+            .expect("valid syntax registration")
             .block_on(async { list_collections(&state, &user).await });
 
         match result {
@@ -215,7 +214,7 @@ pub fn kb_statistics_keyword(state: Arc<AppState>, user: UserSession, engine: &m
         }
 
         let result = rt
-            .unwrap()
+            .expect("valid syntax registration")
             .block_on(async { get_storage_size(&state, &user).await });
 
         result.unwrap_or(0.0)

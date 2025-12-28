@@ -335,7 +335,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
         } else {
 
             let local_path = format!("./media/{}", key);
-            std::fs::create_dir_all(std::path::Path::new(&local_path).parent().unwrap())?;
+            std::fs::create_dir_all(std::path::Path::new(&local_path).parent().expect("valid path"))?;
             std::fs::write(&local_path, request.data)?;
 
             Ok(MediaUploadResponse {
@@ -351,7 +351,7 @@ impl MultimediaHandler for DefaultMultimediaHandler {
             let response = reqwest::get(url).await?;
             Ok(response.bytes().await?.to_vec())
         } else if url.starts_with("file://") {
-            let path = url.strip_prefix("file://").unwrap();
+            let path = url.strip_prefix("file://").unwrap_or_default();
             Ok(std::fs::read(path)?)
         } else {
             Err(anyhow::anyhow!("Unsupported URL scheme: {}", url))

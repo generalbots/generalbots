@@ -190,7 +190,7 @@ pub fn register_send_sms_keyword(state: Arc<AppState>, user: UserSession, engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_send_sms_with_third_arg_keyword(
@@ -294,7 +294,7 @@ pub fn register_send_sms_with_third_arg_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_send_sms_full_keyword(
@@ -388,7 +388,7 @@ pub fn register_send_sms_full_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
@@ -478,7 +478,7 @@ pub fn register_send_sms_full_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_send_sms(

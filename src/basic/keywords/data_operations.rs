@@ -62,7 +62,7 @@ pub fn register_save_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 Ok(json_value_to_dynamic(&result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -98,7 +98,7 @@ pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 Ok(json_value_to_dynamic(&result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_update_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -135,7 +135,7 @@ pub fn register_update_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 Ok(Dynamic::from(result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_delete_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -215,7 +215,7 @@ pub fn register_delete_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     engine
@@ -279,7 +279,7 @@ pub fn register_delete_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 }
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_merge_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -307,7 +307,7 @@ pub fn register_merge_keyword(state: Arc<AppState>, _user: UserSession, engine: 
                 Ok(json_value_to_dynamic(&result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_fill_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -326,7 +326,7 @@ pub fn register_fill_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_map_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -345,7 +345,7 @@ pub fn register_map_keyword(_state: Arc<AppState>, _user: UserSession, engine: &
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_filter_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -364,7 +364,7 @@ pub fn register_filter_keyword(_state: Arc<AppState>, _user: UserSession, engine
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_aggregate_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -384,7 +384,7 @@ pub fn register_aggregate_keyword(_state: Arc<AppState>, _user: UserSession, eng
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_join_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -404,7 +404,7 @@ pub fn register_join_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_pivot_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -424,7 +424,7 @@ pub fn register_pivot_keyword(_state: Arc<AppState>, _user: UserSession, engine:
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_group_by_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -443,7 +443,7 @@ pub fn register_group_by_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 Ok(result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn execute_save(

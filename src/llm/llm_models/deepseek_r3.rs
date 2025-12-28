@@ -8,7 +8,7 @@ impl ModelHandler for DeepseekR3Handler {
         buffer.contains("</think>")
     }
     fn process_content(&self, content: &str) -> String {
-        let re = regex::Regex::new(r"(?s)<think>.*?</think>").unwrap();
+        let re = regex::Regex::new(r"(?s)<think>.*?</think>").expect("valid regex");
         re.replace_all(content, "").to_string()
     }
     fn has_analysis_markers(&self, buffer: &str) -> bool {

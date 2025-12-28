@@ -1,5 +1,6 @@
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
+use axum::middleware;
 use axum::Json;
 use axum::{
     routing::{get, post},
@@ -10,9 +11,16 @@ use log::{error, info, trace, warn};
 use std::collections::HashMap;
 use std::net::SocketAddr;
 use std::sync::Arc;
-use tower_http::cors::CorsLayer;
+
 use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
+
+use botserver::security::{
+    create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
+    request_id_middleware, security_headers_middleware, set_global_panic_hook,
+    HttpRateLimitConfig, PanicHandlerConfig, SecurityHeadersConfig,
+};
+use botlib::SystemLimits;
 
 use botserver::core;
 use botserver::shared;
@@ -137,11 +145,10 @@ async fn run_axum_server(
     port: u16,
     _worker_count: usize,
 ) -> std::io::Result<()> {
-    let cors = CorsLayer::new()
-        .allow_origin(tower_http::cors::Any)
-        .allow_methods(tower_http::cors::Any)
-        .allow_headers(tower_http::cors::Any)
-        .max_age(std::time::Duration::from_secs(3600));
+    // Use hardened CORS configuration instead of allowing everything
+    // In production, set CORS_ALLOWED_ORIGINS env var to restrict origins
+    // In development, localhost origins are allowed by default
+    let cors = create_cors_layer();
 
     use crate::core::urls::ApiUrls;
 
@@ -234,10 +241,44 @@ async fn run_axum_server(
 
     info!("Serving apps from: {}", site_path);
 
+    // Create rate limiter integrating with botlib's RateLimiter
+    let http_rate_config = HttpRateLimitConfig::api();
+    let system_limits = SystemLimits::default();
+    let (rate_limit_extension, _rate_limiter) = create_rate_limit_layer(http_rate_config, system_limits);
+
+    // Create security headers layer
+    let security_headers_config = SecurityHeadersConfig::default();
+    let security_headers_extension = create_security_headers_layer(security_headers_config.clone());
+
+    // Determine panic handler config based on environment
+    let is_production = std::env::var("BOTSERVER_ENV")
+        .map(|v| v == "production" || v == "prod")
+        .unwrap_or(false);
+    let panic_config = if is_production {
+        PanicHandlerConfig::production()
+    } else {
+        PanicHandlerConfig::development()
+    };
+
+    info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking");
+
     let app = Router::new()
         .merge(api_router.with_state(app_state.clone()))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path))
+        // Security middleware stack (order matters - first added is outermost)
+        .layer(middleware::from_fn(security_headers_middleware))
+        .layer(security_headers_extension)
+        .layer(rate_limit_extension)
+        // Request ID tracking for all requests
+        .layer(middleware::from_fn(request_id_middleware))
+        // Panic handler catches panics and returns safe 500 responses
+        .layer(middleware::from_fn(move |req, next| {
+            let config = panic_config.clone();
+            async move {
+                botserver::security::panic_handler_middleware_with_config(req, next, &config).await
+            }
+        }))
         .layer(Extension(app_state.clone()))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
@@ -290,6 +331,9 @@ async fn run_axum_server(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
+    // Set global panic hook to log panics that escape async boundaries
+    set_global_panic_hook();
+
     let args: Vec<String> = std::env::args().collect();
     let no_ui = args.contains(&"--noui".to_string());
     let no_console = args.contains(&"--noconsole".to_string());
@@ -611,7 +655,7 @@ async fn main() -> std::io::Result<()> {
         .expect("Failed to initialize Drive");
 
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
-        pool.get().unwrap(),
+        pool.get().expect("failed to get database connection"),
         redis_client.clone(),
     )));
 
@@ -628,7 +672,7 @@ async fn main() -> std::io::Result<()> {
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-        botserver::directory::AuthService::new(zitadel_config).unwrap(),
+        botserver::directory::AuthService::new(zitadel_config).expect("failed to create auth service"),
     ));
     let config_manager = ConfigManager::new(pool.clone());
 

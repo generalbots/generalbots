@@ -84,7 +84,7 @@ fn register_on_email(state: &AppState, user: UserSession, engine: &mut Engine) {
                 Err("Failed to register email monitor".into())
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_on_email_from(state: &AppState, user: UserSession, engine: &mut Engine) {
@@ -147,7 +147,7 @@ fn register_on_email_from(state: &AppState, user: UserSession, engine: &mut Engi
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_on_email_subject(state: &AppState, user: UserSession, engine: &mut Engine) {
@@ -209,7 +209,7 @@ fn register_on_email_subject(state: &AppState, user: UserSession, engine: &mut E
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn execute_on_email(

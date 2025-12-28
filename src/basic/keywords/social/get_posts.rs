@@ -44,7 +44,7 @@ pub fn get_posts_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Ok(Dynamic::from(posts_array))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered GET POSTS keyword");
 }

@@ -102,7 +102,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
@@ -170,7 +170,7 @@ pub fn remember_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn parse_duration(

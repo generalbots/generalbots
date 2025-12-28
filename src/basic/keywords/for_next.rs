@@ -7,7 +7,7 @@ pub fn for_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
         .register_custom_syntax(["EXIT", "FOR"], false, |_context, _inputs| {
             Err("EXIT FOR".into())
         })
-        .unwrap();
+        .expect("valid syntax registration");
     engine
         .register_custom_syntax(
             [
@@ -16,8 +16,8 @@ pub fn for_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
             true,
             |context, inputs| {
 
-                let loop_var = inputs[0].get_string_value().unwrap().to_lowercase();
-                let next_var = inputs[3].get_string_value().unwrap().to_lowercase();
+                let loop_var = inputs[0].get_string_value().expect("expected string value").to_lowercase();
+                let next_var = inputs[3].get_string_value().expect("expected string value").to_lowercase();
                 if loop_var != next_var {
                     return Err(format!(
                         "NEXT variable '{}' doesn't match FOR EACH variable '{}'",
@@ -58,5 +58,5 @@ pub fn for_keyword(_state: &AppState, _user: UserSession, engine: &mut Engine) {
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }

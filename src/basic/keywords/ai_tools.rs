@@ -23,7 +23,7 @@ fn register_translate_keyword(_state: Arc<AppState>, _user: UserSession, engine:
                 trace!("TRANSLATE to {}", target_lang);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
                     let result = rt.block_on(async { translate_text(&text, &target_lang).await });
                     let _ = tx.send(result);
                 });
@@ -40,7 +40,7 @@ fn register_translate_keyword(_state: Arc<AppState>, _user: UserSession, engine:
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered TRANSLATE keyword");
 }
@@ -52,7 +52,7 @@ fn register_ocr_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
             trace!("OCR {}", image_path);
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
+                let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
                 let result = rt.block_on(async { perform_ocr(&image_path).await });
                 let _ = tx.send(result);
             });
@@ -68,7 +68,7 @@ fn register_ocr_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered OCR keyword");
 }
@@ -81,7 +81,7 @@ fn register_sentiment_keyword(_state: Arc<AppState>, _user: UserSession, engine:
             let (tx, rx) = std::sync::mpsc::channel();
             let text_clone = text.clone();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
+                let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
                 let result = rt.block_on(async { analyze_sentiment(&text_clone).await });
                 let _ = tx.send(result);
             });
@@ -94,7 +94,7 @@ fn register_sentiment_keyword(_state: Arc<AppState>, _user: UserSession, engine:
                 Err(_) => Ok(analyze_sentiment_quick(&text)),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("SENTIMENT_QUICK", |text: &str| -> Dynamic {
         analyze_sentiment_quick(text)
@@ -129,7 +129,7 @@ fn register_classify_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
                 };
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
                     let result = rt.block_on(async { classify_text(&text, &cat_list).await });
                     let _ = tx.send(result);
                 });
@@ -146,7 +146,7 @@ fn register_classify_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered CLASSIFY keyword");
 }

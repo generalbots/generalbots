@@ -83,7 +83,7 @@ pub fn save_from_unstructured_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub async fn execute_save_from_unstructured(

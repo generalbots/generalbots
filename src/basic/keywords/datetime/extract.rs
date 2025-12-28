@@ -21,7 +21,7 @@ fn parse_datetime(datetime_str: &str) -> Option<NaiveDateTime> {
         .ok()
         .or_else(|| NaiveDateTime::parse_from_str(trimmed, "%Y-%m-%dT%H:%M:%S").ok())
         .or_else(|| NaiveDateTime::parse_from_str(trimmed, "%Y-%m-%d %H:%M").ok())
-        .or_else(|| parse_date(trimmed).map(|d| d.and_hms_opt(0, 0, 0).unwrap()))
+        .or_else(|| parse_date(trimmed).map(|d| d.and_hms_opt(0, 0, 0).expect("valid time")))
 }
 
 pub fn year_keyword(_state: &Arc<AppState>, _user: UserSession, engine: &mut Engine) {

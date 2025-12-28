@@ -51,7 +51,7 @@ fn register_get_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
         .register_custom_syntax(["GET", "QUEUE"], false, move |_context, _inputs| {
             Ok(get_queue_impl(&state_clone3, None))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone4 = state;
     engine
@@ -59,7 +59,7 @@ fn register_get_queue(state: Arc<AppState>, _user: UserSession, engine: &mut Eng
             let filter = context.eval_expression_tree(&inputs[0])?.to_string();
             Ok(get_queue_impl(&state_clone4, Some(filter)))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn get_queue_impl(state: &Arc<AppState>, filter: Option<String>) -> Dynamic {
@@ -198,7 +198,7 @@ fn register_next_in_queue(state: Arc<AppState>, _user: UserSession, engine: &mut
         .register_custom_syntax(["NEXT", "IN", "QUEUE"], false, move |_context, _inputs| {
             Ok(next_in_queue_impl(&state_clone))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("next_in_queue", move || -> Dynamic {
         next_in_queue_impl(&state)
@@ -301,7 +301,7 @@ fn register_assign_conversation(state: Arc<AppState>, _user: UserSession, engine
                 ))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn(
         "assign_conversation",
@@ -373,7 +373,7 @@ fn register_resolve_conversation(state: Arc<AppState>, _user: UserSession, engin
                 Ok(resolve_conversation_impl(&state_clone, &session_id, None))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state.clone();
     engine
@@ -390,7 +390,7 @@ fn register_resolve_conversation(state: Arc<AppState>, _user: UserSession, engin
                 ))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone3 = state;
     engine.register_fn("resolve_conversation", move |session_id: &str| -> Dynamic {
@@ -463,7 +463,7 @@ fn register_set_priority(state: Arc<AppState>, _user: UserSession, engine: &mut 
                 Ok(set_priority_impl(&state_clone, &session_id, priority))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state;
     engine.register_fn(
@@ -538,7 +538,7 @@ fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mu
         .register_custom_syntax(["GET", "ATTENDANTS"], false, move |_context, _inputs| {
             Ok(get_attendants_impl(&state_clone, None))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state.clone();
     engine
@@ -550,7 +550,7 @@ fn register_get_attendants(state: Arc<AppState>, _user: UserSession, engine: &mu
                 Ok(get_attendants_impl(&state_clone2, Some(filter)))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("get_attendants", move || -> Dynamic {
         get_attendants_impl(&state, None)
@@ -654,7 +654,7 @@ fn register_set_attendant_status(state: Arc<AppState>, _user: UserSession, engin
                 Ok(Dynamic::from(result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_get_attendant_stats(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -669,7 +669,7 @@ fn register_get_attendant_stats(state: Arc<AppState>, _user: UserSession, engine
                 Ok(get_attendant_stats_impl(&state_clone, &attendant_id))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dynamic {
@@ -684,7 +684,8 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
 
         use crate::shared::models::schema::user_sessions;
 
-        let today_start = Utc::now().date_naive().and_hms_opt(0, 0, 0).unwrap();
+        let today = Utc::now().date_naive();
+        let today_start = today.and_hms_opt(0, 0, 0).unwrap_or_else(|| today.and_hms_opt(0, 0, 1).expect("valid fallback time"));
 
         let resolved_today: i64 = user_sessions::table
             .filter(
@@ -743,7 +744,7 @@ fn register_get_tips(state: Arc<AppState>, _user: UserSession, engine: &mut Engi
                 Ok(get_tips_impl(&state_clone, &session_id, &message))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state;
     engine.register_fn(
@@ -828,7 +829,7 @@ fn register_polish_message(state: Arc<AppState>, _user: UserSession, engine: &mu
                 Ok(polish_message_impl(&state_clone, &message, "professional"))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state.clone();
     engine
@@ -841,7 +842,7 @@ fn register_polish_message(state: Arc<AppState>, _user: UserSession, engine: &mu
                 Ok(polish_message_impl(&state_clone2, &message, &tone))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("polish_message", move |message: &str| -> Dynamic {
         polish_message_impl(&state, message, "professional")
@@ -891,7 +892,7 @@ fn register_get_smart_replies(state: Arc<AppState>, _user: UserSession, engine: 
                 Ok(get_smart_replies_impl(&state_clone, &session_id))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("get_smart_replies", move |session_id: &str| -> Dynamic {
         get_smart_replies_impl(&state, session_id)
@@ -946,7 +947,7 @@ fn register_get_summary(state: Arc<AppState>, _user: UserSession, engine: &mut E
                 Ok(get_summary_impl(&state_clone, &session_id))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn("get_summary", move |session_id: &str| -> Dynamic {
         get_summary_impl(&state, session_id)
@@ -1004,7 +1005,7 @@ fn register_analyze_sentiment(state: Arc<AppState>, _user: UserSession, engine: 
                 Ok(analyze_sentiment_impl(&state_clone, &session_id, &message))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state;
     engine.register_fn(
@@ -1106,7 +1107,7 @@ fn register_tag_conversation(state: Arc<AppState>, _user: UserSession, engine: &
                 Ok(tag_conversation_impl(&state_clone, &session_id, vec![tag]))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine.register_fn(
         "tag_conversation",
@@ -1200,7 +1201,7 @@ fn register_add_note(state: Arc<AppState>, _user: UserSession, engine: &mut Engi
                 Ok(add_note_impl(&state_clone, &session_id, &note, None))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state;
     engine.register_fn("add_note", move |session_id: &str, note: &str| -> Dynamic {
@@ -1281,7 +1282,7 @@ fn register_get_customer_history(state: Arc<AppState>, _user: UserSession, engin
                 Ok(get_customer_history_impl(&state_clone, &user_id))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = state;
     engine.register_fn("get_customer_history", move |user_id: &str| -> Dynamic {
@@ -1367,28 +1368,28 @@ mod tests {
     #[test]
     fn test_fallback_tips_urgent() {
         let tips = create_fallback_tips("This is URGENT! Help now!");
-        let result = tips.try_cast::<Map>().unwrap();
+        let result = tips.try_cast::<Map>().expect("valid syntax registration");
         assert!(result.get("success").unwrap().as_bool().unwrap());
     }
 
     #[test]
     fn test_fallback_tips_question() {
         let tips = create_fallback_tips("Can you help me with this?");
-        let result = tips.try_cast::<Map>().unwrap();
+        let result = tips.try_cast::<Map>().expect("valid syntax registration");
         assert!(result.get("success").unwrap().as_bool().unwrap());
     }
 
     #[test]
     fn test_fallback_tips_problem() {
         let tips = create_fallback_tips("I have a problem with my order");
-        let result = tips.try_cast::<Map>().unwrap();
+        let result = tips.try_cast::<Map>().expect("valid syntax registration");
         assert!(result.get("success").unwrap().as_bool().unwrap());
     }
 
     #[test]
     fn test_create_error_result() {
         let result = create_error_result("Test error message");
-        let map = result.try_cast::<Map>().unwrap();
+        let map = result.try_cast::<Map>().expect("valid syntax registration");
         assert!(!map.get("success").unwrap().as_bool().unwrap());
         assert_eq!(
             map.get("error").unwrap().clone().into_string().unwrap(),

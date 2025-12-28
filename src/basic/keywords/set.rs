@@ -38,7 +38,7 @@ pub fn set_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
                 }
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn execute_set(

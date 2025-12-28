@@ -65,7 +65,7 @@ pub fn post_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     register_platform_shortcuts(state, user, engine);
 }
@@ -126,7 +126,7 @@ fn register_platform_shortcuts(state: Arc<AppState>, user: UserSession, engine: 
                     }
                 },
             )
-            .unwrap();
+            .expect("valid syntax registration");
     }
 }
 
