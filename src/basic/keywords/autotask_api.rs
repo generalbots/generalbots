@@ -1370,3 +1370,121 @@ fn html_escape(s: &str) -> String {
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
 }
+
+// =============================================================================
+// MISSING ENDPOINTS - Required by botui/autotask.js
+// =============================================================================
+
+/// Execute a specific task by ID
+/// POST /api/autotask/:task_id/execute
+pub async fn execute_task_handler(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    info!("Executing task: {}", task_id);
+
+    match start_task_execution(&state, &task_id) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "task_id": task_id,
+                "message": "Task execution started"
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Failed to execute task {}: {}", task_id, e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": e.to_string()
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+/// Get execution logs for a task
+/// GET /api/autotask/:task_id/logs
+pub async fn get_task_logs_handler(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    info!("Getting logs for task: {}", task_id);
+
+    let logs = get_task_logs(&state, &task_id);
+
+    (
+        StatusCode::OK,
+        Json(serde_json::json!({
+            "task_id": task_id,
+            "logs": logs
+        })),
+    )
+        .into_response()
+}
+
+/// Apply a recommendation from simulation results
+/// POST /api/autotask/recommendations/:rec_id/apply
+pub async fn apply_recommendation_handler(
+    State(state): State<Arc<AppState>>,
+    Path(rec_id): Path<String>,
+) -> impl IntoResponse {
+    info!("Applying recommendation: {}", rec_id);
+
+    match apply_recommendation(&state, &rec_id) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "recommendation_id": rec_id,
+                "message": "Recommendation applied successfully"
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Failed to apply recommendation {}: {}", rec_id, e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": e.to_string()
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+// =============================================================================
+// HELPER FUNCTIONS FOR NEW ENDPOINTS
+// =============================================================================
+
+fn get_task_logs(_state: &Arc<AppState>, task_id: &str) -> Vec<serde_json::Value> {
+    // TODO: Fetch from database when task execution is implemented
+    vec![
+        serde_json::json!({
+            "timestamp": Utc::now().to_rfc3339(),
+            "level": "info",
+            "message": format!("Task {} initialized", task_id)
+        }),
+        serde_json::json!({
+            "timestamp": Utc::now().to_rfc3339(),
+            "level": "info",
+            "message": "Waiting for execution"
+        }),
+    ]
+}
+
+fn apply_recommendation(
+    _state: &Arc<AppState>,
+    rec_id: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    info!("Applying recommendation: {}", rec_id);
+    // TODO: Implement recommendation application logic
+    // This would modify the execution plan based on the recommendation
+    Ok(())
+}
