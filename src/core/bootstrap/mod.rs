@@ -1836,8 +1836,8 @@ VAULT_CACHE_TTL=300
                             Self::upload_directory_recursive(&client, &path, &bucket, "/").await?;
                         }
                         Err(e) => {
-                            error!("Failed to create bucket {}: {:?}", bucket, e);
-                            return Err(anyhow::anyhow!("Failed to create bucket {}: {}. Check S3 credentials and endpoint configuration", bucket, e));
+                            warn!("S3/MinIO not available, skipping bucket {}: {}", bucket, e);
+                            continue;
                         }
                     }
                 }
