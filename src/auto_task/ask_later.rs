@@ -1,5 +1,14 @@
 use crate::core::shared::models::UserSession;
-use crate::core::shared::state::AppState;
+use crate::shared::state::AppState;
+
+fn is_sensitive_config_key(key: &str) -> bool {
+    let key_lower = key.to_lowercase();
+    let sensitive_patterns = [
+        "password", "secret", "token", "key", "credential", "auth",
+        "api_key", "apikey", "pass", "pwd", "cert", "private",
+    ];
+    sensitive_patterns.iter().any(|p| key_lower.contains(p))
+}
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
@@ -75,7 +84,12 @@ pub fn ask_later_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
 
             match fill_pending_info(&state, &user, config_key, value) {
                 Ok(_) => {
-                    info!("Pending info filled: {} = {}", config_key, value);
+                    let safe_value = if is_sensitive_config_key(config_key) {
+                        "[REDACTED]"
+                    } else {
+                        value
+                    };
+                    info!("Pending info filled: {} = {}", config_key, safe_value);
                     true
                 }
                 Err(e) => {
