@@ -12,6 +12,9 @@ use axum::{
     Json,
 };
 use chrono::Utc;
+use diesel::prelude::*;
+use diesel::sql_query;
+use diesel::sql_types::{Text, Uuid as DieselUuid};
 use log::{error, info, trace};
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
@@ -52,6 +55,33 @@ pub struct IntentResultResponse {
     pub tool_triggers: Vec<String>,
     pub created_resources: Vec<CreatedResourceResponse>,
     pub next_steps: Vec<String>,
+}
+
+/// Request for one-click create and execute
+#[derive(Debug, Deserialize)]
+pub struct CreateAndExecuteRequest {
+    pub intent: String,
+}
+
+/// Response for create and execute - simple status updates
+#[derive(Debug, Serialize)]
+pub struct CreateAndExecuteResponse {
+    pub success: bool,
+    pub task_id: String,
+    pub status: String,
+    pub message: String,
+    pub app_url: Option<String>,
+    pub created_resources: Vec<CreatedResourceResponse>,
+    pub pending_items: Vec<PendingItemResponse>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct PendingItemResponse {
+    pub id: String,
+    pub label: String,
+    pub config_key: String,
+    pub reason: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -257,6 +287,105 @@ pub struct RecommendationResponse {
     pub recommendation_type: String,
     pub description: String,
     pub action: Option<String>,
+}
+
+/// Create and execute in one call - no dialogs, just do it
+/// POST /api/autotask/create
+pub async fn create_and_execute_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<CreateAndExecuteRequest>,
+) -> impl IntoResponse {
+    info!(
+        "Create and execute: {}",
+        &request.intent[..request.intent.len().min(100)]
+    );
+
+    let session = match get_current_session(&state) {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(CreateAndExecuteResponse {
+                    success: false,
+                    task_id: String::new(),
+                    status: "error".to_string(),
+                    message: format!("Authentication error: {}", e),
+                    app_url: None,
+                    created_resources: Vec::new(),
+                    pending_items: Vec::new(),
+                    error: Some(e.to_string()),
+                }),
+            );
+        }
+    };
+
+    // Create task record first
+    let task_id = Uuid::new_v4();
+    if let Err(e) = create_task_record(&state, task_id, &session, &request.intent) {
+        error!("Failed to create task record: {}", e);
+    }
+
+    // Update status to running
+    let _ = update_task_status_db(&state, task_id, "running", None);
+
+    // Use IntentClassifier to classify and process
+    let classifier = IntentClassifier::new(Arc::clone(&state));
+
+    match classifier
+        .classify_and_process(&request.intent, &session)
+        .await
+    {
+        Ok(result) => {
+            let status = if result.success {
+                "completed"
+            } else {
+                "failed"
+            };
+            let _ = update_task_status_db(&state, task_id, status, result.error.as_deref());
+
+            // Get any pending items (ASK LATER)
+            let pending_items = get_pending_items_for_bot(&state, session.bot_id);
+
+            (
+                StatusCode::OK,
+                Json(CreateAndExecuteResponse {
+                    success: result.success,
+                    task_id: task_id.to_string(),
+                    status: status.to_string(),
+                    message: result.message,
+                    app_url: result.app_url,
+                    created_resources: result
+                        .created_resources
+                        .into_iter()
+                        .map(|r| CreatedResourceResponse {
+                            resource_type: r.resource_type,
+                            name: r.name,
+                            path: r.path,
+                        })
+                        .collect(),
+                    pending_items,
+                    error: result.error,
+                }),
+            )
+        }
+        Err(e) => {
+            let _ = update_task_status_db(&state, task_id, "failed", Some(&e.to_string()));
+            error!("Failed to process intent: {}", e);
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(CreateAndExecuteResponse {
+                    success: false,
+                    task_id: task_id.to_string(),
+                    status: "failed".to_string(),
+                    message: "Failed to process request".to_string(),
+                    app_url: None,
+                    created_resources: Vec::new(),
+                    pending_items: Vec::new(),
+                    error: Some(e.to_string()),
+                }),
+            )
+        }
+    }
 }
 
 /// Classify and optionally process an intent
@@ -1244,30 +1373,162 @@ fn start_task_execution(
 }
 
 fn list_auto_tasks(
-    _state: &Arc<AppState>,
-    _filter: &str,
-    _limit: i32,
-    _offset: i32,
+    state: &Arc<AppState>,
+    filter: &str,
+    limit: i32,
+    offset: i32,
 ) -> Result<Vec<AutoTask>, Box<dyn std::error::Error + Send + Sync>> {
-    Ok(Vec::new())
+    let mut conn = state.conn.get()?;
+
+    let status_filter = match filter {
+        "running" => Some("running"),
+        "pending" => Some("pending"),
+        "completed" => Some("completed"),
+        "failed" => Some("failed"),
+        _ => None,
+    };
+
+    #[derive(QueryableByName)]
+    struct TaskRow {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Text)]
+        title: String,
+        #[diesel(sql_type = Text)]
+        intent: String,
+        #[diesel(sql_type = Text)]
+        status: String,
+        #[diesel(sql_type = diesel::sql_types::Float8)]
+        progress: f64,
+    }
+
+    let query = if let Some(status) = status_filter {
+        format!(
+            "SELECT id::text, title, intent, status, progress FROM auto_tasks WHERE status = '{}' ORDER BY created_at DESC LIMIT {} OFFSET {}",
+            status, limit, offset
+        )
+    } else {
+        format!(
+            "SELECT id::text, title, intent, status, progress FROM auto_tasks ORDER BY created_at DESC LIMIT {} OFFSET {}",
+            limit, offset
+        )
+    };
+
+    let rows: Vec<TaskRow> = sql_query(&query).get_results(&mut conn).unwrap_or_default();
+
+    Ok(rows
+        .into_iter()
+        .map(|r| AutoTask {
+            id: r.id,
+            title: r.title,
+            intent: r.intent,
+            status: match r.status.as_str() {
+                "running" => AutoTaskStatus::Running,
+                "completed" => AutoTaskStatus::Completed,
+                "failed" => AutoTaskStatus::Failed,
+                "paused" => AutoTaskStatus::Paused,
+                "cancelled" => AutoTaskStatus::Cancelled,
+                _ => AutoTaskStatus::Draft,
+            },
+            mode: ExecutionMode::FullyAutomatic,
+            priority: TaskPriority::Medium,
+            plan_id: None,
+            basic_program: None,
+            current_step: 0,
+            total_steps: 0,
+            progress: r.progress,
+            step_results: Vec::new(),
+            pending_decisions: Vec::new(),
+            pending_approvals: Vec::new(),
+            risk_summary: None,
+            resource_usage: Default::default(),
+            error: None,
+            rollback_state: None,
+            session_id: String::new(),
+            bot_id: String::new(),
+            created_by: String::new(),
+            assigned_to: String::new(),
+            schedule: None,
+            tags: Vec::new(),
+            parent_task_id: None,
+            subtask_ids: Vec::new(),
+            depends_on: Vec::new(),
+            dependents: Vec::new(),
+            mcp_servers: Vec::new(),
+            external_apis: Vec::new(),
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+            started_at: None,
+            completed_at: None,
+            estimated_completion: None,
+        })
+        .collect())
 }
 
 fn get_auto_task_stats(
-    _state: &Arc<AppState>,
+    state: &Arc<AppState>,
 ) -> Result<AutoTaskStatsResponse, Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = state.conn.get()?;
+
+    #[derive(QueryableByName)]
+    struct CountRow {
+        #[diesel(sql_type = diesel::sql_types::BigInt)]
+        count: i64,
+    }
+
+    let total: i64 = sql_query("SELECT COUNT(*) as count FROM auto_tasks")
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
+
+    let running: i64 =
+        sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'running'")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+    let pending: i64 =
+        sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'pending'")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+    let completed: i64 =
+        sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'completed'")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+    let failed: i64 = sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'failed'")
+        .get_result::<CountRow>(&mut conn)
+        .map(|r| r.count)
+        .unwrap_or(0);
+
+    let pending_approval: i64 =
+        sql_query("SELECT COUNT(*) as count FROM task_approvals WHERE status = 'pending'")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+    let pending_decision: i64 =
+        sql_query("SELECT COUNT(*) as count FROM task_decisions WHERE status = 'pending'")
+            .get_result::<CountRow>(&mut conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
     Ok(AutoTaskStatsResponse {
-        total: 0,
-        running: 0,
-        pending: 0,
-        completed: 0,
-        failed: 0,
-        pending_approval: 0,
-        pending_decision: 0,
+        total: total as i32,
+        running: running as i32,
+        pending: pending as i32,
+        completed: completed as i32,
+        failed: failed as i32,
+        pending_approval: pending_approval as i32,
+        pending_decision: pending_decision as i32,
     })
 }
 
 fn update_task_status(
-    _state: &Arc<AppState>,
+    state: &Arc<AppState>,
     task_id: &str,
     status: AutoTaskStatus,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -1275,7 +1536,124 @@ fn update_task_status(
         "Updating task status task_id={} status={:?}",
         task_id, status
     );
+
+    let status_str = match status {
+        AutoTaskStatus::Running => "running",
+        AutoTaskStatus::Completed => "completed",
+        AutoTaskStatus::Failed => "failed",
+        AutoTaskStatus::Paused => "paused",
+        AutoTaskStatus::Cancelled => "cancelled",
+        _ => "pending",
+    };
+
+    let mut conn = state.conn.get()?;
+    sql_query("UPDATE auto_tasks SET status = $1, updated_at = NOW() WHERE id = $2::uuid")
+        .bind::<Text, _>(status_str)
+        .bind::<Text, _>(task_id)
+        .execute(&mut conn)?;
+
     Ok(())
+}
+
+/// Create task record in database
+fn create_task_record(
+    state: &Arc<AppState>,
+    task_id: Uuid,
+    session: &crate::shared::models::UserSession,
+    intent: &str,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = state.conn.get()?;
+
+    let title = if intent.len() > 100 {
+        format!("{}...", &intent[..97])
+    } else {
+        intent.to_string()
+    };
+
+    sql_query(
+        "INSERT INTO auto_tasks (id, bot_id, session_id, title, intent, status, execution_mode, priority, progress, created_at, updated_at)
+         VALUES ($1, $2, $3, $4, $5, 'pending', 'autonomous', 'normal', 0.0, NOW(), NOW())"
+    )
+    .bind::<DieselUuid, _>(task_id)
+    .bind::<DieselUuid, _>(session.bot_id)
+    .bind::<DieselUuid, _>(session.id)
+    .bind::<Text, _>(&title)
+    .bind::<Text, _>(intent)
+    .execute(&mut conn)?;
+
+    Ok(())
+}
+
+/// Update task status in database
+fn update_task_status_db(
+    state: &Arc<AppState>,
+    task_id: Uuid,
+    status: &str,
+    error: Option<&str>,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = state.conn.get()?;
+
+    if let Some(err) = error {
+        sql_query(
+            "UPDATE auto_tasks SET status = $1, error = $2, updated_at = NOW() WHERE id = $3",
+        )
+        .bind::<Text, _>(status)
+        .bind::<Text, _>(err)
+        .bind::<DieselUuid, _>(task_id)
+        .execute(&mut conn)?;
+    } else {
+        let completed_at = if status == "completed" || status == "failed" {
+            ", completed_at = NOW()"
+        } else {
+            ""
+        };
+        let query = format!(
+            "UPDATE auto_tasks SET status = $1, updated_at = NOW(){} WHERE id = $2",
+            completed_at
+        );
+        sql_query(&query)
+            .bind::<Text, _>(status)
+            .bind::<DieselUuid, _>(task_id)
+            .execute(&mut conn)?;
+    }
+
+    Ok(())
+}
+
+/// Get pending items (ASK LATER) for a bot
+fn get_pending_items_for_bot(state: &Arc<AppState>, bot_id: Uuid) -> Vec<PendingItemResponse> {
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(_) => return Vec::new(),
+    };
+
+    #[derive(QueryableByName)]
+    struct PendingRow {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Text)]
+        field_label: String,
+        #[diesel(sql_type = Text)]
+        config_key: String,
+        #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+        reason: Option<String>,
+    }
+
+    let rows: Vec<PendingRow> = sql_query(
+        "SELECT id::text, field_label, config_key, reason FROM pending_info WHERE bot_id = $1 AND is_filled = false"
+    )
+    .bind::<DieselUuid, _>(bot_id)
+    .get_results(&mut conn)
+    .unwrap_or_default();
+
+    rows.into_iter()
+        .map(|r| PendingItemResponse {
+            id: r.id,
+            label: r.field_label,
+            config_key: r.config_key,
+            reason: r.reason,
+        })
+        .collect()
 }
 
 fn simulate_task_execution(
@@ -1485,6 +1863,112 @@ fn apply_recommendation(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Applying recommendation: {}", rec_id);
     // TODO: Implement recommendation application logic
-    // This would modify the execution plan based on the recommendation
+    Ok(())
+}
+
+#[derive(Debug, Serialize)]
+pub struct PendingItemsResponse {
+    pub items: Vec<PendingItemResponse>,
+    pub count: usize,
+}
+
+pub async fn get_pending_items_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    info!("Getting pending items");
+
+    let session = match get_current_session(&state) {
+        Ok(s) => s,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(PendingItemsResponse {
+                    items: Vec::new(),
+                    count: 0,
+                }),
+            )
+                .into_response();
+        }
+    };
+
+    let items = get_pending_items_for_bot(&state, session.bot_id);
+
+    (
+        StatusCode::OK,
+        Json(PendingItemsResponse {
+            count: items.len(),
+            items,
+        }),
+    )
+        .into_response()
+}
+
+#[derive(Debug, Deserialize)]
+pub struct SubmitPendingItemRequest {
+    pub value: String,
+}
+
+pub async fn submit_pending_item_handler(
+    State(state): State<Arc<AppState>>,
+    Path(item_id): Path<String>,
+    Json(request): Json<SubmitPendingItemRequest>,
+) -> impl IntoResponse {
+    info!("Submitting pending item {item_id}: {}", request.value);
+
+    let session = match get_current_session(&state) {
+        Ok(s) => s,
+        Err(_) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": "Authentication required"
+                })),
+            )
+                .into_response();
+        }
+    };
+
+    match resolve_pending_item(&state, &item_id, &request.value, session.bot_id) {
+        Ok(()) => (
+            StatusCode::OK,
+            Json(serde_json::json!({
+                "success": true,
+                "message": "Pending item resolved"
+            })),
+        )
+            .into_response(),
+        Err(e) => {
+            error!("Failed to resolve pending item {item_id}: {e}");
+            (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(serde_json::json!({
+                    "success": false,
+                    "error": e.to_string()
+                })),
+            )
+                .into_response()
+        }
+    }
+}
+
+fn resolve_pending_item(
+    state: &Arc<AppState>,
+    item_id: &str,
+    value: &str,
+    bot_id: Uuid,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = state.conn.get()?;
+
+    let item_uuid = Uuid::parse_str(item_id)?;
+
+    sql_query(
+        "UPDATE pending_info SET resolved = true, resolved_value = $1, resolved_at = NOW()
+         WHERE id = $2 AND bot_id = $3",
+    )
+    .bind::<Text, _>(value)
+    .bind::<DieselUuid, _>(item_uuid)
+    .bind::<DieselUuid, _>(bot_id)
+    .execute(&mut conn)?;
+
+    info!("Resolved pending item {item_id} with value: {value}");
     Ok(())
 }

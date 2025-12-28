@@ -102,16 +102,18 @@ pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, Simulatio
 
 pub use autotask_api::{
     apply_recommendation_handler, cancel_task_handler, classify_intent_handler,
-    compile_intent_handler, execute_plan_handler, execute_task_handler, get_approvals_handler,
-    get_decisions_handler, get_stats_handler, get_task_logs_handler, list_tasks_handler,
-    pause_task_handler, resume_task_handler, simulate_plan_handler, simulate_task_handler,
-    submit_approval_handler, submit_decision_handler,
+    compile_intent_handler, create_and_execute_handler, execute_plan_handler, execute_task_handler,
+    get_approvals_handler, get_decisions_handler, get_pending_items_handler, get_stats_handler,
+    get_task_logs_handler, list_tasks_handler, pause_task_handler, resume_task_handler,
+    simulate_plan_handler, simulate_task_handler, submit_approval_handler, submit_decision_handler,
+    submit_pending_item_handler,
 };
 
 pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared::state::AppState>> {
     use axum::routing::{get, post};
 
     axum::Router::new()
+        .route("/api/autotask/create", post(create_and_execute_handler))
         .route("/api/autotask/classify", post(classify_intent_handler))
         .route("/api/autotask/compile", post(compile_intent_handler))
         .route("/api/autotask/execute", post(execute_plan_handler))
@@ -149,6 +151,11 @@ pub fn configure_autotask_routes() -> axum::Router<std::sync::Arc<crate::shared:
         .route(
             "/api/autotask/recommendations/:rec_id/apply",
             post(apply_recommendation_handler),
+        )
+        .route("/api/autotask/pending", get(get_pending_items_handler))
+        .route(
+            "/api/autotask/pending/:item_id",
+            post(submit_pending_item_handler),
         )
 }
 
