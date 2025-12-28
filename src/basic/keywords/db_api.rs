@@ -210,34 +210,28 @@ pub async fn get_record_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
 
-    let record_id = match Uuid::parse_str(&id) {
-        Ok(uuid) => uuid,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some("Invalid UUID format".to_string()),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(record_id) = Uuid::parse_str(&id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Invalid UUID format".to_string()),
+            }),
+        )
+            .into_response();
     };
 
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some(format!("Database connection error: {e}")),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(mut conn) = state.conn.get() else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Database connection error".to_string()),
+            }),
+        )
+            .into_response();
     };
 
     // Check table-level read access
@@ -314,19 +308,16 @@ pub async fn create_record_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
 
-    let obj = match payload.as_object() {
-        Some(o) => o,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some("Payload must be a JSON object".to_string()),
-                }),
-            )
-                .into_response()
-        }
+    let Some(obj) = payload.as_object() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Payload must be a JSON object".to_string()),
+            }),
+        )
+            .into_response();
     };
 
     let mut columns: Vec<String> = vec!["id".to_string()];
@@ -341,22 +332,18 @@ pub async fn create_record_handler(
         values.push(value_to_sql(value));
     }
 
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some(format!("Database connection error: {e}")),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(mut conn) = state.conn.get() else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Database connection error".to_string()),
+            }),
+        )
+            .into_response();
     };
 
-    // Check table-level write access
     let access_info =
         match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
             Ok(info) => info,
@@ -438,34 +425,28 @@ pub async fn update_record_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
 
-    let record_id = match Uuid::parse_str(&id) {
-        Ok(uuid) => uuid,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some("Invalid UUID format".to_string()),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(record_id) = Uuid::parse_str(&id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Invalid UUID format".to_string()),
+            }),
+        )
+            .into_response();
     };
 
-    let obj = match payload.as_object() {
-        Some(o) => o,
-        None => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some("Payload must be a JSON object".to_string()),
-                }),
-            )
-                .into_response()
-        }
+    let Some(obj) = payload.as_object() else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some("Payload must be a JSON object".to_string()),
+            }),
+        )
+            .into_response();
     };
 
     let mut set_clauses: Vec<String> = Vec::new();
@@ -588,37 +569,30 @@ pub async fn delete_record_handler(
     let table_name = sanitize_identifier(&table);
     let user_roles = user_roles_from_headers(&headers);
 
-    let record_id = match Uuid::parse_str(&id) {
-        Ok(uuid) => uuid,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(DeleteResponse {
-                    success: false,
-                    deleted: 0,
-                    message: Some("Invalid UUID format".to_string()),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(record_id) = Uuid::parse_str(&id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(DeleteResponse {
+                success: false,
+                deleted: 0,
+                message: Some("Invalid UUID format".to_string()),
+            }),
+        )
+            .into_response();
     };
 
-    let mut conn = match state.conn.get() {
-        Ok(c) => c,
-        Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(DeleteResponse {
-                    success: false,
-                    deleted: 0,
-                    message: Some(format!("Database connection error: {e}")),
-                }),
-            )
-                .into_response()
-        }
+    let Ok(mut conn) = state.conn.get() else {
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(DeleteResponse {
+                success: false,
+                deleted: 0,
+                message: Some("Database connection error".to_string()),
+            }),
+        )
+            .into_response();
     };
 
-    // Check table-level write access (delete requires write)
     if let Err(e) = check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
         return (
             StatusCode::FORBIDDEN,

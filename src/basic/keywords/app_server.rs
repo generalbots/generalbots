@@ -35,18 +35,17 @@ pub async fn serve_app_index(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppPath>,
 ) -> impl IntoResponse {
-    serve_app_file_internal(&state, &params.app_name, "index.html").await
+    serve_app_file_internal(&state, &params.app_name, "index.html")
 }
 
 pub async fn serve_app_file(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppFilePath>,
 ) -> impl IntoResponse {
-    serve_app_file_internal(&state, &params.app_name, &params.file_path).await
+    serve_app_file_internal(&state, &params.app_name, &params.file_path)
 }
 
-async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
-    // Sanitize paths to prevent directory traversal
+fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
     let sanitized_app_name = sanitize_path_component(app_name);
     let sanitized_file_path = sanitize_path_component(file_path);
 
@@ -54,8 +53,6 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
         return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
     }
 
-    // Construct full file path from SITE_ROOT
-    // Apps are synced to: {site_path}/{app_name}/
     let site_path = state
         .config
         .as_ref()
@@ -67,19 +64,16 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
         site_path, sanitized_app_name, sanitized_file_path
     );
 
-    trace!("Serving app file: {}", full_path);
+    trace!("Serving app file: {full_path}");
 
-    // Check if file exists
     let path = std::path::Path::new(&full_path);
     if !path.exists() {
-        warn!("App file not found: {}", full_path);
+        warn!("App file not found: {full_path}");
         return (StatusCode::NOT_FOUND, "File not found").into_response();
     }
 
-    // Determine content type
     let content_type = get_content_type(&sanitized_file_path);
 
-    // Read and serve the file
     match std::fs::read(&full_path) {
         Ok(contents) => Response::builder()
             .status(StatusCode::OK)
@@ -94,7 +88,7 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
                     .into_response()
             }),
         Err(e) => {
-            error!("Failed to read file {}: {}", full_path, e);
+            error!("Failed to read file {full_path}: {e}");
             (StatusCode::INTERNAL_SERVER_ERROR, "Failed to read file").into_response()
         }
     }
@@ -109,13 +103,11 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
 
     let mut apps = Vec::new();
 
-    // List all directories in site_path that have an index.html (are apps)
     if let Ok(entries) = std::fs::read_dir(&site_path) {
         for entry in entries.flatten() {
             if entry.file_type().map(|t| t.is_dir()).unwrap_or(false) {
                 if let Some(name) = entry.file_name().to_str() {
-                    // Skip .gbai directories and other system folders
-                    if name.starts_with('.') || name.ends_with(".gbai") {
+                    if name.starts_with('.') || name.to_lowercase().ends_with(".gbai") {
                         continue;
                     }
 

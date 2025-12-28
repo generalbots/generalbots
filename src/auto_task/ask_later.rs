@@ -102,12 +102,9 @@ pub fn ask_later_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
         }
     });
 
-    let state_clone5 = state.clone();
-    let user_clone5 = user.clone();
-
     engine.register_fn("list_pending_info", move || -> Dynamic {
-        let state = state_clone5.clone();
-        let user = user_clone5.clone();
+        let state = state.clone();
+        let user = user.clone();
 
         match list_pending_info(&state, &user) {
             Ok(items) => {
