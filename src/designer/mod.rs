@@ -1,4 +1,5 @@
 use crate::auto_task::get_designer_error_context;
+use crate::core::shared::get_content_type;
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 use axum::{
@@ -1324,19 +1325,4 @@ async fn apply_file_change(
     }
 
     Ok(())
-}
-
-fn get_content_type(filename: &str) -> &'static str {
-    match Path::new(filename)
-        .extension()
-        .and_then(|e| e.to_str())
-        .map(|e| e.to_lowercase())
-        .as_deref()
-    {
-        Some("html") => "text/html",
-        Some("css") => "text/css",
-        Some("js") => "application/javascript",
-        Some("json") => "application/json",
-        _ => "text/plain",
-    }
 }
