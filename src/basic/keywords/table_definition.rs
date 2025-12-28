@@ -28,6 +28,7 @@
 |                                                                             |
 \*****************************************************************************/
 
+use crate::core::shared::sanitize_identifier;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
@@ -397,12 +398,6 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
 
     sql.push(';');
     sql
-}
-
-fn sanitize_identifier(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_')
-        .collect()
 }
 
 pub fn load_connection_config(
