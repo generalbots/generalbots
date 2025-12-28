@@ -65,6 +65,7 @@ pub mod social;
 pub mod social_media;
 pub mod string_functions;
 pub mod switch_case;
+pub mod table_access;
 pub mod table_definition;
 pub mod transfer_to_human;
 pub mod universal_messaging;
@@ -83,6 +84,10 @@ pub use app_server::configure_app_server_routes;
 pub use db_api::configure_db_routes;
 pub use mcp_client::{McpClient, McpRequest, McpResponse, McpServer, McpTool};
 pub use mcp_directory::{McpDirectoryScanResult, McpDirectoryScanner, McpServerConfig};
+pub use table_access::{
+    check_field_write_access, check_table_access, filter_fields_by_role, load_table_access_info,
+    AccessType, TableAccessInfo, UserRoles,
+};
 
 pub fn get_all_keywords() -> Vec<String> {
     vec![
