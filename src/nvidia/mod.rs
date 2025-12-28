@@ -8,11 +8,6 @@ pub struct SystemMetrics {
     pub cpu_usage: f32,
 }
 
-/// Gets current system metrics including CPU and GPU usage.
-///
-/// # Errors
-///
-/// Returns an error if GPU utilization query fails when an NVIDIA GPU is present.
 pub fn get_system_metrics() -> Result<SystemMetrics> {
     let mut sys = System::new();
     sys.refresh_cpu_usage();
@@ -28,7 +23,6 @@ pub fn get_system_metrics() -> Result<SystemMetrics> {
     })
 }
 
-/// Checks if an NVIDIA GPU is present in the system.
 #[must_use]
 pub fn has_nvidia_gpu() -> bool {
     match std::process::Command::new("nvidia-smi")
@@ -41,14 +35,6 @@ pub fn has_nvidia_gpu() -> bool {
     }
 }
 
-/// Gets GPU utilization metrics from nvidia-smi.
-///
-/// # Errors
-///
-/// Returns an error if:
-/// - The nvidia-smi command fails to execute
-/// - The command returns a non-success status
-/// - The output cannot be parsed as UTF-8
 pub fn get_gpu_utilization() -> Result<HashMap<String, f32>> {
     let output = std::process::Command::new("nvidia-smi")
         .arg("--query-gpu=utilization.gpu,utilization.memory")

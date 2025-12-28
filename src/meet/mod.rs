@@ -23,10 +23,9 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route(ApiUrls::VOICE_STOP, post(voice_stop))
         .route(ApiUrls::MEET_CREATE, post(create_meeting))
         .route(ApiUrls::MEET_ROOMS, get(list_rooms))
-        .route("/api/meet/rooms", get(list_rooms_ui))
-        .route("/api/meet/recent", get(recent_meetings))
-        .route("/api/meet/participants", get(all_participants))
-        .route("/api/meet/scheduled", get(scheduled_meetings))
+        .route(ApiUrls::MEET_PARTICIPANTS, get(all_participants))
+        .route(ApiUrls::MEET_RECENT, get(recent_meetings))
+        .route(ApiUrls::MEET_SCHEDULED, get(scheduled_meetings))
         .route(
             &ApiUrls::MEET_ROOM_BY_ID.replace(":id", "{room_id}"),
             get(get_room),
@@ -182,8 +181,7 @@ pub async fn voice_start(
     {
         Ok(token) => {
             info!(
-                "Voice session started successfully for session {}",
-                session_id
+                "Voice session started successfully for session {session_id}"
             );
             (
                 StatusCode::OK,
@@ -192,8 +190,7 @@ pub async fn voice_start(
         }
         Err(e) => {
             error!(
-                "Failed to start voice session for session {}: {}",
-                session_id, e
+                "Failed to start voice session for session {session_id}: {e}"
             );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -215,8 +212,7 @@ pub async fn voice_stop(
     match data.voice_adapter.stop_voice_session(session_id).await {
         Ok(()) => {
             info!(
-                "Voice session stopped successfully for session {}",
-                session_id
+                "Voice session stopped successfully for session {session_id}"
             );
             (
                 StatusCode::OK,
@@ -225,8 +221,7 @@ pub async fn voice_stop(
         }
         Err(e) => {
             error!(
-                "Failed to stop voice session for session {}: {}",
-                session_id, e
+                "Failed to stop voice session for session {session_id}: {e}"
             );
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
@@ -252,7 +247,7 @@ pub async fn create_meeting(
             (StatusCode::OK, Json(serde_json::json!(room)))
         }
         Err(e) => {
-            error!("Failed to create meeting room: {}", e);
+            error!("Failed to create meeting room: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),
@@ -301,11 +296,11 @@ pub async fn join_room(
         .await
     {
         Ok(participant) => {
-            info!("Participant {} joined room {}", participant.id, room_id);
+            info!("Participant {} joined room {room_id}", participant.id);
             (StatusCode::OK, Json(serde_json::json!(participant)))
         }
         Err(e) => {
-            error!("Failed to join room {}: {}", room_id, e);
+            error!("Failed to join room {room_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),
@@ -322,15 +317,15 @@ pub async fn start_transcription(
     let meeting_service = MeetingService::new(state.clone(), transcription_service);
 
     match meeting_service.start_transcription(&room_id).await {
-        Ok(_) => {
-            info!("Started transcription for room {}", room_id);
+        Ok(()) => {
+            info!("Started transcription for room {room_id}");
             (
                 StatusCode::OK,
                 Json(serde_json::json!({"status": "transcription_started"})),
             )
         }
         Err(e) => {
-            error!("Failed to start transcription for room {}: {}", room_id, e);
+            error!("Failed to start transcription for room {room_id}: {e}");
             (
                 StatusCode::INTERNAL_SERVER_ERROR,
                 Json(serde_json::json!({"error": e.to_string()})),
@@ -387,10 +382,10 @@ async fn handle_meeting_socket(_socket: axum::extract::ws::WebSocket, _state: Ar
     info!("Meeting WebSocket connection established");
 }
 
-pub async fn list_rooms_ui(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
+pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
     Json(serde_json::json!({
-        "rooms": [],
-        "message": "No active meeting rooms"
+        "participants": [],
+        "message": "No participants"
     }))
 }
 
@@ -398,13 +393,6 @@ pub async fn recent_meetings(State(_state): State<Arc<AppState>>) -> Json<serde_
     Json(serde_json::json!({
         "meetings": [],
         "message": "No recent meetings"
-    }))
-}
-
-pub async fn all_participants(State(_state): State<Arc<AppState>>) -> Json<serde_json::Value> {
-    Json(serde_json::json!({
-        "participants": [],
-        "message": "No participants"
     }))
 }
 

@@ -317,6 +317,28 @@ impl BootstrapManager {
                 match pm.start(component.name) {
                     Ok(_child) => {
                         info!("Started component: {}", component.name);
+                        if component.name == "drive" {
+                            for i in 0..15 {
+                                let drive_ready = Command::new("sh")
+                                    .arg("-c")
+                                    .arg("curl -f -s 'http://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
+                                    .stdout(std::process::Stdio::null())
+                                    .stderr(std::process::Stdio::null())
+                                    .status()
+                                    .map(|s| s.success())
+                                    .unwrap_or(false);
+
+                                if drive_ready {
+                                    info!("MinIO drive is ready and responding");
+                                    break;
+                                }
+                                if i < 14 {
+                                    tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                                } else {
+                                    warn!("MinIO drive health check timed out after 15s");
+                                }
+                            }
+                        }
                     }
                     Err(e) => {
                         debug!(
@@ -574,14 +596,12 @@ impl BootstrapManager {
                 || stderr_str.contains("connection refused")
             {
                 connection_refused = true;
-
-                continue;
-            }
-
-            connection_refused = false;
-            if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
-                parsed_status = Some(status);
-                break;
+            } else {
+                connection_refused = false;
+                if let Ok(status) = serde_json::from_str::<serde_json::Value>(&status_str) {
+                    parsed_status = Some(status);
+                    break;
+                }
             }
         }
 
@@ -1837,7 +1857,6 @@ VAULT_CACHE_TTL=300
                         }
                         Err(e) => {
                             warn!("S3/MinIO not available, skipping bucket {}: {}", bucket, e);
-                            continue;
                         }
                     }
                 }

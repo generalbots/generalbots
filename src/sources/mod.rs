@@ -1,3 +1,4 @@
+pub mod knowledge_base;
 pub mod mcp;
 
 use crate::basic::keywords::mcp_directory::{generate_example_configs, McpCsvLoader, McpCsvRow};
@@ -148,6 +149,7 @@ pub struct AppInfo {
 
 pub fn configure_sources_routes() -> Router<Arc<AppState>> {
     Router::new()
+        .merge(knowledge_base::configure_knowledge_base_routes())
         .route("/api/sources/prompts", get(handle_prompts))
         .route("/api/sources/templates", get(handle_templates))
         .route("/api/sources/news", get(handle_news))

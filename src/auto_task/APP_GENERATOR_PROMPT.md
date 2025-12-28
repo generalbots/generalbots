@@ -472,9 +472,9 @@ When generating an app, create these files:
 └── app.js              Optional custom JavaScript
 ```
 
-### Required HTML Head
+### Required HTML Head (WITH SEO)
 
-Every HTML page MUST include:
+Every HTML page MUST include proper SEO meta tags:
 
 ```html
 <!DOCTYPE html>
@@ -482,12 +482,25 @@ Every HTML page MUST include:
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Page Title</title>
+    <meta name="description" content="{app_name} - {brief description of this page}">
+    <meta name="robots" content="noindex, nofollow">
+    <meta name="theme-color" content="#1e1e2e">
+    <meta property="og:title" content="{Page Title} - {App Name}">
+    <meta property="og:description" content="{Brief description}">
+    <meta property="og:type" content="website">
+    <link rel="icon" href="/assets/icons/gb-logo.svg" type="image/svg+xml">
+    <title>{Page Title} - {App Name}</title>
     <link rel="stylesheet" href="styles.css">
     <script src="/js/vendor/htmx.min.js"></script>
     <script src="designer.js" defer></script>
 </head>
 ```
+
+**SEO is required even for authenticated apps because:**
+- Shared links preview correctly in chat/email
+- Browser tabs show meaningful titles
+- Bookmarks are descriptive
+- Accessibility tools work better
 
 ---
 
@@ -591,3 +604,109 @@ Response:
 6. **Be complete** - Generate all necessary pages, not just stubs
 7. **Match the request** - If user wants pink, make it pink
 8. **Tables are optional** - Simple tools don't need database tables
+9. **SEO required** - All pages MUST have proper meta tags (description, og:title, etc.)
+10. **No comments in generated code** - Code must be self-documenting, no HTML/JS/CSS comments
+
+---
+
+## DESIGNER MAGIC BUTTON
+
+The Designer has a "Magic" button that sends the current HTMX code to the LLM with an improvement prompt. It works like a user asking "improve this code" automatically.
+
+**What Magic Button does:**
+1. Captures current page HTML/CSS/JS
+2. Sends to LLM with prompt: "Analyze and improve this HTMX code. Suggest better structure, accessibility, performance, and UX improvements."
+3. LLM responds with refactored code or suggestions
+4. User can apply suggestions or dismiss
+
+**Example Magic prompt sent to LLM:**
+```
+You are reviewing this HTMX application code. Suggest improvements for:
+- Better HTMX patterns (reduce JS, use hx-* attributes)
+- Accessibility (ARIA labels, keyboard navigation)
+- Performance (lazy loading, efficient selectors)
+- UX (loading states, error handling, feedback)
+- Code organization (semantic HTML, clean CSS)
+
+Current code:
+{current_page_html}
+
+Respond with improved code and brief explanation.
+```
+
+---
+
+## CUSTOM DOMAIN SUPPORT
+
+Custom domains are configured in the bot's `config.csv` file:
+
+```csv
+appname-domain,www.customerdomain.com
+```
+
+**Configuration in config.csv:**
+```csv
+# Bot configuration
+bot-name,My Company Bot
+appname-domain,app.mycompany.com
+```
+
+**How it works:**
+1. Bot reads `appname-domain` from config.csv
+2. Server routes requests from custom domain to the app
+3. SSL auto-provisioned via Let's Encrypt
+
+**DNS Requirements:**
+- CNAME record: `app.mycompany.com` → `{bot-id}.generalbots.app`
+- Or A record pointing to server IP
+
+---
+
+## ZERO COMMENTS POLICY
+
+**DO NOT generate any comments in code.**
+
+```html
+<!-- ❌ WRONG - no HTML comments -->
+<div class="container">
+    <!-- User info section -->
+    <div class="user-info">...</div>
+</div>
+
+<!-- ✅ CORRECT - self-documenting structure -->
+<div class="container">
+    <div class="user-info">...</div>
+</div>
+```
+
+```css
+/* ❌ WRONG - no CSS comments */
+.button {
+    /* Primary action style */
+    background: blue;
+}
+
+/* ✅ CORRECT - clear naming */
+.button-primary {
+    background: blue;
+}
+```
+
+```javascript
+// ❌ WRONG - no JS comments
+function save() {
+    // Save to database
+    htmx.ajax('POST', '/api/db/items', {...});
+}
+
+// ✅ CORRECT - descriptive function name
+function saveItemToDatabase() {
+    htmx.ajax('POST', '/api/db/items', {...});
+}
+```
+
+**Why no comments:**
+- Comments become stale when code changes
+- Good naming is better than comments
+- LLMs can infer intent from well-structured code
+- Reduces generated file size

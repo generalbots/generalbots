@@ -39,24 +39,41 @@ use std::error::Error;
 use std::sync::Arc;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct FieldDefinition {
     pub name: String,
     pub field_type: String,
+    #[serde(default)]
     pub length: Option<i32>,
+    #[serde(default)]
     pub precision: Option<i32>,
+    #[serde(default)]
     pub is_key: bool,
+    #[serde(default)]
     pub is_nullable: bool,
+    #[serde(default)]
     pub default_value: Option<String>,
+    #[serde(default)]
     pub reference_table: Option<String>,
+    #[serde(default)]
     pub field_order: i32,
+    #[serde(default)]
+    pub read_roles: Vec<String>,
+    #[serde(default)]
+    pub write_roles: Vec<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct TableDefinition {
     pub name: String,
+    #[serde(default)]
     pub connection_name: String,
+    #[serde(default)]
     pub fields: Vec<FieldDefinition>,
+    #[serde(default)]
+    pub read_roles: Vec<String>,
+    #[serde(default)]
+    pub write_roles: Vec<String>,
 }
 
 #[derive(Debug, Clone)]
@@ -97,6 +114,9 @@ fn parse_single_table(
 ) -> Result<TableDefinition, Box<dyn Error + Send + Sync>> {
     let header_line = lines[*index].trim();
 
+    // Parse table-level READ BY and WRITE BY
+    let (read_roles, write_roles) = parse_role_attributes(header_line);
+
     let parts: Vec<&str> = header_line.split_whitespace().collect();
 
     if parts.len() < 2 {
@@ -110,13 +130,27 @@ fn parse_single_table(
 
     let table_name = parts[1].to_string();
 
-    let connection_name = if parts.len() >= 4 && parts[2].eq_ignore_ascii_case("ON") {
-        parts[3].to_string()
-    } else {
-        "default".to_string()
-    };
+    // Find connection name (ON keyword)
+    let mut connection_name = "default".to_string();
+    for i in 2..parts.len() {
+        if parts[i].eq_ignore_ascii_case("ON") && i + 1 < parts.len() {
+            // Check that the next part is not READ or WRITE
+            if !parts[i + 1].eq_ignore_ascii_case("READ")
+                && !parts[i + 1].eq_ignore_ascii_case("WRITE")
+            {
+                connection_name = parts[i + 1].to_string();
+            }
+            break;
+        }
+    }
 
-    trace!("Parsing TABLE {} ON {}", table_name, connection_name);
+    trace!(
+        "Parsing TABLE {} ON {} (read_roles: {:?}, write_roles: {:?})",
+        table_name,
+        connection_name,
+        read_roles,
+        write_roles
+    );
 
     *index += 1;
     let mut fields = Vec::new();
@@ -153,13 +187,60 @@ fn parse_single_table(
         name: table_name,
         connection_name,
         fields,
+        read_roles,
+        write_roles,
     })
+}
+
+fn parse_role_attributes(line: &str) -> (Vec<String>, Vec<String>) {
+    let mut read_roles = Vec::new();
+    let mut write_roles = Vec::new();
+
+    // Find READ BY "..."
+    if let Some(read_idx) = line.to_uppercase().find("READ BY") {
+        let after_read = &line[read_idx + 7..];
+        if let Some(roles_str) = extract_quoted_string(after_read) {
+            read_roles = roles_str
+                .split(';')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
+    }
+
+    // Find WRITE BY "..."
+    if let Some(write_idx) = line.to_uppercase().find("WRITE BY") {
+        let after_write = &line[write_idx + 8..];
+        if let Some(roles_str) = extract_quoted_string(after_write) {
+            write_roles = roles_str
+                .split(';')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+        }
+    }
+
+    (read_roles, write_roles)
+}
+
+fn extract_quoted_string(s: &str) -> Option<String> {
+    let trimmed = s.trim();
+    if let Some(start) = trimmed.find('"') {
+        let after_quote = &trimmed[start + 1..];
+        if let Some(end) = after_quote.find('"') {
+            return Some(after_quote[..end].to_string());
+        }
+    }
+    None
 }
 
 fn parse_field_definition(
     line: &str,
     order: i32,
 ) -> Result<FieldDefinition, Box<dyn Error + Send + Sync>> {
+    // Parse field-level READ BY and WRITE BY
+    let (read_roles, write_roles) = parse_role_attributes(line);
+
     let parts: Vec<&str> = line.split_whitespace().collect();
 
     if parts.is_empty() {
@@ -205,6 +286,8 @@ fn parse_field_definition(
                     reference_table = Some(parts[i + 1].to_string());
                 }
             }
+            // Skip READ, BY, WRITE as they're handled separately
+            "read" | "by" | "write" => {}
             _ => {}
         }
     }
@@ -219,6 +302,8 @@ fn parse_field_definition(
         default_value: None,
         reference_table,
         field_order: order,
+        read_roles,
+        write_roles,
     })
 }
 
@@ -413,16 +498,30 @@ pub fn store_table_definition(
     bot_id: Uuid,
     table: &TableDefinition,
 ) -> Result<Uuid, Box<dyn Error + Send + Sync>> {
+    // Convert role vectors to semicolon-separated strings for storage
+    let read_roles_str: Option<String> = if table.read_roles.is_empty() {
+        None
+    } else {
+        Some(table.read_roles.join(";"))
+    };
+    let write_roles_str: Option<String> = if table.write_roles.is_empty() {
+        None
+    } else {
+        Some(table.write_roles.join(";"))
+    };
+
     let table_id: Uuid = diesel::sql_query(
-        "INSERT INTO dynamic_table_definitions (bot_id, table_name, connection_name)
-         VALUES ($1, $2, $3)
+        "INSERT INTO dynamic_table_definitions (bot_id, table_name, connection_name, read_roles, write_roles)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (bot_id, table_name, connection_name)
-         DO UPDATE SET updated_at = NOW()
+         DO UPDATE SET updated_at = NOW(), read_roles = $4, write_roles = $5
          RETURNING id",
     )
     .bind::<diesel::sql_types::Uuid, _>(bot_id)
     .bind::<Text, _>(&table.name)
     .bind::<Text, _>(&table.connection_name)
+    .bind::<diesel::sql_types::Nullable<Text>, _>(&read_roles_str)
+    .bind::<diesel::sql_types::Nullable<Text>, _>(&write_roles_str)
     .get_result::<IdResult>(conn)?
     .id;
 
@@ -431,11 +530,23 @@ pub fn store_table_definition(
         .execute(conn)?;
 
     for field in &table.fields {
+        // Convert field role vectors to semicolon-separated strings
+        let field_read_roles: Option<String> = if field.read_roles.is_empty() {
+            None
+        } else {
+            Some(field.read_roles.join(";"))
+        };
+        let field_write_roles: Option<String> = if field.write_roles.is_empty() {
+            None
+        } else {
+            Some(field.write_roles.join(";"))
+        };
+
         diesel::sql_query(
             "INSERT INTO dynamic_table_fields
              (table_definition_id, field_name, field_type, field_length, field_precision,
-              is_key, is_nullable, default_value, reference_table, field_order)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)",
+              is_key, is_nullable, default_value, reference_table, field_order, read_roles, write_roles)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)",
         )
         .bind::<diesel::sql_types::Uuid, _>(table_id)
         .bind::<Text, _>(&field.name)
@@ -447,6 +558,8 @@ pub fn store_table_definition(
         .bind::<diesel::sql_types::Nullable<Text>, _>(&field.default_value)
         .bind::<diesel::sql_types::Nullable<Text>, _>(&field.reference_table)
         .bind::<diesel::sql_types::Integer, _>(field.field_order)
+        .bind::<diesel::sql_types::Nullable<Text>, _>(&field_read_roles)
+        .bind::<diesel::sql_types::Nullable<Text>, _>(&field_write_roles)
         .execute(conn)?;
     }
 

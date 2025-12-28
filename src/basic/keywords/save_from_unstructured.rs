@@ -1,8 +1,9 @@
+use super::table_access::{check_table_access, AccessType, UserRoles};
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::Utc;
 use diesel::prelude::*;
-use log::{error, trace};
+use log::{error, trace, warn};
 use rhai::{Dynamic, Engine};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -91,6 +92,16 @@ pub async fn execute_save_from_unstructured(
     table_name: &str,
     text: &str,
 ) -> Result<String, String> {
+    // Check write access before proceeding
+    let user_roles = UserRoles::from_user_session(user);
+    {
+        let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
+        if let Err(e) = check_table_access(&mut conn, table_name, &user_roles, AccessType::Write) {
+            warn!("SAVE FROM UNSTRUCTURED access denied: {}", e);
+            return Err(e);
+        }
+    }
+
     let schema = get_table_schema(state, table_name)?;
 
     let extraction_prompt = build_extraction_prompt(table_name, &schema, text);

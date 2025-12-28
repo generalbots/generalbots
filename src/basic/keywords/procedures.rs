@@ -1,5 +1,6 @@
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
+use botlib::MAX_LOOP_ITERATIONS;
 use log::trace;
 use rhai::{Dynamic, Engine};
 use std::collections::HashMap;
@@ -32,7 +33,7 @@ fn register_while_wend(engine: &mut Engine) {
                 let condition_expr = &inputs[0];
                 let block = &inputs[1];
 
-                let max_iterations = 100_000;
+                let max_iterations = MAX_LOOP_ITERATIONS;
                 let mut iterations = 0;
 
                 loop {
@@ -70,8 +71,7 @@ fn register_while_wend(engine: &mut Engine) {
                     iterations += 1;
                     if iterations >= max_iterations {
                         return Err(format!(
-                            "WHILE loop exceeded maximum iterations ({}). Possible infinite loop.",
-                            max_iterations
+                            "WHILE loop exceeded maximum iterations ({max_iterations}). Possible infinite loop."
                         )
                         .into());
                     }
@@ -98,7 +98,7 @@ fn register_do_loop(engine: &mut Engine) {
                 let condition_expr = &inputs[0];
                 let block = &inputs[1];
 
-                let max_iterations = 100_000;
+                let max_iterations = MAX_LOOP_ITERATIONS;
                 let mut iterations = 0;
 
                 loop {
@@ -134,7 +134,7 @@ fn register_do_loop(engine: &mut Engine) {
                 let condition_expr = &inputs[0];
                 let block = &inputs[1];
 
-                let max_iterations = 100_000;
+                let max_iterations = MAX_LOOP_ITERATIONS;
                 let mut iterations = 0;
 
                 loop {
@@ -170,7 +170,7 @@ fn register_do_loop(engine: &mut Engine) {
                 let block = &inputs[0];
                 let condition_expr = &inputs[1];
 
-                let max_iterations = 100_000;
+                let max_iterations = MAX_LOOP_ITERATIONS;
                 let mut iterations = 0;
 
                 loop {
@@ -206,7 +206,7 @@ fn register_do_loop(engine: &mut Engine) {
                 let block = &inputs[0];
                 let condition_expr = &inputs[1];
 
-                let max_iterations = 100_000;
+                let max_iterations = MAX_LOOP_ITERATIONS;
                 let mut iterations = 0;
 
                 loop {

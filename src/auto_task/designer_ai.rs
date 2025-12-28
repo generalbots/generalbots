@@ -1,21 +1,3 @@
-//! Designer AI Assistant
-//!
-//! An AI-powered assistant that modifies applications through natural conversation.
-//! Based on Chapter 17 - Designer documentation.
-//!
-//! Designer understands context:
-//! - Current app being viewed
-//! - Current page/file active
-//! - Available tables and their schemas
-//! - Existing tools and schedulers
-//!
-//! Designer can modify:
-//! - Styles (colors, layout, fonts)
-//! - HTML pages (forms, lists, buttons)
-//! - Database (add fields, create tables)
-//! - Tools (voice/chat commands)
-//! - Schedulers (automated tasks)
-
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -28,23 +10,15 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// Types of modifications Designer can make
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum ModificationType {
-    /// Modify CSS styles
     Style,
-    /// Modify HTML structure
     Html,
-    /// Add/modify database fields or tables
     Database,
-    /// Create/modify voice/chat commands
     Tool,
-    /// Create/modify scheduled automations
     Scheduler,
-    /// Multiple modifications
     Multiple,
-    /// Unknown modification type
     Unknown,
 }
 
@@ -62,28 +36,18 @@ impl std::fmt::Display for ModificationType {
     }
 }
 
-/// Context about what the user is currently viewing/editing
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct DesignerContext {
-    /// Current app name
     pub current_app: Option<String>,
-    /// Current page/file being viewed
     pub current_page: Option<String>,
-    /// Current element selected (if any)
     pub current_element: Option<String>,
-    /// Available tables in this bot's database
     pub available_tables: Vec<TableInfo>,
-    /// Available tools
     pub available_tools: Vec<String>,
-    /// Available schedulers
     pub available_schedulers: Vec<String>,
-    /// Recent changes for undo support
     pub recent_changes: Vec<ChangeRecord>,
-    /// Conversation history for context
     pub conversation_history: Vec<ConversationTurn>,
 }
 
-/// Summary info about a table
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TableInfo {
     pub name: String,
@@ -91,7 +55,6 @@ pub struct TableInfo {
     pub record_count: Option<i64>,
 }
 
-/// Record of a change for undo support
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChangeRecord {
     pub id: String,
@@ -104,7 +67,6 @@ pub struct ChangeRecord {
     pub can_undo: bool,
 }
 
-/// A turn in the conversation
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConversationTurn {
     pub role: String, // "user" or "assistant"
@@ -112,14 +74,12 @@ pub struct ConversationTurn {
     pub timestamp: DateTime<Utc>,
 }
 
-/// Request to modify something
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModificationRequest {
     pub instruction: String,
     pub context: DesignerContext,
 }
 
-/// Result of a modification
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ModificationResult {
     pub success: bool,
@@ -134,7 +94,6 @@ pub struct ModificationResult {
     pub error: Option<String>,
 }
 
-/// A single file change
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct FileChange {
     pub file_path: String,
@@ -144,7 +103,6 @@ pub struct FileChange {
     pub line_number: Option<i32>,
 }
 
-/// Analyzed modification from LLM
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct AnalyzedModification {
     modification_type: ModificationType,
@@ -163,7 +121,6 @@ struct CodeChange {
     context: Option<String>,
 }
 
-/// The Designer AI Assistant
 pub struct DesignerAI {
     state: Arc<AppState>,
 }
@@ -173,7 +130,6 @@ impl DesignerAI {
         Self { state }
     }
 
-    /// Process a modification request
     pub async fn process_request(
         &self,
         request: &ModificationRequest,
@@ -221,7 +177,6 @@ impl DesignerAI {
         self.apply_modification(&analysis, session).await
     }
 
-    /// Apply a confirmed modification
     pub async fn apply_confirmed_modification(
         &self,
         change_id: &str,
@@ -247,7 +202,6 @@ impl DesignerAI {
         }
     }
 
-    /// Undo a previous change
     pub async fn undo_change(
         &self,
         change_id: &str,
@@ -311,7 +265,6 @@ impl DesignerAI {
         }
     }
 
-    /// Get current context for the designer
     pub async fn get_context(
         &self,
         session: &UserSession,
@@ -335,11 +288,6 @@ impl DesignerAI {
         })
     }
 
-    // =========================================================================
-    // ANALYSIS
-    // =========================================================================
-
-    /// Analyze what modification the user wants
     async fn analyze_modification(
         &self,
         instruction: &str,
@@ -390,7 +338,6 @@ Respond ONLY with valid JSON."#
         self.parse_analysis_response(&response, instruction)
     }
 
-    /// Parse LLM analysis response
     fn parse_analysis_response(
         &self,
         response: &str,
@@ -452,7 +399,6 @@ Respond ONLY with valid JSON."#
         }
     }
 
-    /// Fallback heuristic analysis
     fn analyze_modification_heuristic(
         &self,
         instruction: &str,
@@ -515,11 +461,6 @@ Respond ONLY with valid JSON."#
         })
     }
 
-    // =========================================================================
-    // MODIFICATION APPLICATION
-    // =========================================================================
-
-    /// Apply analyzed modification
     async fn apply_modification(
         &self,
         analysis: &AnalyzedModification,
@@ -611,7 +552,6 @@ Respond ONLY with valid JSON."#
         })
     }
 
-    /// Apply CSS style changes
     async fn apply_style_changes(
         &self,
         original: &str,
@@ -649,7 +589,6 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    /// Apply HTML changes
     async fn apply_html_changes(
         &self,
         original: &str,
@@ -688,7 +627,6 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    /// Apply database schema changes
     async fn apply_database_changes(
         &self,
         original: &str,
@@ -728,7 +666,6 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    /// Generate a tool file
     async fn generate_tool_file(
         &self,
         changes: &[CodeChange],
@@ -750,7 +687,6 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    /// Generate a scheduler file
     async fn generate_scheduler_file(
         &self,
         changes: &[CodeChange],
@@ -772,7 +708,6 @@ Respond ONLY with valid JSON."#
         Ok(content)
     }
 
-    /// Handle multiple changes
     async fn apply_multiple_changes(
         &self,
         _analysis: &AnalyzedModification,
@@ -783,7 +718,6 @@ Respond ONLY with valid JSON."#
         Ok("Multiple changes applied".to_string())
     }
 
-    /// Generate preview of changes
     fn generate_preview(&self, analysis: &AnalyzedModification) -> String {
         let mut preview = String::new();
         preview.push_str(&format!("File: {}\n\nChanges:\n", analysis.target_file));
@@ -806,11 +740,6 @@ Respond ONLY with valid JSON."#
         preview
     }
 
-    // =========================================================================
-    // CONTEXT HELPERS
-    // =========================================================================
-
-    /// Get available tables for the bot
     fn get_available_tables(
         &self,
         _session: &UserSession,
@@ -843,7 +772,6 @@ Respond ONLY with valid JSON."#
             .collect())
     }
 
-    /// Get available tools
     fn get_available_tools(
         &self,
         session: &UserSession,
@@ -865,7 +793,6 @@ Respond ONLY with valid JSON."#
         Ok(tools)
     }
 
-    /// Get available schedulers
     fn get_available_schedulers(
         &self,
         session: &UserSession,
@@ -887,7 +814,6 @@ Respond ONLY with valid JSON."#
         Ok(schedulers)
     }
 
-    /// Get recent changes for undo
     fn get_recent_changes(
         &self,
         session: &UserSession,
@@ -947,11 +873,6 @@ Respond ONLY with valid JSON."#
             .collect())
     }
 
-    // =========================================================================
-    // FILE OPERATIONS
-    // =========================================================================
-
-    /// Get site path from config
     fn get_site_path(&self) -> String {
         self.state
             .config
@@ -960,7 +881,6 @@ Respond ONLY with valid JSON."#
             .unwrap_or_else(|| "./botserver-stack/sites".to_string())
     }
 
-    /// Read a file from the bot's directory
     fn read_file(
         &self,
         bot_id: Uuid,
@@ -978,7 +898,6 @@ Respond ONLY with valid JSON."#
         }
     }
 
-    /// Write a file to the bot's directory
     fn write_file(
         &self,
         bot_id: Uuid,
@@ -1001,7 +920,6 @@ Respond ONLY with valid JSON."#
         Ok(())
     }
 
-    /// Sync schema changes to database
     fn sync_schema_changes(
         &self,
         _session: &UserSession,
@@ -1012,11 +930,6 @@ Respond ONLY with valid JSON."#
         Ok(())
     }
 
-    // =========================================================================
-    // CHANGE RECORD MANAGEMENT
-    // =========================================================================
-
-    /// Store a change record for undo
     fn store_change_record(
         &self,
         record: &ChangeRecord,
@@ -1043,7 +956,6 @@ Respond ONLY with valid JSON."#
         Ok(())
     }
 
-    /// Get a change record by ID
     fn get_change_record(
         &self,
         change_id: &str,
@@ -1098,7 +1010,6 @@ Respond ONLY with valid JSON."#
         }))
     }
 
-    /// Remove a change record (after undo)
     fn remove_change_record(
         &self,
         change_id: &str,
@@ -1114,7 +1025,6 @@ Respond ONLY with valid JSON."#
         Ok(())
     }
 
-    /// Get pending change (for confirmation flow)
     fn get_pending_change(
         &self,
         change_id: &str,
@@ -1146,11 +1056,6 @@ Respond ONLY with valid JSON."#
         }
     }
 
-    // =========================================================================
-    // LLM INTEGRATION
-    // =========================================================================
-
-    /// Call LLM for analysis
     async fn call_llm(
         &self,
         prompt: &str,

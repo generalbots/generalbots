@@ -147,12 +147,20 @@ impl DirectorySetup {
         log::info!(" Saved Directory configuration");
 
         log::info!(" Directory initialization complete!");
-        log::info!(
-            " Default user: {} / {}",
-            config.default_user.email,
-            config.default_user.password
-        );
-        log::info!(" Login at: {}", self.base_url);
+        log::info!("");
+        log::info!("╔══════════════════════════════════════════════════════════════╗");
+        log::info!("║                    DEFAULT CREDENTIALS                       ║");
+        log::info!("╠══════════════════════════════════════════════════════════════╣");
+        log::info!("║  Email:    {:<50}║", config.default_user.email);
+        log::info!("║  Password: {:<50}║", config.default_user.password);
+        log::info!("╠══════════════════════════════════════════════════════════════╣");
+        log::info!("║  Login at: {:<50}║", self.base_url);
+        log::info!("╚══════════════════════════════════════════════════════════════╝");
+        log::info!("");
+        log::info!(">>> COPY THESE CREDENTIALS NOW - Press ENTER to continue <<<");
+
+        let mut input = String::new();
+        let _ = std::io::stdin().read_line(&mut input);
 
         Ok(config)
     }

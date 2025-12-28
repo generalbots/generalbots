@@ -678,7 +678,9 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/nocodb".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1".to_string(),
+                check_cmd:
+                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1"
+                        .to_string(),
             },
         );
     }
@@ -705,7 +707,9 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1".to_string(),
+                check_cmd:
+                    "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1"
+                        .to_string(),
             },
         );
     }
@@ -883,7 +887,7 @@ impl PackageManager {
                     "mkdir -p {{LOGS_PATH}}".to_string(),
                     r#"cat > {{CONF_PATH}}/vault/config.hcl << 'EOF'
 storage "file" {
-  path = "/opt/gbo/data/vault"
+  path = "{{DATA_PATH}}/vault"
 }
 
 listener "tcp" {

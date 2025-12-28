@@ -1,3 +1,4 @@
+use crate::auto_task::app_logs::{log_generator_error, log_generator_info};
 use crate::basic::keywords::table_definition::{
     generate_create_table_sql, FieldDefinition, TableDefinition,
 };
@@ -7,9 +8,8 @@ use aws_sdk_s3::primitives::ByteStream;
 use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel::sql_query;
-use log::{info, trace, warn};
+use log::{error, info, trace, warn};
 use serde::{Deserialize, Serialize};
-use std::fmt::Write;
 use std::sync::Arc;
 use uuid::Uuid;
 
@@ -18,11 +18,18 @@ pub struct GeneratedApp {
     pub id: String,
     pub name: String,
     pub description: String,
-    pub pages: Vec<GeneratedPage>,
+    pub pages: Vec<GeneratedFile>,
     pub tables: Vec<TableDefinition>,
-    pub tools: Vec<GeneratedScript>,
-    pub schedulers: Vec<GeneratedScript>,
+    pub tools: Vec<GeneratedFile>,
+    pub schedulers: Vec<GeneratedFile>,
     pub created_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct GeneratedFile {
+    pub filename: String,
+    pub content: String,
+    pub file_type: FileType,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -35,6 +42,17 @@ pub struct GeneratedPage {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum FileType {
+    Html,
+    Css,
+    Js,
+    Bas,
+    Json,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum PageType {
     List,
     Form,
@@ -85,6 +103,42 @@ pub struct SyncResult {
     pub migrations_applied: usize,
 }
 
+#[derive(Debug, Clone, Deserialize)]
+struct LlmGeneratedApp {
+    name: String,
+    description: String,
+    #[serde(default)]
+    _domain: String,
+    tables: Vec<LlmTable>,
+    files: Vec<LlmFile>,
+    tools: Option<Vec<LlmFile>>,
+    schedulers: Option<Vec<LlmFile>>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct LlmTable {
+    name: String,
+    fields: Vec<LlmField>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct LlmField {
+    name: String,
+    #[serde(rename = "type")]
+    field_type: String,
+    nullable: Option<bool>,
+    reference: Option<String>,
+    default: Option<String>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+struct LlmFile {
+    filename: String,
+    content: String,
+    #[serde(rename = "type", default)]
+    _file_type: Option<String>,
+}
+
 pub struct AppGenerator {
     state: Arc<AppState>,
 }
@@ -104,32 +158,83 @@ impl AppGenerator {
             &intent[..intent.len().min(100)]
         );
 
-        let structure = self.analyze_app_requirements_with_llm(intent).await?;
-        trace!("App structure analyzed: {:?}", structure.name);
-
-        let tables_bas_content = self.generate_table_definitions(&structure)?;
-        self.append_to_tables_bas(session.bot_id, &tables_bas_content)?;
-
-        let sync_result = self.sync_tables_to_database(&structure.tables)?;
-        info!(
-            "Tables synced: {} created, {} fields added",
-            sync_result.tables_created, sync_result.fields_added
+        log_generator_info(
+            "pending",
+            &format!(
+                "Starting app generation: {}",
+                &intent[..intent.len().min(50)]
+            ),
         );
 
-        let pages = self.generate_htmx_pages(&structure)?;
-        trace!("Generated {} pages", pages.len());
+        let llm_app = match self.generate_complete_app_with_llm(intent).await {
+            Ok(app) => {
+                log_generator_info(
+                    &app.name,
+                    "LLM successfully generated app structure and files",
+                );
+                app
+            }
+            Err(e) => {
+                log_generator_error("unknown", "LLM app generation failed", &e.to_string());
+                return Err(e);
+            }
+        };
+
+        let tables = Self::convert_llm_tables(&llm_app.tables);
+
+        if !tables.is_empty() {
+            let tables_bas_content = Self::generate_table_definitions(&tables)?;
+            if let Err(e) = self.append_to_tables_bas(session.bot_id, &tables_bas_content) {
+                log_generator_error(
+                    &llm_app.name,
+                    "Failed to append to tables.bas",
+                    &e.to_string(),
+                );
+            }
+
+            match self.sync_tables_to_database(&tables) {
+                Ok(result) => {
+                    log_generator_info(
+                        &llm_app.name,
+                        &format!(
+                            "Tables synced: {} created, {} fields",
+                            result.tables_created, result.fields_added
+                        ),
+                    );
+                }
+                Err(e) => {
+                    log_generator_error(&llm_app.name, "Failed to sync tables", &e.to_string());
+                }
+            }
+        }
 
         let bot_name = self.get_bot_name(session.bot_id)?;
         let bucket_name = format!("{}.gbai", bot_name.to_lowercase());
-        let drive_app_path = format!(".gbdrive/apps/{}", structure.name);
+        let drive_app_path = format!(".gbdrive/apps/{}", llm_app.name);
 
-        for page in &pages {
-            let drive_path = format!("{}/{}", drive_app_path, page.filename);
-            self.write_to_drive(&bucket_name, &drive_path, &page.content)
-                .await?;
+        let mut pages = Vec::new();
+        for file in &llm_app.files {
+            let drive_path = format!("{}/{}", drive_app_path, file.filename);
+            if let Err(e) = self
+                .write_to_drive(&bucket_name, &drive_path, &file.content)
+                .await
+            {
+                log_generator_error(
+                    &llm_app.name,
+                    &format!("Failed to write {}", file.filename),
+                    &e.to_string(),
+                );
+            }
+
+            let file_type = Self::detect_file_type(&file.filename);
+            pages.push(GeneratedFile {
+                filename: file.filename.clone(),
+                content: file.content.clone(),
+                file_type,
+            });
         }
 
-        let designer_js = self.generate_designer_js();
+        let designer_js = Self::generate_designer_js(&llm_app.name);
         self.write_to_drive(
             &bucket_name,
             &format!("{}/designer.js", drive_app_path),
@@ -137,649 +242,349 @@ impl AppGenerator {
         )
         .await?;
 
-        let css_content = self.generate_app_css();
-        self.write_to_drive(
-            &bucket_name,
-            &format!("{}/styles.css", drive_app_path),
-            &css_content,
-        )
-        .await?;
-
-        let tools = self.generate_tools(&structure)?;
-        for tool in &tools {
-            let tool_path = format!(".gbdialog/tools/{}", tool.filename);
-            self.write_to_drive(&bucket_name, &tool_path, &tool.content)
-                .await?;
+        let mut tools = Vec::new();
+        if let Some(llm_tools) = &llm_app.tools {
+            for tool in llm_tools {
+                let tool_path = format!(".gbdialog/tools/{}", tool.filename);
+                if let Err(e) = self
+                    .write_to_drive(&bucket_name, &tool_path, &tool.content)
+                    .await
+                {
+                    log_generator_error(
+                        &llm_app.name,
+                        &format!("Failed to write tool {}", tool.filename),
+                        &e.to_string(),
+                    );
+                }
+                tools.push(GeneratedFile {
+                    filename: tool.filename.clone(),
+                    content: tool.content.clone(),
+                    file_type: FileType::Bas,
+                });
+            }
         }
 
-        let schedulers = self.generate_schedulers(&structure)?;
-        for scheduler in &schedulers {
-            let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
-            self.write_to_drive(&bucket_name, &scheduler_path, &scheduler.content)
-                .await?;
+        let mut schedulers = Vec::new();
+        if let Some(llm_schedulers) = &llm_app.schedulers {
+            for scheduler in llm_schedulers {
+                let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
+                if let Err(e) = self
+                    .write_to_drive(&bucket_name, &scheduler_path, &scheduler.content)
+                    .await
+                {
+                    log_generator_error(
+                        &llm_app.name,
+                        &format!("Failed to write scheduler {}", scheduler.filename),
+                        &e.to_string(),
+                    );
+                }
+                schedulers.push(GeneratedFile {
+                    filename: scheduler.filename.clone(),
+                    content: scheduler.content.clone(),
+                    file_type: FileType::Bas,
+                });
+            }
         }
 
-        self.sync_app_to_site_root(&bucket_name, &structure.name, session.bot_id)
+        self.sync_app_to_site_root(&bucket_name, &llm_app.name, session.bot_id)
             .await?;
 
+        log_generator_info(
+            &llm_app.name,
+            &format!(
+                "App generated: {} files, {} tables, {} tools",
+                pages.len(),
+                tables.len(),
+                tools.len()
+            ),
+        );
+
         info!(
-            "App '{}' generated in drive s3://{}/{} and synced to site root",
-            structure.name, bucket_name, drive_app_path
+            "App '{}' generated in s3://{}/{}",
+            llm_app.name, bucket_name, drive_app_path
         );
 
         Ok(GeneratedApp {
             id: Uuid::new_v4().to_string(),
-            name: structure.name.clone(),
-            description: structure.description.clone(),
+            name: llm_app.name,
+            description: llm_app.description,
             pages,
-            tables: structure.tables,
+            tables,
             tools,
             schedulers,
             created_at: Utc::now(),
         })
     }
 
-    fn get_platform_capabilities_prompt(&self) -> &'static str {
+    fn get_platform_prompt() -> &'static str {
         r##"
-GENERAL BOTS APP GENERATOR - PLATFORM CAPABILITIES
+GENERAL BOTS PLATFORM - APP GENERATION
 
-AVAILABLE REST APIs:
+You are an expert full-stack developer generating complete applications for General Bots platform.
 
-DATABASE API (/api/db/):
-- GET /api/db/TABLE - List records (query: limit, offset, order_by, order_dir, search, field=value)
-- GET /api/db/TABLE/ID - Get single record
-- GET /api/db/TABLE/count - Get record count
-- POST /api/db/TABLE - Create record (JSON body)
-- PUT /api/db/TABLE/ID - Update record (JSON body)
-- DELETE /api/db/TABLE/ID - Delete record
+=== AVAILABLE APIs ===
 
-FILE STORAGE API (/api/drive/):
+DATABASE (/api/db/):
+- GET /api/db/{table} - List records (query: limit, offset, order_by, order_dir, search, field=value)
+- GET /api/db/{table}/{id} - Get single record
+- GET /api/db/{table}/count - Count records
+- POST /api/db/{table} - Create record (JSON body)
+- PUT /api/db/{table}/{id} - Update record
+- DELETE /api/db/{table}/{id} - Delete record
+
+DRIVE (/api/drive/):
 - GET /api/drive/list?path=/folder - List files
-- GET /api/drive/download?path=/file.ext - Download file
-- POST /api/drive/upload - Upload (multipart: file, path)
-- DELETE /api/drive/delete?path=/file.ext - Delete file
+- GET /api/drive/download?path=/file - Download
+- POST /api/drive/upload - Upload (multipart)
+- DELETE /api/drive/delete?path=/file - Delete
 
-AUTOTASK API (/api/autotask/):
-- POST /api/autotask/create - Create task {"intent": "..."}
-- GET /api/autotask/list - List tasks
-- GET /api/autotask/stats - Get statistics
-- GET /api/autotask/pending - Get pending items
-
-DESIGNER API (/api/designer/):
-- POST /api/designer/modify - AI modify app {"app_name", "current_page", "message"}
-
-COMMUNICATION APIs:
+COMMUNICATION:
 - POST /api/mail/send - {"to", "subject", "body"}
-- POST /api/whatsapp/send - {"to": "+123...", "message"}
+- POST /api/whatsapp/send - {"to", "message"}
 - POST /api/llm/generate - {"prompt", "max_tokens"}
-- POST /api/llm/image - {"prompt", "size"}
 
-HTMX ATTRIBUTES:
+=== HTMX REQUIREMENTS ===
+
+All HTML pages MUST use HTMX exclusively. NO fetch(), NO XMLHttpRequest, NO inline onclick.
+
+Key attributes:
 - hx-get, hx-post, hx-put, hx-delete - HTTP methods
-- hx-target="#id" - Where to put response
-- hx-swap="innerHTML|outerHTML|beforeend|delete" - How to insert
-- hx-trigger="click|submit|load|every 5s|keyup changed delay:300ms" - When to fire
+- hx-target="#id" - Response destination
+- hx-swap="innerHTML|outerHTML|beforeend|delete" - Insert method
+- hx-trigger="click|submit|load|every 5s|keyup changed delay:300ms"
 - hx-indicator="#spinner" - Loading indicator
-- hx-confirm="Are you sure?" - Confirmation dialog
+- hx-confirm="Message?" - Confirmation
+- hx-vals='{"key":"value"}' - Extra values
+- hx-headers='{"X-Custom":"value"}' - Headers
 
-BASIC AUTOMATION (.bas files):
+=== REQUIRED HTML STRUCTURE ===
 
-Tools (.gbdialog/tools/*.bas):
-HEAR "phrase1", "phrase2"
-    result = GET FROM "table"
+Every HTML file must include:
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Page Title</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="/js/vendor/htmx.min.js"></script>
+    <script src="/api/app-logs/logger.js" defer></script>
+    <script src="designer.js" defer></script>
+</head>
+<body data-app-name="APP_NAME_HERE">
+    <!-- Content -->
+</body>
+</html>
+```
+
+=== BASIC SCRIPTS (.bas) ===
+
+Tools (triggered by chat):
+```
+HEAR "keyword1", "keyword2"
+    result = GET FROM "table" WHERE field = value
     TALK "Response: " + result
 END HEAR
+```
 
-Schedulers (.gbdialog/schedulers/*.bas):
+Schedulers (cron-based):
+```
 SET SCHEDULE "0 9 * * *"
-    data = GET FROM "reports"
-    SEND MAIL TO "email" WITH SUBJECT "Daily" BODY data
+    data = GET FROM "table"
+    SEND MAIL TO "email" WITH SUBJECT "Report" BODY data
 END SCHEDULE
+```
 
-BASIC KEYWORDS:
+BASIC Keywords:
 - TALK "message" - Send message
-- ASK "question" - Get user input
-- GET FROM "table" WHERE field=val - Query database
-- SAVE TO "table" WITH field1, field2 - Insert record
+- ASK "question" - Get input
+- GET FROM "table" WHERE field=val - Query
+- SAVE TO "table" WITH field1, field2 - Insert
 - SEND MAIL TO "x" WITH SUBJECT "y" BODY "z"
-- result = LLM "prompt" - AI text generation
-- image = GENERATE IMAGE "prompt" - AI image generation
+- result = LLM "prompt" - AI generation
 
-REQUIRED HTML HEAD (all pages must include):
-- link rel="stylesheet" href="styles.css"
-- script src="/js/vendor/htmx.min.js"
-- script src="designer.js" defer
+=== FIELD TYPES ===
+guid, string, text, integer, decimal, boolean, date, datetime, json
 
-FIELD TYPES: guid, string, text, integer, decimal, boolean, date, datetime, json
+=== GENERATION RULES ===
 
-RULES:
-1. Always use HTMX for API calls - NO fetch() in HTML
-2. Include designer.js in ALL pages
-3. Make it beautiful and fully functional
-4. Tables are optional - simple apps (calculator, timer) dont need them
+1. Generate COMPLETE, WORKING code - no placeholders, no "...", no "add more here"
+2. Use semantic HTML5 (header, main, nav, section, article, footer)
+3. Include loading states (hx-indicator)
+4. Include error handling
+5. Make it beautiful, modern, responsive
+6. Include dark mode support in CSS
+7. Tables should have id, created_at, updated_at fields
+8. Forms must validate required fields
+9. Lists must have search, pagination, edit/delete actions
 "##
     }
 
-    async fn analyze_app_requirements_with_llm(
+    async fn generate_complete_app_with_llm(
         &self,
         intent: &str,
-    ) -> Result<AppStructure, Box<dyn std::error::Error + Send + Sync>> {
-        let capabilities = self.get_platform_capabilities_prompt();
+    ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        let platform = Self::get_platform_prompt();
 
         let prompt = format!(
-            r#"You are an expert app generator for General Bots platform.
+            r#"{platform}
 
-{capabilities}
+=== USER REQUEST ===
+"{intent}"
 
-USER REQUEST: "{intent}"
+=== YOUR TASK ===
+Generate a complete application based on the user's request.
 
-Generate a complete application. For simple apps (calculator, timer, game), you can use empty tables array.
-For data apps (CRM, inventory), design appropriate tables.
-
-Respond with JSON:
+Respond with a single JSON object:
 {{
     "name": "app-name-lowercase-dashes",
     "description": "What this app does",
-    "domain": "custom|healthcare|sales|inventory|booking|etc",
+    "domain": "healthcare|sales|inventory|booking|utility|etc",
     "tables": [
         {{
             "name": "table_name",
             "fields": [
                 {{"name": "id", "type": "guid", "nullable": false}},
-                {{"name": "field_name", "type": "string|integer|decimal|boolean|date|datetime|text", "nullable": true, "reference": "other_table or null"}}
+                {{"name": "created_at", "type": "datetime", "nullable": false, "default": "now()"}},
+                {{"name": "updated_at", "type": "datetime", "nullable": false, "default": "now()"}},
+                {{"name": "field_name", "type": "string", "nullable": true, "reference": null}}
             ]
         }}
     ],
-    "features": ["list of features"],
-    "custom_html": "OPTIONAL: For non-CRUD apps like calculators, provide complete HTML here",
-    "custom_css": "OPTIONAL: Custom CSS styles",
-    "custom_js": "OPTIONAL: Custom JavaScript"
+    "files": [
+        {{"filename": "index.html", "content": "<!DOCTYPE html>...complete HTML..."}},
+        {{"filename": "styles.css", "content": ":root {{...}} body {{...}} ...complete CSS..."}},
+        {{"filename": "table_name.html", "content": "<!DOCTYPE html>...list page..."}},
+        {{"filename": "table_name_form.html", "content": "<!DOCTYPE html>...form page..."}}
+    ],
+    "tools": [
+        {{"filename": "app_helper.bas", "content": "HEAR \"help\"\n    TALK \"I can help with...\"\nEND HEAR"}}
+    ],
+    "schedulers": [
+        {{"filename": "daily_report.bas", "content": "SET SCHEDULE \"0 9 * * *\"\n    ...\nEND SCHEDULE"}}
+    ]
 }}
 
 IMPORTANT:
-- For simple tools (calculator, converter, timer): use custom_html/css/js, tables can be empty []
-- For data apps (CRM, booking): design tables, custom_* fields are optional
-- Always include id, created_at, updated_at in tables
-- Make it beautiful and fully functional
+- For simple utilities (calculator, timer, converter): tables can be empty [], focus on files
+- For data apps (CRM, inventory): design proper tables and CRUD pages
+- Generate ALL files completely - no shortcuts
+- CSS must be comprehensive with variables, responsive design, dark mode
+- Every HTML page needs proper structure with all required scripts
+- Replace APP_NAME_HERE with actual app name in data-app-name attribute
 
 Respond with valid JSON only."#
         );
 
         let response = self.call_llm(&prompt).await?;
-        self.parse_app_structure_response(&response, intent)
+        Self::parse_llm_app_response(&response)
     }
 
-    /// Parse LLM response into AppStructure
-    fn parse_app_structure_response(
-        &self,
+    fn parse_llm_app_response(
         response: &str,
-        original_intent: &str,
-    ) -> Result<AppStructure, Box<dyn std::error::Error + Send + Sync>> {
-        #[derive(Deserialize)]
-        struct LlmAppResponse {
-            name: String,
-            description: String,
-            domain: String,
-            tables: Vec<LlmTableResponse>,
-            features: Option<Vec<String>>,
+    ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
+        let cleaned = response
+            .trim()
+            .trim_start_matches("```json")
+            .trim_start_matches("```")
+            .trim_end_matches("```")
+            .trim();
+
+        match serde_json::from_str::<LlmGeneratedApp>(cleaned) {
+            Ok(app) => {
+                if app.files.is_empty() {
+                    return Err("LLM generated no files".into());
+                }
+                Ok(app)
+            }
+            Err(e) => {
+                error!("Failed to parse LLM response: {}", e);
+                error!("Response was: {}", &response[..response.len().min(500)]);
+                Err(format!("Failed to parse LLM response: {}", e).into())
+            }
         }
+    }
 
-        #[derive(Deserialize)]
-        struct LlmTableResponse {
-            name: String,
-            fields: Vec<LlmFieldResponse>,
-        }
-
-        #[derive(Deserialize)]
-        struct LlmFieldResponse {
-            name: String,
-            #[serde(rename = "type")]
-            field_type: String,
-            nullable: Option<bool>,
-            reference: Option<String>,
-        }
-
-        match serde_json::from_str::<LlmAppResponse>(response) {
-            Ok(resp) => {
-                let tables = resp
-                    .tables
-                    .into_iter()
-                    .map(|t| {
-                        let fields = t
-                            .fields
-                            .into_iter()
-                            .enumerate()
-                            .map(|(i, f)| {
-                                let is_id = f.name == "id";
-                                FieldDefinition {
-                                    name: f.name,
-                                    field_type: f.field_type,
-                                    length: None,
-                                    precision: None,
-                                    is_key: i == 0 && is_id,
-                                    is_nullable: f.nullable.unwrap_or(true),
-                                    default_value: None,
-                                    reference_table: f.reference,
-                                    field_order: i as i32,
-                                }
-                            })
-                            .collect();
-
-                        TableDefinition {
-                            name: t.name,
-                            connection_name: "default".to_string(),
-                            fields,
-                        }
+    fn convert_llm_tables(llm_tables: &[LlmTable]) -> Vec<TableDefinition> {
+        llm_tables
+            .iter()
+            .map(|t| {
+                let fields = t
+                    .fields
+                    .iter()
+                    .enumerate()
+                    .map(|(i, f)| FieldDefinition {
+                        name: f.name.clone(),
+                        field_type: f.field_type.clone(),
+                        is_key: f.name == "id",
+                        is_nullable: f.nullable.unwrap_or(true),
+                        reference_table: f.reference.clone(),
+                        default_value: f.default.clone(),
+                        field_order: i as i32,
+                        ..Default::default()
                     })
                     .collect();
 
-                Ok(AppStructure {
-                    name: resp.name,
-                    description: resp.description,
-                    domain: resp.domain,
-                    tables,
-                    features: resp
-                        .features
-                        .unwrap_or_else(|| vec!["crud".to_string(), "search".to_string()]),
-                })
-            }
-            Err(e) => {
-                warn!("Failed to parse LLM response, using fallback: {e}");
-                self.analyze_app_requirements_fallback(original_intent)
-            }
-        }
-    }
-
-    /// Fallback when LLM fails - uses heuristic patterns
-    fn analyze_app_requirements_fallback(
-        &self,
-        intent: &str,
-    ) -> Result<AppStructure, Box<dyn std::error::Error + Send + Sync>> {
-        let intent_lower = intent.to_lowercase();
-        let (domain, name) = self.extract_domain_and_name(&intent_lower);
-        let tables = self.infer_tables_from_intent_fallback(&intent_lower, &domain)?;
-        let features = vec!["crud".to_string(), "search".to_string()];
-
-        Ok(AppStructure {
-            name,
-            description: intent.to_string(),
-            domain,
-            tables,
-            features,
-        })
-    }
-
-    fn extract_domain_and_name(&self, intent: &str) -> (String, String) {
-        let patterns = [
-            ("clínica", "healthcare", "clinic"),
-            ("clinic", "healthcare", "clinic"),
-            ("hospital", "healthcare", "hospital"),
-            ("médico", "healthcare", "medical"),
-            ("paciente", "healthcare", "patients"),
-            ("crm", "sales", "crm"),
-            ("vendas", "sales", "sales"),
-            ("loja", "retail", "store"),
-            ("estoque", "inventory", "inventory"),
-            ("produto", "inventory", "products"),
-            ("cliente", "sales", "customers"),
-            ("restaurante", "food", "restaurant"),
-            ("reserva", "booking", "reservations"),
-        ];
-
-        for (pattern, domain, name) in patterns {
-            if intent.contains(pattern) {
-                return (domain.to_string(), name.to_string());
-            }
-        }
-
-        ("general".to_string(), "app".to_string())
-    }
-
-    fn infer_tables_from_intent_fallback(
-        &self,
-        intent: &str,
-        domain: &str,
-    ) -> Result<Vec<TableDefinition>, Box<dyn std::error::Error + Send + Sync>> {
-        let mut tables = Vec::new();
-
-        match domain {
-            "healthcare" => {
-                tables.push(self.create_patients_table());
-                tables.push(self.create_appointments_table());
-            }
-            "sales" | "retail" => {
-                tables.push(self.create_customers_table());
-                tables.push(self.create_products_table());
-                if intent.contains("venda") || intent.contains("order") {
-                    tables.push(self.create_orders_table());
+                TableDefinition {
+                    name: t.name.clone(),
+                    connection_name: "default".to_string(),
+                    fields,
+                    ..Default::default()
                 }
-            }
-            "inventory" => {
-                tables.push(self.create_products_table());
-                tables.push(self.create_suppliers_table());
-            }
-            _ => {
-                tables.push(self.create_items_table());
-            }
-        }
-
-        Ok(tables)
+            })
+            .collect()
     }
 
-    /// Call LLM for app generation
+    fn detect_file_type(filename: &str) -> FileType {
+        let ext = filename.rsplit('.').next().unwrap_or("").to_lowercase();
+        match ext.as_str() {
+            "css" => FileType::Css,
+            "js" => FileType::Js,
+            "bas" => FileType::Bas,
+            "json" => FileType::Json,
+            _ => FileType::Html,
+        }
+    }
+
     async fn call_llm(
         &self,
         prompt: &str,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        trace!("Calling LLM for app generation");
-
         #[cfg(feature = "llm")]
         {
             let config = serde_json::json!({
-                "temperature": 0.3,
-                "max_tokens": 2000
+                "temperature": 0.7,
+                "max_tokens": 16000
             });
-            let response = self
+
+            match self
                 .state
                 .llm_provider
                 .generate(prompt, &config, "gpt-4", "")
-                .await?;
-            return Ok(response);
+                .await
+            {
+                Ok(response) => return Ok(response),
+                Err(e) => {
+                    warn!("LLM call failed: {}", e);
+                    return Err(e);
+                }
+            }
         }
 
         #[cfg(not(feature = "llm"))]
         {
-            warn!("LLM feature not enabled, using fallback");
-            Ok("{}".to_string())
-        }
-    }
-
-    fn create_patients_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "patients".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                self.create_name_field(1),
-                self.create_phone_field(2),
-                self.create_email_field(3),
-                FieldDefinition {
-                    name: "birth_date".to_string(),
-                    field_type: "date".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: true,
-                    default_value: None,
-                    reference_table: None,
-                    field_order: 4,
-                },
-                self.create_created_at_field(5),
-            ],
-        }
-    }
-
-    fn create_appointments_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "appointments".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                FieldDefinition {
-                    name: "patient_id".to_string(),
-                    field_type: "guid".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: None,
-                    reference_table: Some("patients".to_string()),
-                    field_order: 1,
-                },
-                FieldDefinition {
-                    name: "scheduled_at".to_string(),
-                    field_type: "datetime".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: None,
-                    reference_table: None,
-                    field_order: 2,
-                },
-                FieldDefinition {
-                    name: "status".to_string(),
-                    field_type: "string".to_string(),
-                    length: Some(50),
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: Some("'scheduled'".to_string()),
-                    reference_table: None,
-                    field_order: 3,
-                },
-                self.create_created_at_field(4),
-            ],
-        }
-    }
-
-    fn create_customers_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "customers".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                self.create_name_field(1),
-                self.create_phone_field(2),
-                self.create_email_field(3),
-                FieldDefinition {
-                    name: "address".to_string(),
-                    field_type: "text".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: true,
-                    default_value: None,
-                    reference_table: None,
-                    field_order: 4,
-                },
-                self.create_created_at_field(5),
-            ],
-        }
-    }
-
-    fn create_products_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "products".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                self.create_name_field(1),
-                FieldDefinition {
-                    name: "price".to_string(),
-                    field_type: "number".to_string(),
-                    length: Some(10),
-                    precision: Some(2),
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: Some("0".to_string()),
-                    reference_table: None,
-                    field_order: 2,
-                },
-                FieldDefinition {
-                    name: "stock".to_string(),
-                    field_type: "integer".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: Some("0".to_string()),
-                    reference_table: None,
-                    field_order: 3,
-                },
-                self.create_created_at_field(4),
-            ],
-        }
-    }
-
-    fn create_orders_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "orders".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                FieldDefinition {
-                    name: "customer_id".to_string(),
-                    field_type: "guid".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: None,
-                    reference_table: Some("customers".to_string()),
-                    field_order: 1,
-                },
-                FieldDefinition {
-                    name: "total".to_string(),
-                    field_type: "number".to_string(),
-                    length: Some(10),
-                    precision: Some(2),
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: Some("0".to_string()),
-                    reference_table: None,
-                    field_order: 2,
-                },
-                FieldDefinition {
-                    name: "status".to_string(),
-                    field_type: "string".to_string(),
-                    length: Some(50),
-                    precision: None,
-                    is_key: false,
-                    is_nullable: false,
-                    default_value: Some("'pending'".to_string()),
-                    reference_table: None,
-                    field_order: 3,
-                },
-                self.create_created_at_field(4),
-            ],
-        }
-    }
-
-    fn create_suppliers_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "suppliers".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                self.create_name_field(1),
-                self.create_phone_field(2),
-                self.create_email_field(3),
-                self.create_created_at_field(4),
-            ],
-        }
-    }
-
-    fn create_items_table(&self) -> TableDefinition {
-        TableDefinition {
-            name: "items".to_string(),
-            connection_name: "default".to_string(),
-            fields: vec![
-                self.create_id_field(0),
-                self.create_name_field(1),
-                FieldDefinition {
-                    name: "description".to_string(),
-                    field_type: "text".to_string(),
-                    length: None,
-                    precision: None,
-                    is_key: false,
-                    is_nullable: true,
-                    default_value: None,
-                    reference_table: None,
-                    field_order: 2,
-                },
-                self.create_created_at_field(3),
-            ],
-        }
-    }
-
-    fn create_id_field(&self, order: i32) -> FieldDefinition {
-        FieldDefinition {
-            name: "id".to_string(),
-            field_type: "guid".to_string(),
-            length: None,
-            precision: None,
-            is_key: true,
-            is_nullable: false,
-            default_value: None,
-            reference_table: None,
-            field_order: order,
-        }
-    }
-
-    fn create_name_field(&self, order: i32) -> FieldDefinition {
-        FieldDefinition {
-            name: "name".to_string(),
-            field_type: "string".to_string(),
-            length: Some(255),
-            precision: None,
-            is_key: false,
-            is_nullable: false,
-            default_value: None,
-            reference_table: None,
-            field_order: order,
-        }
-    }
-
-    fn create_phone_field(&self, order: i32) -> FieldDefinition {
-        FieldDefinition {
-            name: "phone".to_string(),
-            field_type: "string".to_string(),
-            length: Some(50),
-            precision: None,
-            is_key: false,
-            is_nullable: true,
-            default_value: None,
-            reference_table: None,
-            field_order: order,
-        }
-    }
-
-    fn create_email_field(&self, order: i32) -> FieldDefinition {
-        FieldDefinition {
-            name: "email".to_string(),
-            field_type: "string".to_string(),
-            length: Some(255),
-            precision: None,
-            is_key: false,
-            is_nullable: true,
-            default_value: None,
-            reference_table: None,
-            field_order: order,
-        }
-    }
-
-    fn create_created_at_field(&self, order: i32) -> FieldDefinition {
-        FieldDefinition {
-            name: "created_at".to_string(),
-            field_type: "datetime".to_string(),
-            length: None,
-            precision: None,
-            is_key: false,
-            is_nullable: false,
-            default_value: Some("NOW()".to_string()),
-            reference_table: None,
-            field_order: order,
+            Err("LLM feature not enabled. App generation requires LLM.".into())
         }
     }
 
     fn generate_table_definitions(
-        &self,
-        structure: &AppStructure,
+        tables: &[TableDefinition],
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        use std::fmt::Write;
         let mut output = String::new();
 
-        for table in &structure.tables {
+        for table in tables {
             let _ = writeln!(output, "\nTABLE {}", table.name);
 
             for field in &table.fields {
@@ -791,15 +596,15 @@ Respond with valid JSON only."#
                     line.push_str(" REQUIRED");
                 }
                 if let Some(ref default) = field.default_value {
-                    let _ = write!(line, " DEFAULT {default}");
+                    let _ = write!(line, " DEFAULT {}", default);
                 }
                 if let Some(ref refs) = field.reference_table {
-                    let _ = write!(line, " REFERENCES {refs}");
+                    let _ = write!(line, " REFERENCES {}", refs);
                 }
-                let _ = writeln!(output, "{line}");
+                let _ = writeln!(output, "{}", line);
             }
 
-            let _ = writeln!(output, "END TABLE");
+            let _ = writeln!(output, "END TABLE\n");
         }
 
         Ok(output)
@@ -810,196 +615,125 @@ Respond with valid JSON only."#
         bot_id: Uuid,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        // For tables.bas, we write to local file system since it's used by the compiler
-        // The DriveMonitor will sync it to S3
-        let site_path = self.get_site_path();
-        let tables_bas_path = format!("{}/{}.gbai/.gbdialog/tables.bas", site_path, bot_id);
+        let bot_name = self.get_bot_name(bot_id)?;
+        let bucket = format!("{}.gbai", bot_name.to_lowercase());
+        let path = ".gbdata/tables.bas";
 
-        let dir = std::path::Path::new(&tables_bas_path).parent();
-        if let Some(d) = dir {
-            if !d.exists() {
-                std::fs::create_dir_all(d)?;
-            }
+        let mut conn = self.state.conn.get()?;
+
+        #[derive(QueryableByName)]
+        struct ContentRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            content: String,
         }
 
-        let existing = std::fs::read_to_string(&tables_bas_path).unwrap_or_default();
-        let new_content = format!("{existing}\n{content}");
-        std::fs::write(&tables_bas_path, new_content)?;
-        info!("Updated tables.bas at: {}", tables_bas_path);
+        let existing: Option<String> =
+            sql_query("SELECT content FROM drive_files WHERE bucket = $1 AND path = $2 LIMIT 1")
+                .bind::<diesel::sql_types::Text, _>(&bucket)
+                .bind::<diesel::sql_types::Text, _>(path)
+                .load::<ContentRow>(&mut conn)
+                .ok()
+                .and_then(|rows| rows.into_iter().next().map(|r| r.content));
+
+        let new_content = match existing {
+            Some(existing_content) => format!("{}\n{}", existing_content, content),
+            None => content.to_string(),
+        };
+
+        sql_query(
+            "INSERT INTO drive_files (id, bucket, path, content, content_type, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, 'text/plain', NOW(), NOW())
+             ON CONFLICT (bucket, path) DO UPDATE SET content = $4, updated_at = NOW()",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+        .bind::<diesel::sql_types::Text, _>(&bucket)
+        .bind::<diesel::sql_types::Text, _>(path)
+        .bind::<diesel::sql_types::Text, _>(&new_content)
+        .execute(&mut conn)?;
 
         Ok(())
     }
 
-    /// Get bot name from database
     fn get_bot_name(
         &self,
         bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
-        use crate::shared::models::schema::bots::dsl::{bots, id, name};
-        use diesel::prelude::*;
-
         let mut conn = self.state.conn.get()?;
-        let bot_name: String = bots
-            .filter(id.eq(bot_id))
-            .select(name)
-            .first(&mut conn)
-            .map_err(|e| format!("Failed to get bot name: {}", e))?;
 
-        Ok(bot_name)
+        #[derive(QueryableByName)]
+        struct BotRow {
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            name: String,
+        }
+
+        let result: Vec<BotRow> = sql_query("SELECT name FROM bots WHERE id = $1 LIMIT 1")
+            .bind::<diesel::sql_types::Uuid, _>(bot_id)
+            .load(&mut conn)?;
+
+        result
+            .into_iter()
+            .next()
+            .map(|r| r.name)
+            .ok_or_else(|| format!("Bot not found: {}", bot_id).into())
     }
 
-    /// Write content to S3 drive
     async fn write_to_drive(
         &self,
         bucket: &str,
         path: &str,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let Some(client) = &self.state.drive else {
-            warn!("S3 client not configured, falling back to local write");
-            return self.write_to_local_fallback(bucket, path, content);
-        };
+        if let Some(ref s3) = self.state.s3_client {
+            let body = ByteStream::from(content.as_bytes().to_vec());
+            let content_type = Self::get_content_type(path);
 
-        let key = path.to_string();
-        let content_type = self.get_content_type(path);
+            s3.put_object()
+                .bucket(bucket)
+                .key(path)
+                .body(body)
+                .content_type(content_type)
+                .send()
+                .await?;
 
-        client
-            .put_object()
-            .bucket(bucket.to_lowercase())
-            .key(&key)
-            .body(ByteStream::from(content.as_bytes().to_vec()))
-            .content_type(content_type)
-            .send()
-            .await
-            .map_err(|e| format!("Failed to write to drive: {}", e))?;
+            trace!("Wrote to S3: s3://{}/{}", bucket, path);
+        } else {
+            self.write_to_db_fallback(bucket, path, content)?;
+        }
 
-        trace!("Wrote to drive: s3://{}/{}", bucket, key);
         Ok(())
     }
 
-    /// Fallback to local file system when S3 is not configured
-    fn write_to_local_fallback(
+    fn write_to_db_fallback(
         &self,
         bucket: &str,
         path: &str,
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let site_path = self.get_site_path();
-        let full_path = format!("{}/{}/{}", site_path, bucket, path);
-
-        if let Some(dir) = std::path::Path::new(&full_path).parent() {
-            if !dir.exists() {
-                std::fs::create_dir_all(dir)?;
-            }
-        }
-
-        std::fs::write(&full_path, content)?;
-        trace!("Wrote to local fallback: {}", full_path);
-        Ok(())
-    }
-
-    /// Sync app from drive to SITE_ROOT for serving
-    async fn sync_app_to_site_root(
-        &self,
-        bucket: &str,
-        app_name: &str,
-        bot_id: Uuid,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let site_path = self.get_site_path();
-
-        // Target: {site_path}/{app_name}/ (clean URL)
-        let target_dir = format!("{}/{}", site_path, app_name);
-        std::fs::create_dir_all(&target_dir)?;
-
-        let Some(client) = &self.state.drive else {
-            info!("S3 not configured, app already written to local path");
-            return Ok(());
-        };
-
-        // List all files in the app directory on drive
-        let prefix = format!(".gbdrive/apps/{}/", app_name);
-        let list_result = client
-            .list_objects_v2()
-            .bucket(bucket.to_lowercase())
-            .prefix(&prefix)
-            .send()
-            .await
-            .map_err(|e| format!("Failed to list app files: {}", e))?;
-
-        for obj in list_result.contents.unwrap_or_default() {
-            let key = obj.key().unwrap_or_default();
-            if key.ends_with('/') {
-                continue; // Skip directories
-            }
-
-            // Get the file from S3
-            let get_result = client
-                .get_object()
-                .bucket(bucket.to_lowercase())
-                .key(key)
-                .send()
-                .await
-                .map_err(|e| format!("Failed to get file {}: {}", key, e))?;
-
-            let body = get_result
-                .body
-                .collect()
-                .await
-                .map_err(|e| format!("Failed to read file body: {}", e))?;
-
-            // Extract relative path (remove .gbdrive/apps/{app_name}/ prefix)
-            let relative_path = key.strip_prefix(&prefix).unwrap_or(key);
-            let local_path = format!("{}/{}", target_dir, relative_path);
-
-            // Create parent directories if needed
-            if let Some(dir) = std::path::Path::new(&local_path).parent() {
-                if !dir.exists() {
-                    std::fs::create_dir_all(dir)?;
-                }
-            }
-
-            // Write the file
-            std::fs::write(&local_path, body.into_bytes())?;
-            trace!("Synced: {} -> {}", key, local_path);
-        }
-
-        info!("App '{}' synced to site root: {}", app_name, target_dir);
-
-        // Store app metadata in database for tracking
-        self.store_app_metadata(bot_id, app_name, &target_dir)?;
-
-        Ok(())
-    }
-
-    /// Store app metadata for tracking
-    fn store_app_metadata(
-        &self,
-        bot_id: Uuid,
-        app_name: &str,
-        app_path: &str,
-    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.state.conn.get()?;
-        let app_id = Uuid::new_v4();
+        let content_type = Self::get_content_type(path);
 
         sql_query(
-            "INSERT INTO generated_apps (id, bot_id, name, app_path, is_active, created_at)
-             VALUES ($1, $2, $3, $4, true, NOW())
-             ON CONFLICT (bot_id, name) DO UPDATE SET
-             app_path = EXCLUDED.app_path,
+            "INSERT INTO drive_files (id, bucket, path, content, content_type, size, created_at, updated_at)
+             VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
+             ON CONFLICT (bucket, path) DO UPDATE SET
+             content = EXCLUDED.content,
+             content_type = EXCLUDED.content_type,
+             size = EXCLUDED.size,
              updated_at = NOW()",
         )
-        .bind::<diesel::sql_types::Uuid, _>(app_id)
-        .bind::<diesel::sql_types::Uuid, _>(bot_id)
-        .bind::<diesel::sql_types::Text, _>(app_name)
-        .bind::<diesel::sql_types::Text, _>(app_path)
-        .execute(&mut conn)
-        .map_err(|e| format!("Failed to store app metadata: {}", e))?;
+        .bind::<diesel::sql_types::Uuid, _>(Uuid::new_v4())
+        .bind::<diesel::sql_types::Text, _>(bucket)
+        .bind::<diesel::sql_types::Text, _>(path)
+        .bind::<diesel::sql_types::Text, _>(content)
+        .bind::<diesel::sql_types::Text, _>(content_type)
+        .bind::<diesel::sql_types::BigInt, _>(content.len() as i64)
+        .execute(&mut conn)?;
 
+        trace!("Wrote to DB: {}/{}", bucket, path);
         Ok(())
     }
 
-    /// Get content type based on file extension
-    fn get_content_type(&self, path: &str) -> &'static str {
+    fn get_content_type(path: &str) -> &'static str {
         let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
         match ext.as_str() {
             "html" | "htm" => "text/html; charset=utf-8",
@@ -1045,292 +779,107 @@ Respond with valid JSON only."#
         })
     }
 
-    fn generate_htmx_pages(
+    async fn sync_app_to_site_root(
         &self,
-        structure: &AppStructure,
-    ) -> Result<Vec<GeneratedPage>, Box<dyn std::error::Error + Send + Sync>> {
-        let mut pages = Vec::new();
+        bucket: &str,
+        app_name: &str,
+        bot_id: Uuid,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let source_path = format!(".gbdrive/apps/{}", app_name);
+        let site_path = Self::get_site_path(bot_id);
 
-        pages.push(GeneratedPage {
-            filename: "index.html".to_string(),
-            title: format!("{} - Dashboard", structure.name),
-            page_type: PageType::Dashboard,
-            content: self.generate_dashboard_html(structure),
-            route: "/".to_string(),
-        });
+        if let Some(ref s3) = self.state.s3_client {
+            let list_result = s3
+                .list_objects_v2()
+                .bucket(bucket)
+                .prefix(&source_path)
+                .send()
+                .await?;
 
-        for table in &structure.tables {
-            pages.push(GeneratedPage {
-                filename: format!("{}.html", table.name),
-                title: format!("{} - List", table.name),
-                page_type: PageType::List,
-                content: self.generate_list_html(&table.name, &table.fields),
-                route: format!("/{}", table.name),
-            });
+            if let Some(contents) = list_result.contents {
+                for object in contents {
+                    if let Some(key) = object.key {
+                        let relative_path =
+                            key.trim_start_matches(&source_path).trim_start_matches('/');
+                        let dest_key = format!("{}/{}/{}", site_path, app_name, relative_path);
 
-            pages.push(GeneratedPage {
-                filename: format!("{}_form.html", table.name),
-                title: format!("{} - Form", table.name),
-                page_type: PageType::Form,
-                content: self.generate_form_html(&table.name, &table.fields),
-                route: format!("/{}/new", table.name),
-            });
-        }
+                        s3.copy_object()
+                            .bucket(bucket)
+                            .copy_source(format!("{}/{}", bucket, key))
+                            .key(&dest_key)
+                            .send()
+                            .await?;
 
-        Ok(pages)
-    }
-
-    fn generate_dashboard_html(&self, structure: &AppStructure) -> String {
-        let mut html = String::new();
-
-        let _ = writeln!(html, "<!DOCTYPE html>");
-        let _ = writeln!(html, "<html lang=\"en\">");
-        let _ = writeln!(html, "<head>");
-        let _ = writeln!(html, "    <meta charset=\"UTF-8\">");
-        let _ = writeln!(
-            html,
-            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-        );
-        let _ = writeln!(html, "    <title>{}</title>", structure.name);
-        let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
-        let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
-        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
-        let _ = writeln!(html, "</head>");
-        let _ = writeln!(html, "<body>");
-        let _ = writeln!(html, "    <header class=\"app-header\">");
-        let _ = writeln!(html, "        <h1>{}</h1>", structure.name);
-        let _ = writeln!(html, "        <nav>");
-
-        for table in &structure.tables {
-            let _ = writeln!(
-                html,
-                "            <a href=\"{}.html\">{}</a>",
-                table.name, table.name
-            );
-        }
-
-        let _ = writeln!(html, "        </nav>");
-        let _ = writeln!(html, "    </header>");
-        let _ = writeln!(html, "    <main class=\"dashboard\">");
-
-        for table in &structure.tables {
-            let _ = writeln!(html, "        <div class=\"stat-card\" hx-get=\"/api/db/{}/count\" hx-trigger=\"load\" hx-swap=\"innerHTML\">", table.name);
-            let _ = writeln!(html, "            <h3>{}</h3>", table.name);
-            let _ = writeln!(html, "            <span class=\"count\">-</span>");
-            let _ = writeln!(html, "        </div>");
-        }
-
-        let _ = writeln!(html, "    </main>");
-        let _ = writeln!(html, "</body>");
-        let _ = writeln!(html, "</html>");
-
-        html
-    }
-
-    fn generate_list_html(&self, table_name: &str, fields: &[FieldDefinition]) -> String {
-        let mut html = String::new();
-
-        let _ = writeln!(html, "<!DOCTYPE html>");
-        let _ = writeln!(html, "<html lang=\"en\">");
-        let _ = writeln!(html, "<head>");
-        let _ = writeln!(html, "    <meta charset=\"UTF-8\">");
-        let _ = writeln!(
-            html,
-            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-        );
-        let _ = writeln!(html, "    <title>{table_name} - List</title>");
-        let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
-        let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
-        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
-        let _ = writeln!(html, "</head>");
-        let _ = writeln!(html, "<body>");
-        let _ = writeln!(html, "    <header class=\"page-header\">");
-        let _ = writeln!(html, "        <h1>{table_name}</h1>");
-        let _ = writeln!(
-            html,
-            "        <a href=\"{table_name}_form.html\" class=\"btn btn-primary\">Add New</a>"
-        );
-        let _ = writeln!(html, "    </header>");
-        let _ = writeln!(html, "    <main>");
-        let _ = writeln!(
-            html,
-            "        <input type=\"search\" name=\"search\" placeholder=\"Search...\""
-        );
-        let _ = writeln!(html, "               hx-get=\"/api/db/{table_name}\"");
-        let _ = writeln!(
-            html,
-            "               hx-trigger=\"keyup changed delay:300ms\""
-        );
-        let _ = writeln!(html, "               hx-target=\"#data-table tbody\">");
-        let _ = writeln!(html, "        <table id=\"data-table\">");
-        let _ = writeln!(html, "            <thead><tr>");
-
-        for field in fields {
-            if field.name != "id" {
-                let _ = writeln!(html, "                <th>{}</th>", field.name);
+                        trace!("Synced {} to {}", key, dest_key);
+                    }
+                }
             }
         }
 
-        let _ = writeln!(html, "                <th>Actions</th>");
-        let _ = writeln!(html, "            </tr></thead>");
-        let _ = writeln!(html, "            <tbody hx-get=\"/api/db/{table_name}\" hx-trigger=\"load\" hx-swap=\"innerHTML\">");
-        let _ = writeln!(html, "            </tbody>");
-        let _ = writeln!(html, "        </table>");
-        let _ = writeln!(html, "    </main>");
-        let _ = writeln!(html, "</body>");
-        let _ = writeln!(html, "</html>");
+        let _ = self.store_app_metadata(bot_id, app_name, &format!("{}/{}", site_path, app_name));
 
-        html
+        info!("App synced to site root: {}/{}", site_path, app_name);
+        Ok(())
     }
 
-    fn generate_form_html(&self, table_name: &str, fields: &[FieldDefinition]) -> String {
-        let mut html = String::new();
-
-        let _ = writeln!(html, "<!DOCTYPE html>");
-        let _ = writeln!(html, "<html lang=\"en\">");
-        let _ = writeln!(html, "<head>");
-        let _ = writeln!(html, "    <meta charset=\"UTF-8\">");
-        let _ = writeln!(
-            html,
-            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">"
-        );
-        let _ = writeln!(html, "    <title>{table_name} - Form</title>");
-        let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
-        let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
-        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
-        let _ = writeln!(html, "</head>");
-        let _ = writeln!(html, "<body>");
-        let _ = writeln!(html, "    <header class=\"page-header\">");
-        let _ = writeln!(html, "        <h1>New {table_name}</h1>");
-        let _ = writeln!(
-            html,
-            "        <a href=\"{table_name}.html\" class=\"btn\">Back to List</a>"
-        );
-        let _ = writeln!(html, "    </header>");
-        let _ = writeln!(html, "    <main>");
-        let _ = writeln!(
-            html,
-            "        <form hx-post=\"/api/db/{table_name}\" hx-target=\"#form-result\">"
-        );
-
-        for field in fields {
-            if field.name == "id" || field.name == "created_at" || field.name == "updated_at" {
-                continue;
-            }
-
-            let required = if field.is_nullable { "" } else { " required" };
-            let input_type = match field.field_type.as_str() {
-                "number" | "integer" => "number",
-                "date" => "date",
-                "datetime" => "datetime-local",
-                "boolean" => "checkbox",
-                "text" => "textarea",
-                _ => "text",
-            };
-
-            let _ = writeln!(html, "            <div class=\"form-group\">");
-            let _ = writeln!(
-                html,
-                "                <label for=\"{}\">{}</label>",
-                field.name, field.name
-            );
-
-            if input_type == "textarea" {
-                let _ = writeln!(
-                    html,
-                    "                <textarea id=\"{}\" name=\"{}\"{}></textarea>",
-                    field.name, field.name, required
-                );
-            } else {
-                let _ = writeln!(
-                    html,
-                    "                <input type=\"{}\" id=\"{}\" name=\"{}\"{}>",
-                    input_type, field.name, field.name, required
-                );
-            }
-
-            let _ = writeln!(html, "            </div>");
-        }
-
-        let _ = writeln!(
-            html,
-            "            <button type=\"submit\" class=\"btn btn-primary\">Save</button>"
-        );
-        let _ = writeln!(html, "        </form>");
-        let _ = writeln!(html, "        <div id=\"form-result\"></div>");
-        let _ = writeln!(html, "    </main>");
-        let _ = writeln!(html, "</body>");
-        let _ = writeln!(html, "</html>");
-
-        html
-    }
-
-    fn generate_app_css(&self) -> String {
-        r#"* { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: system-ui, sans-serif; line-height: 1.5; padding: 1rem; }
-.app-header { display: flex; justify-content: space-between; align-items: center; padding: 1rem; border-bottom: 1px solid #ddd; margin-bottom: 1rem; }
-.app-header nav { display: flex; gap: 1rem; }
-.app-header nav a { text-decoration: none; color: #0066cc; }
-.page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-.dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; }
-.stat-card { background: #f5f5f5; padding: 1rem; border-radius: 8px; text-align: center; }
-.stat-card .count { font-size: 2rem; font-weight: bold; }
-table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
-th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #ddd; }
-th { background: #f5f5f5; }
-.form-group { margin-bottom: 1rem; }
-.form-group label { display: block; margin-bottom: 0.25rem; font-weight: 500; }
-.form-group input, .form-group textarea, .form-group select { width: 100%; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-.btn { display: inline-block; padding: 0.5rem 1rem; border: none; border-radius: 4px; cursor: pointer; text-decoration: none; }
-.btn-primary { background: #0066cc; color: white; }
-.btn-danger { background: #cc0000; color: white; }
-.btn-secondary { background: #666; color: white; }
-input[type="search"] { width: 100%; max-width: 300px; padding: 0.5rem; border: 1px solid #ddd; border-radius: 4px; }
-.alert { padding: 1rem; border-radius: 4px; margin-bottom: 1rem; }
-.alert-success { background: #d4edda; color: #155724; }
-.alert-error { background: #f8d7da; color: #721c24; }
-"#.to_string()
-    }
-
-    fn generate_tools(
+    fn store_app_metadata(
         &self,
-        _structure: &AppStructure,
-    ) -> Result<Vec<GeneratedScript>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(Vec::new())
+        bot_id: Uuid,
+        app_name: &str,
+        app_path: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        let mut conn = self.state.conn.get()?;
+        let app_id = Uuid::new_v4();
+
+        sql_query(
+            "INSERT INTO generated_apps (id, bot_id, name, app_path, is_active, created_at)
+             VALUES ($1, $2, $3, $4, true, NOW())
+             ON CONFLICT (bot_id, name) DO UPDATE SET
+             app_path = EXCLUDED.app_path,
+             updated_at = NOW()",
+        )
+        .bind::<diesel::sql_types::Uuid, _>(app_id)
+        .bind::<diesel::sql_types::Uuid, _>(bot_id)
+        .bind::<diesel::sql_types::Text, _>(app_name)
+        .bind::<diesel::sql_types::Text, _>(app_path)
+        .execute(&mut conn)?;
+
+        Ok(())
     }
 
-    fn generate_schedulers(
-        &self,
-        _structure: &AppStructure,
-    ) -> Result<Vec<GeneratedScript>, Box<dyn std::error::Error + Send + Sync>> {
-        Ok(Vec::new())
+    fn get_site_path(_bot_id: Uuid) -> String {
+        ".gbdrive/site".to_string()
     }
 
-    fn generate_designer_js(&self) -> String {
-        r#"(function() {
+    fn generate_designer_js(app_name: &str) -> String {
+        format!(
+            r#"(function() {{
+    const APP_NAME = '{app_name}';
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
     const style = document.createElement('style');
     style.textContent = `
-        .designer-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(102,126,234,0.4); font-size: 24px; z-index: 9999; transition: transform 0.2s, box-shadow 0.2s; }
-        .designer-btn:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(102,126,234,0.6); }
-        .designer-panel { position: fixed; bottom: 90px; right: 20px; width: 380px; max-height: 500px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9998; display: none; flex-direction: column; overflow: hidden; }
-        .designer-panel.open { display: flex; }
-        .designer-header { padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
-        .designer-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
-        .designer-messages { flex: 1; overflow-y: auto; padding: 16px; max-height: 300px; }
-        .designer-msg { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 85%; }
-        .designer-msg.user { background: #667eea; color: white; margin-left: auto; }
-        .designer-msg.ai { background: #f0f0f0; color: #333; }
-        .designer-input { display: flex; padding: 12px; border-top: 1px solid #eee; gap: 8px; }
-        .designer-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
-        .designer-input button { padding: 10px 16px; background: #667eea; color: white; border: none; border-radius: 20px; cursor: pointer; }
+        .designer-fab {{ position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; cursor: pointer; box-shadow: 0 4px 12px rgba(102,126,234,0.4); font-size: 24px; z-index: 9999; transition: transform 0.2s; }}
+        .designer-fab:hover {{ transform: scale(1.1); }}
+        .designer-panel {{ position: fixed; bottom: 90px; right: 20px; width: 380px; max-height: 500px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9998; display: none; flex-direction: column; overflow: hidden; }}
+        .designer-panel.open {{ display: flex; }}
+        .designer-header {{ padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }}
+        .designer-close {{ background: none; border: none; color: white; font-size: 20px; cursor: pointer; }}
+        .designer-messages {{ flex: 1; overflow-y: auto; padding: 16px; max-height: 300px; }}
+        .designer-msg {{ margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 85%; word-wrap: break-word; }}
+        .designer-msg.user {{ background: #667eea; color: white; margin-left: auto; }}
+        .designer-msg.ai {{ background: #f0f0f0; color: #333; }}
+        .designer-input {{ display: flex; padding: 12px; border-top: 1px solid #eee; gap: 8px; }}
+        .designer-input input {{ flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; outline: none; }}
+        .designer-input button {{ padding: 10px 16px; background: #667eea; color: white; border: none; border-radius: 20px; cursor: pointer; }}
     `;
     document.head.appendChild(style);
 
-    const btn = document.createElement('button');
-    btn.className = 'designer-btn';
-    btn.innerHTML = '🎨';
-    btn.title = 'Designer AI';
-    document.body.appendChild(btn);
+    const fab = document.createElement('button');
+    fab.className = 'designer-fab';
+    fab.innerHTML = '🎨';
+    fab.title = 'Designer AI';
+    document.body.appendChild(fab);
 
     const panel = document.createElement('div');
     panel.className = 'designer-panel';
@@ -1343,57 +892,49 @@ input[type="search"] { width: 100%; max-width: 300px; padding: 0.5rem; border: 1
             <div class="designer-msg ai">Hi! I can help you modify this app. What would you like to change?</div>
         </div>
         <div class="designer-input">
-            <input type="text" placeholder="e.g., Make the header blue..." />
+            <input type="text" placeholder="e.g., Add a blue header..." />
             <button>Send</button>
         </div>
     `;
     document.body.appendChild(panel);
 
-    btn.onclick = () => panel.classList.toggle('open');
+    fab.onclick = () => panel.classList.toggle('open');
     panel.querySelector('.designer-close').onclick = () => panel.classList.remove('open');
 
     const input = panel.querySelector('input');
     const sendBtn = panel.querySelector('.designer-input button');
     const messages = panel.querySelector('.designer-messages');
 
-    const appName = window.location.pathname.split('/')[2] || 'app';
-    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
-
-    async function sendMessage() {
+    async function sendMessage() {{
         const msg = input.value.trim();
         if (!msg) return;
 
-        messages.innerHTML += `<div class="designer-msg user">${msg}</div>`;
+        messages.innerHTML += `<div class="designer-msg user">${{msg}}</div>`;
         input.value = '';
         messages.scrollTop = messages.scrollHeight;
 
-        try {
-            const res = await fetch('/api/designer/modify', {
+        try {{
+            const res = await fetch('/api/designer/modify', {{
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ app_name: appName, current_page: currentPage, message: msg })
-            });
+                headers: {{ 'Content-Type': 'application/json' }},
+                body: JSON.stringify({{ app_name: APP_NAME, current_page: currentPage, message: msg }})
+            }});
             const data = await res.json();
-            messages.innerHTML += `<div class="designer-msg ai">${data.message || 'Done!'}</div>`;
-            if (data.success && data.changes && data.changes.length > 0) {
-                setTimeout(() => location.reload(), 1000);
-            }
-        } catch (e) {
+            messages.innerHTML += `<div class="designer-msg ai">${{data.message || 'Done!'}}</div>`;
+            if (data.success && data.changes && data.changes.length > 0) {{
+                setTimeout(() => location.reload(), 1500);
+            }}
+        }} catch (e) {{
             messages.innerHTML += `<div class="designer-msg ai">Sorry, something went wrong. Try again.</div>`;
-        }
+            if (window.AppLogger) window.AppLogger.error('Designer error', e.toString());
+        }}
         messages.scrollTop = messages.scrollHeight;
-    }
+    }}
 
     sendBtn.onclick = sendMessage;
-    input.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
-})();"#.to_string()
-    }
-
-    fn get_site_path(&self) -> String {
-        self.state
-            .config
-            .as_ref()
-            .map(|c| c.site_path.clone())
-            .unwrap_or_else(|| "./botserver-stack/sites".to_string())
+    input.onkeypress = (e) => {{ if (e.key === 'Enter') sendMessage(); }};
+}})();"#,
+            app_name = app_name
+        )
     }
 }

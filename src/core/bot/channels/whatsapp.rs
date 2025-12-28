@@ -649,7 +649,6 @@ pub fn create_interactive_buttons(text: &str, buttons: Vec<(&str, &str)>) -> ser
     })
 }
 
-/// Type alias for interactive list sections: (title, rows) where rows are (id, title, description)
 pub type InteractiveListSections = Vec<(String, Vec<(String, String, Option<String>)>)>;
 
 pub fn create_interactive_list(

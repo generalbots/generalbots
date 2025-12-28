@@ -1,3 +1,5 @@
+use crate::auto_task::get_designer_error_context;
+use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
 use axum::{
     extract::{Query, State},
@@ -65,19 +67,244 @@ pub struct ValidationWarning {
     pub node_id: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MagicRequest {
+    pub nodes: Vec<MagicNode>,
+    pub connections: i32,
+    pub filename: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorMagicRequest {
+    pub code: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct EditorMagicResponse {
+    pub improved_code: Option<String>,
+    pub explanation: Option<String>,
+    pub suggestions: Option<Vec<MagicSuggestion>>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MagicNode {
+    #[serde(rename = "type")]
+    pub node_type: String,
+    pub fields: serde_json::Value,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MagicSuggestion {
+    #[serde(rename = "type")]
+    pub suggestion_type: String,
+    pub title: String,
+    pub description: String,
+}
+
 pub fn configure_designer_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/v1/designer/files", get(handle_list_files))
-        .route("/api/v1/designer/load", get(handle_load_file))
-        .route("/api/v1/designer/save", post(handle_save))
-        .route("/api/v1/designer/validate", post(handle_validate))
-        .route("/api/v1/designer/export", get(handle_export))
+        .route(ApiUrls::DESIGNER_FILES, get(handle_list_files))
+        .route(ApiUrls::DESIGNER_LOAD, get(handle_load_file))
+        .route(ApiUrls::DESIGNER_SAVE, post(handle_save))
+        .route(ApiUrls::DESIGNER_VALIDATE, post(handle_validate))
+        .route(ApiUrls::DESIGNER_EXPORT, get(handle_export))
         .route(
             "/api/designer/dialogs",
             get(handle_list_dialogs).post(handle_create_dialog),
         )
         .route("/api/designer/dialogs/{id}", get(handle_get_dialog))
-        .route("/api/designer/modify", post(handle_designer_modify))
+        .route(ApiUrls::DESIGNER_MODIFY, post(handle_designer_modify))
+        .route("/api/v1/designer/magic", post(handle_magic_suggestions))
+        .route("/api/v1/editor/magic", post(handle_editor_magic))
+}
+
+pub async fn handle_editor_magic(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<EditorMagicRequest>,
+) -> impl IntoResponse {
+    let code = request.code;
+
+    if code.trim().is_empty() {
+        return Json(EditorMagicResponse {
+            improved_code: None,
+            explanation: Some("No code provided".to_string()),
+            suggestions: None,
+        });
+    }
+
+    let prompt = format!(
+        r#"You are reviewing this HTMX application code. Analyze and improve it.
+
+Focus on:
+- Better HTMX patterns (reduce JS, use hx-* attributes properly)
+- Accessibility (ARIA labels, keyboard navigation, semantic HTML)
+- Performance (lazy loading, efficient selectors)
+- UX (loading states, error handling, user feedback)
+- Code organization (clean structure, no comments needed)
+
+Current code:
+```
+{code}
+```
+
+Respond with JSON only:
+{{
+    "improved_code": "the improved code here",
+    "explanation": "brief explanation of changes made"
+}}
+
+If the code is already good, respond with:
+{{
+    "improved_code": null,
+    "explanation": "Code looks good, no improvements needed"
+}}"#
+    );
+
+    #[cfg(feature = "llm")]
+    {
+        let config = serde_json::json!({
+            "temperature": 0.3,
+            "max_tokens": 4000
+        });
+
+        match state
+            .llm_provider
+            .generate(&prompt, &config, "gpt-4", "")
+            .await
+        {
+            Ok(response) => {
+                if let Ok(result) = serde_json::from_str::<EditorMagicResponse>(&response) {
+                    return Json(result);
+                }
+                return Json(EditorMagicResponse {
+                    improved_code: Some(response),
+                    explanation: Some("AI suggestions".to_string()),
+                    suggestions: None,
+                });
+            }
+            Err(e) => {
+                log::warn!("LLM call failed: {e}");
+            }
+        }
+    }
+
+    let _ = state;
+    let mut suggestions = Vec::new();
+
+    if !code.contains("hx-") {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "ux".to_string(),
+            title: "Use HTMX attributes".to_string(),
+            description: "Consider using hx-get, hx-post instead of JavaScript fetch calls."
+                .to_string(),
+        });
+    }
+
+    if !code.contains("hx-indicator") {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "ux".to_string(),
+            title: "Add loading indicators".to_string(),
+            description: "Use hx-indicator to show loading state during requests.".to_string(),
+        });
+    }
+
+    if !code.contains("aria-") && !code.contains("role=") {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "a11y".to_string(),
+            title: "Improve accessibility".to_string(),
+            description: "Add ARIA labels and roles for screen reader support.".to_string(),
+        });
+    }
+
+    if code.contains("onclick=") || code.contains("addEventListener") {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "perf".to_string(),
+            title: "Replace JS with HTMX".to_string(),
+            description: "HTMX can handle most interactions without custom JavaScript.".to_string(),
+        });
+    }
+
+    Json(EditorMagicResponse {
+        improved_code: None,
+        explanation: None,
+        suggestions: if suggestions.is_empty() {
+            None
+        } else {
+            Some(suggestions)
+        },
+    })
+}
+
+pub async fn handle_magic_suggestions(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<MagicRequest>,
+) -> impl IntoResponse {
+    let mut suggestions = Vec::new();
+    let nodes = &request.nodes;
+
+    let has_hear = nodes.iter().any(|n| n.node_type == "HEAR");
+    let has_talk = nodes.iter().any(|n| n.node_type == "TALK");
+    let has_if = nodes
+        .iter()
+        .any(|n| n.node_type == "IF" || n.node_type == "SWITCH");
+    let talk_count = nodes.iter().filter(|n| n.node_type == "TALK").count();
+
+    if !has_hear && has_talk {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "ux".to_string(),
+            title: "Add User Input".to_string(),
+            description:
+                "Your dialog has no HEAR nodes. Consider adding user input to make it interactive."
+                    .to_string(),
+        });
+    }
+
+    if talk_count > 5 {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "ux".to_string(),
+            title: "Break Up Long Responses".to_string(),
+            description:
+                "You have many TALK nodes. Consider grouping related messages or using a menu."
+                    .to_string(),
+        });
+    }
+
+    if !has_if && nodes.len() > 3 {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "feature".to_string(),
+            title: "Add Decision Logic".to_string(),
+            description: "Add IF or SWITCH nodes to handle different user responses dynamically."
+                .to_string(),
+        });
+    }
+
+    if request.connections < (nodes.len() as i32 - 1) && nodes.len() > 1 {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "perf".to_string(),
+            title: "Check Connections".to_string(),
+            description: "Some nodes may not be connected. Ensure all nodes flow properly."
+                .to_string(),
+        });
+    }
+
+    if nodes.is_empty() {
+        suggestions.push(MagicSuggestion {
+            suggestion_type: "feature".to_string(),
+            title: "Start with TALK".to_string(),
+            description: "Begin your dialog with a TALK node to greet the user.".to_string(),
+        });
+    }
+
+    suggestions.push(MagicSuggestion {
+        suggestion_type: "a11y".to_string(),
+        title: "Use Clear Language".to_string(),
+        description: "Keep messages short and clear. Avoid jargon for better accessibility."
+            .to_string(),
+    });
+
+    let _ = state;
+
+    Json(suggestions)
 }
 
 pub async fn handle_list_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -881,11 +1108,14 @@ fn build_designer_prompt(request: &DesignerModifyRequest) -> String {
         })
         .unwrap_or_default();
 
+    let error_context = get_designer_error_context(&request.app_name).unwrap_or_default();
+
     format!(
         r#"You are a Designer AI assistant helping modify an HTMX-based application.
 
 App Name: {}
 Current Page: {}
+{}
 {}
 User Request: "{}"
 
@@ -915,6 +1145,7 @@ Respond with valid JSON only."#,
         request.app_name,
         request.current_page.as_deref().unwrap_or("index.html"),
         context_info,
+        error_context,
         request.message
     )
 }
@@ -980,7 +1211,7 @@ async fn parse_and_apply_changes(
 ) -> Result<(Vec<DesignerChange>, String, Vec<String>), Box<dyn std::error::Error + Send + Sync>> {
     #[derive(Deserialize)]
     struct LlmChangeResponse {
-        understanding: Option<String>,
+        _understanding: Option<String>,
         changes: Option<Vec<LlmChange>>,
         message: Option<String>,
         suggestions: Option<Vec<String>>,
@@ -996,7 +1227,7 @@ async fn parse_and_apply_changes(
     }
 
     let parsed: LlmChangeResponse = serde_json::from_str(llm_response).unwrap_or(LlmChangeResponse {
-        understanding: Some("Could not parse LLM response".to_string()),
+        _understanding: Some("Could not parse LLM response".to_string()),
         changes: None,
         message: Some("I understood your request but encountered an issue processing it. Could you try rephrasing?".to_string()),
         suggestions: Some(vec!["Try being more specific".to_string()]),
