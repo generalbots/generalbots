@@ -222,33 +222,30 @@ impl ComplianceMonitor {
         }
     }
 
-    pub async fn run_checks(
-        &self,
-    ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    pub fn run_checks(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         let mut results = Vec::new();
 
         for framework in &self.enabled_frameworks {
-            let framework_results = self.check_framework(framework).await?;
+            let framework_results = Self::check_framework(framework)?;
             results.extend(framework_results);
         }
 
         Ok(results)
     }
 
-    async fn check_framework(
-        &self,
+    fn check_framework(
         framework: &ComplianceFramework,
     ) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         match framework {
-            ComplianceFramework::GDPR => self.check_gdpr(),
-            ComplianceFramework::SOC2 => self.check_soc2(),
-            ComplianceFramework::ISO27001 => self.check_iso27001(),
-            ComplianceFramework::HIPAA => self.check_hipaa(),
-            ComplianceFramework::PCIDSS => self.check_pci_dss(),
+            ComplianceFramework::GDPR => Self::check_gdpr(),
+            ComplianceFramework::SOC2 => Self::check_soc2(),
+            ComplianceFramework::ISO27001 => Self::check_iso27001(),
+            ComplianceFramework::HIPAA => Self::check_hipaa(),
+            ComplianceFramework::PCIDSS => Self::check_pci_dss(),
         }
     }
 
-    fn check_gdpr(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_gdpr() -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![
             ComplianceCheckResult {
                 framework: ComplianceFramework::GDPR,
@@ -283,7 +280,7 @@ impl ComplianceMonitor {
         ])
     }
 
-    fn check_soc2(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_soc2() -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![ComplianceCheckResult {
             framework: ComplianceFramework::SOC2,
             control_id: "cc6.1".to_string(),
@@ -296,7 +293,7 @@ impl ComplianceMonitor {
         }])
     }
 
-    fn check_iso27001(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_iso27001() -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![ComplianceCheckResult {
             framework: ComplianceFramework::ISO27001,
             control_id: "a.8.1".to_string(),
@@ -309,11 +306,11 @@ impl ComplianceMonitor {
         }])
     }
 
-    fn check_hipaa(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_hipaa() -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 
-    fn check_pci_dss(&self) -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
+    fn check_pci_dss() -> Result<Vec<ComplianceCheckResult>, Box<dyn std::error::Error>> {
         Ok(vec![])
     }
 

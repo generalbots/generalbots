@@ -91,14 +91,14 @@ pub async fn execute_save_from_unstructured(
     table_name: &str,
     text: &str,
 ) -> Result<String, String> {
-    let schema = get_table_schema(state, table_name).await?;
+    let schema = get_table_schema(state, table_name)?;
 
     let extraction_prompt = build_extraction_prompt(table_name, &schema, text);
     let extracted_json = call_llm_for_extraction(state, &extraction_prompt).await?;
 
     let cleaned_data = validate_and_clean_data(&extracted_json, &schema)?;
 
-    let record_id = save_to_table(state, user, table_name, cleaned_data).await?;
+    let record_id = save_to_table(state, user, table_name, cleaned_data)?;
 
     trace!(
         "Saved unstructured data to table '{}': {}",
@@ -109,7 +109,7 @@ pub async fn execute_save_from_unstructured(
     Ok(record_id)
 }
 
-async fn get_table_schema(state: &AppState, table_name: &str) -> Result<Value, String> {
+fn get_table_schema(state: &AppState, table_name: &str) -> Result<Value, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let query = diesel::sql_query(
@@ -357,7 +357,6 @@ fn clean_value_for_type(value: &Value, data_type: &str) -> Value {
                 json!(null)
             }
         }
-        "jsonb" | "json" => value.clone(),
         "uuid" => {
             if let Some(s) = value.as_str() {
                 if Uuid::parse_str(s).is_ok() {
@@ -369,11 +368,12 @@ fn clean_value_for_type(value: &Value, data_type: &str) -> Value {
                 json!(Uuid::new_v4().to_string())
             }
         }
+        // jsonb, json, and any other types just clone the value
         _ => value.clone(),
     }
 }
 
-pub async fn save_to_table(
+pub fn save_to_table(
     state: &AppState,
     user: &UserSession,
     table_name: &str,
@@ -385,22 +385,7 @@ pub async fn save_to_table(
     let user_id = user.user_id.to_string();
     let created_at = Utc::now();
 
-    let mut fields = vec!["id", "created_at"];
-    let mut placeholders = vec!["$1".to_string(), "$2".to_string()];
-    let mut _bind_index = 3;
-
     let data_obj = data.as_object().ok_or("Invalid data format")?;
-
-    for (field, _) in data_obj {
-        fields.push(field);
-        placeholders.push(format!("${}", _bind_index));
-        _bind_index += 1;
-    }
-
-    if !data_obj.contains_key("user_id") {
-        fields.push("user_id");
-        placeholders.push(format!("${}", _bind_index));
-    }
 
     let mut values_map = serde_json::Map::new();
     values_map.insert("id".to_string(), json!(record_id));
@@ -449,7 +434,7 @@ mod tests {
     fn test_clean_value_for_type() {
         assert_eq!(clean_value_for_type(&json!("test"), "text"), json!("test"));
         assert_eq!(clean_value_for_type(&json!("42"), "integer"), json!(42));
-        assert_eq!(clean_value_for_type(&json!("3.14"), "numeric"), json!(3.14));
+        assert_eq!(clean_value_for_type(&json!("3.5"), "numeric"), json!(3.5));
         assert_eq!(clean_value_for_type(&json!("true"), "boolean"), json!(true));
     }
 

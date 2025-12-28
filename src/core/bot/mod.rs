@@ -65,7 +65,7 @@ impl BotOrchestrator {
         }
     }
 
-    pub async fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub fn mount_all_bots(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("mount_all_bots called");
         Ok(())
     }
@@ -325,6 +325,7 @@ impl BotOrchestrator {
     }
 }
 
+#[allow(clippy::unused_async)]
 pub async fn websocket_handler(
     ws: WebSocketUpgrade,
     State(state): State<Arc<AppState>>,
@@ -446,7 +447,7 @@ async fn handle_websocket(
     info!("WebSocket disconnected for session: {}", session_id);
 }
 
-pub async fn create_bot_handler(
+pub fn create_bot_handler(
     Extension(state): Extension<Arc<AppState>>,
     Json(payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
@@ -456,7 +457,7 @@ pub async fn create_bot_handler(
         .unwrap_or_else(|| "default".to_string());
 
     let orchestrator = BotOrchestrator::new(state);
-    if let Err(e) = orchestrator.mount_all_bots().await {
+    if let Err(e) = orchestrator.mount_all_bots() {
         error!("Failed to mount bots: {}", e);
     }
 
@@ -466,14 +467,14 @@ pub async fn create_bot_handler(
     )
 }
 
-pub async fn mount_bot_handler(
+pub fn mount_bot_handler(
     Extension(state): Extension<Arc<AppState>>,
     Json(payload): Json<HashMap<String, String>>,
 ) -> impl IntoResponse {
     let bot_guid = payload.get("bot_guid").cloned().unwrap_or_default();
 
     let orchestrator = BotOrchestrator::new(state);
-    if let Err(e) = orchestrator.mount_all_bots().await {
+    if let Err(e) = orchestrator.mount_all_bots() {
         error!("Failed to mount bot: {}", e);
     }
 

@@ -291,10 +291,8 @@ mod tests {
         clear_last_error();
 
         let result = try_execute(|| {
-            Err::<String, _>(
-                Box::new(std::io::Error::new(std::io::ErrorKind::Other, "test error"))
-                    as Box<dyn std::error::Error + Send + Sync>,
-            )
+            Err::<String, _>(Box::new(std::io::Error::other("test error"))
+                as Box<dyn std::error::Error + Send + Sync>)
         });
         assert!(result.is_err());
     }

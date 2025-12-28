@@ -367,7 +367,7 @@ pub async fn get_metric(
             let window = Duration::minutes(query.window_minutes.unwrap_or(1));
             Some(collector.get_rate(&query.name, window).await)
         }
-        Some("sum") | Some(_) | None => collector.get_aggregate(&query.name).await,
+        Some("sum" | _) | None => collector.get_aggregate(&query.name).await,
     };
 
     Json(match result {

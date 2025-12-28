@@ -231,10 +231,8 @@ pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-                let result = rt.block_on(async {
-                    set_session_model(&state_for_task, session_id, &model_name_clone).await
-                });
+                let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let result = set_session_model(&state_for_task, session_id, &model_name_clone);
                 let _ = tx.send(result);
             });
 
@@ -288,11 +286,8 @@ pub fn set_model_routing_keyword(state: Arc<AppState>, user: UserSession, engine
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-                    let result = rt.block_on(async {
-                        set_session_routing_strategy(&state_for_task, session_id, strategy_clone)
-                            .await
-                    });
+                    let result =
+                        set_session_routing_strategy(&state_for_task, session_id, strategy_clone);
                     let _ = tx.send(result);
                 });
 
@@ -347,7 +342,7 @@ pub fn list_models_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
     });
 }
 
-async fn set_session_model(
+fn set_session_model(
     state: &AppState,
     session_id: Uuid,
     model_name: &str,
@@ -377,7 +372,7 @@ async fn set_session_model(
     Ok(format!("Now using model: {}", model_name))
 }
 
-async fn set_session_routing_strategy(
+fn set_session_routing_strategy(
     state: &AppState,
     session_id: Uuid,
     strategy: RoutingStrategy,

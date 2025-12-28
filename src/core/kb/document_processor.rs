@@ -195,12 +195,13 @@ impl DocumentProcessor {
                     "pdftotext failed for {}, trying library extraction",
                     file_path.display()
                 );
-                self.extract_pdf_with_library(file_path).await
+                self.extract_pdf_with_library(file_path)
             }
         }
     }
 
-    async fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
+    fn extract_pdf_with_library(&self, file_path: &Path) -> Result<String> {
+        let _ = self; // Suppress unused self warning
         use pdf_extract::extract_text;
 
         match extract_text(file_path) {

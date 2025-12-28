@@ -58,10 +58,10 @@ impl UserEmailVectorDB {
     pub fn new(user_id: Uuid, bot_id: Uuid, db_path: PathBuf) -> Self {
         let collection_name = format!("emails_{}_{}", bot_id, user_id);
         log::trace!(
-            "Creating UserEmailVectorDB for user={} bot={} path={:?}",
+            "Creating UserEmailVectorDB for user={} bot={} path={}",
             user_id,
             bot_id,
-            db_path
+            db_path.display()
         );
 
         Self {
@@ -77,10 +77,10 @@ impl UserEmailVectorDB {
     #[cfg(feature = "vectordb")]
     pub async fn initialize(&mut self, qdrant_url: &str) -> Result<()> {
         log::info!(
-            "Initializing email vector DB for user={} bot={} at {:?}",
+            "Initializing email vector DB for user={} bot={} at {}",
             self.user_id,
             self.bot_id,
-            self.db_path
+            self.db_path.display()
         );
         let client = Qdrant::from_url(qdrant_url).build()?;
 
@@ -124,7 +124,7 @@ impl UserEmailVectorDB {
 
         let payload: qdrant_client::Payload = serde_json::to_value(email)?
             .as_object()
-            .map(|m| m.clone())
+            .cloned()
             .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, qdrant_client::qdrant::Value::from(v.to_string())))
@@ -410,7 +410,7 @@ impl EmailEmbeddingGenerator {
             Ok(embedding) => Ok(embedding),
             Err(e) => {
                 log::warn!("Local embedding failed: {e}, falling back to hash embedding");
-                self.generate_hash_embedding(text)
+                Self::generate_hash_embedding(text)
             }
         }
     }
@@ -491,7 +491,7 @@ impl EmailEmbeddingGenerator {
         Ok(embedding)
     }
 
-    fn generate_hash_embedding(&self, text: &str) -> Result<Vec<f32>> {
+    fn generate_hash_embedding(text: &str) -> Result<Vec<f32>> {
         use std::collections::hash_map::DefaultHasher;
         use std::hash::{Hash, Hasher};
 

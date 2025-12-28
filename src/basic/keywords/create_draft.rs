@@ -40,13 +40,13 @@ async fn execute_create_draft(
             .await
             .unwrap_or_default();
 
-        let email_body = if !previous_email.is_empty() {
+        let email_body = if previous_email.is_empty() {
+            reply_text.to_string()
+        } else {
             let email_separator = "<br><hr><br>";
             let formatted_reply = reply_text.replace("FIX", "Fixed");
             let formatted_old = previous_email.replace('\n', "<br>");
             format!("{formatted_reply}{email_separator}{formatted_old}")
-        } else {
-            reply_text.to_string()
         };
 
         let draft_request = SaveDraftRequest {
@@ -61,7 +61,6 @@ async fn execute_create_draft(
         save_email_draft(&config.email, &draft_request)
             .await
             .map(|()| "Draft saved successfully".to_string())
-            .map_err(|e| e.to_string())
     }
 
     #[cfg(not(feature = "email"))]

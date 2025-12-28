@@ -20,7 +20,7 @@ impl DirectorySetup {
         self.admin_token = Some(token);
     }
 
-    pub async fn ensure_admin_token(&mut self) -> Result<()> {
+    pub fn ensure_admin_token(&mut self) -> Result<()> {
         if self.admin_token.is_none() {
             return Err(anyhow::anyhow!("Admin token must be configured"));
         }
@@ -119,7 +119,7 @@ impl DirectorySetup {
 
         self.wait_for_ready(30).await?;
 
-        self.ensure_admin_token().await?;
+        self.ensure_admin_token()?;
 
         let org = self.create_default_organization().await?;
         log::info!(" Created default organization: {}", org.name);
@@ -158,7 +158,7 @@ impl DirectorySetup {
     }
 
     pub async fn create_organization(&mut self, name: &str, description: &str) -> Result<String> {
-        self.ensure_admin_token().await?;
+        self.ensure_admin_token()?;
 
         let response = self
             .client
@@ -217,7 +217,7 @@ impl DirectorySetup {
         last_name: &str,
         is_admin: bool,
     ) -> Result<DefaultUser> {
-        self.ensure_admin_token().await?;
+        self.ensure_admin_token()?;
 
         let response = self
             .client
@@ -388,7 +388,7 @@ impl DirectorySetup {
         client_id: String,
         client_secret: String,
     ) -> Result<DirectoryConfig> {
-        self.ensure_admin_token().await?;
+        self.ensure_admin_token()?;
 
         let config = DirectoryConfig {
             base_url: self.base_url.clone(),

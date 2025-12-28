@@ -29,8 +29,8 @@ impl std::fmt::Debug for AuthService {
 }
 
 impl AuthService {
-    pub async fn new(config: ZitadelConfig) -> anyhow::Result<Self> {
-        let client = ZitadelClient::new(config).await?;
+    pub fn new(config: ZitadelConfig) -> anyhow::Result<Self> {
+        let client = ZitadelClient::new(config)?;
         Ok(Self {
             client: Arc::new(client),
         })

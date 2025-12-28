@@ -286,16 +286,19 @@ async fn execute_send_mail(
 
         let email_service = EmailService::new(Arc::new(state.clone()));
 
-        if let Ok(_) = email_service.send_email(
-            &to,
-            &subject,
-            &body,
-            if attachments.is_empty() {
-                None
-            } else {
-                Some(attachments.clone())
-            },
-        ) {
+        if email_service
+            .send_email(
+                &to,
+                &subject,
+                &body,
+                if attachments.is_empty() {
+                    None
+                } else {
+                    Some(attachments.clone())
+                },
+            )
+            .is_ok()
+        {
             trace!("Email sent successfully: {}", message_id);
             return Ok(format!("Email sent: {}", message_id));
         }

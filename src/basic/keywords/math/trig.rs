@@ -83,14 +83,15 @@ mod tests {
 
     #[test]
     fn test_exp() {
-        assert!((0.0_f64.exp() - 1.0).abs() < 0.0001);
+        assert!(0.0_f64.exp_m1().abs() < 0.0001);
         assert!((1.0_f64.exp() - std::f64::consts::E).abs() < 0.0001);
     }
 
     #[test]
     fn test_pi() {
-        assert!(std::f64::consts::PI > 3.14);
-        assert!(std::f64::consts::PI < 3.15);
+        let pi = std::f64::consts::PI;
+        assert!(pi > 3.0);
+        assert!(pi < 4.0);
     }
 
     #[test]

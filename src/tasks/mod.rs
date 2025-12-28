@@ -242,11 +242,9 @@ impl TaskEngine {
             completed_at: None,
         };
 
-        let mut cache = self.cache.write().await;
-        cache.push(task.clone());
-        drop(cache);
+        let created_task = self.create_task_with_db(task).await?;
 
-        Ok(task.into())
+        Ok(created_task.into())
     }
 
     pub async fn list_tasks(
@@ -609,10 +607,37 @@ impl TaskEngine {
         id: Uuid,
     ) -> Result<Task, Box<dyn std::error::Error + Send + Sync>> {
         let cache = self.cache.read().await;
-        let task =
-            cache.iter().find(|t| t.id == id).cloned().ok_or_else(|| {
-                Box::<dyn std::error::Error + Send + Sync>::from("Task not found")
+        if let Some(task) = cache.iter().find(|t| t.id == id).cloned() {
+            drop(cache);
+            return Ok(task);
+        }
+        drop(cache);
+
+        let conn = self._db.clone();
+        let task_id = id;
+
+        let task = tokio::task::spawn_blocking(move || {
+            use crate::shared::models::schema::tasks::dsl::*;
+            use diesel::prelude::*;
+
+            let mut db_conn = conn.get().map_err(|e| {
+                Box::<dyn std::error::Error + Send + Sync>::from(format!("DB error: {e}"))
             })?;
+
+            tasks
+                .filter(id.eq(task_id))
+                .first::<Task>(&mut db_conn)
+                .map_err(|e| {
+                    Box::<dyn std::error::Error + Send + Sync>::from(format!("Task not found: {e}"))
+                })
+        })
+        .await
+        .map_err(|e| {
+            Box::<dyn std::error::Error + Send + Sync>::from(format!("Task error: {e}"))
+        })??;
+
+        let mut cache = self.cache.write().await;
+        cache.push(task.clone());
         drop(cache);
 
         Ok(task)
@@ -678,7 +703,7 @@ impl TaskEngine {
                 ((task.actual_hours.unwrap_or(0.0) / task.estimated_hours.unwrap_or(1.0)) * 100.0)
                     as u8
             }
-            "todo" | "cancelled" => 0,
+            // "todo", "cancelled", and any other status default to 0
             _ => 0,
         })
     }
@@ -1051,7 +1076,8 @@ pub async fn handle_task_list(
             "blocked" => TaskStatus::Blocked,
             "completed" => TaskStatus::Completed,
             "cancelled" => TaskStatus::Cancelled,
-            "todo" | _ => TaskStatus::Todo,
+            // "todo" and any other status default to Todo
+            _ => TaskStatus::Todo,
         };
         state
             .task_engine
@@ -1181,11 +1207,12 @@ pub fn configure_task_routes() -> Router<Arc<AppState>> {
             ApiUrls::TASKS,
             post(handle_task_create).get(handle_task_list_htmx),
         )
-        .route("/api/tasks/stats", get(handle_task_stats))
+        .route("/api/tasks/stats", get(handle_task_stats_htmx))
+        .route("/api/tasks/stats/json", get(handle_task_stats))
         .route("/api/tasks/completed", delete(handle_clear_completed))
         .route(
             &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
-            put(handle_task_update),
+            get(handle_task_get).put(handle_task_update),
         )
         .route(
             &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
@@ -1243,13 +1270,13 @@ pub async fn handle_task_list_htmx(
             .map_err(|e| format!("DB connection error: {}", e))?;
 
         let mut query = String::from(
-            "SELECT id, title, completed, priority, category, due_date FROM tasks WHERE 1=1",
+            "SELECT id, title, status, priority, description, due_date FROM tasks WHERE 1=1",
         );
 
         match filter_clone.as_str() {
-            "active" => query.push_str(" AND completed = false"),
-            "completed" => query.push_str(" AND completed = true"),
-            "priority" => query.push_str(" AND priority = true"),
+            "active" => query.push_str(" AND status NOT IN ('done', 'completed', 'cancelled')"),
+            "completed" => query.push_str(" AND status IN ('done', 'completed')"),
+            "priority" => query.push_str(" AND priority IN ('high', 'urgent')"),
             _ => {}
         }
 
@@ -1269,15 +1296,16 @@ pub async fn handle_task_list_htmx(
     let mut html = String::new();
 
     for task in tasks {
-        let completed_class = if task.completed { "completed" } else { "" };
-        let priority_class = if task.priority { "active" } else { "" };
-        let checked = if task.completed { "checked" } else { "" };
+        let is_completed = task.status == "done" || task.status == "completed";
+        let is_high_priority = task.priority == "high" || task.priority == "urgent";
+        let completed_class = if is_completed { "completed" } else { "" };
+        let priority_class = if is_high_priority { "active" } else { "" };
+        let checked = if is_completed { "checked" } else { "" };
 
-        let category_html = if let Some(cat) = &task.category {
-            format!(r#"<span class="task-category">{cat}</span>"#)
-        } else {
-            String::new()
-        };
+        let status_html = format!(
+            r#"<span class="task-status task-status-{}">{}</span>"#,
+            task.status, task.status
+        );
         let due_date_html = if let Some(due) = &task.due_date {
             format!(
                 r#"<span class="task-due-date"> {}</span>"#,
@@ -1289,16 +1317,18 @@ pub async fn handle_task_list_htmx(
         let _ = write!(
             html,
             r#"
-            <div class="task-item {completed_class}">
+            <div class="task-item {completed_class}" data-task-id="{}" onclick="selectTask('{}')">
                 <input type="checkbox"
                        class="task-checkbox"
                        data-task-id="{}"
-                       {checked}>
+                       {checked}
+                       onclick="event.stopPropagation()">
                 <div class="task-content">
                     <div class="task-text-wrapper">
                         <span class="task-text">{}</span>
                         <div class="task-meta">
-                            {category_html}
+                            {status_html}
+                            <span class="task-priority task-priority-{}">{}</span>
                             {due_date_html}
                         </div>
                     </div>
@@ -1322,7 +1352,15 @@ pub async fn handle_task_list_htmx(
                 </div>
             </div>
             "#,
-            task.id, task.title, task.id, task.id, task.id
+            task.id,
+            task.id,
+            task.id,
+            task.title,
+            task.priority,
+            task.priority,
+            task.id,
+            task.id,
+            task.id
         );
     }
 
@@ -1350,6 +1388,70 @@ pub async fn handle_task_list_htmx(
     axum::response::Html(html)
 }
 
+pub async fn handle_task_stats_htmx(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let conn = state.conn.clone();
+
+    let stats = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
+
+        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks")
+            .get_result::<CountResult>(&mut db_conn)
+            .map(|r| r.count)
+            .unwrap_or(0);
+
+        let active: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done', 'completed', 'cancelled')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let completed: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status IN ('done', 'completed')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let priority: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority IN ('high', 'urgent')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        Ok::<_, String>(TaskStats {
+            total: total as usize,
+            active: active as usize,
+            completed: completed as usize,
+            priority: priority as usize,
+        })
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::error!("Stats query failed: {}", e);
+        Err(format!("Stats query failed: {}", e))
+    })
+    .unwrap_or(TaskStats {
+        total: 0,
+        active: 0,
+        completed: 0,
+        priority: 0,
+    });
+
+    let html = format!(
+        "{} tasks
+        <script>
+            document.getElementById('count-all').textContent = '{}';
+            document.getElementById('count-active').textContent = '{}';
+            document.getElementById('count-completed').textContent = '{}';
+            document.getElementById('count-priority').textContent = '{}';
+        </script>",
+        stats.total, stats.total, stats.active, stats.completed, stats.priority
+    );
+
+    axum::response::Html(html)
+}
+
 pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskStats> {
     let conn = state.conn.clone();
 
@@ -1364,19 +1466,19 @@ pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskS
             .unwrap_or(0);
 
         let active: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = false")
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done', 'completed', 'cancelled')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let completed: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE completed = true")
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status IN ('done', 'completed')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let priority: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority = true")
+            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority IN ('high', 'urgent')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
@@ -1411,7 +1513,7 @@ pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl 
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query("DELETE FROM tasks WHERE completed = true")
+        diesel::sql_query("DELETE FROM tasks WHERE status IN ('done', 'completed')")
             .execute(&mut db_conn)
             .map_err(|e| format!("Delete failed: {}", e))?;
 
@@ -1516,12 +1618,13 @@ struct TaskRow {
     pub id: Uuid,
     #[diesel(sql_type = diesel::sql_types::Text)]
     pub title: String,
-    #[diesel(sql_type = diesel::sql_types::Bool)]
-    pub completed: bool,
-    #[diesel(sql_type = diesel::sql_types::Bool)]
-    pub priority: bool,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub status: String,
+    #[diesel(sql_type = diesel::sql_types::Text)]
+    pub priority: String,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
-    pub category: Option<String>,
+    #[allow(dead_code)]
+    pub description: Option<String>,
     #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
     pub due_date: Option<chrono::DateTime<chrono::Utc>>,
 }

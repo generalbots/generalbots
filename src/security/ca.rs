@@ -539,12 +539,14 @@ mod tests {
     #[test]
     fn test_ca_manager_creation() {
         let temp_dir = TempDir::new().unwrap();
-        let mut config = CaConfig::default();
-        config.ca_cert_path = temp_dir.path().join("ca.crt");
-        config.ca_key_path = temp_dir.path().join("ca.key");
-        config.intermediate_cert_path = Some(temp_dir.path().join("intermediate.crt"));
-        config.intermediate_key_path = Some(temp_dir.path().join("intermediate.key"));
-        config.crl_path = Some(temp_dir.path().join("crl.pem"));
+        let config = CaConfig {
+            ca_cert_path: temp_dir.path().join("ca.crt"),
+            ca_key_path: temp_dir.path().join("ca.key"),
+            intermediate_cert_path: Some(temp_dir.path().join("intermediate.crt")),
+            intermediate_key_path: Some(temp_dir.path().join("intermediate.key")),
+            crl_path: Some(temp_dir.path().join("crl.pem")),
+            ..CaConfig::default()
+        };
 
         let manager = CaManager::new(config);
         assert!(manager.is_ok());
@@ -582,10 +584,12 @@ mod tests {
 
     #[test]
     fn test_ca_config_external_ca() {
-        let mut config = CaConfig::default();
-        config.external_ca_enabled = true;
-        config.external_ca_url = Some("https://ca.example.com".to_string());
-        config.external_ca_api_key = Some("secret-key".to_string());
+        let config = CaConfig {
+            external_ca_enabled: true,
+            external_ca_url: Some("https://ca.example.com".to_string()),
+            external_ca_api_key: Some("secret-key".to_string()),
+            ..CaConfig::default()
+        };
 
         assert!(config.external_ca_enabled);
         assert_eq!(

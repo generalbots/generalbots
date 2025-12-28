@@ -103,7 +103,7 @@ impl ScanStats {
         self.total += 1;
     }
 
-    pub fn merge(&mut self, other: &ScanStats) {
+    pub fn merge(&mut self, other: &Self) {
         self.critical += other.critical;
         self.high += other.high;
         self.medium += other.medium;

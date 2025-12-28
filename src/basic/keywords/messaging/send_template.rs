@@ -263,7 +263,7 @@ fn send_template_message(
         "whatsapp" | "sms" => {
             recipient.starts_with('+') || recipient.chars().all(|c| c.is_numeric())
         }
-        "telegram" | "push" => !recipient.is_empty(),
+        // "telegram", "push", and all other channels just require non-empty recipient
         _ => !recipient.is_empty(),
     };
 
@@ -473,9 +473,10 @@ mod tests {
 
     #[test]
     fn test_send_template_batch() {
-        let mut recipients = Array::new();
-        recipients.push(Dynamic::from("user1@example.com"));
-        recipients.push(Dynamic::from("user2@example.com"));
+        let recipients: Array = vec![
+            Dynamic::from("user1@example.com"),
+            Dynamic::from("user2@example.com"),
+        ];
 
         let result = send_template_batch("welcome", &recipients, "email", None);
         assert_eq!(result.get("total").unwrap().as_int().unwrap(), 2);

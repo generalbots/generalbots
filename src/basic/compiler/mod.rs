@@ -228,12 +228,12 @@ impl BasicCompiler {
     }
     fn normalize_type(basic_type: &str) -> String {
         match basic_type.to_lowercase().as_str() {
-            "string" | "text" | "date" | "datetime" => "string".to_string(),
             "integer" | "int" | "number" => "integer".to_string(),
             "float" | "double" | "decimal" => "number".to_string(),
             "boolean" | "bool" => "boolean".to_string(),
             "array" | "list" => "array".to_string(),
             "object" | "map" => "object".to_string(),
+            // "string", "text", "date", "datetime", and any other type default to string
             _ => "string".to_string(),
         }
     }

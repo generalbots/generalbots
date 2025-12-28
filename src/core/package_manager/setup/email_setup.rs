@@ -96,11 +96,11 @@ impl EmailSetup {
 
         self.wait_for_ready(30).await?;
 
-        self.create_default_domain().await?;
+        self.create_default_domain()?;
         log::info!(" Created default email domain: localhost");
 
         let directory_integration = if let Some(dir_config_path) = directory_config_path {
-            match self.setup_directory_integration(&dir_config_path).await {
+            match self.setup_directory_integration(&dir_config_path) {
                 Ok(_) => {
                     log::info!(" Integrated with Directory for authentication");
                     true
@@ -139,7 +139,8 @@ impl EmailSetup {
         Ok(config)
     }
 
-    async fn create_default_domain(&self) -> Result<()> {
+    fn create_default_domain(&self) -> Result<()> {
+        let _ = self;
         Ok(())
     }
 
@@ -195,8 +196,9 @@ impl EmailSetup {
         Ok(())
     }
 
-    async fn setup_directory_integration(&self, directory_config_path: &PathBuf) -> Result<()> {
-        let content = fs::read_to_string(directory_config_path).await?;
+    fn setup_directory_integration(&self, directory_config_path: &PathBuf) -> Result<()> {
+        let _ = self;
+        let content = std::fs::read_to_string(directory_config_path)?;
         let dir_config: serde_json::Value = serde_json::from_str(&content)?;
 
         let issuer_url = dir_config["base_url"]
@@ -225,12 +227,8 @@ impl EmailSetup {
         self.load_existing_config().await
     }
 
-    pub async fn create_user_mailbox(
-        &self,
-        _username: &str,
-        _password: &str,
-        email: &str,
-    ) -> Result<()> {
+    pub fn create_user_mailbox(&self, _username: &str, _password: &str, email: &str) -> Result<()> {
+        let _ = self;
         log::info!("Creating mailbox for user: {}", email);
 
         Ok(())
@@ -248,7 +246,7 @@ impl EmailSetup {
             let username = default_user["username"].as_str().unwrap_or("");
 
             if !email.is_empty() {
-                self.create_user_mailbox(username, password, email).await?;
+                self.create_user_mailbox(username, password, email)?;
                 log::info!(" Created mailbox for: {}", email);
             }
         }
