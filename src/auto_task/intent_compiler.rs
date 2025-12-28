@@ -664,131 +664,16 @@ Respond ONLY with valid JSON."#,
     }
 
     fn generate_step_code(step: &PlanStep) -> String {
+        if !step.basic_code.is_empty() {
+            return step.basic_code.clone();
+        }
+
         let mut code = String::new();
-
-        if step.requires_approval {
-            let _ = writeln!(
-                code,
-                "REQUIRE_APPROVAL \"step-{}\", \"{}\"",
-                step.order, step.description
-            );
-            let _ = writeln!(code, "IF NOT approved THEN");
-            let _ = writeln!(
-                code,
-                "  TALK \"Step {} was not approved, skipping...\"",
-                step.order
-            );
-            let _ = writeln!(code, "  GOTO step_{}_end", step.order);
-            let _ = writeln!(code, "END IF\n");
-        }
-
-        if matches!(step.risk_level, RiskLevel::High | RiskLevel::Critical) {
-            let _ = writeln!(
-                code,
-                "simulation_result = SIMULATE_IMPACT \"step-{}\"",
-                step.order
-            );
-            let _ = writeln!(code, "IF simulation_result.risk_score > 0.7 THEN");
-            let _ = writeln!(
-                code,
-                "  TALK \"High risk detected in step {}, requesting manual review...\"",
-                step.order
-            );
-            let _ = writeln!(
-                code,
-                "  REQUIRE_APPROVAL \"high-risk-override\", simulation_result.summary"
-            );
-            let _ = writeln!(code, "END IF\n");
-        }
-
         let _ = writeln!(
             code,
-            "AUDIT_LOG \"step-start\", \"step-{}\", \"{}\"",
+            "TALK \"Executing step {}: {}\"",
             step.order, step.name
         );
-
-        for keyword in &step.keywords {
-            match keyword.to_uppercase().as_str() {
-                "CREATE_TASK" => {
-                    let _ = writeln!(
-                        code,
-                        "task_{} = CREATE_TASK \"{}\", \"auto\", \"+1 day\", null",
-                        step.order, step.name
-                    );
-                }
-                "LLM" => {
-                    let _ = writeln!(
-                        code,
-                        "llm_result_{} = LLM \"{}\"",
-                        step.order, step.description
-                    );
-                }
-                "RUN_PYTHON" => {
-                    let _ = writeln!(
-                        code,
-                        "python_result_{} = RUN_PYTHON \"# {}\nprint('Step {} executed')\"",
-                        step.order, step.description, step.order
-                    );
-                }
-                "RUN_JAVASCRIPT" => {
-                    let _ = writeln!(
-                        code,
-                        "js_result_{} = RUN_JAVASCRIPT \"console.log('Step {} executed');\"",
-                        step.order, step.order
-                    );
-                }
-                "GET" => {
-                    let _ = writeln!(code, "data_{} = GET \"{}_data\"", step.order, step.id);
-                }
-                "SET" => {
-                    let _ = writeln!(code, "SET step_{}_complete = true", step.order);
-                }
-                "SAVE" => {
-                    let _ = writeln!(code, "SAVE step_{}_result TO \"results\"", step.order);
-                }
-                "POST" | "PUT" | "PATCH" | "DELETE HTTP" => {
-                    for api_call in &step.api_calls {
-                        let _ = writeln!(
-                            code,
-                            "{keyword} \"{}\" INTO api_result_{}",
-                            api_call.url_template, step.order
-                        );
-                    }
-                }
-                "USE_MCP" => {
-                    for mcp_server in &step.mcp_servers {
-                        let _ = writeln!(
-                            code,
-                            "mcp_result_{} = USE_MCP \"{}\", \"{}\"",
-                            step.order, mcp_server, step.description
-                        );
-                    }
-                }
-                "SEND_MAIL" => {
-                    let _ = writeln!(
-                        code,
-                        "SEND_MAIL \"status@bot.local\", \"Step {} Complete\", \"{}\"",
-                        step.order, step.description
-                    );
-                }
-                _ => {
-                    let _ = writeln!(code, "' Using keyword: {keyword}");
-                }
-            }
-        }
-
-        for output in &step.outputs {
-            let _ = writeln!(code, "SET output_{output} = result_{}", step.order);
-        }
-
-        let _ = writeln!(
-            code,
-            "AUDIT_LOG \"step-end\", \"step-{}\", \"complete\"",
-            step.order
-        );
-
-        let _ = writeln!(code, "step_{}_end:\n", step.order);
-
         code
     }
 
