@@ -119,11 +119,8 @@ impl AppGenerator {
         let pages = self.generate_htmx_pages(&structure)?;
         trace!("Generated {} pages", pages.len());
 
-        // Get bot name for S3 bucket
         let bot_name = self.get_bot_name(session.bot_id)?;
         let bucket_name = format!("{}.gbai", bot_name.to_lowercase());
-
-        // Write to S3 drive: {bucket}/.gbdrive/apps/{app_name}/
         let drive_app_path = format!(".gbdrive/apps/{}", structure.name);
 
         for page in &pages {
@@ -131,6 +128,14 @@ impl AppGenerator {
             self.write_to_drive(&bucket_name, &drive_path, &page.content)
                 .await?;
         }
+
+        let designer_js = self.generate_designer_js();
+        self.write_to_drive(
+            &bucket_name,
+            &format!("{}/designer.js", drive_app_path),
+            &designer_js,
+        )
+        .await?;
 
         let css_content = self.generate_app_css();
         self.write_to_drive(
@@ -140,7 +145,6 @@ impl AppGenerator {
         )
         .await?;
 
-        // Tools go to {bucket}/.gbdialog/tools/
         let tools = self.generate_tools(&structure)?;
         for tool in &tools {
             let tool_path = format!(".gbdialog/tools/{}", tool.filename);
@@ -148,7 +152,6 @@ impl AppGenerator {
                 .await?;
         }
 
-        // Schedulers go to {bucket}/.gbdialog/schedulers/
         let schedulers = self.generate_schedulers(&structure)?;
         for scheduler in &schedulers {
             let scheduler_path = format!(".gbdialog/schedulers/{}", scheduler.filename);
@@ -156,7 +159,6 @@ impl AppGenerator {
                 .await?;
         }
 
-        // Sync app to SITE_ROOT for serving
         self.sync_app_to_site_root(&bucket_name, &structure.name, session.bot_id)
             .await?;
 
@@ -177,40 +179,130 @@ impl AppGenerator {
         })
     }
 
-    /// Use LLM to analyze app requirements and generate structure
+    fn get_platform_capabilities_prompt(&self) -> &'static str {
+        r##"
+GENERAL BOTS APP GENERATOR - PLATFORM CAPABILITIES
+
+AVAILABLE REST APIs:
+
+DATABASE API (/api/db/):
+- GET /api/db/TABLE - List records (query: limit, offset, order_by, order_dir, search, field=value)
+- GET /api/db/TABLE/ID - Get single record
+- GET /api/db/TABLE/count - Get record count
+- POST /api/db/TABLE - Create record (JSON body)
+- PUT /api/db/TABLE/ID - Update record (JSON body)
+- DELETE /api/db/TABLE/ID - Delete record
+
+FILE STORAGE API (/api/drive/):
+- GET /api/drive/list?path=/folder - List files
+- GET /api/drive/download?path=/file.ext - Download file
+- POST /api/drive/upload - Upload (multipart: file, path)
+- DELETE /api/drive/delete?path=/file.ext - Delete file
+
+AUTOTASK API (/api/autotask/):
+- POST /api/autotask/create - Create task {"intent": "..."}
+- GET /api/autotask/list - List tasks
+- GET /api/autotask/stats - Get statistics
+- GET /api/autotask/pending - Get pending items
+
+DESIGNER API (/api/designer/):
+- POST /api/designer/modify - AI modify app {"app_name", "current_page", "message"}
+
+COMMUNICATION APIs:
+- POST /api/mail/send - {"to", "subject", "body"}
+- POST /api/whatsapp/send - {"to": "+123...", "message"}
+- POST /api/llm/generate - {"prompt", "max_tokens"}
+- POST /api/llm/image - {"prompt", "size"}
+
+HTMX ATTRIBUTES:
+- hx-get, hx-post, hx-put, hx-delete - HTTP methods
+- hx-target="#id" - Where to put response
+- hx-swap="innerHTML|outerHTML|beforeend|delete" - How to insert
+- hx-trigger="click|submit|load|every 5s|keyup changed delay:300ms" - When to fire
+- hx-indicator="#spinner" - Loading indicator
+- hx-confirm="Are you sure?" - Confirmation dialog
+
+BASIC AUTOMATION (.bas files):
+
+Tools (.gbdialog/tools/*.bas):
+HEAR "phrase1", "phrase2"
+    result = GET FROM "table"
+    TALK "Response: " + result
+END HEAR
+
+Schedulers (.gbdialog/schedulers/*.bas):
+SET SCHEDULE "0 9 * * *"
+    data = GET FROM "reports"
+    SEND MAIL TO "email" WITH SUBJECT "Daily" BODY data
+END SCHEDULE
+
+BASIC KEYWORDS:
+- TALK "message" - Send message
+- ASK "question" - Get user input
+- GET FROM "table" WHERE field=val - Query database
+- SAVE TO "table" WITH field1, field2 - Insert record
+- SEND MAIL TO "x" WITH SUBJECT "y" BODY "z"
+- result = LLM "prompt" - AI text generation
+- image = GENERATE IMAGE "prompt" - AI image generation
+
+REQUIRED HTML HEAD (all pages must include):
+- link rel="stylesheet" href="styles.css"
+- script src="/js/vendor/htmx.min.js"
+- script src="designer.js" defer
+
+FIELD TYPES: guid, string, text, integer, decimal, boolean, date, datetime, json
+
+RULES:
+1. Always use HTMX for API calls - NO fetch() in HTML
+2. Include designer.js in ALL pages
+3. Make it beautiful and fully functional
+4. Tables are optional - simple apps (calculator, timer) dont need them
+"##
+    }
+
     async fn analyze_app_requirements_with_llm(
         &self,
         intent: &str,
     ) -> Result<AppStructure, Box<dyn std::error::Error + Send + Sync>> {
+        let capabilities = self.get_platform_capabilities_prompt();
+
         let prompt = format!(
-            r#"Analyze this user request and design an application structure.
+            r#"You are an expert app generator for General Bots platform.
 
-User Request: "{intent}"
+{capabilities}
 
-Generate a JSON response with the application structure:
+USER REQUEST: "{intent}"
+
+Generate a complete application. For simple apps (calculator, timer, game), you can use empty tables array.
+For data apps (CRM, inventory), design appropriate tables.
+
+Respond with JSON:
 {{
-    "name": "short_app_name (lowercase, no spaces)",
-    "description": "Brief description of the app",
-    "domain": "industry domain (healthcare, sales, inventory, booking, etc.)",
+    "name": "app-name-lowercase-dashes",
+    "description": "What this app does",
+    "domain": "custom|healthcare|sales|inventory|booking|etc",
     "tables": [
         {{
             "name": "table_name",
             "fields": [
-                {{"name": "field_name", "type": "string|integer|decimal|boolean|date|datetime|text|guid", "nullable": true/false, "reference": "other_table or null"}}
+                {{"name": "id", "type": "guid", "nullable": false}},
+                {{"name": "field_name", "type": "string|integer|decimal|boolean|date|datetime|text", "nullable": true, "reference": "other_table or null"}}
             ]
         }}
     ],
-    "features": ["crud", "search", "dashboard", "reports", "etc"]
+    "features": ["list of features"],
+    "custom_html": "OPTIONAL: For non-CRUD apps like calculators, provide complete HTML here",
+    "custom_css": "OPTIONAL: Custom CSS styles",
+    "custom_js": "OPTIONAL: Custom JavaScript"
 }}
 
-Guidelines:
-- Every table should have id (guid), created_at (datetime), updated_at (datetime)
-- Use snake_case for table and field names
-- Include relationships between tables using _id suffix fields
-- Design 2-5 tables based on the request complexity
-- Include relevant fields for the domain
+IMPORTANT:
+- For simple tools (calculator, converter, timer): use custom_html/css/js, tables can be empty []
+- For data apps (CRM, booking): design tables, custom_* fields are optional
+- Always include id, created_at, updated_at in tables
+- Make it beautiful and fully functional
 
-Respond ONLY with valid JSON."#
+Respond with valid JSON only."#
         );
 
         let response = self.call_llm(&prompt).await?;
@@ -1002,6 +1094,7 @@ Respond ONLY with valid JSON."#
         let _ = writeln!(html, "    <title>{}</title>", structure.name);
         let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
         let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
+        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
         let _ = writeln!(html, "</head>");
         let _ = writeln!(html, "<body>");
         let _ = writeln!(html, "    <header class=\"app-header\">");
@@ -1048,6 +1141,7 @@ Respond ONLY with valid JSON."#
         let _ = writeln!(html, "    <title>{table_name} - List</title>");
         let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
         let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
+        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
         let _ = writeln!(html, "</head>");
         let _ = writeln!(html, "<body>");
         let _ = writeln!(html, "    <header class=\"page-header\">");
@@ -1103,10 +1197,11 @@ Respond ONLY with valid JSON."#
         let _ = writeln!(html, "    <title>{table_name} - Form</title>");
         let _ = writeln!(html, "    <link rel=\"stylesheet\" href=\"styles.css\">");
         let _ = writeln!(html, "    <script src=\"/js/vendor/htmx.min.js\"></script>");
+        let _ = writeln!(html, "    <script src=\"designer.js\" defer></script>");
         let _ = writeln!(html, "</head>");
         let _ = writeln!(html, "<body>");
         let _ = writeln!(html, "    <header class=\"page-header\">");
-        let _ = writeln!(html, "        <h1>Add {table_name}</h1>");
+        let _ = writeln!(html, "        <h1>New {table_name}</h1>");
         let _ = writeln!(
             html,
             "        <a href=\"{table_name}.html\" class=\"btn\">Back to List</a>"
@@ -1201,7 +1296,6 @@ input[type="search"] { width: 100%; max-width: 300px; padding: 0.5rem; border: 1
         &self,
         _structure: &AppStructure,
     ) -> Result<Vec<GeneratedScript>, Box<dyn std::error::Error + Send + Sync>> {
-        // LLM generates actual tool content based on app requirements
         Ok(Vec::new())
     }
 
@@ -1209,11 +1303,92 @@ input[type="search"] { width: 100%; max-width: 300px; padding: 0.5rem; border: 1
         &self,
         _structure: &AppStructure,
     ) -> Result<Vec<GeneratedScript>, Box<dyn std::error::Error + Send + Sync>> {
-        // LLM generates actual scheduler content based on app requirements
         Ok(Vec::new())
     }
 
-    /// Get site path from config
+    fn generate_designer_js(&self) -> String {
+        r#"(function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .designer-btn { position: fixed; bottom: 20px; right: 20px; width: 56px; height: 56px; border-radius: 50%; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(102,126,234,0.4); font-size: 24px; z-index: 9999; transition: transform 0.2s, box-shadow 0.2s; }
+        .designer-btn:hover { transform: scale(1.1); box-shadow: 0 6px 30px rgba(102,126,234,0.6); }
+        .designer-panel { position: fixed; bottom: 90px; right: 20px; width: 380px; max-height: 500px; background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); z-index: 9998; display: none; flex-direction: column; overflow: hidden; }
+        .designer-panel.open { display: flex; }
+        .designer-header { padding: 16px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+        .designer-close { background: none; border: none; color: white; font-size: 20px; cursor: pointer; }
+        .designer-messages { flex: 1; overflow-y: auto; padding: 16px; max-height: 300px; }
+        .designer-msg { margin: 8px 0; padding: 10px 14px; border-radius: 12px; max-width: 85%; }
+        .designer-msg.user { background: #667eea; color: white; margin-left: auto; }
+        .designer-msg.ai { background: #f0f0f0; color: #333; }
+        .designer-input { display: flex; padding: 12px; border-top: 1px solid #eee; gap: 8px; }
+        .designer-input input { flex: 1; padding: 10px 14px; border: 1px solid #ddd; border-radius: 20px; outline: none; }
+        .designer-input button { padding: 10px 16px; background: #667eea; color: white; border: none; border-radius: 20px; cursor: pointer; }
+    `;
+    document.head.appendChild(style);
+
+    const btn = document.createElement('button');
+    btn.className = 'designer-btn';
+    btn.innerHTML = '🎨';
+    btn.title = 'Designer AI';
+    document.body.appendChild(btn);
+
+    const panel = document.createElement('div');
+    panel.className = 'designer-panel';
+    panel.innerHTML = `
+        <div class="designer-header">
+            <span>🎨 Designer AI</span>
+            <button class="designer-close">×</button>
+        </div>
+        <div class="designer-messages">
+            <div class="designer-msg ai">Hi! I can help you modify this app. What would you like to change?</div>
+        </div>
+        <div class="designer-input">
+            <input type="text" placeholder="e.g., Make the header blue..." />
+            <button>Send</button>
+        </div>
+    `;
+    document.body.appendChild(panel);
+
+    btn.onclick = () => panel.classList.toggle('open');
+    panel.querySelector('.designer-close').onclick = () => panel.classList.remove('open');
+
+    const input = panel.querySelector('input');
+    const sendBtn = panel.querySelector('.designer-input button');
+    const messages = panel.querySelector('.designer-messages');
+
+    const appName = window.location.pathname.split('/')[2] || 'app';
+    const currentPage = window.location.pathname.split('/').pop() || 'index.html';
+
+    async function sendMessage() {
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        messages.innerHTML += `<div class="designer-msg user">${msg}</div>`;
+        input.value = '';
+        messages.scrollTop = messages.scrollHeight;
+
+        try {
+            const res = await fetch('/api/designer/modify', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ app_name: appName, current_page: currentPage, message: msg })
+            });
+            const data = await res.json();
+            messages.innerHTML += `<div class="designer-msg ai">${data.message || 'Done!'}</div>`;
+            if (data.success && data.changes && data.changes.length > 0) {
+                setTimeout(() => location.reload(), 1000);
+            }
+        } catch (e) {
+            messages.innerHTML += `<div class="designer-msg ai">Sorry, something went wrong. Try again.</div>`;
+        }
+        messages.scrollTop = messages.scrollHeight;
+    }
+
+    sendBtn.onclick = sendMessage;
+    input.onkeypress = (e) => { if (e.key === 'Enter') sendMessage(); };
+})();"#.to_string()
+    }
+
     fn get_site_path(&self) -> String {
         self.state
             .config

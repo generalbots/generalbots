@@ -77,6 +77,7 @@ pub fn configure_designer_routes() -> Router<Arc<AppState>> {
             get(handle_list_dialogs).post(handle_create_dialog),
         )
         .route("/api/designer/dialogs/{id}", get(handle_get_dialog))
+        .route("/api/designer/modify", post(handle_designer_modify))
 }
 
 pub async fn handle_list_files(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -741,4 +742,366 @@ fn html_escape(s: &str) -> String {
         .replace('>', "&gt;")
         .replace('"', "&quot;")
         .replace('\'', "&#39;")
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DesignerModifyRequest {
+    pub app_name: String,
+    pub current_page: Option<String>,
+    pub message: String,
+    pub context: Option<DesignerContext>,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct DesignerContext {
+    pub page_html: Option<String>,
+    pub tables: Option<Vec<String>>,
+    pub recent_changes: Option<Vec<String>>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DesignerModifyResponse {
+    pub success: bool,
+    pub message: String,
+    pub changes: Vec<DesignerChange>,
+    pub suggestions: Vec<String>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize)]
+pub struct DesignerChange {
+    pub change_type: String,
+    pub file_path: String,
+    pub description: String,
+    pub preview: Option<String>,
+}
+
+pub async fn handle_designer_modify(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<DesignerModifyRequest>,
+) -> impl IntoResponse {
+    let app = &request.app_name;
+    let msg_preview = &request.message[..request.message.len().min(100)];
+    log::info!("Designer modify request for app '{app}': {msg_preview}");
+
+    let session = match get_designer_session(&state) {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                axum::http::StatusCode::UNAUTHORIZED,
+                Json(DesignerModifyResponse {
+                    success: false,
+                    message: "Authentication required".to_string(),
+                    changes: Vec::new(),
+                    suggestions: Vec::new(),
+                    error: Some(e.to_string()),
+                }),
+            );
+        }
+    };
+
+    match process_designer_modification(&state, &request, &session).await {
+        Ok(response) => (axum::http::StatusCode::OK, Json(response)),
+        Err(e) => {
+            log::error!("Designer modification failed: {e}");
+            (
+                axum::http::StatusCode::INTERNAL_SERVER_ERROR,
+                Json(DesignerModifyResponse {
+                    success: false,
+                    message: "Failed to process modification".to_string(),
+                    changes: Vec::new(),
+                    suggestions: Vec::new(),
+                    error: Some(e.to_string()),
+                }),
+            )
+        }
+    }
+}
+
+fn get_designer_session(
+    state: &AppState,
+) -> Result<crate::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
+    use crate::shared::models::schema::bots::dsl::*;
+    use crate::shared::models::UserSession;
+
+    let mut conn = state.conn.get()?;
+
+    let bot_result: Result<(Uuid, String), _> = bots.select((id, name)).first(&mut conn);
+
+    match bot_result {
+        Ok((bot_id_val, _bot_name_val)) => Ok(UserSession {
+            id: Uuid::new_v4(),
+            user_id: Uuid::nil(),
+            bot_id: bot_id_val,
+            title: "designer".to_string(),
+            context_data: serde_json::json!({}),
+            current_tool: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        }),
+        Err(_) => Err("No bot found for designer session".into()),
+    }
+}
+
+async fn process_designer_modification(
+    state: &AppState,
+    request: &DesignerModifyRequest,
+    session: &crate::shared::models::UserSession,
+) -> Result<DesignerModifyResponse, Box<dyn std::error::Error + Send + Sync>> {
+    let prompt = build_designer_prompt(request);
+    let llm_response = call_designer_llm(state, &prompt).await?;
+    let (changes, message, suggestions) =
+        parse_and_apply_changes(state, request, &llm_response, session).await?;
+
+    Ok(DesignerModifyResponse {
+        success: true,
+        message,
+        changes,
+        suggestions,
+        error: None,
+    })
+}
+
+fn build_designer_prompt(request: &DesignerModifyRequest) -> String {
+    let context_info = request
+        .context
+        .as_ref()
+        .map(|ctx| {
+            let mut info = String::new();
+            if let Some(ref html) = ctx.page_html {
+                info.push_str(&format!(
+                    "\nCurrent page HTML (first 500 chars):\n{}\n",
+                    &html[..html.len().min(500)]
+                ));
+            }
+            if let Some(ref tables) = ctx.tables {
+                info.push_str(&format!("\nAvailable tables: {}\n", tables.join(", ")));
+            }
+            info
+        })
+        .unwrap_or_default();
+
+    format!(
+        r#"You are a Designer AI assistant helping modify an HTMX-based application.
+
+App Name: {}
+Current Page: {}
+{}
+User Request: "{}"
+
+Analyze the request and respond with JSON describing the changes needed:
+{{
+    "understanding": "brief description of what user wants",
+    "changes": [
+        {{
+            "type": "modify_html|add_field|remove_field|add_table|modify_style|add_page",
+            "file": "filename.html or styles.css",
+            "description": "what this change does",
+            "code": "the new/modified code snippet"
+        }}
+    ],
+    "message": "friendly response to user explaining what was done",
+    "suggestions": ["optional follow-up suggestions"]
+}}
+
+Guidelines:
+- Use HTMX attributes (hx-get, hx-post, hx-target, hx-swap, hx-trigger)
+- Keep styling minimal and consistent
+- API endpoints follow pattern: /api/db/{{table_name}}
+- Forms should use hx-post for submissions
+- Lists should use hx-get with pagination
+
+Respond with valid JSON only."#,
+        request.app_name,
+        request.current_page.as_deref().unwrap_or("index.html"),
+        context_info,
+        request.message
+    )
+}
+
+async fn call_designer_llm(
+    _state: &AppState,
+    prompt: &str,
+) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+    let llm_url = std::env::var("LLM_URL").unwrap_or_else(|_| "http://localhost:11434".to_string());
+    let llm_model = std::env::var("LLM_MODEL").unwrap_or_else(|_| "llama3.2".to_string());
+
+    let client = reqwest::Client::new();
+
+    let response = client
+        .post(format!("{}/api/generate", llm_url))
+        .json(&serde_json::json!({
+            "model": llm_model,
+            "prompt": prompt,
+            "stream": false,
+            "options": {
+                "temperature": 0.3,
+                "num_predict": 2000
+            }
+        }))
+        .send()
+        .await?;
+
+    if !response.status().is_success() {
+        let status = response.status();
+        return Err(format!("LLM request failed: {status}").into());
+    }
+
+    let result: serde_json::Value = response.json().await?;
+    let response_text = result["response"].as_str().unwrap_or("{}").to_string();
+
+    let json_text = if response_text.contains("```json") {
+        response_text
+            .split("```json")
+            .nth(1)
+            .and_then(|s| s.split("```").next())
+            .unwrap_or(&response_text)
+            .trim()
+            .to_string()
+    } else if response_text.contains("```") {
+        response_text
+            .split("```")
+            .nth(1)
+            .unwrap_or(&response_text)
+            .trim()
+            .to_string()
+    } else {
+        response_text
+    };
+
+    Ok(json_text)
+}
+
+async fn parse_and_apply_changes(
+    state: &AppState,
+    request: &DesignerModifyRequest,
+    llm_response: &str,
+    session: &crate::shared::models::UserSession,
+) -> Result<(Vec<DesignerChange>, String, Vec<String>), Box<dyn std::error::Error + Send + Sync>> {
+    #[derive(Deserialize)]
+    struct LlmChangeResponse {
+        understanding: Option<String>,
+        changes: Option<Vec<LlmChange>>,
+        message: Option<String>,
+        suggestions: Option<Vec<String>>,
+    }
+
+    #[derive(Deserialize)]
+    struct LlmChange {
+        #[serde(rename = "type")]
+        change_type: String,
+        file: String,
+        description: String,
+        code: Option<String>,
+    }
+
+    let parsed: LlmChangeResponse = serde_json::from_str(llm_response).unwrap_or(LlmChangeResponse {
+        understanding: Some("Could not parse LLM response".to_string()),
+        changes: None,
+        message: Some("I understood your request but encountered an issue processing it. Could you try rephrasing?".to_string()),
+        suggestions: Some(vec!["Try being more specific".to_string()]),
+    });
+
+    let mut applied_changes = Vec::new();
+
+    if let Some(changes) = parsed.changes {
+        for change in changes {
+            if let Some(ref code) = change.code {
+                match apply_file_change(state, &request.app_name, &change.file, code, session).await
+                {
+                    Ok(()) => {
+                        applied_changes.push(DesignerChange {
+                            change_type: change.change_type,
+                            file_path: change.file,
+                            description: change.description,
+                            preview: Some(code[..code.len().min(200)].to_string()),
+                        });
+                    }
+                    Err(e) => {
+                        let file = &change.file;
+                        log::warn!("Failed to apply change to {file}: {e}");
+                    }
+                }
+            }
+        }
+    }
+
+    let message = parsed.message.unwrap_or_else(|| {
+        if applied_changes.is_empty() {
+            "I couldn't make any changes. Could you provide more details?".to_string()
+        } else {
+            format!(
+                "Done! I made {} change(s) to your app.",
+                applied_changes.len()
+            )
+        }
+    });
+
+    let suggestions = parsed.suggestions.unwrap_or_default();
+
+    Ok((applied_changes, message, suggestions))
+}
+
+async fn apply_file_change(
+    state: &AppState,
+    app_name: &str,
+    file_name: &str,
+    content: &str,
+    session: &crate::shared::models::UserSession,
+) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    use crate::shared::models::schema::bots::dsl::*;
+
+    let mut conn = state.conn.get()?;
+    let bot_name_val: String = bots
+        .filter(id.eq(session.bot_id))
+        .select(name)
+        .first(&mut conn)?;
+
+    let bucket_name = format!("{}.gbai", bot_name_val.to_lowercase());
+    let file_path = format!(".gbdrive/apps/{app_name}/{file_name}");
+
+    if let Some(ref s3_client) = state.drive {
+        use aws_sdk_s3::primitives::ByteStream;
+
+        s3_client
+            .put_object()
+            .bucket(&bucket_name)
+            .key(&file_path)
+            .body(ByteStream::from(content.as_bytes().to_vec()))
+            .content_type(get_content_type(file_name))
+            .send()
+            .await?;
+
+        log::info!("Designer updated file: s3://{bucket_name}/{file_path}");
+
+        let site_path = state
+            .config
+            .as_ref()
+            .map(|c| c.site_path.clone())
+            .unwrap_or_else(|| "./botserver-stack/sites".to_string());
+
+        let local_path = format!("{site_path}/{app_name}/{file_name}");
+        if let Some(parent) = std::path::Path::new(&local_path).parent() {
+            let _ = std::fs::create_dir_all(parent);
+        }
+        std::fs::write(&local_path, content)?;
+
+        log::info!("Designer synced to local: {local_path}");
+    }
+
+    Ok(())
+}
+
+fn get_content_type(filename: &str) -> &'static str {
+    if filename.ends_with(".html") {
+        "text/html"
+    } else if filename.ends_with(".css") {
+        "text/css"
+    } else if filename.ends_with(".js") {
+        "application/javascript"
+    } else if filename.ends_with(".json") {
+        "application/json"
+    } else {
+        "text/plain"
+    }
 }
