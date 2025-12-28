@@ -92,10 +92,10 @@ impl CalendarEvent {
             event.location(loc);
         }
 
-        event.add_property("ORGANIZER", &format!("mailto:{}", self.organizer));
+        event.add_property("ORGANIZER", format!("mailto:{}", self.organizer));
 
         for attendee in &self.attendees {
-            event.add_property("ATTENDEE", &format!("mailto:{}", attendee));
+            event.add_property("ATTENDEE", format!("mailto:{}", attendee));
         }
 
         if let Some(ref rrule) = self.recurrence {
@@ -103,7 +103,7 @@ impl CalendarEvent {
         }
 
         if let Some(minutes) = self.reminder_minutes {
-            event.add_property("VALARM", &format!("-PT{}M", minutes));
+            event.add_property("VALARM", format!("-PT{}M", minutes));
         }
 
         event.done()
@@ -500,7 +500,7 @@ pub async fn start_reminder_job(engine: Arc<CalendarEngine>) {
         for event in &engine.events {
             if let Some(reminder_minutes) = event.reminder_minutes {
                 let reminder_time =
-                    event.start_time - chrono::Duration::minutes(reminder_minutes as i64);
+                    event.start_time - chrono::Duration::minutes(i64::from(reminder_minutes));
 
                 if now >= reminder_time && now < reminder_time + chrono::Duration::minutes(1) {
                     info!(

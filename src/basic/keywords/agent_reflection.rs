@@ -38,6 +38,7 @@ impl From<&str> for ReflectionType {
 }
 
 impl ReflectionType {
+    #[allow(clippy::literal_string_with_formatting_args)]
     pub fn prompt_template(&self) -> String {
         match self {
             Self::ConversationQuality => r#"Analyze the following conversation and evaluate:
@@ -456,7 +457,7 @@ impl ReflectionEngine {
             return Err("Reflection is not enabled for this bot".to_string());
         }
 
-        let history = self.get_recent_history(session_id, 20).await?;
+        let history = self.get_recent_history(session_id, 20)?;
 
         if history.is_empty() {
             return Err("No conversation history to analyze".to_string());
@@ -476,10 +477,10 @@ impl ReflectionEngine {
             messages_count,
         );
 
-        self.store_reflection(&result).await?;
+        self.store_reflection(&result)?;
 
         if self.config.auto_apply && result.needs_improvement(self.config.improvement_threshold) {
-            self.apply_improvements(&result).await?;
+            self.apply_improvements(&result)?;
         }
 
         info!(
@@ -490,7 +491,7 @@ impl ReflectionEngine {
         Ok(result)
     }
 
-    async fn get_recent_history(
+    fn get_recent_history(
         &self,
         session_id: Uuid,
         limit: usize,
@@ -533,6 +534,7 @@ impl ReflectionEngine {
         Ok(history)
     }
 
+    #[allow(clippy::literal_string_with_formatting_args)]
     fn build_reflection_prompt(
         &self,
         reflection_type: &ReflectionType,
@@ -565,14 +567,8 @@ impl ReflectionEngine {
         Ok(prompt)
     }
 
-    fn call_llm_for_reflection_sync(&self, prompt: &str) -> Result<String, String> {
-        // Note: This is a synchronous wrapper - actual async call happens in reflect()
-        let _ = prompt;
-        Err("Use async reflect() method instead".to_string())
-    }
-
     async fn call_llm_for_reflection(&self, prompt: &str) -> Result<String, String> {
-        let (llm_url, llm_model, llm_key) = self.get_llm_config().await?;
+        let (llm_url, llm_model, llm_key) = self.get_llm_config()?;
 
         let client = reqwest::Client::new();
 
@@ -620,7 +616,7 @@ impl ReflectionEngine {
         Ok(content)
     }
 
-    async fn get_llm_config(&self) -> Result<(String, String, String), String> {
+    fn get_llm_config(&self) -> Result<(String, String, String), String> {
         let mut conn = self
             .state
             .conn
@@ -659,7 +655,7 @@ impl ReflectionEngine {
         Ok((llm_url, llm_model, llm_key))
     }
 
-    async fn store_reflection(&self, result: &ReflectionResult) -> Result<(), String> {
+    fn store_reflection(&self, result: &ReflectionResult) -> Result<(), String> {
         let mut conn = self
             .state
             .conn
@@ -697,7 +693,7 @@ impl ReflectionEngine {
         Ok(())
     }
 
-    async fn apply_improvements(&self, result: &ReflectionResult) -> Result<(), String> {
+    fn apply_improvements(&self, result: &ReflectionResult) -> Result<(), String> {
         let mut conn = self
             .state
             .conn
@@ -732,7 +728,7 @@ impl ReflectionEngine {
         Ok(())
     }
 
-    pub async fn get_insights(&self, limit: usize) -> Result<Vec<ReflectionResult>, String> {
+    pub fn get_insights(&self, limit: usize) -> Result<Vec<ReflectionResult>, String> {
         let mut conn = self
             .state
             .conn
@@ -802,7 +798,7 @@ impl ReflectionEngine {
         Ok(results)
     }
 
-    pub async fn should_reflect(&self, session_id: Uuid) -> bool {
+    pub fn should_reflect(&self, session_id: Uuid) -> bool {
         if !self.config.enabled {
             return false;
         }
@@ -872,10 +868,8 @@ pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engin
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-                    let result = rt.block_on(async {
-                        set_reflection_enabled(&state_for_task, bot_id, enabled).await
-                    });
+                    let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let result = set_reflection_enabled(&state_for_task, bot_id, enabled);
                     let _ = tx.send(result);
                 });
 
@@ -958,11 +952,11 @@ pub fn get_reflection_insights_keyword(
         let state = Arc::clone(&state_clone);
         let bot_id = user_clone.bot_id;
 
-        let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
-        let result = rt.block_on(async {
+        let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+        let result = {
             let engine = ReflectionEngine::new(state, bot_id);
-            engine.get_insights(10).await
-        });
+            engine.get_insights(10)
+        };
 
         match result {
             Ok(insights) => insights
@@ -974,11 +968,7 @@ pub fn get_reflection_insights_keyword(
     });
 }
 
-async fn set_reflection_enabled(
-    state: &AppState,
-    bot_id: Uuid,
-    enabled: bool,
-) -> Result<String, String> {
+fn set_reflection_enabled(state: &AppState, bot_id: Uuid, enabled: bool) -> Result<String, String> {
     let mut conn = state
         .conn
         .get()

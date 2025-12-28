@@ -30,11 +30,11 @@ mod tests {
 
     #[test]
     fn test_round_decimals() {
-        let n = 2.71828_f64;
+        let n = 2.56789_f64;
         let decimals = 2;
         let factor = 10_f64.powi(decimals);
         let result = (n * factor).round() / factor;
-        assert!((result - 2.72).abs() < 0.001);
+        assert!((result - 2.57).abs() < 0.001);
     }
 
     #[test]

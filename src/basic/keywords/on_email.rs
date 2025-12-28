@@ -270,7 +270,7 @@ pub fn execute_on_email(
     }))
 }
 
-pub async fn check_email_monitors(
+pub fn check_email_monitors(
     state: &AppState,
     bot_id: Uuid,
 ) -> Result<Vec<(EmailReceivedEvent, String)>, String> {
@@ -321,8 +321,7 @@ pub async fn check_email_monitors(
             monitor.last_uid.unwrap_or(0),
             monitor.filter_from.as_deref(),
             monitor.filter_subject.as_deref(),
-        )
-        .await?;
+        )?;
 
         for event in new_events {
             events.push((event, monitor.script_path.clone()));
@@ -332,7 +331,7 @@ pub async fn check_email_monitors(
     Ok(events)
 }
 
-async fn fetch_new_emails(
+fn fetch_new_emails(
     _state: &AppState,
     monitor_id: Uuid,
     _email_address: &str,
@@ -344,7 +343,7 @@ async fn fetch_new_emails(
     Ok(Vec::new())
 }
 
-pub async fn process_email_event(
+pub fn process_email_event(
     state: &AppState,
     event: &EmailReceivedEvent,
     script_path: &str,

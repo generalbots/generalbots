@@ -12,7 +12,6 @@ use std::sync::Arc;
 use tokio::sync::{mpsc, RwLock};
 use uuid::Uuid;
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Participant {
     pub id: String,
@@ -34,7 +33,6 @@ pub enum ParticipantRole {
     Participant,
     Bot,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct MeetingRoom {
@@ -77,11 +75,9 @@ impl Default for MeetingSettings {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum MeetingMessage {
-
     JoinMeeting {
         room_id: String,
         participant_name: String,
@@ -188,7 +184,6 @@ pub enum RecordingAction {
     Resume,
 }
 
-
 pub struct MeetingService {
     pub state: Arc<AppState>,
     pub rooms: Arc<RwLock<HashMap<String, MeetingRoom>>>,
@@ -220,7 +215,6 @@ impl MeetingService {
         }
     }
 
-
     pub async fn create_room(
         &self,
         name: String,
@@ -236,13 +230,12 @@ impl MeetingService {
             created_at: chrono::Utc::now(),
             participants: Vec::new(),
             is_recording: false,
-            is_transcribing: settings.as_ref().map_or(true, |s| s.enable_transcription),
+            is_transcribing: settings.as_ref().is_none_or(|s| s.enable_transcription),
             max_participants: 100,
             settings: settings.unwrap_or_default(),
         };
 
         self.rooms.write().await.insert(room_id, room.clone());
-
 
         if room.settings.bot_enabled {
             self.add_bot_to_room(&room.id).await?;
@@ -251,7 +244,6 @@ impl MeetingService {
         info!("Created meeting room: {} ({})", room.name, room.id);
         Ok(room)
     }
-
 
     pub async fn join_room(
         &self,
@@ -278,7 +270,6 @@ impl MeetingService {
 
         room.participants.push(participant.clone());
 
-
         if room.is_transcribing && room.participants.iter().filter(|p| !p.is_bot).count() == 1 {
             self.start_transcription(room_id).await?;
         }
@@ -290,7 +281,6 @@ impl MeetingService {
 
         Ok(participant)
     }
-
 
     async fn add_bot_to_room(&self, room_id: &str) -> Result<()> {
         let bot_participant = Participant {
@@ -314,7 +304,6 @@ impl MeetingService {
         Ok(())
     }
 
-
     pub async fn start_transcription(&self, room_id: &str) -> Result<()> {
         info!("Starting transcription for room: {}", room_id);
 
@@ -330,28 +319,24 @@ impl MeetingService {
         Ok(())
     }
 
-
     pub async fn handle_websocket(&self, socket: WebSocket, room_id: String) {
         let (mut sender, mut receiver) = socket.split();
         let (tx, mut rx) = mpsc::channel::<MeetingMessage>(100);
-
 
         self.connections
             .write()
             .await
             .insert(room_id.clone(), tx.clone());
 
-
         tokio::spawn(async move {
             while let Some(msg) = rx.recv().await {
                 if let Ok(json) = serde_json::to_string(&msg) {
-                    if sender.send(Message::Text(json.into())).await.is_err() {
+                    if sender.send(Message::Text(json)).await.is_err() {
                         break;
                     }
                 }
             }
         });
-
 
         while let Some(msg) = receiver.next().await {
             if let Ok(Message::Text(text)) = msg {
@@ -361,10 +346,8 @@ impl MeetingService {
             }
         }
 
-
         self.connections.write().await.remove(&room_id);
     }
-
 
     async fn handle_meeting_message(&self, message: MeetingMessage, room_id: &str) {
         match message {
@@ -376,7 +359,6 @@ impl MeetingService {
             } => {
                 if is_final {
                     info!("Transcription from {}: {}", participant_id, text);
-
 
                     if let Some(room) = self.rooms.read().await.get(room_id) {
                         if room.settings.bot_enabled {
@@ -397,7 +379,6 @@ impl MeetingService {
                     .await;
             }
             MeetingMessage::ChatMessage { .. } => {
-
                 self.broadcast_to_room(room_id, message.clone()).await;
             }
             _ => {
@@ -406,11 +387,8 @@ impl MeetingService {
         }
     }
 
-
     async fn process_bot_command(&self, text: &str, room_id: &str, participant_id: &str) {
-
         if text.to_lowercase().contains("hey bot") || text.to_lowercase().contains("assistant") {
-
             let user_message = UserMessage {
                 bot_id: "meeting-assistant".to_string(),
                 user_id: participant_id.to_string(),
@@ -423,8 +401,7 @@ impl MeetingService {
                 context_name: None,
             };
 
-
-            if let Ok(response) = self.process_with_bot(user_message).await {
+            if let Ok(response) = Self::process_with_bot(user_message) {
                 let bot_msg = MeetingMessage::ChatMessage {
                     room_id: room_id.to_string(),
                     content: response.content,
@@ -436,7 +413,6 @@ impl MeetingService {
             }
         }
     }
-
 
     async fn handle_bot_request(
         &self,
@@ -472,10 +448,7 @@ impl MeetingService {
         }
     }
 
-
-    async fn process_with_bot(&self, message: UserMessage) -> Result<BotResponse> {
-
-
+    fn process_with_bot(message: UserMessage) -> Result<BotResponse> {
         Ok(BotResponse {
             bot_id: message.bot_id,
             user_id: message.user_id,
@@ -492,7 +465,6 @@ impl MeetingService {
         })
     }
 
-
     async fn broadcast_to_room(&self, room_id: &str, message: MeetingMessage) {
         let connections = self.connections.read().await;
         if let Some(tx) = connections.get(room_id) {
@@ -500,17 +472,14 @@ impl MeetingService {
         }
     }
 
-
     pub async fn get_room(&self, room_id: &str) -> Option<MeetingRoom> {
         self.rooms.read().await.get(room_id).cloned()
     }
-
 
     pub async fn list_rooms(&self) -> Vec<MeetingRoom> {
         self.rooms.read().await.values().cloned().collect()
     }
 }
-
 
 #[async_trait]
 pub trait TranscriptionService: Send + Sync {
@@ -518,7 +487,6 @@ pub trait TranscriptionService: Send + Sync {
     async fn stop_transcription(&self, room_id: &str) -> Result<()>;
     async fn process_audio(&self, audio_data: Vec<u8>, room_id: &str) -> Result<String>;
 }
-
 
 #[derive(Debug)]
 pub struct DefaultTranscriptionService;
@@ -536,7 +504,6 @@ impl TranscriptionService for DefaultTranscriptionService {
     }
 
     async fn process_audio(&self, _audio_data: Vec<u8>, room_id: &str) -> Result<String> {
-
         Ok(format!("Transcribed text for room {}", room_id))
     }
 }

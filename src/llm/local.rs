@@ -106,12 +106,18 @@ pub async fn ensure_llama_servers_running(
     let mut tasks = vec![];
     if !llm_running && !llm_model.is_empty() {
         info!("Starting LLM server...");
-        tasks.push(tokio::spawn(start_llm_server(
-            Arc::clone(&app_state),
-            llm_server_path.clone(),
-            llm_model.clone(),
-            llm_url.clone(),
-        )));
+        let app_state_clone = Arc::clone(&app_state);
+        let llm_server_path_clone = llm_server_path.clone();
+        let llm_model_clone = llm_model.clone();
+        let llm_url_clone = llm_url.clone();
+        tasks.push(tokio::spawn(async move {
+            start_llm_server(
+                app_state_clone,
+                llm_server_path_clone,
+                llm_model_clone,
+                llm_url_clone,
+            )
+        }));
     } else if llm_model.is_empty() {
         info!("LLM_MODEL not set, skipping LLM server");
     }
@@ -222,7 +228,7 @@ pub async fn is_server_running(url: &str) -> bool {
         },
     }
 }
-pub async fn start_llm_server(
+pub fn start_llm_server(
     app_state: Arc<AppState>,
     llama_cpp_path: String,
     model_path: String,

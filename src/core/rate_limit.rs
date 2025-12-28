@@ -72,7 +72,7 @@ impl std::fmt::Debug for KeyedRateLimiter {
                 "limiters",
                 &format!("<{} entries>", self.limiters.blocking_read().len()),
             )
-            .finish()
+            .finish_non_exhaustive()
     }
 }
 

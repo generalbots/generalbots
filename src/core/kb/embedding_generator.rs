@@ -164,7 +164,7 @@ impl KbEmbeddingGenerator {
             Ok(embeddings) => Ok(embeddings),
             Err(e) => {
                 warn!("Local embedding service failed: {}, trying OpenAI API", e);
-                self.generate_openai_embeddings(&texts).await
+                self.generate_openai_embeddings(&texts)
             }
         }
     }
@@ -211,7 +211,8 @@ impl KbEmbeddingGenerator {
         Ok(embeddings)
     }
 
-    async fn generate_openai_embeddings(&self, _texts: &[String]) -> Result<Vec<Embedding>> {
+    fn generate_openai_embeddings(&self, _texts: &[String]) -> Result<Vec<Embedding>> {
+        let _ = self; // Suppress unused self warning
         Err(anyhow::anyhow!(
             "OpenAI embeddings not configured - use local embedding service"
         ))

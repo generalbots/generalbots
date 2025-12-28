@@ -242,7 +242,7 @@ pub fn get_twitter_metrics_keyword(state: Arc<AppState>, user: UserSession, engi
     debug!("Registered GET TWITTER METRICS keyword");
 }
 
-async fn get_platform_credentials(
+fn get_platform_credentials(
     state: &AppState,
     bot_id: Uuid,
     platform: &str,
@@ -275,7 +275,7 @@ async fn fetch_instagram_metrics(
     user: &UserSession,
     post_id: &str,
 ) -> Result<PostEngagement, String> {
-    let credentials = get_platform_credentials(state, user.bot_id, "instagram").await?;
+    let credentials = get_platform_credentials(state, user.bot_id, "instagram")?;
 
     let access_token = credentials
         .get("access_token")
@@ -317,7 +317,7 @@ async fn fetch_facebook_metrics(
     user: &UserSession,
     post_id: &str,
 ) -> Result<PostEngagement, String> {
-    let credentials = get_platform_credentials(state, user.bot_id, "facebook").await?;
+    let credentials = get_platform_credentials(state, user.bot_id, "facebook")?;
 
     let access_token = credentials
         .get("access_token")
@@ -370,7 +370,7 @@ async fn fetch_linkedin_metrics(
     user: &UserSession,
     post_id: &str,
 ) -> Result<PostEngagement, String> {
-    let credentials = get_platform_credentials(state, user.bot_id, "linkedin").await?;
+    let credentials = get_platform_credentials(state, user.bot_id, "linkedin")?;
 
     let access_token = credentials
         .get("access_token")
@@ -413,7 +413,7 @@ async fn fetch_twitter_metrics(
     user: &UserSession,
     post_id: &str,
 ) -> Result<PostEngagement, String> {
-    let credentials = get_platform_credentials(state, user.bot_id, "twitter").await?;
+    let credentials = get_platform_credentials(state, user.bot_id, "twitter")?;
 
     let bearer_token = credentials
         .get("bearer_token")

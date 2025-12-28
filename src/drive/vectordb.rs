@@ -140,7 +140,7 @@ impl UserDriveVectorDB {
 
         let payload: qdrant_client::Payload = serde_json::to_value(file)?
             .as_object()
-            .map(|m| m.clone())
+            .cloned()
             .unwrap_or_default()
             .into_iter()
             .map(|(k, v)| (k, qdrant_client::qdrant::Value::from(v.to_string())))
@@ -674,7 +674,8 @@ impl FileContentExtractor {
 
             for sheet_name in workbook.sheet_names() {
                 if let Ok(range) = workbook.worksheet_range(&sheet_name) {
-                    content.push_str(&format!("=== {} ===\n", sheet_name));
+                    use std::fmt::Write;
+                    let _ = writeln!(&mut content, "=== {} ===", sheet_name);
 
                     for row in range.rows() {
                         let row_text: Vec<String> = row

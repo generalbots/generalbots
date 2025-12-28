@@ -262,14 +262,17 @@ impl AttendanceDriveService {
         }
 
         log::info!(
-            "Syncing attendance records from {:?} to s3://{}/{}",
-            local_path,
+            "Syncing attendance records from {} to s3://{}/{}",
+            local_path.display(),
             self.config.bucket_name,
             self.config.prefix
         );
 
         if !local_path.exists() {
-            return Err(anyhow!("Local path does not exist: {:?}", local_path));
+            return Err(anyhow!(
+                "Local path does not exist: {}",
+                local_path.display()
+            ));
         }
 
         let mut uploaded = 0;
@@ -293,7 +296,7 @@ impl AttendanceDriveService {
             let file_name = match path.file_name().and_then(|n| n.to_str()) {
                 Some(name) => name.to_string(),
                 None => {
-                    log::warn!("Skipping file with invalid name: {:?}", path);
+                    log::warn!("Skipping file with invalid name: {}", path.display());
                     skipped += 1;
                     continue;
                 }
@@ -317,7 +320,7 @@ impl AttendanceDriveService {
                     }
                 },
                 Err(e) => {
-                    log::error!("Failed to read file {:?}: {}", path, e);
+                    log::error!("Failed to read file {}: {}", path.display(), e);
                     failed += 1;
                 }
             }
@@ -356,7 +359,7 @@ impl AttendanceDriveService {
             last_modified: result
                 .last_modified
                 .and_then(|t| t.to_millis().ok())
-                .map(|ms| chrono::Utc.timestamp_millis_opt(ms as i64).unwrap()),
+                .map(|ms| chrono::Utc.timestamp_millis_opt(ms).unwrap()),
             content_type: result.content_type,
             etag: result.e_tag,
         })

@@ -144,7 +144,7 @@ mod tests {
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Activity {
         #[serde(rename = "type")]
-        pub activity_type: String,
+        pub kind: String,
         pub id: String,
         pub timestamp: String,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -181,7 +181,7 @@ mod tests {
     impl Default for Activity {
         fn default() -> Self {
             Self {
-                activity_type: "message".to_string(),
+                kind: "message".to_string(),
                 id: uuid::Uuid::new_v4().to_string(),
                 timestamp: chrono::Utc::now().to_rfc3339(),
                 local_timestamp: None,
@@ -245,7 +245,7 @@ mod tests {
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Entity {
         #[serde(rename = "type")]
-        pub entity_type: String,
+        pub kind: String,
         #[serde(skip_serializing_if = "Option::is_none")]
         pub mentioned: Option<ChannelAccount>,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -302,7 +302,7 @@ mod tests {
     #[test]
     fn test_activity_default() {
         let activity = Activity::default();
-        assert_eq!(activity.activity_type, "message");
+        assert_eq!(activity.kind, "message");
         assert_eq!(activity.channel_id, "msteams");
         assert!(!activity.id.is_empty());
     }
@@ -310,7 +310,7 @@ mod tests {
     #[test]
     fn test_activity_serialization() {
         let activity = Activity {
-            activity_type: "message".to_string(),
+            kind: "message".to_string(),
             id: "test-id".to_string(),
             timestamp: "2024-01-01T00:00:00Z".to_string(),
             local_timestamp: None,
@@ -381,7 +381,7 @@ mod tests {
     #[test]
     fn test_entity_mention() {
         let entity = Entity {
-            entity_type: "mention".to_string(),
+            kind: "mention".to_string(),
             mentioned: Some(ChannelAccount {
                 id: "bot-id".to_string(),
                 name: Some("Bot".to_string()),

@@ -26,10 +26,8 @@ pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                     .enable_all()
                     .build();
 
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        clear_all_tools_from_session(&state_for_task, &user_for_task).await
-                    });
+                let send_err = if let Ok(_rt) = rt {
+                    let result = clear_all_tools_from_session(&state_for_task, &user_for_task);
                     tx.send(result).err()
                 } else {
                     tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -62,7 +60,7 @@ pub fn clear_tools_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-async fn clear_all_tools_from_session(state: &AppState, user: &UserSession) -> Result<String, String> {
+fn clear_all_tools_from_session(state: &AppState, user: &UserSession) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| {
         error!("Failed to acquire database lock: {}", e);
         format!("Database connection error: {}", e)

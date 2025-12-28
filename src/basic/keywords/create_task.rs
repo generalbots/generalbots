@@ -58,18 +58,15 @@ pub fn create_task_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_create_task(
-                                &state_for_task,
-                                &user_for_task,
-                                &title,
-                                &assignee,
-                                &due_date,
-                                project_id.as_deref(),
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = execute_create_task(
+                            &state_for_task,
+                            &user_for_task,
+                            &title,
+                            &assignee,
+                            &due_date,
+                            project_id.as_deref(),
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -146,17 +143,14 @@ pub fn create_task_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            smart_assign_task(
-                                &state_for_task,
-                                &user_for_task,
-                                &task_id,
-                                team,
-                                load_balance,
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = smart_assign_task(
+                            &state_for_task,
+                            &user_for_task,
+                            &task_id,
+                            team,
+                            load_balance,
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -184,7 +178,7 @@ pub fn create_task_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-async fn execute_create_task(
+fn execute_create_task(
     state: &AppState,
     user: &UserSession,
     title: &str,
@@ -197,7 +191,7 @@ async fn execute_create_task(
     let due_datetime = parse_due_date(due_date)?;
 
     let actual_assignee = if assignee == "auto" {
-        auto_assign_task(state, project_id).await?
+        auto_assign_task(state, project_id)?
     } else {
         assignee.to_string()
     };
@@ -228,7 +222,7 @@ async fn execute_create_task(
         format!("Failed to create task: {}", e)
     })?;
 
-    send_task_notification(state, &task_id, title, &actual_assignee, due_datetime).await?;
+    send_task_notification(state, &task_id, title, &actual_assignee, due_datetime)?;
 
     trace!(
         "Created task '{}' assigned to {} (ID: {})",
@@ -240,7 +234,7 @@ async fn execute_create_task(
     Ok(task_id)
 }
 
-async fn smart_assign_task(
+fn smart_assign_task(
     state: &AppState,
     _user: &UserSession,
     task_id: &str,
@@ -300,7 +294,7 @@ async fn smart_assign_task(
     Ok(best_assignee)
 }
 
-async fn auto_assign_task(state: &AppState, project_id: Option<&str>) -> Result<String, String> {
+fn auto_assign_task(state: &AppState, project_id: Option<&str>) -> Result<String, String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let team_query_str = if let Some(proj_id) = project_id {
@@ -402,7 +396,7 @@ fn determine_priority(due_date: Option<DateTime<Utc>>) -> String {
     }
 }
 
-async fn send_task_notification(
+fn send_task_notification(
     _state: &AppState,
     task_id: &str,
     title: &str,

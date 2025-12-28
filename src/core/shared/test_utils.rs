@@ -233,15 +233,7 @@ pub fn create_mock_auth_service() -> AuthService {
         service_account_key: None,
     };
 
-    let rt = tokio::runtime::Handle::try_current()
-        .map(|h| h.block_on(AuthService::new(config.clone())))
-        .unwrap_or_else(|_| {
-            tokio::runtime::Runtime::new()
-                .expect("Failed to create runtime")
-                .block_on(AuthService::new(config))
-        });
-
-    rt.expect("Failed to create mock AuthService")
+    AuthService::new(config).expect("Failed to create mock AuthService")
 }
 
 pub fn create_test_db_pool() -> Result<DbPool, Box<dyn std::error::Error + Send + Sync>> {

@@ -349,7 +349,7 @@ impl AntivirusManager {
             ScanType::Rootkit => "/".to_string(),
         };
 
-        let result = Self::run_clamav_scan(&scan_path, &config).await;
+        let result = Self::run_clamav_scan(&scan_path, &config);
 
         let mut scans_guard = scans.write().await;
         if let Some(scan) = scans_guard.get_mut(&scan_id) {
@@ -374,7 +374,7 @@ impl AntivirusManager {
         }
     }
 
-    async fn run_clamav_scan(path: &str, config: &AntivirusConfig) -> Result<(u64, Vec<Threat>)> {
+    fn run_clamav_scan(path: &str, config: &AntivirusConfig) -> Result<(u64, Vec<Threat>)> {
         let clamscan = config
             .clamav_path
             .clone()
@@ -492,7 +492,7 @@ impl AntivirusManager {
 
     pub async fn quarantine_file(&self, file_path: &Path) -> Result<()> {
         if !file_path.exists() {
-            return Err(anyhow::anyhow!("File not found: {:?}", file_path));
+            return Err(anyhow::anyhow!("File not found: {}", file_path.display()));
         }
 
         let file_name = file_path

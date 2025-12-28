@@ -1586,7 +1586,7 @@ fn fetch_emails_from_folder(
         "sent" => "Sent",
         "drafts" => "Drafts",
         "trash" => "Trash",
-        "inbox" | _ => "INBOX",
+        _ => "INBOX",
     };
 
     session

@@ -180,9 +180,9 @@ mod tests {
 
     #[test]
     fn test_switch_match_floats() {
-        let a = Dynamic::from(3.14_f64);
-        let b = Dynamic::from(3.14_f64);
-        let c = Dynamic::from(2.71_f64);
+        let a = Dynamic::from(3.5_f64);
+        let b = Dynamic::from(3.5_f64);
+        let c = Dynamic::from(2.5_f64);
 
         assert!(switch_match_impl(&a, &b));
         assert!(!switch_match_impl(&a, &c));

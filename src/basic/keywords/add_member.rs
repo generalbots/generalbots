@@ -40,17 +40,14 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_add_member(
-                                &state_for_task,
-                                &user_for_task,
-                                &group_id,
-                                &user_email,
-                                &role,
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = execute_add_member(
+                            &state_for_task,
+                            &user_for_task,
+                            &group_id,
+                            &user_email,
+                            &role,
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -124,17 +121,14 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_create_team(
-                                &state_for_task,
-                                &user_for_task,
-                                &name,
-                                members,
-                                &workspace_template,
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = execute_create_team(
+                            &state_for_task,
+                            &user_for_task,
+                            &name,
+                            members,
+                            &workspace_template,
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -162,7 +156,7 @@ pub fn add_member_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
         .unwrap();
 }
 
-async fn execute_add_member(
+pub fn execute_add_member(
     state: &AppState,
     user: &UserSession,
     group_id: &str,
@@ -200,9 +194,9 @@ async fn execute_add_member(
         format!("Failed to add member: {}", e)
     })?;
 
-    send_member_invitation(state, group_id, user_email, &valid_role).await?;
+    send_member_invitation(state, group_id, user_email, &valid_role)?;
 
-    log_group_activity(state, group_id, "member_added", user_email).await?;
+    log_group_activity(state, group_id, "member_added", user_email)?;
 
     trace!(
         "Added {} to group {} as {} with permissions {:?}",
@@ -215,7 +209,7 @@ async fn execute_add_member(
     Ok(member_id)
 }
 
-async fn execute_create_team(
+fn execute_create_team(
     state: &AppState,
     user: &UserSession,
     name: &str,
@@ -254,7 +248,7 @@ async fn execute_create_team(
         format!("Failed to create team: {}", e)
     })?;
 
-    execute_add_member(state, user, &team_id, &user.user_id.to_string(), "admin").await?;
+    execute_add_member(state, user, &team_id, &user.user_id.to_string(), "admin")?;
 
     for member_email in &members {
         let role = if member_email == &user.user_id.to_string() {
@@ -262,12 +256,12 @@ async fn execute_create_team(
         } else {
             "member"
         };
-        execute_add_member(state, user, &team_id, member_email, role).await?;
+        execute_add_member(state, user, &team_id, member_email, role)?;
     }
 
-    create_workspace_structure(state, &team_id, name, workspace_template).await?;
+    create_workspace_structure(state, &team_id, name, workspace_template)?;
 
-    create_team_channel(state, &team_id, name).await?;
+    create_team_channel(state, &team_id, name)?;
 
     trace!(
         "Created team '{}' with {} members (ID: {})",
@@ -283,7 +277,6 @@ fn validate_role(role: &str) -> String {
     match role.to_lowercase().as_str() {
         "admin" | "administrator" => "admin",
         "contributor" | "editor" => "contributor",
-        "member" | "user" => "member",
         "viewer" | "read" | "readonly" => "viewer",
         "owner" => "owner",
         _ => "member",
@@ -317,7 +310,7 @@ fn get_permissions_for_role(role: &str) -> serde_json::Value {
             "manage_settings": false,
             "export_data": false
         }),
-        "viewer" | _ => json!({
+        _ => json!({
             "read": true,
             "write": false,
             "delete": false,
@@ -328,7 +321,7 @@ fn get_permissions_for_role(role: &str) -> serde_json::Value {
     }
 }
 
-async fn send_member_invitation(
+fn send_member_invitation(
     _state: &AppState,
     group_id: &str,
     user_email: &str,
@@ -343,7 +336,7 @@ async fn send_member_invitation(
     Ok(())
 }
 
-async fn log_group_activity(
+fn log_group_activity(
     state: &AppState,
     group_id: &str,
     action: &str,
@@ -373,7 +366,7 @@ async fn log_group_activity(
     Ok(())
 }
 
-async fn create_workspace_structure(
+fn create_workspace_structure(
     state: &AppState,
     team_id: &str,
     team_name: &str,
@@ -428,11 +421,7 @@ async fn create_workspace_structure(
     Ok(())
 }
 
-async fn create_team_channel(
-    state: &AppState,
-    team_id: &str,
-    team_name: &str,
-) -> Result<(), String> {
+fn create_team_channel(state: &AppState, team_id: &str, team_name: &str) -> Result<(), String> {
     let mut conn = state.conn.get().map_err(|e| format!("DB error: {}", e))?;
 
     let channel_id = Uuid::new_v4().to_string();

@@ -188,7 +188,7 @@ impl AttendanceService {
             AttendanceCommand::Resume => self.handle_resume(user_id, &parsed).await,
             AttendanceCommand::Status => self.handle_status(user_id).await,
             AttendanceCommand::Report => self.handle_report(user_id, &parsed).await,
-            AttendanceCommand::Override => self.handle_override(user_id, &parsed),
+            AttendanceCommand::Override => Self::handle_override(user_id, &parsed),
         }
     }
 
@@ -431,7 +431,7 @@ impl AttendanceService {
         Ok(AttendanceResponse::Report { data: report })
     }
 
-    fn handle_override(&self, user_id: &str, parsed: &ParsedCommand) -> Result<AttendanceResponse> {
+    fn handle_override(user_id: &str, parsed: &ParsedCommand) -> Result<AttendanceResponse> {
         if parsed.args.len() < 2 {
             return Ok(AttendanceResponse::Error {
                 message: "Override requires target user and action".to_string(),

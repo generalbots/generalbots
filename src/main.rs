@@ -210,6 +210,8 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::research::configure_research_routes());
     api_router = api_router.merge(botserver::sources::configure_sources_routes());
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
+    api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
+    api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
 
     #[cfg(feature = "whatsapp")]
     {
@@ -233,7 +235,8 @@ async fn run_axum_server(
 
     let app = Router::new()
         .merge(api_router.with_state(app_state.clone()))
-        .nest_service("/apps", ServeDir::new(&site_path))
+        // Static files fallback for legacy /apps/* paths
+        .nest_service("/static", ServeDir::new(&site_path))
         .layer(Extension(app_state.clone()))
         .layer(cors)
         .layer(TraceLayer::new_for_http());
@@ -624,9 +627,7 @@ async fn main() -> std::io::Result<()> {
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-        botserver::directory::AuthService::new(zitadel_config)
-            .await
-            .unwrap(),
+        botserver::directory::AuthService::new(zitadel_config).unwrap(),
     ));
     let config_manager = ConfigManager::new(pool.clone());
 
@@ -739,7 +740,7 @@ async fn main() -> std::io::Result<()> {
         log::warn!("Failed to start website crawler service: {}", e);
     }
 
-    state_tx.send(app_state.clone()).await.ok();
+    let _ = state_tx.try_send(app_state.clone());
     progress_tx.send(BootstrapProgress::BootstrapComplete).ok();
 
     info!(
@@ -756,11 +757,9 @@ async fn main() -> std::io::Result<()> {
     info!("Automation service initialized with episodic memory scheduler");
 
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
-    tokio::spawn(async move {
-        if let Err(e) = bot_orchestrator.mount_all_bots().await {
-            error!("Failed to mount bots: {}", e);
-        }
-    });
+    if let Err(e) = bot_orchestrator.mount_all_bots() {
+        error!("Failed to mount bots: {}", e);
+    }
 
     let automation_state = app_state.clone();
     tokio::spawn(async move {

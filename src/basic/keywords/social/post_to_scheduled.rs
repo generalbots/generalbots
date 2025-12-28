@@ -52,18 +52,15 @@ pub fn post_to_at_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                         .enable_all()
                         .build();
 
-                    if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_scheduled_post(
-                                &state_for_task,
-                                &user_for_task,
-                                &platform_owned,
-                                &media_owned,
-                                &caption_owned,
-                                scheduled_at,
-                            )
-                            .await
-                        });
+                    if let Ok(_rt) = rt {
+                        let result = execute_scheduled_post(
+                            &state_for_task,
+                            &user_for_task,
+                            &platform_owned,
+                            &media_owned,
+                            &caption_owned,
+                            scheduled_at,
+                        );
                         let _ = tx.send(result);
                     }
                 });
@@ -112,7 +109,7 @@ fn parse_schedule_time(time_str: &str) -> Result<DateTime<Utc>, Box<rhai::EvalAl
     )))
 }
 
-async fn execute_scheduled_post(
+fn execute_scheduled_post(
     state: &AppState,
     user: &UserSession,
     platform: &str,
@@ -124,14 +121,14 @@ async fn execute_scheduled_post(
     let mut post_ids = Vec::new();
 
     for p in platforms {
-        let post_id = save_scheduled_post(state, user, p, media, caption, scheduled_at).await?;
+        let post_id = save_scheduled_post(state, user, p, media, caption, scheduled_at)?;
         post_ids.push(post_id);
     }
 
     Ok(post_ids.join(","))
 }
 
-async fn save_scheduled_post(
+fn save_scheduled_post(
     state: &AppState,
     user: &UserSession,
     platform: &str,

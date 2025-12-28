@@ -1,14 +1,8 @@
-
-
-
-
-
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TrainingType {
@@ -22,7 +16,6 @@ pub enum TrainingType {
     EmergencyProcedures,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Hash, Serialize, Deserialize)]
 pub enum TrainingStatus {
     NotStarted,
@@ -33,7 +26,6 @@ pub enum TrainingStatus {
     Exempted,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum TrainingPriority {
     Low,
@@ -41,7 +33,6 @@ pub enum TrainingPriority {
     High,
     Critical,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingCourse {
@@ -59,7 +50,6 @@ pub struct TrainingCourse {
     pub max_attempts: u32,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingAssignment {
     pub id: Uuid,
@@ -75,7 +65,6 @@ pub struct TrainingAssignment {
     pub notes: Option<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingAttempt {
     pub id: Uuid,
@@ -86,7 +75,6 @@ pub struct TrainingAttempt {
     pub passed: bool,
     pub time_spent_minutes: Option<u32>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingCertificate {
@@ -99,7 +87,6 @@ pub struct TrainingCertificate {
     pub verification_code: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ComplianceStatus {
     pub user_id: Uuid,
@@ -111,7 +98,6 @@ pub struct ComplianceStatus {
     pub compliance_percentage: f64,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct TrainingTracker {
     courses: HashMap<Uuid, TrainingCourse>,
@@ -121,7 +107,6 @@ pub struct TrainingTracker {
 }
 
 impl TrainingTracker {
-
     pub fn new() -> Self {
         let mut tracker = Self {
             courses: HashMap::new(),
@@ -130,11 +115,9 @@ impl TrainingTracker {
             user_roles: HashMap::new(),
         };
 
-
         tracker.initialize_default_courses();
         tracker
     }
-
 
     fn initialize_default_courses(&mut self) {
         let security_awareness = TrainingCourse {
@@ -173,7 +156,6 @@ impl TrainingTracker {
         self.courses.insert(data_protection.id, data_protection);
     }
 
-
     pub fn create_course(&mut self, course: TrainingCourse) -> Result<()> {
         if self.courses.contains_key(&course.id) {
             return Err(anyhow!("Course already exists"));
@@ -183,7 +165,6 @@ impl TrainingTracker {
         self.courses.insert(course.id, course);
         Ok(())
     }
-
 
     pub fn assign_training(
         &mut self,
@@ -219,7 +200,6 @@ impl TrainingTracker {
         Ok(assignment)
     }
 
-
     pub fn start_training(&mut self, assignment_id: Uuid) -> Result<TrainingAttempt> {
         let assignment = self
             .assignments
@@ -251,14 +231,12 @@ impl TrainingTracker {
         Ok(attempt)
     }
 
-
     pub fn complete_training(
         &mut self,
         assignment_id: Uuid,
         attempt_id: Uuid,
         score: u32,
     ) -> Result<bool> {
-
         let (course_id, passing_score, validity_days, max_attempts, course_title) = {
             let assignment = self
                 .assignments
@@ -268,7 +246,13 @@ impl TrainingTracker {
                 .courses
                 .get(&assignment.course_id)
                 .ok_or_else(|| anyhow!("Course not found"))?;
-            (course.id, course.passing_score, course.validity_days, course.max_attempts, course.title.clone())
+            (
+                course.id,
+                course.passing_score,
+                course.validity_days,
+                course.max_attempts,
+                course.title.clone(),
+            )
         };
 
         let assignment = self
@@ -287,7 +271,6 @@ impl TrainingTracker {
         let time_spent = (end_time - start_time).num_minutes() as u32;
         let passed = score >= passing_score;
 
-
         assignment.attempts[attempt_idx].end_time = Some(end_time);
         assignment.attempts[attempt_idx].score = Some(score);
         assignment.attempts[attempt_idx].time_spent_minutes = Some(time_spent);
@@ -300,7 +283,6 @@ impl TrainingTracker {
             assignment.status = TrainingStatus::Completed;
             assignment.completion_date = Some(end_time);
             assignment.expiry_date = Some(end_time + Duration::days(validity_days));
-
 
             let certificate = TrainingCertificate {
                 id: Uuid::new_v4(),
@@ -330,7 +312,6 @@ impl TrainingTracker {
         Ok(passed)
     }
 
-
     pub fn get_compliance_status(&self, user_id: Uuid) -> ComplianceStatus {
         let user_roles = self
             .user_roles
@@ -350,7 +331,6 @@ impl TrainingTracker {
                 .any(|r| user_roles.contains(r) || r == "all")
             {
                 required_trainings.push(course.id);
-
 
                 let assignment = self
                     .assignments
@@ -400,7 +380,6 @@ impl TrainingTracker {
         }
     }
 
-
     pub fn get_training_report(&self) -> TrainingReport {
         let total_courses = self.courses.len();
         let total_assignments = self.assignments.len();
@@ -441,7 +420,6 @@ impl TrainingTracker {
         }
     }
 
-
     fn calculate_average_score(&self) -> f64 {
         let mut total_score = 0;
         let mut count = 0;
@@ -458,15 +436,13 @@ impl TrainingTracker {
         if count == 0 {
             0.0
         } else {
-            total_score as f64 / count as f64
+            f64::from(total_score) / f64::from(count)
         }
     }
-
 
     pub fn set_user_roles(&mut self, user_id: Uuid, roles: Vec<String>) {
         self.user_roles.insert(user_id, roles);
     }
-
 
     pub fn get_overdue_trainings(&self) -> Vec<TrainingAssignment> {
         self.assignments
@@ -475,7 +451,6 @@ impl TrainingTracker {
             .cloned()
             .collect()
     }
-
 
     pub fn get_expiring_certificates(&self, days_ahead: i64) -> Vec<TrainingCertificate> {
         let cutoff = Utc::now() + Duration::days(days_ahead);
@@ -486,7 +461,6 @@ impl TrainingTracker {
             .collect()
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TrainingReport {

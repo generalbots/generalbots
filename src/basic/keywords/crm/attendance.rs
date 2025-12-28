@@ -1458,12 +1458,10 @@ mod tests {
                 .iter()
                 .filter(|w| msg_lower.contains(*w))
                 .count();
-            if positive_count > negative_count {
-                "positive"
-            } else if negative_count > positive_count {
-                "negative"
-            } else {
-                "neutral"
+            match positive_count.cmp(&negative_count) {
+                std::cmp::Ordering::Greater => "positive",
+                std::cmp::Ordering::Less => "negative",
+                std::cmp::Ordering::Equal => "neutral",
             }
         }
 

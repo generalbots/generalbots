@@ -275,7 +275,7 @@ impl Default for ResourceEstimate {
 }
 
 pub struct IntentCompiler {
-    _state: Arc<AppState>,
+    state: Arc<AppState>,
     config: IntentCompilerConfig,
 }
 
@@ -321,16 +321,13 @@ impl std::fmt::Debug for IntentCompiler {
 impl IntentCompiler {
     pub fn new(state: Arc<AppState>) -> Self {
         Self {
-            _state: state,
+            state,
             config: IntentCompilerConfig::default(),
         }
     }
 
     pub fn with_config(state: Arc<AppState>, config: IntentCompilerConfig) -> Self {
-        Self {
-            _state: state,
-            config,
-        }
+        Self { state, config }
     }
 
     pub async fn compile(
@@ -533,14 +530,14 @@ Respond ONLY with valid JSON."#,
                     Some("HIGH") => StepPriority::High,
                     Some("LOW") => StepPriority::Low,
                     Some("OPTIONAL") => StepPriority::Optional,
-                    Some("MEDIUM") | None | _ => StepPriority::Medium,
+                    Some("MEDIUM" | _) | None => StepPriority::Medium,
                 },
                 risk_level: match s.risk_level.as_deref() {
                     Some("NONE") => RiskLevel::None,
                     Some("MEDIUM") => RiskLevel::Medium,
                     Some("HIGH") => RiskLevel::High,
                     Some("CRITICAL") => RiskLevel::Critical,
-                    Some("LOW") | None | _ => RiskLevel::Low,
+                    Some("LOW" | _) | None => RiskLevel::Low,
                 },
                 estimated_minutes: s.estimated_minutes.unwrap_or(5),
                 requires_approval: s.requires_approval.unwrap_or(false),
@@ -801,19 +798,36 @@ Respond ONLY with valid JSON."#,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         trace!("Calling LLM with prompt length: {}", prompt.len());
 
-        let response = serde_json::json!({
-            "action": "create",
-            "target": "system",
-            "domain": null,
-            "client": null,
-            "features": [],
-            "constraints": [],
-            "technologies": [],
-            "data_sources": [],
-            "integrations": []
-        });
+        #[cfg(feature = "llm")]
+        {
+            let config = serde_json::json!({
+                "temperature": self.config.temperature,
+                "max_tokens": self.config.max_tokens
+            });
+            let response = self
+                .state
+                .llm_provider
+                .generate(prompt, &config, &self.config.model, "")
+                .await?;
+            return Ok(response);
+        }
 
-        Ok(response.to_string())
+        #[cfg(not(feature = "llm"))]
+        {
+            warn!("LLM feature not enabled, returning fallback response");
+            let response = serde_json::json!({
+                "action": "create",
+                "target": "system",
+                "domain": null,
+                "client": null,
+                "features": [],
+                "constraints": [],
+                "technologies": [],
+                "data_sources": [],
+                "integrations": []
+            });
+            Ok(response.to_string())
+        }
     }
 
     fn assess_risks(plan: &ExecutionPlan) -> RiskAssessment {

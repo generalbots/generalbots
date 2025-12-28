@@ -180,7 +180,7 @@ impl CachedLLMProvider {
         }
     }
 
-    async fn get_bot_cache_config(&self, bot_id: &str) -> CacheConfig {
+    fn get_bot_cache_config(&self, bot_id: &str) -> CacheConfig {
         if let Some(ref db_pool) = self.db_pool {
             let bot_uuid = match Uuid::parse_str(bot_id) {
                 Ok(uuid) => uuid,
@@ -512,7 +512,7 @@ impl LLMProvider for CachedLLMProvider {
             return self.provider.generate(prompt, messages, model, key).await;
         }
 
-        let bot_cache_config = self.get_bot_cache_config(bot_id).await;
+        let bot_cache_config = self.get_bot_cache_config(bot_id);
 
         if let Some(cached) = self.get_cached_response(prompt, messages, model).await {
             info!("Cache hit (exact match) for bot {}", bot_id);

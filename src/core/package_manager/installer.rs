@@ -378,7 +378,7 @@ impl PackageManager {
                     "https://huggingface.co/CompendiumLabs/bge-small-en-v1.5-gguf/resolve/main/bge-small-en-v1.5-f32.gguf".to_string(),
                 ],
                 exec_cmd: "nohup {{BIN_PATH}}/llama-server --port 8081 --ssl-key-file {{CONF_PATH}}/system/certificates/llm/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/llm/server.crt -m {{DATA_PATH}}/DeepSeek-R1-Distill-Qwen-1.5B-Q3_K_M.gguf > {{LOGS_PATH}}/llm.log 2>&1 & nohup {{BIN_PATH}}/llama-server --port 8082 --ssl-key-file {{CONF_PATH}}/system/certificates/embedding/server.key --ssl-cert-file {{CONF_PATH}}/system/certificates/embedding/server.crt -m {{DATA_PATH}}/bge-small-en-v1.5-f32.gguf --embedding > {{LOGS_PATH}}/embedding.log 2>&1 &".to_string(),
-                check_cmd: "curl -f -k https://localhost:8081/health >/dev/null 2>&1 && curl -f -k https://localhost:8082/health >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8081/health >/dev/null 2>&1 && curl -f -k --connect-timeout 2 -m 5 https://localhost:8082/health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -411,7 +411,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/stalwart-mail --config {{CONF_PATH}}/email/config.toml".to_string(),
-                check_cmd: "curl -f -k https://localhost:8025/health >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8025/health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -441,7 +441,7 @@ impl PackageManager {
                 env_vars: HashMap::from([("XDG_DATA_HOME".to_string(), "{{DATA_PATH}}".to_string())]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/caddy run --config {{CONF_PATH}}/Caddyfile".to_string(),
-                check_cmd: "curl -f http://localhost >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -487,7 +487,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "ZITADEL_MASTERKEY=$(VAULT_ADDR=http://localhost:8200 vault kv get -field=masterkey secret/gbo/directory 2>/dev/null || echo 'MasterkeyNeedsToHave32Characters') nohup {{BIN_PATH}}/zitadel start --config {{CONF_PATH}}/directory/zitadel.yaml --masterkeyFromEnv --tlsMode disabled > {{LOGS_PATH}}/zitadel.log 2>&1 &".to_string(),
-                check_cmd: "curl -f http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8300/healthz >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -518,7 +518,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/forgejo web --work-path {{DATA_PATH}} --port 3000 --cert {{CONF_PATH}}/system/certificates/alm/server.crt --key {{CONF_PATH}}/system/certificates/alm/server.key".to_string(),
-                check_cmd: "curl -f -k https://localhost:3000 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:3000 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -622,7 +622,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "php -S 0.0.0.0:8080 -t {{DATA_PATH}}/roundcubemail".to_string(),
-                check_cmd: "curl -f -k https://localhost:8300 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:8300 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -651,7 +651,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/livekit-server --config {{CONF_PATH}}/meet/config.yaml --key-file {{CONF_PATH}}/system/certificates/meet/server.key --cert-file {{CONF_PATH}}/system/certificates/meet/server.crt".to_string(),
-                check_cmd: "curl -f -k https://localhost:7880 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:7880 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -678,7 +678,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/nocodb".to_string(),
-                check_cmd: "curl -f -k https://localhost:5757 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:5757 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -705,7 +705,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "coolwsd --config-file={{CONF_PATH}}/coolwsd.xml".to_string(),
-                check_cmd: "curl -f -k https://localhost:9980 >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:9980 >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -815,7 +815,7 @@ impl PackageManager {
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}} --enable-tls --cert {{CONF_PATH}}/system/certificates/qdrant/server.crt --key {{CONF_PATH}}/system/certificates/qdrant/server.key".to_string(),
-                check_cmd: "curl -f -k https://localhost:6334/metrics >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:6334/metrics >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -857,7 +857,7 @@ impl PackageManager {
                 },
                 data_download_list: Vec::new(),
                 exec_cmd: "{{BIN_PATH}}/influxd --bolt-path={{DATA_PATH}}/influxdb/influxd.bolt --engine-path={{DATA_PATH}}/influxdb/engine --http-bind-address=:8086".to_string(),
-                check_cmd: "curl -f http://localhost:8086/health >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8086/health >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -935,7 +935,7 @@ EOF"#.to_string(),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
+                check_cmd: "curl -f -s --connect-timeout 2 -m 5 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
                     .to_string(),
             },
         );
@@ -976,7 +976,7 @@ EOF"#.to_string(),
 
 
                 exec_cmd: "{{BIN_PATH}}/vector --config {{CONF_PATH}}/monitoring/vector.toml".to_string(),
-                check_cmd: "curl -f http://localhost:8686/health >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -f --connect-timeout 2 -m 5 http://localhost:8686/health >/dev/null 2>&1".to_string(),
             },
         );
     }

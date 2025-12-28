@@ -524,7 +524,8 @@ pub async fn import_document(
             })?;
             serde_json::to_string_pretty(&parsed).unwrap_or(content)
         }
-        "xml" | "csv" | _ => content,
+        // "xml", "csv", and any other format pass through unchanged
+        _ => content,
     };
 
     s3_client

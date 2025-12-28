@@ -45,7 +45,7 @@ impl WebsiteCrawlerService {
 
                 *service.running.write().await = true;
 
-                if let Err(e) = service.check_and_crawl_websites().await {
+                if let Err(e) = service.check_and_crawl_websites() {
                     error!("Error in website crawler service: {}", e);
                 }
 
@@ -54,7 +54,7 @@ impl WebsiteCrawlerService {
         })
     }
 
-    async fn check_and_crawl_websites(&self) -> Result<(), Box<dyn std::error::Error>> {
+    fn check_and_crawl_websites(&self) -> Result<(), Box<dyn std::error::Error>> {
         info!("Checking for websites that need recrawling");
 
         let mut conn = self.db_pool.get()?;
@@ -100,14 +100,12 @@ impl WebsiteCrawlerService {
 
         let website_max_depth = config_manager
             .get_bot_config_value(&website.bot_id, "website-max-depth")
-            .await
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(website.max_depth as usize);
 
         let website_max_pages = config_manager
             .get_bot_config_value(&website.bot_id, "website-max-pages")
-            .await
             .ok()
             .and_then(|v| v.parse::<usize>().ok())
             .unwrap_or(website.max_pages as usize);
@@ -246,9 +244,9 @@ pub async fn ensure_crawler_service_running(
             Arc::clone(kb_manager),
         ));
 
-        let _ = service.start().await;
+        let _ = service.start();
 
-        info!("Website crawler service started");
+        info!("Website crawler service initialized");
 
         Ok(())
     } else {

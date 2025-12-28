@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn test_join() {
-        let arr = vec!["a", "b", "c"];
+        let arr = ["a", "b", "c"];
         let result = arr.join("-");
         assert_eq!(result, "a-b-c");
     }
@@ -287,8 +287,8 @@ mod tests {
     #[test]
     fn test_split() {
         let s = "a,b,c";
-        let parts: Vec<&str> = s.split(',').collect();
-        assert_eq!(parts.len(), 3);
+        let parts_count = s.split(',').count();
+        assert_eq!(parts_count, 3);
     }
 
     #[test]

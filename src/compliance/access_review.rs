@@ -1,14 +1,8 @@
-
-
-
-
-
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AccessLevel {
@@ -18,7 +12,6 @@ pub enum AccessLevel {
     Owner,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ResourceType {
     File,
@@ -27,7 +20,6 @@ pub enum ResourceType {
     System,
     Application,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessPermission {
@@ -43,7 +35,6 @@ pub struct AccessPermission {
     pub is_active: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReviewRequest {
     pub id: Uuid,
@@ -56,7 +47,6 @@ pub struct AccessReviewRequest {
     pub comments: Option<String>,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ReviewStatus {
     Pending,
@@ -65,7 +55,6 @@ pub enum ReviewStatus {
     Rejected,
     Expired,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessReviewResult {
@@ -78,7 +67,6 @@ pub struct AccessReviewResult {
     pub comments: String,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessViolation {
     pub id: Uuid,
@@ -90,7 +78,6 @@ pub struct AccessViolation {
     pub severity: ViolationSeverity,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ViolationSeverity {
     Low,
@@ -98,7 +85,6 @@ pub enum ViolationSeverity {
     High,
     Critical,
 }
-
 
 #[derive(Debug, Clone)]
 pub struct AccessReviewService {
@@ -108,7 +94,6 @@ pub struct AccessReviewService {
 }
 
 impl AccessReviewService {
-
     pub fn new() -> Self {
         Self {
             permissions: HashMap::new(),
@@ -116,7 +101,6 @@ impl AccessReviewService {
             violations: Vec::new(),
         }
     }
-
 
     pub fn grant_permission(
         &mut self,
@@ -143,7 +127,7 @@ impl AccessReviewService {
 
         self.permissions
             .entry(user_id)
-            .or_insert_with(Vec::new)
+            .or_default()
             .push(permission.clone());
 
         log::info!(
@@ -155,7 +139,6 @@ impl AccessReviewService {
 
         Ok(permission)
     }
-
 
     pub fn revoke_permission(&mut self, permission_id: Uuid, revoked_by: Uuid) -> Result<()> {
         for permissions in self.permissions.values_mut() {
@@ -173,7 +156,6 @@ impl AccessReviewService {
         Err(anyhow!("Permission not found"))
     }
 
-
     pub fn check_access(
         &mut self,
         user_id: Uuid,
@@ -185,21 +167,18 @@ impl AccessReviewService {
         if let Some(permissions) = user_permissions {
             for perm in permissions {
                 if perm.resource_id == resource_id && perm.is_active {
-
                     if let Some(expires) = perm.expires_at {
                         if expires < Utc::now() {
                             continue;
                         }
                     }
 
-
-                    if self.has_sufficient_access(&perm.access_level, &required_level) {
+                    if Self::has_sufficient_access(&perm.access_level, &required_level) {
                         return Ok(true);
                     }
                 }
             }
         }
-
 
         let violation = AccessViolation {
             id: Uuid::new_v4(),
@@ -216,8 +195,7 @@ impl AccessReviewService {
         Ok(false)
     }
 
-
-    fn has_sufficient_access(&self, user_level: &AccessLevel, required: &AccessLevel) -> bool {
+    fn has_sufficient_access(user_level: &AccessLevel, required: &AccessLevel) -> bool {
         match required {
             AccessLevel::Read => true,
             AccessLevel::Write => matches!(
@@ -228,7 +206,6 @@ impl AccessReviewService {
             AccessLevel::Owner => matches!(user_level, AccessLevel::Owner),
         }
     }
-
 
     pub fn create_review_request(
         &mut self,
@@ -261,7 +238,6 @@ impl AccessReviewService {
         Ok(review)
     }
 
-
     pub fn process_review(
         &mut self,
         review_id: Uuid,
@@ -270,7 +246,6 @@ impl AccessReviewService {
         modified: Vec<(Uuid, AccessLevel)>,
         comments: String,
     ) -> Result<AccessReviewResult> {
-
         let (reviewer_id, user_id) = {
             let review = self
                 .reviews
@@ -283,11 +258,9 @@ impl AccessReviewService {
             (review.reviewer_id, review.user_id)
         };
 
-
         for perm_id in &revoked {
             self.revoke_permission(*perm_id, reviewer_id)?;
         }
-
 
         for (perm_id, new_level) in &modified {
             if let Some(permissions) = self.permissions.get_mut(&user_id) {
@@ -296,7 +269,6 @@ impl AccessReviewService {
                 }
             }
         }
-
 
         if let Some(review) = self.reviews.get_mut(&review_id) {
             review.status = ReviewStatus::Approved;
@@ -318,7 +290,6 @@ impl AccessReviewService {
         Ok(result)
     }
 
-
     pub fn get_expired_permissions(&self) -> Vec<AccessPermission> {
         let now = Utc::now();
         let mut expired = Vec::new();
@@ -336,7 +307,6 @@ impl AccessReviewService {
         expired
     }
 
-
     pub fn get_user_permissions(&self, user_id: Uuid) -> Vec<AccessPermission> {
         self.permissions
             .get(&user_id)
@@ -347,18 +317,16 @@ impl AccessReviewService {
             .collect()
     }
 
-
     pub fn get_pending_reviews(&self, reviewer_id: Option<Uuid>) -> Vec<AccessReviewRequest> {
         self.reviews
             .values()
             .filter(|r| {
                 r.status == ReviewStatus::Pending
-                    && reviewer_id.map_or(true, |id| r.reviewer_id == id)
+                    && reviewer_id.is_none_or(|id| r.reviewer_id == id)
             })
             .cloned()
             .collect()
     }
-
 
     pub fn get_violations(
         &self,
@@ -369,14 +337,13 @@ impl AccessReviewService {
         self.violations
             .iter()
             .filter(|v| {
-                user_id.map_or(true, |id| v.user_id == id)
-                    && severity.as_ref().map_or(true, |s| &v.severity == s)
-                    && since.map_or(true, |d| v.occurred_at >= d)
+                user_id.is_none_or(|id| v.user_id == id)
+                    && severity.as_ref().is_none_or(|s| &v.severity == s)
+                    && since.is_none_or(|d| v.occurred_at >= d)
             })
             .cloned()
             .collect()
     }
-
 
     pub fn generate_compliance_report(&self) -> AccessComplianceReport {
         let total_permissions = self.permissions.values().map(|p| p.len()).sum::<usize>();
@@ -420,14 +387,11 @@ impl AccessReviewService {
         }
     }
 
-
     fn calculate_compliance_score(&self) -> f64 {
         let mut score = 100.0;
 
-
         let expired = self.get_expired_permissions().len();
         score -= expired as f64 * 2.0;
-
 
         let overdue_reviews = self
             .reviews
@@ -435,7 +399,6 @@ impl AccessReviewService {
             .filter(|r| r.status == ReviewStatus::Pending && r.due_date < Utc::now())
             .count();
         score -= overdue_reviews as f64 * 5.0;
-
 
         for violation in &self.violations {
             match violation.severity {
@@ -446,10 +409,9 @@ impl AccessReviewService {
             }
         }
 
-        score.max(0.0).min(100.0)
+        score.clamp(0.0, 100.0)
     }
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AccessComplianceReport {

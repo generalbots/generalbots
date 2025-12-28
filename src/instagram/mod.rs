@@ -40,7 +40,6 @@ async fn verify_webhook(Query(query): Query<WebhookVerifyQuery>) -> impl IntoRes
     ) {
         (Some(mode), Some(token), Some(challenge)) => adapter
             .handle_webhook_verification(mode, token, &challenge)
-            .await
             .map_or_else(
                 || (StatusCode::FORBIDDEN, "Verification failed".to_string()),
                 |response| (StatusCode::OK, response),

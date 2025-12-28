@@ -40,17 +40,14 @@ pub fn post_to_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                         .enable_all()
                         .build();
 
-                    if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_post_to(
-                                &state_for_task,
-                                &user_for_task,
-                                &platform_owned,
-                                &media_owned,
-                                &caption_owned,
-                            )
-                            .await
-                        });
+                    if let Ok(_rt) = rt {
+                        let result = execute_post_to(
+                            &state_for_task,
+                            &user_for_task,
+                            &platform_owned,
+                            &media_owned,
+                            &caption_owned,
+                        );
                         let _ = tx.send(result);
                     }
                 });
@@ -104,17 +101,14 @@ fn register_platform_shortcuts(state: Arc<AppState>, user: UserSession, engine: 
                             .enable_all()
                             .build();
 
-                        if let Ok(rt) = rt {
-                            let result = rt.block_on(async move {
-                                execute_post_to(
-                                    &state_for_task,
-                                    &user_for_task,
-                                    &platform_owned,
-                                    &media_owned,
-                                    &caption_owned,
-                                )
-                                .await
-                            });
+                        if let Ok(_rt) = rt {
+                            let result = execute_post_to(
+                                &state_for_task,
+                                &user_for_task,
+                                &platform_owned,
+                                &media_owned,
+                                &caption_owned,
+                            );
                             let _ = tx.send(result);
                         }
                     });
@@ -136,7 +130,7 @@ fn register_platform_shortcuts(state: Arc<AppState>, user: UserSession, engine: 
     }
 }
 
-async fn execute_post_to(
+fn execute_post_to(
     state: &AppState,
     user: &UserSession,
     platform_input: &str,
@@ -147,14 +141,14 @@ async fn execute_post_to(
     let mut post_ids = Vec::new();
 
     for platform in platforms {
-        let post_id = save_social_post(state, user, platform, media, caption).await?;
+        let post_id = save_social_post(state, user, platform, media, caption)?;
         post_ids.push(post_id);
     }
 
     Ok(post_ids.join(","))
 }
 
-async fn save_social_post(
+fn save_social_post(
     state: &AppState,
     user: &UserSession,
     platform: &str,

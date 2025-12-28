@@ -65,20 +65,20 @@ impl SessionManager {
             "SessionManager.provide_input called for session {}",
             session_id
         );
-        if let Some(sess) = self.sessions.get_mut(&session_id) {
+        let sess = if let Some(existing) = self.sessions.get(&session_id) {
+            let mut sess = existing.clone();
             sess.data = input;
-            self.waiting_for_input.remove(&session_id);
-            Ok(Some("user_input".to_string()))
+            sess
         } else {
-            let sess = SessionData {
+            SessionData {
                 id: session_id,
                 user_id: None,
                 data: input,
-            };
-            self.sessions.insert(session_id, sess);
-            self.waiting_for_input.remove(&session_id);
-            Ok(Some("user_input".to_string()))
-        }
+            }
+        };
+        self.sessions.insert(session_id, sess);
+        self.waiting_for_input.remove(&session_id);
+        Ok(Some("user_input".to_string()))
     }
 
     pub fn mark_waiting(&mut self, session_id: Uuid) {
@@ -569,9 +569,9 @@ mod tests {
         WhatsApp,
         Teams,
         Web,
-        SMS,
+        Sms,
         Email,
-        API,
+        Api,
     }
 
     impl Default for Channel {
@@ -811,12 +811,32 @@ mod tests {
         }
     }
 
+    impl ConversationState {
+        pub const fn is_terminal(self) -> bool {
+            matches!(self, Self::Ended | Self::Error | Self::Transferred)
+        }
+
+        pub const fn is_waiting(self) -> bool {
+            matches!(self, Self::WaitingForUser | Self::WaitingForBot)
+        }
+    }
+
     #[derive(Debug, Clone)]
     pub struct ConversationConfig {
         pub response_timeout: Duration,
         pub record: bool,
         pub use_mock_llm: bool,
-        pub variables: HashMap<String, String>,
+        variables: HashMap<String, String>,
+    }
+
+    impl ConversationConfig {
+        pub fn get_variable(&self, key: &str) -> Option<&String> {
+            self.variables.get(key)
+        }
+
+        pub fn set_variable(&mut self, key: String, value: String) {
+            self.variables.insert(key, value);
+        }
     }
 
     impl Default for ConversationConfig {
@@ -1041,9 +1061,51 @@ mod tests {
     }
 
     #[test]
+    fn test_conversation_config_variables() {
+        let mut config = ConversationConfig::default();
+        config.set_variable("key1".to_string(), "value1".to_string());
+        assert_eq!(config.get_variable("key1"), Some(&"value1".to_string()));
+        assert_eq!(config.get_variable("nonexistent"), None);
+    }
+
+    #[test]
     fn test_conversation_state_default() {
         let state = ConversationState::default();
         assert_eq!(state, ConversationState::Initial);
+    }
+
+    #[test]
+    fn test_conversation_state_is_terminal() {
+        assert!(!ConversationState::Initial.is_terminal());
+        assert!(!ConversationState::WaitingForUser.is_terminal());
+        assert!(!ConversationState::WaitingForBot.is_terminal());
+        assert!(ConversationState::Transferred.is_terminal());
+        assert!(ConversationState::Ended.is_terminal());
+        assert!(ConversationState::Error.is_terminal());
+    }
+
+    #[test]
+    fn test_conversation_state_is_waiting() {
+        assert!(!ConversationState::Initial.is_waiting());
+        assert!(ConversationState::WaitingForUser.is_waiting());
+        assert!(ConversationState::WaitingForBot.is_waiting());
+        assert!(!ConversationState::Transferred.is_waiting());
+        assert!(!ConversationState::Ended.is_waiting());
+        assert!(!ConversationState::Error.is_waiting());
+    }
+
+    #[test]
+    fn test_channel_sms_and_api() {
+        let sms_customer = Customer {
+            channel: Channel::Sms,
+            ..Default::default()
+        };
+        let api_customer = Customer {
+            channel: Channel::Api,
+            ..Default::default()
+        };
+        assert_eq!(sms_customer.channel, Channel::Sms);
+        assert_eq!(api_customer.channel, Channel::Api);
     }
 
     #[test]

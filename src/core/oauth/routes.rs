@@ -77,7 +77,7 @@ async fn start_oauth(
     Path(provider_name): Path<String>,
     Query(params): Query<OAuthStartParams>,
 ) -> Response {
-    let Some(provider) = OAuthProvider::from_str(&provider_name) else {
+    let Some(provider) = OAuthProvider::parse(&provider_name) else {
         return (
             StatusCode::BAD_REQUEST,
             Html(format!(
@@ -247,7 +247,7 @@ async fn oauth_callback(
             .into_response();
     }
 
-    let Some(provider) = OAuthProvider::from_str(&provider_name) else {
+    let Some(provider) = OAuthProvider::parse(&provider_name) else {
         return (
             StatusCode::BAD_REQUEST,
             Html("Invalid provider".to_string()),

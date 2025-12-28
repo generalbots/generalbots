@@ -691,9 +691,10 @@ async fn rotate_secret(component: &str) -> Result<()> {
             println!("⚠️  WARNING: You must update PostgreSQL with the new password!");
             println!();
             println!("Run this SQL command:");
+            let default_username = "postgres".to_string();
             println!(
                 "  ALTER USER {} WITH PASSWORD '{}';",
-                secrets.get("username").unwrap_or(&"postgres".to_string()),
+                secrets.get("username").unwrap_or(&default_username),
                 new_password
             );
             println!();

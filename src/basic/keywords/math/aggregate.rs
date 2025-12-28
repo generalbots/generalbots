@@ -110,7 +110,7 @@ mod tests {
             .iter()
             .filter_map(|v| v.as_int().ok().map(|i| i as f64))
             .sum();
-        assert_eq!(sum, 60.0);
+        assert!((sum - 60.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -121,7 +121,7 @@ mod tests {
             Dynamic::from(3.0_f64),
         ];
         let sum: f64 = arr.iter().filter_map(|v| v.as_float().ok()).sum();
-        assert_eq!(sum, 7.0);
+        assert!((sum - 7.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -129,7 +129,7 @@ mod tests {
         let arr: Vec<f64> = vec![10.0, 20.0, 30.0];
         let sum: f64 = arr.iter().sum();
         let avg = sum / arr.len() as f64;
-        assert_eq!(avg, 20.0);
+        assert!((avg - 20.0).abs() < f64::EPSILON);
     }
 
     #[test]
@@ -137,14 +137,14 @@ mod tests {
         let arr: Vec<f64> = vec![42.0];
         let sum: f64 = arr.iter().sum();
         let avg = sum / arr.len() as f64;
-        assert_eq!(avg, 42.0);
+        assert!((avg - 42.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_empty_array_sum() {
         let arr: Vec<f64> = vec![];
         let result: f64 = arr.iter().sum();
-        assert_eq!(result, 0.0);
+        assert!(result.abs() < f64::EPSILON);
     }
 
     #[test]
@@ -155,7 +155,7 @@ mod tests {
         } else {
             arr.iter().sum::<f64>() / arr.len() as f64
         };
-        assert_eq!(result, 0.0);
+        assert!(result.abs() < f64::EPSILON);
     }
 
     #[test]
@@ -173,6 +173,6 @@ mod tests {
                     .or_else(|| v.as_int().ok().map(|i| i as f64))
             })
             .sum();
-        assert_eq!(sum, 60.5);
+        assert!((sum - 60.5).abs() < f64::EPSILON);
     }
 }

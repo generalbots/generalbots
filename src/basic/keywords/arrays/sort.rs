@@ -55,6 +55,22 @@ fn compare_dynamic(a: &Dynamic, b: &Dynamic) -> std::cmp::Ordering {
     a.to_string().cmp(&b.to_string())
 }
 
+fn to_f64(value: &Dynamic) -> Option<f64> {
+    if value.is_int() {
+        value.as_int().ok().map(|i| i as f64)
+    } else if value.is_float() {
+        value.as_float().ok()
+    } else if value.is_string() {
+        value
+            .clone()
+            .into_string()
+            .ok()
+            .and_then(|s| s.parse().ok())
+    } else {
+        None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -111,21 +127,5 @@ mod tests {
         let a = Dynamic::from("apple");
         let b = Dynamic::from("banana");
         assert_eq!(compare_dynamic(&a, &b), std::cmp::Ordering::Less);
-    }
-}
-
-fn to_f64(value: &Dynamic) -> Option<f64> {
-    if value.is_int() {
-        value.as_int().ok().map(|i| i as f64)
-    } else if value.is_float() {
-        value.as_float().ok()
-    } else if value.is_string() {
-        value
-            .clone()
-            .into_string()
-            .ok()
-            .and_then(|s| s.parse().ok())
-    } else {
-        None
     }
 }

@@ -74,17 +74,17 @@ impl UserProvisioningService {
             self.base_url
         );
 
-        let user_id = self.create_database_user(account).await?;
+        let user_id = self.create_database_user(account)?;
 
         for bot_access in &account.bots {
             self.create_s3_home(account, bot_access).await?;
         }
 
-        if let Err(e) = self.setup_email_account(account).await {
+        if let Err(e) = self.setup_email_account(account) {
             log::warn!("Email account creation failed: {}", e);
         }
 
-        self.setup_oauth_config(&user_id, account).await?;
+        self.setup_oauth_config(&user_id, account)?;
 
         let profile_url = self.build_profile_url(&account.username);
         log::info!(
@@ -95,7 +95,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    async fn create_database_user(&self, account: &UserAccount) -> Result<String> {
+    fn create_database_user(&self, account: &UserAccount) -> Result<String> {
         use crate::shared::models::schema::users;
         use argon2::{
             password_hash::{rand_core::OsRng, SaltString},
@@ -179,7 +179,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    async fn setup_email_account(&self, account: &UserAccount) -> Result<()> {
+    fn setup_email_account(&self, account: &UserAccount) -> Result<()> {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 
@@ -207,7 +207,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    async fn setup_oauth_config(&self, _user_id: &str, account: &UserAccount) -> Result<()> {
+    fn setup_oauth_config(&self, _user_id: &str, account: &UserAccount) -> Result<()> {
         use crate::shared::models::schema::bot_configuration;
         use diesel::prelude::*;
 
@@ -247,14 +247,14 @@ impl UserProvisioningService {
         log::info!("Deprovisioning user: {}", username);
 
         self.remove_s3_data(username).await?;
-        self.remove_email_config(username).await?;
-        self.remove_user_from_db(username).await?;
+        self.remove_email_config(username)?;
+        self.remove_user_from_db(username)?;
 
         log::info!("User {} deprovisioned successfully", username);
         Ok(())
     }
 
-    async fn remove_user_from_db(&self, username: &str) -> Result<()> {
+    fn remove_user_from_db(&self, username: &str) -> Result<()> {
         use crate::shared::models::schema::users;
         use diesel::prelude::*;
 
@@ -305,7 +305,7 @@ impl UserProvisioningService {
         Ok(())
     }
 
-    async fn remove_email_config(&self, username: &str) -> Result<()> {
+    fn remove_email_config(&self, username: &str) -> Result<()> {
         use crate::shared::models::schema::user_email_accounts;
         use diesel::prelude::*;
 

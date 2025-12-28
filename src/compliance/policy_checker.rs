@@ -1,14 +1,8 @@
-
-
-
-
-
 use anyhow::{anyhow, Result};
 use chrono::{DateTime, Duration, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
-
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PolicyType {
@@ -23,7 +17,6 @@ pub enum PolicyType {
     ComplianceStandard,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PolicyStatus {
     Active,
@@ -32,7 +25,6 @@ pub enum PolicyStatus {
     Archived,
 }
 
-
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum PolicySeverity {
     Low,
@@ -40,7 +32,6 @@ pub enum PolicySeverity {
     High,
     Critical,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SecurityPolicy {
@@ -58,7 +49,6 @@ pub struct SecurityPolicy {
     pub tags: Vec<String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyRule {
     pub id: Uuid,
@@ -68,7 +58,6 @@ pub struct PolicyRule {
     pub parameters: HashMap<String, String>,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum PolicyAction {
     Allow,
@@ -77,7 +66,6 @@ pub enum PolicyAction {
     Enforce,
     Log,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyViolation {
@@ -93,7 +81,6 @@ pub struct PolicyViolation {
     pub resolved: bool,
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyCheckResult {
     pub policy_id: Uuid,
@@ -103,7 +90,6 @@ pub struct PolicyCheckResult {
     pub timestamp: DateTime<Utc>,
 }
 
-
 #[derive(Debug, Clone)]
 pub struct PolicyChecker {
     policies: HashMap<Uuid, SecurityPolicy>,
@@ -112,7 +98,6 @@ pub struct PolicyChecker {
 }
 
 impl PolicyChecker {
-
     pub fn new() -> Self {
         let mut checker = Self {
             policies: HashMap::new(),
@@ -120,14 +105,11 @@ impl PolicyChecker {
             check_history: Vec::new(),
         };
 
-
         checker.initialize_default_policies();
         checker
     }
 
-
     fn initialize_default_policies(&mut self) {
-
         let password_policy = SecurityPolicy {
             id: Uuid::new_v4(),
             name: "Password Strength Policy".to_string(),
@@ -161,7 +143,6 @@ impl PolicyChecker {
 
         self.policies.insert(password_policy.id, password_policy);
 
-
         let session_policy = SecurityPolicy {
             id: Uuid::new_v4(),
             name: "Session Timeout Policy".to_string(),
@@ -174,9 +155,7 @@ impl PolicyChecker {
                 name: "Maximum Session Duration".to_string(),
                 condition: "session.duration <= 8_hours".to_string(),
                 action: PolicyAction::Enforce,
-                parameters: HashMap::from([
-                    ("max_duration".to_string(), "28800".to_string()),
-                ]),
+                parameters: HashMap::from([("max_duration".to_string(), "28800".to_string())]),
             }],
             created_at: Utc::now(),
             updated_at: Utc::now(),
@@ -188,7 +167,6 @@ impl PolicyChecker {
         self.policies.insert(session_policy.id, session_policy);
     }
 
-
     pub fn add_policy(&mut self, policy: SecurityPolicy) -> Result<()> {
         if self.policies.contains_key(&policy.id) {
             return Err(anyhow!("Policy already exists"));
@@ -198,7 +176,6 @@ impl PolicyChecker {
         self.policies.insert(policy.id, policy);
         Ok(())
     }
-
 
     pub fn update_policy(&mut self, policy_id: Uuid, updates: SecurityPolicy) -> Result<()> {
         if let Some(existing) = self.policies.get_mut(&policy_id) {
@@ -210,7 +187,6 @@ impl PolicyChecker {
             Err(anyhow!("Policy not found"))
         }
     }
-
 
     pub fn check_password_policy(&mut self, password: &str) -> PolicyCheckResult {
         let policy = self
@@ -224,7 +200,6 @@ impl PolicyChecker {
         if let Some(policy) = policy {
             let mut violations = Vec::new();
             let mut warnings = Vec::new();
-
 
             if password.len() < 12 {
                 violations.push(PolicyViolation {
@@ -243,7 +218,6 @@ impl PolicyChecker {
                     resolved: false,
                 });
             }
-
 
             let has_uppercase = password.chars().any(|c| c.is_uppercase());
             let has_lowercase = password.chars().any(|c| c.is_lowercase());
@@ -264,7 +238,6 @@ impl PolicyChecker {
                     resolved: false,
                 });
             }
-
 
             if password.to_lowercase().contains("password") {
                 warnings.push("Password contains the word 'password'".to_string());
@@ -293,7 +266,6 @@ impl PolicyChecker {
         }
     }
 
-
     pub fn check_session_policy(&mut self, session_duration_seconds: u64) -> PolicyCheckResult {
         let policy = self
             .policies
@@ -307,7 +279,6 @@ impl PolicyChecker {
             let mut violations = Vec::new();
 
             if session_duration_seconds > 28800 {
-
                 violations.push(PolicyViolation {
                     id: Uuid::new_v4(),
                     policy_id: policy.id,
@@ -348,9 +319,7 @@ impl PolicyChecker {
         }
     }
 
-
     pub fn check_all_policies(&mut self, context: &PolicyContext) -> Vec<PolicyCheckResult> {
-
         let active_policy_ids: Vec<Uuid> = self
             .policies
             .iter()
@@ -370,7 +339,6 @@ impl PolicyChecker {
         results
     }
 
-
     pub fn check_policy(
         &mut self,
         policy_id: Uuid,
@@ -386,7 +354,7 @@ impl PolicyChecker {
         let warnings = Vec::new();
 
         for rule in &policy.rules {
-            if !self.evaluate_rule(rule, context) {
+            if !Self::evaluate_rule(rule, context) {
                 violations.push(PolicyViolation {
                     id: Uuid::new_v4(),
                     policy_id: policy.id,
@@ -416,17 +384,9 @@ impl PolicyChecker {
         Ok(result)
     }
 
-
-    fn evaluate_rule(&self, rule: &PolicyRule, _context: &PolicyContext) -> bool {
-
-
-        match rule.action {
-            PolicyAction::Allow => true,
-            PolicyAction::Deny => false,
-            _ => true,
-        }
+    fn evaluate_rule(rule: &PolicyRule, _context: &PolicyContext) -> bool {
+        !matches!(rule.action, PolicyAction::Deny)
     }
-
 
     pub fn get_violations(&self, unresolved_only: bool) -> Vec<PolicyViolation> {
         if unresolved_only {
@@ -440,7 +400,6 @@ impl PolicyChecker {
         }
     }
 
-
     pub fn resolve_violation(&mut self, violation_id: Uuid) -> Result<()> {
         if let Some(violation) = self.violations.iter_mut().find(|v| v.id == violation_id) {
             violation.resolved = true;
@@ -450,7 +409,6 @@ impl PolicyChecker {
             Err(anyhow!("Violation not found"))
         }
     }
-
 
     pub fn get_compliance_report(&self) -> PolicyComplianceReport {
         let total_policies = self.policies.len();
@@ -473,11 +431,11 @@ impl PolicyChecker {
             .filter(|c| c.timestamp > Utc::now() - Duration::days(7))
             .count();
 
-        let compliance_rate = if !self.check_history.is_empty() {
+        let compliance_rate = if self.check_history.is_empty() {
+            100.0
+        } else {
             let passed = self.check_history.iter().filter(|c| c.passed).count();
             (passed as f64 / self.check_history.len() as f64) * 100.0
-        } else {
-            100.0
         };
 
         PolicyComplianceReport {
@@ -493,7 +451,6 @@ impl PolicyChecker {
     }
 }
 
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyContext {
     pub user_id: Option<Uuid>,
@@ -501,7 +458,6 @@ pub struct PolicyContext {
     pub action: String,
     pub parameters: HashMap<String, String>,
 }
-
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PolicyComplianceReport {

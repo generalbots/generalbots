@@ -23,7 +23,7 @@ pub struct ZitadelClient {
 }
 
 impl ZitadelClient {
-    pub async fn new(config: ZitadelConfig) -> Result<Self> {
+    pub fn new(config: ZitadelConfig) -> Result<Self> {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(30))
             .build()

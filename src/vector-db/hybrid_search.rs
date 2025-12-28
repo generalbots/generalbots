@@ -1,6 +1,7 @@
 use log::{debug, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt::Write;
 use uuid::Uuid;
 
 use crate::shared::state::AppState;
@@ -131,7 +132,7 @@ pub struct SearchResult {
     pub search_method: SearchMethod,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub enum SearchMethod {
     Dense,
     Sparse,
@@ -171,7 +172,7 @@ impl BM25Index {
             return;
         }
 
-        let terms = self.tokenize(content);
+        let terms = Self::tokenize(content);
         let doc_len = terms.len();
 
         self.doc_lengths.insert(doc_id.to_string(), doc_len);
@@ -226,7 +227,7 @@ impl BM25Index {
             return Vec::new();
         }
 
-        let query_terms = self.tokenize(query);
+        let query_terms = Self::tokenize(query);
         let mut scores: HashMap<String, f32> = HashMap::new();
 
         for term in &query_terms {
@@ -235,14 +236,16 @@ impl BM25Index {
                 continue;
             }
 
-            let idf = ((self.doc_count as f32 - df as f32 + 0.5) / (df as f32 + 0.5) + 1.0).ln();
+            let idf = ((self.doc_count as f32 - df as f32 + 0.5) / (df as f32 + 0.5)).ln_1p();
 
             for (doc_id, term_freqs) in &self.term_freqs {
                 if let Some(&tf) = term_freqs.get(term) {
                     let doc_len = *self.doc_lengths.get(doc_id).unwrap_or(&1) as f32;
                     let tf_normalized = (tf as f32 * (self.k1 + 1.0))
-                        / (tf as f32
-                            + self.k1 * (1.0 - self.b + self.b * (doc_len / self.avg_doc_len)));
+                        / self.k1.mul_add(
+                            self.b.mul_add(doc_len / self.avg_doc_len, 1.0 - self.b),
+                            tf as f32,
+                        );
 
                     *scores.entry(doc_id.clone()).or_insert(0.0) += idf * tf_normalized;
                 }
@@ -262,7 +265,7 @@ impl BM25Index {
             .collect()
     }
 
-    fn tokenize(&self, text: &str) -> Vec<String> {
+    fn tokenize(text: &str) -> Vec<String> {
         text.to_lowercase()
             .split(|c: char| !c.is_alphanumeric())
             .filter(|s| s.len() > 2)
@@ -403,7 +406,7 @@ impl HybridSearchEngine {
         let (results, method) = if sparse_results.is_empty() && dense_results.is_empty() {
             (Vec::new(), SearchMethod::Hybrid)
         } else if sparse_results.is_empty() {
-            (dense_results.clone(), SearchMethod::Dense)
+            (dense_results, SearchMethod::Dense)
         } else if dense_results.is_empty() {
             (sparse_results.clone(), SearchMethod::Sparse)
         } else {
@@ -430,7 +433,7 @@ impl HybridSearchEngine {
             .collect();
 
         if self.config.reranker_enabled && !search_results.is_empty() {
-            search_results = self.rerank(query, search_results).await?;
+            search_results = Self::rerank(query, search_results)?;
         }
 
         Ok(search_results)
@@ -510,11 +513,7 @@ impl HybridSearchEngine {
         results
     }
 
-    async fn rerank(
-        &self,
-        query: &str,
-        results: Vec<SearchResult>,
-    ) -> Result<Vec<SearchResult>, String> {
+    fn rerank(query: &str, results: Vec<SearchResult>) -> Result<Vec<SearchResult>, String> {
         let mut reranked = results;
 
         let query_lower = query.to_lowercase();
@@ -535,7 +534,7 @@ impl HybridSearchEngine {
             }
 
             let overlap_normalized = overlap_score / query_terms_len.max(1) as f32;
-            result.score = result.score * 0.7 + overlap_normalized * 0.3;
+            result.score = result.score.mul_add(0.7, overlap_normalized * 0.3);
             result.search_method = SearchMethod::Reranked;
         }
 
@@ -562,7 +561,7 @@ impl HybridSearchEngine {
         });
 
         let response = client
-            .post(&format!(
+            .post(format!(
                 "{}/collections/{}/points/search",
                 self.qdrant_url, self.collection_name
             ))
@@ -608,7 +607,7 @@ impl HybridSearchEngine {
         });
 
         let response = client
-            .put(&format!(
+            .put(format!(
                 "{}/collections/{}/points",
                 self.qdrant_url, self.collection_name
             ))
@@ -633,7 +632,7 @@ impl HybridSearchEngine {
         });
 
         let response = client
-            .post(&format!(
+            .post(format!(
                 "{}/collections/{}/points/delete",
                 self.qdrant_url, self.collection_name
             ))
@@ -695,7 +694,7 @@ impl QueryDecomposer {
         }
     }
 
-    pub async fn decompose(&self, query: &str) -> Result<Vec<String>, String> {
+    pub fn decompose(&self, query: &str) -> Result<Vec<String>, String> {
         log::trace!(
             "Decomposing query using endpoint={} (api_key configured: {})",
             self.llm_endpoint,
@@ -759,7 +758,7 @@ impl QueryDecomposer {
         );
 
         for (i, answer) in sub_answers.iter().enumerate() {
-            synthesis.push_str(&format!("{}. {}\n\n", i + 1, answer));
+            let _ = writeln!(synthesis, "{}. {}\n", i + 1, answer);
         }
 
         synthesis

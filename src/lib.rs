@@ -235,7 +235,8 @@ mod tests {
 
     #[test]
     fn test_library_loads() {
-        assert!(true);
+        let version = env!("CARGO_PKG_VERSION");
+        assert!(!version.is_empty());
     }
 
     #[test]

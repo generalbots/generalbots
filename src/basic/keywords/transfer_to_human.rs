@@ -255,8 +255,7 @@ fn priority_to_int(priority: Option<&str>) -> i32 {
         Some("urgent") => 3,
         Some("high") => 2,
         Some("low") => 0,
-        Some("normal") | None => 1,
-        Some(_) => 1,
+        _ => 1,
     }
 }
 

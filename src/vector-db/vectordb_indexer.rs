@@ -49,7 +49,7 @@ impl UserWorkspace {
     }
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum IndexingStatus {
     Idle,
     Running,
@@ -193,7 +193,7 @@ impl VectorDBIndexer {
         let mut jobs = self.jobs.write().await;
         let job = jobs.entry(user_id).or_insert_with(|| {
             let workspace = UserWorkspace::new(self.work_root.clone(), &bot_id, &user_id);
-            info!("User workspace path: {:?}", workspace.get_path());
+            info!("User workspace path: {}", workspace.get_path().display());
 
             UserIndexingJob {
                 user_id,
@@ -274,12 +274,9 @@ impl VectorDBIndexer {
             .get(&user_id)
             .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-        let email_db = match &job.email_db {
-            Some(db) => db,
-            None => {
-                warn!("Email vector DB not initialized for user {}", user_id);
-                return Ok(());
-            }
+        let Some(email_db) = &job.email_db else {
+            warn!("Email vector DB not initialized for user {}", user_id);
+            return Ok(());
         };
 
         let accounts = self.get_user_email_accounts(user_id).await?;
@@ -343,12 +340,9 @@ impl VectorDBIndexer {
             .get(&user_id)
             .ok_or_else(|| anyhow::anyhow!("Job not found"))?;
 
-        let drive_db = match &job.drive_db {
-            Some(db) => db,
-            None => {
-                warn!("Drive vector DB not initialized for user {}", user_id);
-                return Ok(());
-            }
+        let Some(drive_db) = &job.drive_db else {
+            warn!("Drive vector DB not initialized for user {}", user_id);
+            return Ok(());
         };
 
         match self.get_unindexed_files(user_id).await {
@@ -361,7 +355,7 @@ impl VectorDBIndexer {
 
                 for chunk in files.chunks(self.batch_size) {
                     for file in chunk {
-                        let mime_type = file.mime_type.as_ref().map(|s| s.as_str()).unwrap_or("");
+                        let mime_type = file.mime_type.as_deref().unwrap_or("");
                         if !FileContentExtractor::should_index(&mime_type, file.file_size) {
                             continue;
                         }

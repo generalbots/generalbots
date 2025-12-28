@@ -49,13 +49,9 @@ pub enum CodeLanguage {
 impl From<&str> for CodeLanguage {
     fn from(s: &str) -> Self {
         match s.to_lowercase().as_str() {
-            "python" | "py" | "javascript" | "js" | "node" | "bash" | "sh" | "shell" => {}
-            _ => {}
-        }
-        match s.to_lowercase().as_str() {
             "python" | "py" => Self::Python,
             "javascript" | "js" | "node" => Self::JavaScript,
-            "bash" | "sh" | "shell" | _ => Self::Bash,
+            _ => Self::Bash,
         }
     }
 }

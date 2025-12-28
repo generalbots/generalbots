@@ -246,7 +246,7 @@ async fn send_message_to_recipient(
             send_web_message(state.clone(), &recipient_id, message).await?;
         }
         "email" => {
-            send_email(state.clone(), &recipient_id, message).await?;
+            send_email(state.clone(), &recipient_id, message)?;
         }
         _ => {
             error!("Unknown channel: {}", channel);
@@ -296,7 +296,7 @@ async fn send_file_with_caption_to_recipient(
             send_web_file(state, &recipient_id, file_data, caption).await?;
         }
         "email" => {
-            send_email_attachment(state, &recipient_id, file_data, caption).await?;
+            send_email_attachment(state, &recipient_id, file_data, caption)?;
         }
         _ => {
             return Err(format!("Unsupported channel for file sending: {}", channel).into());
@@ -608,7 +608,7 @@ async fn send_web_file(
     send_web_message(state, session_id, &message).await
 }
 
-async fn send_email(
+fn send_email(
     state: Arc<AppState>,
     email: &str,
     message: &str,
@@ -630,7 +630,7 @@ async fn send_email(
     }
 }
 
-async fn send_email_attachment(
+fn send_email_attachment(
     state: Arc<AppState>,
     email: &str,
     file_data: Vec<u8>,

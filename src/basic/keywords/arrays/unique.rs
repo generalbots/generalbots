@@ -35,18 +35,19 @@ fn unique_array(arr: Array) -> Array {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use rhai::{Array, Dynamic};
+    use rhai::Dynamic;
 
     #[test]
     fn test_unique_integers() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from(1_i64));
-        arr.push(Dynamic::from(2_i64));
-        arr.push(Dynamic::from(2_i64));
-        arr.push(Dynamic::from(3_i64));
-        arr.push(Dynamic::from(3_i64));
-        arr.push(Dynamic::from(3_i64));
-        arr.push(Dynamic::from(4_i64));
+        let arr: Array = vec![
+            Dynamic::from(1_i64),
+            Dynamic::from(2_i64),
+            Dynamic::from(2_i64),
+            Dynamic::from(3_i64),
+            Dynamic::from(3_i64),
+            Dynamic::from(3_i64),
+            Dynamic::from(4_i64),
+        ];
 
         let result = unique_array(arr);
         assert_eq!(result.len(), 4);
@@ -54,11 +55,12 @@ mod tests {
 
     #[test]
     fn test_unique_strings() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from("Alice"));
-        arr.push(Dynamic::from("Bob"));
-        arr.push(Dynamic::from("Alice"));
-        arr.push(Dynamic::from("Charlie"));
+        let arr: Array = vec![
+            Dynamic::from("Alice"),
+            Dynamic::from("Bob"),
+            Dynamic::from("Alice"),
+            Dynamic::from("Charlie"),
+        ];
 
         let result = unique_array(arr);
         assert_eq!(result.len(), 3);
@@ -66,12 +68,13 @@ mod tests {
 
     #[test]
     fn test_unique_preserves_order() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from("C"));
-        arr.push(Dynamic::from("A"));
-        arr.push(Dynamic::from("B"));
-        arr.push(Dynamic::from("A"));
-        arr.push(Dynamic::from("C"));
+        let arr: Array = vec![
+            Dynamic::from("C"),
+            Dynamic::from("A"),
+            Dynamic::from("B"),
+            Dynamic::from("A"),
+            Dynamic::from("C"),
+        ];
 
         let result = unique_array(arr);
         assert_eq!(result.len(), 3);
@@ -89,8 +92,7 @@ mod tests {
 
     #[test]
     fn test_unique_single_element() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from(42_i64));
+        let arr: Array = vec![Dynamic::from(42_i64)];
 
         let result = unique_array(arr);
         assert_eq!(result.len(), 1);
@@ -98,10 +100,11 @@ mod tests {
 
     #[test]
     fn test_unique_all_same() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from(1_i64));
-        arr.push(Dynamic::from(1_i64));
-        arr.push(Dynamic::from(1_i64));
+        let arr: Array = vec![
+            Dynamic::from(1_i64),
+            Dynamic::from(1_i64),
+            Dynamic::from(1_i64),
+        ];
 
         let result = unique_array(arr);
         assert_eq!(result.len(), 1);
@@ -109,12 +112,13 @@ mod tests {
 
     #[test]
     fn test_unique_mixed_types() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from(1_i64));
-        arr.push(Dynamic::from("1"));
-        arr.push(Dynamic::from(1_i64));
+        let arr: Array = vec![
+            Dynamic::from(1_i64),
+            Dynamic::from("1"),
+            Dynamic::from(1_i64),
+        ];
 
         let result = unique_array(arr);
-        assert!(result.len() >= 1 && result.len() <= 2);
+        assert!(!result.is_empty() && result.len() <= 2);
     }
 }

@@ -45,7 +45,7 @@ impl KbContextManager {
         }
     }
 
-    pub async fn get_active_kbs(&self, session_id: Uuid) -> Result<Vec<SessionKbAssociation>> {
+    pub fn get_active_kbs(&self, session_id: Uuid) -> Result<Vec<SessionKbAssociation>> {
         let mut conn = self.db_pool.get()?;
 
         let query = diesel::sql_query(
@@ -88,7 +88,7 @@ impl KbContextManager {
         max_results_per_kb: usize,
         max_total_tokens: usize,
     ) -> Result<Vec<KbContext>> {
-        let active_kbs = self.get_active_kbs(session_id).await?;
+        let active_kbs = self.get_active_kbs(session_id)?;
 
         if active_kbs.is_empty() {
             debug!("No active KBs for session {}", session_id);
@@ -226,7 +226,7 @@ impl KbContextManager {
         context_parts.join("\n")
     }
 
-    pub async fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
+    pub fn get_active_tools(&self, session_id: Uuid) -> Result<Vec<String>> {
         let mut conn = self.db_pool.get()?;
 
         let query = diesel::sql_query(

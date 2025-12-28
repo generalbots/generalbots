@@ -288,7 +288,8 @@ pub fn generate_create_table_sql(table: &TableDefinition, driver: &str) -> Strin
         }
 
         if let Some(ref default) = field.default_value {
-            col_def.push_str(&format!(" DEFAULT {}", default));
+            use std::fmt::Write;
+            let _ = write!(&mut col_def, " DEFAULT {}", default);
         }
 
         column_defs.push(col_def);
@@ -381,7 +382,6 @@ pub fn load_connection_config(
 pub fn build_connection_string(conn: &ExternalConnection) -> String {
     let port = conn.port.unwrap_or(match conn.driver.as_str() {
         "mysql" | "mariadb" => 3306,
-        "postgres" | "postgresql" => 5432,
         "mssql" | "sqlserver" => 1433,
         _ => 5432,
     });
@@ -399,7 +399,7 @@ pub fn build_connection_string(conn: &ExternalConnection) -> String {
                 conn.username, conn.password, conn.server, port, conn.database
             )
         }
-        "postgres" | "postgresql" | _ => {
+        _ => {
             format!(
                 "postgres://{}:{}@{}:{}/{}",
                 conn.username, conn.password, conn.server, port, conn.database
