@@ -142,7 +142,7 @@ impl VoiceAdapter {
     pub async fn add_connection(&self, session_id: String, tx: mpsc::Sender<BotResponse>) {
         self.connections.lock().await.insert(session_id, tx);
     }
-    pub async fn send_voice_response(
+    pub fn send_voice_response(
         &self,
         session_id: &str,
         text: &str,
@@ -159,6 +159,5 @@ impl ChannelAdapter for VoiceAdapter {
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         info!("Sending voice response to: {}", response.user_id);
         self.send_voice_response(&response.session_id, &response.content)
-            .await
     }
 }

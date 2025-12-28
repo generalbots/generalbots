@@ -131,8 +131,7 @@ impl KbIndexer {
             indexed_documents += 1;
         }
 
-        self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)
-            .await?;
+        self.update_collection_metadata(&collection_name, bot_name, kb_name, total_chunks)?;
 
         Ok(IndexingResult {
             collection_name,
@@ -303,13 +302,14 @@ impl KbIndexer {
         Ok(())
     }
 
-    async fn update_collection_metadata(
+    fn update_collection_metadata(
         &self,
         collection_name: &str,
         bot_name: &str,
         kb_name: &str,
         document_count: usize,
     ) -> Result<()> {
+        let _ = self;
         info!(
             "Updated collection {} metadata: bot={}, kb={}, docs={}",
             collection_name, bot_name, kb_name, document_count

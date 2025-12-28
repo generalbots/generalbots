@@ -166,11 +166,13 @@ async fn list_apps(
     let mut result: Vec<WebApp> = apps.values().cloned().collect();
 
     if let Some(status) = query.status {
-        result.retain(|app| match (&app.status, status.as_str()) {
-            (WebAppStatus::Draft, "draft") => true,
-            (WebAppStatus::Published, "published") => true,
-            (WebAppStatus::Archived, "archived") => true,
-            _ => false,
+        result.retain(|app| {
+            matches!(
+                (&app.status, status.as_str()),
+                (WebAppStatus::Draft, "draft")
+                    | (WebAppStatus::Published, "published")
+                    | (WebAppStatus::Archived, "archived")
+            )
         });
     }
 
@@ -230,7 +232,7 @@ async fn update_app(
     let app = apps.get_mut(&id).ok_or(axum::http::StatusCode::NOT_FOUND)?;
 
     if let Some(name) = req.name {
-        app.name = name.clone();
+        app.name.clone_from(&name);
         app.slug = slugify(&name);
     }
     if let Some(description) = req.description {
@@ -448,7 +450,7 @@ fn render_html(app: &WebApp, content: &str) -> String {
         .config
         .meta_tags
         .iter()
-        .map(|(k, v)| format!("<meta name=\"{}\" content=\"{}\">", k, v))
+        .map(|(k, v)| format!("<meta name=\"{k}\" content=\"{v}\">"))
         .collect::<Vec<_>>()
         .join("\n    ");
 
@@ -456,7 +458,7 @@ fn render_html(app: &WebApp, content: &str) -> String {
         .config
         .scripts
         .iter()
-        .map(|s| format!("<script src=\"{}\"></script>", s))
+        .map(|s| format!("<script src=\"{s}\"></script>"))
         .collect::<Vec<_>>()
         .join("\n    ");
 
@@ -464,7 +466,7 @@ fn render_html(app: &WebApp, content: &str) -> String {
         .config
         .styles
         .iter()
-        .map(|s| format!("<link rel=\"stylesheet\" href=\"{}\">", s))
+        .map(|s| format!("<link rel=\"stylesheet\" href=\"{s}\">"))
         .collect::<Vec<_>>()
         .join("\n    ");
 
@@ -511,8 +513,6 @@ mod tests {
     use super::*;
     use std::time::Duration;
 
-    // Test types from bottest/web/mod.rs
-
     #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
     pub enum BrowserType {
         #[default]
@@ -523,7 +523,7 @@ mod tests {
     }
 
     impl BrowserType {
-        pub const fn browser_name(&self) -> &'static str {
+        pub const fn browser_name(self) -> &'static str {
             match self {
                 Self::Chrome => "chrome",
                 Self::Firefox => "firefox",
@@ -648,6 +648,12 @@ mod tests {
         pub fn id(id: &str) -> Self {
             Self::Id(id.to_string())
         }
+
+        pub fn as_selector(&self) -> &str {
+            match self {
+                Self::Css(s) | Self::XPath(s) | Self::Id(s) => s,
+            }
+        }
     }
 
     #[derive(Debug, Clone)]
@@ -655,6 +661,16 @@ mod tests {
         Click(Locator),
         SendKeys(String),
         Pause(Duration),
+    }
+
+    impl Action {
+        pub fn description(&self) -> String {
+            match self {
+                Self::Click(loc) => format!("click on {}", loc.as_selector()),
+                Self::SendKeys(text) => format!("send keys: {text}"),
+                Self::Pause(dur) => format!("pause for {dur:?}"),
+            }
+        }
     }
 
     pub struct ActionChain {
@@ -737,8 +753,6 @@ mod tests {
         }
     }
 
-    // Page object model types from bottest/web/pages/mod.rs
-
     pub struct LoginPage {
         base_url: String,
     }
@@ -754,7 +768,7 @@ mod tests {
             &self.base_url
         }
 
-        pub fn url_pattern(&self) -> &str {
+        pub fn url_pattern() -> &'static str {
             "/login"
         }
 
@@ -790,7 +804,7 @@ mod tests {
             &self.base_url
         }
 
-        pub fn url_pattern(&self) -> &str {
+        pub fn url_pattern() -> &'static str {
             "/dashboard"
         }
     }
@@ -816,7 +830,7 @@ mod tests {
             &self.bot_name
         }
 
-        pub fn url_pattern(&self) -> &str {
+        pub fn url_pattern() -> &'static str {
             "/chat/"
         }
 
@@ -852,7 +866,7 @@ mod tests {
             &self.base_url
         }
 
-        pub fn url_pattern(&self) -> &str {
+        pub fn url_pattern() -> &'static str {
             "/queue"
         }
 
@@ -884,12 +898,10 @@ mod tests {
             &self.base_url
         }
 
-        pub fn url_pattern(&self) -> &str {
+        pub fn url_pattern() -> &'static str {
             "/admin/bots"
         }
     }
-
-    // Tests
 
     #[test]
     fn test_e2e_config_default() {
@@ -940,12 +952,15 @@ mod tests {
     fn test_locator_constructors() {
         let css = Locator::css(".my-class");
         assert!(matches!(css, Locator::Css(_)));
+        assert_eq!(css.as_selector(), ".my-class");
 
         let xpath = Locator::xpath("//div[@id='test']");
         assert!(matches!(xpath, Locator::XPath(_)));
+        assert_eq!(xpath.as_selector(), "//div[@id='test']");
 
         let id = Locator::id("my-id");
         assert!(matches!(id, Locator::Id(_)));
+        assert_eq!(id.as_selector(), "my-id");
     }
 
     #[test]
@@ -957,7 +972,7 @@ mod tests {
 
         assert_eq!(chain.actions().len(), 3);
         for action in chain.actions() {
-            let _ = format!("{action:?}");
+            let _ = action.description();
         }
     }
 
@@ -1002,28 +1017,26 @@ mod tests {
     #[test]
     fn test_page_url_patterns() {
         let login = LoginPage::new("http://localhost:4242");
-        assert_eq!(login.url_pattern(), "/login");
+        assert_eq!(LoginPage::url_pattern(), "/login");
         assert_eq!(login.base_url(), "http://localhost:4242");
 
         let dashboard = DashboardPage::new("http://localhost:4242");
-        assert_eq!(dashboard.url_pattern(), "/dashboard");
+        assert_eq!(DashboardPage::url_pattern(), "/dashboard");
         assert_eq!(dashboard.base_url(), "http://localhost:4242");
 
         let chat = ChatPage::new("http://localhost:4242", "test-bot");
-        assert_eq!(chat.url_pattern(), "/chat/");
+        assert_eq!(ChatPage::url_pattern(), "/chat/");
         assert_eq!(chat.base_url(), "http://localhost:4242");
         assert_eq!(chat.bot_name(), "test-bot");
 
         let queue = QueuePage::new("http://localhost:4242");
-        assert_eq!(queue.url_pattern(), "/queue");
+        assert_eq!(QueuePage::url_pattern(), "/queue");
         assert_eq!(queue.base_url(), "http://localhost:4242");
 
         let bots = BotManagementPage::new("http://localhost:4242");
-        assert_eq!(bots.url_pattern(), "/admin/bots");
+        assert_eq!(BotManagementPage::url_pattern(), "/admin/bots");
         assert_eq!(bots.base_url(), "http://localhost:4242");
     }
-
-    // WebApp tests
 
     #[test]
     fn test_slugify() {

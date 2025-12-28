@@ -211,11 +211,16 @@ impl DriveMonitor {
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
                 let path_parts: Vec<&str> = path.split('/').collect();
-                if path_parts.len() < 2 || !path_parts[0].ends_with(".gbot") {
+                if path_parts.len() < 2
+                    || !std::path::Path::new(path_parts[0])
+                        .extension()
+                        .is_some_and(|ext| ext.eq_ignore_ascii_case("gbot"))
+                {
                     continue;
                 }
-                let path_lower = path.to_ascii_lowercase();
-                if !path_lower.ends_with("config.csv") {
+                if !path.eq_ignore_ascii_case("config.csv")
+                    && !path.to_ascii_lowercase().ends_with("/config.csv")
+                {
                     continue;
                 }
                 match client

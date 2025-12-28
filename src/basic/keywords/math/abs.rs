@@ -18,18 +18,18 @@ mod tests {
     #[test]
     fn test_abs_positive() {
         assert_eq!(42_i64.abs(), 42);
-        assert_eq!(3.14_f64.abs(), 3.14);
+        assert!((3.5_f64.abs() - 3.5).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_abs_negative() {
         assert_eq!((-42_i64).abs(), 42);
-        assert_eq!((-3.14_f64).abs(), 3.14);
+        assert!(((-3.5_f64).abs() - 3.5).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_abs_zero() {
         assert_eq!(0_i64.abs(), 0);
-        assert_eq!(0.0_f64.abs(), 0.0);
+        assert!(0.0_f64.abs().abs() < f64::EPSILON);
     }
 }

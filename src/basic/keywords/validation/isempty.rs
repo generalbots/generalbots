@@ -73,8 +73,7 @@ mod tests {
 
     #[test]
     fn test_non_empty_array() {
-        let mut arr = Array::new();
-        arr.push(Dynamic::from(1));
+        let arr: Array = vec![Dynamic::from(1)];
         let value = Dynamic::from(arr);
         assert!(!check_empty(&value));
     }

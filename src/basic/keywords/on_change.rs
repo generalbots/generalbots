@@ -375,7 +375,7 @@ pub fn execute_on_change(
     }))
 }
 
-pub async fn check_folder_monitors(
+pub fn check_folder_monitors(
     state: &AppState,
     bot_id: Uuid,
 ) -> Result<Vec<(FolderChangeEvent, String)>, String> {
@@ -450,8 +450,7 @@ pub async fn check_folder_monitors(
             monitor.last_change_token.as_deref(),
             monitor.watch_subfolders,
             &event_types,
-        )
-        .await?;
+        )?;
 
         for event in new_events {
             events.push((event, monitor.script_path.clone()));
@@ -461,7 +460,7 @@ pub async fn check_folder_monitors(
     Ok(events)
 }
 
-async fn fetch_folder_changes(
+fn fetch_folder_changes(
     _state: &AppState,
     monitor_id: Uuid,
     provider: FolderProvider,
@@ -480,7 +479,7 @@ async fn fetch_folder_changes(
     Ok(Vec::new())
 }
 
-pub async fn process_folder_event(
+pub fn process_folder_event(
     state: &AppState,
     event: &FolderChangeEvent,
     script_path: &str,

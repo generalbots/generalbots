@@ -1283,6 +1283,54 @@ mod tests {
     }
 
     #[test]
+    fn test_sent_message_serialization() {
+        let sent = SentMessage {
+            id: "wamid.test123".to_string(),
+            to: "+15551234567".to_string(),
+            message_type: MessageType::Text,
+            content: MessageContent::Text {
+                body: "Hello from bot".to_string(),
+            },
+            timestamp: chrono::Utc::now(),
+        };
+
+        let json = serde_json::to_string(&sent).unwrap();
+        assert!(json.contains("wamid.test123"));
+        assert!(json.contains("Hello from bot"));
+    }
+
+    #[test]
+    fn test_message_content_variants() {
+        let text = MessageContent::Text {
+            body: "Hello".to_string(),
+        };
+        let template = MessageContent::Template {
+            name: "welcome".to_string(),
+            language: "en".to_string(),
+            components: vec![],
+        };
+        let media = MessageContent::Media {
+            url: Some("https://example.com/image.jpg".to_string()),
+            caption: Some("A photo".to_string()),
+        };
+        let location = MessageContent::Location {
+            latitude: 40.7128,
+            longitude: -74.0060,
+            name: Some("New York".to_string()),
+        };
+
+        let text_json = serde_json::to_string(&text).unwrap();
+        let template_json = serde_json::to_string(&template).unwrap();
+        let media_json = serde_json::to_string(&media).unwrap();
+        let location_json = serde_json::to_string(&location).unwrap();
+
+        assert!(text_json.contains("Hello"));
+        assert!(template_json.contains("welcome"));
+        assert!(media_json.contains("image.jpg"));
+        assert!(location_json.contains("40.7128"));
+    }
+
+    #[test]
     fn test_whatsapp_webhook_deserialization() {
         let json = r#"{
             "object": "whatsapp_business_account",

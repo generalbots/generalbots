@@ -430,10 +430,11 @@ impl ScriptService {
                 || trimmed.starts_with("ELSE")
                 || trimmed.starts_with("END IF");
             result.push_str(trimmed);
-            if is_basic_command || !for_stack.is_empty() || is_control_flow {
-                result.push(';');
-            } else if !trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}')
-            {
+            let needs_semicolon = is_basic_command
+                || !for_stack.is_empty()
+                || is_control_flow
+                || (!trimmed.ends_with(';') && !trimmed.ends_with('{') && !trimmed.ends_with('}'));
+            if needs_semicolon {
                 result.push(';');
             }
             result.push('\n');
@@ -764,7 +765,6 @@ impl ScriptService {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use std::collections::HashMap;
     use std::time::Duration;
 
@@ -861,7 +861,13 @@ TALK "Total: $" + STR$(total)
         pub use_mocks: bool,
         pub env_vars: HashMap<String, String>,
         pub capture_logs: bool,
-        pub log_level: LogLevel,
+        log_level: LogLevel,
+    }
+
+    impl BotRunnerConfig {
+        pub const fn log_level(&self) -> LogLevel {
+            self.log_level
+        }
     }
 
     impl Default for BotRunnerConfig {
@@ -914,6 +920,18 @@ TALK "Total: $" + STR$(total)
             } else {
                 0.0
             }
+        }
+
+        pub const fn min_latency(&self) -> u64 {
+            self.min_latency_ms
+        }
+
+        pub const fn max_latency(&self) -> u64 {
+            self.max_latency_ms
+        }
+
+        pub const fn latency_range(&self) -> u64 {
+            self.max_latency_ms.saturating_sub(self.min_latency_ms)
         }
     }
 
@@ -973,27 +991,31 @@ TALK "Total: $" + STR$(total)
 
     #[test]
     fn test_runner_metrics_avg_latency() {
-        let mut metrics = RunnerMetrics::default();
-        metrics.total_requests = 10;
-        metrics.total_latency_ms = 1000;
+        let metrics = RunnerMetrics {
+            total_requests: 10,
+            total_latency_ms: 1000,
+            ..RunnerMetrics::default()
+        };
 
         assert_eq!(metrics.avg_latency_ms(), 100);
     }
 
     #[test]
     fn test_runner_metrics_success_rate() {
-        let mut metrics = RunnerMetrics::default();
-        metrics.total_requests = 100;
-        metrics.successful_requests = 95;
+        let metrics = RunnerMetrics {
+            total_requests: 100,
+            successful_requests: 95,
+            ..RunnerMetrics::default()
+        };
 
-        assert_eq!(metrics.success_rate(), 95.0);
+        assert!((metrics.success_rate() - 95.0).abs() < f64::EPSILON);
     }
 
     #[test]
     fn test_runner_metrics_zero_requests() {
         let metrics = RunnerMetrics::default();
         assert_eq!(metrics.avg_latency_ms(), 0);
-        assert_eq!(metrics.success_rate(), 0.0);
+        assert!(metrics.success_rate().abs() < f64::EPSILON);
     }
 
     #[test]
@@ -1004,13 +1026,14 @@ TALK "Total: $" + STR$(total)
 
     #[test]
     fn test_runner_config_env_vars() {
-        let mut config = BotRunnerConfig::default();
-        config
-            .env_vars
-            .insert("API_KEY".to_string(), "test123".to_string());
-        config
-            .env_vars
-            .insert("DEBUG".to_string(), "true".to_string());
+        let mut env_vars = HashMap::new();
+        env_vars.insert("API_KEY".to_string(), "test123".to_string());
+        env_vars.insert("DEBUG".to_string(), "true".to_string());
+
+        let config = BotRunnerConfig {
+            env_vars,
+            ..BotRunnerConfig::default()
+        };
 
         assert_eq!(config.env_vars.get("API_KEY"), Some(&"test123".to_string()));
         assert_eq!(config.env_vars.get("DEBUG"), Some(&"true".to_string()));
@@ -1018,38 +1041,53 @@ TALK "Total: $" + STR$(total)
 
     #[test]
     fn test_runner_config_timeout() {
-        let mut config = BotRunnerConfig::default();
-        config.timeout = Duration::from_secs(60);
+        let config = BotRunnerConfig {
+            timeout: Duration::from_secs(60),
+            ..BotRunnerConfig::default()
+        };
 
         assert_eq!(config.timeout, Duration::from_secs(60));
     }
 
     #[test]
     fn test_metrics_tracking() {
-        let mut metrics = RunnerMetrics::default();
-        metrics.total_requests = 50;
-        metrics.successful_requests = 45;
-        metrics.failed_requests = 5;
-        metrics.total_latency_ms = 5000;
-        metrics.min_latency_ms = 10;
-        metrics.max_latency_ms = 500;
+        let metrics = RunnerMetrics {
+            total_requests: 50,
+            successful_requests: 45,
+            failed_requests: 5,
+            total_latency_ms: 5000,
+            min_latency_ms: 10,
+            max_latency_ms: 500,
+            ..RunnerMetrics::default()
+        };
 
         assert_eq!(metrics.avg_latency_ms(), 100);
-        assert_eq!(metrics.success_rate(), 90.0);
+        assert!((metrics.success_rate() - 90.0).abs() < f64::EPSILON);
         assert_eq!(
             metrics.total_requests,
             metrics.successful_requests + metrics.failed_requests
         );
+        assert_eq!(metrics.min_latency(), 10);
+        assert_eq!(metrics.max_latency(), 500);
+        assert_eq!(metrics.latency_range(), 490);
     }
 
     #[test]
     fn test_script_execution_tracking() {
-        let mut metrics = RunnerMetrics::default();
-        metrics.script_executions = 25;
-        metrics.transfer_to_human_count = 3;
+        let metrics = RunnerMetrics {
+            script_executions: 25,
+            transfer_to_human_count: 3,
+            ..RunnerMetrics::default()
+        };
 
         assert_eq!(metrics.script_executions, 25);
         assert_eq!(metrics.transfer_to_human_count, 3);
+    }
+
+    #[test]
+    fn test_log_level_accessor() {
+        let config = BotRunnerConfig::default();
+        assert_eq!(config.log_level(), LogLevel::Info);
     }
 
     #[test]

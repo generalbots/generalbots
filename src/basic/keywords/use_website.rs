@@ -43,15 +43,12 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            associate_website_with_session(
-                                &state_for_task,
-                                &user_for_task,
-                                &url_for_task,
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = associate_website_with_session(
+                            &state_for_task,
+                            &user_for_task,
+                            &url_for_task,
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -85,7 +82,7 @@ pub fn use_website_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
         .unwrap();
 }
 
-async fn associate_website_with_session(
+fn associate_website_with_session(
     state: &AppState,
     user: &UserSession,
     url: &str,

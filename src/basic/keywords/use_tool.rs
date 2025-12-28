@@ -39,15 +39,12 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                     .worker_threads(2)
                     .enable_all()
                     .build();
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        associate_tool_with_session(
-                            &state_for_task,
-                            &user_for_task,
-                            &tool_name_for_task,
-                        )
-                        .await
-                    });
+                let send_err = if let Ok(_rt) = rt {
+                    let result = associate_tool_with_session(
+                        &state_for_task,
+                        &user_for_task,
+                        &tool_name_for_task,
+                    );
                     tx.send(result).err()
                 } else {
                     tx.send(Err("Failed to build tokio runtime".to_string()))
@@ -77,7 +74,7 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
         })
         .unwrap();
 }
-async fn associate_tool_with_session(
+fn associate_tool_with_session(
     state: &AppState,
     user: &UserSession,
     tool_name: &str,

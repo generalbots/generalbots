@@ -124,15 +124,15 @@ impl TlsIntegration {
     pub fn load_ca_cert(&mut self, ca_path: &Path) -> Result<()> {
         if ca_path.exists() {
             let ca_cert_pem = fs::read(ca_path)
-                .with_context(|| format!("Failed to read CA certificate from {:?}", ca_path))?;
+                .with_context(|| format!("Failed to read CA certificate from {}", ca_path.display()))?;
 
             let ca_cert =
                 Certificate::from_pem(&ca_cert_pem).context("Failed to parse CA certificate")?;
 
             self.ca_cert = Some(ca_cert);
-            info!("Loaded CA certificate from {:?}", ca_path);
+            info!("Loaded CA certificate from {}", ca_path.display());
         } else {
-            warn!("CA certificate not found at {:?}", ca_path);
+            warn!("CA certificate not found at {}", ca_path.display());
         }
 
         Ok(())
@@ -146,10 +146,10 @@ impl TlsIntegration {
     ) -> Result<()> {
         if cert_path.exists() && key_path.exists() {
             let cert = fs::read(cert_path)
-                .with_context(|| format!("Failed to read client cert from {:?}", cert_path))?;
+                .with_context(|| format!("Failed to read client cert from {}", cert_path.display()))?;
 
             let key = fs::read(key_path)
-                .with_context(|| format!("Failed to read client key from {:?}", key_path))?;
+                .with_context(|| format!("Failed to read client key from {}", key_path.display()))?;
 
             let identity = Identity::from_pem(&[&cert[..], &key[..]].concat())
                 .context("Failed to create client identity")?;

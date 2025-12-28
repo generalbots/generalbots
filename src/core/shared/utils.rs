@@ -167,6 +167,7 @@ pub async fn download_file(url: &str, output_path: &str) -> Result<(), anyhow::E
         if response.status().is_success() {
             let total_size = response.content_length().unwrap_or(0);
             let pb = ProgressBar::new(total_size);
+            #[allow(clippy::literal_string_with_formatting_args)]
             pb.set_style(ProgressStyle::default_bar()
                 .template("{msg}\n{spinner:.green} [{elapsed_precise}] [{bar:40.cyan/blue}] {bytes}/{total_bytes} ({eta})")
                 .expect("Invalid progress bar template")

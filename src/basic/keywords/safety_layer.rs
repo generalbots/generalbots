@@ -647,9 +647,9 @@ impl SafetyLayer {
                 threshold: row.threshold.and_then(|t| serde_json::from_str(&t).ok()),
                 severity: match row.severity.as_str() {
                     "info" => ConstraintSeverity::Info,
-                    "warning" => ConstraintSeverity::Warning,
                     "error" => ConstraintSeverity::Error,
                     "critical" => ConstraintSeverity::Critical,
+                    // "warning" and any other value default to Warning
                     _ => ConstraintSeverity::Warning,
                 },
                 enabled: row.enabled,

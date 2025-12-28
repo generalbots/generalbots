@@ -154,7 +154,7 @@ pub fn remove_webhook_registration(
     Ok(result)
 }
 
-/// Type alias for webhook results: (target, param, is_active)
+/// Type alias for webhook results: (target, param, `is_active`).
 pub type WebhookResult = Vec<(String, String, bool)>;
 
 pub fn get_bot_webhooks(

@@ -87,7 +87,7 @@ impl SecurityManager {
         })
     }
 
-    pub async fn initialize(&mut self) -> Result<()> {
+    pub fn initialize(&mut self) -> Result<()> {
         info!("Initializing security infrastructure");
 
         if self.config.auto_generate_certs && !self.ca_exists() {
@@ -99,20 +99,20 @@ impl SecurityManager {
         }
 
         if self.config.mtls_enabled {
-            self.initialize_mtls().await?;
+            self.initialize_mtls()?;
         }
 
-        self.verify_all_certificates().await?;
+        self.verify_all_certificates()?;
 
         if self.config.auto_generate_certs {
-            self.start_renewal_monitor().await;
+            self.start_renewal_monitor();
         }
 
         info!("Security infrastructure initialized successfully");
         Ok(())
     }
 
-    async fn initialize_mtls(&self) -> Result<()> {
+    fn initialize_mtls(&self) -> Result<()> {
         if let Some(ref manager) = self.mtls_manager {
             info!("Initializing mTLS for all services");
 
@@ -139,7 +139,7 @@ impl SecurityManager {
         self.config.ca_config.ca_cert_path.exists() && self.config.ca_config.ca_key_path.exists()
     }
 
-    async fn verify_all_certificates(&self) -> Result<()> {
+    fn verify_all_certificates(&self) -> Result<()> {
         for service in self.config.tls_registry.services() {
             let cert_path = &service.tls_config.cert_path;
             let key_path = &service.tls_config.key_path;
@@ -166,7 +166,7 @@ impl SecurityManager {
         Ok(())
     }
 
-    async fn start_renewal_monitor(&self) {
+    fn start_renewal_monitor(&self) {
         let config = self.config.clone();
 
         tokio::spawn(async move {
@@ -177,7 +177,7 @@ impl SecurityManager {
                 interval.tick().await;
 
                 for service in config.tls_registry.services() {
-                    if let Err(e) = check_certificate_renewal(&service.tls_config).await {
+                    if let Err(e) = check_certificate_renewal(&service.tls_config) {
                         warn!(
                             "Failed to check certificate renewal for {}: {}",
                             service.service_name, e
@@ -209,7 +209,7 @@ impl SecurityManager {
     }
 }
 
-pub async fn check_certificate_renewal(_tls_config: &TlsConfig) -> Result<()> {
+pub fn check_certificate_renewal(_tls_config: &TlsConfig) -> Result<()> {
     Ok(())
 }
 
@@ -317,7 +317,7 @@ mod tests {
         for chunk in bytes.chunks(3) {
             let mut n: u32 = 0;
             for (i, &byte) in chunk.iter().enumerate() {
-                n |= (byte as u32) << (16 - i * 8);
+                n |= u32::from(byte) << (16 - i * 8);
             }
 
             let chars_to_write = match chunk.len() {

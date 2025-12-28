@@ -1,6 +1,7 @@
 use crate::basic::keywords::auto_task::{
     AutoTask, AutoTaskStatus, ExecutionMode, PendingApproval, PendingDecision, TaskPriority,
 };
+use crate::basic::keywords::intent_classifier::IntentClassifier;
 use crate::basic::keywords::intent_compiler::IntentCompiler;
 use crate::basic::keywords::safety_layer::{SafetyLayer, SimulationResult};
 use crate::shared::state::AppState;
@@ -21,6 +22,43 @@ pub struct CompileIntentRequest {
     pub intent: String,
     pub execution_mode: Option<String>,
     pub priority: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ClassifyIntentRequest {
+    pub intent: String,
+    pub auto_process: Option<bool>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ClassifyIntentResponse {
+    pub success: bool,
+    pub intent_type: String,
+    pub confidence: f64,
+    pub suggested_name: Option<String>,
+    pub requires_clarification: bool,
+    pub clarification_question: Option<String>,
+    pub result: Option<IntentResultResponse>,
+    pub error: Option<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct IntentResultResponse {
+    pub success: bool,
+    pub message: String,
+    pub app_url: Option<String>,
+    pub task_id: Option<String>,
+    pub schedule_id: Option<String>,
+    pub tool_triggers: Vec<String>,
+    pub created_resources: Vec<CreatedResourceResponse>,
+    pub next_steps: Vec<String>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct CreatedResourceResponse {
+    pub resource_type: String,
+    pub name: String,
+    pub path: Option<String>,
 }
 
 #[derive(Debug, Serialize)]
@@ -221,6 +259,128 @@ pub struct RecommendationResponse {
     pub action: Option<String>,
 }
 
+/// Classify and optionally process an intent
+/// POST /api/autotask/classify
+pub async fn classify_intent_handler(
+    State(state): State<Arc<AppState>>,
+    Json(request): Json<ClassifyIntentRequest>,
+) -> impl IntoResponse {
+    info!(
+        "Classifying intent: {}",
+        &request.intent[..request.intent.len().min(100)]
+    );
+
+    let session = match get_current_session(&state) {
+        Ok(s) => s,
+        Err(e) => {
+            return (
+                StatusCode::UNAUTHORIZED,
+                Json(ClassifyIntentResponse {
+                    success: false,
+                    intent_type: "UNKNOWN".to_string(),
+                    confidence: 0.0,
+                    suggested_name: None,
+                    requires_clarification: false,
+                    clarification_question: None,
+                    result: None,
+                    error: Some(format!("Authentication error: {}", e)),
+                }),
+            );
+        }
+    };
+
+    let classifier = IntentClassifier::new(Arc::clone(&state));
+    let auto_process = request.auto_process.unwrap_or(true);
+
+    if auto_process {
+        // Classify and process in one step
+        match classifier
+            .classify_and_process(&request.intent, &session)
+            .await
+        {
+            Ok(result) => {
+                let response = ClassifyIntentResponse {
+                    success: result.success,
+                    intent_type: result.intent_type.to_string(),
+                    confidence: 0.0, // Would come from classification
+                    suggested_name: None,
+                    requires_clarification: false,
+                    clarification_question: None,
+                    result: Some(IntentResultResponse {
+                        success: result.success,
+                        message: result.message,
+                        app_url: result.app_url,
+                        task_id: result.task_id,
+                        schedule_id: result.schedule_id,
+                        tool_triggers: result.tool_triggers,
+                        created_resources: result
+                            .created_resources
+                            .into_iter()
+                            .map(|r| CreatedResourceResponse {
+                                resource_type: r.resource_type,
+                                name: r.name,
+                                path: r.path,
+                            })
+                            .collect(),
+                        next_steps: result.next_steps,
+                    }),
+                    error: result.error,
+                };
+                (StatusCode::OK, Json(response))
+            }
+            Err(e) => {
+                error!("Failed to classify/process intent: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ClassifyIntentResponse {
+                        success: false,
+                        intent_type: "UNKNOWN".to_string(),
+                        confidence: 0.0,
+                        suggested_name: None,
+                        requires_clarification: false,
+                        clarification_question: None,
+                        result: None,
+                        error: Some(e.to_string()),
+                    }),
+                )
+            }
+        }
+    } else {
+        // Just classify, don't process
+        match classifier.classify(&request.intent, &session).await {
+            Ok(classification) => {
+                let response = ClassifyIntentResponse {
+                    success: true,
+                    intent_type: classification.intent_type.to_string(),
+                    confidence: classification.confidence,
+                    suggested_name: classification.suggested_name,
+                    requires_clarification: classification.requires_clarification,
+                    clarification_question: classification.clarification_question,
+                    result: None,
+                    error: None,
+                };
+                (StatusCode::OK, Json(response))
+            }
+            Err(e) => {
+                error!("Failed to classify intent: {}", e);
+                (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ClassifyIntentResponse {
+                        success: false,
+                        intent_type: "UNKNOWN".to_string(),
+                        confidence: 0.0,
+                        suggested_name: None,
+                        requires_clarification: false,
+                        clarification_question: None,
+                        result: None,
+                        error: Some(e.to_string()),
+                    }),
+                )
+            }
+        }
+    }
+}
+
 pub async fn compile_intent_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CompileIntentRequest>,
@@ -230,7 +390,7 @@ pub async fn compile_intent_handler(
         &request.intent[..request.intent.len().min(100)]
     );
 
-    let session = match get_current_session(&state).await {
+    let session = match get_current_session(&state) {
         Ok(s) => s,
         Err(e) => {
             return (
@@ -374,7 +534,7 @@ pub async fn execute_plan_handler(
 ) -> impl IntoResponse {
     info!("Executing plan: {}", request.plan_id);
 
-    let session = match get_current_session(&state).await {
+    let session = match get_current_session(&state) {
         Ok(s) => s,
         Err(e) => {
             return (
@@ -405,10 +565,8 @@ pub async fn execute_plan_handler(
         _ => TaskPriority::Medium,
     };
 
-    match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority)
-        .await
-    {
-        Ok(task) => match start_task_execution(&state, &task.id).await {
+    match create_auto_task_from_plan(&state, &session, &request.plan_id, execution_mode, priority) {
+        Ok(task) => match start_task_execution(&state, &task.id) {
             Ok(_) => (
                 StatusCode::OK,
                 Json(ExecutePlanResponse {
@@ -451,7 +609,7 @@ pub async fn list_tasks_handler(
     let limit = query.limit.unwrap_or(50);
     let offset = query.offset.unwrap_or(0);
 
-    match list_auto_tasks(&state, filter, limit, offset).await {
+    match list_auto_tasks(&state, filter, limit, offset) {
         Ok(tasks) => {
             let html = render_task_list_html(&tasks);
             (StatusCode::OK, axum::response::Html(html))
@@ -474,7 +632,7 @@ pub async fn list_tasks_handler(
 }
 
 pub async fn get_stats_handler(State(state): State<Arc<AppState>>) -> impl IntoResponse {
-    match get_auto_task_stats(&state).await {
+    match get_auto_task_stats(&state) {
         Ok(stats) => (StatusCode::OK, Json(stats)),
         Err(e) => {
             error!("Failed to get stats: {}", e);
@@ -498,7 +656,7 @@ pub async fn pause_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    match update_task_status(&state, &task_id, AutoTaskStatus::Paused).await {
+    match update_task_status(&state, &task_id, AutoTaskStatus::Paused) {
         Ok(_) => (
             StatusCode::OK,
             Json(TaskActionResponse {
@@ -522,9 +680,9 @@ pub async fn resume_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    match update_task_status(&state, &task_id, AutoTaskStatus::Running).await {
+    match update_task_status(&state, &task_id, AutoTaskStatus::Running) {
         Ok(_) => {
-            let _ = start_task_execution(&state, &task_id).await;
+            let _ = start_task_execution(&state, &task_id);
             (
                 StatusCode::OK,
                 Json(TaskActionResponse {
@@ -549,7 +707,7 @@ pub async fn cancel_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    match update_task_status(&state, &task_id, AutoTaskStatus::Cancelled).await {
+    match update_task_status(&state, &task_id, AutoTaskStatus::Cancelled) {
         Ok(_) => (
             StatusCode::OK,
             Json(TaskActionResponse {
@@ -573,7 +731,7 @@ pub async fn simulate_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    let session = match get_current_session(&state).await {
+    let session = match get_current_session(&state) {
         Ok(s) => s,
         Err(e) => {
             return (
@@ -752,7 +910,7 @@ pub async fn get_decisions_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    match get_pending_decisions(&state, &task_id).await {
+    match get_pending_decisions(&state, &task_id) {
         Ok(decisions) => (StatusCode::OK, Json(decisions)),
         Err(e) => {
             error!("Failed to get decisions: {}", e);
@@ -769,7 +927,7 @@ pub async fn submit_decision_handler(
     Path(task_id): Path<String>,
     Json(request): Json<DecisionRequest>,
 ) -> impl IntoResponse {
-    match submit_decision(&state, &task_id, &request).await {
+    match submit_decision(&state, &task_id, &request) {
         Ok(_) => (
             StatusCode::OK,
             Json(TaskActionResponse {
@@ -793,7 +951,7 @@ pub async fn get_approvals_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
 ) -> impl IntoResponse {
-    match get_pending_approvals(&state, &task_id).await {
+    match get_pending_approvals(&state, &task_id) {
         Ok(approvals) => (StatusCode::OK, Json(approvals)),
         Err(e) => {
             error!("Failed to get approvals: {}", e);
@@ -810,7 +968,7 @@ pub async fn submit_approval_handler(
     Path(task_id): Path<String>,
     Json(request): Json<ApprovalRequest>,
 ) -> impl IntoResponse {
-    match submit_approval(&state, &task_id, &request).await {
+    match submit_approval(&state, &task_id, &request) {
         Ok(_) => (
             StatusCode::OK,
             Json(TaskActionResponse {
@@ -834,7 +992,7 @@ pub async fn simulate_plan_handler(
     State(state): State<Arc<AppState>>,
     Path(plan_id): Path<String>,
 ) -> impl IntoResponse {
-    let session = match get_current_session(&state).await {
+    let session = match get_current_session(&state) {
         Ok(s) => s,
         Err(e) => {
             return (
@@ -1009,7 +1167,7 @@ pub async fn simulate_plan_handler(
     }
 }
 
-async fn get_current_session(
+fn get_current_session(
     state: &Arc<AppState>,
 ) -> Result<crate::shared::models::UserSession, Box<dyn std::error::Error + Send + Sync>> {
     use crate::shared::models::user_sessions::dsl::*;
@@ -1030,7 +1188,7 @@ async fn get_current_session(
     Ok(session)
 }
 
-async fn create_auto_task_from_plan(
+fn create_auto_task_from_plan(
     _state: &Arc<AppState>,
     session: &crate::shared::models::UserSession,
     plan_id: &str,
@@ -1077,7 +1235,7 @@ async fn create_auto_task_from_plan(
     Ok(task)
 }
 
-async fn start_task_execution(
+fn start_task_execution(
     _state: &Arc<AppState>,
     task_id: &str,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
@@ -1085,7 +1243,7 @@ async fn start_task_execution(
     Ok(())
 }
 
-async fn list_auto_tasks(
+fn list_auto_tasks(
     _state: &Arc<AppState>,
     _filter: &str,
     _limit: i32,
@@ -1094,7 +1252,7 @@ async fn list_auto_tasks(
     Ok(Vec::new())
 }
 
-async fn get_auto_task_stats(
+fn get_auto_task_stats(
     _state: &Arc<AppState>,
 ) -> Result<AutoTaskStatsResponse, Box<dyn std::error::Error + Send + Sync>> {
     Ok(AutoTaskStatsResponse {
@@ -1108,7 +1266,7 @@ async fn get_auto_task_stats(
     })
 }
 
-async fn update_task_status(
+fn update_task_status(
     _state: &Arc<AppState>,
     task_id: &str,
     status: AutoTaskStatus,
@@ -1140,7 +1298,7 @@ fn simulate_plan_execution(
     safety_layer.simulate_execution(plan_id, session)
 }
 
-async fn get_pending_decisions(
+fn get_pending_decisions(
     _state: &Arc<AppState>,
     task_id: &str,
 ) -> Result<Vec<PendingDecision>, Box<dyn std::error::Error + Send + Sync>> {
@@ -1148,7 +1306,7 @@ async fn get_pending_decisions(
     Ok(Vec::new())
 }
 
-async fn submit_decision(
+fn submit_decision(
     _state: &Arc<AppState>,
     task_id: &str,
     request: &DecisionRequest,
@@ -1160,7 +1318,7 @@ async fn submit_decision(
     Ok(())
 }
 
-async fn get_pending_approvals(
+fn get_pending_approvals(
     _state: &Arc<AppState>,
     task_id: &str,
 ) -> Result<Vec<PendingApproval>, Box<dyn std::error::Error + Send + Sync>> {
@@ -1168,7 +1326,7 @@ async fn get_pending_approvals(
     Ok(Vec::new())
 }
 
-async fn submit_approval(
+fn submit_approval(
     _state: &Arc<AppState>,
     task_id: &str,
     request: &ApprovalRequest,

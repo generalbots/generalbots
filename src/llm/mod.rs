@@ -230,9 +230,12 @@ mod tests {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     struct Usage {
-        prompt_tokens: i32,
-        completion_tokens: i32,
-        total_tokens: i32,
+        #[serde(rename = "prompt_tokens")]
+        prompt: i32,
+        #[serde(rename = "completion_tokens")]
+        completion: i32,
+        #[serde(rename = "total_tokens")]
+        total: i32,
     }
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -281,9 +284,9 @@ mod tests {
                 finish_reason: "stop".to_string(),
             }],
             usage: Usage {
-                prompt_tokens: 10,
-                completion_tokens: 5,
-                total_tokens: 15,
+                prompt: 10,
+                completion: 5,
+                total: 15,
             },
         };
 
@@ -401,14 +404,11 @@ mod tests {
     #[test]
     fn test_usage_calculation() {
         let usage = Usage {
-            prompt_tokens: 100,
-            completion_tokens: 50,
-            total_tokens: 150,
+            prompt: 100,
+            completion: 50,
+            total: 150,
         };
-        assert_eq!(
-            usage.prompt_tokens + usage.completion_tokens,
-            usage.total_tokens
-        );
+        assert_eq!(usage.prompt + usage.completion, usage.total);
     }
 
     #[test]

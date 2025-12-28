@@ -106,18 +106,15 @@ pub async fn attendant_respond(
         request.attendant_id, request.session_id
     );
 
-    let session_id = match Uuid::parse_str(&request.session_id) {
-        Ok(id) => id,
-        Err(_) => {
-            return (
-                StatusCode::BAD_REQUEST,
-                Json(AttendantRespondResponse {
-                    success: false,
-                    message: "Invalid session ID".to_string(),
-                    error: Some("Could not parse session ID as UUID".to_string()),
-                }),
-            )
-        }
+    let Ok(session_id) = Uuid::parse_str(&request.session_id) else {
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(AttendantRespondResponse {
+                success: false,
+                message: "Invalid session ID".to_string(),
+                error: Some("Could not parse session ID as UUID".to_string()),
+            }),
+        );
     };
 
     let conn = state.conn.clone();
@@ -133,18 +130,15 @@ pub async fn attendant_respond(
     .ok()
     .flatten();
 
-    let session = match session_result {
-        Some(s) => s,
-        None => {
-            return (
-                StatusCode::NOT_FOUND,
-                Json(AttendantRespondResponse {
-                    success: false,
-                    message: "Session not found".to_string(),
-                    error: Some("No session with that ID exists".to_string()),
-                }),
-            )
-        }
+    let Some(session) = session_result else {
+        return (
+            StatusCode::NOT_FOUND,
+            Json(AttendantRespondResponse {
+                success: false,
+                message: "Session not found".to_string(),
+                error: Some("No session with that ID exists".to_string()),
+            }),
+        );
     };
 
     let channel = session
@@ -216,7 +210,7 @@ pub async fn attendant_respond(
                 ),
             }
         }
-        "web" | _ => {
+        _ => {
             let sent = if let Some(tx) = state
                 .response_channels
                 .lock()
@@ -305,6 +299,7 @@ async fn save_message_to_history(
     Ok(())
 }
 
+#[allow(clippy::unused_async)]
 async fn broadcast_attendant_action(
     state: &Arc<AppState>,
     session: &UserSession,
@@ -382,11 +377,7 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
     });
 
     if let Ok(welcome_str) = serde_json::to_string(&welcome) {
-        if sender
-            .send(Message::Text(welcome_str.into()))
-            .await
-            .is_err()
-        {
+        if sender.send(Message::Text(welcome_str)).await.is_err() {
             error!("Failed to send welcome message to attendant");
             return;
         }
@@ -413,7 +404,7 @@ async fn handle_attendant_websocket(socket: WebSocket, state: Arc<AppState>, att
                                 "Sending notification to attendant {}: {}",
                                 attendant_id_clone, notification.notification_type
                             );
-                            if sender.send(Message::Text(json_str.into())).await.is_err() {
+                            if sender.send(Message::Text(json_str)).await.is_err() {
                                 error!("Failed to send notification to attendant WebSocket");
                                 break;
                             }

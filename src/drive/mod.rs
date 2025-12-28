@@ -535,15 +535,12 @@ fn get_file_icon(path: &str) -> String {
         .map(|e| e.to_lowercase());
 
     match ext.as_deref() {
-        Some("bas") => "".to_string(),
-        Some("ast") => "".to_string(),
-        Some("csv") => "".to_string(),
-        Some("gbkb") => "".to_string(),
+        Some("bas" | "ast" | "csv" | "gbkb") => "".to_string(),
         Some("json") => "🔖".to_string(),
         Some("txt" | "md") => "📃".to_string(),
         Some("pdf") => "📕".to_string(),
         Some("zip" | "tar" | "gz") => "📦".to_string(),
-        Some("jpg" | "png" | "gif") | _ => "📄".to_string(),
+        _ => "📄".to_string(),
     }
 }
 
@@ -1068,6 +1065,10 @@ mod tests {
             format!("http://127.0.0.1:{}", self.console_port)
         }
 
+        fn data_path(&self) -> &std::path::Path {
+            &self.data_dir
+        }
+
         fn credentials(&self) -> (String, String) {
             (self.access_key.clone(), self.secret_key.clone())
         }
@@ -1093,6 +1094,7 @@ mod tests {
 
         assert_eq!(config.endpoint(), "http://127.0.0.1:9000");
         assert_eq!(config.console_url(), "http://127.0.0.1:10000");
+        assert_eq!(config.data_path(), std::path::Path::new("/tmp/test"));
     }
 
     #[test]
@@ -1291,7 +1293,7 @@ mod tests {
             percentage_used: 50.0,
         };
 
-        assert_eq!(response.percentage_used, 50.0);
+        assert!((response.percentage_used - 50.0).abs() < f64::EPSILON);
         assert_eq!(
             response.total_bytes,
             response.used_bytes + response.available_bytes
@@ -1431,6 +1433,6 @@ mod tests {
         };
 
         assert_eq!(request.bucket, "my-bucket");
-        assert!(request.path.ends_with(".zip"));
+        assert!(request.path.to_lowercase().ends_with(".zip"));
     }
 }

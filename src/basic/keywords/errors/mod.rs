@@ -197,6 +197,6 @@ mod tests {
         map.insert("message".into(), Dynamic::from("test error"));
 
         assert!(map.contains_key("error"));
-        assert_eq!(map.get("error").unwrap().as_bool().unwrap_or(false), true);
+        assert!(map.get("error").unwrap().as_bool().unwrap_or(false));
     }
 }

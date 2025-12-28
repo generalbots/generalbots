@@ -3,6 +3,7 @@ use chrono::{DateTime, NaiveDate, Utc};
 use reqwest::{Client, Method};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use serde_json::{json, Value};
+use std::fmt::Write;
 use std::time::Duration;
 use tracing::{debug, error, info, warn};
 
@@ -573,7 +574,7 @@ impl StalwartClient {
     ) -> Result<QueueListResponse> {
         let mut path = format!("/api/queue/messages?limit={}&offset={}", limit, offset);
         if let Some(status) = status_filter {
-            path.push_str(&format!("&filter=status:{}", status));
+            let _ = write!(path, "&filter=status:{}", status);
         }
         self.request(Method::GET, &path, None).await
     }
@@ -804,17 +805,19 @@ impl StalwartClient {
             script.push_str("# Date-based activation\n");
 
             if let Some(start) = &config.start_date {
-                script.push_str(&format!(
-                    "if currentdate :value \"lt\" \"date\" \"{}\" {{ stop; }}\n",
+                let _ = writeln!(
+                    script,
+                    "if currentdate :value \"lt\" \"date\" \"{}\" {{ stop; }}",
                     start.format("%Y-%m-%d")
-                ));
+                );
             }
 
             if let Some(end) = &config.end_date {
-                script.push_str(&format!(
-                    "if currentdate :value \"gt\" \"date\" \"{}\" {{ stop; }}\n",
+                let _ = writeln!(
+                    script,
+                    "if currentdate :value \"gt\" \"date\" \"{}\" {{ stop; }}",
                     end.format("%Y-%m-%d")
-                ));
+                );
             }
 
             script.push('\n');
@@ -823,10 +826,11 @@ impl StalwartClient {
         let subject = config.subject.replace('"', "\\\"").replace('\n', " ");
         let body = config.body_plain.replace('"', "\\\"").replace('\n', "\\n");
 
-        script.push_str(&format!(
-            "vacation :days {} :subject \"{}\" \"{}\";\n",
+        let _ = writeln!(
+            script,
+            "vacation :days {} :subject \"{}\" \"{}\";",
             config.vacation_days, subject, body
-        ));
+        );
 
         script
     }
@@ -868,7 +872,7 @@ impl StalwartClient {
             "require [\"fileinto\", \"reject\", \"vacation\", \"imap4flags\", \"copy\"];\n\n",
         );
 
-        script.push_str(&format!("# Rule: {}\n", rule.name));
+        let _ = writeln!(script, "# Rule: {}", rule.name);
 
         if !rule.enabled {
             script.push_str("# DISABLED\n");
@@ -886,16 +890,16 @@ impl StalwartClient {
         if conditions.is_empty() {
             script.push_str("# Always applies\n");
         } else {
-            script.push_str(&format!("if allof ({}) {{\n", conditions.join(", ")));
+            let _ = writeln!(script, "if allof ({}) {{", conditions.join(", "));
         }
 
         for action in &rule.actions {
             let action_str = self.generate_action_sieve(action);
             if !action_str.is_empty() {
                 if conditions.is_empty() {
-                    script.push_str(&format!("{}\n", action_str));
+                    let _ = writeln!(script, "{}", action_str);
                 } else {
-                    script.push_str(&format!("    {}\n", action_str));
+                    let _ = writeln!(script, "    {}", action_str);
                 }
             }
         }

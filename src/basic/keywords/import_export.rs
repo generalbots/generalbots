@@ -64,10 +64,8 @@ pub fn register_import_keyword(state: Arc<AppState>, user: UserSession, engine: 
                     .enable_all()
                     .build();
 
-                let send_err = if let Ok(rt) = rt {
-                    let result = rt.block_on(async move {
-                        execute_import_json(&state_for_task, &user_for_task, &file_path).await
-                    });
+                let send_err = if let Ok(_rt) = rt {
+                    let result = execute_import_json(&state_for_task, &user_for_task, &file_path);
                     tx.send(result).err()
                 } else {
                     tx.send(Err("Failed to build tokio runtime".into())).err()
@@ -125,16 +123,13 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
                         .enable_all()
                         .build();
 
-                    let send_err = if let Ok(rt) = rt {
-                        let result = rt.block_on(async move {
-                            execute_export_json(
-                                &state_for_task,
-                                &user_for_task,
-                                &file_path,
-                                data_json,
-                            )
-                            .await
-                        });
+                    let send_err = if let Ok(_rt) = rt {
+                        let result = execute_export_json(
+                            &state_for_task,
+                            &user_for_task,
+                            &file_path,
+                            data_json,
+                        );
                         tx.send(result).err()
                     } else {
                         tx.send(Err("Failed to build tokio runtime".into())).err()
@@ -167,25 +162,25 @@ pub fn register_export_keyword(state: Arc<AppState>, user: UserSession, engine: 
         .unwrap();
 }
 
-async fn execute_import_json(
+fn execute_import_json(
     state: &AppState,
     user: &UserSession,
     file_path: &str,
 ) -> Result<Value, String> {
-    match execute_import(state, user, file_path).await {
+    match execute_import(state, user, file_path) {
         Ok(dynamic) => Ok(dynamic_to_json(&dynamic)),
         Err(e) => Err(e.to_string()),
     }
 }
 
-async fn execute_export_json(
+fn execute_export_json(
     state: &AppState,
     user: &UserSession,
     file_path: &str,
     data_json: Value,
 ) -> Result<String, String> {
     let data = json_to_dynamic(&data_json);
-    match execute_export(state, user, file_path, data).await {
+    match execute_export(state, user, file_path, data) {
         Ok(result) => Ok(result),
         Err(e) => Err(e.to_string()),
     }
@@ -195,7 +190,7 @@ fn dynamic_to_json_value(data: &Dynamic) -> Value {
     dynamic_to_json(data)
 }
 
-async fn execute_import(
+fn execute_import(
     state: &AppState,
     user: &UserSession,
     file_path: &str,
@@ -216,7 +211,7 @@ async fn execute_import(
     }
 }
 
-async fn execute_export(
+fn execute_export(
     state: &AppState,
     user: &UserSession,
     file_path: &str,

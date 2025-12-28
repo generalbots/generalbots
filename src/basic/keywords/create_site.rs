@@ -82,7 +82,7 @@ async fn create_site(
     store_to_drive(s3.as_ref(), &bucket, &bot_id, &drive_path, &generated_html).await?;
 
     let serve_path = base_path.join(&alias_str);
-    sync_to_serve_path(&serve_path, &generated_html, &template_path).await?;
+    sync_to_serve_path(&serve_path, &generated_html, &template_path)?;
 
     info!(
         "CREATE SITE: {} completed, available at /apps/{}",
@@ -300,7 +300,7 @@ async fn store_to_drive(
     Ok(())
 }
 
-async fn sync_to_serve_path(
+fn sync_to_serve_path(
     serve_path: &std::path::Path,
     html_content: &str,
     template_path: &std::path::Path,
