@@ -1,6 +1,7 @@
 use axum::http::{header, HeaderValue, Method};
 use std::collections::HashSet;
 use tower_http::cors::{AllowOrigin, CorsLayer};
+use tracing::info;
 
 #[derive(Debug, Clone)]
 pub struct CorsConfig {
@@ -49,6 +50,25 @@ impl Default for CorsConfig {
 impl CorsConfig {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn from_config_value(allowed_origins: Option<&str>) -> Self {
+        let mut config = Self::production();
+
+        if let Some(origins) = allowed_origins {
+            let origins: Vec<String> = origins
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+
+            if !origins.is_empty() {
+                info!("CORS configured with {} allowed origins", origins.len());
+                config.allowed_origins = origins;
+            }
+        }
+
+        config
     }
 
     pub fn production() -> Self {
@@ -188,7 +208,7 @@ impl CorsConfig {
         let mut cors = CorsLayer::new();
 
         if self.allowed_origins.is_empty() {
-            let allowed_env_origins = get_allowed_origins_from_env();
+            let allowed_env_origins = get_allowed_origins_from_config();
             if allowed_env_origins.is_empty() {
                 cors = cors.allow_origin(AllowOrigin::predicate(validate_origin));
             } else {
@@ -241,15 +261,24 @@ impl CorsConfig {
     }
 }
 
-fn get_allowed_origins_from_env() -> Vec<String> {
-    std::env::var("CORS_ALLOWED_ORIGINS")
-        .map(|v| {
-            v.split(',')
-                .map(|s| s.trim().to_string())
-                .filter(|s| !s.is_empty())
-                .collect()
-        })
-        .unwrap_or_default()
+fn get_allowed_origins_from_config() -> Vec<String> {
+    if let Some(origins) = CORS_ALLOWED_ORIGINS.read().ok().and_then(|g| g.clone()) {
+        return origins;
+    }
+    Vec::new()
+}
+
+static CORS_ALLOWED_ORIGINS: std::sync::RwLock<Option<Vec<String>>> = std::sync::RwLock::new(None);
+
+pub fn set_cors_allowed_origins(origins: Vec<String>) {
+    if let Ok(mut guard) = CORS_ALLOWED_ORIGINS.write() {
+        info!("Setting CORS allowed origins: {:?}", origins);
+        *guard = Some(origins);
+    }
+}
+
+pub fn get_cors_allowed_origins() -> Vec<String> {
+    get_allowed_origins_from_config()
 }
 
 fn validate_origin(origin: &HeaderValue, _request: &axum::http::request::Parts) -> bool {
@@ -262,9 +291,9 @@ fn validate_origin(origin: &HeaderValue, _request: &axum::http::request::Parts) 
         return false;
     }
 
-    let env_origins = get_allowed_origins_from_env();
-    if !env_origins.is_empty() {
-        return env_origins.iter().any(|allowed| allowed == origin_str);
+    let config_origins = get_allowed_origins_from_config();
+    if !config_origins.is_empty() {
+        return config_origins.iter().any(|allowed| allowed == origin_str);
     }
 
     if is_valid_origin_format(origin_str) {
@@ -305,14 +334,22 @@ fn is_valid_origin_format(origin: &str) -> bool {
 }
 
 pub fn create_cors_layer() -> CorsLayer {
-    let is_production = std::env::var("BOTSERVER_ENV")
-        .map(|v| v == "production" || v == "prod")
-        .unwrap_or(false);
+    let config_origins = get_allowed_origins_from_config();
 
-    if is_production {
+    if !config_origins.is_empty() {
+        info!("Creating CORS layer with configured origins");
+        CorsConfig::production().with_origins(config_origins).build()
+    } else {
+        info!("Creating CORS layer with development defaults (no origins configured)");
+        CorsConfig::development().build()
+    }
+}
+
+pub fn create_cors_layer_for_production(allowed_origins: Vec<String>) -> CorsLayer {
+    if allowed_origins.is_empty() {
         CorsConfig::production().build()
     } else {
-        CorsConfig::development().build()
+        CorsConfig::production().with_origins(allowed_origins).build()
     }
 }
 
@@ -357,33 +394,27 @@ impl OriginValidator {
         self
     }
 
-    pub fn from_env() -> Self {
+    pub fn from_config(origins: Vec<String>, patterns: Vec<String>, allow_localhost: bool) -> Self {
         let mut validator = Self::new();
 
-        if let Ok(origins) = std::env::var("CORS_ALLOWED_ORIGINS") {
-            for origin in origins.split(',') {
-                let trimmed = origin.trim();
-                if !trimmed.is_empty() {
-                    validator.allowed_origins.insert(trimmed.to_string());
-                }
+        for origin in origins {
+            if !origin.is_empty() {
+                validator.allowed_origins.insert(origin);
             }
         }
 
-        if let Ok(patterns) = std::env::var("CORS_ALLOWED_PATTERNS") {
-            for pattern in patterns.split(',') {
-                let trimmed = pattern.trim();
-                if !trimmed.is_empty() {
-                    validator.allowed_patterns.push(trimmed.to_string());
-                }
+        for pattern in patterns {
+            if !pattern.is_empty() {
+                validator.allowed_patterns.push(pattern);
             }
         }
 
-        let allow_localhost = std::env::var("CORS_ALLOW_LOCALHOST")
-            .map(|v| v == "true" || v == "1")
-            .unwrap_or(false);
         validator.allow_localhost = allow_localhost;
-
         validator
+    }
+
+    pub fn from_allowed_origins(origins: Vec<String>) -> Self {
+        Self::from_config(origins, Vec::new(), false)
     }
 
     pub fn is_allowed(&self, origin: &str) -> bool {

@@ -1,3 +1,4 @@
+use crate::core::secrets::SecretsManager;
 use crate::security::auth::{AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role};
 use anyhow::{anyhow, Result};
 use axum::{
@@ -8,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::sync::Arc;
 use tokio::sync::RwLock;
-use tracing::{error, warn};
+use tracing::{error, info, warn};
 use uuid::Uuid;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +17,7 @@ pub struct ZitadelAuthConfig {
     pub issuer_url: String,
     pub api_url: String,
     pub client_id: String,
+    #[serde(skip_serializing)]
     pub client_secret: String,
     pub project_id: String,
     pub cache_ttl_secs: u64,
@@ -25,13 +27,11 @@ pub struct ZitadelAuthConfig {
 impl Default for ZitadelAuthConfig {
     fn default() -> Self {
         Self {
-            issuer_url: std::env::var("ZITADEL_ISSUER_URL")
-                .unwrap_or_else(|_| "https://localhost:8080".to_string()),
-            api_url: std::env::var("ZITADEL_API_URL")
-                .unwrap_or_else(|_| "https://localhost:8080".to_string()),
-            client_id: std::env::var("ZITADEL_CLIENT_ID").unwrap_or_default(),
-            client_secret: std::env::var("ZITADEL_CLIENT_SECRET").unwrap_or_default(),
-            project_id: std::env::var("ZITADEL_PROJECT_ID").unwrap_or_default(),
+            issuer_url: "https://localhost:8080".to_string(),
+            api_url: "https://localhost:8080".to_string(),
+            client_id: String::new(),
+            client_secret: String::new(),
+            project_id: String::new(),
             cache_ttl_secs: 300,
             introspect_tokens: true,
         }
@@ -49,6 +49,36 @@ impl ZitadelAuthConfig {
             cache_ttl_secs: 300,
             introspect_tokens: true,
         }
+    }
+
+    pub async fn from_vault(secrets: &SecretsManager) -> Result<Self> {
+        let (url, project_id, client_id, client_secret) = secrets.get_directory_config().await?;
+
+        info!("Loaded Zitadel configuration from Vault");
+
+        Ok(Self {
+            issuer_url: url.clone(),
+            api_url: url,
+            client_id,
+            client_secret,
+            project_id,
+            cache_ttl_secs: 300,
+            introspect_tokens: true,
+        })
+    }
+
+    pub async fn from_vault_or_default(secrets: &SecretsManager) -> Self {
+        match Self::from_vault(secrets).await {
+            Ok(config) => config,
+            Err(e) => {
+                warn!("Failed to load Zitadel config from Vault: {}. Using defaults.", e);
+                Self::default()
+            }
+        }
+    }
+
+    pub fn is_configured(&self) -> bool {
+        !self.client_id.is_empty() && !self.client_secret.is_empty()
     }
 
     pub fn with_project_id(mut self, project_id: impl Into<String>) -> Self {
@@ -667,6 +697,18 @@ mod tests {
         let config = ZitadelAuthConfig::default();
         assert_eq!(config.cache_ttl_secs, 300);
         assert!(config.introspect_tokens);
+        assert!(!config.is_configured());
+    }
+
+    #[test]
+    fn test_zitadel_auth_config_is_configured() {
+        let config = ZitadelAuthConfig::new(
+            "https://auth.example.com",
+            "https://api.example.com",
+            "client123",
+            "secret456",
+        );
+        assert!(config.is_configured());
     }
 
     #[test]

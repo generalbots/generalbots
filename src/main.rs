@@ -16,9 +16,10 @@ use tower_http::services::ServeDir;
 use tower_http::trace::TraceLayer;
 
 use botserver::security::{
-    create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
-    request_id_middleware, security_headers_middleware, set_global_panic_hook,
-    HttpRateLimitConfig, PanicHandlerConfig, SecurityHeadersConfig,
+    auth_middleware, create_cors_layer, create_rate_limit_layer, create_security_headers_layer,
+    request_id_middleware, security_headers_middleware, set_cors_allowed_origins,
+    set_global_panic_hook, AuthConfig, HttpRateLimitConfig, PanicHandlerConfig,
+    SecurityHeadersConfig,
 };
 use botlib::SystemLimits;
 
@@ -145,10 +146,43 @@ async fn run_axum_server(
     port: u16,
     _worker_count: usize,
 ) -> std::io::Result<()> {
-    // Use hardened CORS configuration instead of allowing everything
-    // In production, set CORS_ALLOWED_ORIGINS env var to restrict origins
-    // In development, localhost origins are allowed by default
+    // Load CORS allowed origins from bot config database if available
+    // Config key: cors-allowed-origins in config.csv
+    if let Ok(mut conn) = app_state.conn.get() {
+        use crate::shared::models::schema::bot_configuration::dsl::*;
+        use diesel::prelude::*;
+
+        if let Ok(origins_str) = bot_configuration
+            .filter(config_key.eq("cors-allowed-origins"))
+            .select(config_value)
+            .first::<String>(&mut conn)
+        {
+            let origins: Vec<String> = origins_str
+                .split(',')
+                .map(|s| s.trim().to_string())
+                .filter(|s| !s.is_empty())
+                .collect();
+            if !origins.is_empty() {
+                info!("Loaded {} CORS allowed origins from config", origins.len());
+                set_cors_allowed_origins(origins);
+            }
+        }
+    }
+
+    // Use hardened CORS configuration
+    // Origins configured via config.csv cors-allowed-origins or Vault
     let cors = create_cors_layer();
+
+    // Create auth config for protected routes
+    let auth_config = Arc::new(AuthConfig::default()
+        .add_anonymous_path("/health")
+        .add_anonymous_path("/healthz")
+        .add_anonymous_path("/api/health")
+        .add_anonymous_path("/api/v1/health")
+        .add_anonymous_path("/ws")
+        .add_anonymous_path("/auth")
+        .add_public_path("/static")
+        .add_public_path("/favicon.ico"));
 
     use crate::core::urls::ApiUrls;
 
@@ -260,10 +294,15 @@ async fn run_axum_server(
         PanicHandlerConfig::development()
     };
 
-    info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking");
+    info!("Security middleware enabled: rate limiting, security headers, panic handler, request ID tracking, authentication");
 
     let app = Router::new()
         .merge(api_router.with_state(app_state.clone()))
+        // Authentication middleware for protected routes
+        .layer(middleware::from_fn_with_state(
+            auth_config.clone(),
+            auth_middleware,
+        ))
         // Static files fallback for legacy /apps/* paths
         .nest_service("/static", ServeDir::new(&site_path))
         // Security middleware stack (order matters - first added is outermost)

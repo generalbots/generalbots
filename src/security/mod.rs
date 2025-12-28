@@ -35,7 +35,8 @@ pub use cert_pinning::{
     CertPinningManager, PinType, PinValidationResult, PinnedCert, PinningStats,
 };
 pub use cors::{
-    create_cors_layer, create_cors_layer_with_origins, CorsConfig, OriginValidator,
+    create_cors_layer, create_cors_layer_for_production, create_cors_layer_with_origins,
+    get_cors_allowed_origins, set_cors_allowed_origins, CorsConfig, OriginValidator,
 };
 pub use command_guard::{
     has_nvidia_gpu_safe, safe_nvidia_smi, safe_pandoc_async, safe_pdftotext_async,
