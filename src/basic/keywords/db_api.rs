@@ -1,18 +1,46 @@
+use super::table_access::{
+    check_field_write_access, check_table_access, filter_fields_by_role, AccessType, UserRoles,
+};
 use crate::core::shared::state::AppState;
+use crate::core::urls::ApiUrls;
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
     routing::{delete, get, post, put},
     Json, Router,
 };
 use diesel::prelude::*;
 use diesel::sql_query;
-use log::{error, info};
+use log::{error, info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
 use uuid::Uuid;
+
+fn user_roles_from_headers(headers: &HeaderMap) -> UserRoles {
+    let roles = headers
+        .get("X-User-Roles")
+        .and_then(|v| v.to_str().ok())
+        .map(|s| {
+            s.split(';')
+                .map(|r| r.trim().to_string())
+                .filter(|r| !r.is_empty())
+                .collect()
+        })
+        .unwrap_or_default();
+
+    let user_id = headers
+        .get("X-User-Id")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|s| Uuid::parse_str(s).ok());
+
+    if let Some(uid) = user_id {
+        UserRoles::with_user_id(roles, uid)
+    } else {
+        UserRoles::new(roles)
+    }
+}
 
 #[derive(Debug, Deserialize)]
 pub struct QueryParams {
@@ -46,13 +74,40 @@ pub struct DeleteResponse {
 
 pub fn configure_db_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/db/{table}", get(list_records_handler))
-        .route("/api/db/{table}", post(create_record_handler))
-        .route("/api/db/{table}/{id}", get(get_record_handler))
-        .route("/api/db/{table}/{id}", put(update_record_handler))
-        .route("/api/db/{table}/{id}", delete(delete_record_handler))
-        .route("/api/db/{table}/count", get(count_records_handler))
-        .route("/api/db/{table}/search", post(search_records_handler))
+        .route(
+            &ApiUrls::DB_TABLE.replace(":table", "{table}"),
+            get(list_records_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE.replace(":table", "{table}"),
+            post(create_record_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE_RECORD
+                .replace(":table", "{table}")
+                .replace(":id", "{id}"),
+            get(get_record_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE_RECORD
+                .replace(":table", "{table}")
+                .replace(":id", "{id}"),
+            put(update_record_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE_RECORD
+                .replace(":table", "{table}")
+                .replace(":id", "{id}"),
+            delete(delete_record_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE_COUNT.replace(":table", "{table}"),
+            get(count_records_handler),
+        )
+        .route(
+            &ApiUrls::DB_TABLE_SEARCH.replace(":table", "{table}"),
+            post(search_records_handler),
+        )
 }
 
 fn sanitize_identifier(name: &str) -> String {
@@ -63,10 +118,12 @@ fn sanitize_identifier(name: &str) -> String {
 
 pub async fn list_records_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(table): Path<String>,
     Query(params): Query<QueryParams>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
     let limit = params.limit.unwrap_or(20).min(100);
     let offset = params.offset.unwrap_or(0);
     let order_by = params
@@ -95,6 +152,19 @@ pub async fn list_records_handler(
         }
     };
 
+    // Check table-level read access
+    let access_info =
+        match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
+            Ok(info) => info,
+            Err(e) => {
+                warn!(
+                    "Access denied to table {} for user {:?}",
+                    table_name, user_roles.user_id
+                );
+                return (StatusCode::FORBIDDEN, Json(json!({ "error": e }))).into_response();
+            }
+        };
+
     let query = format!(
         "SELECT row_to_json(t.*) as data FROM {} t ORDER BY {} {} LIMIT {} OFFSET {}",
         table_name, order_by, order_dir, limit, offset
@@ -107,8 +177,14 @@ pub async fn list_records_handler(
 
     match (rows, total) {
         (Ok(data), Ok(count_result)) => {
+            // Filter fields based on user roles
+            let filtered_data: Vec<Value> = data
+                .into_iter()
+                .map(|r| filter_fields_by_role(r.data, &user_roles, &access_info))
+                .collect();
+
             let response = ListResponse {
-                data: data.into_iter().map(|r| r.data).collect(),
+                data: filtered_data,
                 total: count_result.count,
                 limit,
                 offset,
@@ -128,9 +204,11 @@ pub async fn list_records_handler(
 
 pub async fn get_record_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path((table, id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
 
     let record_id = match Uuid::parse_str(&id) {
         Ok(uuid) => uuid,
@@ -162,6 +240,23 @@ pub async fn get_record_handler(
         }
     };
 
+    // Check table-level read access
+    let access_info =
+        match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
+            Ok(info) => info,
+            Err(e) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(RecordResponse {
+                        success: false,
+                        data: None,
+                        message: Some(e),
+                    }),
+                )
+                    .into_response();
+            }
+        };
+
     let query = format!(
         "SELECT row_to_json(t.*) as data FROM {} t WHERE id = $1",
         table_name
@@ -173,15 +268,19 @@ pub async fn get_record_handler(
         .optional();
 
     match row {
-        Ok(Some(r)) => (
-            StatusCode::OK,
-            Json(RecordResponse {
-                success: true,
-                data: Some(r.data),
-                message: None,
-            }),
-        )
-            .into_response(),
+        Ok(Some(r)) => {
+            // Filter fields based on user roles
+            let filtered_data = filter_fields_by_role(r.data, &user_roles, &access_info);
+            (
+                StatusCode::OK,
+                Json(RecordResponse {
+                    success: true,
+                    data: Some(filtered_data),
+                    message: None,
+                }),
+            )
+                .into_response()
+        }
         Ok(None) => (
             StatusCode::NOT_FOUND,
             Json(RecordResponse {
@@ -208,10 +307,12 @@ pub async fn get_record_handler(
 
 pub async fn create_record_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(table): Path<String>,
     Json(payload): Json<Value>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
 
     let obj = match payload.as_object() {
         Some(o) => o,
@@ -255,6 +356,41 @@ pub async fn create_record_handler(
         }
     };
 
+    // Check table-level write access
+    let access_info =
+        match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
+            Ok(info) => info,
+            Err(e) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(RecordResponse {
+                        success: false,
+                        data: None,
+                        message: Some(e),
+                    }),
+                )
+                    .into_response();
+            }
+        };
+
+    // Check field-level write access for fields being inserted
+    let field_names: Vec<String> = obj
+        .keys()
+        .map(|k| sanitize_identifier(k))
+        .filter(|k| !k.is_empty() && k != "id")
+        .collect();
+    if let Err(e) = check_field_write_access(&field_names, &user_roles, &access_info) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some(e),
+            }),
+        )
+            .into_response();
+    }
+
     let query = format!(
         "INSERT INTO {} ({}) VALUES ({}) RETURNING row_to_json({}.*)::jsonb as data",
         table_name,
@@ -295,10 +431,12 @@ pub async fn create_record_handler(
 
 pub async fn update_record_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path((table, id)): Path<(String, String)>,
     Json(payload): Json<Value>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
 
     let record_id = match Uuid::parse_str(&id) {
         Ok(uuid) => uuid,
@@ -369,6 +507,41 @@ pub async fn update_record_handler(
         }
     };
 
+    // Check table-level write access
+    let access_info =
+        match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
+            Ok(info) => info,
+            Err(e) => {
+                return (
+                    StatusCode::FORBIDDEN,
+                    Json(RecordResponse {
+                        success: false,
+                        data: None,
+                        message: Some(e),
+                    }),
+                )
+                    .into_response();
+            }
+        };
+
+    // Check field-level write access for fields being updated
+    let field_names: Vec<String> = obj
+        .keys()
+        .map(|k| sanitize_identifier(k))
+        .filter(|k| !k.is_empty() && k != "id")
+        .collect();
+    if let Err(e) = check_field_write_access(&field_names, &user_roles, &access_info) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(RecordResponse {
+                success: false,
+                data: None,
+                message: Some(e),
+            }),
+        )
+            .into_response();
+    }
+
     let query = format!(
         "UPDATE {} SET {} WHERE id = '{}' RETURNING row_to_json({}.*)::jsonb as data",
         table_name,
@@ -409,9 +582,11 @@ pub async fn update_record_handler(
 
 pub async fn delete_record_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path((table, id)): Path<(String, String)>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
 
     let record_id = match Uuid::parse_str(&id) {
         Ok(uuid) => uuid,
@@ -442,6 +617,19 @@ pub async fn delete_record_handler(
                 .into_response()
         }
     };
+
+    // Check table-level write access (delete requires write)
+    if let Err(e) = check_table_access(&mut conn, &table_name, &user_roles, AccessType::Write) {
+        return (
+            StatusCode::FORBIDDEN,
+            Json(DeleteResponse {
+                success: false,
+                deleted: 0,
+                message: Some(e),
+            }),
+        )
+            .into_response();
+    }
 
     let query = format!("DELETE FROM {} WHERE id = $1", table_name);
 
@@ -483,9 +671,11 @@ pub async fn delete_record_handler(
 
 pub async fn count_records_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(table): Path<String>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
 
     let mut conn = match state.conn.get() {
         Ok(c) => c,
@@ -497,6 +687,11 @@ pub async fn count_records_handler(
                 .into_response()
         }
     };
+
+    // Check table-level read access (count requires read permission)
+    if let Err(e) = check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
+        return (StatusCode::FORBIDDEN, Json(json!({ "error": e }))).into_response();
+    }
 
     let query = format!("SELECT COUNT(*) as count FROM {}", table_name);
     let result: Result<CountResult, _> = sql_query(&query).get_result(&mut conn);
@@ -523,10 +718,12 @@ pub struct SearchRequest {
 
 pub async fn search_records_handler(
     State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
     Path(table): Path<String>,
     Json(payload): Json<SearchRequest>,
 ) -> impl IntoResponse {
     let table_name = sanitize_identifier(&table);
+    let user_roles = user_roles_from_headers(&headers);
     let limit = payload.limit.unwrap_or(20).min(100);
     let search_term = payload.query.replace('\'', "''");
 
@@ -541,6 +738,15 @@ pub async fn search_records_handler(
         }
     };
 
+    // Check table-level read access
+    let access_info =
+        match check_table_access(&mut conn, &table_name, &user_roles, AccessType::Read) {
+            Ok(info) => info,
+            Err(e) => {
+                return (StatusCode::FORBIDDEN, Json(json!({ "error": e }))).into_response();
+            }
+        };
+
     let query = format!(
         "SELECT row_to_json(t.*) as data FROM {} t WHERE
          COALESCE(t.title::text, '') || ' ' || COALESCE(t.name::text, '') || ' ' || COALESCE(t.description::text, '')
@@ -551,11 +757,14 @@ pub async fn search_records_handler(
     let rows: Result<Vec<JsonRow>, _> = sql_query(&query).get_results(&mut conn);
 
     match rows {
-        Ok(data) => (
-            StatusCode::OK,
-            Json(json!({ "data": data.into_iter().map(|r| r.data).collect::<Vec<_>>() })),
-        )
-            .into_response(),
+        Ok(data) => {
+            // Filter fields based on user roles
+            let filtered_data: Vec<Value> = data
+                .into_iter()
+                .map(|r| filter_fields_by_role(r.data, &user_roles, &access_info))
+                .collect();
+            (StatusCode::OK, Json(json!({ "data": filtered_data }))).into_response()
+        }
         Err(e) => {
             error!("Failed to search in {table_name}: {e}");
             (

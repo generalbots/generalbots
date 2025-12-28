@@ -1,3 +1,5 @@
+pub mod web_search;
+
 use crate::shared::state::AppState;
 use axum::{
     extract::{Path, State},
@@ -57,6 +59,7 @@ pub struct CollectionRow {
 
 pub fn configure_research_routes() -> Router<Arc<AppState>> {
     Router::new()
+        .merge(web_search::configure_web_search_routes())
         .route("/api/research/collections", get(handle_list_collections))
         .route(
             "/api/research/collections/new",

@@ -1,17 +1,3 @@
-//! Intent Classifier for AutoTask System
-//!
-//! Classifies user intents and routes them to appropriate handlers.
-//! Based on Chapter 17 - Autonomous Tasks documentation.
-//!
-//! Intent Types:
-//! - APP_CREATE: "create app for clinic" → HTMX pages, tools, schedulers
-//! - TODO: "call John tomorrow" → Task saved to tasks table
-//! - MONITOR: "alert when IBM changes" → ON CHANGE event handler
-//! - ACTION: "email all customers" → Executes immediately
-//! - SCHEDULE: "daily 9am summary" → SET SCHEDULE automation
-//! - GOAL: "increase sales 20%" → Autonomous LLM loop with metrics
-//! - TOOL: "when I say X, do Y" → Voice/chat command
-
 use crate::auto_task::app_generator::AppGenerator;
 use crate::auto_task::intent_compiler::IntentCompiler;
 use crate::shared::models::UserSession;
@@ -25,25 +11,16 @@ use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 use uuid::Uuid;
 
-/// The seven intent types supported by the AutoTask system
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum IntentType {
-    /// Create a full application with HTMX pages, tables, tools, schedulers
     AppCreate,
-    /// Simple task/reminder saved to tasks table
     Todo,
-    /// Monitor for changes with ON CHANGE event handler
     Monitor,
-    /// Execute an action immediately
     Action,
-    /// Create a scheduled automation with SET SCHEDULE
     Schedule,
-    /// Long-running goal with autonomous LLM loop
     Goal,
-    /// Create a voice/chat command trigger
     Tool,
-    /// Unknown or ambiguous intent requiring clarification
     Unknown,
 }
 
@@ -77,7 +54,6 @@ impl From<&str> for IntentType {
     }
 }
 
-/// Result of intent classification
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClassifiedIntent {
     pub id: String,
@@ -92,32 +68,20 @@ pub struct ClassifiedIntent {
     pub classified_at: DateTime<Utc>,
 }
 
-/// Extracted entities from the intent
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct ClassifiedEntities {
-    /// Main subject (e.g., "clinic", "customers", "IBM stock")
     pub subject: Option<String>,
-    /// Target action verb
     pub action: Option<String>,
-    /// Domain/industry context
     pub domain: Option<String>,
-    /// Time-related information
     pub time_spec: Option<TimeSpec>,
-    /// Condition for triggers
     pub condition: Option<String>,
-    /// Recipient for notifications
     pub recipient: Option<String>,
-    /// List of features requested
     pub features: Vec<String>,
-    /// Tables/entities mentioned
     pub tables: Vec<String>,
-    /// Specific trigger phrases for TOOL type
     pub trigger_phrases: Vec<String>,
-    /// Metric/goal value for GOAL type
     pub target_value: Option<String>,
 }
 
-/// Time specification for scheduled tasks
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TimeSpec {
     pub schedule_type: ScheduleType,
@@ -137,7 +101,6 @@ pub enum ScheduleType {
     Cron,
 }
 
-/// Alternative classification with lower confidence
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AlternativeClassification {
     pub intent_type: IntentType,
@@ -145,7 +108,6 @@ pub struct AlternativeClassification {
     pub reason: String,
 }
 
-/// Result of processing an intent through the appropriate handler
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct IntentResult {
     pub success: bool,
@@ -167,7 +129,6 @@ pub struct CreatedResource {
     pub path: Option<String>,
 }
 
-/// Main intent classifier and router
 pub struct IntentClassifier {
     state: Arc<AppState>,
     intent_compiler: IntentCompiler,
@@ -528,20 +489,18 @@ Respond with JSON only:
                     });
                 }
 
-                // Track created pages
                 for page in &app.pages {
                     resources.push(CreatedResource {
                         resource_type: "page".to_string(),
-                        name: page.title.clone(),
+                        name: page.filename.clone(),
                         path: Some(page.filename.clone()),
                     });
                 }
 
-                // Track created tools
                 for tool in &app.tools {
                     resources.push(CreatedResource {
                         resource_type: "tool".to_string(),
-                        name: tool.name.clone(),
+                        name: tool.filename.clone(),
                         path: Some(tool.filename.clone()),
                     });
                 }

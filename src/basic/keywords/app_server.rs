@@ -1,18 +1,3 @@
-//! App Server Module
-//!
-//! Serves generated HTMX applications with clean URLs.
-//! Apps are synced from drive to SITE_ROOT/{app_name}/ for serving.
-//!
-//! URL structure:
-//! - `/apps/{app_name}/` -> {site_path}/{app_name}/index.html
-//! - `/apps/{app_name}/patients.html` -> {site_path}/{app_name}/patients.html
-//! - `/apps/{app_name}/styles.css` -> {site_path}/{app_name}/styles.css
-//!
-//! Flow:
-//! 1. AppGenerator writes to S3 drive: {bucket}/.gbdrive/apps/{app_name}/
-//! 2. sync_app_to_site_root() copies to: {site_path}/{app_name}/
-//! 3. This module serves from: {site_path}/{app_name}/
-
 use crate::shared::state::AppState;
 use axum::{
     body::Body,
@@ -25,7 +10,6 @@ use axum::{
 use log::{error, trace, warn};
 use std::sync::Arc;
 
-/// Configure routes for serving generated apps
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
     Router::new()
         // Serve app files: /apps/{app_name}/* (clean URLs)
@@ -36,7 +20,6 @@ pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
         .route("/apps", get(list_all_apps))
 }
 
-/// Path parameters for app serving
 #[derive(Debug, serde::Deserialize)]
 pub struct AppPath {
     pub app_name: String,
@@ -48,7 +31,6 @@ pub struct AppFilePath {
     pub file_path: String,
 }
 
-/// Serve the index.html for an app
 pub async fn serve_app_index(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppPath>,
@@ -56,7 +38,6 @@ pub async fn serve_app_index(
     serve_app_file_internal(&state, &params.app_name, "index.html").await
 }
 
-/// Serve any file from an app directory
 pub async fn serve_app_file(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppFilePath>,
@@ -64,7 +45,6 @@ pub async fn serve_app_file(
     serve_app_file_internal(&state, &params.app_name, &params.file_path).await
 }
 
-/// Internal function to serve files from app directory
 async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
     // Sanitize paths to prevent directory traversal
     let sanitized_app_name = sanitize_path_component(app_name);
@@ -120,7 +100,6 @@ async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &s
     }
 }
 
-/// List all available apps from SITE_ROOT
 pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoResponse {
     let site_path = state
         .config
@@ -165,7 +144,6 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
         .into_response()
 }
 
-/// Sanitize path component to prevent directory traversal
 fn sanitize_path_component(component: &str) -> String {
     component
         .replace("..", "")
@@ -177,7 +155,6 @@ fn sanitize_path_component(component: &str) -> String {
         .collect()
 }
 
-/// Get content type based on file extension
 fn get_content_type(file_path: &str) -> &'static str {
     let ext = file_path.rsplit('.').next().unwrap_or("").to_lowercase();
 

@@ -357,10 +357,6 @@ fn decrypt_password(encrypted: &str) -> Result<String, String> {
         })
 }
 
-/// Add a new email account.
-///
-/// # Errors
-/// Returns an error if authentication fails or database operations fail.
 pub async fn add_email_account(
     State(state): State<Arc<AppState>>,
     Json(request): Json<EmailAccountRequest>,
@@ -495,10 +491,6 @@ pub async fn list_email_accounts_htmx(State(state): State<Arc<AppState>>) -> imp
     axum::response::Html(html)
 }
 
-/// List all email accounts for the current user.
-///
-/// # Errors
-/// Returns an error if authentication fails or database operations fail.
 pub async fn list_email_accounts(
     State(state): State<Arc<AppState>>,
 ) -> Result<Json<ApiResponse<Vec<EmailAccountResponse>>>, EmailError> {
@@ -590,10 +582,6 @@ pub async fn list_email_accounts(
     }))
 }
 
-/// Delete an email account.
-///
-/// # Errors
-/// Returns an error if the account ID is invalid or database operations fail.
 pub async fn delete_email_account(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<String>,
@@ -625,10 +613,6 @@ pub async fn delete_email_account(
     }))
 }
 
-/// List emails from a specific account and folder.
-///
-/// # Errors
-/// Returns an error if the account ID is invalid, IMAP connection fails, or emails cannot be fetched.
 pub async fn list_emails(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ListEmailsRequest>,
@@ -768,10 +752,6 @@ pub async fn list_emails(
     }))
 }
 
-/// Send an email from a specific account.
-///
-/// # Errors
-/// Returns an error if the account ID is invalid, SMTP connection fails, or email cannot be sent.
 pub async fn send_email(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SendEmailRequest>,
@@ -896,10 +876,6 @@ pub async fn send_email(
     }))
 }
 
-/// Save an email draft.
-///
-/// # Errors
-/// Returns an error if the account ID is invalid, authentication fails, or database operations fail.
 pub async fn save_draft(
     State(state): State<Arc<AppState>>,
     Json(request): Json<SaveDraftRequest>,
@@ -944,10 +920,6 @@ pub async fn save_draft(
     }))
 }
 
-/// List all folders for an email account.
-///
-/// # Errors
-/// Returns an error if the account ID is invalid, IMAP connection fails, or folders cannot be listed.
 pub async fn list_folders(
     State(state): State<Arc<AppState>>,
     Path(account_id): Path<String>,
@@ -1011,10 +983,6 @@ pub async fn list_folders(
     }))
 }
 
-/// Get the latest email from a specific sender.
-///
-/// # Errors
-/// Returns an error if the operation fails.
 pub fn get_latest_email_from(
     State(_state): State<Arc<AppState>>,
     Json(_request): Json<serde_json::Value>,

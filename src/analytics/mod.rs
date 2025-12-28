@@ -1,3 +1,4 @@
+use crate::core::urls::ApiUrls;
 use crate::llm::observability::{ObservabilityConfig, ObservabilityManager, QuickStats};
 use crate::shared::state::AppState;
 use axum::{
@@ -89,39 +90,42 @@ impl Default for AnalyticsService {
 
 pub fn configure_analytics_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/analytics/messages/count", get(handle_message_count))
+        .route(ApiUrls::ANALYTICS_MESSAGES_COUNT, get(handle_message_count))
         .route(
-            "/api/analytics/sessions/active",
+            ApiUrls::ANALYTICS_SESSIONS_ACTIVE,
             get(handle_active_sessions),
         )
-        .route("/api/analytics/response/avg", get(handle_avg_response_time))
-        .route("/api/analytics/llm/tokens", get(handle_llm_tokens))
-        .route("/api/analytics/storage/usage", get(handle_storage_usage))
-        .route("/api/analytics/errors/count", get(handle_errors_count))
         .route(
-            "/api/analytics/timeseries/messages",
+            ApiUrls::ANALYTICS_RESPONSE_AVG,
+            get(handle_avg_response_time),
+        )
+        .route(ApiUrls::ANALYTICS_LLM_TOKENS, get(handle_llm_tokens))
+        .route(ApiUrls::ANALYTICS_STORAGE_USAGE, get(handle_storage_usage))
+        .route(ApiUrls::ANALYTICS_ERRORS_COUNT, get(handle_errors_count))
+        .route(
+            ApiUrls::ANALYTICS_TIMESERIES_MESSAGES,
             get(handle_timeseries_messages),
         )
         .route(
-            "/api/analytics/timeseries/response_time",
+            ApiUrls::ANALYTICS_TIMESERIES_RESPONSE,
             get(handle_timeseries_response),
         )
         .route(
-            "/api/analytics/channels/distribution",
+            ApiUrls::ANALYTICS_CHANNELS_DISTRIBUTION,
             get(handle_channels_distribution),
         )
         .route(
-            "/api/analytics/bots/performance",
+            ApiUrls::ANALYTICS_BOTS_PERFORMANCE,
             get(handle_bots_performance),
         )
         .route(
-            "/api/analytics/activity/recent",
+            ApiUrls::ANALYTICS_ACTIVITY_RECENT,
             get(handle_recent_activity),
         )
-        .route("/api/analytics/queries/top", get(handle_top_queries))
-        .route("/api/analytics/chat", post(handle_analytics_chat))
-        .route("/api/analytics/llm/stats", get(handle_llm_stats))
-        .route("/api/analytics/budget/status", get(handle_budget_status))
+        .route(ApiUrls::ANALYTICS_QUERIES_TOP, get(handle_top_queries))
+        .route(ApiUrls::ANALYTICS_CHAT, post(handle_analytics_chat))
+        .route(ApiUrls::ANALYTICS_LLM_STATS, get(handle_llm_stats))
+        .route(ApiUrls::ANALYTICS_BUDGET_STATUS, get(handle_budget_status))
 }
 
 pub async fn handle_message_count(State(state): State<Arc<AppState>>) -> impl IntoResponse {

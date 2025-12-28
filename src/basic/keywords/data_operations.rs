@@ -1,10 +1,11 @@
+use super::table_access::{check_table_access, AccessType, UserRoles};
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use crate::shared::utils::{json_value_to_dynamic, to_array};
 use diesel::prelude::*;
 use diesel::sql_query;
 use diesel::sql_types::Text;
-use log::{error, trace};
+use log::{error, trace, warn};
 use rhai::{Array, Dynamic, Engine, Map};
 use serde_json::{json, Value};
 use std::collections::HashMap;
@@ -26,8 +27,9 @@ pub fn register_data_operations(state: Arc<AppState>, user: UserSession, engine:
     register_group_by_keyword(state, user, engine);
 }
 
-pub fn register_save_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn register_save_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_roles = UserRoles::from_user_session(&user);
 
     engine
         .register_custom_syntax(
@@ -45,6 +47,14 @@ pub fn register_save_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                     .get()
                     .map_err(|e| format!("DB error: {}", e))?;
 
+                // Check write access
+                if let Err(e) =
+                    check_table_access(&mut conn, &table, &user_roles, AccessType::Write)
+                {
+                    warn!("SAVE access denied: {}", e);
+                    return Err(e.into());
+                }
+
                 let result = execute_save(&mut conn, &table, &id, &data)
                     .map_err(|e| format!("SAVE error: {}", e))?;
 
@@ -54,8 +64,9 @@ pub fn register_save_keyword(state: Arc<AppState>, _user: UserSession, engine: &
         .unwrap();
 }
 
-pub fn register_insert_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn register_insert_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_roles = UserRoles::from_user_session(&user);
 
     engine
         .register_custom_syntax(
@@ -72,6 +83,14 @@ pub fn register_insert_keyword(state: Arc<AppState>, _user: UserSession, engine:
                     .get()
                     .map_err(|e| format!("DB error: {}", e))?;
 
+                // Check write access
+                if let Err(e) =
+                    check_table_access(&mut conn, &table, &user_roles, AccessType::Write)
+                {
+                    warn!("INSERT access denied: {}", e);
+                    return Err(e.into());
+                }
+
                 let result = execute_insert(&mut conn, &table, &data)
                     .map_err(|e| format!("INSERT error: {}", e))?;
 
@@ -81,8 +100,9 @@ pub fn register_insert_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn register_update_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_roles = UserRoles::from_user_session(&user);
 
     engine
         .register_custom_syntax(
@@ -100,6 +120,14 @@ pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine:
                     .get()
                     .map_err(|e| format!("DB error: {}", e))?;
 
+                // Check write access
+                if let Err(e) =
+                    check_table_access(&mut conn, &table, &user_roles, AccessType::Write)
+                {
+                    warn!("UPDATE access denied: {}", e);
+                    return Err(e.into());
+                }
+
                 let result = execute_update(&mut conn, &table, &filter, &data)
                     .map_err(|e| format!("UPDATE error: {}", e))?;
 
@@ -109,8 +137,9 @@ pub fn register_update_keyword(state: Arc<AppState>, _user: UserSession, engine:
         .unwrap();
 }
 
-pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
+pub fn register_delete_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
     let state_clone = Arc::clone(&state);
+    let user_roles = UserRoles::from_user_session(&user);
 
     engine
         .register_custom_syntax(
@@ -169,6 +198,14 @@ pub fn register_delete_keyword(state: Arc<AppState>, _user: UserSession, engine:
                         .conn
                         .get()
                         .map_err(|e| format!("DB error: {}", e))?;
+
+                    // Check write access (delete requires write permission)
+                    if let Err(e) =
+                        check_table_access(&mut conn, &first_arg, &user_roles, AccessType::Write)
+                    {
+                        warn!("DELETE access denied: {}", e);
+                        return Err(e.into());
+                    }
 
                     let result = execute_delete(&mut conn, &first_arg, &second_arg)
                         .map_err(|e| format!("DELETE error: {}", e))?;

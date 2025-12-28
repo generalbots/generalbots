@@ -21,6 +21,7 @@ pub use queue::{
 
 use crate::core::bot::channels::whatsapp::WhatsAppAdapter;
 use crate::core::bot::channels::ChannelAdapter;
+use crate::core::urls::ApiUrls;
 use crate::shared::models::{BotResponse, UserSession};
 use crate::shared::state::{AppState, AttendantNotification};
 use axum::{
@@ -45,39 +46,42 @@ use uuid::Uuid;
 
 pub fn configure_attendance_routes() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/api/attendance/queue", get(queue::list_queue))
-        .route("/api/attendance/attendants", get(queue::list_attendants))
-        .route("/api/attendance/assign", post(queue::assign_conversation))
+        .route(ApiUrls::ATTENDANCE_QUEUE, get(queue::list_queue))
+        .route(ApiUrls::ATTENDANCE_ATTENDANTS, get(queue::list_attendants))
+        .route(ApiUrls::ATTENDANCE_ASSIGN, post(queue::assign_conversation))
         .route(
-            "/api/attendance/transfer",
+            ApiUrls::ATTENDANCE_TRANSFER,
             post(queue::transfer_conversation),
         )
         .route(
-            "/api/attendance/resolve/{session_id}",
+            &ApiUrls::ATTENDANCE_RESOLVE.replace(":session_id", "{session_id}"),
             post(queue::resolve_conversation),
         )
-        .route("/api/attendance/insights", get(queue::get_insights))
-        .route("/api/attendance/respond", post(attendant_respond))
-        .route("/ws/attendant", get(attendant_websocket_handler))
-        .route("/api/attendance/llm/tips", post(llm_assist::generate_tips))
+        .route(ApiUrls::ATTENDANCE_INSIGHTS, get(queue::get_insights))
+        .route(ApiUrls::ATTENDANCE_RESPOND, post(attendant_respond))
+        .route(ApiUrls::WS_ATTENDANT, get(attendant_websocket_handler))
         .route(
-            "/api/attendance/llm/polish",
+            ApiUrls::ATTENDANCE_LLM_TIPS,
+            post(llm_assist::generate_tips),
+        )
+        .route(
+            ApiUrls::ATTENDANCE_LLM_POLISH,
             post(llm_assist::polish_message),
         )
         .route(
-            "/api/attendance/llm/smart-replies",
+            ApiUrls::ATTENDANCE_LLM_SMART_REPLIES,
             post(llm_assist::generate_smart_replies),
         )
         .route(
-            "/api/attendance/llm/summary/{session_id}",
+            &ApiUrls::ATTENDANCE_LLM_SUMMARY.replace(":session_id", "{session_id}"),
             get(llm_assist::generate_summary),
         )
         .route(
-            "/api/attendance/llm/sentiment",
+            ApiUrls::ATTENDANCE_LLM_SENTIMENT,
             post(llm_assist::analyze_sentiment),
         )
         .route(
-            "/api/attendance/llm/config/{bot_id}",
+            &ApiUrls::ATTENDANCE_LLM_CONFIG.replace(":bot_id", "{bot_id}"),
             get(llm_assist::get_llm_config),
         )
 }

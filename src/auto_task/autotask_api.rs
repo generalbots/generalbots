@@ -57,13 +57,11 @@ pub struct IntentResultResponse {
     pub next_steps: Vec<String>,
 }
 
-/// Request for one-click create and execute
 #[derive(Debug, Deserialize)]
 pub struct CreateAndExecuteRequest {
     pub intent: String,
 }
 
-/// Response for create and execute - simple status updates
 #[derive(Debug, Serialize)]
 pub struct CreateAndExecuteResponse {
     pub success: bool,
@@ -289,8 +287,6 @@ pub struct RecommendationResponse {
     pub action: Option<String>,
 }
 
-/// Create and execute in one call - no dialogs, just do it
-/// POST /api/autotask/create
 pub async fn create_and_execute_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<CreateAndExecuteRequest>,
@@ -388,8 +384,6 @@ pub async fn create_and_execute_handler(
     }
 }
 
-/// Classify and optionally process an intent
-/// POST /api/autotask/classify
 pub async fn classify_intent_handler(
     State(state): State<Arc<AppState>>,
     Json(request): Json<ClassifyIntentRequest>,
@@ -1555,7 +1549,6 @@ fn update_task_status(
     Ok(())
 }
 
-/// Create task record in database
 fn create_task_record(
     state: &Arc<AppState>,
     task_id: Uuid,
@@ -1584,7 +1577,6 @@ fn create_task_record(
     Ok(())
 }
 
-/// Update task status in database
 fn update_task_status_db(
     state: &Arc<AppState>,
     task_id: Uuid,
@@ -1620,7 +1612,6 @@ fn update_task_status_db(
     Ok(())
 }
 
-/// Get pending items (ASK LATER) for a bot
 fn get_pending_items_for_bot(state: &Arc<AppState>, bot_id: Uuid) -> Vec<PendingItemResponse> {
     let mut conn = match state.conn.get() {
         Ok(c) => c,
@@ -1753,8 +1744,6 @@ fn html_escape(s: &str) -> String {
 // MISSING ENDPOINTS - Required by botui/autotask.js
 // =============================================================================
 
-/// Execute a specific task by ID
-/// POST /api/autotask/:task_id/execute
 pub async fn execute_task_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -1785,8 +1774,6 @@ pub async fn execute_task_handler(
     }
 }
 
-/// Get execution logs for a task
-/// GET /api/autotask/:task_id/logs
 pub async fn get_task_logs_handler(
     State(state): State<Arc<AppState>>,
     Path(task_id): Path<String>,
@@ -1805,8 +1792,6 @@ pub async fn get_task_logs_handler(
         .into_response()
 }
 
-/// Apply a recommendation from simulation results
-/// POST /api/autotask/recommendations/:rec_id/apply
 pub async fn apply_recommendation_handler(
     State(state): State<Arc<AppState>>,
     Path(rec_id): Path<String>,
