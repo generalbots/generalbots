@@ -212,7 +212,7 @@ async fn run_axum_server(
     api_router = api_router.merge(botserver::designer::configure_designer_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_db_routes());
     api_router = api_router.merge(botserver::basic::keywords::configure_app_server_routes());
-    api_router = api_router.merge(botserver::basic::keywords::configure_autotask_routes());
+    api_router = api_router.merge(botserver::auto_task::configure_autotask_routes());
 
     #[cfg(feature = "whatsapp")]
     {

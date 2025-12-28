@@ -12,8 +12,8 @@
 //! - GOAL: "increase sales 20%" → Autonomous LLM loop with metrics
 //! - TOOL: "when I say X, do Y" → Voice/chat command
 
-use crate::basic::keywords::app_generator::AppGenerator;
-use crate::basic::keywords::intent_compiler::IntentCompiler;
+use crate::auto_task::app_generator::AppGenerator;
+use crate::auto_task::intent_compiler::IntentCompiler;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
