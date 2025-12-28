@@ -78,7 +78,7 @@ pub fn post_to_at_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered POST TO AT keyword");
 }

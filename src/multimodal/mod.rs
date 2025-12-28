@@ -575,7 +575,7 @@ pub async fn ensure_botmodels_running(
     let config_values = {
         let conn_arc = app_state.conn.clone();
         let default_bot_id = tokio::task::spawn_blocking(move || {
-            let mut conn = conn_arc.get().unwrap();
+            let mut conn = conn_arc.get().expect("db connection");
             bots.filter(name.eq("default"))
                 .select(id)
                 .first::<uuid::Uuid>(&mut *conn)

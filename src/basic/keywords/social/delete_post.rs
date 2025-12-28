@@ -35,7 +35,7 @@ pub fn delete_post_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 Ok(Dynamic::from(result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered DELETE POST keyword");
 }

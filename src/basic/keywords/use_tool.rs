@@ -72,7 +72,7 @@ pub fn use_tool_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 fn associate_tool_with_session(
     state: &AppState,

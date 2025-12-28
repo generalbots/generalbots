@@ -49,7 +49,7 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 Ok(Dynamic::from(result))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn create_site(

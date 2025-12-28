@@ -63,7 +63,7 @@ pub fn image_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_image_generation(
@@ -130,7 +130,7 @@ pub fn video_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_video_generation(
@@ -197,7 +197,7 @@ pub fn audio_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engin
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_audio_generation(
@@ -264,7 +264,7 @@ pub fn see_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine)
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_see_caption(

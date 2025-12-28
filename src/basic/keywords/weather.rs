@@ -83,7 +83,7 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
@@ -146,7 +146,7 @@ pub fn weather_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn get_weather(

@@ -95,7 +95,7 @@ impl LLMProvider for OpenAIClient {
             .header("Authorization", format!("Bearer {}", key))
             .json(&serde_json::json!({
                 "model": model,
-                "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
+                "messages": if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
                     messages
                 } else {
                     &default_messages
@@ -130,7 +130,7 @@ impl LLMProvider for OpenAIClient {
             .header("Authorization", format!("Bearer {}", key))
             .json(&serde_json::json!({
                 "model": model,
-                "messages": if messages.is_array() && !messages.as_array().unwrap().is_empty() {
+                "messages": if messages.is_array() && !messages.as_array().unwrap_or(&vec![]).is_empty() {
                     info!("Using provided messages: {:?}", messages);
                     messages
                 } else {

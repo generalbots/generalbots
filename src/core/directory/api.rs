@@ -258,7 +258,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         .danger_accept_invalid_certs(true)
         .timeout(std::time::Duration::from_secs(2))
         .build()
-        .unwrap();
+        .expect("valid syntax registration");
 
     if let Ok(response) = client.get("https://localhost:8300/healthz").send().await {
         status.directory = response.status().is_success();

@@ -80,5 +80,5 @@ pub fn set_context_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }

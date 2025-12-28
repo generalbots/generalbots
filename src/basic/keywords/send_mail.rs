@@ -97,7 +97,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user.clone();
@@ -173,7 +173,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = user;
@@ -256,7 +256,7 @@ pub fn send_mail_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_send_mail(

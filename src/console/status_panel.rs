@@ -42,7 +42,7 @@ impl StatusPanel {
 
         let _tokens = (std::time::SystemTime::now()
             .duration_since(std::time::UNIX_EPOCH)
-            .unwrap()
+            .expect("system time after UNIX epoch")
             .as_secs()
             % 1000) as usize;
         #[cfg(feature = "nvidia")]

@@ -162,7 +162,7 @@ async fn process_episodic_memory(
                 let handler = llm_models::get_handler(
                     config_manager
                         .get_config(&session.bot_id, "llm-model", None)
-                        .unwrap()
+                        .unwrap_or_default()
                         .as_str(),
                 );
 

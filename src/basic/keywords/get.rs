@@ -67,7 +67,7 @@ pub fn get_keyword(state: Arc<AppState>, user_session: UserSession, engine: &mut
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 fn is_safe_path(path: &str) -> bool {
     if path.starts_with("https://") || path.starts_with("http://") {

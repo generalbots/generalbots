@@ -390,7 +390,7 @@ async fn oauth_callback(
             ),
         )
         .body(axum::body::Body::empty())
-        .unwrap()
+        .expect("valid response")
 }
 
 async fn get_bot_config(state: &AppState) -> HashMap<String, String> {

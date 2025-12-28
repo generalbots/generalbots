@@ -113,7 +113,7 @@ pub fn register_read_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -179,7 +179,7 @@ pub fn register_write_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -241,7 +241,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(
@@ -296,7 +296,7 @@ pub fn register_delete_file_keyword(state: Arc<AppState>, user: UserSession, eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -358,7 +358,7 @@ pub fn register_copy_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -420,7 +420,7 @@ pub fn register_move_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -479,7 +479,7 @@ pub fn register_list_keyword(state: Arc<AppState>, user: UserSession, engine: &m
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -557,7 +557,7 @@ pub fn register_compress_keyword(state: Arc<AppState>, user: UserSession, engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -622,7 +622,7 @@ pub fn register_extract_keyword(state: Arc<AppState>, user: UserSession, engine:
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -685,7 +685,7 @@ pub fn register_upload_keyword(state: Arc<AppState>, user: UserSession, engine: 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -747,7 +747,7 @@ pub fn register_download_keyword(state: Arc<AppState>, user: UserSession, engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -822,7 +822,7 @@ pub fn register_generate_pdf_keyword(state: Arc<AppState>, user: UserSession, en
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -900,7 +900,7 @@ pub fn register_merge_pdf_keyword(state: Arc<AppState>, user: UserSession, engin
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_read(

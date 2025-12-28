@@ -130,7 +130,7 @@ pub fn register_calculate_keyword(state: Arc<AppState>, _user: UserSession, engi
                 parse_calculate_result(&result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn build_calculate_prompt(formula: &str, variables: &Dynamic) -> String {
@@ -205,7 +205,7 @@ pub fn register_validate_keyword(state: Arc<AppState>, _user: UserSession, engin
                 parse_validate_result(&result)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn build_validate_prompt(data: &Dynamic, rules: &str) -> String {
@@ -314,7 +314,7 @@ pub fn register_translate_keyword(state: Arc<AppState>, _user: UserSession, engi
                 run_llm_with_timeout(state_for_task, prompt, 120).map(Dynamic::from)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn build_translate_prompt(text: &str, language: &str) -> String {
@@ -345,7 +345,7 @@ pub fn register_summarize_keyword(state: Arc<AppState>, _user: UserSession, engi
 
             run_llm_with_timeout(state_for_task, prompt, 120).map(Dynamic::from)
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn build_summarize_prompt(text: &str) -> String {

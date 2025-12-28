@@ -12,7 +12,6 @@ use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use serde::{Deserialize, Serialize};
 use std::fmt::Write;
-use std::path::Path;
 use std::sync::Arc;
 use uuid::Uuid;
 

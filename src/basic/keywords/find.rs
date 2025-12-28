@@ -53,7 +53,7 @@ pub fn find_keyword(state: &AppState, user: UserSession, engine: &mut Engine) {
                 }
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 pub fn execute_find(
     conn: &mut PgConnection,

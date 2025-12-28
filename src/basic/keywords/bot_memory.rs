@@ -109,7 +109,7 @@ pub fn set_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn get_bot_memory_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {

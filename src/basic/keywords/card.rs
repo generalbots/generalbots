@@ -478,7 +478,7 @@ pub fn register_card_keyword(runtime: &mut BasicRuntime, llm_provider: Arc<dyn L
                 .collect();
 
             if result_values.len() == 1 {
-                Ok(result_values.into_iter().next().unwrap())
+                Ok(result_values.into_iter().next().expect("non-empty result"))
             } else {
                 Ok(BasicValue::Array(result_values))
             }

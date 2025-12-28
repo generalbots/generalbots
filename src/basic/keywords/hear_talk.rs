@@ -212,7 +212,7 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
                 rhai::Position::NONE,
             )))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -276,7 +276,7 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
                 )))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -376,7 +376,7 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
                 )))
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 #[must_use]
@@ -415,9 +415,7 @@ pub fn validate_input(input: &str, input_type: &InputType) -> ValidationResult {
 }
 
 fn validate_email(input: &str) -> ValidationResult {
-    let email_regex = Regex::new(
-        r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$"
-    ).unwrap();
+    let email_regex = Regex::new(r"^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$").expect("valid regex");
 
     if email_regex.is_match(input) {
         ValidationResult::valid(input.to_lowercase())
@@ -469,7 +467,7 @@ fn validate_date(input: &str) -> ValidationResult {
 }
 
 fn validate_name(input: &str) -> ValidationResult {
-    let name_regex = Regex::new(r"^[\p{L}\s\-']+$").unwrap();
+    let name_regex = Regex::new(r"^[\p{L}\s\-']+$").expect("valid regex");
 
     if input.len() < 2 {
         return ValidationResult::invalid("Name must be at least 2 characters".to_string());
@@ -567,10 +565,10 @@ fn validate_boolean(input: &str) -> ValidationResult {
 }
 
 fn validate_hour(input: &str) -> ValidationResult {
-    let time_24_regex = Regex::new(r"^([01]?\d|2[0-3]):([0-5]\d)$").unwrap();
+    let time_24_regex = Regex::new(r"^([01]?\d|2[0-3]):([0-5]\d)$").expect("valid regex");
     if let Some(caps) = time_24_regex.captures(input) {
-        let hour: u32 = caps[1].parse().unwrap();
-        let minute: u32 = caps[2].parse().unwrap();
+        let hour: u32 = caps[1].parse().unwrap_or_default();
+        let minute: u32 = caps[2].parse().unwrap_or_default();
         return ValidationResult::valid_with_metadata(
             format!("{:02}:{:02}", hour, minute),
             serde_json::json!({ "hour": hour, "minute": minute }),
@@ -578,10 +576,10 @@ fn validate_hour(input: &str) -> ValidationResult {
     }
 
     let time_12_regex =
-        Regex::new(r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$").unwrap();
+        Regex::new(r"^(1[0-2]|0?[1-9]):([0-5]\d)\s*(AM|PM|am|pm|a\.m\.|p\.m\.)$").expect("valid regex");
     if let Some(caps) = time_12_regex.captures(input) {
-        let mut hour: u32 = caps[1].parse().unwrap();
-        let minute: u32 = caps[2].parse().unwrap();
+        let mut hour: u32 = caps[1].parse().unwrap_or_default();
+        let minute: u32 = caps[2].parse().unwrap_or_default();
         let period = caps[3].to_uppercase();
 
         if period.starts_with('P') && hour != 12 {
@@ -675,7 +673,7 @@ fn validate_zipcode(input: &str) -> ValidationResult {
         );
     }
 
-    let uk_regex = Regex::new(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$").unwrap();
+    let uk_regex = Regex::new(r"^[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}$").expect("valid regex");
     if uk_regex.is_match(&cleaned.to_uppercase()) {
         return ValidationResult::valid_with_metadata(
             cleaned.to_uppercase(),
@@ -736,8 +734,10 @@ fn validate_cpf(input: &str) -> ValidationResult {
         return ValidationResult::invalid(InputType::Cpf.error_message());
     }
 
-    if digits.chars().all(|c| c == digits.chars().next().unwrap()) {
-        return ValidationResult::invalid("Invalid CPF".to_string());
+    if let Some(first_char) = digits.chars().next() {
+        if digits.chars().all(|c| c == first_char) {
+            return ValidationResult::invalid("Invalid CPF".to_string());
+        }
     }
 
     let digits_vec: Vec<u32> = digits.chars().filter_map(|c| c.to_digit(10)).collect();
@@ -837,9 +837,7 @@ fn validate_url(input: &str) -> ValidationResult {
         input.to_string()
     };
 
-    let url_regex = Regex::new(
-        r"^https?://[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$"
-    ).unwrap();
+    let url_regex = Regex::new(r"^https?://[a-zA-Z0-9][-a-zA-Z0-9]*(\.[a-zA-Z0-9][-a-zA-Z0-9]*)+(/[-a-zA-Z0-9()@:%_\+.~#?&/=]*)?$").expect("valid regex");
 
     if url_regex.is_match(&url_str) {
         ValidationResult::valid(url_str)
@@ -884,7 +882,7 @@ fn validate_color(input: &str) -> ValidationResult {
         }
     }
 
-    let hex_regex = Regex::new(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").unwrap();
+    let hex_regex = Regex::new(r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$").expect("valid regex");
     if let Some(caps) = hex_regex.captures(&lower) {
         let hex = caps[1].to_uppercase();
         let full_hex = if hex.len() == 3 {
@@ -901,7 +899,7 @@ fn validate_color(input: &str) -> ValidationResult {
     }
 
     let rgb_regex =
-        Regex::new(r"^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$").unwrap();
+        Regex::new(r"^rgb\s*\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\s*\)$").expect("valid regex");
     if let Some(caps) = rgb_regex.captures(&lower) {
         let r: u8 = caps[1].parse().unwrap_or(0);
         let g: u8 = caps[2].parse().unwrap_or(0);
@@ -923,7 +921,7 @@ fn validate_credit_card(input: &str) -> ValidationResult {
     let mut double = false;
 
     for c in digits.chars().rev() {
-        let mut digit = c.to_digit(10).unwrap();
+        let mut digit = c.to_digit(10).unwrap_or(0);
         if double {
             digit *= 2;
             if digit > 9 {
@@ -1028,7 +1026,7 @@ fn validate_menu(input: &str, options: &[String]) -> ValidationResult {
         .collect();
 
     if matches.len() == 1 {
-        let idx = options.iter().position(|o| o == matches[0]).unwrap();
+        let idx = options.iter().position(|o| o == matches[0]).unwrap_or(0);
         return ValidationResult::valid_with_metadata(
             matches[0].clone(),
             serde_json::json!({ "index": idx, "value": matches[0] }),
@@ -1117,7 +1115,7 @@ pub fn talk_keyword(state: Arc<AppState>, user: UserSession, engine: &mut Engine
 
             Ok(Dynamic::UNIT)
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub async fn process_hear_input(

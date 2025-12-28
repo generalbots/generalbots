@@ -23,7 +23,7 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
             trace!("RSS {}", url);
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().unwrap();
+                let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                 let result = rt.block_on(async { fetch_rss(&url, 100).await });
                 let _ = tx.send(result);
             });
@@ -39,7 +39,7 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
                 ))),
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(
@@ -54,7 +54,7 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
                 trace!("RSS {} limit {}", url, limit);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { fetch_rss(&url, limit).await });
                     let _ = tx.send(result);
                 });
@@ -71,7 +71,7 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
                 }
             },
         )
-        .unwrap();
+        .expect("valid RSS syntax registration");
 
     debug!("Registered RSS keyword");
 }
@@ -128,7 +128,7 @@ fn register_scrape_keyword(_state: Arc<AppState>, _user: UserSession, engine: &m
                 trace!("SCRAPE {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { scrape_first(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -145,7 +145,7 @@ fn register_scrape_keyword(_state: Arc<AppState>, _user: UserSession, engine: &m
                 }
             },
         )
-        .unwrap();
+        .expect("valid SCRAPE syntax registration");
 
     debug!("Registered SCRAPE keyword");
 }
@@ -161,7 +161,7 @@ fn register_scrape_all_keyword(_state: Arc<AppState>, _user: UserSession, engine
                 trace!("SCRAPE_ALL {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { scrape_all(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -178,7 +178,7 @@ fn register_scrape_all_keyword(_state: Arc<AppState>, _user: UserSession, engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid SCRAPE_ALL syntax registration");
 
     debug!("Registered SCRAPE_ALL keyword");
 }
@@ -194,7 +194,7 @@ fn register_scrape_table_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 trace!("SCRAPE_TABLE {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { scrape_table(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -211,7 +211,7 @@ fn register_scrape_table_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 }
             },
         )
-        .unwrap();
+        .expect("valid SCRAPE_TABLE syntax registration");
 
     debug!("Registered SCRAPE_TABLE keyword");
 }
@@ -226,7 +226,7 @@ fn register_scrape_links_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 trace!("SCRAPE_LINKS {}", url);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { scrape_links(&url).await });
                     let _ = tx.send(result);
                 });
@@ -243,7 +243,7 @@ fn register_scrape_links_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 }
             },
         )
-        .unwrap();
+        .expect("valid SCRAPE_LINKS syntax registration");
 
     debug!("Registered SCRAPE_LINKS keyword");
 }
@@ -258,7 +258,7 @@ fn register_scrape_images_keyword(_state: Arc<AppState>, _user: UserSession, eng
                 trace!("SCRAPE_IMAGES {}", url);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().unwrap();
+                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
                     let result = rt.block_on(async { scrape_images(&url).await });
                     let _ = tx.send(result);
                 });
@@ -275,7 +275,7 @@ fn register_scrape_images_keyword(_state: Arc<AppState>, _user: UserSession, eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid SCRAPE_IMAGES syntax registration");
 
     debug!("Registered SCRAPE_IMAGES keyword");
 }
@@ -332,9 +332,9 @@ async fn scrape_table(
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
     let table_sel = Selector::parse(selector).map_err(|e| format!("Invalid selector: {:?}", e))?;
-    let tr_sel = Selector::parse("tr").unwrap();
-    let th_sel = Selector::parse("th").unwrap();
-    let td_sel = Selector::parse("td").unwrap();
+    let tr_sel = Selector::parse("tr").expect("static tr selector");
+    let th_sel = Selector::parse("th").expect("static th selector");
+    let td_sel = Selector::parse("td").expect("static td selector");
     let mut results = Array::new();
     let mut headers: Vec<String> = Vec::new();
     if let Some(table) = document.select(&table_sel).next() {
@@ -368,7 +368,7 @@ async fn scrape_table(
 async fn scrape_links(url: &str) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
-    let sel = Selector::parse("a[href]").unwrap();
+    let sel = Selector::parse("a[href]").expect("static href selector");
     let base_url = Url::parse(url)?;
     let mut results = Array::new();
     for el in document.select(&sel) {
@@ -394,7 +394,7 @@ async fn scrape_links(url: &str) -> Result<Array, Box<dyn std::error::Error + Se
 async fn scrape_images(url: &str) -> Result<Array, Box<dyn std::error::Error + Send + Sync>> {
     let html = fetch_page(url).await?;
     let document = Html::parse_document(&html);
-    let sel = Selector::parse("img[src]").unwrap();
+    let sel = Selector::parse("img[src]").expect("static img selector");
     let base_url = Url::parse(url)?;
     let mut results = Array::new();
     for el in document.select(&sel) {

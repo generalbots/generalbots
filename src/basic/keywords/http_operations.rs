@@ -81,7 +81,7 @@ pub fn register_post_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -141,7 +141,7 @@ pub fn register_put_keyword(state: Arc<AppState>, _user: UserSession, engine: &m
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -201,7 +201,7 @@ pub fn register_patch_keyword(state: Arc<AppState>, _user: UserSession, engine: 
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_delete_http_keyword(
@@ -260,7 +260,7 @@ pub fn register_delete_http_keyword(
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -289,7 +289,7 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(
@@ -312,7 +312,7 @@ pub fn register_set_header_keyword(_state: Arc<AppState>, _user: UserSession, en
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_clear_headers_keyword(
@@ -330,7 +330,7 @@ pub fn register_clear_headers_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .unwrap();
+        .expect("valid syntax registration");
 
     engine
         .register_custom_syntax(["CLEAR_HEADERS"], false, move |_context, _inputs| {
@@ -342,7 +342,7 @@ pub fn register_clear_headers_keyword(
 
             Ok(Dynamic::UNIT)
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -403,7 +403,7 @@ pub fn register_graphql_keyword(state: Arc<AppState>, _user: UserSession, engine
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine) {
@@ -464,7 +464,7 @@ pub fn register_soap_keyword(state: Arc<AppState>, _user: UserSession, engine: &
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn execute_http_request(

@@ -4,6 +4,9 @@ use super::table_access::{
 use crate::core::shared::state::AppState;
 use crate::core::shared::sanitize_identifier;
 use crate::core::urls::ApiUrls;
+use crate::security::sql_guard::{
+    build_safe_count_query, build_safe_select_query, validate_table_name,
+};
 use axum::{
     extract::{Path, Query, State},
     http::{HeaderMap, StatusCode},
@@ -121,20 +124,19 @@ pub async fn list_records_handler(
     let user_roles = user_roles_from_headers(&headers);
     let limit = params.limit.unwrap_or(20).min(100);
     let offset = params.offset.unwrap_or(0);
-    let order_by = params
-        .order_by
-        .map(|o| sanitize_identifier(&o))
-        .unwrap_or_else(|| "id".to_string());
-    let order_dir = params
-        .order_dir
-        .map(|d| {
-            if d.to_uppercase() == "DESC" {
-                "DESC"
-            } else {
-                "ASC"
-            }
-        })
-        .unwrap_or("ASC");
+
+    // Validate table name against whitelist
+    if let Err(e) = validate_table_name(&table_name) {
+        warn!("Invalid table name attempted: {} - {}", table_name, e);
+        return (
+            StatusCode::BAD_REQUEST,
+            Json(json!({ "error": "Invalid table name" })),
+        )
+            .into_response();
+    }
+
+    let order_by = params.order_by.as_deref();
+    let order_dir = params.order_dir.as_deref();
 
     let mut conn = match state.conn.get() {
         Ok(c) => c,
@@ -160,12 +162,30 @@ pub async fn list_records_handler(
             }
         };
 
-    let query = format!(
-        "SELECT row_to_json(t.*) as data FROM {} t ORDER BY {} {} LIMIT {} OFFSET {}",
-        table_name, order_by, order_dir, limit, offset
-    );
+    // Build safe queries using sql_guard
+    let query = match build_safe_select_query(&table_name, order_by, order_dir, limit, offset) {
+        Ok(q) => q,
+        Err(e) => {
+            warn!("Failed to build safe query: {}", e);
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Invalid query parameters" })),
+            )
+                .into_response();
+        }
+    };
 
-    let count_query = format!("SELECT COUNT(*) as count FROM {}", table_name);
+    let count_query = match build_safe_count_query(&table_name) {
+        Ok(q) => q,
+        Err(e) => {
+            warn!("Failed to build count query: {}", e);
+            return (
+                StatusCode::BAD_REQUEST,
+                Json(json!({ "error": "Invalid table name" })),
+            )
+                .into_response();
+        }
+    };
 
     let rows: Result<Vec<JsonRow>, _> = sql_query(&query).get_results(&mut conn);
     let total: Result<CountResult, _> = sql_query(&count_query).get_result(&mut conn);

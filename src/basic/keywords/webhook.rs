@@ -59,7 +59,7 @@ pub fn webhook_keyword(state: &AppState, _user: UserSession, engine: &mut Engine
 
             Ok(Dynamic::from(format!("webhook:{}", endpoint)))
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 pub fn execute_webhook_registration(

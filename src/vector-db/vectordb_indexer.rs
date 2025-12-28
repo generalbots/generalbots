@@ -599,7 +599,7 @@ impl VectorDBIndexer {
             total_stats.errors += job.stats.errors;
 
             if let Some(last_run) = job.stats.last_run {
-                if total_stats.last_run.is_none() || total_stats.last_run.unwrap() < last_run {
+                if total_stats.last_run.map_or(true, |lr| lr < last_run) {
                     total_stats.last_run = Some(last_run);
                 }
             }

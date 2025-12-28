@@ -733,7 +733,7 @@ impl BootstrapManager {
 
         info!("Configuring services through Vault...");
 
-        let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone()).unwrap();
+        let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
         let required_components = vec!["vault", "tables", "directory", "drive", "cache", "llm"];
 
@@ -993,7 +993,7 @@ impl BootstrapManager {
             std::env::current_dir()?.join(self.stack_dir("conf/directory/admin-pat.txt"))
         };
 
-        fs::create_dir_all(zitadel_config_path.parent().unwrap())?;
+        fs::create_dir_all(zitadel_config_path.parent().ok_or_else(|| anyhow::anyhow!("Invalid zitadel config path"))?)?;
 
         let zitadel_db_password = Self::generate_secure_password(24);
 
@@ -1111,7 +1111,7 @@ DefaultInstance:
 
     fn setup_caddy_proxy(&self) -> Result<()> {
         let caddy_config = self.stack_dir("conf/proxy/Caddyfile");
-        fs::create_dir_all(caddy_config.parent().unwrap())?;
+        fs::create_dir_all(caddy_config.parent().ok_or_else(|| anyhow::anyhow!("Invalid caddy config path"))?)?;
 
         let config = format!(
             r"{{
@@ -1163,7 +1163,7 @@ meet.botserver.local {{
 
     fn setup_coredns(&self) -> Result<()> {
         let dns_config = self.stack_dir("conf/dns/Corefile");
-        fs::create_dir_all(dns_config.parent().unwrap())?;
+        fs::create_dir_all(dns_config.parent().ok_or_else(|| anyhow::anyhow!("Invalid dns config path"))?)?;
 
         let zone_file = self.stack_dir("conf/dns/botserver.local.zone");
 
@@ -1844,11 +1844,11 @@ VAULT_CACHE_TTL=300
             if path.is_dir()
                 && path
                     .file_name()
-                    .unwrap()
+                    .unwrap_or_default()
                     .to_string_lossy()
                     .ends_with(".gbai")
             {
-                let bot_name = path.file_name().unwrap().to_string_lossy().to_string();
+                let bot_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                 let bucket = bot_name.trim_start_matches('/').to_string();
                 if client.head_bucket().bucket(&bucket).send().await.is_err() {
                     match client.create_bucket().bucket(&bucket).send().await {
@@ -2024,7 +2024,7 @@ VAULT_CACHE_TTL=300
             let mut read_dir = tokio::fs::read_dir(local_path).await?;
             while let Some(entry) = read_dir.next_entry().await? {
                 let path = entry.path();
-                let file_name = path.file_name().unwrap().to_string_lossy().to_string();
+                let file_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                 let mut key = prefix.trim_matches('/').to_string();
                 if !key.is_empty() {
                     key.push('/');

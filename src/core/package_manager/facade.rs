@@ -108,7 +108,7 @@ impl PackageManager {
 
                 info!("Downloading data file: {}", url);
                 println!("Downloading {}", url);
-                utils::download_file(url, download_target.to_str().unwrap()).await?;
+                utils::download_file(url, download_target.to_str().unwrap_or_default()).await?;
 
                 if cache.is_some() && download_target != output_path {
                     std::fs::copy(&download_target, &output_path)?;
@@ -630,7 +630,7 @@ Store credentials in Vault:
                 let output = Command::new("lxc")
                     .args(["list", &container_name, "--format=json"])
                     .output()
-                    .unwrap();
+                    .expect("valid syntax registration");
                 if !output.status.success() {
                     return false;
                 }
@@ -785,7 +785,7 @@ Store credentials in Vault:
             "Failed to download {} after {} attempts. Last error: {}",
             component,
             MAX_RETRIES + 1,
-            last_error.unwrap()
+            last_error.unwrap_or_else(|| anyhow::anyhow!("unknown error"))
         ))
     }
     pub async fn attempt_reqwest_download(
@@ -827,7 +827,7 @@ Store credentials in Vault:
                 if let Some(name) = binary_name {
                     self.install_binary(temp_file, bin_path, name)?;
                 } else {
-                    let final_path = bin_path.join(temp_file.file_name().unwrap());
+                    let final_path = bin_path.join(temp_file.file_name().unwrap_or_default());
 
                     if temp_file.to_string_lossy().contains("botserver-installers") {
                         std::fs::copy(temp_file, &final_path)?;

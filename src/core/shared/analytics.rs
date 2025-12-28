@@ -99,7 +99,7 @@ impl MetricsCollector {
             return None;
         }
 
-        values.sort_by(|a, b| a.partial_cmp(b).unwrap());
+        values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
         let index = ((percentile / 100.0) * values.len() as f64) as usize;
         values.get(index.min(values.len() - 1)).copied()
     }
@@ -134,7 +134,7 @@ pub struct DataSet {
 }
 
 pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
-    let mut conn = state.conn.get().unwrap();
+    let mut conn = state.conn.get().expect("failed to get db connection");
 
     #[derive(QueryableByName)]
     struct CountResult {

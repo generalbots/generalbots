@@ -75,7 +75,7 @@ impl DirectorySetup {
             client: Client::builder()
                 .timeout(Duration::from_secs(30))
                 .build()
-                .unwrap(),
+                .expect("failed to build HTTP client"),
             admin_token: None,
             config_path,
         }
@@ -171,7 +171,7 @@ impl DirectorySetup {
         let response = self
             .client
             .post(format!("{}/management/v1/orgs", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "name": name,
                 "description": description,
@@ -194,7 +194,7 @@ impl DirectorySetup {
         let response = self
             .client
             .post(format!("{}/management/v1/orgs", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "name": org_name,
             }))
@@ -230,7 +230,7 @@ impl DirectorySetup {
         let response = self
             .client
             .post(format!("{}/management/v1/users/human", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "userName": username,
                 "profile": {
@@ -288,7 +288,7 @@ impl DirectorySetup {
         let response = self
             .client
             .post(format!("{}/management/v1/users/human", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "userName": username,
                 "profile": {
@@ -335,7 +335,7 @@ impl DirectorySetup {
         let project_response = self
             .client
             .post(format!("{}/management/v1/projects", self.base_url))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "name": app_name,
             }))
@@ -347,7 +347,7 @@ impl DirectorySetup {
 
         let app_response = self.client
             .post(format!("{}/management/v1/projects/{}/apps/oidc", self.base_url, project_id))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "name": app_name,
                 "redirectUris": [redirect_uri],
@@ -377,7 +377,7 @@ impl DirectorySetup {
                 "{}/management/v1/orgs/{}/members",
                 self.base_url, org_id
             ))
-            .bearer_auth(self.admin_token.as_ref().unwrap())
+            .bearer_auth(self.admin_token.as_ref().unwrap_or(&String::new()))
             .json(&json!({
                 "userId": user_id,
                 "roles": ["ORG_OWNER"]

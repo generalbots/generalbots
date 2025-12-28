@@ -253,7 +253,7 @@ pub fn get_system_status(
                 last_check: now,
             },
         ],
-        last_restart: now.checked_sub_signed(chrono::Duration::days(7)).unwrap(),
+        last_restart: now.checked_sub_signed(chrono::Duration::days(7)).unwrap_or(now),
     };
 
     Ok(Json(status))
@@ -303,7 +303,7 @@ pub fn view_logs(
             id: Uuid::new_v4(),
             timestamp: now
                 .checked_sub_signed(chrono::Duration::minutes(5))
-                .unwrap(),
+                .unwrap_or(now),
             level: "warning".to_string(),
             service: "database".to_string(),
             message: "Slow query detected".to_string(),
@@ -316,7 +316,7 @@ pub fn view_logs(
             id: Uuid::new_v4(),
             timestamp: now
                 .checked_sub_signed(chrono::Duration::minutes(10))
-                .unwrap(),
+                .unwrap_or(now),
             level: "error".to_string(),
             service: "storage".to_string(),
             message: "Failed to upload file".to_string(),
@@ -427,7 +427,7 @@ pub fn create_backup(
         created_at: now,
         status: "completed".to_string(),
         download_url: Some(format!("/admin/backups/{}/download", backup_id)),
-        expires_at: Some(now.checked_add_signed(chrono::Duration::days(30)).unwrap()),
+        expires_at: Some(now.checked_add_signed(chrono::Duration::days(30)).unwrap_or(now)),
     };
 
     Ok(Json(backup))
@@ -453,19 +453,19 @@ pub fn list_backups(
             id: Uuid::new_v4(),
             backup_type: "full".to_string(),
             size_bytes: 1024 * 1024 * 500,
-            created_at: now.checked_sub_signed(chrono::Duration::days(1)).unwrap(),
+            created_at: now.checked_sub_signed(chrono::Duration::days(1)).unwrap_or(now),
             status: "completed".to_string(),
             download_url: Some("/admin/backups/1/download".to_string()),
-            expires_at: Some(now.checked_add_signed(chrono::Duration::days(29)).unwrap()),
+            expires_at: Some(now.checked_add_signed(chrono::Duration::days(29)).unwrap_or(now)),
         },
         BackupResponse {
             id: Uuid::new_v4(),
             backup_type: "incremental".to_string(),
             size_bytes: 1024 * 1024 * 50,
-            created_at: now.checked_sub_signed(chrono::Duration::hours(12)).unwrap(),
+            created_at: now.checked_sub_signed(chrono::Duration::hours(12)).unwrap_or(now),
             status: "completed".to_string(),
             download_url: Some("/admin/backups/2/download".to_string()),
-            expires_at: Some(now.checked_add_signed(chrono::Duration::days(29)).unwrap()),
+            expires_at: Some(now.checked_add_signed(chrono::Duration::days(29)).unwrap_or(now)),
         },
     ];
 
@@ -584,8 +584,8 @@ pub fn get_licenses(
             "priority_support".to_string(),
             "custom_integrations".to_string(),
         ],
-        issued_at: now.checked_sub_signed(chrono::Duration::days(180)).unwrap(),
-        expires_at: Some(now.checked_add_signed(chrono::Duration::days(185)).unwrap()),
+        issued_at: now.checked_sub_signed(chrono::Duration::days(180)).unwrap_or(now),
+        expires_at: Some(now.checked_add_signed(chrono::Duration::days(185)).unwrap_or(now)),
     }];
 
     Ok(Json(licenses))

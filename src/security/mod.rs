@@ -1,18 +1,53 @@
 pub mod antivirus;
+pub mod auth;
 pub mod ca;
 pub mod cert_pinning;
+pub mod command_guard;
+pub mod cors;
+pub mod error_sanitizer;
+pub mod headers;
 pub mod integration;
 pub mod mutual_tls;
+pub mod panic_handler;
+pub mod path_guard;
+pub mod rate_limiter;
+pub mod request_id;
+pub mod secrets;
+pub mod sql_guard;
 pub mod tls;
+pub mod validation;
+pub mod zitadel_auth;
 
 pub use antivirus::{
     AntivirusConfig, AntivirusManager, ProtectionStatus, ScanResult, ScanStatus, ScanType, Threat,
     ThreatSeverity, ThreatStatus, Vulnerability,
 };
+pub use auth::{
+    admin_only_middleware, auth_middleware, bot_operator_middleware, bot_owner_middleware,
+    bot_scope_middleware, extract_user_from_request, require_auth_middleware, require_bot_access,
+    require_bot_permission, require_permission, require_permission_middleware, require_role,
+    require_role_middleware, AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role,
+};
+pub use zitadel_auth::{ZitadelAuthConfig, ZitadelAuthProvider, ZitadelUser};
 pub use ca::{CaConfig, CaManager, CertificateRequest, CertificateResponse};
 pub use cert_pinning::{
     compute_spki_fingerprint, format_fingerprint, parse_fingerprint, CertPinningConfig,
     CertPinningManager, PinType, PinValidationResult, PinnedCert, PinningStats,
+};
+pub use cors::{
+    create_cors_layer, create_cors_layer_with_origins, CorsConfig, OriginValidator,
+};
+pub use command_guard::{
+    has_nvidia_gpu_safe, safe_nvidia_smi, safe_pandoc_async, safe_pdftotext_async,
+    sanitize_filename, validate_argument, validate_path, CommandGuardError, SafeCommand,
+};
+pub use error_sanitizer::{
+    log_and_sanitize, safe_error, safe_error_with_request_id, sanitize_for_log,
+    ErrorSanitizer, SafeErrorResponse,
+};
+pub use headers::{
+    create_security_headers_layer, security_headers_middleware,
+    security_headers_middleware_default, CspBuilder, SecurityHeadersConfig,
 };
 pub use integration::{
     create_https_client, get_tls_integration, init_tls_integration, to_secure_url, TlsIntegration,
@@ -24,7 +59,42 @@ pub use mutual_tls::{
     },
     MtlsConfig, MtlsError, MtlsManager,
 };
+pub use panic_handler::{
+    catch_panic, catch_panic_async, panic_handler_middleware,
+    panic_handler_middleware_with_config, set_global_panic_hook, PanicError,
+    PanicGuard, PanicHandlerConfig,
+};
+pub use path_guard::{
+    canonicalize_safe, is_safe_path, join_safe, sanitize_path_component,
+    PathGuard, PathGuardConfig, PathGuardError,
+};
+pub use rate_limiter::{
+    create_default_rate_limit_layer, create_rate_limit_layer, rate_limit_middleware,
+    simple_rate_limit_middleware, CombinedRateLimiter, HttpRateLimitConfig,
+};
+pub use request_id::{
+    generate_prefixed_request_id, generate_request_id, get_current_sequence,
+    get_request_id, get_request_id_string, request_id_middleware,
+    request_id_middleware_with_config, RequestId, RequestIdConfig,
+    CORRELATION_ID_HEADER, REQUEST_ID_HEADER,
+};
+pub use secrets::{
+    is_sensitive_key, redact_sensitive_data, ApiKey, DatabaseCredentials, JwtSecret, SecretBytes,
+    SecretString, SecretsStore,
+};
+pub use sql_guard::{
+    build_safe_count_query, build_safe_delete_query, build_safe_select_by_id_query,
+    build_safe_select_query, check_for_injection_patterns, escape_string_literal,
+    is_table_allowed, sanitize_identifier, validate_identifier, validate_order_column,
+    validate_order_direction, validate_table_name, SqlGuardError,
+};
 pub use tls::{create_https_server, ServiceTlsConfig, TlsConfig, TlsManager, TlsRegistry};
+pub use validation::{
+    sanitize_html, strip_html_tags, validate_alphanumeric, validate_email, validate_length,
+    validate_no_html, validate_no_script_injection, validate_one_of, validate_password_strength,
+    validate_phone, validate_range, validate_required, validate_slug, validate_url,
+    validate_username, validate_uuid, ValidationError, ValidationResult, Validator,
+};
 
 use anyhow::Result;
 use std::path::PathBuf;
@@ -43,6 +113,10 @@ pub struct SecurityConfig {
     pub auto_generate_certs: bool,
 
     pub renewal_threshold_days: i64,
+
+    pub rate_limit_config: HttpRateLimitConfig,
+
+    pub security_headers_config: SecurityHeadersConfig,
 }
 
 impl Default for SecurityConfig {
@@ -57,6 +131,8 @@ impl Default for SecurityConfig {
             tls_registry,
             auto_generate_certs: true,
             renewal_threshold_days: 30,
+            rate_limit_config: HttpRateLimitConfig::default(),
+            security_headers_config: SecurityHeadersConfig::default(),
         }
     }
 }
@@ -206,6 +282,14 @@ impl SecurityManager {
 
     pub fn mtls_manager(&self) -> Option<&MtlsManager> {
         self.mtls_manager.as_ref()
+    }
+
+    pub fn rate_limit_config(&self) -> &HttpRateLimitConfig {
+        &self.config.rate_limit_config
+    }
+
+    pub fn security_headers_config(&self) -> &SecurityHeadersConfig {
+        &self.config.security_headers_config
     }
 }
 

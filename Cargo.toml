@@ -114,14 +114,15 @@ chrono = { version = "0.4", features = ["serde"] }
 color-eyre = "0.6.5"
 diesel = { version = "2.1", features = ["postgres", "uuid", "chrono", "serde_json", "r2d2"] }
 diesel_migrations = "2.1.0"
+dirs = "5.0"
 dotenvy = "0.15"
 env_logger = "0.11"
 futures = "0.3"
 futures-util = "0.3"
 hex = "0.4"
 hmac = "0.12.1"
-hyper = { version = "0.14", features = ["full"] }
-hyper-rustls = { version = "0.24", features = ["http2"] }
+hyper = { version = "1.4", features = ["full"] }
+hyper-rustls = { version = "0.27", features = ["http2"] }
 log = "0.4"
 num-format = "0.4"
 once_cell = "1.18.0"
@@ -145,11 +146,10 @@ uuid = { version = "1.11", features = ["serde", "v4", "v5"] }
 
 # === TLS/SECURITY DEPENDENCIES ===
 rustls = { version = "0.23", default-features = false, features = ["ring", "std", "tls12"] }
-rustls-pemfile = "2.0"
 tokio-rustls = "0.26"
 rcgen = { version = "0.14", features = ["pem"] }
 x509-parser = "0.15"
-rustls-native-certs = "0.6"
+rustls-native-certs = "0.8"
 webpki-roots = "0.25"
 ring = "0.17"
 time = { version = "0.3", features = ["formatting", "parsing"] }

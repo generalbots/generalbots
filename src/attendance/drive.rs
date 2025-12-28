@@ -205,7 +205,7 @@ impl AttendanceDriveService {
                     aws_sdk_s3::types::ObjectIdentifier::builder()
                         .key(self.get_record_key(id))
                         .build()
-                        .unwrap()
+                        .expect("valid object identifier")
                 })
                 .collect();
 
@@ -359,7 +359,7 @@ impl AttendanceDriveService {
             last_modified: result
                 .last_modified
                 .and_then(|t| t.to_millis().ok())
-                .map(|ms| chrono::Utc.timestamp_millis_opt(ms).unwrap()),
+                .map(|ms| chrono::Utc.timestamp_millis_opt(ms).single().unwrap_or_default()),
             content_type: result.content_type,
             etag: result.e_tag,
         })

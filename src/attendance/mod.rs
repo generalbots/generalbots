@@ -358,7 +358,7 @@ pub async fn attendant_websocket_handler(
             .into_response();
     }
 
-    let attendant_id = attendant_id.unwrap();
+    let attendant_id = attendant_id.expect("attendant_id present");
     info!(
         "Attendant WebSocket connection request from: {}",
         attendant_id

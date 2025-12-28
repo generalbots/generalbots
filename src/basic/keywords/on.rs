@@ -42,7 +42,7 @@ pub fn on_keyword(state: &AppState, _user: UserSession, engine: &mut Engine) {
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 pub fn execute_on_trigger(
     conn: &mut diesel::PgConnection,

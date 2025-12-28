@@ -48,7 +48,7 @@ fn register_talk_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -80,7 +80,7 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     let state_clone2 = Arc::clone(&state);
     let user_clone2 = Arc::clone(&user_arc);
@@ -116,7 +116,7 @@ fn register_send_file_to(state: Arc<AppState>, user: UserSession, engine: &mut E
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -146,7 +146,7 @@ fn register_send_to(state: Arc<AppState>, user: UserSession, engine: &mut Engine
                 Ok(Dynamic::UNIT)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engine) {
@@ -176,7 +176,7 @@ fn register_broadcast(state: Arc<AppState>, user: UserSession, engine: &mut Engi
                 Ok(results)
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 async fn send_message_to_recipient(
@@ -362,7 +362,7 @@ async fn broadcast_message(
     let mut results = Vec::new();
 
     if recipients.is_array() {
-        let recipient_list = recipients.into_array().unwrap();
+        let recipient_list = recipients.into_array().expect("expected array");
 
         for recipient in recipient_list {
             let recipient_str = recipient.to_string();

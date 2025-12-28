@@ -78,7 +78,7 @@ pub fn get_instagram_metrics_keyword(state: Arc<AppState>, user: UserSession, en
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered GET INSTAGRAM METRICS keyword");
 }
@@ -131,7 +131,7 @@ pub fn get_facebook_metrics_keyword(state: Arc<AppState>, user: UserSession, eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered GET FACEBOOK METRICS keyword");
 }
@@ -184,7 +184,7 @@ pub fn get_linkedin_metrics_keyword(state: Arc<AppState>, user: UserSession, eng
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered GET LINKEDIN METRICS keyword");
 }
@@ -237,7 +237,7 @@ pub fn get_twitter_metrics_keyword(state: Arc<AppState>, user: UserSession, engi
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 
     debug!("Registered GET TWITTER METRICS keyword");
 }

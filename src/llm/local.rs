@@ -19,7 +19,7 @@ pub async fn ensure_llama_servers_running(
     let config_values = {
         let conn_arc = app_state.conn.clone();
         let default_bot_id = tokio::task::spawn_blocking(move || {
-            let mut conn = conn_arc.get().unwrap();
+            let mut conn = conn_arc.get().expect("failed to get db connection");
             bots.filter(name.eq("default"))
                 .select(id)
                 .first::<uuid::Uuid>(&mut *conn)
@@ -240,7 +240,7 @@ pub fn start_llm_server(
     std::env::set_var("OMP_PROC_BIND", "close");
     let conn = app_state.conn.clone();
     let config_manager = ConfigManager::new(conn.clone());
-    let mut conn = conn.get().unwrap();
+    let mut conn = conn.get().expect("failed to get db connection");
     let default_bot_id = bots
         .filter(name.eq("default"))
         .select(id)

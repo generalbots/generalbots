@@ -1041,7 +1041,7 @@ EOF"#.to_string(),
                 .stderr(std::process::Stdio::null())
                 .status();
 
-            if check_output.is_ok() && check_output.unwrap().success() {
+            if check_output.map(|o| o.success()).unwrap_or(false) {
                 info!(
                     "Component {} is already running, skipping start",
                     component.name

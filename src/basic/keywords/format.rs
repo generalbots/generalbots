@@ -56,7 +56,7 @@ pub fn format_keyword(engine: &mut Engine) {
                 Ok(Dynamic::from(formatted))
             }
         })
-        .unwrap();
+        .expect("valid syntax registration");
 }
 fn parse_pattern(pattern: &str) -> (String, usize, String) {
     let mut prefix = String::new();

@@ -217,7 +217,7 @@ fn register_on_change_basic(state: &AppState, user: UserSession, engine: &mut En
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &mut Engine) {
@@ -287,7 +287,7 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
                 }
             },
         )
-        .unwrap();
+        .expect("valid syntax registration");
 }
 
 
