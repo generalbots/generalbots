@@ -2,6 +2,7 @@ use super::table_access::{
     check_field_write_access, check_table_access, filter_fields_by_role, AccessType, UserRoles,
 };
 use crate::core::shared::state::AppState;
+use crate::core::shared::sanitize_identifier;
 use crate::core::urls::ApiUrls;
 use axum::{
     extract::{Path, Query, State},
@@ -108,12 +109,6 @@ pub fn configure_db_routes() -> Router<Arc<AppState>> {
             &ApiUrls::DB_TABLE_SEARCH.replace(":table", "{table}"),
             post(search_records_handler),
         )
-}
-
-fn sanitize_identifier(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_')
-        .collect()
 }
 
 pub async fn list_records_handler(

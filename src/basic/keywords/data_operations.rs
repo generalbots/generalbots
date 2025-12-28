@@ -1,4 +1,5 @@
 use super::table_access::{check_table_access, AccessType, UserRoles};
+use crate::core::shared::{sanitize_identifier, sanitize_sql_value};
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use crate::shared::utils::{json_value_to_dynamic, to_array};
@@ -455,12 +456,12 @@ fn execute_save(
     let id_value = id.to_string();
 
     let mut columns: Vec<String> = vec!["id".to_string()];
-    let mut values: Vec<String> = vec![format!("'{}'", sanitize_sql(&id_value))];
+    let mut values: Vec<String> = vec![format!("'{}'", sanitize_sql_value(&id_value))];
     let mut update_sets: Vec<String> = Vec::new();
 
     for (key, value) in &data_map {
         let sanitized_key = sanitize_identifier(key);
-        let sanitized_value = format!("'{}'", sanitize_sql(&value.to_string()));
+        let sanitized_value = format!("'{}'", sanitize_sql_value(&value.to_string()));
         columns.push(sanitized_key.clone());
         values.push(sanitized_value.clone());
         update_sets.push(format!("{} = {}", sanitized_key, sanitized_value));
@@ -501,7 +502,7 @@ fn execute_insert(
 
     for (key, value) in &data_map {
         columns.push(sanitize_identifier(key));
-        values.push(format!("'{}'", sanitize_sql(&value.to_string())));
+        values.push(format!("'{}'", sanitize_sql_value(&value.to_string())));
     }
 
     let query = format!(
@@ -557,7 +558,7 @@ fn execute_update(
         update_sets.push(format!(
             "{} = '{}'",
             sanitize_identifier(key),
-            sanitize_sql(&value.to_string())
+            sanitize_sql_value(&value.to_string())
         ));
     }
 
@@ -627,7 +628,7 @@ fn execute_merge(
             "SELECT COUNT(*) as cnt FROM {} WHERE {} = '{}'",
             sanitize_identifier(table),
             sanitize_identifier(key_field),
-            sanitize_sql(&key_value)
+            sanitize_sql_value(&key_value)
         );
 
         #[derive(QueryableByName)]
@@ -648,7 +649,7 @@ fn execute_merge(
                     update_sets.push(format!(
                         "{} = '{}'",
                         sanitize_identifier(key),
-                        sanitize_sql(&value.to_string())
+                        sanitize_sql_value(&value.to_string())
                     ));
                 }
             }
@@ -659,7 +660,7 @@ fn execute_merge(
                     sanitize_identifier(table),
                     update_sets.join(", "),
                     sanitize_identifier(key_field),
-                    sanitize_sql(&key_value)
+                    sanitize_sql_value(&key_value)
                 );
                 let _ = sql_query(&update_query).execute(conn);
                 updated += 1;
@@ -670,7 +671,7 @@ fn execute_merge(
 
             for (key, value) in &item_map {
                 columns.push(sanitize_identifier(key));
-                values.push(format!("'{}'", sanitize_sql(&value.to_string())));
+                values.push(format!("'{}'", sanitize_sql_value(&value.to_string())));
             }
 
             let insert_query = format!(
@@ -968,7 +969,7 @@ fn parse_filter_clause(filter: &str) -> Result<String, Box<dyn Error + Send + Sy
         "{} {} '{}'",
         sanitize_identifier(&field),
         sql_operator,
-        sanitize_sql(&value)
+        sanitize_sql_value(&value)
     ))
 }
 
@@ -997,15 +998,7 @@ fn parse_condition_internal(
     Err("Invalid condition format".into())
 }
 
-fn sanitize_identifier(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
-        .collect()
-}
 
-fn sanitize_sql(value: &str) -> String {
-    value.replace('\'', "''")
-}
 
 #[cfg(test)]
 mod tests {
@@ -1022,10 +1015,10 @@ mod tests {
     }
 
     #[test]
-    fn test_sanitize_sql() {
-        assert_eq!(sanitize_sql("hello"), "hello");
-        assert_eq!(sanitize_sql("it's"), "it''s");
-        assert_eq!(sanitize_sql("O'Brien"), "O''Brien");
+    fn test_sanitize_sql_value() {
+        assert_eq!(sanitize_sql_value("hello"), "hello");
+        assert_eq!(sanitize_sql_value("it's"), "it''s");
+        assert_eq!(sanitize_sql_value("O'Brien"), "O''Brien");
     }
 
     #[test]

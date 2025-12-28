@@ -1,3 +1,4 @@
+use crate::core::shared::sanitize_path_for_filename;
 use diesel::prelude::*;
 use log::{error, info, trace};
 use rhai::{Dynamic, Engine};
@@ -289,18 +290,7 @@ fn register_on_change_with_events(state: &AppState, user: UserSession, engine: &
         .unwrap();
 }
 
-pub fn sanitize_path_for_filename(path: &str) -> String {
-    let mut result = path.to_string();
-    for ch in ['/', '\\', ':'] {
-        result = result.replace(ch, "_");
-    }
-    result
-        .replace([' ', '.'], "_")
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '_' || *c == '-')
-        .collect::<String>()
-        .to_lowercase()
-}
+
 
 pub fn execute_on_change(
     conn: &mut diesel::PgConnection,

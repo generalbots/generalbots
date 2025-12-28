@@ -2,6 +2,7 @@ use crate::auto_task::app_logs::{log_generator_error, log_generator_info};
 use crate::basic::keywords::table_definition::{
     generate_create_table_sql, FieldDefinition, TableDefinition,
 };
+use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
 use aws_sdk_s3::primitives::ByteStream;
@@ -685,7 +686,7 @@ Respond with valid JSON only."#
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         if let Some(ref s3) = self.state.s3_client {
             let body = ByteStream::from(content.as_bytes().to_vec());
-            let content_type = Self::get_content_type(path);
+            let content_type = get_content_type(path);
 
             s3.put_object()
                 .bucket(bucket)
@@ -710,7 +711,7 @@ Respond with valid JSON only."#
         content: &str,
     ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         let mut conn = self.state.conn.get()?;
-        let content_type = Self::get_content_type(path);
+        let content_type = get_content_type(path);
 
         sql_query(
             "INSERT INTO drive_files (id, bucket, path, content, content_type, size, created_at, updated_at)
@@ -731,21 +732,6 @@ Respond with valid JSON only."#
 
         trace!("Wrote to DB: {}/{}", bucket, path);
         Ok(())
-    }
-
-    fn get_content_type(path: &str) -> &'static str {
-        let ext = path.rsplit('.').next().unwrap_or("").to_lowercase();
-        match ext.as_str() {
-            "html" | "htm" => "text/html; charset=utf-8",
-            "css" => "text/css; charset=utf-8",
-            "js" => "application/javascript; charset=utf-8",
-            "json" => "application/json; charset=utf-8",
-            "bas" => "text/plain; charset=utf-8",
-            "png" => "image/png",
-            "jpg" | "jpeg" => "image/jpeg",
-            "svg" => "image/svg+xml",
-            _ => "application/octet-stream",
-        }
     }
 
     fn sync_tables_to_database(

@@ -1,3 +1,4 @@
+use crate::core::shared::{get_content_type, sanitize_path_component};
 use crate::shared::state::AppState;
 use axum::{
     body::Body,
@@ -136,40 +137,7 @@ pub async fn list_all_apps(State(state): State<Arc<AppState>>) -> impl IntoRespo
         .into_response()
 }
 
-fn sanitize_path_component(component: &str) -> String {
-    component
-        .replace("..", "")
-        .replace("//", "/")
-        .trim_start_matches('/')
-        .trim_end_matches('/')
-        .chars()
-        .filter(|c| c.is_alphanumeric() || *c == '-' || *c == '_' || *c == '.' || *c == '/')
-        .collect()
-}
 
-fn get_content_type(file_path: &str) -> &'static str {
-    let ext = file_path.rsplit('.').next().unwrap_or("").to_lowercase();
-
-    match ext.as_str() {
-        "html" | "htm" => "text/html; charset=utf-8",
-        "css" => "text/css; charset=utf-8",
-        "js" => "application/javascript; charset=utf-8",
-        "json" => "application/json; charset=utf-8",
-        "png" => "image/png",
-        "jpg" | "jpeg" => "image/jpeg",
-        "gif" => "image/gif",
-        "svg" => "image/svg+xml",
-        "ico" => "image/x-icon",
-        "woff" => "font/woff",
-        "woff2" => "font/woff2",
-        "ttf" => "font/ttf",
-        "eot" => "application/vnd.ms-fontobject",
-        "txt" => "text/plain; charset=utf-8",
-        "xml" => "application/xml; charset=utf-8",
-        "pdf" => "application/pdf",
-        _ => "application/octet-stream",
-    }
-}
 
 #[cfg(test)]
 mod tests {
