@@ -1,12 +1,12 @@
 pub mod app_generator;
 pub mod app_logs;
 pub mod ask_later;
-pub mod auto_task;
 pub mod autotask_api;
 pub mod designer_ai;
 pub mod intent_classifier;
 pub mod intent_compiler;
 pub mod safety_layer;
+pub mod task_types;
 
 pub use app_generator::{
     AppGenerator, AppStructure, FileType, GeneratedApp, GeneratedFile, GeneratedPage, PageType,
@@ -18,7 +18,6 @@ pub use app_logs::{
     ClientLogRequest, LogLevel, LogQueryParams, LogSource, LogStats, APP_LOGS,
 };
 pub use ask_later::{ask_later_keyword, PendingInfoItem};
-pub use auto_task::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
 pub use autotask_api::{
     apply_recommendation_handler, cancel_task_handler, classify_intent_handler,
     compile_intent_handler, create_and_execute_handler, execute_plan_handler, execute_task_handler,
@@ -28,6 +27,7 @@ pub use autotask_api::{
     submit_pending_item_handler,
 };
 pub use designer_ai::DesignerAI;
+pub use task_types::{AutoTask, AutoTaskStatus, ExecutionMode, TaskPriority};
 pub use intent_classifier::{ClassifiedIntent, IntentClassifier, IntentType};
 pub use intent_compiler::{CompiledIntent, IntentCompiler};
 pub use safety_layer::{AuditEntry, ConstraintCheckResult, SafetyLayer, SimulationResult};

@@ -1,10 +1,9 @@
 use chrono::{DateTime, Duration, Utc};
 use log::{debug, error, info, warn};
-use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Write;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, LazyLock, RwLock};
 use uuid::Uuid;
 
 const MAX_LOGS_PER_APP: usize = 500;
@@ -446,7 +445,7 @@ impl Default for AppLogStore {
     }
 }
 
-pub static APP_LOGS: Lazy<Arc<AppLogStore>> = Lazy::new(|| Arc::new(AppLogStore::new()));
+pub static APP_LOGS: LazyLock<Arc<AppLogStore>> = LazyLock::new(|| Arc::new(AppLogStore::new()));
 
 pub fn log_generator_info(app_name: &str, message: &str) {
     APP_LOGS.log(
