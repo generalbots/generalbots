@@ -387,7 +387,10 @@ impl SessionManager {
         let active = self.sessions.len() as i64;
 
         let today = chrono::Utc::now().date_naive();
-        let today_start = today.and_hms_opt(0, 0, 0).expect("valid midnight time").and_utc();
+        let today_start = today
+            .and_hms_opt(0, 0, 0)
+            .unwrap_or_else(|| today.and_hms_opt(0, 0, 1).unwrap_or_default())
+            .and_utc();
 
         let today_count = user_sessions
             .filter(created_at.ge(today_start))
@@ -409,7 +412,7 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
     let temp_session_id = Uuid::new_v4();
 
     if state.conn.get().is_ok() {
-        let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid static UUID");
+        let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
         let bot_id = Uuid::nil();
 
         {
@@ -442,7 +445,7 @@ pub async fn create_session(Extension(state): Extension<Arc<AppState>>) -> impl 
 }
 
 pub async fn get_sessions(Extension(state): Extension<Arc<AppState>>) -> impl IntoResponse {
-    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid static UUID");
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
 
     let conn_result = state.conn.get();
     if conn_result.is_err() {
@@ -492,7 +495,7 @@ pub async fn get_session_history(
     Extension(state): Extension<Arc<AppState>>,
     Path(session_id): Path<String>,
 ) -> impl IntoResponse {
-    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").expect("valid static UUID");
+    let user_id = Uuid::parse_str("00000000-0000-0000-0000-000000000001").unwrap_or_default();
     match Uuid::parse_str(&session_id) {
         Ok(session_uuid) => {
             let orchestrator = BotOrchestrator::new(state.clone());

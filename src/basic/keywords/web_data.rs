@@ -23,7 +23,14 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
             trace!("RSS {}", url);
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                        let _ = tx.send(Err(err));
+                        return;
+                    }
+                };
                 let result = rt.block_on(async { fetch_rss(&url, 100).await });
                 let _ = tx.send(result);
             });
@@ -54,7 +61,14 @@ fn register_rss_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
                 trace!("RSS {} limit {}", url, limit);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { fetch_rss(&url, limit).await });
                     let _ = tx.send(result);
                 });
@@ -128,7 +142,14 @@ fn register_scrape_keyword(_state: Arc<AppState>, _user: UserSession, engine: &m
                 trace!("SCRAPE {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { scrape_first(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -161,7 +182,14 @@ fn register_scrape_all_keyword(_state: Arc<AppState>, _user: UserSession, engine
                 trace!("SCRAPE_ALL {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { scrape_all(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -194,7 +222,14 @@ fn register_scrape_table_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 trace!("SCRAPE_TABLE {} selector {}", url, selector);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { scrape_table(&url, &selector).await });
                     let _ = tx.send(result);
                 });
@@ -226,7 +261,14 @@ fn register_scrape_links_keyword(_state: Arc<AppState>, _user: UserSession, engi
                 trace!("SCRAPE_LINKS {}", url);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { scrape_links(&url).await });
                     let _ = tx.send(result);
                 });
@@ -258,7 +300,14 @@ fn register_scrape_images_keyword(_state: Arc<AppState>, _user: UserSession, eng
                 trace!("SCRAPE_IMAGES {}", url);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().map_err(|e| format!("Runtime error: {e}")).expect("Failed to create tokio runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { scrape_images(&url).await });
                     let _ = tx.send(result);
                 });

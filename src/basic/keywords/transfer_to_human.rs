@@ -310,7 +310,7 @@ pub async fn execute_transfer(
             estimated_wait_seconds: None,
             message: format!(
                 "Attendant '{}' not found. Available attendants: {}",
-                request.name.as_ref().expect("value present"),
+                request.name.as_deref().unwrap_or("unknown"),
                 attendants
                     .iter()
                     .map(|a| a.name.as_str())

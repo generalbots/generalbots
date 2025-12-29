@@ -256,7 +256,10 @@ impl CertPinningManager {
     }
 
     pub fn is_enabled(&self) -> bool {
-        self.config.read().expect("config lock").enabled
+        self.config
+            .read()
+            .map(|c| c.enabled)
+            .unwrap_or(false)
     }
 
     pub fn add_pin(&self, pin: PinnedCert) -> Result<()> {

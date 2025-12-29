@@ -23,7 +23,14 @@ fn register_translate_keyword(_state: Arc<AppState>, _user: UserSession, engine:
                 trace!("TRANSLATE to {}", target_lang);
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { translate_text(&text, &target_lang).await });
                     let _ = tx.send(result);
                 });
@@ -52,7 +59,14 @@ fn register_ocr_keyword(_state: Arc<AppState>, _user: UserSession, engine: &mut 
             trace!("OCR {}", image_path);
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                        let _ = tx.send(Err(err));
+                        return;
+                    }
+                };
                 let result = rt.block_on(async { perform_ocr(&image_path).await });
                 let _ = tx.send(result);
             });
@@ -81,7 +95,14 @@ fn register_sentiment_keyword(_state: Arc<AppState>, _user: UserSession, engine:
             let (tx, rx) = std::sync::mpsc::channel();
             let text_clone = text.clone();
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                        let _ = tx.send(Err(err));
+                        return;
+                    }
+                };
                 let result = rt.block_on(async { analyze_sentiment(&text_clone).await });
                 let _ = tx.send(result);
             });
@@ -129,7 +150,14 @@ fn register_classify_keyword(_state: Arc<AppState>, _user: UserSession, engine: 
                 };
                 let (tx, rx) = std::sync::mpsc::channel();
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let err: Box<dyn std::error::Error + Send + Sync> = format!("Failed to create runtime: {}", e).into();
+                            let _ = tx.send(Err(err));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async { classify_text(&text, &cat_list).await });
                     let _ = tx.send(result);
                 });

@@ -308,11 +308,7 @@ pub fn run_migrations(pool: &DbPool) -> Result<(), Box<dyn std::error::Error + S
     Ok(())
 }
 
-pub fn sanitize_identifier(name: &str) -> String {
-    name.chars()
-        .filter(|c| c.is_ascii_alphanumeric() || *c == '_')
-        .collect()
-}
+pub use crate::security::sql_guard::sanitize_identifier;
 
 pub fn sanitize_path_component(component: &str) -> String {
     component

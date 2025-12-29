@@ -17,6 +17,8 @@ static ALLOWED_COMMANDS: LazyLock<HashSet<&'static str>> = LazyLock::new(|| {
         "convert",
         "gs",
         "tesseract",
+        "which",
+        "where",
     ])
 });
 
