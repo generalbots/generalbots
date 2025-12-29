@@ -561,7 +561,10 @@ impl DriveMonitor {
                 }
 
                 let path_parts: Vec<&str> = path.split('/').collect();
-                if path_parts.len() >= 2 {
+                // path_parts: [0] = "bot.gbkb", [1] = folder or file, [2+] = nested files
+                // Skip files directly in .gbkb root (path_parts.len() == 2 means root file)
+                // Only process files inside subfolders (path_parts.len() >= 3)
+                if path_parts.len() >= 3 {
                     let kb_name = path_parts[1];
                     let kb_folder_path = self
                         .work_root

@@ -175,7 +175,6 @@ pub fn configure() -> Router<Arc<AppState>> {
         .route("/webhook/whatsapp", get(verify_webhook))
         .route("/webhook/whatsapp", post(handle_webhook))
         .route("/api/whatsapp/send", post(send_message))
-        .route("/api/attendance/respond", post(attendant_respond))
 }
 
 pub async fn verify_webhook(
