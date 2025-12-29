@@ -2049,6 +2049,7 @@ CREATE INDEX IF NOT EXISTS idx_email_events_received ON public.email_received_ev
 COMMENT ON TABLE public.system_automations IS 'System automations with TriggerKind: 0=Scheduled, 1=TableUpdate, 2=TableInsert, 3=TableDelete, 4=Webhook, 5=EmailReceived, 6=FolderChange';
 
 -- User organization memberships (users can belong to multiple orgs)
+DROP TABLE IF EXISTS public.user_organizations CASCADE;
 CREATE TABLE IF NOT EXISTS public.user_organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
