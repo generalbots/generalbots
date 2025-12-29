@@ -93,6 +93,16 @@ impl KbIndexer {
         }
     }
 
+    /// Check if Qdrant vector database is available
+    pub async fn check_qdrant_health(&self) -> Result<bool> {
+        let health_url = format!("{}/healthz", self.qdrant_config.url);
+
+        match self.http_client.get(&health_url).send().await {
+            Ok(response) => Ok(response.status().is_success()),
+            Err(_) => Ok(false),
+        }
+    }
+
     pub async fn index_kb_folder(
         &self,
         bot_name: &str,
@@ -100,6 +110,19 @@ impl KbIndexer {
         kb_path: &Path,
     ) -> Result<IndexingResult> {
         info!("Indexing KB folder: {} for bot {}", kb_name, bot_name);
+
+        // Check if Qdrant is available before proceeding
+        if !self.check_qdrant_health().await.unwrap_or(false) {
+            warn!(
+                "Qdrant vector database is not available at {}. KB indexing skipped. \
+                Install and start vector_db component to enable KB indexing.",
+                self.qdrant_config.url
+            );
+            return Err(anyhow::anyhow!(
+                "Qdrant vector database not available at {}. Start the vector_db service to enable KB indexing.",
+                self.qdrant_config.url
+            ));
+        }
 
         let collection_name = format!("{}_{}", bot_name, kb_name);
 

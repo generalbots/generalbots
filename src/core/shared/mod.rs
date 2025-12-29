@@ -5,6 +5,7 @@
 
 pub mod admin;
 pub mod analytics;
+pub mod enums;
 pub mod models;
 pub mod schema;
 pub mod state;
@@ -13,6 +14,7 @@ pub mod test_utils;
 pub mod utils;
 
 
+pub use enums::*;
 pub use schema::*;
 
 

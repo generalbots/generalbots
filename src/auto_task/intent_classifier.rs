@@ -1,5 +1,6 @@
 use crate::auto_task::app_generator::AppGenerator;
 use crate::auto_task::intent_compiler::IntentCompiler;
+use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -155,7 +156,7 @@ impl IntentClassifier {
         );
 
         // Use LLM to classify the intent
-        let classification = self.classify_with_llm(intent).await?;
+        let classification = self.classify_with_llm(intent, session.bot_id).await?;
 
         // Store classification for analytics
         self.store_classification(&classification, session)?;
@@ -222,6 +223,7 @@ impl IntentClassifier {
     async fn classify_with_llm(
         &self,
         intent: &str,
+        bot_id: Uuid,
     ) -> Result<ClassifiedIntent, Box<dyn std::error::Error + Send + Sync>> {
         let prompt = format!(
             r#"Classify this user request into one of these intent types:
@@ -273,7 +275,7 @@ Respond with JSON only:
 }}"#
         );
 
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(&prompt, bot_id).await?;
         Self::parse_classification_response(&response, intent)
     }
 
@@ -952,19 +954,37 @@ END TRIGGER
     async fn call_llm(
         &self,
         prompt: &str,
+        bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         trace!("Calling LLM for intent classification");
 
         #[cfg(feature = "llm")]
         {
-            let config = serde_json::json!({
+            // Get model and key from bot configuration
+            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let model = config_manager
+                .get_config(&bot_id, "llm-model", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-model", None)
+                        .unwrap_or_else(|_| "gpt-4".to_string())
+                });
+            let key = config_manager
+                .get_config(&bot_id, "llm-key", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-key", None)
+                        .unwrap_or_default()
+                });
+
+            let llm_config = serde_json::json!({
                 "temperature": 0.3,
                 "max_tokens": 1000
             });
             let response = self
                 .state
                 .llm_provider
-                .generate(prompt, &config, "gpt-4", "")
+                .generate(prompt, &llm_config, &model, &key)
                 .await?;
             return Ok(response);
         }
