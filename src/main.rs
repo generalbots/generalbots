@@ -185,6 +185,7 @@ async fn run_axum_server(
         .add_anonymous_path("/api/v1/health")
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
+        .add_anonymous_path("/api/auth")
         .add_public_path("/static")
         .add_public_path("/favicon.ico"));
 
@@ -750,10 +751,23 @@ async fn main() -> std::io::Result<()> {
         .unwrap_or_else(|_| "http://localhost:8081".to_string());
     info!("LLM URL: {}", llm_url);
 
-    let base_llm_provider = Arc::new(botserver::llm::OpenAIClient::new(
-        "empty".to_string(),
-        Some(llm_url.clone()),
-    )) as Arc<dyn botserver::llm::LLMProvider>;
+    let llm_model = config_manager
+        .get_config(&default_bot_id, "llm-model", Some(""))
+        .unwrap_or_default();
+    if !llm_model.is_empty() {
+        info!("LLM Model: {}", llm_model);
+    }
+
+    let _llm_key = config_manager
+        .get_config(&default_bot_id, "llm-key", Some(""))
+        .unwrap_or_default();
+
+    let base_llm_provider = botserver::llm::create_llm_provider_from_url(
+        &llm_url,
+        if llm_model.is_empty() { None } else { Some(llm_model.clone()) },
+    );
+
+    let dynamic_llm_provider = Arc::new(botserver::llm::DynamicLLMProvider::new(base_llm_provider));
 
     let llm_provider: Arc<dyn botserver::llm::LLMProvider> = if let Some(ref cache) = redis_client {
         let embedding_url = config_manager
@@ -784,14 +798,14 @@ async fn main() -> std::io::Result<()> {
         };
 
         Arc::new(botserver::llm::cache::CachedLLMProvider::with_db_pool(
-            base_llm_provider,
+            dynamic_llm_provider.clone() as Arc<dyn botserver::llm::LLMProvider>,
             cache.clone(),
             cache_config,
             embedding_service,
             pool.clone(),
         ))
     } else {
-        base_llm_provider
+        dynamic_llm_provider.clone() as Arc<dyn botserver::llm::LLMProvider>
     };
 
     let kb_manager = Arc::new(botserver::core::kb::KnowledgeBaseManager::new("work"));
@@ -833,7 +847,11 @@ async fn main() -> std::io::Result<()> {
         voice_adapter: voice_adapter.clone(),
         kb_manager: Some(kb_manager.clone()),
         task_engine,
-        extensions: botserver::core::shared::state::Extensions::new(),
+        extensions: {
+            let ext = botserver::core::shared::state::Extensions::new();
+            ext.insert_blocking(Arc::clone(&dynamic_llm_provider));
+            ext
+        },
         attendant_broadcast: Some(attendant_tx),
     });
 
@@ -866,6 +884,24 @@ async fn main() -> std::io::Result<()> {
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
     if let Err(e) = bot_orchestrator.mount_all_bots() {
         error!("Failed to mount bots: {}", e);
+    }
+
+    #[cfg(feature = "drive")]
+    {
+        let drive_monitor_state = app_state.clone();
+        let bucket_name = "default.gbai".to_string();
+        let monitor_bot_id = default_bot_id;
+        tokio::spawn(async move {
+            let monitor = botserver::DriveMonitor::new(
+                drive_monitor_state,
+                bucket_name.clone(),
+                monitor_bot_id,
+            );
+            info!("Starting DriveMonitor for bucket: {}", bucket_name);
+            if let Err(e) = monitor.start_monitoring().await {
+                error!("DriveMonitor failed: {}", e);
+            }
+        });
     }
 
     let automation_state = app_state.clone();

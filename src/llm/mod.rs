@@ -2,14 +2,17 @@ use async_trait::async_trait;
 use futures::StreamExt;
 use log::{info, trace};
 use serde_json::Value;
-use tokio::sync::mpsc;
+use std::sync::Arc;
+use tokio::sync::{mpsc, RwLock};
 
 pub mod cache;
+pub mod claude;
 pub mod episodic_memory;
 pub mod llm_models;
 pub mod local;
 pub mod observability;
 
+pub use claude::ClaudeClient;
 pub use llm_models::get_handler;
 
 #[async_trait]
@@ -182,6 +185,116 @@ impl LLMProvider for OpenAIClient {
 pub fn start_llm_services(state: &std::sync::Arc<crate::shared::state::AppState>) {
     episodic_memory::start_episodic_memory_scheduler(std::sync::Arc::clone(state));
     info!("LLM services started (episodic memory scheduler)");
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum LLMProviderType {
+    OpenAI,
+    Claude,
+    AzureClaude,
+}
+
+impl From<&str> for LLMProviderType {
+    fn from(s: &str) -> Self {
+        let lower = s.to_lowercase();
+        if lower.contains("claude") || lower.contains("anthropic") {
+            if lower.contains("azure") {
+                Self::AzureClaude
+            } else {
+                Self::Claude
+            }
+        } else {
+            Self::OpenAI
+        }
+    }
+}
+
+pub fn create_llm_provider(
+    provider_type: LLMProviderType,
+    base_url: String,
+    deployment_name: Option<String>,
+) -> std::sync::Arc<dyn LLMProvider> {
+    match provider_type {
+        LLMProviderType::OpenAI => {
+            info!("Creating OpenAI LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(OpenAIClient::new("empty".to_string(), Some(base_url)))
+        }
+        LLMProviderType::Claude => {
+            info!("Creating Claude LLM provider with URL: {}", base_url);
+            std::sync::Arc::new(ClaudeClient::new(base_url, deployment_name))
+        }
+        LLMProviderType::AzureClaude => {
+            let deployment = deployment_name.unwrap_or_else(|| "claude-opus-4-5".to_string());
+            info!(
+                "Creating Azure Claude LLM provider with URL: {}, deployment: {}",
+                base_url, deployment
+            );
+            std::sync::Arc::new(ClaudeClient::azure(base_url, deployment))
+        }
+    }
+}
+
+pub fn create_llm_provider_from_url(url: &str, model: Option<String>) -> std::sync::Arc<dyn LLMProvider> {
+    let provider_type = LLMProviderType::from(url);
+    create_llm_provider(provider_type, url.to_string(), model)
+}
+
+pub struct DynamicLLMProvider {
+    inner: RwLock<Arc<dyn LLMProvider>>,
+}
+
+impl DynamicLLMProvider {
+    pub fn new(provider: Arc<dyn LLMProvider>) -> Self {
+        Self {
+            inner: RwLock::new(provider),
+        }
+    }
+
+    pub async fn update_provider(&self, new_provider: Arc<dyn LLMProvider>) {
+        let mut guard = self.inner.write().await;
+        *guard = new_provider;
+        info!("LLM provider updated dynamically");
+    }
+
+    pub async fn update_from_config(&self, url: &str, model: Option<String>) {
+        let new_provider = create_llm_provider_from_url(url, model);
+        self.update_provider(new_provider).await;
+    }
+
+    async fn get_provider(&self) -> Arc<dyn LLMProvider> {
+        self.inner.read().await.clone()
+    }
+}
+
+#[async_trait]
+impl LLMProvider for DynamicLLMProvider {
+    async fn generate(
+        &self,
+        prompt: &str,
+        config: &Value,
+        model: &str,
+        key: &str,
+    ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
+        self.get_provider().await.generate(prompt, config, model, key).await
+    }
+
+    async fn generate_stream(
+        &self,
+        prompt: &str,
+        config: &Value,
+        tx: mpsc::Sender<String>,
+        model: &str,
+        key: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.get_provider().await.generate_stream(prompt, config, tx, model, key).await
+    }
+
+    async fn cancel_job(
+        &self,
+        session_id: &str,
+    ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+        self.get_provider().await.cancel_job(session_id).await
+    }
 }
 
 #[cfg(test)]

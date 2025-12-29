@@ -14,7 +14,7 @@ use uuid::Uuid;
 
 pub type Config = AppConfig;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct AppConfig {
     pub drive: DriveConfig,
     pub server: ServerConfig,
@@ -22,19 +22,19 @@ pub struct AppConfig {
     pub site_path: String,
     pub data_dir: String,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct DriveConfig {
     pub server: String,
     pub access_key: String,
     pub secret_key: String,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct ServerConfig {
     pub host: String,
     pub port: u16,
     pub base_url: String,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct EmailConfig {
     pub server: String,
     pub port: u16,

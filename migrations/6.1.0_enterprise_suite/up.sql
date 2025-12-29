@@ -2051,7 +2051,7 @@ COMMENT ON TABLE public.system_automations IS 'System automations with TriggerKi
 -- User organization memberships (users can belong to multiple orgs)
 CREATE TABLE IF NOT EXISTS public.user_organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID NOT NULL REFERENCES public.users(user_id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     org_id UUID NOT NULL REFERENCES public.organizations(org_id) ON DELETE CASCADE,
     role VARCHAR(50) DEFAULT 'member', -- 'owner', 'admin', 'member', 'viewer'
     is_default BOOLEAN DEFAULT false,

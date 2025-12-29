@@ -189,6 +189,7 @@ impl DriveMonitor {
     }
     async fn check_gbot(&self, client: &Client) -> Result<(), Box<dyn Error + Send + Sync>> {
         let config_manager = ConfigManager::new(self.state.conn.clone());
+        debug!("check_gbot: Checking bucket {} for config.csv changes", self.bucket_name);
         let mut continuation_token = None;
         loop {
             let list_objects = match tokio::time::timeout(
@@ -202,27 +203,28 @@ impl DriveMonitor {
             .await
             {
                 Ok(Ok(list)) => list,
-                Ok(Err(e)) => return Err(e.into()),
+                Ok(Err(e)) => {
+                    error!("check_gbot: Failed to list objects in bucket {}: {}", self.bucket_name, e);
+                    return Err(e.into());
+                }
                 Err(_) => {
-                    log::error!("Timeout listing objects in bucket {}", self.bucket_name);
+                    error!("Timeout listing objects in bucket {}", self.bucket_name);
                     return Ok(());
                 }
             };
             for obj in list_objects.contents.unwrap_or_default() {
                 let path = obj.key().unwrap_or_default().to_string();
-                let path_parts: Vec<&str> = path.split('/').collect();
-                if path_parts.len() < 2
-                    || !std::path::Path::new(path_parts[0])
-                        .extension()
-                        .is_some_and(|ext| ext.eq_ignore_ascii_case("gbot"))
-                {
+                let path_lower = path.to_ascii_lowercase();
+
+                let is_config_csv = path_lower == "config.csv"
+                    || path_lower.ends_with("/config.csv")
+                    || path_lower.contains(".gbot/config.csv");
+
+                if !is_config_csv {
                     continue;
                 }
-                if !path.eq_ignore_ascii_case("config.csv")
-                    && !path.to_ascii_lowercase().ends_with("/config.csv")
-                {
-                    continue;
-                }
+
+                debug!("check_gbot: Found config.csv at path: {}", path);
                 match client
                     .head_object()
                     .bucket(&self.bucket_name)
@@ -248,12 +250,22 @@ impl DriveMonitor {
                             let _ = config_manager.sync_gbot_config(&self.bot_id, &csv_content);
                         } else {
                             use crate::llm::local::ensure_llama_servers_running;
+                            use crate::llm::DynamicLLMProvider;
                             let mut restart_needed = false;
-                            for line in llm_lines {
+                            let mut llm_url_changed = false;
+                            let mut new_llm_url = String::new();
+                            let mut new_llm_model = String::new();
+                            for line in &llm_lines {
                                 let parts: Vec<&str> = line.split(',').collect();
                                 if parts.len() >= 2 {
                                     let key = parts[0].trim();
                                     let new_value = parts[1].trim();
+                                    if key == "llm-url" {
+                                        new_llm_url = new_value.to_string();
+                                    }
+                                    if key == "llm-model" {
+                                        new_llm_model = new_value.to_string();
+                                    }
                                     match config_manager.get_config(&self.bot_id, key, None) {
                                         Ok(old_value) => {
                                             if old_value != new_value {
@@ -262,10 +274,16 @@ impl DriveMonitor {
                                                     key, old_value, new_value
                                                 );
                                                 restart_needed = true;
+                                                if key == "llm-url" || key == "llm-model" {
+                                                    llm_url_changed = true;
+                                                }
                                             }
                                         }
                                         Err(_) => {
                                             restart_needed = true;
+                                            if key == "llm-url" || key == "llm-model" {
+                                                llm_url_changed = true;
+                                            }
                                         }
                                     }
                                 }
@@ -277,6 +295,28 @@ impl DriveMonitor {
                                 {
                                     log::error!("Failed to restart LLaMA servers after llm- config change: {}", e);
                                 }
+                            }
+                            if llm_url_changed {
+                                info!("check_gbot: LLM config changed, updating provider...");
+                                let effective_url = if new_llm_url.is_empty() {
+                                    config_manager.get_config(&self.bot_id, "llm-url", None).unwrap_or_default()
+                                } else {
+                                    new_llm_url
+                                };
+                                info!("check_gbot: Effective LLM URL: {}", effective_url);
+                                if !effective_url.is_empty() {
+                                    if let Some(dynamic_provider) = self.state.extensions.get::<Arc<DynamicLLMProvider>>().await {
+                                        let model = if new_llm_model.is_empty() { None } else { Some(new_llm_model.clone()) };
+                                        dynamic_provider.update_from_config(&effective_url, model).await;
+                                        info!("Updated LLM provider to use URL: {}, model: {:?}", effective_url, new_llm_model);
+                                    } else {
+                                        error!("DynamicLLMProvider not found in extensions, LLM provider cannot be updated dynamically");
+                                    }
+                                } else {
+                                    error!("check_gbot: No llm-url found in config, cannot update provider");
+                                }
+                            } else {
+                                debug!("check_gbot: No LLM config changes detected");
                             }
                         }
                         if csv_content.lines().any(|line| line.starts_with("theme-")) {
