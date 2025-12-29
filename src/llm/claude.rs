@@ -119,6 +119,21 @@ impl ClaudeClient {
         headers
     }
 
+    /// Normalize role names for Claude API compatibility.
+    /// Claude only accepts "user" or "assistant" roles in messages.
+    /// - "episodic" and "compact" roles (conversation summaries) are converted to "user" with a context prefix
+    /// - "system" roles should be handled separately (not in messages array)
+    /// - Unknown roles default to "user"
+    fn normalize_role(role: &str) -> Option<(String, bool)> {
+        match role {
+            "user" => Some(("user".to_string(), false)),
+            "assistant" => Some(("assistant".to_string(), false)),
+            "system" => None, // System messages handled separately
+            "episodic" | "compact" => Some(("user".to_string(), true)), // Mark as context
+            _ => Some(("user".to_string(), false)),
+        }
+    }
+
     pub fn build_messages(
         system_prompt: &str,
         context_data: &str,
@@ -133,6 +148,13 @@ impl ClaudeClient {
             system_parts.push(context_data.to_string());
         }
 
+        // Extract episodic memory content and add to system prompt
+        for (role, content) in history {
+            if role == "episodic" || role == "compact" {
+                system_parts.push(format!("[Previous conversation summary]: {}", content));
+            }
+        }
+
         let system = if system_parts.is_empty() {
             None
         } else {
@@ -141,9 +163,16 @@ impl ClaudeClient {
 
         let messages: Vec<ClaudeMessage> = history
             .iter()
-            .map(|(role, content)| ClaudeMessage {
-                role: role.clone(),
-                content: content.clone(),
+            .filter_map(|(role, content)| {
+                match Self::normalize_role(role) {
+                    Some((normalized_role, is_context)) if !is_context => {
+                        Some(ClaudeMessage {
+                            role: normalized_role,
+                            content: content.clone(),
+                        })
+                    }
+                    _ => None, // Skip system, episodic, compact (already in system prompt)
+                }
             })
             .collect();
 
@@ -180,7 +209,7 @@ impl LLMProvider for ClaudeClient {
         };
 
         let empty_vec = vec![];
-        let claude_messages: Vec<ClaudeMessage> = if messages.is_array() {
+        let mut claude_messages: Vec<ClaudeMessage> = if messages.is_array() {
             let arr = messages.as_array().unwrap_or(&empty_vec);
             if arr.is_empty() {
                 vec![ClaudeMessage {
@@ -192,11 +221,16 @@ impl LLMProvider for ClaudeClient {
                     .filter_map(|m| {
                         let role = m["role"].as_str().unwrap_or("user");
                         let content = m["content"].as_str().unwrap_or("");
-                        if role == "system" {
+                        // Skip system messages (handled separately), episodic/compact (context), and empty content
+                        if role == "system" || role == "episodic" || role == "compact" || content.is_empty() {
                             None
                         } else {
+                            let normalized_role = match role {
+                                "user" | "assistant" => role.to_string(),
+                                _ => "user".to_string(),
+                            };
                             Some(ClaudeMessage {
-                                role: role.to_string(),
+                                role: normalized_role,
                                 content: content.to_string(),
                             })
                         }
@@ -209,6 +243,14 @@ impl LLMProvider for ClaudeClient {
                 content: prompt.to_string(),
             }]
         };
+
+        // Ensure at least one user message exists
+        if claude_messages.is_empty() && !prompt.is_empty() {
+            claude_messages.push(ClaudeMessage {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            });
+        }
 
         let system_prompt: Option<String> = if messages.is_array() {
             messages
@@ -225,6 +267,11 @@ impl LLMProvider for ClaudeClient {
         };
 
         let system = system_prompt.filter(|s| !s.is_empty());
+
+        // Validate we have at least one message with content
+        if claude_messages.is_empty() {
+            return Err("Cannot send request to Claude: no messages with content".into());
+        }
 
         let request = ClaudeRequest {
             model: model_name.to_string(),
@@ -279,7 +326,7 @@ impl LLMProvider for ClaudeClient {
         };
 
         let empty_vec = vec![];
-        let claude_messages: Vec<ClaudeMessage> = if messages.is_array() {
+        let mut claude_messages: Vec<ClaudeMessage> = if messages.is_array() {
             let arr = messages.as_array().unwrap_or(&empty_vec);
             if arr.is_empty() {
                 vec![ClaudeMessage {
@@ -291,11 +338,16 @@ impl LLMProvider for ClaudeClient {
                     .filter_map(|m| {
                         let role = m["role"].as_str().unwrap_or("user");
                         let content = m["content"].as_str().unwrap_or("");
-                        if role == "system" {
+                        // Skip system messages (handled separately), episodic/compact (context), and empty content
+                        if role == "system" || role == "episodic" || role == "compact" || content.is_empty() {
                             None
                         } else {
+                            let normalized_role = match role {
+                                "user" | "assistant" => role.to_string(),
+                                _ => "user".to_string(),
+                            };
                             Some(ClaudeMessage {
-                                role: role.to_string(),
+                                role: normalized_role,
                                 content: content.to_string(),
                             })
                         }
@@ -308,6 +360,14 @@ impl LLMProvider for ClaudeClient {
                 content: prompt.to_string(),
             }]
         };
+
+        // Ensure at least one user message exists
+        if claude_messages.is_empty() && !prompt.is_empty() {
+            claude_messages.push(ClaudeMessage {
+                role: "user".to_string(),
+                content: prompt.to_string(),
+            });
+        }
 
         let system_prompt: Option<String> = if messages.is_array() {
             messages
@@ -324,6 +384,11 @@ impl LLMProvider for ClaudeClient {
         };
 
         let system = system_prompt.filter(|s| !s.is_empty());
+
+        // Validate we have at least one message with content
+        if claude_messages.is_empty() {
+            return Err("Cannot send streaming request to Claude: no messages with content".into());
+        }
 
         let request = ClaudeRequest {
             model: model_name.to_string(),

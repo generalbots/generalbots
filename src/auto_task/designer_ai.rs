@@ -1,3 +1,4 @@
+use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -142,7 +143,7 @@ impl DesignerAI {
 
         // Analyze what the user wants to modify
         let analysis = self
-            .analyze_modification(&request.instruction, &request.context)
+            .analyze_modification(&request.instruction, &request.context, session.bot_id)
             .await?;
 
         trace!("Modification analysis: {:?}", analysis.modification_type);
@@ -292,6 +293,7 @@ impl DesignerAI {
         &self,
         instruction: &str,
         context: &DesignerContext,
+        bot_id: Uuid,
     ) -> Result<AnalyzedModification, Box<dyn std::error::Error + Send + Sync>> {
         let context_json = serde_json::to_string(context)?;
 
@@ -334,7 +336,7 @@ Guidelines:
 Respond ONLY with valid JSON."#
         );
 
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(&prompt, bot_id).await?;
         Self::parse_analysis_response(&response, instruction)
     }
 
@@ -1037,19 +1039,37 @@ Respond ONLY with valid JSON."#
     async fn call_llm(
         &self,
         prompt: &str,
+        bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         trace!("Designer calling LLM");
 
         #[cfg(feature = "llm")]
         {
-            let config = serde_json::json!({
+            // Get model and key from bot configuration
+            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let model = config_manager
+                .get_config(&bot_id, "llm-model", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-model", None)
+                        .unwrap_or_else(|_| "gpt-4".to_string())
+                });
+            let key = config_manager
+                .get_config(&bot_id, "llm-key", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-key", None)
+                        .unwrap_or_default()
+                });
+
+            let llm_config = serde_json::json!({
                 "temperature": 0.3,
                 "max_tokens": 2000
             });
             let response = self
                 .state
                 .llm_provider
-                .generate(prompt, &config, "gpt-4", "")
+                .generate(prompt, &llm_config, &model, &key)
                 .await?;
             return Ok(response);
         }

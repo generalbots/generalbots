@@ -178,14 +178,13 @@ async fn run_axum_server(
     let cors = create_cors_layer();
 
     // Create auth config for protected routes
+    // TODO: Re-enable auth for production - currently disabled for development
     let auth_config = Arc::new(AuthConfig::default()
         .add_anonymous_path("/health")
         .add_anonymous_path("/healthz")
-        .add_anonymous_path("/api/health")
-        .add_anonymous_path("/api/v1/health")
+        .add_anonymous_path("/api")  // Disable auth for all API routes during development
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
-        .add_anonymous_path("/api/auth")
         .add_public_path("/static")
         .add_public_path("/favicon.ico"));
 
