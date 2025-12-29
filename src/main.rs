@@ -550,11 +550,6 @@ async fn main() -> std::io::Result<()> {
                 ))
                 .ok();
             trace!("Calling bootstrap.start_all()...");
-
-            if let Err(e) = bootstrap.ensure_services_running().await {
-                warn!("Some services might not be running: {}", e);
-            }
-
             bootstrap.start_all().await.map_err(std::io::Error::other)?;
             trace!("bootstrap.start_all() completed");
 
