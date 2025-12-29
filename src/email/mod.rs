@@ -2,7 +2,7 @@ use crate::{config::EmailConfig, core::urls::ApiUrls, shared::state::AppState};
 use axum::{
     extract::{Path, Query, State},
     http::StatusCode,
-    response::{IntoResponse, Response},
+    response::{Html, IntoResponse, Response},
     Json,
 };
 use axum::{

@@ -63,6 +63,8 @@ pub mod instagram;
 pub mod llm;
 #[cfg(feature = "llm")]
 pub use llm::cache::{CacheConfig, CachedLLMProvider, CachedResponse, LocalEmbeddingService};
+#[cfg(feature = "llm")]
+pub use llm::DynamicLLMProvider;
 
 #[cfg(feature = "meet")]
 pub mod meet;
