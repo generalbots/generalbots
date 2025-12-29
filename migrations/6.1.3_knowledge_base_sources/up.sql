@@ -1,5 +1,6 @@
 -- Migration: Knowledge Base Sources
 -- Description: Tables for document ingestion, chunking, and RAG support
+-- Note: Vector embeddings are stored in Qdrant, not PostgreSQL
 
 -- Table for knowledge sources (uploaded documents)
 CREATE TABLE IF NOT EXISTS knowledge_sources (
@@ -27,30 +28,16 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_sources_collection ON knowledge_sources
 CREATE INDEX IF NOT EXISTS idx_knowledge_sources_content_hash ON knowledge_sources(content_hash);
 CREATE INDEX IF NOT EXISTS idx_knowledge_sources_created_at ON knowledge_sources(created_at);
 
--- Table for document chunks
+-- Table for document chunks (text only - vectors stored in Qdrant)
 CREATE TABLE IF NOT EXISTS knowledge_chunks (
     id TEXT PRIMARY KEY,
     source_id TEXT NOT NULL REFERENCES knowledge_sources(id) ON DELETE CASCADE,
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER NOT NULL DEFAULT 0,
-    embedding BYTEA,
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
-
--- Add vector column if pgvector extension is available
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
-                       WHERE table_name = 'knowledge_chunks' AND column_name = 'embedding_vector') THEN
-            EXECUTE 'ALTER TABLE knowledge_chunks ADD COLUMN embedding_vector vector(1536)';
-        END IF;
-    END IF;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Could not add vector column: %', SQLERRM;
-END $$;
 
 -- Indexes for knowledge_chunks
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_id ON knowledge_chunks(source_id);
@@ -59,18 +46,6 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_chunk_index ON knowledge_chunks(
 -- Full-text search index on content
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_content_fts
     ON knowledge_chunks USING gin(to_tsvector('english', content));
-
--- Vector similarity index (if pgvector extension is available)
--- Note: This will only work if pgvector extension is installed
-DO $$
-BEGIN
-    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding_vector
-                 ON knowledge_chunks USING ivfflat (embedding_vector vector_cosine_ops) WITH (lists = 100)';
-    END IF;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'Could not create vector index: %', SQLERRM;
-END $$;
 
 -- Table for search history
 CREATE TABLE IF NOT EXISTS research_search_history (
@@ -98,11 +73,10 @@ CREATE TRIGGER update_knowledge_sources_updated_at
 
 -- Comments for documentation
 COMMENT ON TABLE knowledge_sources IS 'Uploaded documents for knowledge base ingestion';
-COMMENT ON TABLE knowledge_chunks IS 'Text chunks extracted from knowledge sources for RAG';
+COMMENT ON TABLE knowledge_chunks IS 'Text chunks extracted from knowledge sources - vectors stored in Qdrant';
 COMMENT ON TABLE research_search_history IS 'History of web and knowledge base searches';
 
 COMMENT ON COLUMN knowledge_sources.source_type IS 'Document type: pdf, docx, txt, markdown, html, csv, xlsx, url';
 COMMENT ON COLUMN knowledge_sources.status IS 'Processing status: pending, processing, indexed, failed, reindexing';
 COMMENT ON COLUMN knowledge_sources.collection IS 'Collection/namespace for organizing sources';
-COMMENT ON COLUMN knowledge_chunks.embedding IS 'Vector embedding for semantic search (1536 dimensions for OpenAI)';
 COMMENT ON COLUMN knowledge_chunks.token_count IS 'Estimated token count for the chunk';
