@@ -55,7 +55,7 @@ impl ToSql<SmallInt, Pg> for ChannelType {
 
 impl FromSql<SmallInt, Pg> for ChannelType {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Web),
             1 => Ok(Self::WhatsApp),
@@ -142,7 +142,7 @@ impl ToSql<SmallInt, Pg> for MessageRole {
 
 impl FromSql<SmallInt, Pg> for MessageRole {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             1 => Ok(Self::User),
             2 => Ok(Self::Assistant),
@@ -220,7 +220,7 @@ impl ToSql<SmallInt, Pg> for MessageType {
 
 impl FromSql<SmallInt, Pg> for MessageType {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Text),
             1 => Ok(Self::Image),
@@ -290,7 +290,7 @@ impl ToSql<SmallInt, Pg> for LlmProvider {
 
 impl FromSql<SmallInt, Pg> for LlmProvider {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::OpenAi),
             1 => Ok(Self::Anthropic),
@@ -359,7 +359,7 @@ impl ToSql<SmallInt, Pg> for ContextProvider {
 
 impl FromSql<SmallInt, Pg> for ContextProvider {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::None),
             1 => Ok(Self::Qdrant),
@@ -409,7 +409,7 @@ impl ToSql<SmallInt, Pg> for TaskStatus {
 
 impl FromSql<SmallInt, Pg> for TaskStatus {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Pending),
             1 => Ok(Self::Ready),
@@ -489,7 +489,7 @@ impl ToSql<SmallInt, Pg> for TaskPriority {
 
 impl FromSql<SmallInt, Pg> for TaskPriority {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Low),
             1 => Ok(Self::Normal),
@@ -558,7 +558,7 @@ impl ToSql<SmallInt, Pg> for ExecutionMode {
 
 impl FromSql<SmallInt, Pg> for ExecutionMode {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Manual),
             1 => Ok(Self::Supervised),
@@ -611,7 +611,7 @@ impl ToSql<SmallInt, Pg> for RiskLevel {
 
 impl FromSql<SmallInt, Pg> for RiskLevel {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::None),
             1 => Ok(Self::Low),
@@ -668,7 +668,7 @@ impl ToSql<SmallInt, Pg> for ApprovalStatus {
 
 impl FromSql<SmallInt, Pg> for ApprovalStatus {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Pending),
             1 => Ok(Self::Approved),
@@ -717,7 +717,7 @@ impl ToSql<SmallInt, Pg> for ApprovalDecision {
 
 impl FromSql<SmallInt, Pg> for ApprovalDecision {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Approve),
             1 => Ok(Self::Reject),
@@ -774,7 +774,7 @@ impl ToSql<SmallInt, Pg> for IntentType {
 
 impl FromSql<SmallInt, Pg> for IntentType {
     fn from_sql(bytes: PgValue<'_>) -> deserialize::Result<Self> {
-        let value = i16::from_sql(bytes)?;
+        let value = <i16 as FromSql<SmallInt, Pg>>::from_sql(bytes)?;
         match value {
             0 => Ok(Self::Unknown),
             1 => Ok(Self::AppCreate),
@@ -814,3 +814,12 @@ impl std::str::FromStr for IntentType {
             "APP_CREATE" | "APPCREATE" | "APP" | "APPLICATION" | "CREATE_APP" => Ok(Self::AppCreate),
             "TODO" | "TASK" | "REMINDER" => Ok(Self::Todo),
             "MONITOR" | "WATCH" | "ALERT" | "ON_CHANGE" => Ok(Self::Monitor),
+            "ACTION" | "DO" | "EXECUTE" | "RUN" => Ok(Self::Action),
+            "SCHEDULE" | "SCHEDULED" | "CRON" | "TIMER" => Ok(Self::Schedule),
+            "GOAL" | "OBJECTIVE" | "TARGET" => Ok(Self::Goal),
+            "TOOL" | "FUNCTION" | "UTILITY" => Ok(Self::Tool),
+            "QUERY" | "SEARCH" | "FIND" | "LOOKUP" => Ok(Self::Query),
+            _ => Ok(Self::Unknown),
+        }
+    }
+}

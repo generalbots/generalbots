@@ -859,13 +859,27 @@ Store credentials in Vault:
         temp_file: &std::path::Path,
         bin_path: &std::path::Path,
     ) -> Result<()> {
+        // Check if tarball has a top-level directory or files at root
+        let list_output = Command::new("tar")
+            .args(["-tzf", temp_file.to_str().unwrap_or_default()])
+            .output()?;
+
+        let has_subdir = if list_output.status.success() {
+            let contents = String::from_utf8_lossy(&list_output.stdout);
+            // If first entry contains '/', there's a subdirectory structure
+            contents.lines().next().map(|l| l.contains('/')).unwrap_or(false)
+        } else {
+            false
+        };
+
+        let mut args = vec!["-xzf", temp_file.to_str().unwrap_or_default()];
+        if has_subdir {
+            args.push("--strip-components=1");
+        }
+
         let output = Command::new("tar")
             .current_dir(bin_path)
-            .args([
-                "-xzf",
-                temp_file.to_str().unwrap_or_default(),
-                "--strip-components=1",
-            ])
+            .args(&args)
             .output()?;
         if !output.status.success() {
             return Err(anyhow::anyhow!(

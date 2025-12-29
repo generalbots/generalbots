@@ -5,6 +5,9 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use uuid::Uuid;
 
+use crate::config::ConfigManager;
+use crate::shared::utils::{create_tls_client, DbPool};
+
 use super::document_processor::{DocumentProcessor, TextChunk};
 use super::embedding_generator::{Embedding, EmbeddingConfig, KbEmbeddingGenerator};
 
@@ -18,7 +21,21 @@ pub struct QdrantConfig {
 impl Default for QdrantConfig {
     fn default() -> Self {
         Self {
-            url: "http://localhost:6333".to_string(),
+            url: "https://localhost:6333".to_string(),
+            api_key: None,
+            timeout_secs: 30,
+        }
+    }
+}
+
+impl QdrantConfig {
+    pub fn from_config(pool: DbPool, bot_id: &Uuid) -> Self {
+        let config_manager = ConfigManager::new(pool);
+        let url = config_manager
+            .get_config(bot_id, "vectordb-url", Some("https://localhost:6333"))
+            .unwrap_or_else(|_| "https://localhost:6333".to_string());
+        Self {
+            url,
             api_key: None,
             timeout_secs: 30,
         }
@@ -77,13 +94,8 @@ impl KbIndexer {
         let document_processor = DocumentProcessor::default();
         let embedding_generator = KbEmbeddingGenerator::new(embedding_config);
 
-        let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(qdrant_config.timeout_secs))
-            .build()
-            .unwrap_or_else(|e| {
-                log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
-                reqwest::Client::new()
-            });
+        // Use shared TLS client with local CA certificate
+        let http_client = create_tls_client(Some(qdrant_config.timeout_secs));
 
         Self {
             document_processor,

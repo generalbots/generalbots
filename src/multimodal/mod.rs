@@ -1,4 +1,5 @@
 use crate::config::ConfigManager;
+use crate::shared::utils::create_tls_client;
 use crate::shared::state::AppState;
 use log::{error, info, trace};
 use reqwest::Client;
@@ -232,11 +233,7 @@ impl BotModelsClient {
         image_config: ImageGeneratorConfig,
         video_config: VideoGeneratorConfig,
     ) -> Self {
-        let client = Client::builder()
-            .danger_accept_invalid_certs(true)
-            .timeout(std::time::Duration::from_secs(300))
-            .build()
-            .unwrap_or_else(|_| Client::new());
+        let client = create_tls_client(Some(300));
 
         Self {
             client,

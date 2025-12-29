@@ -1,6 +1,7 @@
 use crate::core::directory::{BotAccess, UserAccount, UserProvisioningService, UserRole};
 use crate::core::urls::ApiUrls;
 use crate::shared::state::AppState;
+use crate::shared::utils::create_tls_client;
 use anyhow::Result;
 use axum::{
     extract::{Json, Path, State},
@@ -254,14 +255,7 @@ pub async fn check_services_status(State(state): State<Arc<AppState>>) -> impl I
         }
     }
 
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .timeout(std::time::Duration::from_secs(2))
-        .build()
-        .unwrap_or_else(|e| {
-            log::warn!("Failed to create HTTP client: {}, using default", e);
-            reqwest::Client::new()
-        });
+    let client = create_tls_client(Some(2));
 
     if let Ok(response) = client.get("https://localhost:8300/healthz").send().await {
         status.directory = response.status().is_success();

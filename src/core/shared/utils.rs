@@ -11,12 +11,14 @@ use diesel::{
 use futures_util::StreamExt;
 #[cfg(feature = "progress-bars")]
 use indicatif::{ProgressBar, ProgressStyle};
-use reqwest::Client;
+use log::{debug, warn};
+use reqwest::{Certificate, Client};
 use rhai::{Array, Dynamic};
 use serde_json::Value;
 use smartstring::SmartString;
 use std::error::Error;
 use std::sync::Arc;
+use std::time::Duration;
 use tokio::fs::File as TokioFile;
 use tokio::io::AsyncWriteExt;
 use tokio::sync::RwLock;
@@ -98,6 +100,12 @@ pub async fn create_s3_operator(
     } else {
         (config.access_key.clone(), config.secret_key.clone())
     };
+
+    if std::path::Path::new(CA_CERT_PATH).exists() {
+        std::env::set_var("AWS_CA_BUNDLE", CA_CERT_PATH);
+        std::env::set_var("SSL_CERT_FILE", CA_CERT_PATH);
+        debug!("Set AWS_CA_BUNDLE and SSL_CERT_FILE to {} for S3 client", CA_CERT_PATH);
+    }
 
     let base_config = aws_config::defaults(BehaviorVersion::latest())
         .endpoint_url(endpoint)
@@ -361,4 +369,69 @@ pub fn get_content_type(path: &str) -> &'static str {
 
 pub fn sanitize_sql_value(value: &str) -> String {
     value.replace('\'', "''")
+}
+
+/// Default path to the local CA certificate used for internal service TLS (dev stack)
+pub const CA_CERT_PATH: &str = "./botserver-stack/conf/system/certificates/ca/ca.crt";
+
+/// Creates an HTTP client with proper TLS verification.
+///
+/// **Behavior:**
+/// - If local CA cert exists (dev stack): uses it for verification
+/// - If local CA cert doesn't exist (production): uses system CA store
+///
+/// # Arguments
+/// * `timeout_secs` - Request timeout in seconds (default: 30)
+///
+/// # Returns
+/// A reqwest::Client configured for TLS verification
+pub fn create_tls_client(timeout_secs: Option<u64>) -> Client {
+    create_tls_client_with_ca(CA_CERT_PATH, timeout_secs)
+}
+
+/// Creates an HTTP client with a custom CA certificate path.
+///
+/// **Behavior:**
+/// - If CA cert file exists: adds it as trusted root (for self-signed/internal CA)
+/// - If CA cert file doesn't exist: uses system CA store (for public CAs like Let's Encrypt)
+///
+/// This allows seamless transition from dev (local CA) to production (public CA).
+///
+/// # Arguments
+/// * `ca_cert_path` - Path to the CA certificate file (ignored if file doesn't exist)
+/// * `timeout_secs` - Request timeout in seconds (default: 30)
+///
+/// # Returns
+/// A reqwest::Client configured for TLS verification
+pub fn create_tls_client_with_ca(ca_cert_path: &str, timeout_secs: Option<u64>) -> Client {
+    let timeout = Duration::from_secs(timeout_secs.unwrap_or(30));
+    let mut builder = Client::builder().timeout(timeout);
+
+    // Try to load local CA cert (dev stack with self-signed certs)
+    // If it doesn't exist, we use system CA store (production with public certs)
+    if std::path::Path::new(ca_cert_path).exists() {
+        match std::fs::read(ca_cert_path) {
+            Ok(ca_cert_pem) => {
+                match Certificate::from_pem(&ca_cert_pem) {
+                    Ok(ca_cert) => {
+                        builder = builder.add_root_certificate(ca_cert);
+                        debug!("Using local CA certificate from {} (dev stack mode)", ca_cert_path);
+                    }
+                    Err(e) => {
+                        warn!("Failed to parse CA certificate from {}: {}", ca_cert_path, e);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("Failed to read CA certificate from {}: {}", ca_cert_path, e);
+            }
+        }
+    } else {
+        debug!("Local CA cert not found at {}, using system CA store (production mode)", ca_cert_path);
+    }
+
+    builder.build().unwrap_or_else(|e| {
+        warn!("Failed to create TLS client: {}, using default client", e);
+        Client::new()
+    })
 }

@@ -291,7 +291,7 @@ impl InternalUrls {
     pub const DIRECTORY_BASE: &'static str = "http://localhost:8080";
     pub const DATABASE: &'static str = "postgres://localhost:5432";
     pub const CACHE: &'static str = "redis://localhost:6379";
-    pub const DRIVE: &'static str = "http://localhost:9000";
+    pub const DRIVE: &'static str = "https://localhost:9000";
     pub const EMAIL: &'static str = "http://localhost:8025";
     pub const LLM: &'static str = "http://localhost:8081";
     pub const EMBEDDING: &'static str = "http://localhost:8082";

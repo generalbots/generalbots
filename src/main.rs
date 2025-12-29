@@ -62,8 +62,7 @@ use botserver::core::config::AppConfig;
 
 #[cfg(feature = "directory")]
 use directory::auth_handler;
-#[cfg(feature = "meet")]
-use meet::{voice_start, voice_stop};
+
 use package_manager::InstallMode;
 use session::{create_session, get_session_history, get_sessions, start_session};
 use shared::state::AppState;
@@ -216,11 +215,7 @@ async fn run_axum_server(
 
     #[cfg(feature = "meet")]
     {
-        api_router = api_router
-            .route(ApiUrls::VOICE_START, post(voice_start))
-            .route(ApiUrls::VOICE_STOP, post(voice_stop))
-            .route(ApiUrls::WS_MEET, get(crate::meet::meeting_websocket))
-            .merge(crate::meet::configure());
+        api_router = api_router.merge(crate::meet::configure());
     }
 
     #[cfg(feature = "email")]

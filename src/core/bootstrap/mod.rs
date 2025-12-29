@@ -1,5 +1,5 @@
 use crate::config::AppConfig;
-use crate::package_manager::setup::{DirectorySetup, EmailSetup};
+use crate::package_manager::setup::{DirectorySetup, EmailSetup, VectorDbSetup};
 use crate::package_manager::{InstallMode, PackageManager};
 use crate::shared::utils::{establish_pg_connection, init_secrets_manager};
 use anyhow::Result;
@@ -321,7 +321,7 @@ impl BootstrapManager {
                             for i in 0..15 {
                                 let drive_ready = Command::new("sh")
                                     .arg("-c")
-                                    .arg("curl -f -s 'http://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
+                                    .arg("curl -sfk 'https://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
                                     .stdout(std::process::Stdio::null())
                                     .stderr(std::process::Stdio::null())
                                     .status()
@@ -973,6 +973,15 @@ impl BootstrapManager {
                     info!("Configuring CoreDNS for dynamic DNS...");
                     if let Err(e) = self.setup_coredns() {
                         error!("Failed to setup CoreDNS: {}", e);
+                    }
+                }
+
+                if component == "vector_db" {
+                    info!("Configuring Qdrant vector database with TLS...");
+                    let conf_path = self.stack_dir("conf");
+                    let data_path = self.stack_dir("data");
+                    if let Err(e) = VectorDbSetup::setup(conf_path, data_path).await {
+                        error!("Failed to setup vector_db: {}", e);
                     }
                 }
             }
@@ -1797,6 +1806,13 @@ VAULT_CACHE_TTL=300
                 )
             };
 
+        // Set CA cert for self-signed TLS (dev stack)
+        let ca_cert_path = "./botserver-stack/conf/system/certificates/ca/ca.crt";
+        if std::path::Path::new(ca_cert_path).exists() {
+            std::env::set_var("AWS_CA_BUNDLE", ca_cert_path);
+            std::env::set_var("SSL_CERT_FILE", ca_cert_path);
+        }
+
         let base_config = aws_config::defaults(BehaviorVersion::latest())
             .endpoint_url(endpoint)
             .region("auto")
@@ -1850,15 +1866,16 @@ VAULT_CACHE_TTL=300
             {
                 let bot_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                 let bucket = bot_name.trim_start_matches('/').to_string();
+                // Create bucket if it doesn't exist
                 if client.head_bucket().bucket(&bucket).send().await.is_err() {
-                    match client.create_bucket().bucket(&bucket).send().await {
-                        Ok(_) => {
-                            Self::upload_directory_recursive(&client, &path, &bucket, "/").await?;
-                        }
-                        Err(e) => {
-                            warn!("S3/MinIO not available, skipping bucket {}: {}", bucket, e);
-                        }
+                    if let Err(e) = client.create_bucket().bucket(&bucket).send().await {
+                        warn!("S3/MinIO not available, skipping bucket {}: {}", bucket, e);
+                        continue;
                     }
+                }
+                // Always sync templates to bucket
+                if let Err(e) = Self::upload_directory_recursive(&client, &path, &bucket, "/").await {
+                    warn!("Failed to upload templates to bucket {}: {}", bucket, e);
                 }
             }
         }
@@ -2289,6 +2306,15 @@ log_level = "info"
 
             fs::copy(&ca_cert_path, service_dir.join("ca.crt"))?;
         }
+
+        let minio_certs_dir = PathBuf::from("./botserver-stack/conf/drive/certs");
+        fs::create_dir_all(&minio_certs_dir)?;
+        let drive_cert_dir = cert_dir.join("drive");
+        fs::copy(drive_cert_dir.join("server.crt"), minio_certs_dir.join("public.crt"))?;
+        fs::copy(drive_cert_dir.join("server.key"), minio_certs_dir.join("private.key"))?;
+        let minio_ca_dir = minio_certs_dir.join("CAs");
+        fs::create_dir_all(&minio_ca_dir)?;
+        fs::copy(&ca_cert_path, minio_ca_dir.join("ca.crt"))?;
 
         info!("TLS certificates generated successfully");
         Ok(())

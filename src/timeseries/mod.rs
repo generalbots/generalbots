@@ -17,6 +17,7 @@
 
 
 
+use crate::shared::utils::create_tls_client;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -224,11 +225,7 @@ pub struct TimeSeriesClient {
 impl TimeSeriesClient {
 
     pub async fn new(config: TimeSeriesConfig) -> Result<Self, TimeSeriesError> {
-        let http_client = reqwest::Client::builder()
-            .danger_accept_invalid_certs(!config.verify_tls)
-            .timeout(std::time::Duration::from_secs(30))
-            .build()
-            .map_err(|e| TimeSeriesError::ConnectionError(e.to_string()))?;
+        let http_client = create_tls_client(Some(30));
 
         let write_buffer = Arc::new(RwLock::new(Vec::with_capacity(config.batch_size)));
         let (write_sender, write_receiver) = mpsc::channel::<MetricPoint>(10000);
