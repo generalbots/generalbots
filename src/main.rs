@@ -926,7 +926,7 @@ async fn main() -> std::io::Result<()> {
     trace!("Starting HTTP server on port {}...", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);
-        return Err(e);
+        std::process::exit(1);
     }
 
     if let Some(handle) = ui_handle {
