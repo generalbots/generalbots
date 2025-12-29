@@ -1059,20 +1059,11 @@ EOF"#.to_string(),
                 .replace("{{CONF_PATH}}", &conf_path.to_string_lossy())
                 .replace("{{LOGS_PATH}}", &logs_path.to_string_lossy());
 
-            eprintln!(
-                "[START DEBUG] Starting component {} with command: {}",
-                component.name, rendered_cmd
-            );
-            eprintln!(
-                "[START DEBUG] Working directory: {}, logs_path: {}",
-                bin_path.display(),
-                logs_path.display()
-            );
-            info!(
+            trace!(
                 "Starting component {} with command: {}",
                 component.name, rendered_cmd
             );
-            info!(
+            trace!(
                 "Working directory: {}, logs_path: {}",
                 bin_path.display(),
                 logs_path.display()
@@ -1098,7 +1089,7 @@ EOF"#.to_string(),
                 "[START] About to spawn shell command for {}: {}",
                 component.name, rendered_cmd
             );
-            info!("[START] Working dir: {}", bin_path.display());
+            trace!("[START] Working dir: {}", bin_path.display());
             let child = std::process::Command::new("sh")
                 .current_dir(&bin_path)
                 .arg("-c")
@@ -1131,7 +1122,7 @@ EOF"#.to_string(),
 
             match child {
                 Ok(c) => {
-                    info!("[START] Component {} started successfully", component.name);
+                    trace!("[START] Component {} started successfully", component.name);
                     Ok(c)
                 }
                 Err(e) => {
@@ -1183,7 +1174,7 @@ EOF"#.to_string(),
         let vault_bin = base_path.join("bin/vault/vault");
         let vault_bin_str = vault_bin.to_string_lossy();
 
-        info!("Fetching drive credentials from Vault at {} using {}", vault_addr, vault_bin_str);
+        trace!("Fetching drive credentials from Vault at {} using {}", vault_addr, vault_bin_str);
         let drive_cmd = format!(
             "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get -format=json secret/gbo/drive",
             vault_addr, vault_token, vault_bin_str
@@ -1196,16 +1187,16 @@ EOF"#.to_string(),
             Ok(output) => {
                 if output.status.success() {
                     let json_str = String::from_utf8_lossy(&output.stdout);
-                    info!("Vault drive response: {}", json_str);
+                    trace!("Vault drive response: {}", json_str);
                     match serde_json::from_str::<serde_json::Value>(&json_str) {
                         Ok(json) => {
                             if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
                                 if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
-                                    info!("Found DRIVE_ACCESSKEY from Vault");
+                                    trace!("Found DRIVE_ACCESSKEY from Vault");
                                     credentials.insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
                                 }
                                 if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
-                                    info!("Found DRIVE_SECRET from Vault");
+                                    trace!("Found DRIVE_SECRET from Vault");
                                     credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
                                 }
                             } else {
