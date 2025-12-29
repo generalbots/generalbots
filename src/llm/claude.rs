@@ -93,11 +93,8 @@ impl ClaudeClient {
 
     fn build_url(&self) -> String {
         if self.is_azure {
-            format!(
-                "{}/deployments/{}/messages?api-version=2024-06-01",
-                self.base_url.trim_end_matches('/'),
-                self.deployment_name
-            )
+            // Azure Claude exposes Anthropic API directly at /v1/messages
+            format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
         } else {
             format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
         }
@@ -106,17 +103,13 @@ impl ClaudeClient {
     fn build_headers(&self, api_key: &str) -> reqwest::header::HeaderMap {
         let mut headers = reqwest::header::HeaderMap::new();
 
-        if self.is_azure {
-            if let Ok(val) = api_key.parse() {
-                headers.insert("api-key", val);
-            }
-        } else {
-            if let Ok(val) = api_key.parse() {
-                headers.insert("x-api-key", val);
-            }
-            if let Ok(val) = "2023-06-01".parse() {
-                headers.insert("anthropic-version", val);
-            }
+        // Both Azure Claude and direct Anthropic use the same headers
+        // Azure Claude proxies the Anthropic API format
+        if let Ok(val) = api_key.parse() {
+            headers.insert("x-api-key", val);
+        }
+        if let Ok(val) = "2023-06-01".parse() {
+            headers.insert("anthropic-version", val);
         }
 
         if let Ok(val) = "application/json".parse() {
@@ -432,8 +425,8 @@ mod tests {
             "claude-opus-4-5".to_string(),
         );
         let url = client.build_url();
-        assert!(url.contains("deployments/claude-opus-4-5/messages"));
-        assert!(url.contains("api-version="));
+        // Azure Claude uses Anthropic API format directly
+        assert!(url.contains("/v1/messages"));
     }
 
     #[test]
