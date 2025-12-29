@@ -3,6 +3,71 @@
 -- NOTE: TABLES AND INDEXES ONLY - No views, triggers, or functions per project standards
 
 -- ============================================================================
+-- DROP EXISTING TABLES (clean state for re-run)
+-- ============================================================================
+DROP TABLE IF EXISTS public.user_organizations CASCADE;
+DROP TABLE IF EXISTS public.email_received_events CASCADE;
+DROP TABLE IF EXISTS public.folder_change_events CASCADE;
+DROP TABLE IF EXISTS public.folder_monitors CASCADE;
+DROP TABLE IF EXISTS public.email_monitors CASCADE;
+DROP TABLE IF EXISTS account_sync_items CASCADE;
+DROP TABLE IF EXISTS session_account_associations CASCADE;
+DROP TABLE IF EXISTS connected_accounts CASCADE;
+DROP TABLE IF EXISTS analytics_events CASCADE;
+DROP TABLE IF EXISTS research_search_history CASCADE;
+DROP TABLE IF EXISTS test_execution_logs CASCADE;
+DROP TABLE IF EXISTS test_accounts CASCADE;
+DROP TABLE IF EXISTS calendar_shares CASCADE;
+DROP TABLE IF EXISTS calendar_resource_bookings CASCADE;
+DROP TABLE IF EXISTS calendar_resources CASCADE;
+DROP TABLE IF EXISTS task_recurrence CASCADE;
+DROP TABLE IF EXISTS task_time_entries CASCADE;
+DROP TABLE IF EXISTS task_dependencies CASCADE;
+DROP TABLE IF EXISTS tasks CASCADE;
+DROP TABLE IF EXISTS document_presence CASCADE;
+DROP TABLE IF EXISTS storage_quotas CASCADE;
+DROP TABLE IF EXISTS file_sync_status CASCADE;
+DROP TABLE IF EXISTS file_trash CASCADE;
+DROP TABLE IF EXISTS file_activities CASCADE;
+DROP TABLE IF EXISTS file_shares CASCADE;
+DROP TABLE IF EXISTS file_comments CASCADE;
+DROP TABLE IF EXISTS file_versions CASCADE;
+DROP TABLE IF EXISTS user_virtual_backgrounds CASCADE;
+DROP TABLE IF EXISTS meeting_captions CASCADE;
+DROP TABLE IF EXISTS meeting_waiting_room CASCADE;
+DROP TABLE IF EXISTS meeting_questions CASCADE;
+DROP TABLE IF EXISTS meeting_polls CASCADE;
+DROP TABLE IF EXISTS meeting_breakout_rooms CASCADE;
+DROP TABLE IF EXISTS meeting_recordings CASCADE;
+DROP TABLE IF EXISTS shared_mailbox_members CASCADE;
+DROP TABLE IF EXISTS shared_mailboxes CASCADE;
+DROP TABLE IF EXISTS distribution_lists CASCADE;
+DROP TABLE IF EXISTS email_label_assignments CASCADE;
+DROP TABLE IF EXISTS email_labels CASCADE;
+DROP TABLE IF EXISTS email_rules CASCADE;
+DROP TABLE IF EXISTS email_auto_responders CASCADE;
+DROP TABLE IF EXISTS email_templates CASCADE;
+DROP TABLE IF EXISTS scheduled_emails CASCADE;
+DROP TABLE IF EXISTS email_signatures CASCADE;
+DROP TABLE IF EXISTS global_email_signatures CASCADE;
+DROP TABLE IF EXISTS external_connections CASCADE;
+DROP TABLE IF EXISTS dynamic_table_fields CASCADE;
+DROP TABLE IF EXISTS dynamic_table_definitions CASCADE;
+DROP TABLE IF EXISTS workflow_step_executions CASCADE;
+DROP TABLE IF EXISTS workflow_executions CASCADE;
+DROP TABLE IF EXISTS workflow_steps CASCADE;
+DROP TABLE IF EXISTS workflow_definitions CASCADE;
+DROP TABLE IF EXISTS approval_history CASCADE;
+DROP TABLE IF EXISTS approval_steps CASCADE;
+DROP TABLE IF EXISTS approval_requests CASCADE;
+DROP TABLE IF EXISTS kg_relationships CASCADE;
+DROP TABLE IF EXISTS kg_entities CASCADE;
+DROP TABLE IF EXISTS user_memories CASCADE;
+DROP TABLE IF EXISTS episodic_memories CASCADE;
+DROP TABLE IF EXISTS conversation_costs CASCADE;
+DROP TABLE IF EXISTS conversation_episodes CASCADE;
+
+-- ============================================================================
 -- GLOBAL CONFIGURATION
 -- ============================================================================
 
@@ -2049,7 +2114,6 @@ CREATE INDEX IF NOT EXISTS idx_email_events_received ON public.email_received_ev
 COMMENT ON TABLE public.system_automations IS 'System automations with TriggerKind: 0=Scheduled, 1=TableUpdate, 2=TableInsert, 3=TableDelete, 4=Webhook, 5=EmailReceived, 6=FolderChange';
 
 -- User organization memberships (users can belong to multiple orgs)
-DROP TABLE IF EXISTS public.user_organizations CASCADE;
 CREATE TABLE IF NOT EXISTS public.user_organizations (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
