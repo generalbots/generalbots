@@ -2,6 +2,11 @@
 -- Description: Tables for document ingestion, chunking, and RAG support
 -- Note: Vector embeddings are stored in Qdrant, not PostgreSQL
 
+-- Drop existing tables for clean state
+DROP TABLE IF EXISTS research_search_history CASCADE;
+DROP TABLE IF EXISTS knowledge_chunks CASCADE;
+DROP TABLE IF EXISTS knowledge_sources CASCADE;
+
 -- Table for knowledge sources (uploaded documents)
 CREATE TABLE IF NOT EXISTS knowledge_sources (
     id TEXT PRIMARY KEY,
