@@ -735,7 +735,7 @@ impl BootstrapManager {
 
         let pm = PackageManager::new(self.install_mode.clone(), self.tenant.clone())?;
 
-        let required_components = vec!["vault", "tables", "directory", "drive", "cache", "llm"];
+        let required_components = vec!["vault", "tables", "directory", "drive", "cache", "llm", "vector_db"];
 
         let vault_needs_setup = !self.stack_dir("conf/vault/init.json").exists();
 

@@ -1085,8 +1085,8 @@ EOF"#.to_string(),
                 }
             }
 
-            info!(
-                "[START] About to spawn shell command for {}: {}",
+            trace!(
+                "About to spawn shell command for {}: {}",
                 component.name, rendered_cmd
             );
             trace!("[START] Working dir: {}", bin_path.display());
@@ -1097,15 +1097,15 @@ EOF"#.to_string(),
                 .envs(&evaluated_envs)
                 .spawn();
 
-            info!(
-                "[START] Spawn result for {}: {:?}",
+            trace!(
+                "Spawn result for {}: {:?}",
                 component.name,
                 child.is_ok()
             );
             std::thread::sleep(std::time::Duration::from_secs(2));
 
-            info!(
-                "[START] Checking if {} process exists after 2s sleep...",
+            trace!(
+                "Checking if {} process exists after 2s sleep...",
                 component.name
             );
             let check_proc = std::process::Command::new("pgrep")
@@ -1113,8 +1113,8 @@ EOF"#.to_string(),
                 .output();
             if let Ok(output) = check_proc {
                 let pids = String::from_utf8_lossy(&output.stdout);
-                info!(
-                    "[START] pgrep '{}' result: '{}'",
+                trace!(
+                    "pgrep '{}' result: '{}'",
                     component.name,
                     pids.trim()
                 );
@@ -1122,11 +1122,11 @@ EOF"#.to_string(),
 
             match child {
                 Ok(c) => {
-                    trace!("[START] Component {} started successfully", component.name);
+                    trace!("Component {} started successfully", component.name);
                     Ok(c)
                 }
                 Err(e) => {
-                    error!("[START] Spawn failed for {}: {}", component.name, e);
+                    error!("Spawn failed for {}: {}", component.name, e);
                     let err_msg = e.to_string();
                     if err_msg.contains("already running")
                         || err_msg.contains("be running")

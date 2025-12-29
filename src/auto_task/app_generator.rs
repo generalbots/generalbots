@@ -2,6 +2,7 @@ use crate::auto_task::app_logs::{log_generator_error, log_generator_info};
 use crate::basic::keywords::table_definition::{
     generate_create_table_sql, FieldDefinition, TableDefinition,
 };
+use crate::core::config::ConfigManager;
 use crate::core::shared::get_content_type;
 use crate::core::shared::models::UserSession;
 use crate::core::shared::state::AppState;
@@ -167,7 +168,7 @@ impl AppGenerator {
             ),
         );
 
-        let llm_app = match self.generate_complete_app_with_llm(intent).await {
+        let llm_app = match self.generate_complete_app_with_llm(intent, session.bot_id).await {
             Ok(app) => {
                 log_generator_info(
                     &app.name,
@@ -425,6 +426,7 @@ guid, string, text, integer, decimal, boolean, date, datetime, json
     async fn generate_complete_app_with_llm(
         &self,
         intent: &str,
+        bot_id: Uuid,
     ) -> Result<LlmGeneratedApp, Box<dyn std::error::Error + Send + Sync>> {
         let platform = Self::get_platform_prompt();
 
@@ -478,7 +480,7 @@ IMPORTANT:
 Respond with valid JSON only."#
         );
 
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(&prompt, bot_id).await?;
         Self::parse_llm_app_response(&response)
     }
 
@@ -551,10 +553,28 @@ Respond with valid JSON only."#
     async fn call_llm(
         &self,
         prompt: &str,
+        bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         #[cfg(feature = "llm")]
         {
-            let config = serde_json::json!({
+            // Get model and key from bot configuration
+            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let model = config_manager
+                .get_config(&bot_id, "llm-model", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-model", None)
+                        .unwrap_or_else(|_| "gpt-4".to_string())
+                });
+            let key = config_manager
+                .get_config(&bot_id, "llm-key", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-key", None)
+                        .unwrap_or_default()
+                });
+
+            let llm_config = serde_json::json!({
                 "temperature": 0.7,
                 "max_tokens": 16000
             });
@@ -562,7 +582,7 @@ Respond with valid JSON only."#
             match self
                 .state
                 .llm_provider
-                .generate(prompt, &config, "gpt-4", "")
+                .generate(prompt, &llm_config, &model, &key)
                 .await
             {
                 Ok(response) => return Ok(response),

@@ -1,3 +1,4 @@
+use crate::core::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
 use chrono::{DateTime, Utc};
@@ -341,10 +342,10 @@ impl IntentCompiler {
             &intent[..intent.len().min(100)]
         );
 
-        let entities = self.extract_entities(intent).await?;
+        let entities = self.extract_entities(intent, session.bot_id).await?;
         trace!("Extracted entities: {entities:?}");
 
-        let plan = self.generate_plan(intent, &entities).await?;
+        let plan = self.generate_plan(intent, &entities, session.bot_id).await?;
         trace!("Generated plan with {} steps", plan.steps.len());
 
         let basic_program = Self::generate_basic_program(&plan, &entities);
@@ -382,6 +383,7 @@ impl IntentCompiler {
     async fn extract_entities(
         &self,
         intent: &str,
+        bot_id: Uuid,
     ) -> Result<IntentEntities, Box<dyn std::error::Error + Send + Sync>> {
         let prompt = format!(
             r#"Analyze this user request and extract structured information.
@@ -406,7 +408,7 @@ Extract the following as JSON:
 Respond ONLY with valid JSON, no explanation."#
         );
 
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(&prompt, bot_id).await?;
         let entities: IntentEntities = serde_json::from_str(&response).unwrap_or_else(|e| {
             warn!("Failed to parse entity extraction response: {e}");
             IntentEntities {
@@ -423,6 +425,7 @@ Respond ONLY with valid JSON, no explanation."#
         &self,
         intent: &str,
         entities: &IntentEntities,
+        bot_id: Uuid,
     ) -> Result<ExecutionPlan, Box<dyn std::error::Error + Send + Sync>> {
         let keywords_list = self.config.available_keywords.join(", ");
         let mcp_servers_list = self.config.available_mcp_servers.join(", ");
@@ -483,7 +486,7 @@ Respond ONLY with valid JSON."#,
             self.config.max_plan_steps
         );
 
-        let response = self.call_llm(&prompt).await?;
+        let response = self.call_llm(&prompt, bot_id).await?;
 
         #[derive(Deserialize)]
         struct PlanResponse {
@@ -680,19 +683,37 @@ Respond ONLY with valid JSON."#,
     async fn call_llm(
         &self,
         prompt: &str,
+        bot_id: Uuid,
     ) -> Result<String, Box<dyn std::error::Error + Send + Sync>> {
         trace!("Calling LLM with prompt length: {}", prompt.len());
 
         #[cfg(feature = "llm")]
         {
-            let config = serde_json::json!({
+            // Get model and key from bot configuration
+            let config_manager = ConfigManager::new(self.state.conn.clone());
+            let model = config_manager
+                .get_config(&bot_id, "llm-model", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-model", None)
+                        .unwrap_or_else(|_| self.config.model.clone())
+                });
+            let key = config_manager
+                .get_config(&bot_id, "llm-key", None)
+                .unwrap_or_else(|_| {
+                    config_manager
+                        .get_config(&Uuid::nil(), "llm-key", None)
+                        .unwrap_or_default()
+                });
+
+            let llm_config = serde_json::json!({
                 "temperature": self.config.temperature,
                 "max_tokens": self.config.max_tokens
             });
             let response = self
                 .state
                 .llm_provider
-                .generate(prompt, &config, &self.config.model, "")
+                .generate(prompt, &llm_config, &model, &key)
                 .await?;
             return Ok(response);
         }
