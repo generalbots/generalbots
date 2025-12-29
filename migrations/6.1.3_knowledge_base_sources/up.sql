@@ -34,10 +34,23 @@ CREATE TABLE IF NOT EXISTS knowledge_chunks (
     chunk_index INTEGER NOT NULL,
     content TEXT NOT NULL,
     token_count INTEGER NOT NULL DEFAULT 0,
-    embedding vector(1536),
+    embedding BYTEA,
     metadata JSONB DEFAULT '{}'::jsonb,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+-- Add vector column if pgvector extension is available
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+        IF NOT EXISTS (SELECT 1 FROM information_schema.columns
+                       WHERE table_name = 'knowledge_chunks' AND column_name = 'embedding_vector') THEN
+            EXECUTE 'ALTER TABLE knowledge_chunks ADD COLUMN embedding_vector vector(1536)';
+        END IF;
+    END IF;
+EXCEPTION WHEN OTHERS THEN
+    RAISE NOTICE 'Could not add vector column: %', SQLERRM;
+END $$;
 
 -- Indexes for knowledge_chunks
 CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_source_id ON knowledge_chunks(source_id);
@@ -52,8 +65,8 @@ CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_content_fts
 DO $$
 BEGIN
     IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
-        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding
-                 ON knowledge_chunks USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100)';
+        EXECUTE 'CREATE INDEX IF NOT EXISTS idx_knowledge_chunks_embedding_vector
+                 ON knowledge_chunks USING ivfflat (embedding_vector vector_cosine_ops) WITH (lists = 100)';
     END IF;
 EXCEPTION WHEN OTHERS THEN
     RAISE NOTICE 'Could not create vector index: %', SQLERRM;
