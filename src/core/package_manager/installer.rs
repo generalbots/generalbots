@@ -252,7 +252,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "pgrep -f 'minio server' >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -sf http://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -1162,44 +1162,71 @@ EOF"#.to_string(),
     fn fetch_vault_credentials() -> HashMap<String, String> {
         let mut credentials = HashMap::new();
 
+        dotenvy::dotenv().ok();
+
         let vault_addr =
             std::env::var("VAULT_ADDR").unwrap_or_else(|_| "http://localhost:8200".to_string());
         let vault_token = std::env::var("VAULT_TOKEN").unwrap_or_default();
 
         if vault_token.is_empty() {
-            trace!("VAULT_TOKEN not set, skipping Vault credential fetch");
+            warn!("VAULT_TOKEN not set, cannot fetch credentials from Vault");
             return credentials;
         }
 
-        if let Ok(output) = std::process::Command::new("sh")
+        let base_path = std::env::var("BOTSERVER_STACK_PATH")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|_| {
+                std::env::current_dir()
+                    .unwrap_or_else(|_| std::path::PathBuf::from("."))
+                    .join("botserver-stack")
+            });
+        let vault_bin = base_path.join("bin/vault/vault");
+        let vault_bin_str = vault_bin.to_string_lossy();
+
+        info!("Fetching drive credentials from Vault at {} using {}", vault_addr, vault_bin_str);
+        let drive_cmd = format!(
+            "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get -format=json secret/gbo/drive",
+            vault_addr, vault_token, vault_bin_str
+        );
+        match std::process::Command::new("sh")
             .arg("-c")
-            .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get -format=json secret/gbo/drive 2>/dev/null",
-                vault_addr, vault_token
-            ))
+            .arg(&drive_cmd)
             .output()
         {
-            if output.status.success() {
-                if let Ok(json_str) = String::from_utf8(output.stdout) {
-                    if let Ok(json) = serde_json::from_str::<serde_json::Value>(&json_str) {
-                        if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
-                            if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
-                                credentials.insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
-                            }
-                            if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
-                                credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
+            Ok(output) => {
+                if output.status.success() {
+                    let json_str = String::from_utf8_lossy(&output.stdout);
+                    info!("Vault drive response: {}", json_str);
+                    match serde_json::from_str::<serde_json::Value>(&json_str) {
+                        Ok(json) => {
+                            if let Some(data) = json.get("data").and_then(|d| d.get("data")) {
+                                if let Some(accesskey) = data.get("accesskey").and_then(|v| v.as_str()) {
+                                    info!("Found DRIVE_ACCESSKEY from Vault");
+                                    credentials.insert("DRIVE_ACCESSKEY".to_string(), accesskey.to_string());
+                                }
+                                if let Some(secret) = data.get("secret").and_then(|v| v.as_str()) {
+                                    info!("Found DRIVE_SECRET from Vault");
+                                    credentials.insert("DRIVE_SECRET".to_string(), secret.to_string());
+                                }
+                            } else {
+                                warn!("Vault response missing data.data field");
                             }
                         }
+                        Err(e) => warn!("Failed to parse Vault JSON: {}", e),
                     }
+                } else {
+                    let stderr = String::from_utf8_lossy(&output.stderr);
+                    warn!("Vault drive command failed: {}", stderr);
                 }
             }
+            Err(e) => warn!("Failed to execute Vault command: {}", e),
         }
 
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} ./botserver-stack/bin/vault/vault kv get -format=json secret/gbo/cache 2>/dev/null",
-                vault_addr, vault_token
+                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
+                vault_addr, vault_token, vault_bin_str
             ))
             .output()
         {
