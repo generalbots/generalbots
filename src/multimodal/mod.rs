@@ -575,11 +575,17 @@ pub async fn ensure_botmodels_running(
     let config_values = {
         let conn_arc = app_state.conn.clone();
         let default_bot_id = tokio::task::spawn_blocking(move || {
-            let mut conn = conn_arc.get().expect("db connection");
-            bots.filter(name.eq("default"))
-                .select(id)
-                .first::<uuid::Uuid>(&mut *conn)
-                .unwrap_or_else(|_| uuid::Uuid::nil())
+            match conn_arc.get() {
+                Ok(mut conn) => bots
+                    .filter(name.eq("default"))
+                    .select(id)
+                    .first::<uuid::Uuid>(&mut *conn)
+                    .unwrap_or_else(|_| uuid::Uuid::nil()),
+                Err(e) => {
+                    log::error!("Failed to get database connection: {}", e);
+                    uuid::Uuid::nil()
+                }
+            }
         })
         .await?;
 

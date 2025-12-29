@@ -9,8 +9,14 @@ pub fn llm_keyword(state: Arc<AppState>, _user: UserSession, engine: &mut Engine
     let state_clone = Arc::clone(&state);
     engine
         .register_custom_syntax(["LLM", "$expr$"], false, move |context, inputs| {
+            let first_input = inputs.first().ok_or_else(|| {
+                Box::new(rhai::EvalAltResult::ErrorRuntime(
+                    "LLM requires at least one input".into(),
+                    rhai::Position::NONE,
+                ))
+            })?;
             let text = context
-                .eval_expression_tree(inputs.first().expect("at least one input"))?
+                .eval_expression_tree(first_input)?
                 .to_string();
             let state_for_thread = Arc::clone(&state_clone);
             let prompt = build_llm_prompt(&text);

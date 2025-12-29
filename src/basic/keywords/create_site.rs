@@ -27,11 +27,15 @@ pub fn create_site_keyword(state: &AppState, user: UserSession, engine: &mut Eng
                 let template_dir = context.eval_expression_tree(&inputs[1])?;
                 let prompt = context.eval_expression_tree(&inputs[2])?;
 
-                let config = state_clone
-                    .config
-                    .as_ref()
-                    .expect("Config must be initialized")
-                    .clone();
+                let config = match state_clone.config.as_ref() {
+                    Some(c) => c.clone(),
+                    None => {
+                        return Err(Box::new(rhai::EvalAltResult::ErrorRuntime(
+                            "Config must be initialized".into(),
+                            rhai::Position::NONE,
+                        )));
+                    }
+                };
 
                 let s3 = state_clone.s3_client.clone().map(std::sync::Arc::new);
                 let bucket = state_clone.bucket_name.clone();

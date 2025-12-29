@@ -549,7 +549,13 @@ pub fn run_python_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                         let sandbox = CodeSandbox::new(config, session_id);
@@ -594,7 +600,13 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                         let sandbox = CodeSandbox::new(config, session_id);
@@ -629,7 +641,13 @@ pub fn run_javascript_keyword(state: Arc<AppState>, user: UserSession, engine: &
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                        return;
+                    }
+                };
                 let result = rt.block_on(async {
                     let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                     let sandbox = CodeSandbox::new(config, session_id);
@@ -667,7 +685,13 @@ pub fn run_bash_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
-                let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                        return;
+                    }
+                };
                 let result = rt.block_on(async {
                     let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                     let sandbox = CodeSandbox::new(config, session_id);
@@ -715,7 +739,13 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                         let sandbox = CodeSandbox::new(config, session_id);
@@ -753,7 +783,13 @@ pub fn run_file_keyword(state: Arc<AppState>, user: UserSession, engine: &mut En
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(ExecutionResult::error(&format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let config = SandboxConfig::from_bot_config(&state_for_task, bot_id);
                         let sandbox = CodeSandbox::new(config, session_id);

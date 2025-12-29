@@ -44,7 +44,7 @@ async fn caldav_root() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .expect("valid response")
+        .unwrap_or_default()
 }
 
 async fn caldav_principals() -> impl IntoResponse {
@@ -72,7 +72,7 @@ async fn caldav_principals() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .expect("valid response")
+        .unwrap_or_default()
 }
 
 async fn caldav_calendars() -> impl IntoResponse {
@@ -114,7 +114,7 @@ async fn caldav_calendars() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .expect("valid response")
+        .unwrap_or_default()
 }
 
 async fn caldav_calendar() -> impl IntoResponse {
@@ -140,7 +140,7 @@ async fn caldav_calendar() -> impl IntoResponse {
 </D:multistatus>"#
                 .to_string(),
         )
-        .expect("valid response")
+        .unwrap_or_default()
 }
 
 async fn caldav_event() -> impl IntoResponse {
@@ -161,7 +161,7 @@ END:VEVENT
 END:VCALENDAR"
                 .to_string(),
         )
-        .expect("valid response")
+        .unwrap_or_default()
 }
 
 async fn caldav_put_event() -> impl IntoResponse {
@@ -169,5 +169,5 @@ async fn caldav_put_event() -> impl IntoResponse {
         .status(StatusCode::CREATED)
         .header("ETag", "\"placeholder-etag\"")
         .body(String::new())
-        .expect("valid response")
+        .unwrap_or_default()
 }

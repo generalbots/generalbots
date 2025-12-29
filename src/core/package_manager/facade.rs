@@ -627,10 +627,16 @@ Store credentials in Vault:
             }
             InstallMode::Container => {
                 let container_name = format!("{}-{}", self.tenant, component_name);
-                let output = Command::new("lxc")
+                let output = match Command::new("lxc")
                     .args(["list", &container_name, "--format=json"])
                     .output()
-                    .expect("valid syntax registration");
+                {
+                    Ok(o) => o,
+                    Err(e) => {
+                        log::warn!("Failed to check container status: {}", e);
+                        return false;
+                    }
+                };
                 if !output.status.success() {
                     return false;
                 }
@@ -701,11 +707,19 @@ Store credentials in Vault:
         std::fs::create_dir_all(&bin_path)?;
 
         let cache_base = self.base_path.parent().unwrap_or(&self.base_path);
-        let cache = DownloadCache::new(cache_base).unwrap_or_else(|e| {
-            warn!("Failed to initialize download cache: {}", e);
-
-            DownloadCache::new(&self.base_path).expect("Failed to create fallback cache")
-        });
+        let cache = match DownloadCache::new(cache_base) {
+            Ok(c) => c,
+            Err(e) => {
+                warn!("Failed to initialize download cache: {}", e);
+                match DownloadCache::new(&self.base_path) {
+                    Ok(c) => c,
+                    Err(e) => {
+                        log::error!("Failed to create fallback cache: {}", e);
+                        return Err(anyhow::anyhow!("Failed to create download cache"));
+                    }
+                }
+            }
+        };
 
         let cache_result = cache.resolve_component_url(component, url);
 

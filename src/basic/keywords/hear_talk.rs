@@ -164,7 +164,10 @@ fn register_hear_basic(state: Arc<AppState>, user: UserSession, engine: &mut Eng
         .register_custom_syntax(["HEAR", "$ident$"], true, move |_context, inputs| {
             let variable_name = inputs[0]
                 .get_string_value()
-                .expect("Expected identifier as string")
+                .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
+                    "Expected identifier as string".into(),
+                    rhai::Position::NONE,
+                )))?
                 .to_lowercase();
 
             trace!(
@@ -226,11 +229,17 @@ fn register_hear_as_type(state: Arc<AppState>, user: UserSession, engine: &mut E
             move |_context, inputs| {
                 let variable_name = inputs[0]
                     .get_string_value()
-                    .expect("Expected identifier for variable")
+                    .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
+                        "Expected identifier for variable".into(),
+                        rhai::Position::NONE,
+                    )))?
                     .to_lowercase();
                 let type_name = inputs[1]
                     .get_string_value()
-                    .expect("Expected identifier for type")
+                    .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
+                        "Expected identifier for type".into(),
+                        rhai::Position::NONE,
+                    )))?
                     .to_string();
 
                 let _input_type = InputType::parse_type(&type_name);
@@ -290,7 +299,10 @@ fn register_hear_as_menu(state: Arc<AppState>, user: UserSession, engine: &mut E
             move |context, inputs| {
                 let variable_name = inputs[0]
                     .get_string_value()
-                    .expect("Expected identifier for variable")
+                    .ok_or_else(|| Box::new(EvalAltResult::ErrorRuntime(
+                        "Expected identifier for variable".into(),
+                        rhai::Position::NONE,
+                    )))?
                     .to_lowercase();
 
                 let options_expr = context.eval_expression_tree(&inputs[1])?;

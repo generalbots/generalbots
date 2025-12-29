@@ -75,7 +75,10 @@ impl DirectorySetup {
             client: Client::builder()
                 .timeout(Duration::from_secs(30))
                 .build()
-                .expect("failed to build HTTP client"),
+                .unwrap_or_else(|e| {
+                    log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                    Client::new()
+                }),
             admin_token: None,
             config_path,
         }

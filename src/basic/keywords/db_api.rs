@@ -4,6 +4,7 @@ use super::table_access::{
 use crate::core::shared::state::AppState;
 use crate::core::shared::sanitize_identifier;
 use crate::core::urls::ApiUrls;
+use crate::security::error_sanitizer::log_and_sanitize;
 use crate::security::sql_guard::{
     build_safe_count_query, build_safe_select_query, validate_table_name,
 };
@@ -16,7 +17,7 @@ use axum::{
 };
 use diesel::prelude::*;
 use diesel::sql_query;
-use log::{error, info, warn};
+use log::{info, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use std::sync::Arc;
@@ -207,12 +208,8 @@ pub async fn list_records_handler(
             (StatusCode::OK, Json(response)).into_response()
         }
         (Err(e), _) | (_, Err(e)) => {
-            error!("Failed to list records from {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e.to_string() })),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("list_records_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -300,16 +297,8 @@ pub async fn get_record_handler(
         )
             .into_response(),
         Err(e) => {
-            error!("Failed to get record from {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some(e.to_string()),
-                }),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("get_record_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -417,16 +406,8 @@ pub async fn create_record_handler(
                 .into_response()
         }
         Err(e) => {
-            error!("Failed to create record in {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some(e.to_string()),
-                }),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("create_record_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -562,16 +543,8 @@ pub async fn update_record_handler(
                 .into_response()
         }
         Err(e) => {
-            error!("Failed to update record in {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(RecordResponse {
-                    success: false,
-                    data: None,
-                    message: Some(e.to_string()),
-                }),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("update_record_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -644,16 +617,8 @@ pub async fn delete_record_handler(
                 .into_response()
         }
         Err(e) => {
-            error!("Failed to delete record from {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(DeleteResponse {
-                    success: false,
-                    deleted: 0,
-                    message: Some(e.to_string()),
-                }),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("delete_record_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -669,11 +634,8 @@ pub async fn count_records_handler(
     let mut conn = match state.conn.get() {
         Ok(c) => c,
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Database connection error: {e}") })),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, "count_records_db_connection", None);
+            return (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     };
 
@@ -688,12 +650,8 @@ pub async fn count_records_handler(
     match result {
         Ok(r) => (StatusCode::OK, Json(json!({ "count": r.count }))).into_response(),
         Err(e) => {
-            error!("Failed to count records in {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e.to_string() })),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, &format!("count_records_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     }
 }
@@ -719,11 +677,8 @@ pub async fn search_records_handler(
     let mut conn = match state.conn.get() {
         Ok(c) => c,
         Err(e) => {
-            return (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": format!("Database connection error: {e}") })),
-            )
-                .into_response()
+            let sanitized = log_and_sanitize(&e, "search_records_db_connection", None);
+            return (StatusCode::INTERNAL_SERVER_ERROR, sanitized).into_response()
         }
     };
 
@@ -755,11 +710,8 @@ pub async fn search_records_handler(
             (StatusCode::OK, Json(json!({ "data": filtered_data }))).into_response()
         }
         Err(e) => {
-            error!("Failed to search in {table_name}: {e}");
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(json!({ "error": e.to_string() })),
-            )
+            let sanitized = log_and_sanitize(&e, &format!("search_records_{}", table_name), None);
+            (StatusCode::INTERNAL_SERVER_ERROR, sanitized)
                 .into_response()
         }
     }

@@ -134,7 +134,13 @@ pub struct DataSet {
 }
 
 pub async fn collect_system_metrics(collector: &MetricsCollector, state: &AppState) {
-    let mut conn = state.conn.get().expect("failed to get db connection");
+    let mut conn = match state.conn.get() {
+        Ok(c) => c,
+        Err(e) => {
+            log::error!("Failed to get database connection for metrics: {}", e);
+            return;
+        }
+    };
 
     #[derive(QueryableByName)]
     struct CountResult {

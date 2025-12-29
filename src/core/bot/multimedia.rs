@@ -335,7 +335,9 @@ impl MultimediaHandler for DefaultMultimediaHandler {
         } else {
 
             let local_path = format!("./media/{}", key);
-            std::fs::create_dir_all(std::path::Path::new(&local_path).parent().expect("valid path"))?;
+            if let Some(parent) = std::path::Path::new(&local_path).parent() {
+                std::fs::create_dir_all(parent)?;
+            }
             std::fs::write(&local_path, request.data)?;
 
             Ok(MediaUploadResponse {
