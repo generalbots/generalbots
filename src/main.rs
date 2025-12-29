@@ -357,6 +357,10 @@ async fn run_axum_server(
             .handle(handle)
             .serve(app.into_make_service())
             .await
+            .map_err(|e| {
+                error!("HTTPS server failed on {}: {}", addr, e);
+                e
+            })
     } else {
         if disable_tls {
             info!("TLS disabled via BOTSERVER_DISABLE_TLS environment variable");
@@ -364,7 +368,13 @@ async fn run_axum_server(
             warn!("TLS certificates not found, using HTTP");
         }
 
-        let listener = tokio::net::TcpListener::bind(addr).await?;
+        let listener = match tokio::net::TcpListener::bind(addr).await {
+            Ok(l) => l,
+            Err(e) => {
+                error!("Failed to bind to {}: {} - is another instance running?", addr, e);
+                return Err(e);
+            }
+        };
         info!("HTTP server listening on {}", addr);
         axum::serve(listener, app.into_make_service())
             .with_graceful_shutdown(shutdown_signal())
@@ -914,7 +924,10 @@ async fn main() -> std::io::Result<()> {
     trace!("Initial data setup task spawned");
 
     trace!("Starting HTTP server on port {}...", config.server.port);
-    run_axum_server(app_state, config.server.port, worker_count).await?;
+    if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
+        error!("Failed to start HTTP server: {}", e);
+        return Err(e);
+    }
 
     if let Some(handle) = ui_handle {
         handle.join().ok();
