@@ -251,8 +251,8 @@ impl PackageManager {
                     ("MINIO_ROOT_PASSWORD".to_string(), "$DRIVE_SECRET".to_string()),
                 ]),
                 data_download_list: Vec::new(),
-                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "curl -sf http://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
+                check_cmd: "curl -sfk https://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -801,7 +801,7 @@ impl PackageManager {
             ComponentConfig {
                 name: "vector_db".to_string(),
 
-                ports: vec![6333],
+                ports: vec![6334],
                 dependencies: vec![],
                 linux_packages: vec![],
                 macos_packages: vec![],
@@ -818,8 +818,8 @@ impl PackageManager {
                 post_install_cmds_windows: vec![],
                 env_vars: HashMap::new(),
                 data_download_list: Vec::new(),
-                exec_cmd: "{{BIN_PATH}}/qdrant --storage-path {{DATA_PATH}} --enable-tls --cert {{CONF_PATH}}/system/certificates/qdrant/server.crt --key {{CONF_PATH}}/system/certificates/qdrant/server.key".to_string(),
-                check_cmd: "curl -f -k --connect-timeout 2 -m 5 https://localhost:6334/metrics >/dev/null 2>&1".to_string(),
+                exec_cmd: "nohup {{BIN_PATH}}/qdrant --config-path {{CONF_PATH}}/vector_db/config.yaml > {{LOGS_PATH}}/qdrant.log 2>&1 &".to_string(),
+                check_cmd: "curl -sfk https://localhost:6333/collections >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -1161,6 +1161,19 @@ EOF"#.to_string(),
 
         if vault_token.is_empty() {
             warn!("VAULT_TOKEN not set, cannot fetch credentials from Vault");
+            return credentials;
+        }
+
+        // Check if Vault is reachable before trying to fetch credentials
+        let vault_check = std::process::Command::new("sh")
+            .arg("-c")
+            .arg(format!("curl -sf {}/v1/sys/health >/dev/null 2>&1", vault_addr))
+            .status()
+            .map(|s| s.success())
+            .unwrap_or(false);
+
+        if !vault_check {
+            trace!("Vault not reachable at {}, skipping credential fetch", vault_addr);
             return credentials;
         }
 

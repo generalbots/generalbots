@@ -209,9 +209,7 @@ impl TlsIntegration {
                 builder = builder.identity(identity.clone());
             }
 
-            if cfg!(debug_assertions) {
-                builder = builder.danger_accept_invalid_certs(true);
-            }
+
 
             if self.https_only {
                 builder = builder.https_only(true);

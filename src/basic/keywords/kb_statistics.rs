@@ -1,5 +1,7 @@
+use crate::config::ConfigManager;
 use crate::shared::models::UserSession;
 use crate::shared::state::AppState;
+use crate::shared::utils::create_tls_client;
 use log::{error, trace};
 use rhai::{Dynamic, Engine};
 use serde::{Deserialize, Serialize};
@@ -225,11 +227,11 @@ async fn get_kb_statistics(
     state: &AppState,
     user: &UserSession,
 ) -> Result<KBStatistics, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url =
-        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()?;
+    let config_manager = ConfigManager::new(state.conn.clone());
+    let qdrant_url = config_manager
+        .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
+        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let client = create_tls_client(Some(30));
 
     let collections_response = client
         .get(format!("{}/collections", qdrant_url))
@@ -277,14 +279,14 @@ async fn get_kb_statistics(
 }
 
 async fn get_collection_statistics(
-    _state: &AppState,
+    state: &AppState,
     collection_name: &str,
 ) -> Result<CollectionStats, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url =
-        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()?;
+    let config_manager = ConfigManager::new(state.conn.clone());
+    let qdrant_url = config_manager
+        .get_config(&uuid::Uuid::nil(), "vectordb-url", Some("https://localhost:6333"))
+        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let client = create_tls_client(Some(30));
 
     let response = client
         .get(format!("{}/collections/{}", qdrant_url, collection_name))
@@ -362,14 +364,14 @@ fn get_documents_added_since(
 }
 
 async fn list_collections(
-    _state: &AppState,
+    state: &AppState,
     user: &UserSession,
 ) -> Result<Vec<String>, Box<dyn std::error::Error + Send + Sync>> {
-    let qdrant_url =
-        std::env::var("QDRANT_URL").unwrap_or_else(|_| "https://localhost:6334".to_string());
-    let client = reqwest::Client::builder()
-        .danger_accept_invalid_certs(true)
-        .build()?;
+    let config_manager = ConfigManager::new(state.conn.clone());
+    let qdrant_url = config_manager
+        .get_config(&user.bot_id, "vectordb-url", Some("https://localhost:6333"))
+        .unwrap_or_else(|_| "https://localhost:6333".to_string());
+    let client = create_tls_client(Some(30));
 
     let response = client
         .get(format!("{}/collections", qdrant_url))

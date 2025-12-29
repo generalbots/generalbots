@@ -1,6 +1,7 @@
 use crate::core::secrets::SecretsManager;
 use crate::security::auth::{AuthConfig, AuthError, AuthenticatedUser, BotAccess, Permission, Role};
-use anyhow::{anyhow, Result};
+use crate::shared::utils::create_tls_client;
+use anyhow::Result;
 use axum::{
     body::Body,
     http::{header, Request},
@@ -203,15 +204,7 @@ struct ServiceToken {
 
 impl ZitadelAuthProvider {
     pub fn new(config: ZitadelAuthConfig) -> Result<Self> {
-        let http_client = reqwest::Client::builder()
-            .timeout(std::time::Duration::from_secs(30))
-            .danger_accept_invalid_certs(
-                std::env::var("ZITADEL_SKIP_TLS_VERIFY")
-                    .map(|v| v == "true" || v == "1")
-                    .unwrap_or(false),
-            )
-            .build()
-            .map_err(|e| anyhow!("Failed to create HTTP client: {}", e))?;
+        let http_client = create_tls_client(Some(30));
 
         Ok(Self {
             config,
