@@ -113,17 +113,21 @@ fn print_shutdown_message() {
 
 async fn shutdown_signal() {
     let ctrl_c = async {
-        tokio::signal::ctrl_c()
-            .await
-            .expect("Failed to install Ctrl+C handler");
+        if let Err(e) = tokio::signal::ctrl_c().await {
+            error!("Failed to install Ctrl+C handler: {}", e);
+        }
     };
 
     #[cfg(unix)]
     let terminate = async {
-        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
-            .expect("Failed to install SIGTERM handler")
-            .recv()
-            .await;
+        match tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate()) {
+            Ok(mut signal) => {
+                signal.recv().await;
+            }
+            Err(e) => {
+                error!("Failed to install SIGTERM handler: {}", e);
+            }
+        }
     };
 
     #[cfg(not(unix))]
@@ -477,7 +481,7 @@ async fn main() -> std::io::Result<()> {
                             eprintln!("UI error: {e}");
                         }
                     })
-                    .expect("Failed to spawn UI thread"),
+                    .map_err(|e| std::io::Error::other(format!("Failed to spawn UI thread: {}", e)))?,
             )
         }
         #[cfg(not(feature = "console"))]
@@ -562,15 +566,23 @@ async fn main() -> std::io::Result<()> {
             match create_conn() {
                 Ok(pool) => {
                     trace!("Database connection successful, loading config from database");
-                    AppConfig::from_database(&pool)
-                        .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config"))
+                    AppConfig::from_database(&pool).unwrap_or_else(|e| {
+                        warn!("Failed to load config from database: {}, trying env", e);
+                        AppConfig::from_env().unwrap_or_else(|env_e| {
+                            error!("Failed to load config from env: {}", env_e);
+                            AppConfig::default()
+                        })
+                    })
                 }
                 Err(e) => {
                     trace!(
                         "Database connection failed: {:?}, loading config from env",
                         e
                     );
-                    AppConfig::from_env().expect("Failed to load config from env")
+                    AppConfig::from_env().unwrap_or_else(|e| {
+                        error!("Failed to load config from env: {}", e);
+                        AppConfig::default()
+                    })
                 }
             }
         } else {
@@ -590,9 +602,17 @@ async fn main() -> std::io::Result<()> {
             bootstrap.start_all().await.map_err(std::io::Error::other)?;
 
             match create_conn() {
-                Ok(pool) => AppConfig::from_database(&pool)
-                    .unwrap_or_else(|_| AppConfig::from_env().expect("Failed to load config")),
-                Err(_) => AppConfig::from_env().expect("Failed to load config from env"),
+                Ok(pool) => AppConfig::from_database(&pool).unwrap_or_else(|e| {
+                    warn!("Failed to load config from database: {}, trying env", e);
+                    AppConfig::from_env().unwrap_or_else(|env_e| {
+                        error!("Failed to load config from env: {}", env_e);
+                        AppConfig::default()
+                    })
+                }),
+                Err(_) => AppConfig::from_env().unwrap_or_else(|e| {
+                    error!("Failed to load config from env: {}", e);
+                    AppConfig::default()
+                }),
             }
         };
 
@@ -669,7 +689,10 @@ async fn main() -> std::io::Result<()> {
             "Failed to load config from database: {}, falling back to env",
             e
         );
-        AppConfig::from_env().expect("Failed to load config from env")
+        AppConfig::from_env().unwrap_or_else(|e| {
+            error!("Failed to load config from env: {}", e);
+            AppConfig::default()
+        })
     });
     let config = std::sync::Arc::new(refreshed_cfg.clone());
     info!(
@@ -691,10 +714,10 @@ async fn main() -> std::io::Result<()> {
 
     let drive = create_s3_operator(&config.drive)
         .await
-        .expect("Failed to initialize Drive");
+        .map_err(|e| std::io::Error::other(format!("Failed to initialize Drive: {}", e)))?;
 
     let session_manager = Arc::new(tokio::sync::Mutex::new(session::SessionManager::new(
-        pool.get().expect("failed to get database connection"),
+        pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?,
         redis_client.clone(),
     )));
 
@@ -711,11 +734,11 @@ async fn main() -> std::io::Result<()> {
     };
     #[cfg(feature = "directory")]
     let auth_service = Arc::new(tokio::sync::Mutex::new(
-        botserver::directory::AuthService::new(zitadel_config).expect("failed to create auth service"),
+        botserver::directory::AuthService::new(zitadel_config).map_err(|e| std::io::Error::other(format!("Failed to create auth service: {}", e)))?,
     ));
     let config_manager = ConfigManager::new(pool.clone());
 
-    let mut bot_conn = pool.get().expect("Failed to get database connection");
+    let mut bot_conn = pool.get().map_err(|e| std::io::Error::other(format!("Failed to get database connection: {}", e)))?;
     let (default_bot_id, default_bot_name) = crate::bot::get_default_bot(&mut bot_conn);
     info!(
         "Using default bot: {} (id: {})",

@@ -231,7 +231,13 @@ pub fn use_model_keyword(state: Arc<AppState>, user: UserSession, engine: &mut E
             let (tx, rx) = std::sync::mpsc::channel();
 
             std::thread::spawn(move || {
-                let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                let _rt = match tokio::runtime::Runtime::new() {
+                    Ok(rt) => rt,
+                    Err(e) => {
+                        let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                        return;
+                    }
+                };
                 let result = set_session_model(&state_for_task, session_id, &model_name_clone);
                 let _ = tx.send(result);
             });

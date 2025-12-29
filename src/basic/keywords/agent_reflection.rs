@@ -868,7 +868,13 @@ pub fn set_bot_reflection_keyword(state: Arc<AppState>, user: UserSession, engin
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let _rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = set_reflection_enabled(&state_for_task, bot_id, enabled);
                     let _ = tx.send(result);
                 });
@@ -919,7 +925,13 @@ pub fn reflect_on_keyword(state: Arc<AppState>, user: UserSession, engine: &mut 
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let engine = ReflectionEngine::new(state_for_task, bot_id);
                         engine.reflect(session_id, reflection_type).await
@@ -952,7 +964,13 @@ pub fn get_reflection_insights_keyword(
         let state = Arc::clone(&state_clone);
         let bot_id = user_clone.bot_id;
 
-        let _rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+        let _rt = match tokio::runtime::Runtime::new() {
+            Ok(rt) => rt,
+            Err(e) => {
+                log::error!("Failed to create runtime: {}", e);
+                return rhai::Array::new();
+            }
+        };
         let result = {
             let engine = ReflectionEngine::new(state, bot_id);
             engine.get_insights(10)

@@ -177,8 +177,8 @@ impl OAuthState {
         let token = uuid::Uuid::new_v4().to_string();
         let created_at = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("system time after UNIX epoch")
-            .as_secs() as i64;
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
 
         Self {
             token,
@@ -193,8 +193,8 @@ impl OAuthState {
 
         let now = SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("system time after UNIX epoch")
-            .as_secs() as i64;
+            .map(|d| d.as_secs() as i64)
+            .unwrap_or(0);
 
         now - self.created_at > 600
     }

@@ -80,7 +80,10 @@ impl KbIndexer {
         let http_client = reqwest::Client::builder()
             .timeout(std::time::Duration::from_secs(qdrant_config.timeout_secs))
             .build()
-            .expect("Failed to create HTTP client");
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                reqwest::Client::new()
+            });
 
         Self {
             document_processor,

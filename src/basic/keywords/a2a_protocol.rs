@@ -262,7 +262,13 @@ pub fn send_to_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mut
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         send_a2a_message(
                             &state_for_task,
@@ -317,7 +323,13 @@ pub fn broadcast_message_keyword(state: Arc<AppState>, user: UserSession, engine
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         send_a2a_message(
                             &state_for_task,
@@ -388,7 +400,13 @@ pub fn collaborate_with_keyword(state: Arc<AppState>, user: UserSession, engine:
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         let mut message_ids = Vec::new();
                         for target_bot in &bots {
@@ -470,7 +488,13 @@ pub fn wait_for_bot_keyword(state: Arc<AppState>, user: UserSession, engine: &mu
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         wait_for_bot_response(
                             &state_for_task,
@@ -524,7 +548,13 @@ pub fn delegate_conversation_keyword(state: Arc<AppState>, user: UserSession, en
                 let (tx, rx) = std::sync::mpsc::channel();
 
                 std::thread::spawn(move || {
-                    let rt = tokio::runtime::Runtime::new().expect("Failed to create runtime");
+                    let rt = match tokio::runtime::Runtime::new() {
+                        Ok(rt) => rt,
+                        Err(e) => {
+                            let _ = tx.send(Err(format!("Failed to create runtime: {}", e)));
+                            return;
+                        }
+                    };
                     let result = rt.block_on(async {
                         send_a2a_message(
                             &state_for_task,

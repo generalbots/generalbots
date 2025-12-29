@@ -685,7 +685,7 @@ pub fn get_attendant_stats_impl(state: &Arc<AppState>, attendant_id: &str) -> Dy
         use crate::shared::models::schema::user_sessions;
 
         let today = Utc::now().date_naive();
-        let today_start = today.and_hms_opt(0, 0, 0).unwrap_or_else(|| today.and_hms_opt(0, 0, 1).expect("valid fallback time"));
+        let today_start = today.and_hms_opt(0, 0, 0).unwrap_or_else(|| today.and_hms_opt(0, 0, 1).unwrap_or_default());
 
         let resolved_today: i64 = user_sessions::table
             .filter(

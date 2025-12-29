@@ -349,19 +349,15 @@ fn parse_due_date(due_date: &str) -> Result<Option<DateTime<Utc>>, String> {
     }
 
     if due_lower == "today" {
-        return Ok(Some(
-            now.date_naive().and_hms_opt(0, 0, 0).expect("valid time").and_utc(),
-        ));
+        if let Some(time) = now.date_naive().and_hms_opt(0, 0, 0) {
+            return Ok(Some(time.and_utc()));
+        }
     }
 
     if due_lower == "tomorrow" {
-        return Ok(Some(
-            (now + Duration::days(1))
-                .date_naive()
-                .and_hms_opt(17, 0, 0)
-                .expect("valid time 17:00:00")
-                .and_utc(),
-        ));
+        if let Some(time) = (now + Duration::days(1)).date_naive().and_hms_opt(17, 0, 0) {
+            return Ok(Some(time.and_utc()));
+        }
     }
 
     if due_lower.contains("next week") {
@@ -373,7 +369,9 @@ fn parse_due_date(due_date: &str) -> Result<Option<DateTime<Utc>>, String> {
     }
 
     if let Ok(date) = NaiveDate::parse_from_str(&due_date, "%Y-%m-%d") {
-        return Ok(Some(date.and_hms_opt(0, 0, 0).expect("valid time").and_utc()));
+        if let Some(time) = date.and_hms_opt(0, 0, 0) {
+            return Ok(Some(time.and_utc()));
+        }
     }
 
     Ok(Some(now + Duration::days(3)))

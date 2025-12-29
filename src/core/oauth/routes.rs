@@ -381,7 +381,7 @@ async fn oauth_callback(
 
     Response::builder()
         .status(StatusCode::SEE_OTHER)
-        .header(header::LOCATION, redirect_url)
+        .header(header::LOCATION, redirect_url.clone())
         .header(
             header::SET_COOKIE,
             format!(
@@ -390,7 +390,13 @@ async fn oauth_callback(
             ),
         )
         .body(axum::body::Body::empty())
-        .expect("valid response")
+        .unwrap_or_else(|e| {
+            log::error!("Failed to build OAuth redirect response: {}", e);
+            Response::builder()
+                .status(StatusCode::INTERNAL_SERVER_ERROR)
+                .body(axum::body::Body::empty())
+                .unwrap_or_default()
+        })
 }
 
 async fn get_bot_config(state: &AppState) -> HashMap<String, String> {

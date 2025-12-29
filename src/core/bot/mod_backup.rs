@@ -274,8 +274,11 @@ pub async fn websocket_handler(
             .into_response();
     }
 
+    let session_id = session_id.unwrap_or_default();
+    let user_id = user_id.unwrap_or_default();
+
     ws.on_upgrade(move |socket| {
-        handle_websocket(socket, state, session_id.expect("session_id required"), user_id.expect("user_id required"))
+        handle_websocket(socket, state, session_id, user_id)
     })
     .into_response()
 }

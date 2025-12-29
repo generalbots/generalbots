@@ -466,7 +466,11 @@ impl UserDriveVectorDB {
 
         let info = client.collection_info(self.collection_name.clone()).await?;
 
-        Ok(info.result.expect("valid result").points_count.unwrap_or(0))
+        Ok(info
+            .result
+            .ok_or_else(|| anyhow::anyhow!("No result from collection info"))?
+            .points_count
+            .unwrap_or(0))
     }
 
     #[cfg(not(feature = "vectordb"))]

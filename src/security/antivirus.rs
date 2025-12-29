@@ -2,10 +2,11 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 use tracing::{info, warn};
+
+use super::command_guard::SafeCommand;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
@@ -172,19 +173,20 @@ impl AntivirusManager {
 
     #[cfg(target_os = "windows")]
     fn check_windows_defender_status() -> bool {
-        let output = Command::new("powershell")
-            .args([
-                "-Command",
-                "Get-MpPreference | Select-Object -ExpandProperty DisableRealtimeMonitoring",
-            ])
-            .output();
+        let result = SafeCommand::new("powershell")
+            .and_then(|cmd| cmd.arg("-Command"))
+            .and_then(|cmd| cmd.arg("Get-MpPreference | Select-Object -ExpandProperty DisableRealtimeMonitoring"))
+            .and_then(|cmd| cmd.execute());
 
-        match output {
+        match result {
             Ok(output) => {
                 let result = String::from_utf8_lossy(&output.stdout);
                 !result.trim().eq_ignore_ascii_case("true")
             }
-            Err(_) => false,
+            Err(e) => {
+                warn!("Failed to check Windows Defender status: {}", e);
+                false
+            }
         }
     }
 
@@ -388,13 +390,13 @@ impl AntivirusManager {
             });
 
         if !clamscan.exists() {
-            let output = Command::new("which")
-                .arg("clamscan")
-                .output()
+            let output = SafeCommand::new("which")
+                .and_then(|cmd| cmd.arg("clamscan"))
+                .and_then(|cmd| cmd.execute())
                 .unwrap_or_else(|_| {
-                    Command::new("where")
-                        .arg("clamscan")
-                        .output()
+                    SafeCommand::new("where")
+                        .and_then(|cmd| cmd.arg("clamscan"))
+                        .and_then(|cmd| cmd.execute())
                         .unwrap_or_else(|_| std::process::Output {
                             status: std::process::ExitStatus::default(),
                             stdout: vec![],
@@ -409,20 +411,35 @@ impl AntivirusManager {
             }
         }
 
-        let mut cmd = Command::new(&clamscan);
-        cmd.arg("-r").arg("--infected").arg("--no-summary");
+        let mut safe_cmd = SafeCommand::new("clamscan")
+            .map_err(|e| anyhow::anyhow!("Failed to create safe command: {}", e))?;
+
+        safe_cmd = safe_cmd
+            .arg("-r")
+            .and_then(|cmd| cmd.arg("--infected"))
+            .and_then(|cmd| cmd.arg("--no-summary"))
+            .map_err(|e| anyhow::anyhow!("Failed to add arguments: {}", e))?;
 
         if config.scan_archives {
-            cmd.arg("--scan-archive=yes");
+            safe_cmd = safe_cmd
+                .arg("--scan-archive=yes")
+                .map_err(|e| anyhow::anyhow!("Failed to add archive arg: {}", e))?;
         }
 
         for excluded in &config.excluded_paths {
-            cmd.arg(format!("--exclude-dir={}", excluded.display()));
+            let exclude_arg = format!("--exclude-dir={}", excluded.display());
+            safe_cmd = safe_cmd
+                .arg(&exclude_arg)
+                .map_err(|e| anyhow::anyhow!("Failed to add exclude arg: {}", e))?;
         }
 
-        cmd.arg(path);
+        safe_cmd = safe_cmd
+            .arg(path)
+            .map_err(|e| anyhow::anyhow!("Failed to add path arg: {}", e))?;
 
-        let output = cmd.output().context("Failed to run ClamAV scan")?;
+        let output = safe_cmd
+            .execute()
+            .map_err(|e| anyhow::anyhow!("Failed to run ClamAV scan: {}", e))?;
 
         let stdout = String::from_utf8_lossy(&output.stdout);
         let mut threats = Vec::new();
@@ -665,9 +682,9 @@ impl AntivirusManager {
             "freshclam"
         };
 
-        let output = Command::new(freshclam)
-            .output()
-            .context("Failed to run freshclam")?;
+        let output = SafeCommand::new(freshclam)
+            .and_then(|cmd| cmd.execute())
+            .map_err(|e| anyhow::anyhow!("Failed to run freshclam: {}", e))?;
 
         if output.status.success() {
             let mut status = self.protection_status.write().await;

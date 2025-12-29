@@ -362,7 +362,10 @@ async fn broadcast_message(
     let mut results = Vec::new();
 
     if recipients.is_array() {
-        let recipient_list = recipients.into_array().expect("expected array");
+        let recipient_list = match recipients.into_array() {
+            Ok(arr) => arr,
+            Err(_) => return Ok(Dynamic::from("[]")),
+        };
 
         for recipient in recipient_list {
             let recipient_str = recipient.to_string();

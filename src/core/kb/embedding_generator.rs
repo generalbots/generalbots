@@ -117,7 +117,10 @@ impl KbEmbeddingGenerator {
         let client = Client::builder()
             .timeout(std::time::Duration::from_secs(config.timeout_seconds))
             .build()
-            .expect("Failed to create HTTP client");
+            .unwrap_or_else(|e| {
+                log::warn!("Failed to create HTTP client with timeout: {}, using default", e);
+                Client::new()
+            });
 
         let semaphore = Arc::new(Semaphore::new(4));
 
