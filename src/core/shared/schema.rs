@@ -1,173 +1,83 @@
-
-
-
-
-diesel::table! {
-    organizations (org_id) {
-        org_id -> Uuid,
-        name -> Text,
-        slug -> Text,
-        created_at -> Timestamptz,
-    }
-}
+// @generated automatically by Diesel CLI.
+// This schema matches the consolidated migration 20250101000000_consolidated_schema
 
 diesel::table! {
-    bots (id) {
-        id -> Uuid,
-        name -> Varchar,
-        description -> Nullable<Text>,
-        llm_provider -> Varchar,
-        llm_config -> Jsonb,
-        context_provider -> Varchar,
-        context_config -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+    shard_config (shard_id) {
+        shard_id -> Int2,
+        region_code -> Bpchar,
+        datacenter -> Varchar,
+        connection_string -> Text,
+        is_primary -> Nullable<Bool>,
         is_active -> Nullable<Bool>,
-        tenant_id -> Nullable<Uuid>,
+        min_tenant_id -> Int8,
+        max_tenant_id -> Int8,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    system_automations (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        kind -> Int4,
-        target -> Nullable<Text>,
-        schedule -> Nullable<Text>,
-        param -> Text,
-        is_active -> Bool,
-        last_triggered -> Nullable<Timestamptz>,
+    tenant_shard_map (tenant_id) {
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        region_code -> Bpchar,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    user_sessions (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        bot_id -> Uuid,
-        title -> Text,
-        context_data -> Jsonb,
-        current_tool -> Nullable<Text>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    message_history (id) {
-        id -> Uuid,
-        session_id -> Uuid,
-        user_id -> Uuid,
-        role -> Int4,
-        content_encrypted -> Text,
-        message_type -> Int4,
-        message_index -> Int8,
-        created_at -> Timestamptz,
+    tenants (id) {
+        id -> Int8,
+        shard_id -> Int2,
+        external_id -> Nullable<Uuid>,
+        name -> Varchar,
+        slug -> Varchar,
+        region_code -> Bpchar,
+        plan_tier -> Int2,
+        settings -> Nullable<Jsonb>,
+        limits -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     users (id) {
         id -> Uuid,
-        username -> Text,
-        email -> Text,
-        password_hash -> Text,
-        is_active -> Bool,
-        is_admin -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        username -> Varchar,
+        email -> Varchar,
+        password_hash -> Nullable<Varchar>,
+        phone_number -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
+        avatar_url -> Nullable<Varchar>,
+        locale -> Nullable<Bpchar>,
+        timezone -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        last_login_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    clicks (id) {
+    bots (id) {
         id -> Uuid,
-        campaign_id -> Text,
-        email -> Text,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    bot_memories (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        key -> Text,
-        value -> Text,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    kb_documents (id) {
-        id -> Text,
-        bot_id -> Text,
-        user_id -> Text,
-        collection_name -> Text,
-        file_path -> Text,
-        file_size -> Integer,
-        file_hash -> Text,
-        first_published_at -> Text,
-        last_modified_at -> Text,
-        indexed_at -> Nullable<Text>,
-        metadata -> Text,
-        created_at -> Text,
-        updated_at -> Text,
-    }
-}
-
-diesel::table! {
-    basic_tools (id) {
-        id -> Text,
-        bot_id -> Text,
-        tool_name -> Text,
-        file_path -> Text,
-        ast_path -> Text,
-        file_hash -> Text,
-        mcp_json -> Nullable<Text>,
-        tool_json -> Nullable<Text>,
-        compiled_at -> Text,
-        is_active -> Integer,
-        created_at -> Text,
-        updated_at -> Text,
-    }
-}
-
-diesel::table! {
-    kb_collections (id) {
-        id -> Text,
-        bot_id -> Text,
-        user_id -> Text,
-        name -> Text,
-        folder_path -> Text,
-        qdrant_collection -> Text,
-        document_count -> Integer,
-        is_active -> Integer,
-        created_at -> Text,
-        updated_at -> Text,
-    }
-}
-
-diesel::table! {
-    user_kb_associations (id) {
-        id -> Text,
-        user_id -> Text,
-        bot_id -> Text,
-        kb_name -> Text,
-        is_website -> Integer,
-        website_url -> Nullable<Text>,
-        created_at -> Text,
-        updated_at -> Text,
-    }
-}
-
-diesel::table! {
-    session_tool_associations (id) {
-        id -> Text,
-        session_id -> Text,
-        tool_name -> Text,
-        added_at -> Text,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        llm_provider -> Int2,
+        llm_config -> Nullable<Jsonb>,
+        context_provider -> Int2,
+        context_config -> Nullable<Jsonb>,
+        system_prompt -> Nullable<Text>,
+        personality -> Nullable<Jsonb>,
+        capabilities -> Nullable<Jsonb>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
@@ -175,311 +85,674 @@ diesel::table! {
     bot_configuration (id) {
         id -> Uuid,
         bot_id -> Uuid,
-        config_key -> Text,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        config_key -> Varchar,
         config_value -> Text,
-        is_encrypted -> Bool,
-        config_type -> Text,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        value_type -> Int2,
+        is_secret -> Nullable<Bool>,
+        vault_path -> Nullable<Varchar>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    user_email_accounts (id) {
+    bot_channels (id) {
         id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        channel_type -> Int2,
+        channel_identifier -> Nullable<Varchar>,
+        config -> Nullable<Jsonb>,
+        credentials_vault_path -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        last_activity_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    user_sessions (id) {
+        id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
         user_id -> Uuid,
-        email -> Varchar,
-        display_name -> Nullable<Varchar>,
-        imap_server -> Varchar,
-        imap_port -> Int4,
-        smtp_server -> Varchar,
-        smtp_port -> Int4,
-        username -> Varchar,
-        password_encrypted -> Text,
-        is_primary -> Bool,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        bot_id -> Uuid,
+        channel_type -> Int2,
+        title -> Nullable<Varchar>,
+        context_data -> Nullable<Jsonb>,
+        current_tool -> Nullable<Varchar>,
+        answer_mode -> Nullable<Int2>,
+        message_count -> Nullable<Int4>,
+        total_tokens -> Nullable<Int4>,
+        last_activity_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_drafts (id) {
+    message_history (id) {
         id -> Uuid,
+        session_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
         user_id -> Uuid,
-        account_id -> Uuid,
-        to_address -> Text,
-        cc_address -> Nullable<Text>,
-        bcc_address -> Nullable<Text>,
-        subject -> Nullable<Varchar>,
-        body -> Nullable<Text>,
-        attachments -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        role -> Int2,
+        message_type -> Int2,
+        content_encrypted -> Text,
+        content_hash -> Nullable<Bpchar>,
+        media_url -> Nullable<Varchar>,
+        metadata -> Nullable<Jsonb>,
+        token_count -> Nullable<Int4>,
+        processing_time_ms -> Nullable<Int4>,
+        llm_model -> Nullable<Varchar>,
+        message_index -> Int4,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_folders (id) {
+    bot_memories (id) {
         id -> Uuid,
-        account_id -> Uuid,
-        folder_name -> Varchar,
-        folder_path -> Varchar,
-        unread_count -> Int4,
-        total_count -> Int4,
-        last_synced -> Nullable<Timestamptz>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        user_id -> Nullable<Uuid>,
+        session_id -> Nullable<Uuid>,
+        memory_type -> Int2,
+        content -> Text,
+        embedding_id -> Nullable<Varchar>,
+        importance_score -> Nullable<Float4>,
+        access_count -> Nullable<Int4>,
+        last_accessed_at -> Nullable<Timestamptz>,
+        expires_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    user_preferences (id) {
+    auto_tasks (id) {
         id -> Uuid,
-        user_id -> Uuid,
-        preference_key -> Varchar,
-        preference_value -> Jsonb,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        session_id -> Nullable<Uuid>,
+        title -> Varchar,
+        intent -> Text,
+        status -> Int2,
+        execution_mode -> Int2,
+        priority -> Int2,
+        plan_id -> Nullable<Uuid>,
+        basic_program -> Nullable<Text>,
+        current_step -> Nullable<Int4>,
+        total_steps -> Nullable<Int4>,
+        progress -> Nullable<Float4>,
+        step_results -> Nullable<Jsonb>,
+        error_message -> Nullable<Text>,
+        started_at -> Nullable<Timestamptz>,
+        completed_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    user_login_tokens (id) {
+    execution_plans (id) {
         id -> Uuid,
-        user_id -> Uuid,
-        token_hash -> Varchar,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        task_id -> Nullable<Uuid>,
+        intent -> Text,
+        intent_type -> Nullable<Int2>,
+        confidence -> Nullable<Float4>,
+        status -> Int2,
+        steps -> Jsonb,
+        context -> Nullable<Jsonb>,
+        basic_program -> Nullable<Text>,
+        simulation_result -> Nullable<Jsonb>,
+        risk_level -> Nullable<Int2>,
+        approved_by -> Nullable<Uuid>,
+        approved_at -> Nullable<Timestamptz>,
+        executed_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    task_approvals (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        task_id -> Uuid,
+        plan_id -> Nullable<Uuid>,
+        step_index -> Nullable<Int4>,
+        action_type -> Varchar,
+        action_description -> Text,
+        risk_level -> Nullable<Int2>,
+        status -> Int2,
+        decision -> Nullable<Int2>,
+        decision_reason -> Nullable<Text>,
+        decided_by -> Nullable<Uuid>,
+        decided_at -> Nullable<Timestamptz>,
+        expires_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    task_decisions (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        task_id -> Uuid,
+        question -> Text,
+        options -> Jsonb,
+        context -> Nullable<Jsonb>,
+        status -> Int2,
+        selected_option -> Nullable<Varchar>,
+        decision_reason -> Nullable<Text>,
+        decided_by -> Nullable<Uuid>,
+        decided_at -> Nullable<Timestamptz>,
+        timeout_seconds -> Nullable<Int4>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    safety_audit_log (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        task_id -> Nullable<Uuid>,
+        plan_id -> Nullable<Uuid>,
+        action_type -> Varchar,
+        action_details -> Jsonb,
+        constraint_checks -> Nullable<Jsonb>,
+        simulation_result -> Nullable<Jsonb>,
+        risk_assessment -> Nullable<Jsonb>,
+        outcome -> Int2,
+        error_message -> Nullable<Text>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    intent_classifications (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        session_id -> Nullable<Uuid>,
+        original_text -> Text,
+        intent_type -> Int2,
+        confidence -> Float4,
+        entities -> Nullable<Jsonb>,
+        suggested_name -> Nullable<Varchar>,
+        was_correct -> Nullable<Bool>,
+        corrected_type -> Nullable<Int2>,
+        feedback -> Nullable<Text>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    generated_apps (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        domain -> Nullable<Varchar>,
+        intent_source -> Nullable<Text>,
+        pages -> Nullable<Jsonb>,
+        tables_created -> Nullable<Jsonb>,
+        tools -> Nullable<Jsonb>,
+        schedulers -> Nullable<Jsonb>,
+        app_path -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    designer_changes (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        session_id -> Nullable<Uuid>,
+        change_type -> Int2,
+        description -> Text,
+        file_path -> Varchar,
+        original_content -> Text,
+        new_content -> Text,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    designer_pending_changes (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        session_id -> Nullable<Uuid>,
+        analysis_json -> Text,
+        instruction -> Text,
         expires_at -> Timestamptz,
-        created_at -> Timestamptz,
-        last_used -> Timestamptz,
-        user_agent -> Nullable<Text>,
-        ip_address -> Nullable<Varchar>,
-        is_active -> Bool,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    kb_collections (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Varchar,
+        description -> Nullable<Text>,
+        folder_path -> Nullable<Varchar>,
+        qdrant_collection -> Nullable<Varchar>,
+        document_count -> Nullable<Int4>,
+        chunk_count -> Nullable<Int4>,
+        total_tokens -> Nullable<Int4>,
+        last_indexed_at -> Nullable<Timestamptz>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    kb_documents (id) {
+        id -> Uuid,
+        collection_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        file_path -> Varchar,
+        file_name -> Varchar,
+        file_type -> Nullable<Varchar>,
+        file_size -> Nullable<Int8>,
+        content_hash -> Nullable<Bpchar>,
+        chunk_count -> Nullable<Int4>,
+        is_indexed -> Nullable<Bool>,
+        indexed_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    session_kb_associations (id) {
+        id -> Uuid,
+        session_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        bot_id -> Uuid,
+        kb_name -> Varchar,
+        kb_folder_path -> Nullable<Varchar>,
+        qdrant_collection -> Nullable<Varchar>,
+        added_by_tool -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        added_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    kb_sources (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Varchar,
+        source_type -> Varchar,
+        connection_config -> Jsonb,
+        sync_schedule -> Nullable<Varchar>,
+        last_sync_at -> Nullable<Timestamptz>,
+        sync_status -> Nullable<Int2>,
+        document_count -> Nullable<Int4>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    tools (id) {
+        id -> Uuid,
+        bot_id -> Nullable<Uuid>,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Varchar,
+        description -> Text,
+        parameters -> Nullable<Jsonb>,
+        script -> Text,
+        tool_type -> Nullable<Varchar>,
+        is_system -> Nullable<Bool>,
+        is_active -> Nullable<Bool>,
+        usage_count -> Nullable<Int8>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    system_automations (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        name -> Nullable<Varchar>,
+        kind -> Int2,
+        target -> Nullable<Varchar>,
+        schedule -> Nullable<Varchar>,
+        param -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        last_triggered -> Nullable<Timestamptz>,
+        next_trigger -> Nullable<Timestamptz>,
+        run_count -> Nullable<Int8>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    pending_info (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        field_name -> Varchar,
+        field_label -> Varchar,
+        field_type -> Varchar,
+        reason -> Nullable<Text>,
+        config_key -> Varchar,
+        is_filled -> Nullable<Bool>,
+        filled_at -> Nullable<Timestamptz>,
+        filled_value -> Nullable<Text>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    usage_analytics (id) {
+        id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        user_id -> Uuid,
+        bot_id -> Uuid,
+        session_id -> Nullable<Uuid>,
+        date -> Date,
+        session_count -> Nullable<Int4>,
+        message_count -> Nullable<Int4>,
+        total_tokens -> Nullable<Int4>,
+        total_processing_time_ms -> Nullable<Int8>,
+        avg_response_time_ms -> Nullable<Int4>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    analytics_events (id) {
+        id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        user_id -> Nullable<Uuid>,
+        session_id -> Nullable<Uuid>,
+        bot_id -> Nullable<Uuid>,
+        event_type -> Varchar,
+        event_data -> Nullable<Jsonb>,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
     tasks (id) {
         id -> Uuid,
-        title -> Text,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        bot_id -> Nullable<Uuid>,
+        title -> Varchar,
         description -> Nullable<Text>,
-        status -> Text,
-        priority -> Text,
         assignee_id -> Nullable<Uuid>,
         reporter_id -> Nullable<Uuid>,
         project_id -> Nullable<Uuid>,
+        parent_task_id -> Nullable<Uuid>,
+        status -> Int2,
+        priority -> Int2,
         due_date -> Nullable<Timestamptz>,
-        tags -> Array<Text>,
-        dependencies -> Array<Uuid>,
-        estimated_hours -> Nullable<Float8>,
-        actual_hours -> Nullable<Float8>,
-        progress -> Int4,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        estimated_hours -> Nullable<Float4>,
+        actual_hours -> Nullable<Float4>,
+        progress -> Nullable<Int2>,
+        tags -> Nullable<Array<Nullable<Text>>>,
+        dependencies -> Nullable<Array<Nullable<Uuid>>>,
         completed_at -> Nullable<Timestamptz>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
-
-
 diesel::table! {
-    global_email_signatures (id) {
+    task_comments (id) {
         id -> Uuid,
-        bot_id -> Uuid,
-        name -> Varchar,
-        content_html -> Text,
-        content_plain -> Text,
-        position -> Varchar,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        task_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        author_id -> Uuid,
+        content -> Text,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_signatures (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        bot_id -> Nullable<Uuid>,
-        name -> Varchar,
-        content_html -> Text,
-        content_plain -> Text,
-        is_default -> Bool,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    scheduled_emails (id) {
+    connected_accounts (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
-        to_addresses -> Text,
-        cc_addresses -> Nullable<Text>,
-        bcc_addresses -> Nullable<Text>,
-        subject -> Text,
-        body_html -> Text,
-        body_plain -> Nullable<Text>,
-        attachments_json -> Text,
-        scheduled_at -> Timestamptz,
-        sent_at -> Nullable<Timestamptz>,
-        status -> Varchar,
-        retry_count -> Int4,
-        error_message -> Nullable<Text>,
-        created_at -> Timestamptz,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        provider -> Varchar,
+        provider_user_id -> Nullable<Varchar>,
+        email -> Nullable<Varchar>,
+        display_name -> Nullable<Varchar>,
+        access_token_vault -> Nullable<Varchar>,
+        refresh_token_vault -> Nullable<Varchar>,
+        token_expires_at -> Nullable<Timestamptz>,
+        scopes -> Nullable<Array<Nullable<Text>>>,
+        sync_status -> Nullable<Int2>,
+        last_sync_at -> Nullable<Timestamptz>,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_templates (id) {
+    session_account_associations (id) {
+        id -> Uuid,
+        session_id -> Uuid,
+        bot_id -> Uuid,
+        account_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        email -> Nullable<Varchar>,
+        provider -> Nullable<Varchar>,
+        qdrant_collection -> Nullable<Varchar>,
+        is_active -> Nullable<Bool>,
+        added_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    whatsapp_numbers (id) {
         id -> Uuid,
         bot_id -> Uuid,
-        user_id -> Nullable<Uuid>,
-        name -> Varchar,
-        description -> Nullable<Text>,
-        subject_template -> Text,
-        body_html_template -> Text,
-        body_plain_template -> Nullable<Text>,
-        variables_json -> Text,
-        category -> Nullable<Varchar>,
-        is_shared -> Bool,
-        usage_count -> Int4,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        phone_number -> Varchar,
+        is_active -> Nullable<Bool>,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
 diesel::table! {
-    email_auto_responders (id) {
+    clicks (campaign_id, email) {
+        campaign_id -> Varchar,
+        email -> Varchar,
+        tenant_id -> Int8,
+        click_count -> Nullable<Int4>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    table_role_access (id) {
+        id -> Uuid,
+        bot_id -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        table_name -> Varchar,
+        role_name -> Varchar,
+        can_read -> Nullable<Bool>,
+        can_write -> Nullable<Bool>,
+        can_delete -> Nullable<Bool>,
+        row_filter -> Nullable<Jsonb>,
+        column_filter -> Nullable<Array<Nullable<Text>>>,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    context_injections (id) {
+        id -> Uuid,
+        session_id -> Uuid,
+        injected_by -> Uuid,
+        tenant_id -> Int8,
+        shard_id -> Int2,
+        context_data -> Jsonb,
+        reason -> Nullable<Text>,
+        created_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    organizations (org_id) {
+        org_id -> Uuid,
+        tenant_id -> Int8,
+        name -> Varchar,
+        slug -> Varchar,
+        created_at -> Nullable<Timestamptz>,
+        updated_at -> Nullable<Timestamptz>,
+    }
+}
+
+diesel::table! {
+    user_organizations (id) {
         id -> Uuid,
         user_id -> Uuid,
-        bot_id -> Uuid,
-        responder_type -> Varchar,
-        subject -> Text,
-        body_html -> Text,
-        body_plain -> Nullable<Text>,
-        start_date -> Nullable<Timestamptz>,
-        end_date -> Nullable<Timestamptz>,
-        send_to_internal_only -> Bool,
-        exclude_addresses -> Nullable<Text>,
-        is_active -> Bool,
-        stalwart_sieve_id -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
+        org_id -> Uuid,
+        role -> Nullable<Varchar>,
+        created_at -> Nullable<Timestamptz>,
     }
 }
 
-diesel::table! {
-    email_rules (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        bot_id -> Uuid,
-        name -> Varchar,
-        priority -> Int4,
-        conditions_json -> Text,
-        actions_json -> Text,
-        stop_processing -> Bool,
-        is_active -> Bool,
-        stalwart_sieve_id -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    email_labels (id) {
-        id -> Uuid,
-        user_id -> Uuid,
-        bot_id -> Uuid,
-        name -> Varchar,
-        color -> Varchar,
-        parent_id -> Nullable<Uuid>,
-        is_system -> Bool,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    email_label_assignments (id) {
-        id -> Uuid,
-        email_message_id -> Varchar,
-        label_id -> Uuid,
-        assigned_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    distribution_lists (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        owner_id -> Uuid,
-        name -> Varchar,
-        email_alias -> Nullable<Varchar>,
-        description -> Nullable<Text>,
-        members_json -> Text,
-        is_public -> Bool,
-        stalwart_principal_id -> Nullable<Varchar>,
-        created_at -> Timestamptz,
-        updated_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    shared_mailboxes (id) {
-        id -> Uuid,
-        bot_id -> Uuid,
-        email_address -> Varchar,
-        display_name -> Varchar,
-        description -> Nullable<Text>,
-        settings_json -> Text,
-        stalwart_account_id -> Nullable<Varchar>,
-        is_active -> Bool,
-        created_at -> Timestamptz,
-    }
-}
-
-diesel::table! {
-    shared_mailbox_members (id) {
-        id -> Uuid,
-        mailbox_id -> Uuid,
-        user_id -> Uuid,
-        permission_level -> Varchar,
-        added_at -> Timestamptz,
-    }
-}
+// Foreign key relationships
+diesel::joinable!(tenant_shard_map -> shard_config (shard_id));
+diesel::joinable!(users -> tenants (tenant_id));
+diesel::joinable!(bots -> tenants (tenant_id));
+diesel::joinable!(bot_configuration -> bots (bot_id));
+diesel::joinable!(bot_channels -> bots (bot_id));
+diesel::joinable!(user_sessions -> users (user_id));
+diesel::joinable!(user_sessions -> bots (bot_id));
+diesel::joinable!(user_sessions -> tenants (tenant_id));
+diesel::joinable!(message_history -> user_sessions (session_id));
+diesel::joinable!(message_history -> users (user_id));
+diesel::joinable!(bot_memories -> bots (bot_id));
+diesel::joinable!(auto_tasks -> bots (bot_id));
+diesel::joinable!(auto_tasks -> user_sessions (session_id));
+diesel::joinable!(execution_plans -> bots (bot_id));
+diesel::joinable!(execution_plans -> auto_tasks (task_id));
+diesel::joinable!(task_approvals -> bots (bot_id));
+diesel::joinable!(task_approvals -> auto_tasks (task_id));
+diesel::joinable!(task_decisions -> bots (bot_id));
+diesel::joinable!(task_decisions -> auto_tasks (task_id));
+diesel::joinable!(safety_audit_log -> bots (bot_id));
+diesel::joinable!(intent_classifications -> bots (bot_id));
+diesel::joinable!(generated_apps -> bots (bot_id));
+diesel::joinable!(designer_changes -> bots (bot_id));
+diesel::joinable!(designer_pending_changes -> bots (bot_id));
+diesel::joinable!(kb_collections -> bots (bot_id));
+diesel::joinable!(kb_documents -> kb_collections (collection_id));
+diesel::joinable!(session_kb_associations -> user_sessions (session_id));
+diesel::joinable!(session_kb_associations -> bots (bot_id));
+diesel::joinable!(kb_sources -> bots (bot_id));
+diesel::joinable!(system_automations -> bots (bot_id));
+diesel::joinable!(pending_info -> bots (bot_id));
+diesel::joinable!(usage_analytics -> users (user_id));
+diesel::joinable!(usage_analytics -> bots (bot_id));
+diesel::joinable!(task_comments -> tasks (task_id));
+diesel::joinable!(task_comments -> users (author_id));
+diesel::joinable!(connected_accounts -> users (user_id));
+diesel::joinable!(session_account_associations -> user_sessions (session_id));
+diesel::joinable!(session_account_associations -> bots (bot_id));
+diesel::joinable!(session_account_associations -> connected_accounts (account_id));
+diesel::joinable!(whatsapp_numbers -> bots (bot_id));
+diesel::joinable!(table_role_access -> bots (bot_id));
+diesel::joinable!(context_injections -> user_sessions (session_id));
+diesel::joinable!(organizations -> tenants (tenant_id));
+diesel::joinable!(user_organizations -> users (user_id));
+diesel::joinable!(user_organizations -> organizations (org_id));
 
 diesel::allow_tables_to_appear_in_same_query!(
-    organizations,
+    shard_config,
+    tenant_shard_map,
+    tenants,
+    users,
     bots,
-    system_automations,
+    bot_configuration,
+    bot_channels,
     user_sessions,
     message_history,
-    users,
-    clicks,
     bot_memories,
-    kb_documents,
-    basic_tools,
+    auto_tasks,
+    execution_plans,
+    task_approvals,
+    task_decisions,
+    safety_audit_log,
+    intent_classifications,
+    generated_apps,
+    designer_changes,
+    designer_pending_changes,
     kb_collections,
-    user_kb_associations,
-    session_tool_associations,
-    bot_configuration,
-    user_email_accounts,
-    email_drafts,
-    email_folders,
-    user_preferences,
-    user_login_tokens,
+    kb_documents,
+    session_kb_associations,
+    kb_sources,
+    tools,
+    system_automations,
+    pending_info,
+    usage_analytics,
+    analytics_events,
     tasks,
-    global_email_signatures,
-    email_signatures,
-    scheduled_emails,
-    email_templates,
-    email_auto_responders,
-    email_rules,
-    email_labels,
-    email_label_assignments,
-    distribution_lists,
-    shared_mailboxes,
-    shared_mailbox_members,
+    task_comments,
+    connected_accounts,
+    session_account_associations,
+    whatsapp_numbers,
+    clicks,
+    table_role_access,
+    context_injections,
+    organizations,
+    user_organizations,
 );
