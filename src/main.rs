@@ -196,7 +196,8 @@ async fn run_axum_server(
         .add_anonymous_path("/ws")
         .add_anonymous_path("/auth")
         .add_public_path("/static")
-        .add_public_path("/favicon.ico"));
+        .add_public_path("/favicon.ico")
+        .add_public_path("/apps"));  // Apps are public - no auth required
 
     use crate::core::urls::ApiUrls;
 
