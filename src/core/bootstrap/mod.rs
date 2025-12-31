@@ -185,7 +185,7 @@ impl BootstrapManager {
         if pm.is_installed("vault") {
             let vault_already_running = Command::new("sh")
                 .arg("-c")
-                .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
@@ -208,7 +208,7 @@ impl BootstrapManager {
                 for i in 0..10 {
                     let vault_ready = Command::new("sh")
                         .arg("-c")
-                        .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                        .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                         .stdout(std::process::Stdio::null())
                         .stderr(std::process::Stdio::null())
                         .status()
@@ -285,8 +285,28 @@ impl BootstrapManager {
             info!("Starting PostgreSQL database...");
             match pm.start("tables") {
                 Ok(_child) => {
-                    tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
-                    info!("PostgreSQL started");
+                    let pg_isready = self.stack_dir("bin/tables/bin/pg_isready");
+                    let mut ready = false;
+                    for attempt in 1..=30 {
+                        tokio::time::sleep(tokio::time::Duration::from_secs(1)).await;
+                        let status = std::process::Command::new(&pg_isready)
+                            .args(["-h", "localhost", "-p", "5432", "-U", "gbuser"])
+                            .stdout(std::process::Stdio::null())
+                            .stderr(std::process::Stdio::null())
+                            .status();
+                        if status.map(|s| s.success()).unwrap_or(false) {
+                            ready = true;
+                            info!("PostgreSQL started and ready (attempt {})", attempt);
+                            break;
+                        }
+                        if attempt % 5 == 0 {
+                            info!("Waiting for PostgreSQL to be ready... (attempt {}/30)", attempt);
+                        }
+                    }
+                    if !ready {
+                        error!("PostgreSQL failed to become ready after 30 seconds");
+                        return Err(anyhow::anyhow!("PostgreSQL failed to start properly"));
+                    }
                 }
                 Err(e) => {
                     warn!("PostgreSQL might already be running: {}", e);
@@ -321,7 +341,7 @@ impl BootstrapManager {
                             for i in 0..15 {
                                 let drive_ready = Command::new("sh")
                                     .arg("-c")
-                                    .arg("curl -sfk 'https://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
+                                    .arg("curl -sf --cacert ./botserver-stack/conf/drive/certs/CAs/ca.crt 'https://127.0.0.1:9000/minio/health/live' >/dev/null 2>&1")
                                     .stdout(std::process::Stdio::null())
                                     .stderr(std::process::Stdio::null())
                                     .status()
@@ -393,7 +413,7 @@ impl BootstrapManager {
         if installer.is_installed("vault") {
             let vault_running = Command::new("sh")
                 .arg("-c")
-                .arg("curl -f -s 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
+                .arg("curl -f -sk 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1")
                 .stdout(std::process::Stdio::null())
                 .stderr(std::process::Stdio::null())
                 .status()
@@ -539,7 +559,7 @@ impl BootstrapManager {
 
     async fn ensure_vault_unsealed(&self) -> Result<()> {
         let vault_init_path = self.stack_dir("conf/vault/init.json");
-        let vault_addr = "http://localhost:8200";
+        let vault_addr = "https://localhost:8200";
 
         if !vault_init_path.exists() {
             return Err(anyhow::anyhow!(
@@ -685,7 +705,7 @@ impl BootstrapManager {
 
         std::env::set_var("VAULT_ADDR", vault_addr);
         std::env::set_var("VAULT_TOKEN", &root_token);
-        std::env::set_var("VAULT_SKIP_VERIFY", "true");
+        std::env::set_var("VAULT_CACERT", "./botserver-stack/conf/system/certificates/ca/ca.crt");
 
         std::env::set_var(
             "VAULT_CACERT",
@@ -1398,7 +1418,7 @@ meet        IN      A       127.0.0.1
             }
 
             let health_check = std::process::Command::new("curl")
-                .args(["-f", "-s", "http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"])
+                .args(["-f", "-sk", "https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200"])
                 .output();
 
             if let Ok(output) = health_check {
@@ -1446,9 +1466,10 @@ meet        IN      A       127.0.0.1
             ));
         }
 
-        let vault_addr = "http://localhost:8200";
+        let vault_addr = "https://localhost:8200";
+        let ca_cert_path = "./botserver-stack/conf/system/certificates/ca/ca.crt";
         std::env::set_var("VAULT_ADDR", vault_addr);
-        std::env::set_var("VAULT_SKIP_VERIFY", "true");
+        std::env::set_var("VAULT_CACERT", ca_cert_path);
 
         let (unseal_key, root_token) = if vault_init_path.exists() {
             info!("Reading Vault initialization from init.json...");
@@ -1485,8 +1506,8 @@ meet        IN      A       127.0.0.1
             let init_output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} operator init -key-shares=1 -key-threshold=1 -format=json",
-                    vault_addr, vault_bin
+                    "VAULT_ADDR={} VAULT_CACERT={} {} operator init -key-shares=1 -key-threshold=1 -format=json",
+                    vault_addr, ca_cert_path, vault_bin
                 ))
                 .output()?;
 
@@ -1501,8 +1522,8 @@ meet        IN      A       127.0.0.1
                         let status_check = std::process::Command::new("sh")
                             .arg("-c")
                             .arg(format!(
-                                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} status -format=json 2>/dev/null",
-                                vault_addr, vault_bin
+                                "VAULT_ADDR={} VAULT_CACERT={} {} status -format=json 2>/dev/null",
+                                vault_addr, ca_cert_path, vault_bin
                             ))
                             .output();
 
@@ -1568,8 +1589,8 @@ meet        IN      A       127.0.0.1
         let unseal_output = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} {} operator unseal {}",
-                vault_addr, vault_bin, unseal_key
+                "VAULT_ADDR={} VAULT_CACERT={} {} operator unseal {}",
+                vault_addr, ca_cert_path, vault_bin, unseal_key
             ))
             .output()?;
 
@@ -1598,9 +1619,7 @@ meet        IN      A       127.0.0.1
 # Vault Configuration - THESE ARE THE ONLY ALLOWED ENV VARS
 VAULT_ADDR={}
 VAULT_TOKEN={}
-
-# Vault uses HTTP for local development (TLS disabled in config.hcl)
-# In production, enable TLS and set VAULT_CACERT, VAULT_CLIENT_CERT, VAULT_CLIENT_KEY
+VAULT_CACERT=./botserver-stack/conf/system/certificates/ca/ca.crt
 
 # Cache TTL for secrets (seconds)
 VAULT_CACHE_TTL=300
@@ -1617,23 +1636,25 @@ VAULT_CACHE_TTL=300
         }
 
         info!("Enabling KV secrets engine...");
+        let ca_cert_path = "./botserver-stack/conf/system/certificates/ca/ca.crt";
         let _ = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} secrets enable -path=secret kv-v2 2>&1 || true",
-                vault_addr, root_token, vault_bin
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} secrets enable -path=secret kv-v2 2>&1 || true",
+                vault_addr, root_token, ca_cert_path, vault_bin
             ))
             .output();
 
         info!("Storing secrets in Vault (only if not existing)...");
 
         let vault_bin_clone = vault_bin.clone();
+        let ca_cert_clone = ca_cert_path.to_string();
         let secret_exists = |path: &str| -> bool {
             let output = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get {} 2>/dev/null",
-                    vault_addr, root_token, vault_bin_clone, path
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get {} 2>/dev/null",
+                    vault_addr, root_token, ca_cert_clone, vault_bin_clone, path
                 ))
                 .output();
             output.map(|o| o.status.success()).unwrap_or(false)
@@ -1645,8 +1666,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
-                    vault_addr, root_token, vault_bin, db_password
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/tables host=localhost port=5432 database=botserver username=gbuser password='{}'",
+                    vault_addr, root_token, ca_cert_path, vault_bin, db_password
                 ))
                 .output()?;
             info!("  Stored database credentials");
@@ -1658,8 +1679,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/drive accesskey='{}' secret='{}'",
-                    vault_addr, root_token, vault_bin, drive_accesskey, drive_secret
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/drive accesskey='{}' secret='{}'",
+                    vault_addr, root_token, ca_cert_path, vault_bin, drive_accesskey, drive_secret
                 ))
                 .output()?;
             info!("  Stored drive credentials");
@@ -1671,8 +1692,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/cache password='{}'",
-                    vault_addr, root_token, vault_bin, cache_password
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/cache password='{}'",
+                    vault_addr, root_token, ca_cert_path, vault_bin, cache_password
                 ))
                 .output()?;
             info!("  Stored cache credentials");
@@ -1690,8 +1711,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret= masterkey={}",
-                    vault_addr, root_token, vault_bin, masterkey
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/directory url=https://localhost:8300 project_id= client_id= client_secret= masterkey={}",
+                    vault_addr, root_token, ca_cert_path, vault_bin, masterkey
                 ))
                 .output()?;
             info!("  Created directory placeholder with masterkey");
@@ -1703,8 +1724,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
-                    vault_addr, root_token, vault_bin
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/llm openai_key= anthropic_key= groq_key=",
+                    vault_addr, root_token, ca_cert_path, vault_bin
                 ))
                 .output()?;
             info!("  Created LLM placeholder");
@@ -1716,8 +1737,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/email username= password=",
-                    vault_addr, root_token, vault_bin
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/email username= password=",
+                    vault_addr, root_token, ca_cert_path, vault_bin
                 ))
                 .output()?;
             info!("  Created email placeholder");
@@ -1730,8 +1751,8 @@ VAULT_CACHE_TTL=300
             let _ = std::process::Command::new("sh")
                 .arg("-c")
                 .arg(format!(
-                    "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv put secret/gbo/encryption master_key='{}'",
-                    vault_addr, root_token, vault_bin, encryption_key
+                    "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv put secret/gbo/encryption master_key='{}'",
+                    vault_addr, root_token, ca_cert_path, vault_bin, encryption_key
                 ))
                 .output()?;
             info!("  Generated and stored encryption key");
@@ -1779,6 +1800,8 @@ VAULT_CACHE_TTL=300
             format!("{}/", config.drive.server)
         };
 
+        info!("[S3_CLIENT] Creating S3 client with endpoint: {}", endpoint);
+
         let (access_key, secret_key) =
             if config.drive.access_key.is_empty() || config.drive.secret_key.is_empty() {
                 match crate::shared::utils::get_secrets_manager().await {
@@ -1806,12 +1829,21 @@ VAULT_CACHE_TTL=300
                 )
             };
 
-        // Set CA cert for self-signed TLS (dev stack)
         let ca_cert_path = "./botserver-stack/conf/system/certificates/ca/ca.crt";
         if std::path::Path::new(ca_cert_path).exists() {
             std::env::set_var("AWS_CA_BUNDLE", ca_cert_path);
             std::env::set_var("SSL_CERT_FILE", ca_cert_path);
         }
+
+        let timeout_config = aws_config::timeout::TimeoutConfig::builder()
+            .connect_timeout(std::time::Duration::from_secs(5))
+            .read_timeout(std::time::Duration::from_secs(30))
+            .operation_timeout(std::time::Duration::from_secs(30))
+            .operation_attempt_timeout(std::time::Duration::from_secs(15))
+            .build();
+
+        let retry_config = aws_config::retry::RetryConfig::standard()
+            .with_max_attempts(2);
 
         let base_config = aws_config::defaults(BehaviorVersion::latest())
             .endpoint_url(endpoint)
@@ -1819,6 +1851,8 @@ VAULT_CACHE_TTL=300
             .credentials_provider(aws_sdk_s3::config::Credentials::new(
                 access_key, secret_key, None, None, "static",
             ))
+            .timeout_config(timeout_config)
+            .retry_config(retry_config)
             .load()
             .await;
         let s3_config = aws_sdk_s3::config::Builder::from(&base_config)
@@ -1866,14 +1900,16 @@ VAULT_CACHE_TTL=300
             {
                 let bot_name = path.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
                 let bucket = bot_name.trim_start_matches('/').to_string();
-                // Create bucket if it doesn't exist
-                if client.head_bucket().bucket(&bucket).send().await.is_err() {
-                    if let Err(e) = client.create_bucket().bucket(&bucket).send().await {
-                        warn!("S3/MinIO not available, skipping bucket {}: {}", bucket, e);
-                        continue;
-                    }
+                let bucket_exists = client.head_bucket().bucket(&bucket).send().await.is_ok();
+                if bucket_exists {
+                    info!("Bucket {} already exists, skipping template upload (user content preserved)", bucket);
+                    continue;
                 }
-                // Always sync templates to bucket
+                if let Err(e) = client.create_bucket().bucket(&bucket).send().await {
+                    warn!("S3/MinIO not available, skipping bucket {}: {:?}", bucket, e);
+                    continue;
+                }
+                info!("Created new bucket {}, uploading templates...", bucket);
                 if let Err(e) = Self::upload_directory_recursive(&client, &path, &bucket, "/").await {
                     warn!("Failed to upload templates to bucket {}: {}", bucket, e);
                 }
@@ -2091,16 +2127,18 @@ storage "file" {
   path = "../../data/vault"
 }
 
-# Listener with TLS DISABLED for local development
-# In production, enable TLS with proper certificates
+# Listener with TLS enabled
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = true
+  address       = "0.0.0.0:8200"
+  tls_disable   = false
+  tls_cert_file = "../../conf/system/certificates/vault/server.crt"
+  tls_key_file  = "../../conf/system/certificates/vault/server.key"
+  tls_client_ca_file = "../../conf/system/certificates/ca/ca.crt"
 }
 
-# API settings - use HTTP for local dev
-api_addr = "http://localhost:8200"
-cluster_addr = "http://localhost:8201"
+# API settings - use HTTPS
+api_addr = "https://localhost:8200"
+cluster_addr = "https://localhost:8201"
 
 # UI enabled for administration
 ui = true
@@ -2122,7 +2160,7 @@ log_level = "info"
         fs::create_dir_all(self.stack_dir("data/vault"))?;
 
         info!(
-            "Created Vault config with mTLS at {}",
+            "Created Vault config with TLS at {}",
             config_path.display()
         );
         Ok(())
@@ -2293,9 +2331,15 @@ log_level = "info"
             params.distinguished_name = dn;
 
             for san in sans {
-                params
-                    .subject_alt_names
-                    .push(rcgen::SanType::DnsName(san.to_string().try_into()?));
+                if let Ok(ip) = san.parse::<std::net::IpAddr>() {
+                    params
+                        .subject_alt_names
+                        .push(rcgen::SanType::IpAddress(ip));
+                } else {
+                    params
+                        .subject_alt_names
+                        .push(rcgen::SanType::DnsName(san.to_string().try_into()?));
+                }
             }
 
             let key_pair = KeyPair::generate()?;
@@ -2311,7 +2355,27 @@ log_level = "info"
         fs::create_dir_all(&minio_certs_dir)?;
         let drive_cert_dir = cert_dir.join("drive");
         fs::copy(drive_cert_dir.join("server.crt"), minio_certs_dir.join("public.crt"))?;
-        fs::copy(drive_cert_dir.join("server.key"), minio_certs_dir.join("private.key"))?;
+
+        let drive_key_src = drive_cert_dir.join("server.key");
+        let drive_key_dst = minio_certs_dir.join("private.key");
+
+        let conversion_result = std::process::Command::new("openssl")
+            .args(["ec", "-in"])
+            .arg(&drive_key_src)
+            .args(["-out"])
+            .arg(&drive_key_dst)
+            .output();
+
+        match conversion_result {
+            Ok(output) if output.status.success() => {
+                debug!("Converted drive private key to SEC1 format for MinIO");
+            }
+            _ => {
+                warn!("Could not convert drive key to SEC1 format (openssl not available?), copying as-is");
+                fs::copy(&drive_key_src, &drive_key_dst)?;
+            }
+        }
+
         let minio_ca_dir = minio_certs_dir.join("CAs");
         fs::create_dir_all(&minio_ca_dir)?;
         fs::copy(&ca_cert_path, minio_ca_dir.join("ca.crt"))?;

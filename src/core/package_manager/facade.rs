@@ -460,8 +460,8 @@ Store credentials in Vault:
             "drive" => {
                 format!(
                     r"MinIO Object Storage:
-  API:     http://{}:9000
-  Console: http://{}:9001
+  API:     https://{}:9000
+  Console: https://{}:9001
 
 Store credentials in Vault:
   botserver vault put gbo/drive server={} port=9000 accesskey=minioadmin secret=<your-secret>",

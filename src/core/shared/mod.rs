@@ -6,6 +6,7 @@
 pub mod admin;
 pub mod analytics;
 pub mod enums;
+pub mod memory_monitor;
 pub mod models;
 pub mod schema;
 pub mod state;

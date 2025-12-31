@@ -95,10 +95,10 @@ impl TlsIntegration {
         services.insert(
             "minio".to_string(),
             ServiceUrls {
-                original: "http://localhost:9000".to_string(),
-                secure: "https://localhost:9001".to_string(),
+                original: "https://localhost:9000".to_string(),
+                secure: "https://localhost:9000".to_string(),
                 port: 9000,
-                tls_port: 9001,
+                tls_port: 9000,
             },
         );
 
