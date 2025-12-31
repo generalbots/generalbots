@@ -609,13 +609,12 @@ Respond with JSON only:
 
         let mut conn = self.state.conn.get()?;
 
-        // Insert into tasks table
+        // Insert into tasks table (no bot_id column in tasks table)
         sql_query(
-            "INSERT INTO tasks (id, bot_id, title, description, status, priority, created_at)
-             VALUES ($1, $2, $3, $4, 'pending', 'normal', NOW())",
+            "INSERT INTO tasks (id, title, description, status, priority, created_at)
+             VALUES ($1, $2, $3, 'pending', 'normal', NOW())",
         )
         .bind::<DieselUuid, _>(task_id)
-        .bind::<DieselUuid, _>(session.bot_id)
         .bind::<Text, _>(&title)
         .bind::<Text, _>(&classification.original_text)
         .execute(&mut conn)?;
