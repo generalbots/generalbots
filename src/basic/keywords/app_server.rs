@@ -8,7 +8,7 @@ use axum::{
     routing::get,
     Router,
 };
-use log::{error, trace, warn};
+use log::{error, info, trace, warn};
 use std::sync::Arc;
 
 pub fn configure_app_server_routes() -> Router<Arc<AppState>> {
@@ -36,17 +36,17 @@ pub async fn serve_app_index(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppPath>,
 ) -> impl IntoResponse {
-    serve_app_file_internal(&state, &params.app_name, "index.html")
+    serve_app_file_internal(&state, &params.app_name, "index.html").await
 }
 
 pub async fn serve_app_file(
     State(state): State<Arc<AppState>>,
     Path(params): Path<AppFilePath>,
 ) -> impl IntoResponse {
-    serve_app_file_internal(&state, &params.app_name, &params.file_path)
+    serve_app_file_internal(&state, &params.app_name, &params.file_path).await
 }
 
-fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
+async fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) -> Response {
     let sanitized_app_name = sanitize_path_component(app_name);
     let sanitized_file_path = sanitize_path_component(file_path);
 
@@ -54,6 +54,55 @@ fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) ->
         return (StatusCode::BAD_REQUEST, "Invalid path").into_response();
     }
 
+    // Get bot name from bucket_name config (default to "default")
+    let bot_name = state.bucket_name
+        .trim_end_matches(".gbai")
+        .to_string();
+    let sanitized_bot_name = bot_name.to_lowercase().replace(' ', "-").replace('_', "-");
+
+    // MinIO bucket and path: botname.gbai / botname.gbapp/appname/file
+    let bucket = format!("{}.gbai", sanitized_bot_name);
+    let key = format!("{}.gbapp/{}/{}", sanitized_bot_name, sanitized_app_name, sanitized_file_path);
+
+    info!("Serving app file from MinIO: bucket={}, key={}", bucket, key);
+
+    // Try to serve from MinIO
+    if let Some(ref drive) = state.drive {
+        match drive
+            .get_object()
+            .bucket(&bucket)
+            .key(&key)
+            .send()
+            .await
+        {
+            Ok(response) => {
+                match response.body.collect().await {
+                    Ok(body) => {
+                        let content = body.into_bytes();
+                        let content_type = get_content_type(&sanitized_file_path);
+
+                        return Response::builder()
+                            .status(StatusCode::OK)
+                            .header(header::CONTENT_TYPE, content_type)
+                            .header(header::CACHE_CONTROL, "public, max-age=3600")
+                            .body(Body::from(content.to_vec()))
+                            .unwrap_or_else(|_| {
+                                (StatusCode::INTERNAL_SERVER_ERROR, "Failed to build response")
+                                    .into_response()
+                            });
+                    }
+                    Err(e) => {
+                        error!("Failed to read MinIO response body: {}", e);
+                    }
+                }
+            }
+            Err(e) => {
+                warn!("MinIO get_object failed for {}/{}: {}", bucket, key, e);
+            }
+        }
+    }
+
+    // Fallback to filesystem if MinIO fails
     let site_path = state
         .config
         .as_ref()
@@ -61,11 +110,11 @@ fn serve_app_file_internal(state: &AppState, app_name: &str, file_path: &str) ->
         .unwrap_or_else(|| "./botserver-stack/sites".to_string());
 
     let full_path = format!(
-        "{}/{}/{}",
-        site_path, sanitized_app_name, sanitized_file_path
+        "{}/{}.gbai/{}.gbapp/{}/{}",
+        site_path, sanitized_bot_name, sanitized_bot_name, sanitized_app_name, sanitized_file_path
     );
 
-    trace!("Serving app file: {full_path}");
+    trace!("Fallback: serving app file from filesystem: {full_path}");
 
     let path = std::path::Path::new(&full_path);
     if !path.exists() {

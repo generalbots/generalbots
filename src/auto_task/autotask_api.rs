@@ -319,69 +319,78 @@ pub async fn create_and_execute_handler(
     let task_id = Uuid::new_v4();
     if let Err(e) = create_task_record(&state, task_id, &session, &request.intent) {
         error!("Failed to create task record: {}", e);
+        return (
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(CreateAndExecuteResponse {
+                success: false,
+                task_id: String::new(),
+                status: "error".to_string(),
+                message: format!("Failed to create task: {}", e),
+                app_url: None,
+                created_resources: Vec::new(),
+                pending_items: Vec::new(),
+                error: Some(e.to_string()),
+            }),
+        );
     }
 
     // Update status to running
     let _ = update_task_status_db(&state, task_id, "running", None);
 
-    // Use IntentClassifier to classify and process with task tracking
-    let classifier = IntentClassifier::new(Arc::clone(&state));
+    // Clone what we need for the background task
+    let state_clone = Arc::clone(&state);
+    let intent = request.intent.clone();
+    let session_clone = session.clone();
+    let task_id_str = task_id.to_string();
 
-    match classifier
-        .classify_and_process_with_task_id(&request.intent, &session, Some(task_id.to_string()))
-        .await
-    {
-        Ok(result) => {
-            let status = if result.success {
-                "completed"
-            } else {
-                "failed"
-            };
-            let _ = update_task_status_db(&state, task_id, status, result.error.as_deref());
+    // Spawn background task to do the actual work
+    tokio::spawn(async move {
+        info!("[AUTOTASK] Background task started for task_id={}", task_id_str);
 
-            // Get any pending items (ASK LATER)
-            let pending_items = get_pending_items_for_bot(&state, session.bot_id);
+        // Use IntentClassifier to classify and process with task tracking
+        let classifier = IntentClassifier::new(state_clone.clone());
 
-            (
-                StatusCode::OK,
-                Json(CreateAndExecuteResponse {
-                    success: result.success,
-                    task_id: task_id.to_string(),
-                    status: status.to_string(),
-                    message: result.message,
-                    app_url: result.app_url,
-                    created_resources: result
-                        .created_resources
-                        .into_iter()
-                        .map(|r| CreatedResourceResponse {
-                            resource_type: r.resource_type,
-                            name: r.name,
-                            path: r.path,
-                        })
-                        .collect(),
-                    pending_items,
-                    error: result.error,
-                }),
-            )
+        match classifier
+            .classify_and_process_with_task_id(&intent, &session_clone, Some(task_id_str.clone()))
+            .await
+        {
+            Ok(result) => {
+                let status = if result.success {
+                    "completed"
+                } else {
+                    "failed"
+                };
+                let _ = update_task_status_db(&state_clone, task_id, status, result.error.as_deref());
+                info!(
+                    "[AUTOTASK] Background task completed: task_id={}, status={}, message={}",
+                    task_id_str, status, result.message
+                );
+            }
+            Err(e) => {
+                let _ = update_task_status_db(&state_clone, task_id, "failed", Some(&e.to_string()));
+                error!(
+                    "[AUTOTASK] Background task failed: task_id={}, error={}",
+                    task_id_str, e
+                );
+            }
         }
-        Err(e) => {
-            let _ = update_task_status_db(&state, task_id, "failed", Some(&e.to_string()));
-            error!("Failed to process intent: {}", e);
-            (
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(CreateAndExecuteResponse {
-                    success: false,
-                    task_id: task_id.to_string(),
-                    status: "failed".to_string(),
-                    message: "Failed to process request".to_string(),
-                    app_url: None,
-                    created_resources: Vec::new(),
-                    pending_items: Vec::new(),
-                    error: Some(e.to_string()),
-                }),
-            )
-        }
-    }
+    });
+
+    // Return immediately with task_id - client will poll for status
+    info!("[AUTOTASK] Returning immediately with task_id={}", task_id);
+    (
+        StatusCode::ACCEPTED,
+        Json(CreateAndExecuteResponse {
+            success: true,
+            task_id: task_id.to_string(),
+            status: "running".to_string(),
+            message: "Task started, poll for status".to_string(),
+            app_url: None,
+            created_resources: Vec::new(),
+            pending_items: Vec::new(),
+            error: None,
+        }),
+    )
 }
 
 pub async fn classify_intent_handler(
@@ -750,6 +759,42 @@ pub async fn list_tasks_handler(
                 StatusCode::INTERNAL_SERVER_ERROR,
                 axum::response::Html(html),
             )
+        }
+    }
+}
+
+/// Get a single task by ID - used for polling task status
+pub async fn get_task_handler(
+    State(state): State<Arc<AppState>>,
+    Path(task_id): Path<String>,
+) -> impl IntoResponse {
+    info!("Getting task: {}", task_id);
+
+    match get_auto_task_by_id(&state, &task_id) {
+        Ok(Some(task)) => {
+            let error_str = task.error.as_ref().map(|e| e.message.clone());
+            (StatusCode::OK, Json(serde_json::json!({
+                "id": task.id,
+                "name": task.title,
+                "description": task.intent,
+                "status": format!("{:?}", task.status).to_lowercase(),
+                "progress": task.progress,
+                "current_step": task.current_step,
+                "total_steps": task.total_steps,
+                "error": error_str,
+                "created_at": task.created_at,
+                "updated_at": task.updated_at,
+                "completed_at": task.completed_at,
+            })))
+        },
+        Ok(None) => (StatusCode::NOT_FOUND, Json(serde_json::json!({
+            "error": "Task not found"
+        }))),
+        Err(e) => {
+            error!("Failed to get task {}: {}", task_id, e);
+            (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({
+                "error": e.to_string()
+            })))
         }
     }
 }
@@ -1364,6 +1409,102 @@ fn start_task_execution(
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     info!("Starting task execution task_id={}", task_id);
     Ok(())
+}
+
+/// Get a single auto task by ID
+fn get_auto_task_by_id(
+    state: &Arc<AppState>,
+    task_id: &str,
+) -> Result<Option<AutoTask>, Box<dyn std::error::Error + Send + Sync>> {
+    let mut conn = state.conn.get()?;
+
+    #[derive(QueryableByName)]
+    struct TaskRow {
+        #[diesel(sql_type = Text)]
+        id: String,
+        #[diesel(sql_type = Text)]
+        title: String,
+        #[diesel(sql_type = Text)]
+        intent: String,
+        #[diesel(sql_type = Text)]
+        status: String,
+        #[diesel(sql_type = diesel::sql_types::Float8)]
+        progress: f64,
+        #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+        current_step: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<Text>)]
+        error: Option<String>,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+        created_at: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+        updated_at: chrono::DateTime<Utc>,
+        #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+        completed_at: Option<chrono::DateTime<Utc>>,
+    }
+
+    let query = format!(
+        "SELECT id::text, title, intent, status, progress, current_step, error, created_at, updated_at, completed_at \
+         FROM auto_tasks WHERE id = '{}'",
+        task_id
+    );
+
+    let rows: Vec<TaskRow> = sql_query(&query).get_results(&mut conn).unwrap_or_default();
+
+    if let Some(r) = rows.into_iter().next() {
+        Ok(Some(AutoTask {
+            id: r.id,
+            title: r.title.clone(),
+            intent: r.intent,
+            status: match r.status.as_str() {
+                "running" => AutoTaskStatus::Running,
+                "completed" => AutoTaskStatus::Completed,
+                "failed" => AutoTaskStatus::Failed,
+                "paused" => AutoTaskStatus::Paused,
+                "cancelled" => AutoTaskStatus::Cancelled,
+                _ => AutoTaskStatus::Draft,
+            },
+            mode: ExecutionMode::FullyAutomatic,
+            priority: TaskPriority::Medium,
+            plan_id: None,
+            basic_program: None,
+            current_step: r.current_step.as_ref().and_then(|s| s.parse().ok()).unwrap_or(0),
+            total_steps: 0,
+            progress: r.progress,
+            step_results: Vec::new(),
+            pending_decisions: Vec::new(),
+            pending_approvals: Vec::new(),
+            risk_summary: None,
+            resource_usage: Default::default(),
+            error: r.error.map(|msg| crate::auto_task::task_types::TaskError {
+                code: "TASK_ERROR".to_string(),
+                message: msg,
+                details: None,
+                recoverable: false,
+                step_id: None,
+                occurred_at: Utc::now(),
+            }),
+            rollback_state: None,
+            session_id: String::new(),
+            bot_id: String::new(),
+            created_by: String::new(),
+            assigned_to: String::new(),
+            schedule: None,
+            tags: Vec::new(),
+            parent_task_id: None,
+            subtask_ids: Vec::new(),
+            depends_on: Vec::new(),
+            dependents: Vec::new(),
+            mcp_servers: Vec::new(),
+            external_apis: Vec::new(),
+            created_at: r.created_at,
+            updated_at: r.updated_at,
+            started_at: None,
+            completed_at: r.completed_at,
+            estimated_completion: None,
+        }))
+    } else {
+        Ok(None)
+    }
 }
 
 fn list_auto_tasks(

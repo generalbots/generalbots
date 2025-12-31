@@ -165,6 +165,7 @@ impl ApiUrls {
     pub const AUTOTASK_EXECUTE: &'static str = "/api/autotask/execute";
     pub const AUTOTASK_SIMULATE: &'static str = "/api/autotask/simulate/:plan_id";
     pub const AUTOTASK_LIST: &'static str = "/api/autotask/list";
+    pub const AUTOTASK_GET: &'static str = "/api/autotask/tasks/:task_id";
     pub const AUTOTASK_STATS: &'static str = "/api/autotask/stats";
     pub const AUTOTASK_PAUSE: &'static str = "/api/autotask/:task_id/pause";
     pub const AUTOTASK_RESUME: &'static str = "/api/autotask/:task_id/resume";

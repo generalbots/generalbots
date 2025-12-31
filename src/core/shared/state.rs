@@ -158,6 +158,8 @@ pub struct TaskProgressEvent {
     pub error: Option<String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub activity: Option<AgentActivity>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub text: Option<String>,
 }
 
 impl TaskProgressEvent {
@@ -174,6 +176,24 @@ impl TaskProgressEvent {
             details: None,
             error: None,
             activity: None,
+            text: None,
+        }
+    }
+
+    pub fn llm_stream(task_id: impl Into<String>, text: impl Into<String>) -> Self {
+        Self {
+            event_type: "llm_stream".to_string(),
+            task_id: task_id.into(),
+            step: "llm_stream".to_string(),
+            message: String::new(),
+            progress: 0,
+            total_steps: 0,
+            current_step: 0,
+            timestamp: chrono::Utc::now().to_rfc3339(),
+            details: None,
+            error: None,
+            activity: None,
+            text: Some(text.into()),
         }
     }
 
@@ -181,7 +201,7 @@ impl TaskProgressEvent {
     pub fn with_progress(mut self, current: u8, total: u8) -> Self {
         self.current_step = current;
         self.total_steps = total;
-        self.progress = if total > 0 { (current * 100) / total } else { 0 };
+        self.progress = if total > 0 { ((current as u16 * 100) / total as u16) as u8 } else { 0 };
         self
     }
 
@@ -224,6 +244,7 @@ impl TaskProgressEvent {
             details: None,
             error: None,
             activity: None,
+            text: None,
         }
     }
 }
@@ -472,6 +493,14 @@ impl AppState {
         let event = TaskProgressEvent::new(task_id, step, "Task failed")
             .with_error(error);
         self.broadcast_task_progress(event);
+    }
+
+    pub fn emit_llm_stream(&self, task_id: &str, text: &str) {
+        let event = TaskProgressEvent::llm_stream(task_id, text);
+        if let Some(tx) = &self.task_progress_broadcast {
+            // Don't log every stream chunk - too noisy
+            let _ = tx.send(event);
+        }
     }
 }
 
