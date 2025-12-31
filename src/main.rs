@@ -1,3 +1,11 @@
+// Use jemalloc as the global allocator when the feature is enabled
+#[cfg(feature = "jemalloc")]
+use tikv_jemallocator::Jemalloc;
+
+#[cfg(feature = "jemalloc")]
+#[global_allocator]
+static GLOBAL: Jemalloc = Jemalloc;
+
 use axum::extract::{Extension, State};
 use axum::http::StatusCode;
 use axum::middleware;
@@ -25,6 +33,10 @@ use botlib::SystemLimits;
 
 use botserver::core;
 use botserver::shared;
+use botserver::core::shared::memory_monitor::{
+    start_memory_monitor, log_process_memory, MemoryStats,
+    register_thread, record_thread_activity
+};
 
 use botserver::core::automation;
 use botserver::core::bootstrap;
@@ -105,8 +117,7 @@ async fn health_check_simple() -> (StatusCode, Json<serde_json::Value>) {
 
 fn print_shutdown_message() {
     println!();
-    println!("\x1b[33m✨ Thank you for using General Bots!\x1b[0m");
-    println!("\x1b[36m   pragmatismo.com.br\x1b[0m");
+    println!("Thank you for using General Bots!");
     println!();
 }
 
@@ -819,6 +830,10 @@ async fn main() -> std::io::Result<()> {
         botserver::core::shared::state::AttendantNotification,
     >(1000);
 
+    let (task_progress_tx, _task_progress_rx) = tokio::sync::broadcast::channel::<
+        botserver::core::shared::state::TaskProgressEvent,
+    >(1000);
+
     let app_state = Arc::new(AppState {
         drive: Some(drive.clone()),
         s3_client: Some(drive),
@@ -852,6 +867,7 @@ async fn main() -> std::io::Result<()> {
             ext
         },
         attendant_broadcast: Some(attendant_tx),
+        task_progress_broadcast: Some(task_progress_tx),
     });
 
     let task_scheduler = Arc::new(botserver::tasks::scheduler::TaskScheduler::new(
@@ -863,6 +879,11 @@ async fn main() -> std::io::Result<()> {
     if let Err(e) = botserver::core::kb::ensure_crawler_service_running(app_state.clone()).await {
         log::warn!("Failed to start website crawler service: {}", e);
     }
+
+    // Start memory monitoring - check every 30 seconds, warn if growth > 50MB
+    start_memory_monitor(30, 50);
+    info!("Memory monitor started");
+    log_process_memory();
 
     let _ = state_tx.try_send(app_state.clone());
     progress_tx.send(BootstrapProgress::BootstrapComplete).ok();
@@ -876,10 +897,6 @@ async fn main() -> std::io::Result<()> {
         .map(|n| n.get())
         .unwrap_or(4);
 
-    let _automation_service =
-        botserver::core::automation::AutomationService::new(app_state.clone());
-    info!("Automation service initialized with episodic memory scheduler");
-
     let bot_orchestrator = BotOrchestrator::new(app_state.clone());
     if let Err(e) = bot_orchestrator.mount_all_bots() {
         error!("Failed to mount bots: {}", e);
@@ -891,37 +908,57 @@ async fn main() -> std::io::Result<()> {
         let bucket_name = "default.gbai".to_string();
         let monitor_bot_id = default_bot_id;
         tokio::spawn(async move {
+            register_thread("drive-monitor", "drive");
+            trace!("[PROFILE] DriveMonitor::new starting...");
             let monitor = botserver::DriveMonitor::new(
                 drive_monitor_state,
                 bucket_name.clone(),
                 monitor_bot_id,
             );
+            trace!("[PROFILE] DriveMonitor::new done, calling start_monitoring...");
             info!("Starting DriveMonitor for bucket: {}", bucket_name);
             if let Err(e) = monitor.start_monitoring().await {
                 error!("DriveMonitor failed: {}", e);
             }
+            trace!("[PROFILE] DriveMonitor start_monitoring returned");
         });
     }
 
     let automation_state = app_state.clone();
     tokio::spawn(async move {
+        register_thread("automation-service", "automation");
         let automation = AutomationService::new(automation_state);
-        automation.spawn().await.ok();
+        trace!("[TASK] AutomationService starting, RSS={}",
+              MemoryStats::format_bytes(MemoryStats::current().rss_bytes));
+        loop {
+            record_thread_activity("automation-service");
+            if let Err(e) = automation.check_scheduled_tasks().await {
+                error!("Error checking scheduled tasks: {}", e);
+            }
+            tokio::time::sleep(tokio::time::Duration::from_secs(60)).await;
+        }
     });
 
     let app_state_for_llm = app_state.clone();
     tokio::spawn(async move {
+        register_thread("llm-server-init", "llm");
+        eprintln!("[PROFILE] ensure_llama_servers_running starting...");
         if let Err(e) = ensure_llama_servers_running(app_state_for_llm).await {
             error!("Failed to start LLM servers: {}", e);
         }
+        eprintln!("[PROFILE] ensure_llama_servers_running completed");
+        record_thread_activity("llm-server-init");
     });
     trace!("Initial data setup task spawned");
+    eprintln!("[PROFILE] All background tasks spawned, starting HTTP server...");
 
     trace!("Starting HTTP server on port {}...", config.server.port);
+    eprintln!("[PROFILE] run_axum_server starting on port {}...", config.server.port);
     if let Err(e) = run_axum_server(app_state, config.server.port, worker_count).await {
         error!("Failed to start HTTP server: {}", e);
         std::process::exit(1);
     }
+    eprintln!("[PROFILE] run_axum_server returned (should not happen normally)");
 
     if let Some(handle) = ui_handle {
         handle.join().ok();

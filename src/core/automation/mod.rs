@@ -19,11 +19,12 @@ pub struct AutomationService {
 impl AutomationService {
     #[must_use]
     pub fn new(state: Arc<AppState>) -> Self {
-        crate::llm::episodic_memory::start_episodic_memory_scheduler(Arc::clone(&state));
+        // Temporarily disabled to debug CPU spike
+        // crate::llm::episodic_memory::start_episodic_memory_scheduler(Arc::clone(&state));
         Self { state }
     }
     pub async fn spawn(self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-        let mut ticker = interval(Duration::from_secs(5));
+        let mut ticker = interval(Duration::from_secs(60));
         loop {
             ticker.tick().await;
             if let Err(e) = self.check_scheduled_tasks().await {
@@ -31,7 +32,7 @@ impl AutomationService {
             }
         }
     }
-    async fn check_scheduled_tasks(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    pub async fn check_scheduled_tasks(&self) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         use crate::shared::models::system_automations::dsl::{
             id, is_active, kind, last_triggered as lt_column, system_automations,
         };

@@ -1,5 +1,5 @@
 use anyhow::Result;
-use log::{error, info, warn};
+use log::{debug, error, info, warn};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::Path;
@@ -117,6 +117,14 @@ impl DocumentProcessor {
 
         let metadata = tokio::fs::metadata(file_path).await?;
         let file_size = metadata.len() as usize;
+
+        if file_size == 0 {
+            debug!(
+                "Skipping empty file (0 bytes): {}",
+                file_path.display()
+            );
+            return Ok(Vec::new());
+        }
 
         let format = DocumentFormat::from_extension(file_path)
             .ok_or_else(|| anyhow::anyhow!("Unsupported file format: {}", file_path.display()))?;

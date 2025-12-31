@@ -351,15 +351,108 @@ pub async fn handle_task_delete(
 
 pub async fn handle_task_get(
     State(state): State<Arc<AppState>>,
-    Path(id): Path<Uuid>,
-) -> Result<Json<TaskResponse>, StatusCode> {
-    let task_engine = &state.task_engine;
+    Path(id): Path<String>,
+) -> impl IntoResponse {
+    let conn = state.conn.clone();
+    let task_id = id.clone();
 
-    match task_engine.get_task(id).await {
-        Ok(task) => Ok(Json(task.into())),
+    let result = tokio::task::spawn_blocking(move || {
+        let mut db_conn = conn
+            .get()
+            .map_err(|e| format!("DB connection error: {}", e))?;
+
+        #[derive(Debug, QueryableByName, serde::Serialize)]
+        struct AutoTaskRow {
+            #[diesel(sql_type = diesel::sql_types::Uuid)]
+            pub id: Uuid,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub title: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub status: String,
+            #[diesel(sql_type = diesel::sql_types::Text)]
+            pub priority: String,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            pub intent: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Text>)]
+            pub error: Option<String>,
+            #[diesel(sql_type = diesel::sql_types::Float)]
+            pub progress: f32,
+            #[diesel(sql_type = diesel::sql_types::Timestamptz)]
+            pub created_at: chrono::DateTime<chrono::Utc>,
+            #[diesel(sql_type = diesel::sql_types::Nullable<diesel::sql_types::Timestamptz>)]
+            pub completed_at: Option<chrono::DateTime<chrono::Utc>>,
+        }
+
+        let parsed_uuid = match Uuid::parse_str(&task_id) {
+            Ok(u) => u,
+            Err(_) => return Err(format!("Invalid task ID: {}", task_id)),
+        };
+
+        let task: Option<AutoTaskRow> = diesel::sql_query(
+            "SELECT id, title, status, priority, intent, error, progress, created_at, completed_at
+             FROM auto_tasks WHERE id = $1 LIMIT 1"
+        )
+        .bind::<diesel::sql_types::Uuid, _>(parsed_uuid)
+        .get_result(&mut db_conn)
+        .ok();
+
+        Ok::<_, String>(task)
+    })
+    .await
+    .unwrap_or_else(|e| {
+        log::error!("Task query failed: {}", e);
+        Err(format!("Task query failed: {}", e))
+    });
+
+    match result {
+        Ok(Some(task)) => {
+            let status_class = match task.status.as_str() {
+                "completed" | "done" => "completed",
+                "running" | "pending" => "running",
+                "failed" | "error" => "error",
+                _ => "pending"
+            };
+            let progress_percent = (task.progress * 100.0) as u8;
+            let created = task.created_at.format("%Y-%m-%d %H:%M").to_string();
+            let completed = task.completed_at.map(|d| d.format("%Y-%m-%d %H:%M").to_string()).unwrap_or_default();
+
+            let html = format!(r#"
+                <div class="task-detail-header">
+                    <h2 class="task-detail-title">{}</h2>
+                    <span class="task-status task-status-{}">{}</span>
+                </div>
+                <div class="task-detail-meta">
+                    <div class="meta-item"><span class="meta-label">Priority:</span> <span class="meta-value">{}</span></div>
+                    <div class="meta-item"><span class="meta-label">Created:</span> <span class="meta-value">{}</span></div>
+                    {}
+                </div>
+                <div class="task-detail-progress">
+                    <div class="progress-label">Progress: {}%</div>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar-fill" style="width: {}%"></div>
+                    </div>
+                </div>
+                {}
+                {}
+            "#,
+                task.title,
+                status_class,
+                task.status,
+                task.priority,
+                created,
+                if !completed.is_empty() { format!(r#"<div class="meta-item"><span class="meta-label">Completed:</span> <span class="meta-value">{}</span></div>"#, completed) } else { String::new() },
+                progress_percent,
+                progress_percent,
+                task.intent.map(|i| format!(r#"<div class="task-detail-section"><h3>Intent</h3><p class="intent-text">{}</p></div>"#, i)).unwrap_or_default(),
+                task.error.map(|e| format!(r#"<div class="task-detail-section error-section"><h3>Error</h3><p class="error-text">{}</p></div>"#, e)).unwrap_or_default()
+            );
+            (StatusCode::OK, axum::response::Html(html)).into_response()
+        }
+        Ok(None) => {
+            (StatusCode::NOT_FOUND, axum::response::Html("<div class='error'>Task not found</div>".to_string())).into_response()
+        }
         Err(e) => {
-            log::error!("Failed to get task: {}", e);
-            Err(StatusCode::NOT_FOUND)
+            (StatusCode::INTERNAL_SERVER_ERROR, axum::response::Html(format!("<div class='error'>{}</div>", e))).into_response()
         }
     }
 }
@@ -1209,6 +1302,7 @@ pub fn configure_task_routes() -> Router<Arc<AppState>> {
         )
         .route("/api/tasks/stats", get(handle_task_stats_htmx))
         .route("/api/tasks/stats/json", get(handle_task_stats))
+        .route("/api/tasks/time-saved", get(handle_time_saved))
         .route("/api/tasks/completed", delete(handle_clear_completed))
         .route(
             &ApiUrls::TASK_BY_ID.replace(":id", "{id}"),
@@ -1270,12 +1364,15 @@ pub async fn handle_task_list_htmx(
             .map_err(|e| format!("DB connection error: {}", e))?;
 
         let mut query = String::from(
-            "SELECT id, title, status, priority, description, due_date FROM tasks WHERE 1=1",
+            "SELECT id, title, status, priority, intent as description, NULL::timestamp as due_date FROM auto_tasks WHERE 1=1",
         );
 
         match filter_clone.as_str() {
-            "active" => query.push_str(" AND status NOT IN ('done', 'completed', 'cancelled')"),
-            "completed" => query.push_str(" AND status IN ('done', 'completed')"),
+            "complete" | "completed" => query.push_str(" AND status IN ('done', 'completed')"),
+            "active" => query.push_str(" AND status IN ('running', 'pending', 'in_progress')"),
+            "awaiting" => query.push_str(" AND status IN ('awaiting_decision', 'awaiting', 'waiting')"),
+            "paused" => query.push_str(" AND status = 'paused'"),
+            "blocked" => query.push_str(" AND status IN ('blocked', 'failed', 'error')"),
             "priority" => query.push_str(" AND priority IN ('high', 'urgent')"),
             _ => {}
         }
@@ -1297,15 +1394,8 @@ pub async fn handle_task_list_htmx(
 
     for task in tasks {
         let is_completed = task.status == "done" || task.status == "completed";
-        let is_high_priority = task.priority == "high" || task.priority == "urgent";
         let completed_class = if is_completed { "completed" } else { "" };
-        let priority_class = if is_high_priority { "active" } else { "" };
-        let checked = if is_completed { "checked" } else { "" };
 
-        let status_html = format!(
-            r#"<span class="task-status task-status-{}">{}</span>"#,
-            task.status, task.status
-        );
         let due_date_html = if let Some(due) = &task.due_date {
             format!(
                 r#"<span class="task-due-date"> {}</span>"#,
@@ -1314,51 +1404,46 @@ pub async fn handle_task_list_htmx(
         } else {
             String::new()
         };
+        let status_class = match task.status.as_str() {
+            "completed" | "done" => "status-complete",
+            "running" | "pending" | "in_progress" => "status-running",
+            "failed" | "error" | "blocked" => "status-error",
+            "paused" => "status-paused",
+            "awaiting" | "awaiting_decision" => "status-awaiting",
+            _ => "status-pending"
+        };
+
         let _ = write!(
             html,
             r#"
-            <div class="task-item {completed_class}" data-task-id="{}" onclick="selectTask('{}')">
-                <input type="checkbox"
-                       class="task-checkbox"
-                       data-task-id="{}"
-                       {checked}
-                       onclick="event.stopPropagation()">
-                <div class="task-content">
-                    <div class="task-text-wrapper">
-                        <span class="task-text">{}</span>
-                        <div class="task-meta">
-                            {status_html}
-                            <span class="task-priority task-priority-{}">{}</span>
-                            {due_date_html}
-                        </div>
-                    </div>
+            <div class="task-card {completed_class} {status_class}" data-task-id="{}" onclick="selectTask('{}')">
+                <div class="task-card-header">
+                    <span class="task-card-title">{}</span>
+                    <span class="task-card-status {}">{}</span>
                 </div>
-                <div class="task-actions">
-                    <button class="action-btn priority-btn {priority_class}"
-                            data-action="priority"
-                            data-task-id="{}">
+                <div class="task-card-body">
+                    <div class="task-card-priority">
+                        <span class="priority-badge priority-{}">{}</span>
+                    </div>
+                    {due_date_html}
+                </div>
+                <div class="task-card-footer">
+                    <button class="task-action-btn" data-action="priority" data-task-id="{}" onclick="event.stopPropagation()">
                         ⭐
                     </button>
-                    <button class="action-btn edit-btn"
-                            data-action="edit"
-                            data-task-id="{}">
-
-                    </button>
-                    <button class="action-btn delete-btn"
-                            data-action="delete"
-                            data-task-id="{}">
-
+                    <button class="task-action-btn" data-action="delete" data-task-id="{}" onclick="event.stopPropagation()">
+                        🗑️
                     </button>
                 </div>
             </div>
             "#,
             task.id,
             task.id,
-            task.id,
             task.title,
+            status_class,
+            task.status,
             task.priority,
             task.priority,
-            task.id,
             task.id,
             task.id
         );
@@ -1396,34 +1481,58 @@ pub async fn handle_task_stats_htmx(State(state): State<Arc<AppState>>) -> impl 
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks")
+        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks")
             .get_result::<CountResult>(&mut db_conn)
             .map(|r| r.count)
             .unwrap_or(0);
 
         let active: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done', 'completed', 'cancelled')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('running', 'pending', 'in_progress')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let completed: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status IN ('done', 'completed')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('done', 'completed')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let awaiting: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('awaiting_decision', 'awaiting', 'waiting')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let paused: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'paused'")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let blocked: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('blocked', 'failed', 'error')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let priority: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority IN ('high', 'urgent')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE priority IN ('high', 'urgent')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
+
+        let time_saved = format!("{}h", completed * 2);
 
         Ok::<_, String>(TaskStats {
             total: total as usize,
             active: active as usize,
             completed: completed as usize,
+            awaiting: awaiting as usize,
+            paused: paused as usize,
+            blocked: blocked as usize,
             priority: priority as usize,
+            time_saved,
         })
     })
     .await
@@ -1435,18 +1544,25 @@ pub async fn handle_task_stats_htmx(State(state): State<Arc<AppState>>) -> impl 
         total: 0,
         active: 0,
         completed: 0,
+        awaiting: 0,
+        paused: 0,
+        blocked: 0,
         priority: 0,
+        time_saved: "0h".to_string(),
     });
 
     let html = format!(
         "{} tasks
         <script>
             document.getElementById('count-all').textContent = '{}';
+            document.getElementById('count-complete').textContent = '{}';
             document.getElementById('count-active').textContent = '{}';
-            document.getElementById('count-completed').textContent = '{}';
-            document.getElementById('count-priority').textContent = '{}';
+            document.getElementById('count-awaiting').textContent = '{}';
+            document.getElementById('count-paused').textContent = '{}';
+            document.getElementById('count-blocked').textContent = '{}';
+            document.getElementById('time-saved-value').textContent = '{}';
         </script>",
-        stats.total, stats.total, stats.active, stats.completed, stats.priority
+        stats.total, stats.total, stats.completed, stats.active, stats.awaiting, stats.paused, stats.blocked, stats.time_saved
     );
 
     axum::response::Html(html)
@@ -1460,34 +1576,58 @@ pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskS
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM tasks")
+        let total: i64 = diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks")
             .get_result::<CountResult>(&mut db_conn)
             .map(|r| r.count)
             .unwrap_or(0);
 
         let active: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status NOT IN ('done', 'completed', 'cancelled')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('running', 'pending', 'in_progress')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let completed: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE status IN ('done', 'completed')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('done', 'completed')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let awaiting: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('awaiting_decision', 'awaiting', 'waiting')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let paused: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status = 'paused'")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        let blocked: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('blocked', 'failed', 'error')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
 
         let priority: i64 =
-            diesel::sql_query("SELECT COUNT(*) as count FROM tasks WHERE priority IN ('high', 'urgent')")
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE priority IN ('high', 'urgent')")
                 .get_result::<CountResult>(&mut db_conn)
                 .map(|r| r.count)
                 .unwrap_or(0);
+
+        let time_saved = format!("{}h", completed * 2);
 
         Ok::<_, String>(TaskStats {
             total: total as usize,
             active: active as usize,
             completed: completed as usize,
+            awaiting: awaiting as usize,
+            paused: paused as usize,
+            blocked: blocked as usize,
             priority: priority as usize,
+            time_saved,
         })
     })
     .await
@@ -1499,10 +1639,41 @@ pub async fn handle_task_stats(State(state): State<Arc<AppState>>) -> Json<TaskS
         total: 0,
         active: 0,
         completed: 0,
+        awaiting: 0,
+        paused: 0,
+        blocked: 0,
         priority: 0,
+        time_saved: "0h".to_string(),
     });
 
     Json(stats)
+}
+
+pub async fn handle_time_saved(State(state): State<Arc<AppState>>) -> impl IntoResponse {
+    let conn = state.conn.clone();
+
+    let time_saved = tokio::task::spawn_blocking(move || {
+        let mut db_conn = match conn.get() {
+            Ok(c) => c,
+            Err(_) => return "0h".to_string(),
+        };
+
+        let completed: i64 =
+            diesel::sql_query("SELECT COUNT(*) as count FROM auto_tasks WHERE status IN ('done', 'completed')")
+                .get_result::<CountResult>(&mut db_conn)
+                .map(|r| r.count)
+                .unwrap_or(0);
+
+        format!("{}h", completed * 2)
+    })
+    .await
+    .unwrap_or_else(|_| "0h".to_string());
+
+    axum::response::Html(format!(
+        r#"<span class="time-label">Active Time Saved:</span>
+        <span class="time-value" id="time-saved-value">{}</span>"#,
+        time_saved
+    ))
 }
 
 pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl IntoResponse {
@@ -1513,7 +1684,7 @@ pub async fn handle_clear_completed(State(state): State<Arc<AppState>>) -> impl 
             .get()
             .map_err(|e| format!("DB connection error: {}", e))?;
 
-        diesel::sql_query("DELETE FROM tasks WHERE status IN ('done', 'completed')")
+        diesel::sql_query("DELETE FROM auto_tasks WHERE status IN ('done', 'completed')")
             .execute(&mut db_conn)
             .map_err(|e| format!("Delete failed: {}", e))?;
 
@@ -1595,7 +1766,11 @@ pub struct TaskStats {
     pub total: usize,
     pub active: usize,
     pub completed: usize,
+    pub awaiting: usize,
+    pub paused: usize,
+    pub blocked: usize,
     pub priority: usize,
+    pub time_saved: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

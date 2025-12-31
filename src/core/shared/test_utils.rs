@@ -178,6 +178,7 @@ impl TestAppStateBuilder {
         let pool = Pool::builder()
             .max_size(1)
             .test_on_check_out(false)
+            .connection_timeout(std::time::Duration::from_secs(5))
             .build(manager)?;
 
         let conn = pool.get()?;
@@ -240,7 +241,10 @@ pub fn create_test_db_pool() -> Result<DbPool, Box<dyn std::error::Error + Send 
     let database_url = get_database_url_sync()
         .unwrap_or_else(|_| "postgres://test:test@localhost:5432/test".to_string());
     let manager = ConnectionManager::<PgConnection>::new(&database_url);
-    let pool = Pool::builder().max_size(1).build(manager)?;
+    let pool = Pool::builder()
+        .max_size(1)
+        .connection_timeout(std::time::Duration::from_secs(5))
+        .build(manager)?;
     Ok(pool)
 }
 

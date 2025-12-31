@@ -324,11 +324,11 @@ pub async fn create_and_execute_handler(
     // Update status to running
     let _ = update_task_status_db(&state, task_id, "running", None);
 
-    // Use IntentClassifier to classify and process
+    // Use IntentClassifier to classify and process with task tracking
     let classifier = IntentClassifier::new(Arc::clone(&state));
 
     match classifier
-        .classify_and_process(&request.intent, &session)
+        .classify_and_process_with_task_id(&request.intent, &session, Some(task_id.to_string()))
         .await
     {
         Ok(result) => {

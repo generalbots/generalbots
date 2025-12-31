@@ -1,8 +1,10 @@
 use crate::config::ConfigManager;
+use crate::core::kb::embedding_generator::set_embedding_server_ready;
+use crate::core::shared::memory_monitor::{log_jemalloc_stats, MemoryStats};
 use crate::shared::models::schema::bots::dsl::*;
 use crate::shared::state::AppState;
 use diesel::prelude::*;
-use log::{error, info, warn};
+use log::{error, info, trace, warn};
 use reqwest;
 use std::fmt::Write;
 use std::sync::Arc;
@@ -11,7 +13,14 @@ use tokio;
 pub async fn ensure_llama_servers_running(
     app_state: Arc<AppState>,
 ) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+    trace!("[PROFILE] ensure_llama_servers_running ENTER");
+    let start_mem = MemoryStats::current();
+    trace!("[LLM_LOCAL] ensure_llama_servers_running START, RSS={}",
+          MemoryStats::format_bytes(start_mem.rss_bytes));
+    log_jemalloc_stats();
+
     if std::env::var("SKIP_LLM_SERVER").is_ok() {
+        trace!("[PROFILE] SKIP_LLM_SERVER set, returning early");
         info!("SKIP_LLM_SERVER set - skipping local LLM server startup (using mock/external LLM)");
         return Ok(());
     }
@@ -74,6 +83,9 @@ pub async fn ensure_llama_servers_running(
     info!("  Embedding Model: {embedding_model}");
     info!("  LLM Server Path: {llm_server_path}");
     info!("Restarting any existing llama-server processes...");
+    trace!("[PROFILE] About to pkill llama-server...");
+    let before_pkill = MemoryStats::current();
+    trace!("[LLM_LOCAL] Before pkill, RSS={}", MemoryStats::format_bytes(before_pkill.rss_bytes));
 
     if let Err(e) = tokio::process::Command::new("sh")
         .arg("-c")
@@ -85,6 +97,12 @@ pub async fn ensure_llama_servers_running(
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
         info!("Existing llama-server processes terminated (if any)");
     }
+    trace!("[PROFILE] pkill done");
+
+    let after_pkill = MemoryStats::current();
+    trace!("[LLM_LOCAL] After pkill, RSS={} (delta={})",
+          MemoryStats::format_bytes(after_pkill.rss_bytes),
+          MemoryStats::format_bytes(after_pkill.rss_bytes.saturating_sub(before_pkill.rss_bytes)));
 
     let llm_running = if llm_url.starts_with("https://") {
         info!("Using external HTTPS LLM server, skipping local startup");
@@ -135,12 +153,26 @@ pub async fn ensure_llama_servers_running(
         task.await??;
     }
     info!("Waiting for servers to become ready...");
+    trace!("[PROFILE] Starting wait loop for servers...");
+    let before_wait = MemoryStats::current();
+    trace!("[LLM_LOCAL] Before wait loop, RSS={}", MemoryStats::format_bytes(before_wait.rss_bytes));
+
     let mut llm_ready = llm_running || llm_model.is_empty();
     let mut embedding_ready = embedding_running || embedding_model.is_empty();
     let mut attempts = 0;
     let max_attempts = 120;
     while attempts < max_attempts && (!llm_ready || !embedding_ready) {
+        trace!("[PROFILE] Wait loop iteration {}", attempts);
         tokio::time::sleep(tokio::time::Duration::from_secs(2)).await;
+
+        if attempts % 5 == 0 {
+            let loop_mem = MemoryStats::current();
+            trace!("[LLM_LOCAL] Wait loop attempt {}, RSS={} (delta from start={})",
+                  attempts,
+                  MemoryStats::format_bytes(loop_mem.rss_bytes),
+                  MemoryStats::format_bytes(loop_mem.rss_bytes.saturating_sub(before_wait.rss_bytes)));
+            log_jemalloc_stats();
+        }
 
         if attempts % 5 == 0 {
             info!(
@@ -160,6 +192,7 @@ pub async fn ensure_llama_servers_running(
             if is_server_running(&embedding_url).await {
                 info!("Embedding server ready at {embedding_url}");
                 embedding_ready = true;
+                set_embedding_server_ready(true);
             } else if attempts % 10 == 0 {
                 warn!("Embedding server not ready yet at {embedding_url}");
 
@@ -185,11 +218,29 @@ pub async fn ensure_llama_servers_running(
     }
     if llm_ready && embedding_ready {
         info!("All llama.cpp servers are ready and responding!");
+        if !embedding_model.is_empty() {
+            set_embedding_server_ready(true);
+        }
+        trace!("[PROFILE] Servers ready!");
+
+        let after_ready = MemoryStats::current();
+        trace!("[LLM_LOCAL] Servers ready, RSS={} (delta from start={})",
+              MemoryStats::format_bytes(after_ready.rss_bytes),
+              MemoryStats::format_bytes(after_ready.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        log_jemalloc_stats();
 
         let _llm_provider1 = Arc::new(crate::llm::OpenAIClient::new(
             llm_model.clone(),
             Some(llm_url.clone()),
         ));
+
+        let end_mem = MemoryStats::current();
+        trace!("[LLM_LOCAL] ensure_llama_servers_running END, RSS={} (total delta={})",
+              MemoryStats::format_bytes(end_mem.rss_bytes),
+              MemoryStats::format_bytes(end_mem.rss_bytes.saturating_sub(start_mem.rss_bytes)));
+        log_jemalloc_stats();
+
+        trace!("[PROFILE] ensure_llama_servers_running EXIT OK");
         Ok(())
     } else {
         let mut error_msg = "Servers failed to start within timeout:".to_string();

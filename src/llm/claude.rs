@@ -3,9 +3,12 @@ use futures::StreamExt;
 use log::{info, trace, warn};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
+use std::time::Duration;
 use tokio::sync::mpsc;
 
 use super::{llm_models::get_handler, LLMProvider};
+
+const LLM_TIMEOUT_SECS: u64 = 300;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ClaudeMessage {
@@ -74,8 +77,14 @@ impl ClaudeClient {
     pub fn new(base_url: String, deployment_name: Option<String>) -> Self {
         let is_azure = base_url.contains("azure.com") || base_url.contains("openai.azure.com");
 
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(LLM_TIMEOUT_SECS))
+            .connect_timeout(Duration::from_secs(30))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
         Self {
-            client: reqwest::Client::new(),
+            client,
             base_url,
             deployment_name: deployment_name.unwrap_or_else(|| "claude-opus-4-5".to_string()),
             is_azure,
@@ -83,8 +92,14 @@ impl ClaudeClient {
     }
 
     pub fn azure(endpoint: String, deployment_name: String) -> Self {
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(LLM_TIMEOUT_SECS))
+            .connect_timeout(Duration::from_secs(30))
+            .build()
+            .unwrap_or_else(|_| reqwest::Client::new());
+
         Self {
-            client: reqwest::Client::new(),
+            client,
             base_url: endpoint,
             deployment_name,
             is_azure: true,
@@ -93,7 +108,6 @@ impl ClaudeClient {
 
     fn build_url(&self) -> String {
         if self.is_azure {
-            // Azure Claude exposes Anthropic API directly at /v1/messages
             format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
         } else {
             format!("{}/v1/messages", self.base_url.trim_end_matches('/'))
@@ -103,8 +117,6 @@ impl ClaudeClient {
     fn build_headers(&self, api_key: &str) -> reqwest::header::HeaderMap {
         let mut headers = reqwest::header::HeaderMap::new();
 
-        // Both Azure Claude and direct Anthropic use the same headers
-        // Azure Claude proxies the Anthropic API format
         if let Ok(val) = api_key.parse() {
             headers.insert("x-api-key", val);
         }
@@ -119,17 +131,12 @@ impl ClaudeClient {
         headers
     }
 
-    /// Normalize role names for Claude API compatibility.
-    /// Claude only accepts "user" or "assistant" roles in messages.
-    /// - "episodic" and "compact" roles (conversation summaries) are converted to "user" with a context prefix
-    /// - "system" roles should be handled separately (not in messages array)
-    /// - Unknown roles default to "user"
     fn normalize_role(role: &str) -> Option<(String, bool)> {
         match role {
             "user" => Some(("user".to_string(), false)),
             "assistant" => Some(("assistant".to_string(), false)),
-            "system" => None, // System messages handled separately
-            "episodic" | "compact" => Some(("user".to_string(), true)), // Mark as context
+            "system" => None,
+            "episodic" | "compact" => Some(("user".to_string(), true)),
             _ => Some(("user".to_string(), false)),
         }
     }
@@ -148,10 +155,9 @@ impl ClaudeClient {
             system_parts.push(context_data.to_string());
         }
 
-        // Extract episodic memory content and add to system prompt
         for (role, content) in history {
             if role == "episodic" || role == "compact" {
-                system_parts.push(format!("[Previous conversation summary]: {}", content));
+                system_parts.push(format!("[Previous conversation summary]: {content}"));
             }
         }
 
@@ -171,7 +177,7 @@ impl ClaudeClient {
                             content: content.clone(),
                         })
                     }
-                    _ => None, // Skip system, episodic, compact (already in system prompt)
+                    _ => None,
                 }
             })
             .collect();
@@ -221,7 +227,6 @@ impl LLMProvider for ClaudeClient {
                     .filter_map(|m| {
                         let role = m["role"].as_str().unwrap_or("user");
                         let content = m["content"].as_str().unwrap_or("");
-                        // Skip system messages (handled separately), episodic/compact (context), and empty content
                         if role == "system" || role == "episodic" || role == "compact" || content.is_empty() {
                             None
                         } else {
@@ -244,7 +249,6 @@ impl LLMProvider for ClaudeClient {
             }]
         };
 
-        // Ensure at least one user message exists
         if claude_messages.is_empty() && !prompt.is_empty() {
             claude_messages.push(ClaudeMessage {
                 role: "user".to_string(),
@@ -268,7 +272,6 @@ impl LLMProvider for ClaudeClient {
 
         let system = system_prompt.filter(|s| !s.is_empty());
 
-        // Validate we have at least one message with content
         if claude_messages.is_empty() {
             return Err("Cannot send request to Claude: no messages with content".into());
         }
@@ -281,26 +284,58 @@ impl LLMProvider for ClaudeClient {
             stream: None,
         };
 
-        info!("Claude request to {}: model={}", url, model_name);
+        info!("Claude request to {url}: model={model_name}");
         trace!("Claude request body: {:?}", serde_json::to_string(&request));
 
-        let response = self
+        let start_time = std::time::Instant::now();
+
+        let response = match self
             .client
             .post(&url)
             .headers(headers)
             .json(&request)
             .send()
-            .await?;
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                let elapsed = start_time.elapsed();
+                if e.is_timeout() {
+                    warn!("Claude request timed out after {elapsed:?} (limit: {LLM_TIMEOUT_SECS}s)");
+                    return Err(format!("Claude request timed out after {LLM_TIMEOUT_SECS}s").into());
+                }
+                warn!("Claude request failed after {elapsed:?}: {e}");
+                return Err(e.into());
+            }
+        };
 
+        let elapsed = start_time.elapsed();
         let status = response.status();
+
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            warn!("Claude API error ({}): {}", status, error_text);
-            return Err(format!("Claude API error ({}): {}", status, error_text).into());
+            warn!("Claude API error ({status}) after {elapsed:?}: {error_text}");
+            return Err(format!("Claude API error ({status}): {error_text}").into());
         }
 
-        let result: ClaudeResponse = response.json().await?;
+        info!("Claude response received in {elapsed:?}, status={status}");
+
+        let result: ClaudeResponse = match response.json().await {
+            Ok(r) => r,
+            Err(e) => {
+                warn!("Failed to parse Claude response: {e}");
+                return Err(format!("Failed to parse Claude response: {e}").into());
+            }
+        };
+
         let raw_content = self.extract_text_from_response(&result);
+        let content_len = raw_content.len();
+
+        info!(
+            "Claude response parsed: id={}, stop_reason={:?}, content_length={content_len}",
+            result.id,
+            result.stop_reason
+        );
 
         let handler = get_handler(model_name);
         let content = handler.process_content(&raw_content);
@@ -338,7 +373,6 @@ impl LLMProvider for ClaudeClient {
                     .filter_map(|m| {
                         let role = m["role"].as_str().unwrap_or("user");
                         let content = m["content"].as_str().unwrap_or("");
-                        // Skip system messages (handled separately), episodic/compact (context), and empty content
                         if role == "system" || role == "episodic" || role == "compact" || content.is_empty() {
                             None
                         } else {
@@ -361,7 +395,6 @@ impl LLMProvider for ClaudeClient {
             }]
         };
 
-        // Ensure at least one user message exists
         if claude_messages.is_empty() && !prompt.is_empty() {
             claude_messages.push(ClaudeMessage {
                 role: "user".to_string(),
@@ -385,7 +418,6 @@ impl LLMProvider for ClaudeClient {
 
         let system = system_prompt.filter(|s| !s.is_empty());
 
-        // Validate we have at least one message with content
         if claude_messages.is_empty() {
             return Err("Cannot send streaming request to Claude: no messages with content".into());
         }
@@ -398,25 +430,42 @@ impl LLMProvider for ClaudeClient {
             stream: Some(true),
         };
 
-        info!("Claude streaming request to {}: model={}", url, model_name);
+        info!("Claude streaming request to {url}: model={model_name}");
 
-        let response = self
+        let start_time = std::time::Instant::now();
+
+        let response = match self
             .client
             .post(&url)
             .headers(headers)
             .json(&request)
             .send()
-            .await?;
+            .await
+        {
+            Ok(resp) => resp,
+            Err(e) => {
+                let elapsed = start_time.elapsed();
+                if e.is_timeout() {
+                    warn!("Claude streaming request timed out after {elapsed:?}");
+                    return Err(format!("Claude streaming request timed out after {LLM_TIMEOUT_SECS}s").into());
+                }
+                warn!("Claude streaming request failed after {elapsed:?}: {e}");
+                return Err(e.into());
+            }
+        };
 
         let status = response.status();
         if !status.is_success() {
             let error_text = response.text().await.unwrap_or_default();
-            warn!("Claude streaming API error ({}): {}", status, error_text);
-            return Err(format!("Claude streaming API error ({}): {}", status, error_text).into());
+            warn!("Claude streaming API error ({status}): {error_text}");
+            return Err(format!("Claude streaming API error ({status}): {error_text}").into());
         }
+
+        info!("Claude streaming connection established in {:?}", start_time.elapsed());
 
         let handler = get_handler(model_name);
         let mut stream = response.bytes_stream();
+        let mut total_chunks = 0;
 
         while let Some(chunk) = stream.next().await {
             let chunk = chunk?;
@@ -439,6 +488,7 @@ impl LLMProvider for ClaudeClient {
                                     let processed = handler.process_content(&delta.text);
                                     if !processed.is_empty() {
                                         let _ = tx.send(processed).await;
+                                        total_chunks += 1;
                                     }
                                 }
                             }
@@ -447,6 +497,12 @@ impl LLMProvider for ClaudeClient {
                 }
             }
         }
+
+        info!(
+            "Claude streaming completed in {:?}, chunks={}",
+            start_time.elapsed(),
+            total_chunks
+        );
 
         Ok(())
     }
@@ -490,7 +546,6 @@ mod tests {
             "claude-opus-4-5".to_string(),
         );
         let url = client.build_url();
-        // Azure Claude uses Anthropic API format directly
         assert!(url.contains("/v1/messages"));
     }
 

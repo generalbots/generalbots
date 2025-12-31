@@ -252,7 +252,7 @@ impl PackageManager {
                 ]),
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/minio server {{DATA_PATH}} --address :9000 --console-address :9001 --certs-dir {{CONF_PATH}}/drive/certs > {{LOGS_PATH}}/minio.log 2>&1 &".to_string(),
-                check_cmd: "curl -sfk https://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
+                check_cmd: "curl -sf --cacert {{CONF_PATH}}/drive/certs/CAs/ca.crt https://127.0.0.1:9000/minio/health/live >/dev/null 2>&1".to_string(),
             },
         );
     }
@@ -891,12 +891,15 @@ storage "file" {
 }
 
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = 1
+  address       = "0.0.0.0:8200"
+  tls_disable   = false
+  tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
+  tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
+  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "http://0.0.0.0:8200"
-cluster_addr = "http://0.0.0.0:8201"
+api_addr = "https://localhost:8200"
+cluster_addr = "https://localhost:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -914,12 +917,15 @@ storage "file" {
 }
 
 listener "tcp" {
-  address     = "0.0.0.0:8200"
-  tls_disable = 1
+  address       = "0.0.0.0:8200"
+  tls_disable   = false
+  tls_cert_file = "{{CONF_PATH}}/system/certificates/vault/server.crt"
+  tls_key_file  = "{{CONF_PATH}}/system/certificates/vault/server.key"
+  tls_client_ca_file = "{{CONF_PATH}}/system/certificates/ca/ca.crt"
 }
 
-api_addr = "http://0.0.0.0:8200"
-cluster_addr = "http://0.0.0.0:8201"
+api_addr = "https://localhost:8200"
+cluster_addr = "https://localhost:8201"
 ui = true
 disable_mlock = true
 EOF"#.to_string(),
@@ -933,13 +939,16 @@ EOF"#.to_string(),
                         "VAULT_ADDR".to_string(),
                         "https://localhost:8200".to_string(),
                     );
-                    env.insert("VAULT_SKIP_VERIFY".to_string(), "true".to_string());
+                    env.insert(
+                        "VAULT_CACERT".to_string(),
+                        "./botserver-stack/conf/system/certificates/ca/ca.crt".to_string(),
+                    );
                     env
                 },
                 data_download_list: Vec::new(),
                 exec_cmd: "nohup {{BIN_PATH}}/vault server -config={{CONF_PATH}}/vault/config.hcl > {{LOGS_PATH}}/vault.log 2>&1 &"
                     .to_string(),
-                check_cmd: "curl -f -s --connect-timeout 2 -m 5 'http://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
+                check_cmd: "curl -f -sk --connect-timeout 2 -m 5 'https://localhost:8200/v1/sys/health?standbyok=true&uninitcode=200&sealedcode=200' >/dev/null 2>&1"
                     .to_string(),
             },
         );
@@ -1165,9 +1174,10 @@ EOF"#.to_string(),
         }
 
         // Check if Vault is reachable before trying to fetch credentials
+        // Use -k for self-signed certs in dev
         let vault_check = std::process::Command::new("sh")
             .arg("-c")
-            .arg(format!("curl -sf {}/v1/sys/health >/dev/null 2>&1", vault_addr))
+            .arg(format!("curl -sfk {}/v1/sys/health >/dev/null 2>&1", vault_addr))
             .status()
             .map(|s| s.success())
             .unwrap_or(false);
@@ -1187,10 +1197,14 @@ EOF"#.to_string(),
         let vault_bin = base_path.join("bin/vault/vault");
         let vault_bin_str = vault_bin.to_string_lossy();
 
+        // Get CA cert path for Vault TLS
+        let ca_cert_path = std::env::var("VAULT_CACERT")
+            .unwrap_or_else(|_| base_path.join("conf/system/certificates/ca/ca.crt").to_string_lossy().to_string());
+
         trace!("Fetching drive credentials from Vault at {} using {}", vault_addr, vault_bin_str);
         let drive_cmd = format!(
-            "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get -format=json secret/gbo/drive",
-            vault_addr, vault_token, vault_bin_str
+            "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/drive",
+            vault_addr, vault_token, ca_cert_path, vault_bin_str
         );
         match std::process::Command::new("sh")
             .arg("-c")
@@ -1229,8 +1243,8 @@ EOF"#.to_string(),
         if let Ok(output) = std::process::Command::new("sh")
             .arg("-c")
             .arg(format!(
-                "unset VAULT_CLIENT_CERT VAULT_CLIENT_KEY VAULT_CACERT; VAULT_ADDR={} VAULT_TOKEN={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
-                vault_addr, vault_token, vault_bin_str
+                "VAULT_ADDR={} VAULT_TOKEN={} VAULT_CACERT={} {} kv get -format=json secret/gbo/cache 2>/dev/null",
+                vault_addr, vault_token, ca_cert_path, vault_bin_str
             ))
             .output()
         {
